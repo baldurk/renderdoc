@@ -214,16 +214,16 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     for(const BugReport &b : bugs)
     {
       // check bugs every two days
-      qint64 diff = b.CheckDate.secsTo(now);
+      qint64 diff = b.checkDate.secsTo(now);
       if(diff > 2 * 24 * 60 * 60)
       {
         // update the check date on the stored bug
         GUIInvoke::call([this, b, now]() {
           for(BugReport &bug : m_Ctx.Config().CrashReport_ReportedBugs)
           {
-            if(bug.ID == b.ID)
+            if(bug.reportId == b.reportId)
             {
-              bug.CheckDate = now;
+              bug.checkDate = now;
               break;
             }
           }
@@ -248,13 +248,13 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
             QDateTime update = QDateTime::fromString(response, lit("yyyy-MM-dd HH:mm:ss"));
 
             // if there's been an update since the last check, set unread
-            if(update.isValid() && update > b.CheckDate)
+            if(update.isValid() && update > b.checkDate)
             {
               for(BugReport &bug : m_Ctx.Config().CrashReport_ReportedBugs)
               {
-                if(bug.ID == b.ID)
+                if(bug.reportId == b.reportId)
                 {
-                  bug.UnreadUpdates = true;
+                  bug.unreadUpdates = true;
                   break;
                 }
               }
@@ -440,7 +440,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       }
 
       LiveCapture *live = new LiveCapture(
-          m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : "",
+          m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->hostname : "",
           m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : "", ret, this,
           this);
       ShowLiveCapture(live);
@@ -509,7 +509,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
     ReplaySupport support = ReplaySupport::Unsupported;
 
     bool remoteReplay =
-        !local || (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->Connected);
+        !local || (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->connected);
 
     if(local)
     {
@@ -571,7 +571,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
           }
 
           remoteReplay =
-              (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->Connected);
+              (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->connected);
 
           if(!remoteReplay)
           {
@@ -983,23 +983,23 @@ void MainWindow::PopulateReportedBugs()
     BugReport &bug = m_Ctx.Config().CrashReport_ReportedBugs[i];
     QString fmt = tr("&%1: Bug reported at %2");
 
-    if(bug.UnreadUpdates)
+    if(bug.unreadUpdates)
       fmt = tr("&%1: (Update) Bug reported at %2");
 
     QAction *action =
-        ui->menu_Reported_Bugs->addAction(fmt.arg(idx).arg(bug.SubmitDate.toString()), [this, i] {
+        ui->menu_Reported_Bugs->addAction(fmt.arg(idx).arg(bug.submitDate.toString()), [this, i] {
           BugReport &bug = m_Ctx.Config().CrashReport_ReportedBugs[i];
 
           QDesktopServices::openUrl(QString(bug.URL()));
 
-          bug.UnreadUpdates = false;
+          bug.unreadUpdates = false;
           m_Ctx.Config().Save();
 
           PopulateReportedBugs();
         });
     idx++;
 
-    if(bug.UnreadUpdates)
+    if(bug.unreadUpdates)
     {
       action->setIcon(Icons::bug());
       unread = true;
@@ -1366,7 +1366,7 @@ void MainWindow::remoteProbe()
     for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
     {
       // don't mess with a host we're connected to - this is handled anyway
-      if(host->Connected)
+      if(host->connected)
         continue;
 
       host->CheckStatus();
@@ -1389,11 +1389,11 @@ void MainWindow::messageCheck()
 
       if(m_Ctx.Replay().CurrentRemote())
       {
-        bool prev = m_Ctx.Replay().CurrentRemote()->ServerRunning;
+        bool prev = m_Ctx.Replay().CurrentRemote()->serverRunning;
 
         m_Ctx.Replay().PingRemote();
 
-        if(prev != m_Ctx.Replay().CurrentRemote()->ServerRunning)
+        if(prev != m_Ctx.Replay().CurrentRemote()->serverRunning)
           disconnected = true;
       }
 
@@ -1408,7 +1408,7 @@ void MainWindow::messageCheck()
                                 "RenderDoc to reconnect and load the capture again"));
         }
 
-        if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
+        if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
           contextChooser->setIcon(Icons::cross());
 
         if(!msgs.empty())
@@ -1431,7 +1431,7 @@ void MainWindow::messageCheck()
       m_Ctx.Replay().PingRemote();
 
     GUIInvoke::call([this]() {
-      if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
+      if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
       {
         contextChooser->setIcon(Icons::cross());
         contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
@@ -1458,14 +1458,14 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 
     QAction *action = new QAction(menu);
 
-    action->setIcon(host->ServerRunning && !host->VersionMismatch ? Icons::tick() : Icons::cross());
-    if(host->Connected)
+    action->setIcon(host->serverRunning && !host->versionMismatch ? Icons::tick() : Icons::cross());
+    if(host->connected)
       action->setText(tr("%1 (Connected)").arg(host->Name()));
-    else if(host->ServerRunning && host->VersionMismatch)
+    else if(host->serverRunning && host->versionMismatch)
       action->setText(tr("%1 (Bad Version)").arg(host->Name()));
-    else if(host->ServerRunning && host->Busy)
+    else if(host->serverRunning && host->busy)
       action->setText(tr("%1 (Busy)").arg(host->Name()));
-    else if(host->ServerRunning)
+    else if(host->serverRunning)
       action->setText(tr("%1 (Online)").arg(host->Name()));
     else
       action->setText(tr("%1 (Offline)").arg(host->Name()));
@@ -1473,7 +1473,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
     action->setData(i);
 
     // don't allow switching to the connected host
-    if(host->Connected)
+    if(host->connected)
       action->setEnabled(false);
 
     menu->addAction(action);
@@ -1518,7 +1518,7 @@ void MainWindow::switchContext()
     // allow live captures to this host to stay open, that way
     // we can connect to a live capture, then switch into that
     // context
-    if(host && live->hostname() == host->Hostname)
+    if(host && live->hostname() == host->hostname)
       continue;
 
     if(!live->checkAllowClose())
@@ -1533,7 +1533,7 @@ void MainWindow::switchContext()
     // allow live captures to this host to stay open, that way
     // we can connect to a live capture, then switch into that
     // context
-    if(host && live->hostname() == host->Hostname)
+    if(host && live->hostname() == host->hostname)
       continue;
 
     live->cleanItems();
@@ -1556,7 +1556,7 @@ void MainWindow::switchContext()
   else
   {
     contextChooser->setText(tr("Replay Context: %1").arg(host->Name()));
-    contextChooser->setIcon(host->ServerRunning ? Icons::connect() : Icons::disconnect());
+    contextChooser->setIcon(host->serverRunning ? Icons::connect() : Icons::disconnect());
 
     // disable until checking is done
     contextChooser->setEnabled(false);
@@ -1571,7 +1571,7 @@ void MainWindow::switchContext()
       // see if the server is up
       host->CheckStatus();
 
-      if(!host->ServerRunning && !host->RunCommand.isEmpty())
+      if(!host->serverRunning && !host->runCommand.isEmpty())
       {
         GUIInvoke::call([this]() { statusText->setText(tr("Running remote server command...")); });
 
@@ -1583,13 +1583,13 @@ void MainWindow::switchContext()
 
       ReplayStatus status = ReplayStatus::Succeeded;
 
-      if(host->ServerRunning && !host->Busy)
+      if(host->serverRunning && !host->busy)
       {
         status = m_Ctx.Replay().ConnectToRemoteServer(host);
       }
 
       GUIInvoke::call([this, host, status]() {
-        contextChooser->setIcon(host->ServerRunning && !host->Busy ? Icons::connect()
+        contextChooser->setIcon(host->serverRunning && !host->busy ? Icons::connect()
                                                                    : Icons::disconnect());
 
         if(status != ReplayStatus::Succeeded)
@@ -1598,22 +1598,22 @@ void MainWindow::switchContext()
           contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
           statusText->setText(tr("Connection failed: %1").arg(ToQStr(status)));
         }
-        else if(host->VersionMismatch)
+        else if(host->versionMismatch)
         {
           statusText->setText(
               tr("Remote server is not running RenderDoc %1").arg(lit(FULL_VERSION_STRING)));
         }
-        else if(host->Busy)
+        else if(host->busy)
         {
           statusText->setText(tr("Remote server in use elsewhere"));
         }
-        else if(host->ServerRunning)
+        else if(host->serverRunning)
         {
           statusText->setText(tr("Remote server ready"));
         }
         else
         {
-          if(!host->RunCommand.isEmpty())
+          if(!host->runCommand.isEmpty())
             statusText->setText(tr("Remote server not running or failed to start"));
           else
             statusText->setText(tr("Remote server not running - no start command configured"));
@@ -1698,7 +1698,7 @@ void MainWindow::OnCaptureClosed()
   SetTitle();
 
   // if the remote sever disconnected during capture replay, resort back to a 'disconnected' state
-  if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
+  if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
   {
     statusText->setText(
         tr("Remote server disconnected. To attempt to reconnect please select it again."));
@@ -1707,7 +1707,7 @@ void MainWindow::OnCaptureClosed()
   }
 }
 
-void MainWindow::OnEventChanged(uint32_t eventID)
+void MainWindow::OnEventChanged(uint32_t eventId)
 {
 }
 
@@ -2056,7 +2056,7 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
 
   if(displayTex)
   {
-    id = displayTex->ID;
+    id = displayTex->resourceId;
     popup.resize((int)displayTex->width, (int)displayTex->height);
     popup.setWindowTitle(tr("Looping replay of %1 Displaying %2")
                              .arg(m_Ctx.GetCaptureFilename())

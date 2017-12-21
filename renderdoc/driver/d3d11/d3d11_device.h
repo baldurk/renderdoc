@@ -445,7 +445,7 @@ public:
   ResourceId GetResourceID() { return m_ResourceID; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   FrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventID);
+  const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   void ReplayPushEvent() { m_ReplayEventCount++; }
   void ReplayPopEvent() { m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1); }

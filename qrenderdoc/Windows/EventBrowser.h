@@ -58,8 +58,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
@@ -101,8 +101,8 @@ private:
 
   void ExpandNode(RDTreeWidgetItem *node);
 
-  bool FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventID);
-  bool SelectEvent(uint32_t eventID);
+  bool FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventId);
+  bool SelectEvent(uint32_t eventId);
 
   void ClearFindIcons(RDTreeWidgetItem *parent);
   void ClearFindIcons();

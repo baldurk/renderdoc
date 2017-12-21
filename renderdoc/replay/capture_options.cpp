@@ -34,20 +34,20 @@ int RENDERDOC_CC SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
 
   switch(opt)
   {
-    case eRENDERDOC_Option_AllowVSync: opts.AllowVSync = (val != 0); break;
-    case eRENDERDOC_Option_AllowFullscreen: opts.AllowFullscreen = (val != 0); break;
-    case eRENDERDOC_Option_APIValidation: opts.APIValidation = (val != 0); break;
-    case eRENDERDOC_Option_CaptureCallstacks: opts.CaptureCallstacks = (val != 0); break;
+    case eRENDERDOC_Option_AllowVSync: opts.allowVSync = (val != 0); break;
+    case eRENDERDOC_Option_AllowFullscreen: opts.allowFullscreen = (val != 0); break;
+    case eRENDERDOC_Option_APIValidation: opts.apiValidation = (val != 0); break;
+    case eRENDERDOC_Option_CaptureCallstacks: opts.captureCallstacks = (val != 0); break;
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      opts.CaptureCallstacksOnlyDraws = (val != 0);
+      opts.captureCallstacksOnlyDraws = (val != 0);
       break;
-    case eRENDERDOC_Option_DelayForDebugger: opts.DelayForDebugger = val; break;
-    case eRENDERDOC_Option_VerifyMapWrites: opts.VerifyMapWrites = (val != 0); break;
-    case eRENDERDOC_Option_HookIntoChildren: opts.HookIntoChildren = (val != 0); break;
-    case eRENDERDOC_Option_RefAllResources: opts.RefAllResources = (val != 0); break;
-    case eRENDERDOC_Option_SaveAllInitials: opts.SaveAllInitials = (val != 0); break;
-    case eRENDERDOC_Option_CaptureAllCmdLists: opts.CaptureAllCmdLists = (val != 0); break;
-    case eRENDERDOC_Option_DebugOutputMute: opts.DebugOutputMute = (val != 0); break;
+    case eRENDERDOC_Option_DelayForDebugger: opts.delayForDebugger = val; break;
+    case eRENDERDOC_Option_VerifyMapWrites: opts.verifyMapWrites = (val != 0); break;
+    case eRENDERDOC_Option_HookIntoChildren: opts.hookIntoChildren = (val != 0); break;
+    case eRENDERDOC_Option_RefAllResources: opts.refAllResources = (val != 0); break;
+    case eRENDERDOC_Option_SaveAllInitials: opts.saveAllInitials = (val != 0); break;
+    case eRENDERDOC_Option_CaptureAllCmdLists: opts.captureAllCmdLists = (val != 0); break;
+    case eRENDERDOC_Option_DebugOutputMute: opts.debugOutputMute = (val != 0); break;
     default: RDCLOG("Unrecognised capture option '%d'", opt); return 0;
   }
 
@@ -61,20 +61,20 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
 
   switch(opt)
   {
-    case eRENDERDOC_Option_AllowVSync: opts.AllowVSync = (val != 0.0f); break;
-    case eRENDERDOC_Option_AllowFullscreen: opts.AllowFullscreen = (val != 0.0f); break;
-    case eRENDERDOC_Option_APIValidation: opts.APIValidation = (val != 0.0f); break;
-    case eRENDERDOC_Option_CaptureCallstacks: opts.CaptureCallstacks = (val != 0.0f); break;
+    case eRENDERDOC_Option_AllowVSync: opts.allowVSync = (val != 0.0f); break;
+    case eRENDERDOC_Option_AllowFullscreen: opts.allowFullscreen = (val != 0.0f); break;
+    case eRENDERDOC_Option_APIValidation: opts.apiValidation = (val != 0.0f); break;
+    case eRENDERDOC_Option_CaptureCallstacks: opts.captureCallstacks = (val != 0.0f); break;
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      opts.CaptureCallstacksOnlyDraws = (val != 0.0f);
+      opts.captureCallstacksOnlyDraws = (val != 0.0f);
       break;
-    case eRENDERDOC_Option_DelayForDebugger: opts.DelayForDebugger = (uint32_t)val; break;
-    case eRENDERDOC_Option_VerifyMapWrites: opts.VerifyMapWrites = (val != 0.0f); break;
-    case eRENDERDOC_Option_HookIntoChildren: opts.HookIntoChildren = (val != 0.0f); break;
-    case eRENDERDOC_Option_RefAllResources: opts.RefAllResources = (val != 0.0f); break;
-    case eRENDERDOC_Option_SaveAllInitials: opts.SaveAllInitials = (val != 0.0f); break;
-    case eRENDERDOC_Option_CaptureAllCmdLists: opts.CaptureAllCmdLists = (val != 0.0f); break;
-    case eRENDERDOC_Option_DebugOutputMute: opts.DebugOutputMute = (val != 0.0f); break;
+    case eRENDERDOC_Option_DelayForDebugger: opts.delayForDebugger = (uint32_t)val; break;
+    case eRENDERDOC_Option_VerifyMapWrites: opts.verifyMapWrites = (val != 0.0f); break;
+    case eRENDERDOC_Option_HookIntoChildren: opts.hookIntoChildren = (val != 0.0f); break;
+    case eRENDERDOC_Option_RefAllResources: opts.refAllResources = (val != 0.0f); break;
+    case eRENDERDOC_Option_SaveAllInitials: opts.saveAllInitials = (val != 0.0f); break;
+    case eRENDERDOC_Option_CaptureAllCmdLists: opts.captureAllCmdLists = (val != 0.0f); break;
+    case eRENDERDOC_Option_DebugOutputMute: opts.debugOutputMute = (val != 0.0f); break;
     default: RDCLOG("Unrecognised capture option '%d'", opt); return 0;
   }
 
@@ -87,29 +87,29 @@ uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt)
   switch(opt)
   {
     case eRENDERDOC_Option_AllowVSync:
-      return (RenderDoc::Inst().GetCaptureOptions().AllowVSync ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().allowVSync ? 1 : 0);
     case eRENDERDOC_Option_AllowFullscreen:
-      return (RenderDoc::Inst().GetCaptureOptions().AllowFullscreen ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().allowFullscreen ? 1 : 0);
     case eRENDERDOC_Option_APIValidation:
-      return (RenderDoc::Inst().GetCaptureOptions().APIValidation ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().apiValidation ? 1 : 0);
     case eRENDERDOC_Option_CaptureCallstacks:
-      return (RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacks ? 1 : 0);
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      return (RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws ? 1 : 0);
     case eRENDERDOC_Option_DelayForDebugger:
-      return (RenderDoc::Inst().GetCaptureOptions().DelayForDebugger);
+      return (RenderDoc::Inst().GetCaptureOptions().delayForDebugger);
     case eRENDERDOC_Option_VerifyMapWrites:
-      return (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites ? 1 : 0);
     case eRENDERDOC_Option_HookIntoChildren:
-      return (RenderDoc::Inst().GetCaptureOptions().HookIntoChildren ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().hookIntoChildren ? 1 : 0);
     case eRENDERDOC_Option_RefAllResources:
-      return (RenderDoc::Inst().GetCaptureOptions().RefAllResources ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().refAllResources ? 1 : 0);
     case eRENDERDOC_Option_SaveAllInitials:
-      return (RenderDoc::Inst().GetCaptureOptions().SaveAllInitials ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().saveAllInitials ? 1 : 0);
     case eRENDERDOC_Option_CaptureAllCmdLists:
-      return (RenderDoc::Inst().GetCaptureOptions().CaptureAllCmdLists ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists ? 1 : 0);
     case eRENDERDOC_Option_DebugOutputMute:
-      return (RenderDoc::Inst().GetCaptureOptions().DebugOutputMute ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().debugOutputMute ? 1 : 0);
     default: break;
   }
 
@@ -122,29 +122,29 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
   switch(opt)
   {
     case eRENDERDOC_Option_AllowVSync:
-      return (RenderDoc::Inst().GetCaptureOptions().AllowVSync ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().allowVSync ? 1.0f : 0.0f);
     case eRENDERDOC_Option_AllowFullscreen:
-      return (RenderDoc::Inst().GetCaptureOptions().AllowFullscreen ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().allowFullscreen ? 1.0f : 0.0f);
     case eRENDERDOC_Option_APIValidation:
-      return (RenderDoc::Inst().GetCaptureOptions().APIValidation ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().apiValidation ? 1.0f : 0.0f);
     case eRENDERDOC_Option_CaptureCallstacks:
-      return (RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacks ? 1.0f : 0.0f);
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      return (RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws ? 1.0f : 0.0f);
     case eRENDERDOC_Option_DelayForDebugger:
-      return (RenderDoc::Inst().GetCaptureOptions().DelayForDebugger * 1.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().delayForDebugger * 1.0f);
     case eRENDERDOC_Option_VerifyMapWrites:
-      return (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites ? 1.0f : 0.0f);
     case eRENDERDOC_Option_HookIntoChildren:
-      return (RenderDoc::Inst().GetCaptureOptions().HookIntoChildren ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().hookIntoChildren ? 1.0f : 0.0f);
     case eRENDERDOC_Option_RefAllResources:
-      return (RenderDoc::Inst().GetCaptureOptions().RefAllResources ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().refAllResources ? 1.0f : 0.0f);
     case eRENDERDOC_Option_SaveAllInitials:
-      return (RenderDoc::Inst().GetCaptureOptions().SaveAllInitials ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().saveAllInitials ? 1.0f : 0.0f);
     case eRENDERDOC_Option_CaptureAllCmdLists:
-      return (RenderDoc::Inst().GetCaptureOptions().CaptureAllCmdLists ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists ? 1.0f : 0.0f);
     case eRENDERDOC_Option_DebugOutputMute:
-      return (RenderDoc::Inst().GetCaptureOptions().DebugOutputMute ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().debugOutputMute ? 1.0f : 0.0f);
     default: break;
   }
 
@@ -154,16 +154,16 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
 
 CaptureOptions::CaptureOptions()
 {
-  AllowVSync = true;
-  AllowFullscreen = true;
-  APIValidation = false;
-  CaptureCallstacks = false;
-  CaptureCallstacksOnlyDraws = false;
-  DelayForDebugger = 0;
-  VerifyMapWrites = false;
-  HookIntoChildren = false;
-  RefAllResources = false;
-  SaveAllInitials = false;
-  CaptureAllCmdLists = false;
-  DebugOutputMute = true;
+  allowVSync = true;
+  allowFullscreen = true;
+  apiValidation = false;
+  captureCallstacks = false;
+  captureCallstacksOnlyDraws = false;
+  delayForDebugger = 0;
+  verifyMapWrites = false;
+  hookIntoChildren = false;
+  refAllResources = false;
+  saveAllInitials = false;
+  captureAllCmdLists = false;
+  debugOutputMute = true;
 }

@@ -2485,7 +2485,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
         {
           parentCmdBufInfo.debugMessages.push_back(cmdBufInfo.debugMessages[i]);
-          parentCmdBufInfo.debugMessages.back().eventID += parentCmdBufInfo.curEventID;
+          parentCmdBufInfo.debugMessages.back().eventId += parentCmdBufInfo.curEventID;
         }
 
         // only primary command buffers can be submitted

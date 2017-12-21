@@ -65,40 +65,40 @@ DOCUMENT("Describes a submitted bug report.");
 struct BugReport
 {
   DOCUMENT("");
-  BugReport() { UnreadUpdates = false; }
+  BugReport() { unreadUpdates = false; }
   VARIANT_CAST(BugReport);
   bool operator==(const BugReport &o) const
   {
-    return ID == o.ID && SubmitDate == o.SubmitDate && CheckDate == o.CheckDate &&
-           UnreadUpdates == o.UnreadUpdates;
+    return reportId == o.reportId && submitDate == o.submitDate && checkDate == o.checkDate &&
+           unreadUpdates == o.unreadUpdates;
   }
   bool operator<(const BugReport &o) const
   {
-    if(ID != o.ID)
-      return ID < o.ID;
-    if(SubmitDate != o.SubmitDate)
-      return SubmitDate < o.SubmitDate;
-    if(CheckDate != o.CheckDate)
-      return CheckDate < o.CheckDate;
-    if(UnreadUpdates != o.UnreadUpdates)
-      return UnreadUpdates < o.UnreadUpdates;
+    if(reportId != o.reportId)
+      return reportId < o.reportId;
+    if(submitDate != o.submitDate)
+      return submitDate < o.submitDate;
+    if(checkDate != o.checkDate)
+      return checkDate < o.checkDate;
+    if(unreadUpdates != o.unreadUpdates)
+      return unreadUpdates < o.unreadUpdates;
     return false;
   }
   DOCUMENT("The private ID of the bug report.");
-  rdcstr ID;
+  rdcstr reportId;
   DOCUMENT("The original date when this bug was submitted.");
-  QDateTime SubmitDate;
+  QDateTime submitDate;
   DOCUMENT("The last date that we checked for updates.");
-  QDateTime CheckDate;
+  QDateTime checkDate;
   DOCUMENT("Unread updates to the bug exist");
-  bool UnreadUpdates = false;
+  bool unreadUpdates = false;
 
   DOCUMENT(R"(Gets the URL for this report.
 
 :return: The URL to the report.
 :rtype: ``str``
 )");
-  rdcstr URL() const { return lit(BUGREPORT_URL "/report/%1").arg(QString(ID)); }
+  rdcstr URL() const { return lit(BUGREPORT_URL "/report/%1").arg(QString(reportId)); }
 };
 
 DECLARE_REFLECTION_STRUCT(BugReport);
@@ -376,14 +376,14 @@ For more information about some of these settings that are user-facing see
 
 .. data:: EventBrowser_ApplyColors
 
-  ``True`` if the :class:`EventBrowser` should apply any colours specified with API marker regions.
+  ``True`` if the :class:`EventBrowser` should apply any colors specified with API marker regions.
 
   Defaults to ``True``.
 
 .. data:: EventBrowser_ColorEventRow
 
-  ``True`` if when colouring marker regions in the :class:`EventBrowser`, the whole row should be
-  coloured instead of just a side-bar.
+  ``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row should be
+  colored instead of just a side-bar.
 
   Defaults to ``True``.
 )",
@@ -456,8 +456,8 @@ For more information about some of these settings that are user-facing see
 
 .. data:: CheckUpdate_AllowChecks
 
-  ``True`` if when colouring marker regions in the :class:`EventBrowser`, the whole row should be
-  coloured instead of just a side-bar.
+  ``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row should be
+  colored instead of just a side-bar.
 
   Defaults to ``True``.
 

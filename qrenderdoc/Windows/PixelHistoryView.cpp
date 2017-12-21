@@ -32,7 +32,7 @@
 
 struct EventTag
 {
-  uint32_t eventID = 0;
+  uint32_t eventId = 0;
   uint32_t primitive = ~0U;
 };
 
@@ -93,10 +93,10 @@ public:
     m_History.reserve(m_ModList.count());
     for(const PixelModification &h : m_ModList)
     {
-      if(!show && !h.passed())
+      if(!show && !h.Passed())
         continue;
 
-      if(m_History.isEmpty() || m_History.back().back().eventID != h.eventID)
+      if(m_History.isEmpty() || m_History.back().back().eventId != h.eventId)
         m_History.push_back({h});
       else
         m_History.back().push_back(h);
@@ -133,7 +133,7 @@ public:
     if(isEvent(parent))
     {
       const QList<PixelModification> &mods = getMods(parent);
-      const DrawcallDescription *draw = m_Ctx.GetDrawcall(mods.front().eventID);
+      const DrawcallDescription *draw = m_Ctx.GetDrawcall(mods.front().eventId);
 
       if(draw && draw->flags & DrawFlags::Clear)
         return 0;
@@ -193,7 +193,7 @@ public:
           if(isEvent(index))
           {
             const QList<PixelModification> &mods = getMods(index);
-            const DrawcallDescription *drawcall = m_Ctx.GetDrawcall(mods.front().eventID);
+            const DrawcallDescription *drawcall = m_Ctx.GetDrawcall(mods.front().eventId);
             if(!drawcall)
               return QVariant();
 
@@ -229,10 +229,10 @@ public:
             if(mods.front().directShaderWrite)
             {
               ret += tr("EID %1\n%2\nBound as UAV or copy - potential modification")
-                         .arg(mods.front().eventID)
+                         .arg(mods.front().eventId)
                          .arg(drawcall->name);
 
-              if(memcmp(mods[0].preMod.col.value_u, mods[0].postMod.col.value_u,
+              if(memcmp(mods[0].preMod.col.uintValue, mods[0].postMod.col.uintValue,
                         sizeof(uint32_t) * 4) == 0)
               {
                 ret += tr("\nNo change in tex value");
@@ -243,12 +243,12 @@ public:
             {
               passed = false;
               for(const PixelModification &m : mods)
-                passed |= m.passed();
+                passed |= m.Passed();
 
               QString failure = passed ? QString() : failureString(mods[0]);
 
               ret += tr("EID %1\n%2%3\n%4 Fragments touching pixel\n")
-                         .arg(mods.front().eventID)
+                         .arg(mods.front().eventId)
                          .arg(drawcall->name)
                          .arg(failure)
                          .arg(mods.count());
@@ -264,10 +264,10 @@ public:
             {
               QString ret = tr("Potential UAV/Copy write");
 
-              if(mod.preMod.col.value_u[0] == mod.postMod.col.value_u[0] &&
-                 mod.preMod.col.value_u[1] == mod.postMod.col.value_u[1] &&
-                 mod.preMod.col.value_u[2] == mod.postMod.col.value_u[2] &&
-                 mod.preMod.col.value_u[3] == mod.postMod.col.value_u[3])
+              if(mod.preMod.col.uintValue[0] == mod.postMod.col.uintValue[0] &&
+                 mod.preMod.col.uintValue[1] == mod.postMod.col.uintValue[1] &&
+                 mod.preMod.col.uintValue[2] == mod.postMod.col.uintValue[2] &&
+                 mod.preMod.col.uintValue[3] == mod.postMod.col.uintValue[3])
               {
                 ret += tr("\nNo change in tex value");
               }
@@ -343,11 +343,11 @@ public:
 
           bool passed = false;
           for(const PixelModification &m : mods)
-            passed |= m.passed();
+            passed |= m.Passed();
 
           if(mods[0].directShaderWrite &&
-             memcmp(mods[0].preMod.col.value_u, mods[0].postMod.col.value_u, sizeof(uint32_t) * 4) ==
-                 0)
+             memcmp(mods[0].preMod.col.uintValue, mods[0].postMod.col.uintValue,
+                    sizeof(uint32_t) * 4) == 0)
             return QBrush(QColor::fromRgb(235, 235, 235));
 
           return passed ? QBrush(QColor::fromRgb(235, 255, 235))
@@ -366,13 +366,13 @@ public:
 
         if(isEvent(index))
         {
-          tag.eventID = getMods(index).first().eventID;
+          tag.eventId = getMods(index).first().eventId;
         }
         else
         {
           const PixelModification &mod = getMod(index);
 
-          tag.eventID = mod.eventID;
+          tag.eventId = mod.eventId;
           if(!mod.directShaderWrite)
             tag.primitive = mod.primitiveID;
         }
@@ -385,7 +385,7 @@ public:
   }
 
   const QVector<PixelModification> &modifications() { return m_ModList; }
-  ResourceId texID() { return m_Tex->ID; }
+  ResourceId texID() { return m_Tex->resourceId; }
 private:
   ICaptureContext &m_Ctx;
 
@@ -447,34 +447,34 @@ private:
 
   QBrush backgroundBrush(const ModificationValue &val) const
   {
-    float rangesize = (m_Display.rangemax - m_Display.rangemin);
+    float rangesize = (m_Display.rangeMax - m_Display.rangeMin);
 
-    float r = val.col.value_f[0];
-    float g = val.col.value_f[1];
-    float b = val.col.value_f[2];
+    float r = val.col.floatValue[0];
+    float g = val.col.floatValue[1];
+    float b = val.col.floatValue[2];
 
-    if(!m_Display.Red)
+    if(!m_Display.red)
       r = 0.0f;
-    if(!m_Display.Green)
+    if(!m_Display.green)
       g = 0.0f;
-    if(!m_Display.Blue)
+    if(!m_Display.blue)
       b = 0.0f;
 
-    if(m_Display.Red && !m_Display.Green && !m_Display.Blue && !m_Display.Alpha)
+    if(m_Display.red && !m_Display.green && !m_Display.blue && !m_Display.alpha)
       g = b = r;
-    if(!m_Display.Red && m_Display.Green && !m_Display.Blue && !m_Display.Alpha)
+    if(!m_Display.red && m_Display.green && !m_Display.blue && !m_Display.alpha)
       r = b = g;
-    if(!m_Display.Red && !m_Display.Green && m_Display.Blue && !m_Display.Alpha)
+    if(!m_Display.red && !m_Display.green && m_Display.blue && !m_Display.alpha)
       g = r = b;
-    if(!m_Display.Red && !m_Display.Green && !m_Display.Blue && m_Display.Alpha)
-      g = b = r = val.col.value_f[3];
+    if(!m_Display.red && !m_Display.green && !m_Display.blue && m_Display.alpha)
+      g = b = r = val.col.floatValue[3];
 
-    r = qBound(0.0f, (r - m_Display.rangemin) / rangesize, 1.0f);
-    g = qBound(0.0f, (g - m_Display.rangemin) / rangesize, 1.0f);
-    b = qBound(0.0f, (b - m_Display.rangemin) / rangesize, 1.0f);
+    r = qBound(0.0f, (r - m_Display.rangeMin) / rangesize, 1.0f);
+    g = qBound(0.0f, (g - m_Display.rangeMin) / rangesize, 1.0f);
+    b = qBound(0.0f, (b - m_Display.rangeMin) / rangesize, 1.0f);
 
     if(m_IsDepth)
-      r = g = b = qBound(0.0f, (val.depth - m_Display.rangemin) / rangesize, 1.0f);
+      r = g = b = qBound(0.0f, (val.depth - m_Display.rangeMin) / rangesize, 1.0f);
 
     {
       r = (float)powf(r, 1.0f / 2.2f);
@@ -498,17 +498,17 @@ private:
       if(m_IsUint)
       {
         for(int i = 0; i < numComps; i++)
-          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_u[i]) + lit("\n");
+          s += colourLetterPrefix[i] + Formatter::Format(val.col.uintValue[i]) + lit("\n");
       }
       else if(m_IsSint)
       {
         for(int i = 0; i < numComps; i++)
-          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_i[i]) + lit("\n");
+          s += colourLetterPrefix[i] + Formatter::Format(val.col.intValue[i]) + lit("\n");
       }
       else
       {
         for(int i = 0; i < numComps; i++)
-          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_f[i]) + lit("\n");
+          s += colourLetterPrefix[i] + Formatter::Format(val.col.floatValue[i]) + lit("\n");
       }
     }
 
@@ -569,11 +569,11 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   updateWindowTitle();
 
   QString channelStr;
-  if(display.Red)
+  if(display.red)
     channelStr += lit("R");
-  if(display.Green)
+  if(display.green)
     channelStr += lit("G");
-  if(display.Blue)
+  if(display.blue)
     channelStr += lit("B");
 
   if(channelStr.length() > 1)
@@ -581,13 +581,13 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   else
     channelStr += tr(" channel");
 
-  if(!display.Red && !display.Green && !display.Blue && display.Alpha)
+  if(!display.red && !display.green && !display.blue && display.alpha)
     channelStr = lit("Alpha");
 
   QString text;
   text = tr("Preview colours displayed in visible range %1 - %2 with %3 visible.\n\n")
-             .arg(Formatter::Format(display.rangemin))
-             .arg(Formatter::Format(display.rangemax))
+             .arg(Formatter::Format(display.rangeMin))
+             .arg(Formatter::Format(display.rangeMax))
              .arg(channelStr);
   text +=
       tr("Double click to jump to an event.\n"
@@ -665,7 +665,7 @@ void PixelHistoryView::OnCaptureClosed()
   ToolWindowManager::closeToolWindow(this);
 }
 
-void PixelHistoryView::OnEventChanged(uint32_t eventID)
+void PixelHistoryView::OnEventChanged(uint32_t eventId)
 {
   updateWindowTitle();
 }
@@ -679,7 +679,7 @@ void PixelHistoryView::SetHistory(const rdcarray<PixelModification> &history)
 
 void PixelHistoryView::startDebug(EventTag tag)
 {
-  m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
+  m_Ctx.SetEventID({this}, tag.eventId, tag.eventId);
 
   ShaderDebugTrace *trace = NULL;
 
@@ -712,7 +712,7 @@ void PixelHistoryView::startDebug(EventTag tag)
 
 void PixelHistoryView::jumpToPrimitive(EventTag tag)
 {
-  m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
+  m_Ctx.SetEventID({this}, tag.eventId, tag.eventId);
   m_Ctx.ShowMeshPreview();
 
   IBufferViewer *viewer = m_Ctx.GetMeshPreview();
@@ -752,27 +752,27 @@ void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
   }
 
   EventTag tag = m_Model->data(index, Qt::UserRole).value<EventTag>();
-  if(tag.eventID == 0)
+  if(tag.eventId == 0)
   {
     RDDialog::show(&contextMenu, ui->events->viewport()->mapToGlobal(pos));
     return;
   }
 
-  QAction jumpAction(tr("&Go to primitive %1 at Event %2").arg(tag.primitive).arg(tag.eventID), this);
+  QAction jumpAction(tr("&Go to primitive %1 at Event %2").arg(tag.primitive).arg(tag.eventId), this);
 
   QString debugText;
 
   if(tag.primitive == ~0U)
   {
     debugText =
-        tr("&Debug Pixel (%1, %2) at Event %3").arg(m_Pixel.x()).arg(m_Pixel.y()).arg(tag.eventID);
+        tr("&Debug Pixel (%1, %2) at Event %3").arg(m_Pixel.x()).arg(m_Pixel.y()).arg(tag.eventId);
   }
   else
   {
     debugText = tr("&Debug Pixel (%1, %2) primitive %3 at Event %4")
                     .arg(m_Pixel.x())
                     .arg(m_Pixel.y())
-                    .arg(tag.eventID)
+                    .arg(tag.eventId)
                     .arg(tag.primitive);
 
     contextMenu.addAction(&jumpAction);
@@ -791,6 +791,6 @@ void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
 void PixelHistoryView::on_events_doubleClicked(const QModelIndex &index)
 {
   EventTag tag = m_Model->data(index, Qt::UserRole).value<EventTag>();
-  if(tag.eventID > 0)
-    m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
+  if(tag.eventId > 0)
+    m_Ctx.SetEventID({this}, tag.eventId, tag.eventId);
 }

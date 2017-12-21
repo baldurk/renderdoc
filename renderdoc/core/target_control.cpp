@@ -529,7 +529,7 @@ public:
     TargetControlMessage msg;
     if(m_Socket == NULL)
     {
-      msg.Type = TargetControlMessageType::Disconnected;
+      msg.type = TargetControlMessageType::Disconnected;
       return msg;
     }
 
@@ -538,12 +538,12 @@ public:
       if(!m_Socket->Connected())
       {
         SAFE_DELETE(m_Socket);
-        msg.Type = TargetControlMessageType::Disconnected;
+        msg.type = TargetControlMessageType::Disconnected;
       }
       else
       {
         Threading::Sleep(2);
-        msg.Type = TargetControlMessageType::Noop;
+        msg.type = TargetControlMessageType::Noop;
       }
 
       return msg;
@@ -555,57 +555,57 @@ public:
     {
       SAFE_DELETE(m_Socket);
 
-      msg.Type = TargetControlMessageType::Disconnected;
+      msg.type = TargetControlMessageType::Disconnected;
       return msg;
     }
     else if(type == ePacket_Noop)
     {
-      msg.Type = TargetControlMessageType::Noop;
+      msg.type = TargetControlMessageType::Noop;
       reader.EndChunk();
       return msg;
     }
     else if(type == ePacket_Busy)
     {
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.Busy.ClientName).Named("Client Name");
+      SERIALISE_ELEMENT(msg.busy.clientName).Named("Client Name");
 
       SAFE_DELETE(m_Socket);
 
-      RDCLOG("Got busy signal: '%s", msg.Busy.ClientName.c_str());
-      msg.Type = TargetControlMessageType::Busy;
+      RDCLOG("Got busy signal: '%s", msg.busy.clientName.c_str());
+      msg.type = TargetControlMessageType::Busy;
       return msg;
     }
     else if(type == ePacket_NewChild)
     {
-      msg.Type = TargetControlMessageType::NewChild;
+      msg.type = TargetControlMessageType::NewChild;
 
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.NewChild.PID).Named("PID");
-      SERIALISE_ELEMENT(msg.NewChild.ident).Named("Child ident");
+      SERIALISE_ELEMENT(msg.newChild.processId).Named("PID");
+      SERIALISE_ELEMENT(msg.newChild.ident).Named("Child ident");
 
-      RDCLOG("Got a new child process: %u %u", msg.NewChild.PID, msg.NewChild.ident);
+      RDCLOG("Got a new child process: %u %u", msg.newChild.processId, msg.newChild.ident);
 
       reader.EndChunk();
       return msg;
     }
     else if(type == ePacket_NewCapture)
     {
-      msg.Type = TargetControlMessageType::NewCapture;
+      msg.type = TargetControlMessageType::NewCapture;
 
       bytebuf thumbnail;
 
       {
         READ_DATA_SCOPE();
-        SERIALISE_ELEMENT(msg.NewCapture.ID).Named("Capture ID");
-        SERIALISE_ELEMENT(msg.NewCapture.timestamp).Named("timestamp");
-        SERIALISE_ELEMENT(msg.NewCapture.path).Named("path");
+        SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID");
+        SERIALISE_ELEMENT(msg.newCapture.timestamp).Named("timestamp");
+        SERIALISE_ELEMENT(msg.newCapture.path).Named("path");
         SERIALISE_ELEMENT(thumbnail);
       }
 
-      msg.NewCapture.local = FileIO::exists(msg.NewCapture.path.c_str());
+      msg.newCapture.local = FileIO::exists(msg.newCapture.path.c_str());
 
-      RDCLOG("Got a new capture: %d (time %llu) %d byte thumbnail", msg.NewCapture.ID,
-             msg.NewCapture.timestamp, thumbnail.count());
+      RDCLOG("Got a new capture: %d (time %llu) %d byte thumbnail", msg.newCapture.captureId,
+             msg.newCapture.timestamp, thumbnail.count());
 
       int w = 0;
       int h = 0;
@@ -615,14 +615,14 @@ public:
 
       if(w > 0 && h > 0 && thumbpixels)
       {
-        msg.NewCapture.thumbWidth = w;
-        msg.NewCapture.thumbHeight = h;
-        msg.NewCapture.thumbnail.assign(thumbpixels, w * h * 3);
+        msg.newCapture.thumbWidth = w;
+        msg.newCapture.thumbHeight = h;
+        msg.newCapture.thumbnail.assign(thumbpixels, w * h * 3);
       }
       else
       {
-        msg.NewCapture.thumbWidth = 0;
-        msg.NewCapture.thumbHeight = 0;
+        msg.newCapture.thumbWidth = 0;
+        msg.newCapture.thumbHeight = 0;
       }
 
       free(thumbpixels);
@@ -632,38 +632,38 @@ public:
     }
     else if(type == ePacket_RegisterAPI)
     {
-      msg.Type = TargetControlMessageType::RegisterAPI;
+      msg.type = TargetControlMessageType::RegisterAPI;
 
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.RegisterAPI.APIName).Named("API Name");
+      SERIALISE_ELEMENT(msg.apiUse.name).Named("API Name");
 
-      RDCLOG("Used API: %s", msg.RegisterAPI.APIName.c_str());
+      RDCLOG("Used API: %s", msg.apiUse.name.c_str());
 
       reader.EndChunk();
       return msg;
     }
     else if(type == ePacket_CopyCapture)
     {
-      msg.Type = TargetControlMessageType::CaptureCopied;
+      msg.type = TargetControlMessageType::CaptureCopied;
 
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.NewCapture.ID).Named("Capture ID");
+      SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID");
 
-      msg.NewCapture.path = m_CaptureCopies[msg.NewCapture.ID];
+      msg.newCapture.path = m_CaptureCopies[msg.newCapture.captureId];
 
-      StreamWriter streamWriter(FileIO::fopen(msg.NewCapture.path.c_str(), "wb"), Ownership::Stream);
+      StreamWriter streamWriter(FileIO::fopen(msg.newCapture.path.c_str(), "wb"), Ownership::Stream);
 
-      ser.SerialiseStream(msg.NewCapture.path.c_str(), streamWriter, NULL);
+      ser.SerialiseStream(msg.newCapture.path.c_str(), streamWriter, NULL);
 
       if(reader.IsErrored())
       {
         SAFE_DELETE(m_Socket);
 
-        msg.Type = TargetControlMessageType::Disconnected;
+        msg.type = TargetControlMessageType::Disconnected;
         return msg;
       }
 
-      m_CaptureCopies.erase(msg.NewCapture.ID);
+      m_CaptureCopies.erase(msg.newCapture.captureId);
 
       reader.EndChunk();
       return msg;
@@ -673,7 +673,7 @@ public:
       RDCERR("Unexpected packed received: %d", type);
       SAFE_DELETE(m_Socket);
 
-      msg.Type = TargetControlMessageType::Disconnected;
+      msg.type = TargetControlMessageType::Disconnected;
       return msg;
     }
   }

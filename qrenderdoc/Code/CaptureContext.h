@@ -75,7 +75,7 @@ public:
   void CloseCapture() override;
 
   void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
-                  uint32_t eventID, bool force = false) override;
+                  uint32_t eventId, bool force = false) override;
 
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
   void RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude, bool updateSelectedEvent,
@@ -126,9 +126,9 @@ public:
   const rdcarray<TextureDescription> &GetTextures() override { return m_TextureList; }
   BufferDescription *GetBuffer(ResourceId id) override { return m_Buffers[id]; }
   const rdcarray<BufferDescription> &GetBuffers() override { return m_BufferList; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventID) override
+  const DrawcallDescription *GetDrawcall(uint32_t eventId) override
   {
-    return GetDrawcall(m_Drawcalls, eventID);
+    return GetDrawcall(m_Drawcalls, eventId);
   }
   const SDFile &GetStructuredFile() override { return *m_StructuredFile; }
   WindowingSystem CurWindowingSystem() override { return m_CurWinSystem; }
@@ -271,18 +271,18 @@ private:
   uint32_t m_SelectedEventID = 0;
   uint32_t m_EventID = 0;
 
-  const DrawcallDescription *GetDrawcall(const rdcarray<DrawcallDescription> &draws, uint32_t eventID)
+  const DrawcallDescription *GetDrawcall(const rdcarray<DrawcallDescription> &draws, uint32_t eventId)
   {
     for(const DrawcallDescription &d : draws)
     {
       if(!d.children.empty())
       {
-        const DrawcallDescription *draw = GetDrawcall(d.children, eventID);
+        const DrawcallDescription *draw = GetDrawcall(d.children, eventId);
         if(draw != NULL)
           return draw;
       }
 
-      if(d.eventID == eventID)
+      if(d.eventId == eventId)
         return &d;
     }
 

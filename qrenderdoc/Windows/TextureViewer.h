@@ -134,8 +134,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
@@ -234,7 +234,7 @@ private:
                            Following &follow, const QString &bindName, const QString &slotName);
 
   void InitStageResourcePreviews(ShaderStage stage, const rdcarray<ShaderResource> &resourceDetails,
-                                 const rdcarray<BindpointMap> &mapping,
+                                 const rdcarray<Bindpoint> &mapping,
                                  rdcarray<BoundResourceArray> &ResList, ThumbnailStrip *prevs,
                                  int &prevIndex, bool copy, bool rw);
 

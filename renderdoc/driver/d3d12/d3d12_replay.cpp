@@ -93,7 +93,7 @@ ResourceDescription &D3D12Replay::GetResourceDesc(ResourceId id)
   {
     m_ResourceIdx[id] = m_Resources.size();
     m_Resources.push_back(ResourceDescription());
-    m_Resources.back().ID = id;
+    m_Resources.back().resourceId = id;
     return m_Resources.back();
   }
 
@@ -135,7 +135,7 @@ std::vector<ResourceId> D3D12Replay::GetTextures()
 BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 {
   BufferDescription ret = {};
-  ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
+  ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
   auto it = WrappedID3D12Resource::GetList().find(id);
 
@@ -176,7 +176,7 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 TextureDescription D3D12Replay::GetTexture(ResourceId id)
 {
   TextureDescription ret = {};
-  ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
+  ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
   auto it = WrappedID3D12Resource::GetList().find(id);
 
@@ -203,15 +203,15 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   switch(ret.dimension)
   {
     case 1:
-      ret.resType = ret.arraysize > 1 ? TextureDim::Texture1DArray : TextureDim::Texture1D;
+      ret.type = ret.arraysize > 1 ? TextureType::Texture1DArray : TextureType::Texture1D;
       break;
     case 2:
       if(ret.msSamp > 1)
-        ret.resType = ret.arraysize > 1 ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
+        ret.type = ret.arraysize > 1 ? TextureType::Texture2DMSArray : TextureType::Texture2DMS;
       else
-        ret.resType = ret.arraysize > 1 ? TextureDim::Texture2DArray : TextureDim::Texture2D;
+        ret.type = ret.arraysize > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
       break;
-    case 3: ret.resType = TextureDim::Texture3D; break;
+    case 3: ret.type = TextureType::Texture3D; break;
   }
 
   ret.cubemap = m_pDevice->IsCubemap(id);
@@ -225,7 +225,7 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     ret.creationFlags |= TextureCategory::ShaderReadWrite;
 
-  if(ret.ID == m_pDevice->GetQueue()->GetBackbufferResourceID())
+  if(ret.resourceId == m_pDevice->GetQueue()->GetBackbufferResourceID())
   {
     ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, CompType::UNorm));
     ret.creationFlags |= TextureCategory::SwapBuffer;
@@ -244,7 +244,7 @@ rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
 
   ShaderReflection &ret = sh->GetDetails();
 
-  return {{"main", ret.Stage}};
+  return {{"main", ret.stage}};
 }
 
 ShaderReflection *D3D12Replay::GetShader(ResourceId shader, string entryPoint)
@@ -273,7 +273,8 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
 string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                       const string &target)
 {
-  WrappedID3D12Shader *sh = m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->ID);
+  WrappedID3D12Shader *sh =
+      m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->resourceId);
 
   if(!sh)
     return "Invalid Shader Specified";
@@ -332,9 +333,9 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
     return;
   }
 
-  view.Resource = rm->GetOriginalID(GetResID(desc->nonsamp.resource));
+  view.resourceId = rm->GetOriginalID(GetResID(desc->nonsamp.resource));
 
-  if(view.Resource == ResourceId())
+  if(view.resourceId == ResourceId())
     return;
 
   D3D12_RESOURCE_DESC res = desc->nonsamp.resource->GetDesc();
@@ -352,90 +353,90 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
     if(fmt == DXGI_FORMAT_UNKNOWN)
       fmt = res.Format;
 
-    view.ElementSize = fmt == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, fmt, 0);
+    view.elementByteSize = fmt == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, fmt, 0);
 
-    view.Format = MakeResourceFormat(fmt);
+    view.viewFormat = MakeResourceFormat(fmt);
 
     if(desc->GetType() == D3D12DescriptorType::RTV)
     {
-      view.Type = MakeTextureDim(desc->nonsamp.rtv.ViewDimension);
+      view.type = MakeTextureDim(desc->nonsamp.rtv.ViewDimension);
 
       if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_BUFFER)
       {
-        view.FirstElement = desc->nonsamp.rtv.Buffer.FirstElement;
-        view.NumElements = desc->nonsamp.rtv.Buffer.NumElements;
+        view.firstElement = desc->nonsamp.rtv.Buffer.FirstElement;
+        view.numElements = desc->nonsamp.rtv.Buffer.NumElements;
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE1D)
       {
-        view.HighestMip = desc->nonsamp.rtv.Texture1D.MipSlice;
+        view.firstMip = desc->nonsamp.rtv.Texture1D.MipSlice;
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.ArraySize = desc->nonsamp.rtv.Texture1DArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.rtv.Texture1DArray.FirstArraySlice;
-        view.HighestMip = desc->nonsamp.rtv.Texture1DArray.MipSlice;
+        view.numSlices = desc->nonsamp.rtv.Texture1DArray.ArraySize;
+        view.firstSlice = desc->nonsamp.rtv.Texture1DArray.FirstArraySlice;
+        view.firstMip = desc->nonsamp.rtv.Texture1DArray.MipSlice;
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2D)
       {
-        view.HighestMip = desc->nonsamp.rtv.Texture2D.MipSlice;
+        view.firstMip = desc->nonsamp.rtv.Texture2D.MipSlice;
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.ArraySize = desc->nonsamp.rtv.Texture2DArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.rtv.Texture2DArray.FirstArraySlice;
-        view.HighestMip = desc->nonsamp.rtv.Texture2DArray.MipSlice;
+        view.numSlices = desc->nonsamp.rtv.Texture2DArray.ArraySize;
+        view.firstSlice = desc->nonsamp.rtv.Texture2DArray.FirstArraySlice;
+        view.firstMip = desc->nonsamp.rtv.Texture2DArray.MipSlice;
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DMS)
       {
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY)
       {
-        view.ArraySize = desc->nonsamp.rtv.Texture2DMSArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.rtv.Texture2DArray.FirstArraySlice;
+        view.numSlices = desc->nonsamp.rtv.Texture2DMSArray.ArraySize;
+        view.firstSlice = desc->nonsamp.rtv.Texture2DArray.FirstArraySlice;
       }
       else if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE3D)
       {
-        view.ArraySize = desc->nonsamp.rtv.Texture3D.WSize;
-        view.FirstArraySlice = desc->nonsamp.rtv.Texture3D.FirstWSlice;
-        view.HighestMip = desc->nonsamp.rtv.Texture3D.MipSlice;
+        view.numSlices = desc->nonsamp.rtv.Texture3D.WSize;
+        view.firstSlice = desc->nonsamp.rtv.Texture3D.FirstWSlice;
+        view.firstMip = desc->nonsamp.rtv.Texture3D.MipSlice;
       }
     }
     else if(desc->GetType() == D3D12DescriptorType::DSV)
     {
-      view.Type = MakeTextureDim(desc->nonsamp.dsv.ViewDimension);
+      view.type = MakeTextureDim(desc->nonsamp.dsv.ViewDimension);
 
       if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1D)
       {
-        view.HighestMip = desc->nonsamp.dsv.Texture1D.MipSlice;
+        view.firstMip = desc->nonsamp.dsv.Texture1D.MipSlice;
       }
       else if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.ArraySize = desc->nonsamp.dsv.Texture1DArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.dsv.Texture1DArray.FirstArraySlice;
-        view.HighestMip = desc->nonsamp.dsv.Texture1DArray.MipSlice;
+        view.numSlices = desc->nonsamp.dsv.Texture1DArray.ArraySize;
+        view.firstSlice = desc->nonsamp.dsv.Texture1DArray.FirstArraySlice;
+        view.firstMip = desc->nonsamp.dsv.Texture1DArray.MipSlice;
       }
       else if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)
       {
-        view.HighestMip = desc->nonsamp.dsv.Texture2D.MipSlice;
+        view.firstMip = desc->nonsamp.dsv.Texture2D.MipSlice;
       }
       else if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.ArraySize = desc->nonsamp.dsv.Texture2DArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.dsv.Texture2DArray.FirstArraySlice;
-        view.HighestMip = desc->nonsamp.dsv.Texture2DArray.MipSlice;
+        view.numSlices = desc->nonsamp.dsv.Texture2DArray.ArraySize;
+        view.firstSlice = desc->nonsamp.dsv.Texture2DArray.FirstArraySlice;
+        view.firstMip = desc->nonsamp.dsv.Texture2DArray.MipSlice;
       }
       else if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DMS)
       {
       }
       else if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY)
       {
-        view.ArraySize = desc->nonsamp.dsv.Texture2DMSArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.dsv.Texture2DArray.FirstArraySlice;
+        view.numSlices = desc->nonsamp.dsv.Texture2DMSArray.ArraySize;
+        view.firstSlice = desc->nonsamp.dsv.Texture2DArray.FirstArraySlice;
       }
     }
     else if(desc->GetType() == D3D12DescriptorType::SRV)
     {
-      view.Type = MakeTextureDim(desc->nonsamp.srv.ViewDimension);
+      view.type = MakeTextureDim(desc->nonsamp.srv.ViewDimension);
 
       view.swizzle[0] = (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(
           0, desc->nonsamp.srv.Shader4ComponentMapping);
@@ -448,109 +449,109 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 
       if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
       {
-        view.FirstElement = desc->nonsamp.srv.Buffer.FirstElement;
-        view.NumElements = desc->nonsamp.srv.Buffer.NumElements;
+        view.firstElement = desc->nonsamp.srv.Buffer.FirstElement;
+        view.numElements = desc->nonsamp.srv.Buffer.NumElements;
 
-        view.BufferFlags = MakeBufferFlags(desc->nonsamp.srv.Buffer.Flags);
+        view.bufferFlags = MakeBufferFlags(desc->nonsamp.srv.Buffer.Flags);
         if(desc->nonsamp.srv.Buffer.StructureByteStride > 0)
-          view.ElementSize = desc->nonsamp.srv.Buffer.StructureByteStride;
+          view.elementByteSize = desc->nonsamp.srv.Buffer.StructureByteStride;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1D)
       {
-        view.HighestMip = desc->nonsamp.srv.Texture1D.MostDetailedMip;
-        view.NumMipLevels = desc->nonsamp.srv.Texture1D.MipLevels;
-        view.MinLODClamp = desc->nonsamp.srv.Texture1D.ResourceMinLODClamp;
+        view.firstMip = desc->nonsamp.srv.Texture1D.MostDetailedMip;
+        view.numMips = desc->nonsamp.srv.Texture1D.MipLevels;
+        view.minLODClamp = desc->nonsamp.srv.Texture1D.ResourceMinLODClamp;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.ArraySize = desc->nonsamp.srv.Texture1DArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.srv.Texture1DArray.FirstArraySlice;
-        view.HighestMip = desc->nonsamp.srv.Texture1DArray.MostDetailedMip;
-        view.NumMipLevels = desc->nonsamp.srv.Texture1DArray.MipLevels;
-        view.MinLODClamp = desc->nonsamp.srv.Texture1DArray.ResourceMinLODClamp;
+        view.numSlices = desc->nonsamp.srv.Texture1DArray.ArraySize;
+        view.firstSlice = desc->nonsamp.srv.Texture1DArray.FirstArraySlice;
+        view.firstMip = desc->nonsamp.srv.Texture1DArray.MostDetailedMip;
+        view.numMips = desc->nonsamp.srv.Texture1DArray.MipLevels;
+        view.minLODClamp = desc->nonsamp.srv.Texture1DArray.ResourceMinLODClamp;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
       {
-        view.HighestMip = desc->nonsamp.srv.Texture2D.MostDetailedMip;
-        view.NumMipLevels = desc->nonsamp.srv.Texture2D.MipLevels;
-        view.MinLODClamp = desc->nonsamp.srv.Texture2D.ResourceMinLODClamp;
+        view.firstMip = desc->nonsamp.srv.Texture2D.MostDetailedMip;
+        view.numMips = desc->nonsamp.srv.Texture2D.MipLevels;
+        view.minLODClamp = desc->nonsamp.srv.Texture2D.ResourceMinLODClamp;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.ArraySize = desc->nonsamp.srv.Texture2DArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.srv.Texture2DArray.FirstArraySlice;
-        view.HighestMip = desc->nonsamp.srv.Texture2DArray.MostDetailedMip;
-        view.NumMipLevels = desc->nonsamp.srv.Texture2DArray.MipLevels;
-        view.MinLODClamp = desc->nonsamp.srv.Texture2DArray.ResourceMinLODClamp;
+        view.numSlices = desc->nonsamp.srv.Texture2DArray.ArraySize;
+        view.firstSlice = desc->nonsamp.srv.Texture2DArray.FirstArraySlice;
+        view.firstMip = desc->nonsamp.srv.Texture2DArray.MostDetailedMip;
+        view.numMips = desc->nonsamp.srv.Texture2DArray.MipLevels;
+        view.minLODClamp = desc->nonsamp.srv.Texture2DArray.ResourceMinLODClamp;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
       {
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
       {
-        view.ArraySize = desc->nonsamp.srv.Texture2DMSArray.ArraySize;
-        view.FirstArraySlice = desc->nonsamp.srv.Texture2DMSArray.FirstArraySlice;
+        view.numSlices = desc->nonsamp.srv.Texture2DMSArray.ArraySize;
+        view.firstSlice = desc->nonsamp.srv.Texture2DMSArray.FirstArraySlice;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE3D)
       {
-        view.HighestMip = desc->nonsamp.srv.Texture3D.MostDetailedMip;
-        view.NumMipLevels = desc->nonsamp.srv.Texture3D.MipLevels;
-        view.MinLODClamp = desc->nonsamp.srv.Texture3D.ResourceMinLODClamp;
+        view.firstMip = desc->nonsamp.srv.Texture3D.MostDetailedMip;
+        view.numMips = desc->nonsamp.srv.Texture3D.MipLevels;
+        view.minLODClamp = desc->nonsamp.srv.Texture3D.ResourceMinLODClamp;
       }
     }
     else if(desc->GetType() == D3D12DescriptorType::UAV)
     {
       D3D12_UNORDERED_ACCESS_VIEW_DESC uav = desc->nonsamp.uav.desc.AsDesc();
 
-      view.CounterResource = rm->GetOriginalID(GetResID(desc->nonsamp.uav.counterResource));
+      view.counterResourceId = rm->GetOriginalID(GetResID(desc->nonsamp.uav.counterResource));
 
-      view.Type = MakeTextureDim(uav.ViewDimension);
+      view.type = MakeTextureDim(uav.ViewDimension);
 
       if(uav.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
       {
-        view.FirstElement = uav.Buffer.FirstElement;
-        view.NumElements = uav.Buffer.NumElements;
+        view.firstElement = uav.Buffer.FirstElement;
+        view.numElements = uav.Buffer.NumElements;
 
-        view.BufferFlags = MakeBufferFlags(uav.Buffer.Flags);
+        view.bufferFlags = MakeBufferFlags(uav.Buffer.Flags);
         if(uav.Buffer.StructureByteStride > 0)
-          view.ElementSize = uav.Buffer.StructureByteStride;
+          view.elementByteSize = uav.Buffer.StructureByteStride;
 
-        view.CounterByteOffset = uav.Buffer.CounterOffsetInBytes;
+        view.counterByteOffset = uav.Buffer.CounterOffsetInBytes;
 
-        if(view.CounterResource != ResourceId())
+        if(view.counterResourceId != ResourceId())
         {
           bytebuf counterVal;
           m_pDevice->GetDebugManager()->GetBufferData(desc->nonsamp.uav.counterResource,
-                                                      view.CounterByteOffset, 4, counterVal);
+                                                      view.counterByteOffset, 4, counterVal);
           uint32_t *val = (uint32_t *)&counterVal[0];
-          view.BufferStructCount = *val;
+          view.bufferStructCount = *val;
         }
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1D)
       {
-        view.HighestMip = uav.Texture1D.MipSlice;
+        view.firstMip = uav.Texture1D.MipSlice;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1DARRAY)
       {
-        view.ArraySize = uav.Texture1DArray.ArraySize;
-        view.FirstArraySlice = uav.Texture1DArray.FirstArraySlice;
-        view.HighestMip = uav.Texture1DArray.MipSlice;
+        view.numSlices = uav.Texture1DArray.ArraySize;
+        view.firstSlice = uav.Texture1DArray.FirstArraySlice;
+        view.firstMip = uav.Texture1DArray.MipSlice;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2D)
       {
-        view.HighestMip = uav.Texture2D.MipSlice;
+        view.firstMip = uav.Texture2D.MipSlice;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DARRAY)
       {
-        view.ArraySize = uav.Texture2DArray.ArraySize;
-        view.FirstArraySlice = uav.Texture2DArray.FirstArraySlice;
-        view.HighestMip = uav.Texture2DArray.MipSlice;
+        view.numSlices = uav.Texture2DArray.ArraySize;
+        view.firstSlice = uav.Texture2DArray.FirstArraySlice;
+        view.firstMip = uav.Texture2DArray.MipSlice;
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE3D)
       {
-        view.ArraySize = uav.Texture3D.WSize;
-        view.FirstArraySlice = uav.Texture3D.FirstWSlice;
-        view.HighestMip = uav.Texture3D.MipSlice;
+        view.numSlices = uav.Texture3D.WSize;
+        view.firstSlice = uav.Texture3D.FirstWSlice;
+        view.firstMip = uav.Texture3D.MipSlice;
       }
     }
   }
@@ -577,29 +578,29 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      D3D12Pipe::CBuffer &cb = resize_and_add(spaces[p.Constants.RegisterSpace].ConstantBuffers,
-                                              p.Constants.ShaderRegister);
-      cb.Immediate = true;
-      cb.RootElement = (uint32_t)rootEl;
-      cb.ByteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
+      D3D12Pipe::ConstantBuffer &cb = resize_and_add(
+          spaces[p.Constants.RegisterSpace].constantBuffers, p.Constants.ShaderRegister);
+      cb.immediate = true;
+      cb.rootElement = (uint32_t)rootEl;
+      cb.byteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
 
       if(rootEl < rootSig.sigelems.size())
       {
         const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
         if(e.type == eRootConst)
-          cb.RootValues.assign(e.constants.data(),
+          cb.rootValues.assign(e.constants.data(),
                                RDCMIN(e.constants.size(), (size_t)p.Constants.Num32BitValues));
       }
 
-      if(cb.RootValues.empty())
-        cb.RootValues.resize(p.Constants.Num32BitValues);
+      if(cb.rootValues.empty())
+        cb.rootValues.resize(p.Constants.Num32BitValues);
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
-      D3D12Pipe::CBuffer &cb = resize_and_add(spaces[p.Descriptor.RegisterSpace].ConstantBuffers,
-                                              p.Descriptor.ShaderRegister);
-      cb.Immediate = true;
-      cb.RootElement = (uint32_t)rootEl;
+      D3D12Pipe::ConstantBuffer &cb = resize_and_add(
+          spaces[p.Descriptor.RegisterSpace].constantBuffers, p.Descriptor.ShaderRegister);
+      cb.immediate = true;
+      cb.rootElement = (uint32_t)rootEl;
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -608,18 +609,18 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         {
           ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(e.id);
 
-          cb.Buffer = rm->GetOriginalID(e.id);
-          cb.Offset = e.offset;
-          cb.ByteSize = uint32_t(res->GetDesc().Width - cb.Offset);
+          cb.resourceId = rm->GetOriginalID(e.id);
+          cb.byteOffset = e.offset;
+          cb.byteSize = uint32_t(res->GetDesc().Width - cb.byteOffset);
         }
       }
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
       D3D12Pipe::View &view =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].SRVs, p.Descriptor.ShaderRegister);
-      view.Immediate = true;
-      view.RootElement = (uint32_t)rootEl;
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].srvs, p.Descriptor.ShaderRegister);
+      view.immediate = true;
+      view.rootElement = (uint32_t)rootEl;
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -629,22 +630,22 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
           ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(e.id);
 
           // parameters from resource/view
-          view.Resource = rm->GetOriginalID(e.id);
-          view.Type = TextureDim::Buffer;
-          view.Format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
+          view.resourceId = rm->GetOriginalID(e.id);
+          view.type = TextureType::Buffer;
+          view.viewFormat = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
 
-          view.ElementSize = sizeof(uint32_t);
-          view.FirstElement = e.offset / sizeof(uint32_t);
-          view.NumElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
+          view.elementByteSize = sizeof(uint32_t);
+          view.firstElement = e.offset / sizeof(uint32_t);
+          view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
         }
       }
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
       D3D12Pipe::View &view =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].UAVs, p.Descriptor.ShaderRegister);
-      view.Immediate = true;
-      view.RootElement = (uint32_t)rootEl;
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].uavs, p.Descriptor.ShaderRegister);
+      view.immediate = true;
+      view.rootElement = (uint32_t)rootEl;
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -654,13 +655,13 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
           ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(e.id);
 
           // parameters from resource/view
-          view.Resource = rm->GetOriginalID(e.id);
-          view.Type = TextureDim::Buffer;
-          view.Format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
+          view.resourceId = rm->GetOriginalID(e.id);
+          view.type = TextureType::Buffer;
+          view.viewFormat = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
 
-          view.ElementSize = sizeof(uint32_t);
-          view.FirstElement = e.offset / sizeof(uint32_t);
-          view.NumElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
+          view.elementByteSize = sizeof(uint32_t);
+          view.firstElement = e.offset / sizeof(uint32_t);
+          view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
         }
       }
     }
@@ -719,34 +720,34 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].Samplers.size())
-            spaces[regSpace].Samplers.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].samplers.size())
+            spaces[regSpace].samplers.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::Sampler &samp = spaces[regSpace].Samplers[shaderReg];
-            samp.Immediate = false;
-            samp.RootElement = (uint32_t)rootEl;
-            samp.TableIndex = offset + i;
+            D3D12Pipe::Sampler &samp = spaces[regSpace].samplers[shaderReg];
+            samp.immediate = false;
+            samp.rootElement = (uint32_t)rootEl;
+            samp.tableIndex = offset + i;
 
             if(desc)
             {
               D3D12_SAMPLER_DESC &sampDesc = desc->samp.desc;
 
-              samp.AddressU = MakeAddressMode(sampDesc.AddressU);
-              samp.AddressV = MakeAddressMode(sampDesc.AddressV);
-              samp.AddressW = MakeAddressMode(sampDesc.AddressW);
+              samp.addressU = MakeAddressMode(sampDesc.AddressU);
+              samp.addressV = MakeAddressMode(sampDesc.AddressV);
+              samp.addressW = MakeAddressMode(sampDesc.AddressW);
 
-              memcpy(samp.BorderColor, sampDesc.BorderColor, sizeof(FLOAT) * 4);
+              memcpy(samp.borderColor, sampDesc.BorderColor, sizeof(FLOAT) * 4);
 
-              samp.Comparison = MakeCompareFunc(sampDesc.ComparisonFunc);
-              samp.Filter = MakeFilter(sampDesc.Filter);
-              samp.MaxAniso = 0;
-              if(samp.Filter.minify == FilterMode::Anisotropic)
-                samp.MaxAniso = sampDesc.MaxAnisotropy;
-              samp.MaxLOD = sampDesc.MaxLOD;
-              samp.MinLOD = sampDesc.MinLOD;
-              samp.MipLODBias = sampDesc.MipLODBias;
+              samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
+              samp.filter = MakeFilter(sampDesc.Filter);
+              samp.maxAnisotropy = 0;
+              if(samp.filter.minify == FilterMode::Anisotropic)
+                samp.maxAnisotropy = sampDesc.MaxAnisotropy;
+              samp.maxLOD = sampDesc.MaxLOD;
+              samp.minLOD = sampDesc.MinLOD;
+              samp.mipLODBias = sampDesc.MipLODBias;
 
               desc++;
             }
@@ -755,22 +756,22 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].ConstantBuffers.size())
-            spaces[regSpace].ConstantBuffers.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].constantBuffers.size())
+            spaces[regSpace].constantBuffers.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::CBuffer &cb = spaces[regSpace].ConstantBuffers[shaderReg];
-            cb.Immediate = false;
-            cb.RootElement = (uint32_t)rootEl;
-            cb.TableIndex = offset + i;
+            D3D12Pipe::ConstantBuffer &cb = spaces[regSpace].constantBuffers[shaderReg];
+            cb.immediate = false;
+            cb.rootElement = (uint32_t)rootEl;
+            cb.tableIndex = offset + i;
 
             if(desc)
             {
-              WrappedID3D12Resource::GetResIDFromAddr(desc->nonsamp.cbv.BufferLocation, cb.Buffer,
-                                                      cb.Offset);
-              cb.Buffer = rm->GetOriginalID(cb.Buffer);
-              cb.ByteSize = desc->nonsamp.cbv.SizeInBytes;
+              WrappedID3D12Resource::GetResIDFromAddr(desc->nonsamp.cbv.BufferLocation,
+                                                      cb.resourceId, cb.byteOffset);
+              cb.resourceId = rm->GetOriginalID(cb.resourceId);
+              cb.byteSize = desc->nonsamp.cbv.SizeInBytes;
 
               desc++;
             }
@@ -779,15 +780,15 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].SRVs.size())
-            spaces[regSpace].SRVs.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].srvs.size())
+            spaces[regSpace].srvs.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = spaces[regSpace].SRVs[shaderReg];
-            view.Immediate = false;
-            view.RootElement = (uint32_t)rootEl;
-            view.TableIndex = offset + i;
+            D3D12Pipe::View &view = spaces[regSpace].srvs[shaderReg];
+            view.immediate = false;
+            view.rootElement = (uint32_t)rootEl;
+            view.tableIndex = offset + i;
 
             if(desc)
             {
@@ -800,15 +801,15 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].UAVs.size())
-            spaces[regSpace].UAVs.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].uavs.size())
+            spaces[regSpace].uavs.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = spaces[regSpace].UAVs[shaderReg];
-            view.Immediate = false;
-            view.RootElement = (uint32_t)rootEl;
-            view.TableIndex = offset + i;
+            D3D12Pipe::View &view = spaces[regSpace].uavs[shaderReg];
+            view.immediate = false;
+            view.rootElement = (uint32_t)rootEl;
+            view.tableIndex = offset + i;
 
             if(desc)
             {
@@ -831,48 +832,48 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
       continue;
 
     D3D12Pipe::Sampler &samp =
-        resize_and_add(spaces[sampDesc.RegisterSpace].Samplers, sampDesc.ShaderRegister);
-    samp.Immediate = true;
-    samp.RootElement = (uint32_t)i;
+        resize_and_add(spaces[sampDesc.RegisterSpace].samplers, sampDesc.ShaderRegister);
+    samp.immediate = true;
+    samp.rootElement = (uint32_t)i;
 
-    samp.AddressU = MakeAddressMode(sampDesc.AddressU);
-    samp.AddressV = MakeAddressMode(sampDesc.AddressV);
-    samp.AddressW = MakeAddressMode(sampDesc.AddressW);
+    samp.addressU = MakeAddressMode(sampDesc.AddressU);
+    samp.addressV = MakeAddressMode(sampDesc.AddressV);
+    samp.addressW = MakeAddressMode(sampDesc.AddressW);
 
     if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK)
     {
-      samp.BorderColor[0] = 0.0f;
-      samp.BorderColor[1] = 0.0f;
-      samp.BorderColor[2] = 0.0f;
-      samp.BorderColor[3] = 0.0f;
+      samp.borderColor[0] = 0.0f;
+      samp.borderColor[1] = 0.0f;
+      samp.borderColor[2] = 0.0f;
+      samp.borderColor[3] = 0.0f;
     }
     else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK)
     {
-      samp.BorderColor[0] = 0.0f;
-      samp.BorderColor[1] = 0.0f;
-      samp.BorderColor[2] = 0.0f;
-      samp.BorderColor[3] = 1.0f;
+      samp.borderColor[0] = 0.0f;
+      samp.borderColor[1] = 0.0f;
+      samp.borderColor[2] = 0.0f;
+      samp.borderColor[3] = 1.0f;
     }
     else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE)
     {
-      samp.BorderColor[0] = 1.0f;
-      samp.BorderColor[1] = 1.0f;
-      samp.BorderColor[2] = 1.0f;
-      samp.BorderColor[3] = 1.0f;
+      samp.borderColor[0] = 1.0f;
+      samp.borderColor[1] = 1.0f;
+      samp.borderColor[2] = 1.0f;
+      samp.borderColor[3] = 1.0f;
     }
     else
     {
       RDCERR("Unexpected static border colour: %u", sampDesc.BorderColor);
     }
 
-    samp.Comparison = MakeCompareFunc(sampDesc.ComparisonFunc);
-    samp.Filter = MakeFilter(sampDesc.Filter);
-    samp.MaxAniso = 0;
-    if(samp.Filter.minify == FilterMode::Anisotropic)
-      samp.MaxAniso = sampDesc.MaxAnisotropy;
-    samp.MaxLOD = sampDesc.MaxLOD;
-    samp.MinLOD = sampDesc.MinLOD;
-    samp.MipLODBias = sampDesc.MipLODBias;
+    samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
+    samp.filter = MakeFilter(sampDesc.Filter);
+    samp.maxAnisotropy = 0;
+    if(samp.filter.minify == FilterMode::Anisotropic)
+      samp.maxAnisotropy = sampDesc.MaxAnisotropy;
+    samp.maxLOD = sampDesc.MaxLOD;
+    samp.minLOD = sampDesc.MinLOD;
+    samp.mipLODBias = sampDesc.MipLODBias;
   }
 }
 
@@ -888,7 +889,7 @@ void D3D12Replay::SavePipelineState()
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  state.pipeline = rm->GetOriginalID(rs.pipe);
+  state.pipelineResourceId = rm->GetOriginalID(rs.pipe);
 
   WrappedID3D12PipelineState *pipe = NULL;
 
@@ -900,44 +901,46 @@ void D3D12Replay::SavePipelineState()
     const D3D12_INPUT_ELEMENT_DESC *inputEl = pipe->graphics->InputLayout.pInputElementDescs;
     UINT numInput = pipe->graphics->InputLayout.NumElements;
 
-    state.m_IA.layouts.resize(numInput);
+    state.inputAssembly.layouts.resize(numInput);
     for(UINT i = 0; i < numInput; i++)
     {
-      D3D12Pipe::Layout &l = state.m_IA.layouts[i];
+      D3D12Pipe::Layout &l = state.inputAssembly.layouts[i];
 
-      l.ByteOffset = inputEl[i].AlignedByteOffset;
-      l.Format = MakeResourceFormat(inputEl[i].Format);
-      l.InputSlot = inputEl[i].InputSlot;
-      l.PerInstance = inputEl[i].InputSlotClass == D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
-      l.InstanceDataStepRate = inputEl[i].InstanceDataStepRate;
-      l.SemanticIndex = inputEl[i].SemanticIndex;
-      l.SemanticName = inputEl[i].SemanticName;
+      l.byteOffset = inputEl[i].AlignedByteOffset;
+      l.format = MakeResourceFormat(inputEl[i].Format);
+      l.inputSlot = inputEl[i].InputSlot;
+      l.perInstance = inputEl[i].InputSlotClass == D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+      l.instanceDataStepRate = inputEl[i].InstanceDataStepRate;
+      l.semanticIndex = inputEl[i].SemanticIndex;
+      l.semanticName = inputEl[i].SemanticName;
     }
 
-    state.m_IA.indexStripCutValue = 0;
+    state.inputAssembly.indexStripCutValue = 0;
     switch(pipe->graphics->IBStripCutValue)
     {
-      case D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF: state.m_IA.indexStripCutValue = 0xFFFF; break;
+      case D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF:
+        state.inputAssembly.indexStripCutValue = 0xFFFF;
+        break;
       case D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF:
-        state.m_IA.indexStripCutValue = 0xFFFFFFFF;
+        state.inputAssembly.indexStripCutValue = 0xFFFFFFFF;
         break;
       default: break;
     }
 
-    state.m_IA.vbuffers.resize(rs.vbuffers.size());
+    state.inputAssembly.vertexBuffers.resize(rs.vbuffers.size());
     for(size_t i = 0; i < rs.vbuffers.size(); i++)
     {
-      D3D12Pipe::VB &vb = state.m_IA.vbuffers[i];
+      D3D12Pipe::VertexBuffer &vb = state.inputAssembly.vertexBuffers[i];
 
-      vb.Buffer = rm->GetOriginalID(rs.vbuffers[i].buf);
-      vb.Offset = rs.vbuffers[i].offs;
-      vb.Size = rs.vbuffers[i].size;
-      vb.Stride = rs.vbuffers[i].stride;
+      vb.resourceId = rm->GetOriginalID(rs.vbuffers[i].buf);
+      vb.byteOffset = rs.vbuffers[i].offs;
+      vb.byteSize = rs.vbuffers[i].size;
+      vb.byteStride = rs.vbuffers[i].stride;
     }
 
-    state.m_IA.ibuffer.Buffer = rm->GetOriginalID(rs.ibuffer.buf);
-    state.m_IA.ibuffer.Offset = rs.ibuffer.offs;
-    state.m_IA.ibuffer.Size = rs.ibuffer.size;
+    state.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(rs.ibuffer.buf);
+    state.inputAssembly.indexBuffer.byteOffset = rs.ibuffer.offs;
+    state.inputAssembly.indexBuffer.byteSize = rs.ibuffer.size;
   }
 
   /////////////////////////////////////////////////
@@ -948,19 +951,20 @@ void D3D12Replay::SavePipelineState()
   {
     WrappedID3D12Shader *sh = (WrappedID3D12Shader *)pipe->compute->CS.pShaderBytecode;
 
-    state.m_CS.Object = sh->GetResourceID();
-    state.m_CS.stage = ShaderStage::Compute;
-    state.m_CS.ShaderDetails = &sh->GetDetails();
-    state.m_CS.BindpointMapping = sh->GetMapping();
+    state.computeShader.resourceId = sh->GetResourceID();
+    state.computeShader.stage = ShaderStage::Compute;
+    state.computeShader.reflection = &sh->GetDetails();
+    state.computeShader.bindpointMapping = sh->GetMapping();
 
-    state.rootSig = rm->GetOriginalID(rs.compute.rootsig);
+    state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
 
     if(rs.compute.rootsig != ResourceId())
-      FillRegisterSpaces(rs.compute, state.m_CS.Spaces, D3D12_SHADER_VISIBILITY_ALL);
+      FillRegisterSpaces(rs.compute, state.computeShader.spaces, D3D12_SHADER_VISIBILITY_ALL);
   }
   else if(pipe)
   {
-    D3D12Pipe::Shader *dstArr[] = {&state.m_VS, &state.m_HS, &state.m_DS, &state.m_GS, &state.m_PS};
+    D3D12Pipe::Shader *dstArr[] = {&state.vertexShader, &state.hullShader, &state.domainShader,
+                                   &state.geometryShader, &state.pixelShader};
 
     D3D12_SHADER_BYTECODE *srcArr[] = {&pipe->graphics->VS, &pipe->graphics->HS, &pipe->graphics->DS,
                                        &pipe->graphics->GS, &pipe->graphics->PS};
@@ -980,16 +984,16 @@ void D3D12Replay::SavePipelineState()
 
       if(sh)
       {
-        dst.Object = sh->GetResourceID();
-        dst.BindpointMapping = sh->GetMapping();
-        dst.ShaderDetails = &sh->GetDetails();
+        dst.resourceId = sh->GetResourceID();
+        dst.bindpointMapping = sh->GetMapping();
+        dst.reflection = &sh->GetDetails();
       }
 
       if(rs.graphics.rootsig != ResourceId())
-        FillRegisterSpaces(rs.graphics, dst.Spaces, visibility[stage]);
+        FillRegisterSpaces(rs.graphics, dst.spaces, visibility[stage]);
     }
 
-    state.rootSig = rm->GetOriginalID(rs.graphics.rootsig);
+    state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
   }
 
   if(pipe && pipe->IsGraphics())
@@ -998,28 +1002,29 @@ void D3D12Replay::SavePipelineState()
     // Stream Out
     /////////////////////////////////////////////////
 
-    state.m_SO.Outputs.resize(rs.streamouts.size());
+    state.streamOut.outputs.resize(rs.streamouts.size());
     for(size_t s = 0; s < rs.streamouts.size(); s++)
     {
-      state.m_SO.Outputs[s].Buffer = rm->GetOriginalID(rs.streamouts[s].buf);
-      state.m_SO.Outputs[s].Offset = rs.streamouts[s].offs;
-      state.m_SO.Outputs[s].Size = rs.streamouts[s].size;
+      state.streamOut.outputs[s].resourceId = rm->GetOriginalID(rs.streamouts[s].buf);
+      state.streamOut.outputs[s].byteOffset = rs.streamouts[s].offs;
+      state.streamOut.outputs[s].byteSize = rs.streamouts[s].size;
 
-      state.m_SO.Outputs[s].WrittenCountBuffer = rm->GetOriginalID(rs.streamouts[s].countbuf);
-      state.m_SO.Outputs[s].WrittenCountOffset = rs.streamouts[s].countoffs;
+      state.streamOut.outputs[s].writtenCountResourceId =
+          rm->GetOriginalID(rs.streamouts[s].countbuf);
+      state.streamOut.outputs[s].writtenCountByteOffset = rs.streamouts[s].countoffs;
     }
 
     /////////////////////////////////////////////////
     // Rasterizer
     /////////////////////////////////////////////////
 
-    state.m_RS.SampleMask = pipe->graphics->SampleMask;
+    state.rasterizer.sampleMask = pipe->graphics->SampleMask;
 
     {
-      D3D12Pipe::RasterizerState &dst = state.m_RS.m_State;
+      D3D12Pipe::RasterizerState &dst = state.rasterizer.state;
       D3D12_RASTERIZER_DESC &src = pipe->graphics->RasterizerState;
 
-      dst.AntialiasedLineEnable = src.AntialiasedLineEnable == TRUE;
+      dst.antialiasedLines = src.AntialiasedLineEnable == TRUE;
 
       dst.cullMode = CullMode::NoCull;
       if(src.CullMode == D3D12_CULL_MODE_FRONT)
@@ -1031,36 +1036,37 @@ void D3D12Replay::SavePipelineState()
       if(src.FillMode == D3D12_FILL_MODE_WIREFRAME)
         dst.fillMode = FillMode::Wireframe;
 
-      dst.DepthBias = src.DepthBias;
-      dst.DepthBiasClamp = src.DepthBiasClamp;
-      dst.DepthClip = src.DepthClipEnable == TRUE;
-      dst.FrontCCW = src.FrontCounterClockwise == TRUE;
-      dst.MultisampleEnable = src.MultisampleEnable == TRUE;
-      dst.SlopeScaledDepthBias = src.SlopeScaledDepthBias;
-      dst.ForcedSampleCount = src.ForcedSampleCount;
-      dst.ConservativeRasterization =
+      dst.depthBias = src.DepthBias;
+      dst.depthBiasClamp = src.DepthBiasClamp;
+      dst.depthClip = src.DepthClipEnable == TRUE;
+      dst.frontCCW = src.FrontCounterClockwise == TRUE;
+      dst.multisampleEnable = src.MultisampleEnable == TRUE;
+      dst.slopeScaledDepthBias = src.SlopeScaledDepthBias;
+      dst.forcedSampleCount = src.ForcedSampleCount;
+      dst.conservativeRasterization =
           src.ConservativeRaster == D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
     }
 
-    state.m_RS.Scissors.resize(rs.scissors.size());
+    state.rasterizer.scissors.resize(rs.scissors.size());
     for(size_t i = 0; i < rs.scissors.size(); i++)
-      state.m_RS.Scissors[i] = D3D12Pipe::Scissor(rs.scissors[i].left, rs.scissors[i].top,
-                                                  rs.scissors[i].right, rs.scissors[i].bottom);
+      state.rasterizer.scissors[i] = Scissor(rs.scissors[i].left, rs.scissors[i].top,
+                                             rs.scissors[i].right - rs.scissors[i].left,
+                                             rs.scissors[i].bottom - rs.scissors[i].top);
 
-    state.m_RS.Viewports.resize(rs.views.size());
+    state.rasterizer.viewports.resize(rs.views.size());
     for(size_t i = 0; i < rs.views.size(); i++)
-      state.m_RS.Viewports[i] =
-          D3D12Pipe::Viewport(rs.views[i].TopLeftX, rs.views[i].TopLeftY, rs.views[i].Width,
-                              rs.views[i].Height, rs.views[i].MinDepth, rs.views[i].MaxDepth);
+      state.rasterizer.viewports[i] =
+          Viewport(rs.views[i].TopLeftX, rs.views[i].TopLeftY, rs.views[i].Width,
+                   rs.views[i].Height, rs.views[i].MinDepth, rs.views[i].MaxDepth);
 
     /////////////////////////////////////////////////
     // Output Merger
     /////////////////////////////////////////////////
 
-    state.m_OM.RenderTargets.resize(rs.rts.size());
+    state.outputMerger.renderTargets.resize(rs.rts.size());
     for(size_t i = 0; i < rs.rts.size(); i++)
     {
-      D3D12Pipe::View &view = state.m_OM.RenderTargets[i];
+      D3D12Pipe::View &view = state.outputMerger.renderTargets[i];
 
       D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
 
@@ -1069,91 +1075,105 @@ void D3D12Replay::SavePipelineState()
         if(rs.rtSingle)
           desc += i;
 
-        view.RootElement = (uint32_t)i;
-        view.Immediate = false;
+        view.rootElement = (uint32_t)i;
+        view.immediate = false;
 
         FillResourceView(view, desc);
       }
     }
 
     {
-      D3D12Pipe::View &view = state.m_OM.DepthTarget;
+      D3D12Pipe::View &view = state.outputMerger.depthTarget;
 
       if(rs.dsv.ptr)
       {
         D3D12Descriptor *desc = GetWrapped(rs.dsv);
 
-        view.RootElement = 0;
-        view.Immediate = false;
+        view.rootElement = 0;
+        view.immediate = false;
 
         FillResourceView(view, desc);
       }
     }
 
-    memcpy(state.m_OM.m_BlendState.BlendFactor, rs.blendFactor, sizeof(FLOAT) * 4);
+    memcpy(state.outputMerger.blendState.blendFactor, rs.blendFactor, sizeof(FLOAT) * 4);
 
     {
       D3D12_BLEND_DESC &src = pipe->graphics->BlendState;
 
-      state.m_OM.m_BlendState.AlphaToCoverage = src.AlphaToCoverageEnable == TRUE;
-      state.m_OM.m_BlendState.IndependentBlend = src.IndependentBlendEnable == TRUE;
+      state.outputMerger.blendState.alphaToCoverage = src.AlphaToCoverageEnable == TRUE;
+      state.outputMerger.blendState.independentBlend = src.IndependentBlendEnable == TRUE;
 
-      state.m_OM.m_BlendState.Blends.resize(8);
+      state.outputMerger.blendState.blends.resize(8);
       for(size_t i = 0; i < 8; i++)
       {
-        D3D12Pipe::Blend &blend = state.m_OM.m_BlendState.Blends[i];
+        ColorBlend &blend = state.outputMerger.blendState.blends[i];
 
-        blend.Enabled = src.RenderTarget[i].BlendEnable == TRUE;
+        blend.enabled = src.RenderTarget[i].BlendEnable == TRUE;
 
-        blend.LogicEnabled = src.RenderTarget[i].LogicOpEnable == TRUE;
-        blend.Logic = MakeLogicOp(src.RenderTarget[i].LogicOp);
+        blend.logicOperationEnabled = src.RenderTarget[i].LogicOpEnable == TRUE;
+        blend.logicOperation = MakeLogicOp(src.RenderTarget[i].LogicOp);
 
-        blend.m_AlphaBlend.Source = MakeBlendMultiplier(src.RenderTarget[i].SrcBlendAlpha, true);
-        blend.m_AlphaBlend.Destination =
-            MakeBlendMultiplier(src.RenderTarget[i].DestBlendAlpha, true);
-        blend.m_AlphaBlend.Operation = MakeBlendOp(src.RenderTarget[i].BlendOpAlpha);
+        blend.alphaBlend.source = MakeBlendMultiplier(src.RenderTarget[i].SrcBlendAlpha, true);
+        blend.alphaBlend.destination = MakeBlendMultiplier(src.RenderTarget[i].DestBlendAlpha, true);
+        blend.alphaBlend.operation = MakeBlendOp(src.RenderTarget[i].BlendOpAlpha);
 
-        blend.m_Blend.Source = MakeBlendMultiplier(src.RenderTarget[i].SrcBlend, false);
-        blend.m_Blend.Destination = MakeBlendMultiplier(src.RenderTarget[i].DestBlend, false);
-        blend.m_Blend.Operation = MakeBlendOp(src.RenderTarget[i].BlendOp);
+        blend.colorBlend.source = MakeBlendMultiplier(src.RenderTarget[i].SrcBlend, false);
+        blend.colorBlend.destination = MakeBlendMultiplier(src.RenderTarget[i].DestBlend, false);
+        blend.colorBlend.operation = MakeBlendOp(src.RenderTarget[i].BlendOp);
 
-        blend.WriteMask = src.RenderTarget[i].RenderTargetWriteMask;
+        blend.writeMask = src.RenderTarget[i].RenderTargetWriteMask;
       }
     }
 
     {
       D3D12_DEPTH_STENCIL_DESC &src = pipe->graphics->DepthStencilState;
 
-      state.m_OM.m_State.DepthEnable = src.DepthEnable == TRUE;
-      state.m_OM.m_State.DepthFunc = MakeCompareFunc(src.DepthFunc);
-      state.m_OM.m_State.DepthWrites = src.DepthWriteMask == D3D12_DEPTH_WRITE_MASK_ALL;
-      state.m_OM.m_State.StencilEnable = src.StencilEnable == TRUE;
-      state.m_OM.m_State.StencilRef = rs.stencilRef;
-      state.m_OM.m_State.StencilReadMask = src.StencilReadMask;
-      state.m_OM.m_State.StencilWriteMask = src.StencilWriteMask;
+      state.outputMerger.depthStencilState.depthEnable = src.DepthEnable == TRUE;
+      state.outputMerger.depthStencilState.depthFunction = MakeCompareFunc(src.DepthFunc);
+      state.outputMerger.depthStencilState.depthWrites =
+          src.DepthWriteMask == D3D12_DEPTH_WRITE_MASK_ALL;
+      state.outputMerger.depthStencilState.stencilEnable = src.StencilEnable == TRUE;
 
-      state.m_OM.m_State.m_FrontFace.Func = MakeCompareFunc(src.FrontFace.StencilFunc);
-      state.m_OM.m_State.m_FrontFace.DepthFailOp = MakeStencilOp(src.FrontFace.StencilDepthFailOp);
-      state.m_OM.m_State.m_FrontFace.PassOp = MakeStencilOp(src.FrontFace.StencilPassOp);
-      state.m_OM.m_State.m_FrontFace.FailOp = MakeStencilOp(src.FrontFace.StencilFailOp);
+      state.outputMerger.depthStencilState.frontFace.function =
+          MakeCompareFunc(src.FrontFace.StencilFunc);
+      state.outputMerger.depthStencilState.frontFace.depthFailOperation =
+          MakeStencilOp(src.FrontFace.StencilDepthFailOp);
+      state.outputMerger.depthStencilState.frontFace.passOperation =
+          MakeStencilOp(src.FrontFace.StencilPassOp);
+      state.outputMerger.depthStencilState.frontFace.failOperation =
+          MakeStencilOp(src.FrontFace.StencilFailOp);
 
-      state.m_OM.m_State.m_BackFace.Func = MakeCompareFunc(src.BackFace.StencilFunc);
-      state.m_OM.m_State.m_BackFace.DepthFailOp = MakeStencilOp(src.BackFace.StencilDepthFailOp);
-      state.m_OM.m_State.m_BackFace.PassOp = MakeStencilOp(src.BackFace.StencilPassOp);
-      state.m_OM.m_State.m_BackFace.FailOp = MakeStencilOp(src.BackFace.StencilFailOp);
+      state.outputMerger.depthStencilState.backFace.function =
+          MakeCompareFunc(src.BackFace.StencilFunc);
+      state.outputMerger.depthStencilState.backFace.depthFailOperation =
+          MakeStencilOp(src.BackFace.StencilDepthFailOp);
+      state.outputMerger.depthStencilState.backFace.passOperation =
+          MakeStencilOp(src.BackFace.StencilPassOp);
+      state.outputMerger.depthStencilState.backFace.failOperation =
+          MakeStencilOp(src.BackFace.StencilFailOp);
+
+      // due to shared structs, this is slightly duplicated - D3D doesn't have separate states for
+      // front/back.
+      state.outputMerger.depthStencilState.frontFace.reference = rs.stencilRef;
+      state.outputMerger.depthStencilState.frontFace.compareMask = src.StencilReadMask;
+      state.outputMerger.depthStencilState.frontFace.writeMask = src.StencilWriteMask;
+      state.outputMerger.depthStencilState.backFace.reference = rs.stencilRef;
+      state.outputMerger.depthStencilState.backFace.compareMask = src.StencilReadMask;
+      state.outputMerger.depthStencilState.backFace.writeMask = src.StencilWriteMask;
     }
   }
 
   // resource states
   {
     const std::map<ResourceId, SubresourceStateVector> &states = m_pDevice->GetSubresourceStates();
-    state.Resources.resize(states.size());
+    state.resourceStates.resize(states.size());
     size_t i = 0;
     for(auto it = states.begin(); it != states.end(); ++it)
     {
-      D3D12Pipe::ResourceData &res = state.Resources[i];
+      D3D12Pipe::ResourceData &res = state.resourceStates[i];
 
-      res.id = rm->GetOriginalID(it->first);
+      res.resourceId = rm->GetOriginalID(it->first);
 
       res.states.resize(it->second.size());
       for(size_t l = 0; l < it->second.size(); l++)
@@ -1181,10 +1201,10 @@ bool D3D12Replay::RenderTexture(TextureDisplay cfg)
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
-void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
+void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
 {
-  return m_pDevice->GetDebugManager()->RenderMesh(eventID, secondaryDraws, cfg);
+  return m_pDevice->GetDebugManager()->RenderMesh(eventId, secondaryDraws, cfg);
 }
 
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
@@ -1203,9 +1223,9 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 }
 
 ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventID, const vector<uint32_t> &passEvents)
+                                      uint32_t eventId, const vector<uint32_t> &passEvents)
 {
-  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventID, passEvents);
+  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventId, passEvents);
 }
 
 bool D3D12Replay::IsRenderOutput(ResourceId id)
@@ -1239,11 +1259,11 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
   return false;
 }
 
-vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
+vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
 {
   vector<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
   if(!draw)
     return passEvents;
@@ -1294,7 +1314,7 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
     // but it's useful to have the first part of the pass as part
     // of the list
     if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
-      passEvents.push_back(start->eventID);
+      passEvents.push_back(start->eventId);
 
     start = m_pDevice->GetDrawcall((uint32_t)start->next);
   }
@@ -1358,12 +1378,12 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
     idx++;
   }
 
-  if(cb && cbufSlot < (uint32_t)bindMap.ConstantBlocks.count())
+  if(cb && cbufSlot < (uint32_t)bindMap.constantBlocks.count())
   {
     // check if the data actually comes from root constants
 
     const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-    BindpointMap bind = bindMap.ConstantBlocks[cbufSlot];
+    Bindpoint bind = bindMap.constantBlocks[cbufSlot];
 
     WrappedID3D12RootSignature *sig = NULL;
     const vector<D3D12RenderState::SignatureElement> *sigElems = NULL;
@@ -1415,9 +1435,9 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
   }
 }
 
-void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
+void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 {
-  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventID);
+  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventId);
 }
 
 struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
@@ -1465,14 +1485,14 @@ void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
   m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
 }
 
-MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
-  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
+  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventId, instID, stage);
 }
 
-uint32_t D3D12Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+uint32_t D3D12Replay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
-  return m_pDevice->GetDebugManager()->PickVertex(eventID, cfg, x, y);
+  return m_pDevice->GetDebugManager()->PickVertex(eventId, cfg, x, y);
 }
 
 uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
@@ -1671,19 +1691,19 @@ vector<PixelModification> D3D12Replay::PixelHistory(vector<EventUsage> events, R
   return vector<PixelModification>();
 }
 
-ShaderDebugTrace D3D12Replay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
+ShaderDebugTrace D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   return ShaderDebugTrace();
 }
 
-ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
+ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                          uint32_t primitive)
 {
   return ShaderDebugTrace();
 }
 
-ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, const uint32_t groupid[3],
+ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                           const uint32_t threadid[3])
 {
   return ShaderDebugTrace();
@@ -1828,7 +1848,7 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
   ReplayStatus status = device.ReadLogInitialisation(rdc, true);
 
   if(status == ReplayStatus::Succeeded)
-    device.GetStructuredFile().swap(output);
+    device.GetStructuredFile().Swap(output);
 }
 
 static StructuredProcessRegistration D3D12ProcessRegistration(RDC_D3D12, &D3D12_ProcessStructured);

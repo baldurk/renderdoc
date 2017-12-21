@@ -82,7 +82,7 @@ void CommentView::OnCaptureLoaded()
   m_ignoreModifications = false;
 }
 
-void CommentView::OnEventChanged(uint32_t eventID)
+void CommentView::OnEventChanged(uint32_t eventId)
 {
   QString oldText = QString::fromUtf8(m_commentsEditor->getText(m_commentsEditor->textLength() + 1));
   QString newText = m_Ctx.GetNotes("comments");

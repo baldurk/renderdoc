@@ -198,7 +198,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
         {
           DebugMessage msg = cmdBufInfo.debugMessages[i];
-          msg.eventID += m_Cmd.m_RootEventID;
+          msg.eventId += m_Cmd.m_RootEventID;
           m_pDevice->AddDebugMessage(msg);
         }
 

@@ -276,9 +276,9 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint3
       {
         if(m_ChunkMetadata.callstack.empty())
         {
-          bool collect = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks;
+          bool collect = RenderDoc::Inst().GetCaptureOptions().captureCallstacks;
 
-          if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws)
+          if(RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws)
             collect = collect && m_DrawChunk;
 
           if(collect)

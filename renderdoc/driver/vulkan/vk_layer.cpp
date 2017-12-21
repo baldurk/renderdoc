@@ -71,7 +71,7 @@ class VulkanHook : LibraryHook
 
   void OptionsUpdated(const char *libName)
   {
-    if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
+    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
       Process::RegisterEnvironmentModification(
           EnvironmentModification(EnvMod::Append, EnvSep::Platform, "VK_INSTANCE_LAYERS",

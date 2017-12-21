@@ -801,7 +801,7 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
                                ShaderReflection *refl)
 {
   // copy over attrib bindings
-  for(const SigParameter &sig : refl->InputSig)
+  for(const SigParameter &sig : refl->inputSignature)
   {
     // skip built-ins
     if(sig.systemValue != ShaderBuiltin::Undefined)
@@ -819,16 +819,16 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
   uint64_t used = 0;
 
   // copy over fragdata bindings
-  for(size_t i = 0; i < refl->OutputSig.size(); i++)
+  for(size_t i = 0; i < refl->outputSignature.size(); i++)
   {
     // only look at colour outputs (should be the only outputs from fs)
-    if(refl->OutputSig[i].systemValue != ShaderBuiltin::ColorOutput)
+    if(refl->outputSignature[i].systemValue != ShaderBuiltin::ColorOutput)
       continue;
 
-    if(!strncmp("gl_", refl->OutputSig[i].varName.c_str(), 3))
+    if(!strncmp("gl_", refl->outputSignature[i].varName.c_str(), 3))
       continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix
 
-    GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.c_str());
+    GLint idx = gl.glGetFragDataLocation(progsrc, refl->outputSignature[i].varName.c_str());
     if(idx >= 0)
     {
       uint64_t mask = 1ULL << idx;
@@ -836,7 +836,7 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
       if(used & mask)
       {
         RDCWARN("Multiple signatures bound to output %zu, ignoring %s", i,
-                refl->OutputSig[i].varName.c_str());
+                refl->outputSignature[i].varName.c_str());
         continue;
       }
 
@@ -844,7 +844,7 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
 
       if(gl.glBindFragDataLocation)
       {
-        gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.c_str());
+        gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->outputSignature[i].varName.c_str());
       }
       else
       {

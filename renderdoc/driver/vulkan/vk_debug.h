@@ -112,19 +112,19 @@ public:
   void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
   void EndText(const TextPrintState &textstate);
 
-  ResourceId RenderOverlay(ResourceId texid, DebugOverlay overlay, uint32_t eventID,
+  ResourceId RenderOverlay(ResourceId texid, DebugOverlay overlay, uint32_t eventId,
                            const vector<uint32_t> &passEvents);
 
-  void InitPostVSBuffers(uint32_t eventID);
+  void InitPostVSBuffers(uint32_t eventId);
 
-  // indicates that EID alias is the same as eventID
-  void AliasPostVSBuffers(uint32_t eventID, uint32_t alias) { m_PostVSAlias[alias] = eventID; }
-  MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
+  // indicates that EID alias is the same as eventId
+  void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVSAlias[alias] = eventId; }
+  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage);
   void ClearPostVSCache();
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret);
 
-  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y, uint32_t w,
+  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y, uint32_t w,
                       uint32_t h);
 
   void CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,

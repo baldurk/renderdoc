@@ -3350,8 +3350,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   pixelData.AlwaysZero = 0.0f;
 
-  float x = cfg.offx;
-  float y = cfg.offy;
+  float x = cfg.xOffset;
+  float y = cfg.yOffset;
 
   vertexData.Position.x = x * (2.0f / float(GetWidth()));
   vertexData.Position.y = -y * (2.0f / float(GetHeight()));
@@ -3365,30 +3365,30 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   vertexData.LineStrip = 0;
 
-  if(cfg.rangemax <= cfg.rangemin)
-    cfg.rangemax += 0.00001f;
+  if(cfg.rangeMax <= cfg.rangeMin)
+    cfg.rangeMax += 0.00001f;
 
-  pixelData.Channels.x = cfg.Red ? 1.0f : 0.0f;
-  pixelData.Channels.y = cfg.Green ? 1.0f : 0.0f;
-  pixelData.Channels.z = cfg.Blue ? 1.0f : 0.0f;
-  pixelData.Channels.w = cfg.Alpha ? 1.0f : 0.0f;
+  pixelData.Channels.x = cfg.red ? 1.0f : 0.0f;
+  pixelData.Channels.y = cfg.green ? 1.0f : 0.0f;
+  pixelData.Channels.z = cfg.blue ? 1.0f : 0.0f;
+  pixelData.Channels.w = cfg.alpha ? 1.0f : 0.0f;
 
-  pixelData.RangeMinimum = cfg.rangemin;
-  pixelData.InverseRangeSize = 1.0f / (cfg.rangemax - cfg.rangemin);
+  pixelData.RangeMinimum = cfg.rangeMin;
+  pixelData.InverseRangeSize = 1.0f / (cfg.rangeMax - cfg.rangeMin);
 
   if(_isnan(pixelData.InverseRangeSize) || !_finite(pixelData.InverseRangeSize))
   {
     pixelData.InverseRangeSize = FLT_MAX;
   }
 
-  pixelData.WireframeColour.x = cfg.HDRMul;
+  pixelData.WireframeColour.x = cfg.hdrMultiplier;
 
-  pixelData.RawOutput = cfg.rawoutput ? 1 : 0;
+  pixelData.RawOutput = cfg.rawOutput ? 1 : 0;
 
-  pixelData.FlipY = cfg.FlipY ? 1 : 0;
+  pixelData.FlipY = cfg.flipY ? 1 : 0;
 
   TextureShaderDetails details =
-      GetShaderDetails(cfg.texid, cfg.typeHint, cfg.rawoutput ? true : false);
+      GetShaderDetails(cfg.resourceId, cfg.typeHint, cfg.rawOutput ? true : false);
 
   int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
 
@@ -3447,9 +3447,9 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   ID3D11PixelShader *customPS = NULL;
   ID3D11Buffer *customBuff = NULL;
 
-  if(cfg.CustomShader != ResourceId())
+  if(cfg.customShaderId != ResourceId())
   {
-    auto it = WrappedShader::m_ShaderList.find(cfg.CustomShader);
+    auto it = WrappedShader::m_ShaderList.find(cfg.customShaderId);
 
     if(it != WrappedShader::m_ShaderList.end())
     {
@@ -3458,11 +3458,11 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
       RDCASSERT(dxbc);
       RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);
 
-      if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.CustomShader))
+      if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.customShaderId))
       {
         WrappedID3D11Shader<ID3D11PixelShader> *wrapped =
             (WrappedID3D11Shader<ID3D11PixelShader> *)m_WrappedDevice->GetResourceManager()
-                ->GetLiveResource(cfg.CustomShader);
+                ->GetLiveResource(cfg.customShaderId);
 
         customPS = wrapped;
 
@@ -3678,7 +3678,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     m_pImmediateContext->PSSetSamplers(0, 2, samps);
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
+    if(cfg.rawOutput || !blendAlpha || cfg.customShaderId != ResourceId())
       m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
     else
       m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
@@ -3831,44 +3831,44 @@ void D3D11DebugManager::RenderForPredicate()
   m_WrappedContext->Draw(3, 0);
 }
 
-MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
   D3D11PostVSData postvs;
   RDCEraseEl(postvs);
 
-  if(m_PostVSData.find(eventID) != m_PostVSData.end())
-    postvs = m_PostVSData[eventID];
+  if(m_PostVSData.find(eventId) != m_PostVSData.end())
+    postvs = m_PostVSData[eventId];
 
   const D3D11PostVSData::StageData &s = postvs.GetStage(stage);
 
   MeshFormat ret;
 
   if(s.useIndices && s.idxBuf)
-    ret.idxbuf = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
+    ret.indexResourceId = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
   else
-    ret.idxbuf = ResourceId();
-  ret.idxoffs = 0;
-  ret.idxByteWidth = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
+    ret.indexResourceId = ResourceId();
+  ret.indexByteOffset = 0;
+  ret.indexByteStride = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
   ret.baseVertex = 0;
 
   if(s.buf)
-    ret.buf = ((WrappedID3D11Buffer *)s.buf)->GetResourceID();
+    ret.vertexResourceId = ((WrappedID3D11Buffer *)s.buf)->GetResourceID();
   else
-    ret.buf = ResourceId();
+    ret.vertexResourceId = ResourceId();
 
-  ret.offset = s.instStride * instID;
-  ret.stride = s.vertStride;
+  ret.vertexByteOffset = s.instStride * instID;
+  ret.vertexByteStride = s.vertStride;
 
-  ret.fmt.compCount = 4;
-  ret.fmt.compByteWidth = 4;
-  ret.fmt.compType = CompType::Float;
-  ret.fmt.type = ResourceFormatType::Regular;
-  ret.fmt.bgraOrder = false;
+  ret.format.compCount = 4;
+  ret.format.compByteWidth = 4;
+  ret.format.compType = CompType::Float;
+  ret.format.type = ResourceFormatType::Regular;
+  ret.format.bgraOrder = false;
 
   ret.showAlpha = false;
 
-  ret.topo = MakePrimitiveTopology(s.topo);
-  ret.numVerts = s.numVerts;
+  ret.topology = MakePrimitiveTopology(s.topo);
+  ret.numIndices = s.numVerts;
 
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;
@@ -3878,16 +3878,16 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
   {
     D3D11PostVSData::InstData inst = s.instData[instID];
 
-    ret.offset = inst.bufOffset;
-    ret.numVerts = inst.numVerts;
+    ret.vertexByteOffset = inst.bufOffset;
+    ret.numIndices = inst.numVerts;
   }
 
   return ret;
 }
 
-void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
+void D3D11DebugManager::InitPostVSBuffers(uint32_t eventId)
 {
-  if(m_PostVSData.find(eventID) != m_PostVSData.end())
+  if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
   D3D11RenderStateTracker tracker(m_WrappedContext);
@@ -3927,7 +3927,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     return;
   }
 
-  const DrawcallDescription *drawcall = m_WrappedDevice->GetDrawcall(eventID);
+  const DrawcallDescription *drawcall = m_WrappedDevice->GetDrawcall(eventId);
 
   if(drawcall->numIndices == 0)
     return;
@@ -4235,7 +4235,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(numPrims.NumPrimitivesWritten == 0)
     {
-      m_PostVSData[eventID] = D3D11PostVSData();
+      m_PostVSData[eventId] = D3D11PostVSData();
       SAFE_RELEASE(idxBuf);
       return;
     }
@@ -4339,45 +4339,45 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
 
-    m_PostVSData[eventID].vsin.topo = topo;
-    m_PostVSData[eventID].vsout.buf = vsoutBuffer;
-    m_PostVSData[eventID].vsout.vertStride = stride;
-    m_PostVSData[eventID].vsout.nearPlane = nearp;
-    m_PostVSData[eventID].vsout.farPlane = farp;
+    m_PostVSData[eventId].vsin.topo = topo;
+    m_PostVSData[eventId].vsout.buf = vsoutBuffer;
+    m_PostVSData[eventId].vsout.vertStride = stride;
+    m_PostVSData[eventId].vsout.nearPlane = nearp;
+    m_PostVSData[eventId].vsout.farPlane = farp;
 
-    m_PostVSData[eventID].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
-    m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
+    m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
+    m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
 
-    m_PostVSData[eventID].vsout.instStride = 0;
+    m_PostVSData[eventId].vsout.instStride = 0;
     if(drawcall->flags & DrawFlags::Instanced)
-      m_PostVSData[eventID].vsout.instStride =
+      m_PostVSData[eventId].vsout.instStride =
           bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
 
-    m_PostVSData[eventID].vsout.idxBuf = NULL;
-    if(m_PostVSData[eventID].vsout.useIndices && idxBuf)
+    m_PostVSData[eventId].vsout.idxBuf = NULL;
+    if(m_PostVSData[eventId].vsout.useIndices && idxBuf)
     {
-      m_PostVSData[eventID].vsout.idxBuf = idxBuf;
-      m_PostVSData[eventID].vsout.idxFmt = idxFmt;
+      m_PostVSData[eventId].vsout.idxBuf = idxBuf;
+      m_PostVSData[eventId].vsout.idxFmt = idxFmt;
     }
 
-    m_PostVSData[eventID].vsout.hasPosOut = posidx >= 0;
+    m_PostVSData[eventId].vsout.hasPosOut = posidx >= 0;
 
-    m_PostVSData[eventID].vsout.topo = topo;
+    m_PostVSData[eventId].vsout.topo = topo;
   }
   else
   {
     // empty vertex output signature
-    m_PostVSData[eventID].vsin.topo = topo;
-    m_PostVSData[eventID].vsout.buf = NULL;
-    m_PostVSData[eventID].vsout.instStride = 0;
-    m_PostVSData[eventID].vsout.vertStride = 0;
-    m_PostVSData[eventID].vsout.nearPlane = 0.0f;
-    m_PostVSData[eventID].vsout.farPlane = 0.0f;
-    m_PostVSData[eventID].vsout.useIndices = false;
-    m_PostVSData[eventID].vsout.hasPosOut = false;
-    m_PostVSData[eventID].vsout.idxBuf = NULL;
+    m_PostVSData[eventId].vsin.topo = topo;
+    m_PostVSData[eventId].vsout.buf = NULL;
+    m_PostVSData[eventId].vsout.instStride = 0;
+    m_PostVSData[eventId].vsout.vertStride = 0;
+    m_PostVSData[eventId].vsout.nearPlane = 0.0f;
+    m_PostVSData[eventId].vsout.farPlane = 0.0f;
+    m_PostVSData[eventId].vsout.useIndices = false;
+    m_PostVSData[eventId].vsout.hasPosOut = false;
+    m_PostVSData[eventId].vsout.idxBuf = NULL;
 
-    m_PostVSData[eventID].vsout.topo = topo;
+    m_PostVSData[eventId].vsout.topo = topo;
   }
 
   if(dxbcGS || dxbcDS)
@@ -4706,17 +4706,17 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
 
-    m_PostVSData[eventID].gsout.buf = gsoutBuffer;
-    m_PostVSData[eventID].gsout.instStride = 0;
+    m_PostVSData[eventId].gsout.buf = gsoutBuffer;
+    m_PostVSData[eventId].gsout.instStride = 0;
     if(drawcall->flags & DrawFlags::Instanced)
-      m_PostVSData[eventID].gsout.instStride =
+      m_PostVSData[eventId].gsout.instStride =
           bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
-    m_PostVSData[eventID].gsout.vertStride = stride;
-    m_PostVSData[eventID].gsout.nearPlane = nearp;
-    m_PostVSData[eventID].gsout.farPlane = farp;
-    m_PostVSData[eventID].gsout.useIndices = false;
-    m_PostVSData[eventID].gsout.hasPosOut = posidx >= 0;
-    m_PostVSData[eventID].gsout.idxBuf = NULL;
+    m_PostVSData[eventId].gsout.vertStride = stride;
+    m_PostVSData[eventId].gsout.nearPlane = nearp;
+    m_PostVSData[eventId].gsout.farPlane = farp;
+    m_PostVSData[eventId].gsout.useIndices = false;
+    m_PostVSData[eventId].gsout.hasPosOut = posidx >= 0;
+    m_PostVSData[eventId].gsout.idxBuf = NULL;
 
     topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
@@ -4750,45 +4750,45 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       }
     }
 
-    m_PostVSData[eventID].gsout.topo = topo;
+    m_PostVSData[eventId].gsout.topo = topo;
 
     // streamout expands strips unfortunately
     if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
-      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+      m_PostVSData[eventId].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
-      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+      m_PostVSData[eventId].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
     else if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
-      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+      m_PostVSData[eventId].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
     else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
-      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+      m_PostVSData[eventId].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
 
-    switch(m_PostVSData[eventID].gsout.topo)
+    switch(m_PostVSData[eventId].gsout.topo)
     {
       case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST:
-        m_PostVSData[eventID].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten;
+        m_PostVSData[eventId].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten;
         break;
       case D3D11_PRIMITIVE_TOPOLOGY_LINELIST:
       case D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-        m_PostVSData[eventID].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten * 2;
+        m_PostVSData[eventId].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten * 2;
         break;
       default:
       case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
       case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-        m_PostVSData[eventID].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten * 3;
+        m_PostVSData[eventId].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten * 3;
         break;
     }
 
     if(drawcall->flags & DrawFlags::Instanced)
-      m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+      m_PostVSData[eventId].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
 
-    m_PostVSData[eventID].gsout.instData = instData;
+    m_PostVSData[eventId].gsout.instData = instData;
   }
 }
 
-void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
+void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
                                    const MeshDisplay &cfg)
 {
-  if(cfg.position.buf == ResourceId() || cfg.position.numVerts == 0)
+  if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
     return;
 
   DebugVertexCBuffer vertexData;
@@ -4827,8 +4827,8 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   // don't cull in wireframe mesh display
   m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
-  const ResourceFormat &resFmt = cfg.position.fmt;
-  const ResourceFormat &resFmt2 = cfg.second.fmt;
+  const ResourceFormat &resFmt = cfg.position.format;
+  const ResourceFormat &resFmt2 = cfg.second.format;
 
   if(m_PrevMeshFmt != resFmt || m_PrevMeshFmt2 != resFmt2)
   {
@@ -4839,7 +4839,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     layoutdesc[0].SemanticName = "pos";
     layoutdesc[0].SemanticIndex = 0;
     layoutdesc[0].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    if(cfg.position.buf != ResourceId() && (resFmt.Special() || resFmt.compCount > 0))
+    if(cfg.position.vertexResourceId != ResourceId() && (resFmt.Special() || resFmt.compCount > 0))
       layoutdesc[0].Format = MakeDXGIFormat(resFmt);
     layoutdesc[0].AlignedByteOffset = 0;    // offset will be handled by vertex buffer offset
     layoutdesc[0].InputSlot = 0;
@@ -4849,7 +4849,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     layoutdesc[1].SemanticName = "sec";
     layoutdesc[1].SemanticIndex = 0;
     layoutdesc[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    if(cfg.second.buf != ResourceId() && (resFmt2.Special() || resFmt2.compCount > 0))
+    if(cfg.second.vertexResourceId != ResourceId() && (resFmt2.Special() || resFmt2.compCount > 0))
       layoutdesc[1].Format = MakeDXGIFormat(resFmt2);
     layoutdesc[1].AlignedByteOffset = 0;
     layoutdesc[1].InputSlot = 1;
@@ -4869,13 +4869,13 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   m_PrevMeshFmt = resFmt;
   m_PrevMeshFmt2 = resFmt2;
 
-  RDCASSERT(cfg.position.idxoffs < 0xffffffff);
+  RDCASSERT(cfg.position.indexByteOffset < 0xffffffff);
 
   ID3D11Buffer *ibuf = NULL;
   DXGI_FORMAT ifmt = DXGI_FORMAT_R16_UINT;
-  UINT ioffs = (UINT)cfg.position.idxoffs;
+  UINT ioffs = (UINT)cfg.position.indexByteOffset;
 
-  D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(cfg.position.topo);
+  D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(cfg.position.topology);
 
   // render the mesh itself (solid, then wireframe)
   {
@@ -4924,34 +4924,34 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       {
         const MeshFormat &fmt = secondaryDraws[i];
 
-        if(fmt.buf != ResourceId())
+        if(fmt.vertexResourceId != ResourceId())
         {
           meshColour = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, 1.0f);
           FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
           m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
-          m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topo));
+          m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topology));
 
-          auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
+          auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.vertexResourceId);
 
           ID3D11Buffer *buf = it->second.m_Buffer;
-          m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&fmt.stride,
-                                                  (UINT *)&fmt.offset);
-          if(fmt.idxbuf != ResourceId())
+          m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&fmt.vertexByteStride,
+                                                  (UINT *)&fmt.vertexByteOffset);
+          if(fmt.indexResourceId != ResourceId())
           {
-            RDCASSERT(fmt.idxoffs < 0xffffffff);
+            RDCASSERT(fmt.indexByteOffset < 0xffffffff);
 
-            it = WrappedID3D11Buffer::m_BufferList.find(fmt.idxbuf);
+            it = WrappedID3D11Buffer::m_BufferList.find(fmt.indexResourceId);
             buf = it->second.m_Buffer;
             m_pImmediateContext->IASetIndexBuffer(
-                buf, fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
-                (UINT)fmt.idxoffs);
+                buf, fmt.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
+                (UINT)fmt.indexByteOffset);
 
-            m_pImmediateContext->DrawIndexed(fmt.numVerts, 0, fmt.baseVertex);
+            m_pImmediateContext->DrawIndexed(fmt.numIndices, 0, fmt.baseVertex);
           }
           else
           {
-            m_pImmediateContext->Draw(fmt.numVerts, 0);
+            m_pImmediateContext->Draw(fmt.numIndices, 0);
           }
         }
       }
@@ -4967,40 +4967,40 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     m_pImmediateContext->IASetInputLayout(layout);
 
-    RDCASSERT(cfg.position.offset < 0xffffffff && cfg.second.offset < 0xffffffff);
+    RDCASSERT(cfg.position.vertexByteOffset < 0xffffffff && cfg.second.vertexByteOffset < 0xffffffff);
 
     ID3D11Buffer *vbs[2] = {NULL, NULL};
-    UINT str[] = {cfg.position.stride, cfg.second.stride};
-    UINT offs[] = {(UINT)cfg.position.offset, (UINT)cfg.second.offset};
+    UINT str[] = {cfg.position.vertexByteStride, cfg.second.vertexByteStride};
+    UINT offs[] = {(UINT)cfg.position.vertexByteOffset, (UINT)cfg.second.vertexByteOffset};
 
     {
-      auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
+      auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.vertexResourceId);
 
       if(it != WrappedID3D11Buffer::m_BufferList.end())
         vbs[0] = it->second.m_Buffer;
 
-      it = WrappedID3D11Buffer::m_BufferList.find(cfg.second.buf);
+      it = WrappedID3D11Buffer::m_BufferList.find(cfg.second.vertexResourceId);
 
       if(it != WrappedID3D11Buffer::m_BufferList.end())
         vbs[1] = it->second.m_Buffer;
 
-      it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.idxbuf);
+      it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.indexResourceId);
 
       if(it != WrappedID3D11Buffer::m_BufferList.end())
         ibuf = it->second.m_Buffer;
 
-      if(cfg.position.idxByteWidth == 4)
+      if(cfg.position.indexByteStride == 4)
         ifmt = DXGI_FORMAT_R32_UINT;
     }
 
     m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
-    if(cfg.position.idxByteWidth)
+    if(cfg.position.indexByteStride)
       m_pImmediateContext->IASetIndexBuffer(ibuf, ifmt, ioffs);
     else
       m_pImmediateContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, NULL);
 
     // draw solid shaded mode
-    if(cfg.solidShadeMode != SolidShade::NoSolid && cfg.position.topo < Topology::PatchList_1CPs)
+    if(cfg.solidShadeMode != SolidShade::NoSolid && cfg.position.topology < Topology::PatchList_1CPs)
     {
       m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
@@ -5029,10 +5029,10 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
         m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
       }
 
-      if(cfg.position.idxByteWidth)
-        m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, cfg.position.baseVertex);
+      if(cfg.position.indexByteStride)
+        m_pImmediateContext->DrawIndexed(cfg.position.numIndices, 0, cfg.position.baseVertex);
       else
-        m_pImmediateContext->Draw(cfg.position.numVerts, 0);
+        m_pImmediateContext->Draw(cfg.position.numIndices, 0);
 
       if(cfg.solidShadeMode == SolidShade::Lit)
         m_pImmediateContext->GSSetShader(NULL, NULL, 0);
@@ -5040,7 +5040,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     // draw wireframe mode
     if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
-       cfg.position.topo >= Topology::PatchList_1CPs)
+       cfg.position.topology >= Topology::PatchList_1CPs)
     {
       m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
@@ -5056,15 +5056,15 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-      if(cfg.position.topo >= Topology::PatchList_1CPs)
+      if(cfg.position.topology >= Topology::PatchList_1CPs)
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
       else
         m_pImmediateContext->IASetPrimitiveTopology(topo);
 
-      if(cfg.position.idxByteWidth)
-        m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, cfg.position.baseVertex);
+      if(cfg.position.indexByteStride)
+        m_pImmediateContext->DrawIndexed(cfg.position.numIndices, 0, cfg.position.baseVertex);
       else
-        m_pImmediateContext->Draw(cfg.position.numVerts, 0);
+        m_pImmediateContext->Draw(cfg.position.numIndices, 0);
     }
   }
 
@@ -5112,7 +5112,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
   if(cfg.highlightVert != ~0U)
   {
-    m_HighlightCache.CacheHighlightingData(eventID, cfg);
+    m_HighlightCache.CacheHighlightingData(eventId, cfg);
 
     D3D11_PRIMITIVE_TOPOLOGY meshtopo = topo;
 

@@ -76,23 +76,23 @@ struct CaptureSettings
   VARIANT_CAST(CaptureSettings);
 
   DOCUMENT("The :class:`~renderdoc.CaptureOptions` with fine-tuned settings for the capture.");
-  CaptureOptions Options;
+  CaptureOptions options;
   DOCUMENT(
       "``True`` if the described capture is an inject-into-process instead of a launched "
       "executable.");
-  bool Inject;
+  bool inject;
   DOCUMENT("``True`` if this capture settings object should be immediately executed upon load.");
-  bool AutoStart;
+  bool autoStart;
   DOCUMENT("The path to the executable to run.");
-  rdcstr Executable;
+  rdcstr executable;
   DOCUMENT("The path to the working directory to run in, or blank for the executable's directory.");
-  rdcstr WorkingDir;
-  DOCUMENT("The command line to pass when running :data:`Exectuable`.");
-  rdcstr CmdLine;
+  rdcstr workingDir;
+  DOCUMENT("The command line to pass when running :data:`executable`.");
+  rdcstr commandLine;
   DOCUMENT(
       "A ``list`` of :class:`~renderdoc.EnvironmentModification` with environment changes to "
       "apply.");
-  rdcarray<EnvironmentModification> Environment;
+  rdcarray<EnvironmentModification> environment;
 };
 
 DECLARE_REFLECTION_STRUCT(CaptureSettings);
@@ -220,10 +220,10 @@ struct ITextureViewer
 
   DOCUMENT(R"(Open a texture view, optionally raising this window to the foreground.
 
-:param ~renderdoc.ResourceId ID: The ID of the texture to view.
+:param ~renderdoc.ResourceId resourceId: The ID of the texture to view.
 :param bool focus: ``True`` if the :class:`TextureViewer` should be raised.
 )");
-  virtual void ViewTexture(ResourceId ID, bool focus) = 0;
+  virtual void ViewTexture(ResourceId resourceId, bool focus) = 0;
   DOCUMENT(R"(Highlights the given pixel location in the current texture.
 
 :param int x: The X co-ordinate.
@@ -612,23 +612,23 @@ effective current event, since for example selecting a marker region will change
 to be the last event inside that region, to be consistent with selecting an item reflecting the
 current state after that item.
 
-The selected event shows the :data:`EID <renderdoc.APIEvent.eventID>` that was actually selected,
+The selected event shows the :data:`eventId <renderdoc.APIEvent.eventId>` that was actually selected,
 which will usually but not always be the same as the current effective
-:data:`EID <renderdoc.APIEvent.eventID>`.
+:data:`eventId <renderdoc.APIEvent.eventId>`.
 
 The distinction for this callback is not normally desired, instead use :meth:`OnEventChanged` to
 be notified whenever the current event changes. The API inspector uses this to display API events up
 to a marker region.
 
-:param int eventID: The new :data:`EID <renderdoc.APIEvent.eventID>`.
+:param int eventId: The new :data:`eventId <renderdoc.APIEvent.eventId>`.
 )");
-  virtual void OnSelectedEventChanged(uint32_t eventID) = 0;
+  virtual void OnSelectedEventChanged(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Called whenever the effective current event changes.
 
-:param int eventID: The new :data:`EID <renderdoc.APIEvent.eventID>`.
+:param int eventId: The new :data:`eventId <renderdoc.APIEvent.eventId>`.
 )");
-  virtual void OnEventChanged(uint32_t eventID) = 0;
+  virtual void OnEventChanged(uint32_t eventId) = 0;
 
 protected:
   ICaptureViewer() = default;
@@ -698,7 +698,7 @@ struct IReplayManager
   DOCUMENT(R"(Retrieves the capture file handle for the currently open file.
 
 :return: The file handle active, or ``None`` if no capture is open.
-:rtype: StackResolver
+:rtype: ~renderdoc.CaptureAccess
 )");
   virtual ICaptureAccess *GetCaptureAccess() = 0;
 
@@ -711,7 +711,8 @@ This happens either locally, or on the remote server, depending on whether a con
   directory containing the executable is used.
 :param str cmdLine: The command line to use when running the executable, it will be processed in a
   platform specific way to generate arguments.
-:param list env: Any :class:`EnvironmentModification` that should be made when running the program.
+:param list env: Any :class:`~renderdoc.EnvironmentModification` that should be made when running
+  the program.
 :param str capturefile: The location to save any captures, if running locally.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :return: The ident where the new application is listening for target control, or 0 if something went
@@ -737,7 +738,8 @@ blocking fashion on the current thread.
 
 :param bool synchronous: If a capture is open, then ``True`` will use :meth:`BlockInvoke` to call
   the callback. Otherwise if ``False`` then :meth:`AsyncInvoke` will be used.
-:param DirectoryBrowseMethod method: The function to callback on the replay thread.
+:param method: The function to callback on the replay thread.
+:type method: :func:`DirectoryBrowseCallback`
 )");
   virtual void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb) = 0;
 
@@ -749,7 +751,7 @@ blocking fashion on the current thread.
 :param str path: The path to query the contents of.
 :param bool synchronous: If a capture is open, then ``True`` will use :meth:`BlockInvoke` to call
   the callback. Otherwise if ``False`` then :meth:`AsyncInvoke` will be used.
-:param DirectoryBrowseMethod method: The function to callback on the replay thread.
+:param DirectoryBrowseCallback method: The function to callback on the replay thread.
 )");
   virtual void ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback cb) = 0;
 
@@ -946,18 +948,18 @@ BITMASK_OPERATORS(CaptureModifications);
 DOCUMENT("A description of a bookmark on an event");
 struct EventBookmark
 {
-  DOCUMENT("The EID at which this bookmark is placed.");
-  uint32_t EID = 0;
+  DOCUMENT("The :data:`eventId <renderdoc.APIEvent.eventId>` at which this bookmark is placed.");
+  uint32_t eventId = 0;
 
   DOCUMENT("The text associated with this bookmark - could be empty");
   rdcstr text;
 
   DOCUMENT("");
   EventBookmark() = default;
-  EventBookmark(uint32_t e) : EID(e) {}
-  bool operator==(const EventBookmark &o) { return EID == o.EID; }
-  bool operator!=(const EventBookmark &o) const { return EID != o.EID; }
-  bool operator<(const EventBookmark &o) const { return EID < o.EID; }
+  EventBookmark(uint32_t e) : eventId(e) {}
+  bool operator==(const EventBookmark &o) { return eventId == o.eventId; }
+  bool operator!=(const EventBookmark &o) const { return eventId != o.eventId; }
+  bool operator<(const EventBookmark &o) const { return eventId < o.eventId; }
 };
 
 DECLARE_REFLECTION_STRUCT(EventBookmark);
@@ -990,7 +992,7 @@ data.
 If the capture was temporary, this save action means it is no longer temporary and will be treated
 like any other capture.
 
-Any modifications to the capture (see :meth:`GetCaptureModifcations`) will be applied at the same
+Any modifications to the capture (see :meth:`GetCaptureModifications`) will be applied at the same
 time.
 
 :param str captureFile: The path to save the capture file to.
@@ -1009,15 +1011,15 @@ time.
 
 :param list exclude: A list of :class:`CaptureViewer` to exclude from being notified of this, to stop
   infinite recursion.
-:param int selectedEventID: The selected :data:`EID <renderdoc.APIEvent.eventID>`. See
+:param int selectedEventId: The selected :data:`eventId <renderdoc.APIEvent.eventId>`. See
   :meth:`CaptureViewer.OnSelectedEventChanged` for more information.
-:param int eventID: The new current :data:`EID <renderdoc.APIEvent.eventID>`. See
+:param int eventId: The new current :data:`eventId <renderdoc.APIEvent.eventId>`. See
   :meth:`CaptureViewer.OnEventChanged` for more information.
 :param bool force: Optional parameter, if ``True`` then the replay will 'move' even if it is moving
-  to the same :data:`EID <renderdoc.APIEvent.eventID>` as it's currently on.
+  to the same :data:`eventId <renderdoc.APIEvent.eventId>` as it's currently on.
 )");
-  virtual void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
-                          uint32_t eventID, bool force = false) = 0;
+  virtual void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventId,
+                          uint32_t eventId, bool force = false) = 0;
   DOCUMENT(R"(Replay the capture to the current event again, to pick up any changes that might have
 been made.
 )");
@@ -1105,7 +1107,7 @@ the UI which aren't reflected in the capture file on disk.
 )");
   virtual const APIProperties &APIProps() = 0;
 
-  DOCUMENT(R"(Retrieve the currently selected :data:`EID <renderdoc.APIEvent.eventID>`.
+  DOCUMENT(R"(Retrieve the currently selected :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 In most cases, prefer using :meth:`CurEvent`. See :meth:`CaptureViewer.OnSelectedEventChanged` for more
 information for how this differs.
@@ -1115,7 +1117,7 @@ information for how this differs.
 )");
   virtual uint32_t CurSelectedEvent() = 0;
 
-  DOCUMENT(R"(Retrieve the current :data:`EID <renderdoc.APIEvent.eventID>`.
+  DOCUMENT(R"(Retrieve the current :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 :return: The current event.
 :rtype: ``int``
@@ -1269,14 +1271,14 @@ considered out of date
   virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
   DOCUMENT(R"(Retrieve the information about a drawcall at a given
-:data:`EID <renderdoc.APIEvent.eventID>`.
+:data:`eventId <renderdoc.APIEvent.eventId>`.
 
-:param int id: The :data:`EID <renderdoc.APIEvent.eventID>` to query for.
+:param int id: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
 :return: The information about the drawcall, or ``None`` if the
-  :data:`EID <renderdoc.APIEvent.eventID>` doesn't correspond to a drawcall.
+  :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to a drawcall.
 :rtype: ~renderdoc.BufferDescription
 )");
-  virtual const DrawcallDescription *GetDrawcall(uint32_t eventID) = 0;
+  virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.SDFile` for the currently open capture.
 
@@ -1293,7 +1295,7 @@ considered out of date
   virtual WindowingSystem CurWindowingSystem() = 0;
 
   DOCUMENT(R"(Create an opaque pointer suitable for passing to
-:meth:`~ReplayController.CreateOutput` or other functions that expect windowing data.
+:meth:`~renderdoc.ReplayController.CreateOutput` or other functions that expect windowing data.
 
 .. note::
 
@@ -1353,32 +1355,32 @@ See :meth:`GetNotes` for a list of possible common field keys.
   virtual void SetNotes(const rdcstr &key, const rdcstr &contents) = 0;
 
   DOCUMENT(R"(Get the current list of bookmarks in the capture. Each bookmark is associated with an
-EID and has some text attached. There will only be at most one bookmark for any given EID.
+eventId and has some text attached. There will only be at most one bookmark for any given eventId.
 
-The list of bookmarks is not necessarily sorted by EID. Thus, bookmark 1 is always bookmark 1 until
-it is removed, the indices do not shift as new bookmarks are added or removed.
+The list of bookmarks is not necessarily sorted by eventId. Thus, bookmark 1 is always bookmark 1
+until it is removed, the indices do not shift as new bookmarks are added or removed.
 
 :return: The currently set bookmarks.
-:rtype: ``list`` of :class:`BookMark`
+:rtype: ``list`` of :class:`EventBookmark`
 )");
   virtual rdcarray<EventBookmark> GetBookmarks() = 0;
 
   DOCUMENT(R"(Set or update a bookmark.
 
-A bookmark will be added at the specified EID, or if one already exists then the attached text will
-be replaced.
+A bookmark will be added at the specified eventId, or if one already exists then the attached text
+will be replaced.
 
-:param Bookmark mark: The bookmark to add.
+:param EventBookmark mark: The bookmark to add.
 )");
   virtual void SetBookmark(const EventBookmark &mark) = 0;
 
-  DOCUMENT(R"(Remove a bookmark at a given EID.
+  DOCUMENT(R"(Remove a bookmark at a given eventId.
 
 If no bookmark exists, this function will do nothing.
 
-:param int EID: The EID of the bookmark to remove.
+:param int eventId: The eventId of the bookmark to remove.
 )");
-  virtual void RemoveBookmark(uint32_t EID) = 0;
+  virtual void RemoveBookmark(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Retrieve the current singleton :class:`MainWindow`.
 
@@ -1499,14 +1501,14 @@ If no bookmark exists, this function will do nothing.
 )");
   virtual bool HasTextureViewer() = 0;
 
-  DOCUMENT(R"(Check if there is a current :class:`PipelineViewer` open.
+  DOCUMENT(R"(Check if there is a current :class:`PipelineStateViewer` open.
 
 :return: ``True`` if there is a window open.
 :rtype: ``bool``
 )");
   virtual bool HasPipelineViewer() = 0;
 
-  DOCUMENT(R"(Check if there is a current :class:`MeshPreview` open.
+  DOCUMENT(R"(Check if there is a current mesh previewing :class:`BufferViewer` open.
 
 :return: ``True`` if there is a window open.
 :rtype: ``bool``
@@ -1575,9 +1577,12 @@ If no bookmark exists, this function will do nothing.
   virtual void ShowAPIInspector() = 0;
   DOCUMENT("Raise the current :class:`TextureViewer`, showing it in the default place if needed.");
   virtual void ShowTextureViewer() = 0;
-  DOCUMENT("Raise the current :class:`MeshPreview`, showing it in the default place if needed.");
+  DOCUMENT(R"(Raise the current mesh previewing :class:`BufferViewer`, showing it in the default
+place if needed.
+)");
   virtual void ShowMeshPreview() = 0;
-  DOCUMENT("Raise the current :class:`PipelineViewer`, showing it in the default place if needed.");
+  DOCUMENT(
+      "Raise the current :class:`PipelineStateViewer`, showing it in the default place if needed.");
   virtual void ShowPipelineViewer() = 0;
   DOCUMENT("Raise the current :class:`CaptureDialog`, showing it in the default place if needed.");
   virtual void ShowCaptureDialog() = 0;
@@ -1628,7 +1633,7 @@ through the execution of a given shader.
   bound to.
 :param ~renderdoc.ShaderDebugTrace trace: The execution trace of the debugged shader.
 :param str debugContext: A human-readable context string describing which invocation of this shader
-  was debugged. For example 'Pixel 12,34 at EID 678'.
+  was debugged. For example 'Pixel 12,34 at eventId 678'.
 :return: The new :class:`ShaderViewer` window opened, but not shown.
 :rtype: ShaderViewer
 )");
@@ -1738,31 +1743,31 @@ currently docked.
   virtual void AddDockWindow(QWidget *newWindow, DockReference ref, QWidget *refWindow,
                              float percentage = 0.5f) = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D11_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D11State` pipeline state.
 
 :return: The current D3D11 pipeline state.
-:rtype: ~renderdoc.D3D11_State
+:rtype: ~renderdoc.D3D11State
 )");
   virtual const D3D11Pipe::State &CurD3D11PipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D12_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D12State` pipeline state.
 
 :return: The current D3D12 pipeline state.
-:rtype: ~renderdoc.D3D12_State
+:rtype: ~renderdoc.D3D12State
 )");
   virtual const D3D12Pipe::State &CurD3D12PipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.GL_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.GLState` pipeline state.
 
 :return: The current OpenGL pipeline state.
-:rtype: ~renderdoc.GL_State
+:rtype: ~renderdoc.GLState
 )");
   virtual const GLPipe::State &CurGLPipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.VK_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.VKState` pipeline state.
 
 :return: The current Vulkan pipeline state.
-:rtype: ~renderdoc.VK_State
+:rtype: ~renderdoc.VKState
 )");
   virtual const VKPipe::State &CurVulkanPipelineState() = 0;
 

@@ -51,8 +51,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 
 private slots:
   // automatic slots
@@ -86,7 +86,7 @@ private:
                       RDTreeWidget *samp, RDTreeWidget *cbuffer, RDTreeWidget *classes);
 
   void addResourceRow(const D3D11ViewTag &view, const ShaderResource *shaderInput,
-                      const BindpointMap *map, RDTreeWidget *resources);
+                      const Bindpoint *map, RDTreeWidget *resources);
 
   void clearShaderState(RDLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
                         RDTreeWidget *cbuffer, RDTreeWidget *classes);
@@ -95,11 +95,11 @@ private:
 
   QVariantList exportViewHTML(const D3D11Pipe::View &view, int i, ShaderReflection *refl,
                               const QString &extraParams);
-  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::IA &ia);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::InputAssembly &ia);
   void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Shader &sh);
-  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::SO &so);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::StreamOut &so);
   void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Rasterizer &rs);
-  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::OM &om);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::OutputMerger &om);
 
   void setInactiveRow(RDTreeWidgetItem *node);
   void setEmptyRow(RDTreeWidgetItem *node);

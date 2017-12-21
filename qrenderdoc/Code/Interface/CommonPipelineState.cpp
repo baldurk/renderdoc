@@ -34,16 +34,16 @@ rdcstr CommonPipelineState::GetResourceLayout(ResourceId id)
     {
       for(const VKPipe::ImageData &i : m_Vulkan->images)
       {
-        if(i.image == id)
+        if(i.resourceId == id)
           return i.layouts[0].name;
       }
     }
 
     if(IsCaptureD3D12())
     {
-      for(const D3D12Pipe::ResourceData &r : m_D3D12->Resources)
+      for(const D3D12Pipe::ResourceData &r : m_D3D12->resourceStates)
       {
-        if(r.id == id)
+        if(r.resourceId == id)
           return r.states[0].name;
       }
     }
@@ -54,8 +54,8 @@ rdcstr CommonPipelineState::GetResourceLayout(ResourceId id)
 
 rdcstr CommonPipelineState::Abbrev(ShaderStage stage)
 {
-  if(IsCaptureD3D11() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::D3D11) ||
-     IsCaptureD3D12() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::D3D12))
+  if(IsCaptureD3D11() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::D3D11) ||
+     IsCaptureD3D12() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::D3D12))
   {
     switch(stage)
     {
@@ -68,8 +68,8 @@ rdcstr CommonPipelineState::Abbrev(ShaderStage stage)
       default: break;
     }
   }
-  else if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) ||
-          IsCaptureVK() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
+  else if(IsCaptureGL() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::OpenGL) ||
+          IsCaptureVK() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::Vulkan))
   {
     switch(stage)
     {
@@ -88,8 +88,8 @@ rdcstr CommonPipelineState::Abbrev(ShaderStage stage)
 
 rdcstr CommonPipelineState::OutputAbbrev()
 {
-  if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
-     (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
+  if(IsCaptureGL() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
+     (!IsCaptureLoaded() && defaultType == GraphicsAPI::Vulkan))
   {
     return lit("FB");
   }
@@ -100,83 +100,83 @@ rdcstr CommonPipelineState::OutputAbbrev()
 const D3D11Pipe::Shader &CommonPipelineState::GetD3D11Stage(ShaderStage stage)
 {
   if(stage == ShaderStage::Vertex)
-    return m_D3D11->m_VS;
+    return m_D3D11->vertexShader;
   if(stage == ShaderStage::Domain)
-    return m_D3D11->m_DS;
+    return m_D3D11->domainShader;
   if(stage == ShaderStage::Hull)
-    return m_D3D11->m_HS;
+    return m_D3D11->hullShader;
   if(stage == ShaderStage::Geometry)
-    return m_D3D11->m_GS;
+    return m_D3D11->geometryShader;
   if(stage == ShaderStage::Pixel)
-    return m_D3D11->m_PS;
+    return m_D3D11->pixelShader;
   if(stage == ShaderStage::Compute)
-    return m_D3D11->m_CS;
+    return m_D3D11->computeShader;
 
   qCritical() << "Error - invalid stage " << (int)stage;
-  return m_D3D11->m_CS;
+  return m_D3D11->computeShader;
 }
 
 const D3D12Pipe::Shader &CommonPipelineState::GetD3D12Stage(ShaderStage stage)
 {
   if(stage == ShaderStage::Vertex)
-    return m_D3D12->m_VS;
+    return m_D3D12->vertexShader;
   if(stage == ShaderStage::Domain)
-    return m_D3D12->m_DS;
+    return m_D3D12->domainShader;
   if(stage == ShaderStage::Hull)
-    return m_D3D12->m_HS;
+    return m_D3D12->hullShader;
   if(stage == ShaderStage::Geometry)
-    return m_D3D12->m_GS;
+    return m_D3D12->geometryShader;
   if(stage == ShaderStage::Pixel)
-    return m_D3D12->m_PS;
+    return m_D3D12->pixelShader;
   if(stage == ShaderStage::Compute)
-    return m_D3D12->m_CS;
+    return m_D3D12->computeShader;
 
   qCritical() << "Error - invalid stage " << (int)stage;
-  return m_D3D12->m_CS;
+  return m_D3D12->computeShader;
 }
 
 const GLPipe::Shader &CommonPipelineState::GetGLStage(ShaderStage stage)
 {
   if(stage == ShaderStage::Vertex)
-    return m_GL->m_VS;
+    return m_GL->vertexShader;
   if(stage == ShaderStage::Tess_Control)
-    return m_GL->m_TCS;
+    return m_GL->tessControlShader;
   if(stage == ShaderStage::Tess_Eval)
-    return m_GL->m_TES;
+    return m_GL->tessEvalShader;
   if(stage == ShaderStage::Geometry)
-    return m_GL->m_GS;
+    return m_GL->geometryShader;
   if(stage == ShaderStage::Fragment)
-    return m_GL->m_FS;
+    return m_GL->fragmentShader;
   if(stage == ShaderStage::Compute)
-    return m_GL->m_CS;
+    return m_GL->computeShader;
 
   qCritical() << "Error - invalid stage " << (int)stage;
-  return m_GL->m_CS;
+  return m_GL->computeShader;
 }
 
 const VKPipe::Shader &CommonPipelineState::GetVulkanStage(ShaderStage stage)
 {
   if(stage == ShaderStage::Vertex)
-    return m_Vulkan->m_VS;
+    return m_Vulkan->vertexShader;
   if(stage == ShaderStage::Tess_Control)
-    return m_Vulkan->m_TCS;
+    return m_Vulkan->tessControlShader;
   if(stage == ShaderStage::Tess_Eval)
-    return m_Vulkan->m_TES;
+    return m_Vulkan->tessEvalShader;
   if(stage == ShaderStage::Geometry)
-    return m_Vulkan->m_GS;
+    return m_Vulkan->geometryShader;
   if(stage == ShaderStage::Fragment)
-    return m_Vulkan->m_FS;
+    return m_Vulkan->fragmentShader;
   if(stage == ShaderStage::Compute)
-    return m_Vulkan->m_CS;
+    return m_Vulkan->computeShader;
 
   qCritical() << "Error - invalid stage " << (int)stage;
-  return m_Vulkan->m_CS;
+  return m_Vulkan->computeShader;
 }
 
 rdcstr CommonPipelineState::GetShaderExtension()
 {
-  if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
-     (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
+  if(IsCaptureGL() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
+     (!IsCaptureLoaded() && defaultType == GraphicsAPI::Vulkan))
   {
     return lit("glsl");
   }
@@ -186,41 +186,52 @@ rdcstr CommonPipelineState::GetShaderExtension()
 
 Viewport CommonPipelineState::GetViewport(int index)
 {
-  Viewport ret;
-
-  // default to a 1x1 viewport just to avoid having to check for 0s all over
-  ret.x = ret.y = 0.0f;
-  ret.width = ret.height = 1.0f;
+  Viewport ret = {};
 
   if(IsCaptureLoaded())
   {
-    if(IsCaptureD3D11() && index < m_D3D11->m_RS.Viewports.count())
+    if(IsCaptureD3D11() && index < m_D3D11->rasterizer.viewports.count())
     {
-      ret.x = m_D3D11->m_RS.Viewports[index].X;
-      ret.y = m_D3D11->m_RS.Viewports[index].Y;
-      ret.width = m_D3D11->m_RS.Viewports[index].Width;
-      ret.height = m_D3D11->m_RS.Viewports[index].Height;
+      return m_D3D11->rasterizer.viewports[index];
     }
-    else if(IsCaptureD3D12() && index < m_D3D12->m_RS.Viewports.count())
+    else if(IsCaptureD3D12() && index < m_D3D12->rasterizer.viewports.count())
     {
-      ret.x = m_D3D12->m_RS.Viewports[index].X;
-      ret.y = m_D3D12->m_RS.Viewports[index].Y;
-      ret.width = m_D3D12->m_RS.Viewports[index].Width;
-      ret.height = m_D3D12->m_RS.Viewports[index].Height;
+      return m_D3D12->rasterizer.viewports[index];
     }
-    else if(IsCaptureGL() && index < m_GL->m_Rasterizer.Viewports.count())
+    else if(IsCaptureGL() && index < m_GL->rasterizer.viewports.count())
     {
-      ret.x = m_GL->m_Rasterizer.Viewports[index].Left;
-      ret.y = m_GL->m_Rasterizer.Viewports[index].Bottom;
-      ret.width = m_GL->m_Rasterizer.Viewports[index].Width;
-      ret.height = m_GL->m_Rasterizer.Viewports[index].Height;
+      return m_GL->rasterizer.viewports[index];
     }
-    else if(IsCaptureVK() && index < m_Vulkan->VP.viewportScissors.count())
+    else if(IsCaptureVK() && index < m_Vulkan->viewportScissor.viewportScissors.count())
     {
-      ret.x = m_Vulkan->VP.viewportScissors[index].vp.x;
-      ret.y = m_Vulkan->VP.viewportScissors[index].vp.y;
-      ret.width = m_Vulkan->VP.viewportScissors[index].vp.width;
-      ret.height = m_Vulkan->VP.viewportScissors[index].vp.height;
+      return m_Vulkan->viewportScissor.viewportScissors[index].vp;
+    }
+  }
+
+  return ret;
+}
+
+Scissor CommonPipelineState::GetScissor(int index)
+{
+  Scissor ret = {};
+
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11() && index < m_D3D11->rasterizer.viewports.count())
+    {
+      return m_D3D11->rasterizer.scissors[index];
+    }
+    else if(IsCaptureD3D12() && index < m_D3D12->rasterizer.viewports.count())
+    {
+      return m_D3D12->rasterizer.scissors[index];
+    }
+    else if(IsCaptureGL() && index < m_GL->rasterizer.viewports.count())
+    {
+      return m_GL->rasterizer.scissors[index];
+    }
+    else if(IsCaptureVK() && index < m_Vulkan->viewportScissor.viewportScissors.count())
+    {
+      return m_Vulkan->viewportScissor.viewportScissors[index].scissor;
     }
   }
 
@@ -235,12 +246,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D11->m_VS.BindpointMapping;
-        case ShaderStage::Domain: return m_D3D11->m_DS.BindpointMapping;
-        case ShaderStage::Hull: return m_D3D11->m_HS.BindpointMapping;
-        case ShaderStage::Geometry: return m_D3D11->m_GS.BindpointMapping;
-        case ShaderStage::Pixel: return m_D3D11->m_PS.BindpointMapping;
-        case ShaderStage::Compute: return m_D3D11->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_D3D11->vertexShader.bindpointMapping;
+        case ShaderStage::Domain: return m_D3D11->domainShader.bindpointMapping;
+        case ShaderStage::Hull: return m_D3D11->hullShader.bindpointMapping;
+        case ShaderStage::Geometry: return m_D3D11->geometryShader.bindpointMapping;
+        case ShaderStage::Pixel: return m_D3D11->pixelShader.bindpointMapping;
+        case ShaderStage::Compute: return m_D3D11->computeShader.bindpointMapping;
         default: break;
       }
     }
@@ -248,12 +259,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D12->m_VS.BindpointMapping;
-        case ShaderStage::Domain: return m_D3D12->m_DS.BindpointMapping;
-        case ShaderStage::Hull: return m_D3D12->m_HS.BindpointMapping;
-        case ShaderStage::Geometry: return m_D3D12->m_GS.BindpointMapping;
-        case ShaderStage::Pixel: return m_D3D12->m_PS.BindpointMapping;
-        case ShaderStage::Compute: return m_D3D12->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_D3D12->vertexShader.bindpointMapping;
+        case ShaderStage::Domain: return m_D3D12->domainShader.bindpointMapping;
+        case ShaderStage::Hull: return m_D3D12->hullShader.bindpointMapping;
+        case ShaderStage::Geometry: return m_D3D12->geometryShader.bindpointMapping;
+        case ShaderStage::Pixel: return m_D3D12->pixelShader.bindpointMapping;
+        case ShaderStage::Compute: return m_D3D12->computeShader.bindpointMapping;
         default: break;
       }
     }
@@ -261,12 +272,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_GL->m_VS.BindpointMapping;
-        case ShaderStage::Tess_Control: return m_GL->m_TCS.BindpointMapping;
-        case ShaderStage::Tess_Eval: return m_GL->m_TES.BindpointMapping;
-        case ShaderStage::Geometry: return m_GL->m_GS.BindpointMapping;
-        case ShaderStage::Fragment: return m_GL->m_FS.BindpointMapping;
-        case ShaderStage::Compute: return m_GL->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_GL->vertexShader.bindpointMapping;
+        case ShaderStage::Tess_Control: return m_GL->tessControlShader.bindpointMapping;
+        case ShaderStage::Tess_Eval: return m_GL->tessEvalShader.bindpointMapping;
+        case ShaderStage::Geometry: return m_GL->geometryShader.bindpointMapping;
+        case ShaderStage::Fragment: return m_GL->fragmentShader.bindpointMapping;
+        case ShaderStage::Compute: return m_GL->computeShader.bindpointMapping;
         default: break;
       }
     }
@@ -274,12 +285,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Vulkan->m_VS.BindpointMapping;
-        case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.BindpointMapping;
-        case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.BindpointMapping;
-        case ShaderStage::Geometry: return m_Vulkan->m_GS.BindpointMapping;
-        case ShaderStage::Fragment: return m_Vulkan->m_FS.BindpointMapping;
-        case ShaderStage::Compute: return m_Vulkan->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_Vulkan->vertexShader.bindpointMapping;
+        case ShaderStage::Tess_Control: return m_Vulkan->tessControlShader.bindpointMapping;
+        case ShaderStage::Tess_Eval: return m_Vulkan->tessEvalShader.bindpointMapping;
+        case ShaderStage::Geometry: return m_Vulkan->geometryShader.bindpointMapping;
+        case ShaderStage::Fragment: return m_Vulkan->fragmentShader.bindpointMapping;
+        case ShaderStage::Compute: return m_Vulkan->computeShader.bindpointMapping;
         default: break;
       }
     }
@@ -298,12 +309,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D11->m_VS.ShaderDetails;
-        case ShaderStage::Domain: return m_D3D11->m_DS.ShaderDetails;
-        case ShaderStage::Hull: return m_D3D11->m_HS.ShaderDetails;
-        case ShaderStage::Geometry: return m_D3D11->m_GS.ShaderDetails;
-        case ShaderStage::Pixel: return m_D3D11->m_PS.ShaderDetails;
-        case ShaderStage::Compute: return m_D3D11->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_D3D11->vertexShader.reflection;
+        case ShaderStage::Domain: return m_D3D11->domainShader.reflection;
+        case ShaderStage::Hull: return m_D3D11->hullShader.reflection;
+        case ShaderStage::Geometry: return m_D3D11->geometryShader.reflection;
+        case ShaderStage::Pixel: return m_D3D11->pixelShader.reflection;
+        case ShaderStage::Compute: return m_D3D11->computeShader.reflection;
         default: break;
       }
     }
@@ -311,12 +322,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D12->m_VS.ShaderDetails;
-        case ShaderStage::Domain: return m_D3D12->m_DS.ShaderDetails;
-        case ShaderStage::Hull: return m_D3D12->m_HS.ShaderDetails;
-        case ShaderStage::Geometry: return m_D3D12->m_GS.ShaderDetails;
-        case ShaderStage::Pixel: return m_D3D12->m_PS.ShaderDetails;
-        case ShaderStage::Compute: return m_D3D12->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_D3D12->vertexShader.reflection;
+        case ShaderStage::Domain: return m_D3D12->domainShader.reflection;
+        case ShaderStage::Hull: return m_D3D12->hullShader.reflection;
+        case ShaderStage::Geometry: return m_D3D12->geometryShader.reflection;
+        case ShaderStage::Pixel: return m_D3D12->pixelShader.reflection;
+        case ShaderStage::Compute: return m_D3D12->computeShader.reflection;
         default: break;
       }
     }
@@ -324,12 +335,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_GL->m_VS.ShaderDetails;
-        case ShaderStage::Tess_Control: return m_GL->m_TCS.ShaderDetails;
-        case ShaderStage::Tess_Eval: return m_GL->m_TES.ShaderDetails;
-        case ShaderStage::Geometry: return m_GL->m_GS.ShaderDetails;
-        case ShaderStage::Fragment: return m_GL->m_FS.ShaderDetails;
-        case ShaderStage::Compute: return m_GL->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_GL->vertexShader.reflection;
+        case ShaderStage::Tess_Control: return m_GL->tessControlShader.reflection;
+        case ShaderStage::Tess_Eval: return m_GL->tessEvalShader.reflection;
+        case ShaderStage::Geometry: return m_GL->geometryShader.reflection;
+        case ShaderStage::Fragment: return m_GL->fragmentShader.reflection;
+        case ShaderStage::Compute: return m_GL->computeShader.reflection;
         default: break;
       }
     }
@@ -337,12 +348,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Vulkan->m_VS.ShaderDetails;
-        case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.ShaderDetails;
-        case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.ShaderDetails;
-        case ShaderStage::Geometry: return m_Vulkan->m_GS.ShaderDetails;
-        case ShaderStage::Fragment: return m_Vulkan->m_FS.ShaderDetails;
-        case ShaderStage::Compute: return m_Vulkan->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_Vulkan->vertexShader.reflection;
+        case ShaderStage::Tess_Control: return m_Vulkan->tessControlShader.reflection;
+        case ShaderStage::Tess_Eval: return m_Vulkan->tessEvalShader.reflection;
+        case ShaderStage::Geometry: return m_Vulkan->geometryShader.reflection;
+        case ShaderStage::Fragment: return m_Vulkan->fragmentShader.reflection;
+        case ShaderStage::Compute: return m_Vulkan->computeShader.reflection;
         default: break;
       }
     }
@@ -355,11 +366,11 @@ ResourceId CommonPipelineState::GetComputePipelineObject()
 {
   if(IsCaptureLoaded() && IsCaptureVK())
   {
-    return m_Vulkan->compute.obj;
+    return m_Vulkan->compute.pipelineResourceId;
   }
   else if(IsCaptureLoaded() && IsCaptureD3D12())
   {
-    return m_D3D12->pipeline;
+    return m_D3D12->pipelineResourceId;
   }
 
   return ResourceId();
@@ -369,11 +380,11 @@ ResourceId CommonPipelineState::GetGraphicsPipelineObject()
 {
   if(IsCaptureLoaded() && IsCaptureVK())
   {
-    return m_Vulkan->graphics.obj;
+    return m_Vulkan->graphics.pipelineResourceId;
   }
   else if(IsCaptureLoaded() && IsCaptureD3D12())
   {
-    return m_D3D12->pipeline;
+    return m_D3D12->pipelineResourceId;
   }
 
   return ResourceId();
@@ -385,12 +396,12 @@ rdcstr CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
   {
     switch(stage)
     {
-      case ShaderStage::Vertex: return m_Vulkan->m_VS.entryPoint;
-      case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.entryPoint;
-      case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.entryPoint;
-      case ShaderStage::Geometry: return m_Vulkan->m_GS.entryPoint;
-      case ShaderStage::Fragment: return m_Vulkan->m_FS.entryPoint;
-      case ShaderStage::Compute: return m_Vulkan->m_CS.entryPoint;
+      case ShaderStage::Vertex: return m_Vulkan->vertexShader.entryPoint;
+      case ShaderStage::Tess_Control: return m_Vulkan->tessControlShader.entryPoint;
+      case ShaderStage::Tess_Eval: return m_Vulkan->tessEvalShader.entryPoint;
+      case ShaderStage::Geometry: return m_Vulkan->geometryShader.entryPoint;
+      case ShaderStage::Fragment: return m_Vulkan->fragmentShader.entryPoint;
+      case ShaderStage::Compute: return m_Vulkan->computeShader.entryPoint;
       default: break;
     }
   }
@@ -406,12 +417,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D11->m_VS.Object;
-        case ShaderStage::Domain: return m_D3D11->m_DS.Object;
-        case ShaderStage::Hull: return m_D3D11->m_HS.Object;
-        case ShaderStage::Geometry: return m_D3D11->m_GS.Object;
-        case ShaderStage::Pixel: return m_D3D11->m_PS.Object;
-        case ShaderStage::Compute: return m_D3D11->m_CS.Object;
+        case ShaderStage::Vertex: return m_D3D11->vertexShader.resourceId;
+        case ShaderStage::Domain: return m_D3D11->domainShader.resourceId;
+        case ShaderStage::Hull: return m_D3D11->hullShader.resourceId;
+        case ShaderStage::Geometry: return m_D3D11->geometryShader.resourceId;
+        case ShaderStage::Pixel: return m_D3D11->pixelShader.resourceId;
+        case ShaderStage::Compute: return m_D3D11->computeShader.resourceId;
         default: break;
       }
     }
@@ -419,12 +430,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D12->m_VS.Object;
-        case ShaderStage::Domain: return m_D3D12->m_DS.Object;
-        case ShaderStage::Hull: return m_D3D12->m_HS.Object;
-        case ShaderStage::Geometry: return m_D3D12->m_GS.Object;
-        case ShaderStage::Pixel: return m_D3D12->m_PS.Object;
-        case ShaderStage::Compute: return m_D3D12->m_CS.Object;
+        case ShaderStage::Vertex: return m_D3D12->vertexShader.resourceId;
+        case ShaderStage::Domain: return m_D3D12->domainShader.resourceId;
+        case ShaderStage::Hull: return m_D3D12->hullShader.resourceId;
+        case ShaderStage::Geometry: return m_D3D12->geometryShader.resourceId;
+        case ShaderStage::Pixel: return m_D3D12->pixelShader.resourceId;
+        case ShaderStage::Compute: return m_D3D12->computeShader.resourceId;
         default: break;
       }
     }
@@ -432,12 +443,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_GL->m_VS.Object;
-        case ShaderStage::Tess_Control: return m_GL->m_TCS.Object;
-        case ShaderStage::Tess_Eval: return m_GL->m_TES.Object;
-        case ShaderStage::Geometry: return m_GL->m_GS.Object;
-        case ShaderStage::Fragment: return m_GL->m_FS.Object;
-        case ShaderStage::Compute: return m_GL->m_CS.Object;
+        case ShaderStage::Vertex: return m_GL->vertexShader.shaderResourceId;
+        case ShaderStage::Tess_Control: return m_GL->tessControlShader.shaderResourceId;
+        case ShaderStage::Tess_Eval: return m_GL->tessEvalShader.shaderResourceId;
+        case ShaderStage::Geometry: return m_GL->geometryShader.shaderResourceId;
+        case ShaderStage::Fragment: return m_GL->fragmentShader.shaderResourceId;
+        case ShaderStage::Compute: return m_GL->computeShader.shaderResourceId;
         default: break;
       }
     }
@@ -445,12 +456,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Vulkan->m_VS.Object;
-        case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.Object;
-        case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.Object;
-        case ShaderStage::Geometry: return m_Vulkan->m_GS.Object;
-        case ShaderStage::Fragment: return m_Vulkan->m_FS.Object;
-        case ShaderStage::Compute: return m_Vulkan->m_CS.Object;
+        case ShaderStage::Vertex: return m_Vulkan->vertexShader.resourceId;
+        case ShaderStage::Tess_Control: return m_Vulkan->tessControlShader.resourceId;
+        case ShaderStage::Tess_Eval: return m_Vulkan->tessEvalShader.resourceId;
+        case ShaderStage::Geometry: return m_Vulkan->geometryShader.resourceId;
+        case ShaderStage::Fragment: return m_Vulkan->fragmentShader.resourceId;
+        case ShaderStage::Compute: return m_Vulkan->computeShader.resourceId;
         default: break;
       }
     }
@@ -467,12 +478,13 @@ rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_D3D11->m_VS.Object);
-        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_D3D11->m_DS.Object);
-        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_D3D11->m_HS.Object);
-        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_D3D11->m_GS.Object);
-        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_D3D11->m_PS.Object);
-        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_D3D11->m_CS.Object);
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_D3D11->vertexShader.resourceId);
+        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_D3D11->domainShader.resourceId);
+        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_D3D11->hullShader.resourceId);
+        case ShaderStage::Geometry:
+          return m_Ctx.GetResourceName(m_D3D11->geometryShader.resourceId);
+        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_D3D11->pixelShader.resourceId);
+        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_D3D11->computeShader.resourceId);
         default: break;
       }
     }
@@ -480,12 +492,18 @@ rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" VS");
-        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" DS");
-        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" HS");
-        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" GS");
-        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" PS");
-        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" CS");
+        case ShaderStage::Vertex:
+          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" VS");
+        case ShaderStage::Domain:
+          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" DS");
+        case ShaderStage::Hull:
+          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" HS");
+        case ShaderStage::Geometry:
+          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" GS");
+        case ShaderStage::Pixel:
+          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" PS");
+        case ShaderStage::Compute:
+          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" CS");
         default: break;
       }
     }
@@ -493,12 +511,17 @@ rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_GL->m_VS.Object);
-        case ShaderStage::Tess_Control: return m_Ctx.GetResourceName(m_GL->m_TCS.Object);
-        case ShaderStage::Tess_Eval: return m_Ctx.GetResourceName(m_GL->m_TES.Object);
-        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_GL->m_GS.Object);
-        case ShaderStage::Fragment: return m_Ctx.GetResourceName(m_GL->m_FS.Object);
-        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_GL->m_CS.Object);
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_GL->vertexShader.shaderResourceId);
+        case ShaderStage::Tess_Control:
+          return m_Ctx.GetResourceName(m_GL->tessControlShader.shaderResourceId);
+        case ShaderStage::Tess_Eval:
+          return m_Ctx.GetResourceName(m_GL->tessEvalShader.shaderResourceId);
+        case ShaderStage::Geometry:
+          return m_Ctx.GetResourceName(m_GL->geometryShader.shaderResourceId);
+        case ShaderStage::Fragment:
+          return m_Ctx.GetResourceName(m_GL->fragmentShader.shaderResourceId);
+        case ShaderStage::Compute:
+          return m_Ctx.GetResourceName(m_GL->computeShader.shaderResourceId);
         default: break;
       }
     }
@@ -506,12 +529,14 @@ rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_Vulkan->m_VS.Object);
-        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_Vulkan->m_TCS.Object);
-        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_Vulkan->m_TES.Object);
-        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_Vulkan->m_GS.Object);
-        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_Vulkan->m_FS.Object);
-        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_Vulkan->m_CS.Object);
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_Vulkan->vertexShader.resourceId);
+        case ShaderStage::Domain:
+          return m_Ctx.GetResourceName(m_Vulkan->tessControlShader.resourceId);
+        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_Vulkan->tessEvalShader.resourceId);
+        case ShaderStage::Geometry:
+          return m_Ctx.GetResourceName(m_Vulkan->geometryShader.resourceId);
+        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_Vulkan->fragmentShader.resourceId);
+        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_Vulkan->computeShader.resourceId);
         default: break;
       }
     }
@@ -520,7 +545,7 @@ rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
   return "";
 }
 
-BoundBuffer CommonPipelineState::GetIBuffer()
+BoundVBuffer CommonPipelineState::GetIBuffer()
 {
   ResourceId buf;
   uint64_t ByteOffset = 0;
@@ -529,29 +554,29 @@ BoundBuffer CommonPipelineState::GetIBuffer()
   {
     if(IsCaptureD3D11())
     {
-      buf = m_D3D11->m_IA.ibuffer.Buffer;
-      ByteOffset = m_D3D11->m_IA.ibuffer.Offset;
+      buf = m_D3D11->inputAssembly.indexBuffer.resourceId;
+      ByteOffset = m_D3D11->inputAssembly.indexBuffer.byteOffset;
     }
     else if(IsCaptureD3D12())
     {
-      buf = m_D3D12->m_IA.ibuffer.Buffer;
-      ByteOffset = m_D3D12->m_IA.ibuffer.Offset;
+      buf = m_D3D12->inputAssembly.indexBuffer.resourceId;
+      ByteOffset = m_D3D12->inputAssembly.indexBuffer.byteOffset;
     }
     else if(IsCaptureGL())
     {
-      buf = m_GL->m_VtxIn.ibuffer;
+      buf = m_GL->vertexInput.indexBuffer;
       ByteOffset = 0;    // GL only has per-draw index offset
     }
     else if(IsCaptureVK())
     {
-      buf = m_Vulkan->IA.ibuffer.buf;
-      ByteOffset = m_Vulkan->IA.ibuffer.offs;
+      buf = m_Vulkan->inputAssembly.indexBuffer.resourceId;
+      ByteOffset = m_Vulkan->inputAssembly.indexBuffer.byteOffset;
     }
   }
 
-  BoundBuffer ret;
-  ret.Buffer = buf;
-  ret.ByteOffset = ByteOffset;
+  BoundVBuffer ret;
+  ret.resourceId = buf;
+  ret.byteOffset = ByteOffset;
 
   return ret;
 }
@@ -567,15 +592,15 @@ bool CommonPipelineState::IsStripRestartEnabled()
     }
     else if(IsCaptureD3D12())
     {
-      return m_D3D12->m_IA.indexStripCutValue != 0;
+      return m_D3D12->inputAssembly.indexStripCutValue != 0;
     }
     else if(IsCaptureGL())
     {
-      return m_GL->m_VtxIn.primitiveRestart;
+      return m_GL->vertexInput.primitiveRestart;
     }
     else if(IsCaptureVK())
     {
-      return m_Vulkan->IA.primitiveRestartEnable;
+      return m_Vulkan->inputAssembly.primitiveRestartEnable;
     }
   }
 
@@ -593,62 +618,65 @@ uint32_t CommonPipelineState::GetStripRestartIndex()
     }
     else if(IsCaptureD3D12())
     {
-      return m_D3D12->m_IA.indexStripCutValue;
+      return m_D3D12->inputAssembly.indexStripCutValue;
     }
     else if(IsCaptureGL())
     {
-      return qMin(UINT32_MAX, m_GL->m_VtxIn.restartIndex);
+      return qMin(UINT32_MAX, m_GL->vertexInput.restartIndex);
     }
   }
 
   return UINT32_MAX;
 }
 
-rdcarray<BoundBuffer> CommonPipelineState::GetVBuffers()
+rdcarray<BoundVBuffer> CommonPipelineState::GetVBuffers()
 {
-  rdcarray<BoundBuffer> ret;
+  rdcarray<BoundVBuffer> ret;
 
   if(IsCaptureLoaded())
   {
     if(IsCaptureD3D11())
     {
-      ret.resize(m_D3D11->m_IA.vbuffers.count());
-      for(int i = 0; i < m_D3D11->m_IA.vbuffers.count(); i++)
+      ret.resize(m_D3D11->inputAssembly.vertexBuffers.count());
+      for(int i = 0; i < m_D3D11->inputAssembly.vertexBuffers.count(); i++)
       {
-        ret[i].Buffer = m_D3D11->m_IA.vbuffers[i].Buffer;
-        ret[i].ByteOffset = m_D3D11->m_IA.vbuffers[i].Offset;
-        ret[i].ByteStride = m_D3D11->m_IA.vbuffers[i].Stride;
+        ret[i].resourceId = m_D3D11->inputAssembly.vertexBuffers[i].resourceId;
+        ret[i].byteOffset = m_D3D11->inputAssembly.vertexBuffers[i].byteOffset;
+        ret[i].byteStride = m_D3D11->inputAssembly.vertexBuffers[i].byteStride;
       }
     }
     else if(IsCaptureD3D12())
     {
-      ret.resize(m_D3D12->m_IA.vbuffers.count());
-      for(int i = 0; i < m_D3D12->m_IA.vbuffers.count(); i++)
+      ret.resize(m_D3D12->inputAssembly.vertexBuffers.count());
+      for(int i = 0; i < m_D3D12->inputAssembly.vertexBuffers.count(); i++)
       {
-        ret[i].Buffer = m_D3D12->m_IA.vbuffers[i].Buffer;
-        ret[i].ByteOffset = m_D3D12->m_IA.vbuffers[i].Offset;
-        ret[i].ByteStride = m_D3D12->m_IA.vbuffers[i].Stride;
+        ret[i].resourceId = m_D3D12->inputAssembly.vertexBuffers[i].resourceId;
+        ret[i].byteOffset = m_D3D12->inputAssembly.vertexBuffers[i].byteOffset;
+        ret[i].byteStride = m_D3D12->inputAssembly.vertexBuffers[i].byteStride;
       }
     }
     else if(IsCaptureGL())
     {
-      ret.resize(m_GL->m_VtxIn.vbuffers.count());
-      for(int i = 0; i < m_GL->m_VtxIn.vbuffers.count(); i++)
+      ret.resize(m_GL->vertexInput.vertexBuffers.count());
+      for(int i = 0; i < m_GL->vertexInput.vertexBuffers.count(); i++)
       {
-        ret[i].Buffer = m_GL->m_VtxIn.vbuffers[i].Buffer;
-        ret[i].ByteOffset = m_GL->m_VtxIn.vbuffers[i].Offset;
-        ret[i].ByteStride = m_GL->m_VtxIn.vbuffers[i].Stride;
+        ret[i].resourceId = m_GL->vertexInput.vertexBuffers[i].resourceId;
+        ret[i].byteOffset = m_GL->vertexInput.vertexBuffers[i].byteOffset;
+        ret[i].byteStride = m_GL->vertexInput.vertexBuffers[i].byteStride;
       }
     }
     else if(IsCaptureVK())
     {
-      ret.resize(m_Vulkan->VI.binds.count());
-      for(int i = 0; i < m_Vulkan->VI.binds.count(); i++)
+      ret.resize(m_Vulkan->vertexInput.bindings.count());
+      for(int i = 0; i < m_Vulkan->vertexInput.bindings.count(); i++)
       {
-        ret[i].Buffer =
-            i < m_Vulkan->VI.vbuffers.count() ? m_Vulkan->VI.vbuffers[i].buffer : ResourceId();
-        ret[i].ByteOffset = i < m_Vulkan->VI.vbuffers.count() ? m_Vulkan->VI.vbuffers[i].offset : 0;
-        ret[i].ByteStride = m_Vulkan->VI.binds[i].bytestride;
+        ret[i].resourceId = i < m_Vulkan->vertexInput.vertexBuffers.count()
+                                ? m_Vulkan->vertexInput.vertexBuffers[i].resourceId
+                                : ResourceId();
+        ret[i].byteOffset = i < m_Vulkan->vertexInput.vertexBuffers.count()
+                                ? m_Vulkan->vertexInput.vertexBuffers[i].byteOffset
+                                : 0;
+        ret[i].byteStride = m_Vulkan->vertexInput.bindings[i].byteStride;
       }
     }
   }
@@ -664,53 +692,53 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     {
       uint32_t byteOffs[128] = {};
 
-      const rdcarray<D3D11Pipe::Layout> &layouts = m_D3D11->m_IA.layouts;
+      const rdcarray<D3D11Pipe::Layout> &layouts = m_D3D11->inputAssembly.layouts;
 
       rdcarray<VertexInputAttribute> ret;
       ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
-        QString semName = layouts[i].SemanticName;
+        QString semName = layouts[i].semanticName;
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !semName.compare(layouts[j].SemanticName, Qt::CaseInsensitive))
+          if(i != j && !semName.compare(layouts[j].semanticName, Qt::CaseInsensitive))
           {
             needsSemanticIdx = true;
             break;
           }
         }
 
-        uint32_t offs = layouts[i].ByteOffset;
+        uint32_t offs = layouts[i].byteOffset;
         if(offs == UINT32_MAX)    // APPEND_ALIGNED
-          offs = byteOffs[layouts[i].InputSlot];
+          offs = byteOffs[layouts[i].inputSlot];
         else
-          byteOffs[layouts[i].InputSlot] = offs = layouts[i].ByteOffset;
+          byteOffs[layouts[i].inputSlot] = offs = layouts[i].byteOffset;
 
-        byteOffs[layouts[i].InputSlot] +=
-            layouts[i].Format.compByteWidth * layouts[i].Format.compCount;
+        byteOffs[layouts[i].inputSlot] +=
+            layouts[i].format.compByteWidth * layouts[i].format.compCount;
 
-        ret[i].Name =
-            semName + (needsSemanticIdx ? QString::number(layouts[i].SemanticIndex) : QString());
-        ret[i].VertexBuffer = (int)layouts[i].InputSlot;
-        ret[i].RelativeByteOffset = offs;
-        ret[i].PerInstance = layouts[i].PerInstance;
-        ret[i].InstanceRate = (int)layouts[i].InstanceDataStepRate;
-        ret[i].Format = layouts[i].Format;
-        memset(&ret[i].GenericValue, 0, sizeof(PixelValue));
-        ret[i].Used = false;
-        ret[i].GenericEnabled = false;
+        ret[i].name =
+            semName + (needsSemanticIdx ? QString::number(layouts[i].semanticIndex) : QString());
+        ret[i].vertexBuffer = (int)layouts[i].inputSlot;
+        ret[i].byteOffset = offs;
+        ret[i].perInstance = layouts[i].perInstance;
+        ret[i].instanceRate = (int)layouts[i].instanceDataStepRate;
+        ret[i].format = layouts[i].format;
+        memset(&ret[i].genericValue, 0, sizeof(PixelValue));
+        ret[i].used = false;
+        ret[i].genericEnabled = false;
 
-        if(m_D3D11->m_IA.Bytecode != NULL)
+        if(m_D3D11->inputAssembly.bytecode != NULL)
         {
-          rdcarray<SigParameter> &sig = m_D3D11->m_IA.Bytecode->InputSig;
+          rdcarray<SigParameter> &sig = m_D3D11->inputAssembly.bytecode->inputSignature;
           for(int ia = 0; ia < sig.count(); ia++)
           {
             if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
-               sig[ia].semanticIndex == layouts[i].SemanticIndex)
+               sig[ia].semanticIndex == layouts[i].semanticIndex)
             {
-              ret[i].Used = true;
+              ret[i].used = true;
               break;
             }
           }
@@ -723,53 +751,53 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     {
       uint32_t byteOffs[128] = {};
 
-      const rdcarray<D3D12Pipe::Layout> &layouts = m_D3D12->m_IA.layouts;
+      const rdcarray<D3D12Pipe::Layout> &layouts = m_D3D12->inputAssembly.layouts;
 
       rdcarray<VertexInputAttribute> ret;
       ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
-        QString semName = layouts[i].SemanticName;
+        QString semName = layouts[i].semanticName;
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !semName.compare(QString(layouts[j].SemanticName), Qt::CaseInsensitive))
+          if(i != j && !semName.compare(QString(layouts[j].semanticName), Qt::CaseInsensitive))
           {
             needsSemanticIdx = true;
             break;
           }
         }
 
-        uint32_t offs = layouts[i].ByteOffset;
+        uint32_t offs = layouts[i].byteOffset;
         if(offs == UINT32_MAX)    // APPEND_ALIGNED
-          offs = byteOffs[layouts[i].InputSlot];
+          offs = byteOffs[layouts[i].inputSlot];
         else
-          byteOffs[layouts[i].InputSlot] = offs = layouts[i].ByteOffset;
+          byteOffs[layouts[i].inputSlot] = offs = layouts[i].byteOffset;
 
-        byteOffs[layouts[i].InputSlot] +=
-            layouts[i].Format.compByteWidth * layouts[i].Format.compCount;
+        byteOffs[layouts[i].inputSlot] +=
+            layouts[i].format.compByteWidth * layouts[i].format.compCount;
 
-        ret[i].Name =
-            semName + (needsSemanticIdx ? QString::number(layouts[i].SemanticIndex) : QString());
-        ret[i].VertexBuffer = (int)layouts[i].InputSlot;
-        ret[i].RelativeByteOffset = offs;
-        ret[i].PerInstance = layouts[i].PerInstance;
-        ret[i].InstanceRate = (int)layouts[i].InstanceDataStepRate;
-        ret[i].Format = layouts[i].Format;
-        memset(&ret[i].GenericValue, 0, sizeof(PixelValue));
-        ret[i].Used = false;
-        ret[i].GenericEnabled = false;
+        ret[i].name =
+            semName + (needsSemanticIdx ? QString::number(layouts[i].semanticIndex) : QString());
+        ret[i].vertexBuffer = (int)layouts[i].inputSlot;
+        ret[i].byteOffset = offs;
+        ret[i].perInstance = layouts[i].perInstance;
+        ret[i].instanceRate = (int)layouts[i].instanceDataStepRate;
+        ret[i].format = layouts[i].format;
+        memset(&ret[i].genericValue, 0, sizeof(PixelValue));
+        ret[i].used = false;
+        ret[i].genericEnabled = false;
 
-        if(m_D3D12->m_VS.ShaderDetails != NULL)
+        if(m_D3D12->vertexShader.reflection != NULL)
         {
-          rdcarray<SigParameter> &sig = m_D3D12->m_VS.ShaderDetails->InputSig;
+          rdcarray<SigParameter> &sig = m_D3D12->vertexShader.reflection->inputSignature;
           for(int ia = 0; ia < sig.count(); ia++)
           {
             if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
-               sig[ia].semanticIndex == layouts[i].SemanticIndex)
+               sig[ia].semanticIndex == layouts[i].semanticIndex)
             {
-              ret[i].Used = true;
+              ret[i].used = true;
               break;
             }
           }
@@ -780,14 +808,14 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     }
     else if(IsCaptureGL())
     {
-      const rdcarray<GLPipe::VertexAttribute> &attrs = m_GL->m_VtxIn.attributes;
+      const rdcarray<GLPipe::VertexAttribute> &attrs = m_GL->vertexInput.attributes;
 
       int num = 0;
       for(int i = 0; i < attrs.count(); i++)
       {
         int attrib = -1;
-        if(m_GL->m_VS.ShaderDetails != NULL)
-          attrib = m_GL->m_VS.BindpointMapping.InputAttributes[i];
+        if(m_GL->vertexShader.reflection != NULL)
+          attrib = m_GL->vertexShader.bindpointMapping.inputAttributes[i];
         else
           attrib = i;
 
@@ -800,54 +828,56 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       ret.resize(attrs.count());
       for(int i = 0; i < attrs.count() && a < num; i++)
       {
-        ret[a].Name = lit("attr%1").arg(i);
-        memset(&ret[a].GenericValue, 0, sizeof(PixelValue));
-        ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
-        ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
-        ret[a].PerInstance = m_GL->m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor > 0;
-        ret[a].InstanceRate = (int)m_GL->m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
-        ret[a].Format = attrs[i].Format;
-        ret[a].Used = true;
-        ret[a].GenericEnabled = false;
+        ret[a].name = lit("attr%1").arg(i);
+        memset(&ret[a].genericValue, 0, sizeof(PixelValue));
+        ret[a].vertexBuffer = (int)attrs[i].vertexBufferSlot;
+        ret[a].byteOffset = attrs[i].byteOffset;
+        ret[a].perInstance =
+            m_GL->vertexInput.vertexBuffers[attrs[i].vertexBufferSlot].instanceDivisor > 0;
+        ret[a].instanceRate =
+            (int)m_GL->vertexInput.vertexBuffers[attrs[i].vertexBufferSlot].instanceDivisor;
+        ret[a].format = attrs[i].format;
+        ret[a].used = true;
+        ret[a].genericEnabled = false;
 
-        if(m_GL->m_VS.ShaderDetails != NULL)
+        if(m_GL->vertexShader.reflection != NULL)
         {
-          int attrib = m_GL->m_VS.BindpointMapping.InputAttributes[i];
+          int attrib = m_GL->vertexShader.bindpointMapping.inputAttributes[i];
 
-          if(attrib >= 0 && attrib < m_GL->m_VS.ShaderDetails->InputSig.count())
-            ret[a].Name = m_GL->m_VS.ShaderDetails->InputSig[attrib].varName;
+          if(attrib >= 0 && attrib < m_GL->vertexShader.reflection->inputSignature.count())
+            ret[a].name = m_GL->vertexShader.reflection->inputSignature[attrib].varName;
 
           if(attrib == -1)
             continue;
 
-          if(!attrs[i].Enabled)
+          if(!attrs[i].enabled)
           {
-            uint32_t compCount = m_GL->m_VS.ShaderDetails->InputSig[attrib].compCount;
-            CompType compType = m_GL->m_VS.ShaderDetails->InputSig[attrib].compType;
+            uint32_t compCount = m_GL->vertexShader.reflection->inputSignature[attrib].compCount;
+            CompType compType = m_GL->vertexShader.reflection->inputSignature[attrib].compType;
 
             for(uint32_t c = 0; c < compCount; c++)
             {
               if(compType == CompType::Float)
-                ret[a].GenericValue.value_f[c] = attrs[i].GenericValue.value_f[c];
+                ret[a].genericValue.floatValue[c] = attrs[i].genericValue.floatValue[c];
               else if(compType == CompType::UInt)
-                ret[a].GenericValue.value_u[c] = attrs[i].GenericValue.value_u[c];
+                ret[a].genericValue.uintValue[c] = attrs[i].genericValue.uintValue[c];
               else if(compType == CompType::SInt)
-                ret[a].GenericValue.value_i[c] = attrs[i].GenericValue.value_i[c];
+                ret[a].genericValue.intValue[c] = attrs[i].genericValue.intValue[c];
               else if(compType == CompType::UScaled)
-                ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.value_u[c];
+                ret[a].genericValue.floatValue[c] = (float)attrs[i].genericValue.uintValue[c];
               else if(compType == CompType::SScaled)
-                ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.value_i[c];
+                ret[a].genericValue.floatValue[c] = (float)attrs[i].genericValue.intValue[c];
             }
 
-            ret[a].GenericEnabled = true;
+            ret[a].genericEnabled = true;
 
-            ret[a].PerInstance = false;
-            ret[a].InstanceRate = 0;
-            ret[a].Format.compByteWidth = 4;
-            ret[a].Format.compCount = compCount;
-            ret[a].Format.compType = compType;
-            ret[a].Format.type = ResourceFormatType::Regular;
-            ret[a].Format.srgbCorrected = false;
+            ret[a].perInstance = false;
+            ret[a].instanceRate = 0;
+            ret[a].format.compByteWidth = 4;
+            ret[a].format.compCount = compCount;
+            ret[a].format.compType = compType;
+            ret[a].format.type = ResourceFormatType::Regular;
+            ret[a].format.srgbCorrected = false;
           }
         }
 
@@ -858,16 +888,17 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     }
     else if(IsCaptureVK())
     {
-      const rdcarray<VKPipe::VertexAttribute> &attrs = m_Vulkan->VI.attrs;
+      const rdcarray<VKPipe::VertexAttribute> &attrs = m_Vulkan->vertexInput.attributes;
 
       int num = 0;
       for(int i = 0; i < attrs.count(); i++)
       {
         int attrib = -1;
-        if(m_Vulkan->m_VS.ShaderDetails != NULL)
+        if(m_Vulkan->vertexShader.reflection != NULL)
         {
-          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count())
-            attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
+          if(attrs[i].location <
+             (uint32_t)m_Vulkan->vertexShader.bindpointMapping.inputAttributes.count())
+            attrib = m_Vulkan->vertexShader.bindpointMapping.inputAttributes[attrs[i].location];
         }
         else
           attrib = i;
@@ -881,27 +912,28 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       ret.resize(num);
       for(int i = 0; i < attrs.count() && a < num; i++)
       {
-        ret[a].Name = lit("attr%1").arg(i);
-        memset(&ret[a].GenericValue, 0, sizeof(PixelValue));
-        ret[a].VertexBuffer = (int)attrs[i].binding;
-        ret[a].RelativeByteOffset = attrs[i].byteoffset;
-        ret[a].PerInstance = false;
-        if(attrs[i].binding < (uint32_t)m_Vulkan->VI.binds.count())
-          ret[a].PerInstance = m_Vulkan->VI.binds[attrs[i].binding].perInstance;
-        ret[a].InstanceRate = 1;
-        ret[a].Format = attrs[i].format;
-        ret[a].Used = true;
-        ret[a].GenericEnabled = false;
+        ret[a].name = lit("attr%1").arg(i);
+        memset(&ret[a].genericValue, 0, sizeof(PixelValue));
+        ret[a].vertexBuffer = (int)attrs[i].binding;
+        ret[a].byteOffset = attrs[i].byteOffset;
+        ret[a].perInstance = false;
+        if(attrs[i].binding < (uint32_t)m_Vulkan->vertexInput.bindings.count())
+          ret[a].perInstance = m_Vulkan->vertexInput.bindings[attrs[i].binding].perInstance;
+        ret[a].instanceRate = 1;
+        ret[a].format = attrs[i].format;
+        ret[a].used = true;
+        ret[a].genericEnabled = false;
 
-        if(m_Vulkan->m_VS.ShaderDetails != NULL)
+        if(m_Vulkan->vertexShader.reflection != NULL)
         {
           int attrib = -1;
 
-          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count())
-            attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
+          if(attrs[i].location <
+             (uint32_t)m_Vulkan->vertexShader.bindpointMapping.inputAttributes.count())
+            attrib = m_Vulkan->vertexShader.bindpointMapping.inputAttributes[attrs[i].location];
 
-          if(attrib >= 0 && attrib < m_Vulkan->m_VS.ShaderDetails->InputSig.count())
-            ret[a].Name = m_Vulkan->m_VS.ShaderDetails->InputSig[attrib].varName;
+          if(attrib >= 0 && attrib < m_Vulkan->vertexShader.reflection->inputSignature.count())
+            ret[a].name = m_Vulkan->vertexShader.reflection->inputSignature[attrib].varName;
 
           if(attrib == -1)
             continue;
@@ -930,58 +962,59 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
+      if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
       {
-        const BindpointMap &bind =
-            s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
+        const Bindpoint &bind =
+            s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint];
 
-        if(bind.bind >= s.ConstantBuffers.count())
+        if(bind.bind >= s.constantBuffers.count())
           return BoundCBuffer();
 
-        const D3D11Pipe::CBuffer &descriptor = s.ConstantBuffers[bind.bind];
+        const D3D11Pipe::ConstantBuffer &descriptor = s.constantBuffers[bind.bind];
 
-        buf = descriptor.Buffer;
-        ByteOffset = descriptor.VecOffset * 4 * sizeof(float);
-        ByteSize = descriptor.VecCount * 4 * sizeof(float);
+        buf = descriptor.resourceId;
+        ByteOffset = descriptor.vecOffset * 4 * sizeof(float);
+        ByteSize = descriptor.vecCount * 4 * sizeof(float);
       }
     }
     else if(IsCaptureD3D12())
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
+      if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
       {
-        const BindpointMap &bind =
-            s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
+        const Bindpoint &bind =
+            s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint];
 
-        if(bind.bindset >= s.Spaces.count() ||
-           bind.bind >= s.Spaces[bind.bindset].ConstantBuffers.count())
+        if(bind.bindset >= s.spaces.count() ||
+           bind.bind >= s.spaces[bind.bindset].constantBuffers.count())
           return BoundCBuffer();
 
-        const D3D12Pipe::CBuffer &descriptor = s.Spaces[bind.bindset].ConstantBuffers[bind.bind];
+        const D3D12Pipe::ConstantBuffer &descriptor =
+            s.spaces[bind.bindset].constantBuffers[bind.bind];
 
-        buf = descriptor.Buffer;
-        ByteOffset = descriptor.Offset;
-        ByteSize = descriptor.ByteSize;
+        buf = descriptor.resourceId;
+        ByteOffset = descriptor.byteOffset;
+        ByteSize = descriptor.byteSize;
       }
     }
     else if(IsCaptureGL())
     {
       const GLPipe::Shader &s = GetGLStage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
+      if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
       {
-        if(s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint >= 0)
+        if(s.reflection->constantBlocks[BufIdx].bindPoint >= 0)
         {
           int uboIdx =
-              s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint].bind;
-          if(uboIdx >= 0 && uboIdx < m_GL->UniformBuffers.count())
+              s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint].bind;
+          if(uboIdx >= 0 && uboIdx < m_GL->uniformBuffers.count())
           {
-            const GLPipe::Buffer &b = m_GL->UniformBuffers[uboIdx];
+            const GLPipe::Buffer &b = m_GL->uniformBuffers[uboIdx];
 
-            buf = b.Resource;
-            ByteOffset = b.Offset;
-            ByteSize = b.Size;
+            buf = b.resourceId;
+            ByteOffset = b.byteOffset;
+            ByteSize = b.byteSize;
           }
         }
       }
@@ -992,34 +1025,34 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
           stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
       const VKPipe::Shader &s = GetVulkanStage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
+      if(s.reflection != NULL && BufIdx < (uint32_t)s.reflection->constantBlocks.count())
       {
-        const BindpointMap &bind =
-            s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
+        const Bindpoint &bind =
+            s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint];
 
-        if(s.ShaderDetails->ConstantBlocks[BufIdx].bufferBacked == false)
+        if(s.reflection->constantBlocks[BufIdx].bufferBacked == false)
         {
           BoundCBuffer ret;
           // dummy value, it would be nice to fetch this properly
-          ret.ByteSize = 1024;
+          ret.byteSize = 1024;
           return ret;
         }
 
         const VKPipe::BindingElement &descriptorBind =
-            pipe.DescSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
+            pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
 
-        buf = descriptorBind.res;
-        ByteOffset = descriptorBind.offset;
-        ByteSize = descriptorBind.size;
+        buf = descriptorBind.resourceResourceId;
+        ByteOffset = descriptorBind.byteOffset;
+        ByteSize = descriptorBind.byteSize;
       }
     }
   }
 
   BoundCBuffer ret;
 
-  ret.Buffer = buf;
-  ret.ByteOffset = ByteOffset;
-  ret.ByteSize = ByteSize;
+  ret.resourceId = buf;
+  ret.byteOffset = ByteOffset;
+  ret.byteSize = ByteSize;
 
   return ret;
 }
@@ -1034,17 +1067,17 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderSta
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
-      ret.reserve(s.SRVs.size());
+      ret.reserve(s.srvs.size());
 
-      for(int i = 0; i < s.SRVs.count(); i++)
+      for(int i = 0; i < s.srvs.count(); i++)
       {
-        BindpointMap key(0, i);
+        Bindpoint key(0, i);
         BoundResource val;
 
-        val.Id = s.SRVs[i].Resource;
-        val.HighestMip = (int)s.SRVs[i].HighestMip;
-        val.FirstSlice = (int)s.SRVs[i].FirstArraySlice;
-        val.typeHint = s.SRVs[i].Format.compType;
+        val.resourceId = s.srvs[i].resourceResourceId;
+        val.firstMip = (int)s.srvs[i].firstMip;
+        val.firstSlice = (int)s.srvs[i].firstSlice;
+        val.typeHint = s.srvs[i].viewFormat.compType;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
@@ -1055,23 +1088,23 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderSta
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      for(int space = 0; space < s.Spaces.count(); space++)
+      for(int space = 0; space < s.spaces.count(); space++)
       {
-        for(int reg = 0; reg < s.Spaces[space].SRVs.count(); reg++)
+        for(int reg = 0; reg < s.spaces[space].srvs.count(); reg++)
         {
-          const D3D12Pipe::View &bind = s.Spaces[space].SRVs[reg];
-          BindpointMap key(space, reg);
+          const D3D12Pipe::View &bind = s.spaces[space].srvs[reg];
+          Bindpoint key(space, reg);
           BoundResource val;
 
           // consider this register to not exist - it's in a gap defined by sparse root signature
           // elements
-          if(bind.RootElement == ~0U)
+          if(bind.rootElement == ~0U)
             continue;
 
-          val.Id = bind.Resource;
-          val.HighestMip = (int)bind.HighestMip;
-          val.FirstSlice = (int)bind.FirstArraySlice;
-          val.typeHint = bind.Format.compType;
+          val.resourceId = bind.resourceId;
+          val.firstMip = (int)bind.firstMip;
+          val.firstSlice = (int)bind.firstSlice;
+          val.typeHint = bind.viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1081,16 +1114,16 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderSta
     }
     else if(IsCaptureGL())
     {
-      ret.reserve(m_GL->Textures.size());
+      ret.reserve(m_GL->textures.size());
 
-      for(int i = 0; i < m_GL->Textures.count(); i++)
+      for(int i = 0; i < m_GL->textures.count(); i++)
       {
-        BindpointMap key(0, i);
+        Bindpoint key(0, i);
         BoundResource val;
 
-        val.Id = m_GL->Textures[i].Resource;
-        val.HighestMip = (int)m_GL->Textures[i].HighestMip;
-        val.FirstSlice = (int)m_GL->Textures[i].FirstSlice;
+        val.resourceId = m_GL->textures[i].resourceId;
+        val.firstMip = (int)m_GL->textures[i].firstMip;
+        val.firstSlice = (int)m_GL->textures[i].firstSlice;
         val.typeHint = CompType::Typeless;
 
         ret.push_back(BoundResourceArray(key, {val}));
@@ -1100,8 +1133,9 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderSta
     }
     else if(IsCaptureVK())
     {
-      const rdcarray<VKPipe::DescriptorSet> &descsets =
-          stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
+      const rdcarray<VKPipe::DescriptorSet> &descsets = stage == ShaderStage::Compute
+                                                            ? m_Vulkan->compute.descriptorSets
+                                                            : m_Vulkan->graphics.descriptorSets;
 
       ShaderStageMask mask = MaskForStage(stage);
 
@@ -1116,17 +1150,17 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderSta
              (bind.stageFlags & mask) == mask)
           {
             ret.push_back(BoundResourceArray());
-            ret.back().BindPoint = BindpointMap(set, slot);
+            ret.back().bindPoint = Bindpoint(set, slot);
 
-            rdcarray<BoundResource> &val = ret.back().Resources;
+            rdcarray<BoundResource> &val = ret.back().resources;
             val.resize(bind.descriptorCount);
 
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
-              val[i].Id = bind.binds[i].res;
-              val[i].HighestMip = (int)bind.binds[i].baseMip;
-              val[i].FirstSlice = (int)bind.binds[i].baseLayer;
-              val[i].typeHint = bind.binds[i].viewfmt.compType;
+              val[i].resourceId = bind.binds[i].resourceResourceId;
+              val[i].firstMip = (int)bind.binds[i].firstMip;
+              val[i].firstSlice = (int)bind.binds[i].firstSlice;
+              val[i].typeHint = bind.binds[i].viewFormat.compType;
             }
           }
         }
@@ -1149,45 +1183,45 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderSt
     {
       if(stage == ShaderStage::Compute)
       {
-        ret.reserve(m_D3D11->m_CS.UAVs.size());
+        ret.reserve(m_D3D11->computeShader.uavs.size());
 
-        for(int i = 0; i < m_D3D11->m_CS.UAVs.count(); i++)
+        for(int i = 0; i < m_D3D11->computeShader.uavs.count(); i++)
         {
-          BindpointMap key(0, i);
+          Bindpoint key(0, i);
           BoundResource val;
 
-          val.Id = m_D3D11->m_CS.UAVs[i].Resource;
-          val.HighestMip = (int)m_D3D11->m_CS.UAVs[i].HighestMip;
-          val.FirstSlice = (int)m_D3D11->m_CS.UAVs[i].FirstArraySlice;
-          val.typeHint = m_D3D11->m_CS.UAVs[i].Format.compType;
+          val.resourceId = m_D3D11->computeShader.uavs[i].resourceResourceId;
+          val.firstMip = (int)m_D3D11->computeShader.uavs[i].firstMip;
+          val.firstSlice = (int)m_D3D11->computeShader.uavs[i].firstSlice;
+          val.typeHint = m_D3D11->computeShader.uavs[i].viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
       }
       else
       {
-        int uavstart = (int)m_D3D11->m_OM.UAVStartSlot;
+        int uavstart = (int)m_D3D11->outputMerger.uavStartSlot;
 
-        ret.reserve(m_D3D11->m_OM.UAVs.size() + qMax(0, uavstart));
+        ret.reserve(m_D3D11->outputMerger.uavs.size() + qMax(0, uavstart));
 
         // up to UAVStartSlot treat these bindings as empty.
         for(int i = 0; i < uavstart; i++)
         {
-          BindpointMap key(0, i);
+          Bindpoint key(0, i);
           BoundResource val;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
 
-        for(int i = 0; i < m_D3D11->m_OM.UAVs.count() - uavstart; i++)
+        for(int i = 0; i < m_D3D11->outputMerger.uavs.count() - uavstart; i++)
         {
-          BindpointMap key(0, i + uavstart);
+          Bindpoint key(0, i + uavstart);
           BoundResource val;
 
-          val.Id = m_D3D11->m_OM.UAVs[i].Resource;
-          val.HighestMip = (int)m_D3D11->m_OM.UAVs[i].HighestMip;
-          val.FirstSlice = (int)m_D3D11->m_OM.UAVs[i].FirstArraySlice;
-          val.typeHint = m_D3D11->m_OM.UAVs[i].Format.compType;
+          val.resourceId = m_D3D11->outputMerger.uavs[i].resourceResourceId;
+          val.firstMip = (int)m_D3D11->outputMerger.uavs[i].firstMip;
+          val.firstSlice = (int)m_D3D11->outputMerger.uavs[i].firstSlice;
+          val.typeHint = m_D3D11->outputMerger.uavs[i].viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1197,23 +1231,23 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderSt
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      for(int space = 0; space < s.Spaces.count(); space++)
+      for(int space = 0; space < s.spaces.count(); space++)
       {
-        for(int reg = 0; reg < s.Spaces[space].UAVs.count(); reg++)
+        for(int reg = 0; reg < s.spaces[space].uavs.count(); reg++)
         {
-          const D3D12Pipe::View &bind = s.Spaces[space].UAVs[reg];
-          BindpointMap key(space, reg);
+          const D3D12Pipe::View &bind = s.spaces[space].uavs[reg];
+          Bindpoint key(space, reg);
           BoundResource val;
 
           // consider this register to not exist - it's in a gap defined by sparse root signature
           // elements
-          if(bind.RootElement == ~0U)
+          if(bind.rootElement == ~0U)
             continue;
 
-          val.Id = bind.Resource;
-          val.HighestMip = (int)bind.HighestMip;
-          val.FirstSlice = (int)bind.FirstArraySlice;
-          val.typeHint = bind.Format.compType;
+          val.resourceId = bind.resourceId;
+          val.firstMip = (int)bind.firstMip;
+          val.firstSlice = (int)bind.firstSlice;
+          val.typeHint = bind.viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1221,25 +1255,26 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderSt
     }
     else if(IsCaptureGL())
     {
-      ret.reserve(m_GL->Images.size());
+      ret.reserve(m_GL->images.size());
 
-      for(int i = 0; i < m_GL->Images.count(); i++)
+      for(int i = 0; i < m_GL->images.count(); i++)
       {
-        BindpointMap key(0, i);
+        Bindpoint key(0, i);
         BoundResource val;
 
-        val.Id = m_GL->Images[i].Resource;
-        val.HighestMip = (int)m_GL->Images[i].Level;
-        val.FirstSlice = (int)m_GL->Images[i].Layer;
-        val.typeHint = m_GL->Images[i].Format.compType;
+        val.resourceId = m_GL->images[i].resourceId;
+        val.firstMip = (int)m_GL->images[i].mipLevel;
+        val.firstSlice = (int)m_GL->images[i].slice;
+        val.typeHint = m_GL->images[i].imageFormat.compType;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
     }
     else if(IsCaptureVK())
     {
-      const rdcarray<VKPipe::DescriptorSet> &descsets =
-          stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
+      const rdcarray<VKPipe::DescriptorSet> &descsets = stage == ShaderStage::Compute
+                                                            ? m_Vulkan->compute.descriptorSets
+                                                            : m_Vulkan->graphics.descriptorSets;
 
       ShaderStageMask mask = MaskForStage(stage);
 
@@ -1254,17 +1289,17 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderSt
              (bind.stageFlags & mask) == mask)
           {
             ret.push_back(BoundResourceArray());
-            ret.back().BindPoint = BindpointMap(set, slot);
+            ret.back().bindPoint = Bindpoint(set, slot);
 
-            rdcarray<BoundResource> &val = ret.back().Resources;
+            rdcarray<BoundResource> &val = ret.back().resources;
             val.resize(bind.descriptorCount);
 
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
-              val[i].Id = bind.binds[i].res;
-              val[i].HighestMip = (int)bind.binds[i].baseMip;
-              val[i].FirstSlice = (int)bind.binds[i].baseLayer;
-              val[i].typeHint = bind.binds[i].viewfmt.compType;
+              val[i].resourceId = bind.binds[i].resourceResourceId;
+              val[i].firstMip = (int)bind.binds[i].firstMip;
+              val[i].firstSlice = (int)bind.binds[i].firstSlice;
+              val[i].typeHint = bind.binds[i].viewFormat.compType;
             }
           }
         }
@@ -1282,42 +1317,42 @@ BoundResource CommonPipelineState::GetDepthTarget()
     if(IsCaptureD3D11())
     {
       BoundResource ret;
-      ret.Id = m_D3D11->m_OM.DepthTarget.Resource;
-      ret.HighestMip = (int)m_D3D11->m_OM.DepthTarget.HighestMip;
-      ret.FirstSlice = (int)m_D3D11->m_OM.DepthTarget.FirstArraySlice;
-      ret.typeHint = m_D3D11->m_OM.DepthTarget.Format.compType;
+      ret.resourceId = m_D3D11->outputMerger.depthTarget.resourceResourceId;
+      ret.firstMip = (int)m_D3D11->outputMerger.depthTarget.firstMip;
+      ret.firstSlice = (int)m_D3D11->outputMerger.depthTarget.firstSlice;
+      ret.typeHint = m_D3D11->outputMerger.depthTarget.viewFormat.compType;
       return ret;
     }
     else if(IsCaptureD3D12())
     {
       BoundResource ret;
-      ret.Id = m_D3D12->m_OM.DepthTarget.Resource;
-      ret.HighestMip = (int)m_D3D12->m_OM.DepthTarget.HighestMip;
-      ret.FirstSlice = (int)m_D3D12->m_OM.DepthTarget.FirstArraySlice;
-      ret.typeHint = m_D3D12->m_OM.DepthTarget.Format.compType;
+      ret.resourceId = m_D3D12->outputMerger.depthTarget.resourceId;
+      ret.firstMip = (int)m_D3D12->outputMerger.depthTarget.firstMip;
+      ret.firstSlice = (int)m_D3D12->outputMerger.depthTarget.firstSlice;
+      ret.typeHint = m_D3D12->outputMerger.depthTarget.viewFormat.compType;
       return ret;
     }
     else if(IsCaptureGL())
     {
       BoundResource ret;
-      ret.Id = m_GL->m_FB.m_DrawFBO.Depth.Obj;
-      ret.HighestMip = (int)m_GL->m_FB.m_DrawFBO.Depth.Mip;
-      ret.FirstSlice = (int)m_GL->m_FB.m_DrawFBO.Depth.Layer;
+      ret.resourceId = m_GL->framebuffer.drawFBO.depthAttachment.resourceId;
+      ret.firstMip = (int)m_GL->framebuffer.drawFBO.depthAttachment.mipLevel;
+      ret.firstSlice = (int)m_GL->framebuffer.drawFBO.depthAttachment.slice;
       ret.typeHint = CompType::Typeless;
       return ret;
     }
     else if(IsCaptureVK())
     {
-      const VKPipe::RenderPass &rp = m_Vulkan->Pass.renderpass;
-      const VKPipe::Framebuffer &fb = m_Vulkan->Pass.framebuffer;
+      const VKPipe::RenderPass &rp = m_Vulkan->currentPass.renderpass;
+      const VKPipe::Framebuffer &fb = m_Vulkan->currentPass.framebuffer;
 
       if(rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.count())
       {
         BoundResource ret;
-        ret.Id = fb.attachments[rp.depthstencilAttachment].img;
-        ret.HighestMip = (int)fb.attachments[rp.depthstencilAttachment].baseMip;
-        ret.FirstSlice = (int)fb.attachments[rp.depthstencilAttachment].baseLayer;
-        ret.typeHint = fb.attachments[rp.depthstencilAttachment].viewfmt.compType;
+        ret.resourceId = fb.attachments[rp.depthstencilAttachment].imageResourceId;
+        ret.firstMip = (int)fb.attachments[rp.depthstencilAttachment].firstMip;
+        ret.firstSlice = (int)fb.attachments[rp.depthstencilAttachment].firstSlice;
+        ret.typeHint = fb.attachments[rp.depthstencilAttachment].viewFormat.compType;
         return ret;
       }
 
@@ -1336,46 +1371,46 @@ rdcarray<BoundResource> CommonPipelineState::GetOutputTargets()
   {
     if(IsCaptureD3D11())
     {
-      ret.resize(m_D3D11->m_OM.RenderTargets.count());
-      for(int i = 0; i < m_D3D11->m_OM.RenderTargets.count(); i++)
+      ret.resize(m_D3D11->outputMerger.renderTargets.count());
+      for(int i = 0; i < m_D3D11->outputMerger.renderTargets.count(); i++)
       {
-        ret[i].Id = m_D3D11->m_OM.RenderTargets[i].Resource;
-        ret[i].HighestMip = (int)m_D3D11->m_OM.RenderTargets[i].HighestMip;
-        ret[i].FirstSlice = (int)m_D3D11->m_OM.RenderTargets[i].FirstArraySlice;
-        ret[i].typeHint = m_D3D11->m_OM.RenderTargets[i].Format.compType;
+        ret[i].resourceId = m_D3D11->outputMerger.renderTargets[i].resourceResourceId;
+        ret[i].firstMip = (int)m_D3D11->outputMerger.renderTargets[i].firstMip;
+        ret[i].firstSlice = (int)m_D3D11->outputMerger.renderTargets[i].firstSlice;
+        ret[i].typeHint = m_D3D11->outputMerger.renderTargets[i].viewFormat.compType;
       }
     }
     else if(IsCaptureD3D12())
     {
-      ret.resize(m_D3D12->m_OM.RenderTargets.count());
-      for(int i = 0; i < m_D3D12->m_OM.RenderTargets.count(); i++)
+      ret.resize(m_D3D12->outputMerger.renderTargets.count());
+      for(int i = 0; i < m_D3D12->outputMerger.renderTargets.count(); i++)
       {
-        ret[i].Id = m_D3D12->m_OM.RenderTargets[i].Resource;
-        ret[i].HighestMip = (int)m_D3D12->m_OM.RenderTargets[i].HighestMip;
-        ret[i].FirstSlice = (int)m_D3D12->m_OM.RenderTargets[i].FirstArraySlice;
-        ret[i].typeHint = m_D3D12->m_OM.RenderTargets[i].Format.compType;
+        ret[i].resourceId = m_D3D12->outputMerger.renderTargets[i].resourceId;
+        ret[i].firstMip = (int)m_D3D12->outputMerger.renderTargets[i].firstMip;
+        ret[i].firstSlice = (int)m_D3D12->outputMerger.renderTargets[i].firstSlice;
+        ret[i].typeHint = m_D3D12->outputMerger.renderTargets[i].viewFormat.compType;
       }
     }
     else if(IsCaptureGL())
     {
-      ret.resize(m_GL->m_FB.m_DrawFBO.DrawBuffers.count());
-      for(int i = 0; i < m_GL->m_FB.m_DrawFBO.DrawBuffers.count(); i++)
+      ret.resize(m_GL->framebuffer.drawFBO.drawBuffers.count());
+      for(int i = 0; i < m_GL->framebuffer.drawFBO.drawBuffers.count(); i++)
       {
-        int db = m_GL->m_FB.m_DrawFBO.DrawBuffers[i];
+        int db = m_GL->framebuffer.drawFBO.drawBuffers[i];
 
         if(db >= 0)
         {
-          ret[i].Id = m_GL->m_FB.m_DrawFBO.Color[db].Obj;
-          ret[i].HighestMip = (int)m_GL->m_FB.m_DrawFBO.Color[db].Mip;
-          ret[i].FirstSlice = (int)m_GL->m_FB.m_DrawFBO.Color[db].Layer;
+          ret[i].resourceId = m_GL->framebuffer.drawFBO.colorAttachments[db].resourceId;
+          ret[i].firstMip = (int)m_GL->framebuffer.drawFBO.colorAttachments[db].mipLevel;
+          ret[i].firstSlice = (int)m_GL->framebuffer.drawFBO.colorAttachments[db].slice;
           ret[i].typeHint = CompType::Typeless;
         }
       }
     }
     else if(IsCaptureVK())
     {
-      const VKPipe::RenderPass &rp = m_Vulkan->Pass.renderpass;
-      const VKPipe::Framebuffer &fb = m_Vulkan->Pass.framebuffer;
+      const VKPipe::RenderPass &rp = m_Vulkan->currentPass.renderpass;
+      const VKPipe::Framebuffer &fb = m_Vulkan->currentPass.framebuffer;
 
       int idx = 0;
 
@@ -1384,10 +1419,10 @@ rdcarray<BoundResource> CommonPipelineState::GetOutputTargets()
       {
         if(rp.colorAttachments[i] < (uint32_t)fb.attachments.count())
         {
-          ret[idx].Id = fb.attachments[rp.colorAttachments[i]].img;
-          ret[idx].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
-          ret[idx].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
-          ret[idx].typeHint = fb.attachments[rp.colorAttachments[i]].viewfmt.compType;
+          ret[idx].resourceId = fb.attachments[rp.colorAttachments[i]].imageResourceId;
+          ret[idx].firstMip = (int)fb.attachments[rp.colorAttachments[i]].firstMip;
+          ret[idx].firstSlice = (int)fb.attachments[rp.colorAttachments[i]].firstSlice;
+          ret[idx].typeHint = fb.attachments[rp.colorAttachments[i]].viewFormat.compType;
         }
 
         idx++;
@@ -1397,10 +1432,10 @@ rdcarray<BoundResource> CommonPipelineState::GetOutputTargets()
       {
         if(rp.resolveAttachments[i] < (uint32_t)fb.attachments.count())
         {
-          ret[idx].Id = fb.attachments[rp.resolveAttachments[i]].img;
-          ret[idx].HighestMip = (int)fb.attachments[rp.resolveAttachments[i]].baseMip;
-          ret[idx].FirstSlice = (int)fb.attachments[rp.resolveAttachments[i]].baseLayer;
-          ret[idx].typeHint = fb.attachments[rp.resolveAttachments[i]].viewfmt.compType;
+          ret[idx].resourceId = fb.attachments[rp.resolveAttachments[i]].imageResourceId;
+          ret[idx].firstMip = (int)fb.attachments[rp.resolveAttachments[i]].firstMip;
+          ret[idx].firstSlice = (int)fb.attachments[rp.resolveAttachments[i]].firstSlice;
+          ret[idx].typeHint = fb.attachments[rp.resolveAttachments[i]].viewFormat.compType;
         }
 
         idx++;

@@ -40,10 +40,10 @@ struct SortValue
     double d;
   } val;
 
-  SortValue(uint32_t eventID)
+  SortValue(uint32_t eventId)
   {
     type = Integer;
-    val.u = eventID;
+    val.u = eventId;
   }
 
   SortValue(const CounterResult &result, const CounterDescription &description)
@@ -228,9 +228,9 @@ void PerformanceCounterViewer::CaptureCounters()
       QMap<uint32_t, int> eventIdToRow;
       for(const CounterResult &result : results)
       {
-        if(eventIdToRow.contains(result.eventID))
+        if(eventIdToRow.contains(result.eventId))
           continue;
-        eventIdToRow[result.eventID] = eventIdToRow.size();
+        eventIdToRow[result.eventId] = eventIdToRow.size();
       }
 
       ui->counterResults->setColumnCount(headers.size());
@@ -239,17 +239,17 @@ void PerformanceCounterViewer::CaptureCounters()
 
       for(int i = 0; i < (int)results.size(); ++i)
       {
-        int row = eventIdToRow[results[i].eventID];
+        int row = eventIdToRow[results[i].eventId];
 
         ui->counterResults->setItem(row, 0,
-                                    new CustomSortedTableItem(QString::number(results[i].eventID),
-                                                              SortValue(results[i].eventID)));
+                                    new CustomSortedTableItem(QString::number(results[i].eventId),
+                                                              SortValue(results[i].eventId)));
 
         ui->counterResults->setItem(
-            row, counterIndex[results[i].counterID] + 1,
-            MakeCounterResultItem(results[i], counterDescriptions[results[i].counterID]));
+            row, counterIndex[results[i].counter] + 1,
+            MakeCounterResultItem(results[i], counterDescriptions[results[i].counter]));
 
-        ui->counterResults->item(row, 0)->setData(Qt::UserRole, results[i].eventID);
+        ui->counterResults->item(row, 0)->setData(Qt::UserRole, results[i].eventId);
       }
 
       ui->counterResults->resizeColumnsToContents();

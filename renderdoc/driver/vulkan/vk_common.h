@@ -82,13 +82,13 @@ Topology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPo
 VkPrimitiveTopology MakeVkPrimitiveTopology(Topology Topo);
 AddressMode MakeAddressMode(VkSamplerAddressMode addr);
 void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor);
-CompareFunc MakeCompareFunc(VkCompareOp func);
+CompareFunction MakeCompareFunc(VkCompareOp func);
 TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,
                          bool anisoEnable, bool compareEnable);
-LogicOp MakeLogicOp(VkLogicOp op);
+LogicOperation MakeLogicOp(VkLogicOp op);
 BlendMultiplier MakeBlendMultiplier(VkBlendFactor blend);
-BlendOp MakeBlendOp(VkBlendOp op);
-StencilOp MakeStencilOp(VkStencilOp op);
+BlendOperation MakeBlendOp(VkBlendOp op);
+StencilOperation MakeStencilOp(VkStencilOp op);
 
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);

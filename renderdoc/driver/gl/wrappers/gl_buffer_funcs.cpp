@@ -1900,7 +1900,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     if((access & GL_MAP_PERSISTENT_BIT) || record->Map.persistentPtr)
       directMap = false;
 
-    bool verifyWrite = (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites != 0);
+    bool verifyWrite = (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites != 0);
 
     // must also intercept to verify writes
     if(verifyWrite)

@@ -52,17 +52,17 @@ struct D3D12DrawcallTreeNode
     for(size_t i = 0; i < child.resourceUsage.size(); i++)
     {
       resourceUsage.push_back(child.resourceUsage[i]);
-      resourceUsage.back().second.eventID += baseEventID;
+      resourceUsage.back().second.eventId += baseEventID;
     }
 
     for(size_t i = 0; i < child.children.size(); i++)
     {
       children.push_back(child.children[i]);
-      children.back().draw.eventID += baseEventID;
-      children.back().draw.drawcallID += baseDrawID;
+      children.back().draw.eventId += baseEventID;
+      children.back().draw.drawcallId += baseDrawID;
 
       for(APIEvent &ev : children.back().draw.events)
-        ev.eventID += baseEventID;
+        ev.eventId += baseEventID;
     }
   }
 
@@ -249,18 +249,18 @@ struct D3D12CommandData
   struct DrawcallUse
   {
     DrawcallUse(uint64_t offs, uint32_t eid, ResourceId cmd = ResourceId(), uint32_t rel = 0)
-        : fileOffset(offs), cmdList(cmd), eventID(eid), relativeEID(rel)
+        : fileOffset(offs), cmdList(cmd), eventId(eid), relativeEID(rel)
     {
     }
     uint64_t fileOffset;
     ResourceId cmdList;
-    uint32_t eventID;
+    uint32_t eventId;
     uint32_t relativeEID;
     bool operator<(const DrawcallUse &o) const
     {
       if(fileOffset != o.fileOffset)
         return fileOffset < o.fileOffset;
-      return eventID < o.eventID;
+      return eventId < o.eventId;
     }
   };
   vector<DrawcallUse> m_DrawcallUses;
@@ -297,7 +297,7 @@ struct D3D12CommandData
 
   void GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs);
 
-  // util function to handle fetching the right eventID, calling any
+  // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
   uint32_t HandlePreCallback(ID3D12GraphicsCommandList *list, bool dispatch = false,
                              uint32_t multiDrawOffset = 0);

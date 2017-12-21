@@ -49,7 +49,7 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
     default: ret.descriptor.type = VarType::Float; break;
   }
   ret.descriptor.rows = (uint8_t)type.descriptor.rows;
-  ret.descriptor.cols = (uint8_t)type.descriptor.cols;
+  ret.descriptor.columns = (uint8_t)type.descriptor.cols;
   ret.descriptor.elements = type.descriptor.elements;
   ret.descriptor.name = type.descriptor.name;
   ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
@@ -60,14 +60,14 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
     uint32_t primary = ret.descriptor.rows;
     if(primary == 3)
       primary = 4;
-    ret.descriptor.arrayStride = baseElemSize * primary * ret.descriptor.cols;
+    ret.descriptor.arrayByteStride = baseElemSize * primary * ret.descriptor.columns;
   }
   else
   {
-    uint32_t primary = ret.descriptor.cols;
+    uint32_t primary = ret.descriptor.columns;
     if(primary == 3)
       primary = 4;
-    ret.descriptor.arrayStride = baseElemSize * primary * ret.descriptor.rows;
+    ret.descriptor.arrayByteStride = baseElemSize * primary * ret.descriptor.rows;
   }
 
   uint32_t o = offset;
@@ -82,7 +82,7 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
   if(!ret.members.empty())
   {
     ret.descriptor.rows = 0;
-    ret.descriptor.cols = 0;
+    ret.descriptor.columns = 0;
   }
 
   return ret;
@@ -107,7 +107,7 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
 }
 
 static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::ShaderInputBind> &in,
-                             rdcarray<BindpointMap> &mapping, rdcarray<ShaderResource> &refl)
+                             rdcarray<Bindpoint> &mapping, rdcarray<ShaderResource> &refl)
 {
   for(size_t i = 0; i < in.size(); i++)
   {
@@ -116,34 +116,34 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
     ShaderResource res;
     res.name = r.name;
 
-    res.IsTexture = (r.type == DXBC::ShaderInputBind::TYPE_TEXTURE &&
+    res.isTexture = (r.type == DXBC::ShaderInputBind::TYPE_TEXTURE &&
                      r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
-    res.IsReadOnly = srv;
+    res.isReadOnly = srv;
 
     switch(r.dimension)
     {
       default:
-      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = TextureDim::Unknown; break;
+      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = TextureType::Unknown; break;
       case DXBC::ShaderInputBind::DIM_BUFFER:
-      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = TextureDim::Buffer; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = TextureDim::Texture1D; break;
+      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = TextureType::Buffer; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = TextureType::Texture1D; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY:
-        res.resType = TextureDim::Texture1DArray;
+        res.resType = TextureType::Texture1DArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = TextureDim::Texture2D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = TextureType::Texture2D; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE2DARRAY:
-        res.resType = TextureDim::Texture2DArray;
+        res.resType = TextureType::Texture2DArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = TextureDim::Texture2DMS; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = TextureType::Texture2DMS; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE2DMSARRAY:
-        res.resType = TextureDim::Texture2DMSArray;
+        res.resType = TextureType::Texture2DMSArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = TextureDim::Texture3D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = TextureDim::TextureCube; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = TextureType::Texture3D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = TextureType::TextureCube; break;
       case DXBC::ShaderInputBind::DIM_TEXTURECUBEARRAY:
-        res.resType = TextureDim::TextureCubeArray;
+        res.resType = TextureType::TextureCubeArray;
         break;
     }
 
@@ -151,7 +151,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
        r.retType != DXBC::RETURN_TYPE_CONTINUED)
     {
       res.variableType.descriptor.rows = 1;
-      res.variableType.descriptor.cols = (uint8_t)r.numSamples;
+      res.variableType.descriptor.columns = (uint8_t)r.numSamples;
       res.variableType.descriptor.elements = 1;
 
       string name;
@@ -181,7 +181,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
       else
       {
         res.variableType.descriptor.rows = 0;
-        res.variableType.descriptor.cols = 0;
+        res.variableType.descriptor.columns = 0;
         res.variableType.descriptor.elements = 0;
         res.variableType.descriptor.name = "";
       }
@@ -189,7 +189,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
 
     res.bindPoint = (int32_t)i;
 
-    BindpointMap map;
+    Bindpoint map;
     map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
     map.bindset = r.space;
     map.bind = r.reg;
@@ -208,31 +208,31 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
   switch(dxbc->m_Type)
   {
-    case D3D11_ShaderType_Pixel: refl->Stage = ShaderStage::Pixel; break;
-    case D3D11_ShaderType_Vertex: refl->Stage = ShaderStage::Vertex; break;
-    case D3D11_ShaderType_Geometry: refl->Stage = ShaderStage::Geometry; break;
-    case D3D11_ShaderType_Hull: refl->Stage = ShaderStage::Hull; break;
-    case D3D11_ShaderType_Domain: refl->Stage = ShaderStage::Domain; break;
-    case D3D11_ShaderType_Compute: refl->Stage = ShaderStage::Compute; break;
+    case D3D11_ShaderType_Pixel: refl->stage = ShaderStage::Pixel; break;
+    case D3D11_ShaderType_Vertex: refl->stage = ShaderStage::Vertex; break;
+    case D3D11_ShaderType_Geometry: refl->stage = ShaderStage::Geometry; break;
+    case D3D11_ShaderType_Hull: refl->stage = ShaderStage::Hull; break;
+    case D3D11_ShaderType_Domain: refl->stage = ShaderStage::Domain; break;
+    case D3D11_ShaderType_Compute: refl->stage = ShaderStage::Compute; break;
     default:
       RDCERR("Unexpected DXBC shader type %u", dxbc->m_Type);
-      refl->Stage = ShaderStage::Vertex;
+      refl->stage = ShaderStage::Vertex;
       break;
   }
 
-  refl->EntryPoint = "main";
+  refl->entryPoint = "main";
 
   if(dxbc->m_DebugInfo)
   {
-    refl->EntryPoint = dxbc->m_DebugInfo->GetEntryFunction();
+    refl->entryPoint = dxbc->m_DebugInfo->GetEntryFunction();
 
-    refl->DebugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
+    refl->debugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
 
-    refl->DebugInfo.files.resize(dxbc->m_DebugInfo->Files.size());
+    refl->debugInfo.files.resize(dxbc->m_DebugInfo->Files.size());
     for(size_t i = 0; i < dxbc->m_DebugInfo->Files.size(); i++)
     {
-      refl->DebugInfo.files[i].Filename = dxbc->m_DebugInfo->Files[i].first;
-      refl->DebugInfo.files[i].Contents = dxbc->m_DebugInfo->Files[i].second;
+      refl->debugInfo.files[i].filename = dxbc->m_DebugInfo->Files[i].first;
+      refl->debugInfo.files[i].contents = dxbc->m_DebugInfo->Files[i].second;
     }
 
     string entry = dxbc->m_DebugInfo->GetEntryFunction();
@@ -243,16 +243,16 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     // one file.
     // This isn't a perfect search - it will match entry_point() anywhere in the file, even if it's
     // in a comment or disabled preprocessor definition. This is just best-effort
-    if(refl->DebugInfo.files.count() > 1)
+    if(refl->debugInfo.files.count() > 1)
     {
       // search from 0 up. If we find a match, we swap it into [0]. If we don't find a match then
       // we can't rearrange anything. This is a no-op for 0 since it's already in first place, but
       // since our search isn't perfect we might have multiple matches with some being false
       // positives, and so we want to bias towards leaving [0] in place.
-      for(size_t i = 0; i < refl->DebugInfo.files.size(); i++)
+      for(size_t i = 0; i < refl->debugInfo.files.size(); i++)
       {
-        const char *c = strstr(refl->DebugInfo.files[i].Contents.c_str(), entry.c_str());
-        const char *end = refl->DebugInfo.files[i].Contents.end();
+        const char *c = strstr(refl->debugInfo.files[i].contents.c_str(), entry.c_str());
+        const char *end = refl->debugInfo.files[i].contents.end();
 
         // no substring match? continue
         if(c == NULL)
@@ -281,7 +281,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
         {
           // only do anything if we're looking at a later file
           if(i > 0)
-            std::swap(refl->DebugInfo.files[0], refl->DebugInfo.files[i]);
+            std::swap(refl->debugInfo.files[0], refl->debugInfo.files[i]);
 
           break;
         }
@@ -289,37 +289,37 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     }
   }
 
-  refl->RawBytes = dxbc->m_ShaderBlob;
+  refl->rawBytes = dxbc->m_ShaderBlob;
 
-  refl->DispatchThreadsDimension[0] = dxbc->DispatchThreadsDimension[0];
-  refl->DispatchThreadsDimension[1] = dxbc->DispatchThreadsDimension[1];
-  refl->DispatchThreadsDimension[2] = dxbc->DispatchThreadsDimension[2];
+  refl->dispatchThreadsDimension[0] = dxbc->DispatchThreadsDimension[0];
+  refl->dispatchThreadsDimension[1] = dxbc->DispatchThreadsDimension[1];
+  refl->dispatchThreadsDimension[2] = dxbc->DispatchThreadsDimension[2];
 
-  refl->InputSig = dxbc->m_InputSig;
-  refl->OutputSig = dxbc->m_OutputSig;
+  refl->inputSignature = dxbc->m_InputSig;
+  refl->outputSignature = dxbc->m_OutputSig;
 
-  mapping->InputAttributes.resize(D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
+  mapping->inputAttributes.resize(D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
   for(int s = 0; s < D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
-    mapping->InputAttributes[s] = s;
+    mapping->inputAttributes[s] = s;
 
-  mapping->ConstantBlocks.resize(dxbc->m_CBuffers.size());
-  refl->ConstantBlocks.resize(dxbc->m_CBuffers.size());
+  mapping->constantBlocks.resize(dxbc->m_CBuffers.size());
+  refl->constantBlocks.resize(dxbc->m_CBuffers.size());
   for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
   {
-    ConstantBlock &cb = refl->ConstantBlocks[i];
+    ConstantBlock &cb = refl->constantBlocks[i];
 
     cb.name = dxbc->m_CBuffers[i].name;
     cb.bufferBacked = true;
     cb.byteSize = dxbc->m_CBuffers[i].descriptor.byteSize;
     cb.bindPoint = (int32_t)i;
 
-    BindpointMap map;
+    Bindpoint map;
     map.arraySize = 1;
     map.bindset = dxbc->m_CBuffers[i].space;
     map.bind = dxbc->m_CBuffers[i].reg;
     map.used = true;
 
-    mapping->ConstantBlocks[i] = map;
+    mapping->constantBlocks[i] = map;
 
     cb.variables.reserve(dxbc->m_CBuffers[i].variables.size());
     for(size_t v = 0; v < dxbc->m_CBuffers[i].variables.size(); v++)
@@ -329,38 +329,38 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     }
   }
 
-  mapping->Samplers.resize(dxbc->m_Samplers.size());
-  refl->Samplers.resize(dxbc->m_Samplers.size());
+  mapping->samplers.resize(dxbc->m_Samplers.size());
+  refl->samplers.resize(dxbc->m_Samplers.size());
   for(size_t i = 0; i < dxbc->m_Samplers.size(); i++)
   {
-    ShaderSampler &s = refl->Samplers[i];
+    ShaderSampler &s = refl->samplers[i];
 
     s.name = dxbc->m_Samplers[i].name;
     s.bindPoint = (int32_t)i;
 
-    BindpointMap map;
+    Bindpoint map;
     map.arraySize = 1;
     map.bindset = dxbc->m_Samplers[i].space;
     map.bind = dxbc->m_Samplers[i].reg;
     map.used = true;
 
-    mapping->Samplers[i] = map;
+    mapping->samplers[i] = map;
   }
 
-  mapping->ReadOnlyResources.resize(dxbc->m_SRVs.size());
-  refl->ReadOnlyResources.resize(dxbc->m_SRVs.size());
-  MakeResourceList(true, dxbc, dxbc->m_SRVs, mapping->ReadOnlyResources, refl->ReadOnlyResources);
+  mapping->readOnlyResources.resize(dxbc->m_SRVs.size());
+  refl->readOnlyResources.resize(dxbc->m_SRVs.size());
+  MakeResourceList(true, dxbc, dxbc->m_SRVs, mapping->readOnlyResources, refl->readOnlyResources);
 
-  mapping->ReadWriteResources.resize(dxbc->m_UAVs.size());
-  refl->ReadWriteResources.resize(dxbc->m_UAVs.size());
-  MakeResourceList(true, dxbc, dxbc->m_UAVs, mapping->ReadWriteResources, refl->ReadWriteResources);
+  mapping->readWriteResources.resize(dxbc->m_UAVs.size());
+  refl->readWriteResources.resize(dxbc->m_UAVs.size());
+  MakeResourceList(true, dxbc, dxbc->m_UAVs, mapping->readWriteResources, refl->readWriteResources);
 
   uint32_t numInterfaces = 0;
   for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
     numInterfaces = RDCMAX(dxbc->m_Interfaces.variables[i].descriptor.offset + 1, numInterfaces);
 
-  refl->Interfaces.resize(numInterfaces);
+  refl->interfaces.resize(numInterfaces);
   for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
-    refl->Interfaces[dxbc->m_Interfaces.variables[i].descriptor.offset] =
+    refl->interfaces[dxbc->m_Interfaces.variables[i].descriptor.offset] =
         dxbc->m_Interfaces.variables[i].name;
 }

@@ -301,7 +301,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   if(shader)
   {
-    m_Stage = shader->Stage;
+    m_Stage = shader->stage;
 
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdcarray<rdcstr> targets = r->GetDisassemblyTargets();
@@ -364,20 +364,20 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                      &ShaderViewer::disasm_tooltipHide);
   }
 
-  if(shader && !shader->DebugInfo.files.isEmpty())
+  if(shader && !shader->debugInfo.files.isEmpty())
   {
     if(trace)
-      setWindowTitle(QFormatStr("Debug %1() - %2").arg(shader->EntryPoint).arg(debugContext));
+      setWindowTitle(QFormatStr("Debug %1() - %2").arg(shader->entryPoint).arg(debugContext));
     else
-      setWindowTitle(shader->EntryPoint);
+      setWindowTitle(shader->entryPoint);
 
     int fileIdx = 0;
 
     QWidget *sel = NULL;
-    for(const ShaderSourceFile &f : shader->DebugInfo.files)
+    for(const ShaderSourceFile &f : shader->debugInfo.files)
     {
-      QString name = QFileInfo(f.Filename).fileName();
-      QString text = f.Contents;
+      QString name = QFileInfo(f.filename).fileName();
+      QString text = f.contents;
 
       ScintillaEdit *scintilla = AddFileScintilla(name, text);
 
@@ -390,7 +390,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     if(trace || sel == NULL)
       sel = m_DisassemblyView;
 
-    if(shader->DebugInfo.files.size() > 2)
+    if(shader->debugInfo.files.size() > 2)
       addFileList();
 
     ToolWindowManager::raiseToolWindow(sel);
@@ -516,7 +516,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     if(shader)
     {
-      for(const SigParameter &s : shader->InputSig)
+      for(const SigParameter &s : shader->inputSignature)
       {
         QString name = s.varName.isEmpty()
                            ? QString(s.semanticName)
@@ -535,7 +535,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       }
 
       bool multipleStreams = false;
-      for(const SigParameter &s : shader->OutputSig)
+      for(const SigParameter &s : shader->outputSignature)
       {
         if(s.stream > 0)
         {
@@ -544,7 +544,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         }
       }
 
-      for(const SigParameter &s : shader->OutputSig)
+      for(const SigParameter &s : shader->outputSignature)
       {
         QString name = s.varName.isEmpty()
                            ? QString(s.semanticName)
@@ -621,7 +621,7 @@ void ShaderViewer::OnCaptureClosed()
   ToolWindowManager::closeToolWindow(this);
 }
 
-void ShaderViewer::OnEventChanged(uint32_t eventID)
+void ShaderViewer::OnEventChanged(uint32_t eventId)
 {
   updateDebugging();
   updateWindowTitle();
@@ -1050,18 +1050,18 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, bool useType)
   return RowString(var, 0, VarType::Float);
 }
 
-RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, uint32_t idx,
+RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const Bindpoint &bind, uint32_t idx,
                                                      const BoundResource &bound,
                                                      const ShaderResource &res)
 {
   QString name = QFormatStr(" (%1)").arg(res.name);
 
-  const TextureDescription *tex = m_Ctx.GetTexture(bound.Id);
-  const BufferDescription *buf = m_Ctx.GetBuffer(bound.Id);
+  const TextureDescription *tex = m_Ctx.GetTexture(bound.resourceId);
+  const BufferDescription *buf = m_Ctx.GetBuffer(bound.resourceId);
 
   QChar regChar(QLatin1Char('u'));
 
-  if(res.IsReadOnly)
+  if(res.isReadOnly)
     regChar = QLatin1Char('t');
 
   QString regname;
@@ -1086,19 +1086,21 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                        .arg(tex->depth > 1 ? tex->depth : tex->arraysize)
                        .arg(tex->mips)
                        .arg(tex->format.Name())
-                       .arg(m_Ctx.GetResourceName(bound.Id));
+                       .arg(m_Ctx.GetResourceName(bound.resourceId));
 
     return new RDTreeWidgetItem({regname + name, lit("Texture"), type});
   }
   else if(buf)
   {
-    QString type = QFormatStr("%1 - %2").arg(buf->length).arg(m_Ctx.GetResourceName(bound.Id));
+    QString type =
+        QFormatStr("%1 - %2").arg(buf->length).arg(m_Ctx.GetResourceName(bound.resourceId));
 
     return new RDTreeWidgetItem({regname + name, lit("Buffer"), type});
   }
   else
   {
-    return new RDTreeWidgetItem({regname + name, lit("Resource"), m_Ctx.GetResourceName(bound.Id)});
+    return new RDTreeWidgetItem(
+        {regname + name, lit("Resource"), m_Ctx.GetResourceName(bound.resourceId)});
   }
 }
 
@@ -1161,15 +1163,16 @@ void ShaderViewer::updateDebugging()
 
   if(ui->constants->topLevelItemCount() == 0)
   {
-    for(int i = 0; i < m_Trace->cbuffers.count(); i++)
+    for(int i = 0; i < m_Trace->constantBlocks.count(); i++)
     {
-      for(int j = 0; j < m_Trace->cbuffers[i].members.count(); j++)
+      for(int j = 0; j < m_Trace->constantBlocks[i].members.count(); j++)
       {
-        if(m_Trace->cbuffers[i].members[j].rows > 0 || m_Trace->cbuffers[i].members[j].columns > 0)
+        if(m_Trace->constantBlocks[i].members[j].rows > 0 ||
+           m_Trace->constantBlocks[i].members[j].columns > 0)
         {
           RDTreeWidgetItem *node =
-              new RDTreeWidgetItem({m_Trace->cbuffers[i].members[j].name, lit("cbuffer"),
-                                    stringRep(m_Trace->cbuffers[i].members[j], false)});
+              new RDTreeWidgetItem({m_Trace->constantBlocks[i].members[j].name, lit("cbuffer"),
+                                    stringRep(m_Trace->constantBlocks[i].members[j], false)});
           node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Constants, j, i)));
 
           ui->constants->addTopLevelItem(node);
@@ -1197,35 +1200,35 @@ void ShaderViewer::updateDebugging()
     bool tree = false;
 
     for(int i = 0;
-        i < m_Mapping->ReadWriteResources.count() && i < m_ShaderDetails->ReadWriteResources.count();
+        i < m_Mapping->readWriteResources.count() && i < m_ShaderDetails->readWriteResources.count();
         i++)
     {
-      BindpointMap bind = m_Mapping->ReadWriteResources[i];
+      Bindpoint bind = m_Mapping->readWriteResources[i];
 
       if(!bind.used)
         continue;
 
       int idx = rw.indexOf(bind);
 
-      if(idx < 0 || rw[idx].Resources.isEmpty())
+      if(idx < 0 || rw[idx].resources.isEmpty())
         continue;
 
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, rw[idx].Resources[0],
-                                                      m_ShaderDetails->ReadWriteResources[i]);
+        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, rw[idx].resources[0],
+                                                      m_ShaderDetails->readWriteResources[i]);
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->ReadWriteResources[i].name,
+            new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(makeResourceRegister(bind, a, rw[idx].Resources[a],
-                                              m_ShaderDetails->ReadWriteResources[i]));
+          node->addChild(makeResourceRegister(bind, a, rw[idx].resources[a],
+                                              m_ShaderDetails->readWriteResources[i]));
 
         tree = true;
 
@@ -1234,35 +1237,35 @@ void ShaderViewer::updateDebugging()
     }
 
     for(int i = 0;
-        i < m_Mapping->ReadOnlyResources.count() && i < m_ShaderDetails->ReadOnlyResources.count();
+        i < m_Mapping->readOnlyResources.count() && i < m_ShaderDetails->readOnlyResources.count();
         i++)
     {
-      BindpointMap bind = m_Mapping->ReadOnlyResources[i];
+      Bindpoint bind = m_Mapping->readOnlyResources[i];
 
       if(!bind.used)
         continue;
 
       int idx = ro.indexOf(bind);
 
-      if(idx < 0 || ro[idx].Resources.isEmpty())
+      if(idx < 0 || ro[idx].resources.isEmpty())
         continue;
 
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, ro[idx].Resources[0],
-                                                      m_ShaderDetails->ReadOnlyResources[i]);
+        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, ro[idx].resources[0],
+                                                      m_ShaderDetails->readOnlyResources[i]);
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->ReadOnlyResources[i].name,
+            new RDTreeWidgetItem({m_ShaderDetails->readOnlyResources[i].name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(makeResourceRegister(bind, a, ro[idx].Resources[a],
-                                              m_ShaderDetails->ReadOnlyResources[i]));
+          node->addChild(makeResourceRegister(bind, a, ro[idx].resources[a],
+                                              m_ShaderDetails->readOnlyResources[i]));
 
         tree = true;
 
@@ -1968,7 +1971,8 @@ const rdcarray<ShaderVariable> *ShaderViewer::GetVariableList(VariableCategory v
       break;
     case VariableCategory::Inputs: vars = &m_Trace->inputs; break;
     case VariableCategory::Constants:
-      vars = arrayIdx < m_Trace->cbuffers.count() ? &m_Trace->cbuffers[arrayIdx].members : NULL;
+      vars = arrayIdx < m_Trace->constantBlocks.count() ? &m_Trace->constantBlocks[arrayIdx].members
+                                                        : NULL;
       break;
     case VariableCategory::Outputs: vars = &state.outputs; break;
   }

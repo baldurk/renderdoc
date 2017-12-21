@@ -572,10 +572,10 @@ public:
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
   GLuint GetFakeVAO() { return m_FakeVAO; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  const APIEvent &GetEvent(uint32_t eventID);
+  const APIEvent &GetEvent(uint32_t eventId);
 
   const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventID);
+  const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }

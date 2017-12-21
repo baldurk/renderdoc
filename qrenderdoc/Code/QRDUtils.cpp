@@ -604,12 +604,12 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
   {
     if(start == 0)
     {
-      start = end = u.eventID;
+      start = end = u.eventId;
       us = u.usage;
       continue;
     }
 
-    const DrawcallDescription *draw = ctx.GetDrawcall(u.eventID);
+    const DrawcallDescription *draw = ctx.GetDrawcall(u.eventId);
 
     bool distinct = false;
 
@@ -627,7 +627,7 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
       // entry in the context menu
       const DrawcallDescription *prev = ctx.GetDrawcall(draw->previous);
 
-      while(prev != NULL && prev->eventID > end)
+      while(prev != NULL && prev->eventId > end)
       {
         if(!(prev->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall | DrawFlags::CmdList)))
         {
@@ -647,11 +647,11 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     if(distinct)
     {
       callback(start, end, us);
-      start = end = u.eventID;
+      start = end = u.eventId;
       us = u.usage;
     }
 
-    end = u.eventID;
+    end = u.eventId;
   }
 
   if(start != 0)

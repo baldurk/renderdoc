@@ -3,87 +3,122 @@ Windows
 
 .. contents::
 
-.. module:: qrenderdoc
+.. currentmodule:: qrenderdoc
 
-MainWindow
-----------
+Main Window
+-----------
 
 .. autoclass:: qrenderdoc.MainWindow
   :members:
   :undoc-members:
 
-EventBrowser
-------------
+Event Browser
+-------------
 
 .. autoclass:: qrenderdoc.EventBrowser
   :members:
   :undoc-members:
 
-APIInspector
-------------
+API Inspector
+-------------
 
 .. autoclass:: qrenderdoc.APIInspector
   :members:
   :undoc-members:
 
-PipelineStateViewer
--------------------
+Pipeline State
+--------------
 
 .. autoclass:: qrenderdoc.PipelineStateViewer
   :members:
   :undoc-members:
 
-TextureViewer
--------------
+Texture Viewer
+--------------
 
 .. autoclass:: qrenderdoc.TextureViewer
   :members:
   :undoc-members:
 
-BufferViewer
-------------
+Buffer Viewer
+-------------
 
 .. autoclass:: qrenderdoc.BufferViewer
   :members:
   :undoc-members:
 
-CaptureDialog
--------------
+Resource Inspector
+------------------
+
+.. autoclass:: qrenderdoc.ResourceInspector
+  :members:
+  :undoc-members:
+
+Capture Dialog
+--------------
 
 .. autoclass:: qrenderdoc.CaptureDialog
   :members:
   :undoc-members:
 
-DebugMessageView
-----------------
+Debug Messages
+--------------
 
 .. autoclass:: qrenderdoc.DebugMessageView
   :members:
   :undoc-members:
 
-StatisticsViewer
-----------------
+Comment View
+------------
+
+.. autoclass:: qrenderdoc.CommentView
+  :members:
+  :undoc-members:
+
+Statistics Viewer
+-----------------
 
 .. autoclass:: qrenderdoc.StatisticsViewer
   :members:
   :undoc-members:
 
-ShaderViewer
+Timeline Bar
 ------------
+
+.. autoclass:: qrenderdoc.TimelineBar
+  :members:
+  :undoc-members:
+
+Performance Counter Viewer
+--------------------------
+
+.. autoclass:: qrenderdoc.PerformanceCounterViewer
+  :members:
+  :undoc-members:
+
+Python Shell
+------------
+
+.. autoclass:: qrenderdoc.PythonShell
+  :members:
+  :undoc-members:
+
+Shader Viewer
+-------------
 
 .. autoclass:: qrenderdoc.ShaderViewer
   :members:
   :undoc-members:
 
-ConstantBufferPreviewer
------------------------
+Constant Buffer Previewer
+-------------------------
 
 .. autoclass:: qrenderdoc.ConstantBufferPreviewer
   :members:
   :undoc-members:
 
-PixelHistoryView
-----------------
+Pixel History
+-------------
 
 .. autoclass:: qrenderdoc.PixelHistoryView
   :members:

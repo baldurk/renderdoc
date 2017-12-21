@@ -977,7 +977,7 @@ bool GLResourceManager::Force_InitialState(GLResource res, bool prepare)
     return false;
 
   // don't need to force anything if we're already including all resources
-  if(RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+  if(RenderDoc::Inst().GetCaptureOptions().refAllResources)
     return false;
 
   GLResourceRecord *record = GetResourceRecord(res);
@@ -1201,7 +1201,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
         if(shadDetails.type == eGL_VERTEX_SHADER)
         {
-          for(const SigParameter &sig : shadDetails.reflection.OutputSig)
+          for(const SigParameter &sig : shadDetails.reflection.outputSignature)
           {
             std::string name = sig.varName;
 

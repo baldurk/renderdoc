@@ -3,7 +3,7 @@ Persistant Config
 
 .. contents::
 
-.. module:: qrenderdoc
+.. currentmodule:: qrenderdoc
 
 Config
 ------
@@ -13,6 +13,15 @@ Config
 .. autoclass:: qrenderdoc.SPIRVDisassembler
   :members:
   :undoc-members:
+
+.. autoclass:: qrenderdoc.BugReport
+  :members:
+  :undoc-members:
+
+.. autoclass:: qrenderdoc.TimeUnit
+  :members:
+  :undoc-members:
+  :exclude-members: enum_constants__,
 
 Remote Host
 -----------

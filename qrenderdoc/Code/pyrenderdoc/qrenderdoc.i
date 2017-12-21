@@ -82,7 +82,7 @@ DOCUMENT("");
 
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, EventBookmark)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, SPIRVDisassembler)
-TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundBuffer)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundVBuffer)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, VertexInputAttribute)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundResource)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundResourceArray)

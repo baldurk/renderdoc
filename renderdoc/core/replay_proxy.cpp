@@ -313,28 +313,28 @@ BufferDescription ReplayProxy::GetBuffer(ResourceId id)
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 std::vector<uint32_t> ReplayProxy::Proxied_GetPassEvents(ParamSerialiser &paramser,
-                                                         ReturnSerialiser &retser, uint32_t eventID)
+                                                         ReturnSerialiser &retser, uint32_t eventId)
 {
   const ReplayProxyPacket packet = eReplayProxy_GetPassEvents;
   std::vector<uint32_t> ret;
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     END_PARAMS();
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->GetPassEvents(eventID);
+    ret = m_Remote->GetPassEvents(eventId);
 
   SERIALISE_RETURN(ret);
 
   return ret;
 }
 
-std::vector<uint32_t> ReplayProxy::GetPassEvents(uint32_t eventID)
+std::vector<uint32_t> ReplayProxy::GetPassEvents(uint32_t eventId)
 {
-  PROXY_FUNCTION(GetPassEvents, eventID);
+  PROXY_FUNCTION(GetPassEvents, eventId);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -679,23 +679,23 @@ void ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_InitPostVSBuffers(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                            uint32_t eventID)
+                                            uint32_t eventId)
 {
   const ReplayProxyPacket packet = eReplayProxy_InitPostVS;
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     END_PARAMS();
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    m_Remote->InitPostVSBuffers(eventID);
+    m_Remote->InitPostVSBuffers(eventId);
 }
 
-void ReplayProxy::InitPostVSBuffers(uint32_t eventID)
+void ReplayProxy::InitPostVSBuffers(uint32_t eventId)
 {
-  PROXY_FUNCTION(InitPostVSBuffers, eventID);
+  PROXY_FUNCTION(InitPostVSBuffers, eventId);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -721,7 +721,7 @@ void ReplayProxy::InitPostVSBuffers(const std::vector<uint32_t> &events)
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 MeshFormat ReplayProxy::Proxied_GetPostVSBuffers(ParamSerialiser &paramser,
-                                                 ReturnSerialiser &retser, uint32_t eventID,
+                                                 ReturnSerialiser &retser, uint32_t eventId,
                                                  uint32_t instID, MeshDataStage stage)
 {
   const ReplayProxyPacket packet = eReplayProxy_GetPostVS;
@@ -729,29 +729,29 @@ MeshFormat ReplayProxy::Proxied_GetPostVSBuffers(ParamSerialiser &paramser,
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     SERIALISE_ELEMENT(instID);
     SERIALISE_ELEMENT(stage);
     END_PARAMS();
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->GetPostVSBuffers(eventID, instID, stage);
+    ret = m_Remote->GetPostVSBuffers(eventId, instID, stage);
 
   SERIALISE_RETURN(ret);
 
   return ret;
 }
 
-MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
-  PROXY_FUNCTION(GetPostVSBuffers, eventID, instID, stage);
+  PROXY_FUNCTION(GetPostVSBuffers, eventId, instID, stage);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                               ResourceId texid, CompType typeHint,
-                                              DebugOverlay overlay, uint32_t eventID,
+                                              DebugOverlay overlay, uint32_t eventId,
                                               const std::vector<uint32_t> &passEvents)
 {
   const ReplayProxyPacket packet = eReplayProxy_RenderOverlay;
@@ -762,13 +762,13 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
     SERIALISE_ELEMENT(texid);
     SERIALISE_ELEMENT(typeHint);
     SERIALISE_ELEMENT(overlay);
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     SERIALISE_ELEMENT(passEvents);
     END_PARAMS();
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->RenderOverlay(texid, typeHint, overlay, eventID, passEvents);
+    ret = m_Remote->RenderOverlay(texid, typeHint, overlay, eventId, passEvents);
 
   SERIALISE_RETURN(ret);
 
@@ -776,9 +776,9 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
 }
 
 ResourceId ReplayProxy::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventID, const std::vector<uint32_t> &passEvents)
+                                      uint32_t eventId, const std::vector<uint32_t> &passEvents)
 {
-  PROXY_FUNCTION(RenderOverlay, texid, typeHint, overlay, eventID, passEvents);
+  PROXY_FUNCTION(RenderOverlay, texid, typeHint, overlay, eventId, passEvents);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -871,8 +871,8 @@ std::string ReplayProxy::Proxied_DisassembleShader(ParamSerialiser &paramser,
 
   if(refl)
   {
-    Shader = refl->ID;
-    EntryPoint = refl->EntryPoint;
+    Shader = refl->resourceId;
+    EntryPoint = refl->entryPoint;
   }
 
   {
@@ -1073,7 +1073,7 @@ std::vector<PixelModification> ReplayProxy::PixelHistory(std::vector<EventUsage>
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderDebugTrace ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
-                                                  ReturnSerialiser &retser, uint32_t eventID,
+                                                  ReturnSerialiser &retser, uint32_t eventId,
                                                   uint32_t vertid, uint32_t instid, uint32_t idx,
                                                   uint32_t instOffset, uint32_t vertOffset)
 {
@@ -1082,7 +1082,7 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     SERIALISE_ELEMENT(vertid);
     SERIALISE_ELEMENT(instid);
     SERIALISE_ELEMENT(idx);
@@ -1092,22 +1092,22 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->DebugVertex(eventID, vertid, instid, idx, instOffset, vertOffset);
+    ret = m_Remote->DebugVertex(eventId, vertid, instid, idx, instOffset, vertOffset);
 
   SERIALISE_RETURN(ret);
 
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
+ShaderDebugTrace ReplayProxy::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-  PROXY_FUNCTION(DebugVertex, eventID, vertid, instid, idx, instOffset, vertOffset);
+  PROXY_FUNCTION(DebugVertex, eventId, vertid, instid, idx, instOffset, vertOffset);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                 uint32_t eventID, uint32_t x, uint32_t y,
+                                                 uint32_t eventId, uint32_t x, uint32_t y,
                                                  uint32_t sample, uint32_t primitive)
 {
   const ReplayProxyPacket packet = eReplayProxy_DebugPixel;
@@ -1115,7 +1115,7 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, Retu
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     SERIALISE_ELEMENT(x);
     SERIALISE_ELEMENT(y);
     SERIALISE_ELEMENT(sample);
@@ -1124,22 +1124,22 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, Retu
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->DebugPixel(eventID, x, y, sample, primitive);
+    ret = m_Remote->DebugPixel(eventId, x, y, sample, primitive);
 
   SERIALISE_RETURN(ret);
 
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
+ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                          uint32_t primitive)
 {
-  PROXY_FUNCTION(DebugPixel, eventID, x, y, sample, primitive);
+  PROXY_FUNCTION(DebugPixel, eventId, x, y, sample, primitive);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderDebugTrace ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                  uint32_t eventID, const uint32_t groupid[3],
+                                                  uint32_t eventId, const uint32_t groupid[3],
                                                   const uint32_t threadid[3])
 {
   const ReplayProxyPacket packet = eReplayProxy_DebugThread;
@@ -1150,24 +1150,24 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser, Ret
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(eventID);
+    SERIALISE_ELEMENT(eventId);
     SERIALISE_ELEMENT(GroupID);
     SERIALISE_ELEMENT(ThreadID);
     END_PARAMS();
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->DebugThread(eventID, GroupID, ThreadID);
+    ret = m_Remote->DebugThread(eventId, GroupID, ThreadID);
 
   SERIALISE_RETURN(ret);
 
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventID, const uint32_t groupid[3],
+ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                           const uint32_t threadid[3])
 {
-  PROXY_FUNCTION(DebugThread, eventID, groupid, threadid);
+  PROXY_FUNCTION(DebugThread, eventId, groupid, threadid);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -1220,50 +1220,55 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
       if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
       {
         D3D11Pipe::Shader *stages[] = {
-            &m_D3D11PipelineState.m_VS, &m_D3D11PipelineState.m_HS, &m_D3D11PipelineState.m_DS,
-            &m_D3D11PipelineState.m_GS, &m_D3D11PipelineState.m_PS, &m_D3D11PipelineState.m_CS,
+            &m_D3D11PipelineState.vertexShader, &m_D3D11PipelineState.hullShader,
+            &m_D3D11PipelineState.domainShader, &m_D3D11PipelineState.geometryShader,
+            &m_D3D11PipelineState.pixelShader,  &m_D3D11PipelineState.computeShader,
         };
 
         for(int i = 0; i < 6; i++)
-          if(stages[i]->Object != ResourceId())
-            stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), "");
+          if(stages[i]->resourceId != ResourceId())
+            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), "");
 
-        if(m_D3D11PipelineState.m_IA.layout != ResourceId())
-          m_D3D11PipelineState.m_IA.Bytecode =
-              GetShader(GetLiveID(m_D3D11PipelineState.m_IA.layout), "");
+        if(m_D3D11PipelineState.inputAssembly.resourceId != ResourceId())
+          m_D3D11PipelineState.inputAssembly.bytecode =
+              GetShader(GetLiveID(m_D3D11PipelineState.inputAssembly.resourceId), "");
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
       {
         D3D12Pipe::Shader *stages[] = {
-            &m_D3D12PipelineState.m_VS, &m_D3D12PipelineState.m_HS, &m_D3D12PipelineState.m_DS,
-            &m_D3D12PipelineState.m_GS, &m_D3D12PipelineState.m_PS, &m_D3D12PipelineState.m_CS,
+            &m_D3D12PipelineState.vertexShader, &m_D3D12PipelineState.hullShader,
+            &m_D3D12PipelineState.domainShader, &m_D3D12PipelineState.geometryShader,
+            &m_D3D12PipelineState.pixelShader,  &m_D3D12PipelineState.computeShader,
         };
 
         for(int i = 0; i < 6; i++)
-          if(stages[i]->Object != ResourceId())
-            stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), "");
+          if(stages[i]->resourceId != ResourceId())
+            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), "");
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
       {
         GLPipe::Shader *stages[] = {
-            &m_GLPipelineState.m_VS, &m_GLPipelineState.m_TCS, &m_GLPipelineState.m_TES,
-            &m_GLPipelineState.m_GS, &m_GLPipelineState.m_FS,  &m_GLPipelineState.m_CS,
+            &m_GLPipelineState.vertexShader,   &m_GLPipelineState.tessControlShader,
+            &m_GLPipelineState.tessEvalShader, &m_GLPipelineState.geometryShader,
+            &m_GLPipelineState.fragmentShader, &m_GLPipelineState.computeShader,
         };
 
         for(int i = 0; i < 6; i++)
-          if(stages[i]->Object != ResourceId())
-            stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), "");
+          if(stages[i]->shaderResourceId != ResourceId())
+            stages[i]->reflection = GetShader(GetLiveID(stages[i]->shaderResourceId), "");
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
       {
         VKPipe::Shader *stages[] = {
-            &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
-            &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,  &m_VulkanPipelineState.m_CS,
+            &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
+            &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
+            &m_VulkanPipelineState.fragmentShader, &m_VulkanPipelineState.computeShader,
         };
 
         for(int i = 0; i < 6; i++)
-          if(stages[i]->Object != ResourceId())
-            stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), stages[i]->entryPoint);
+          if(stages[i]->resourceId != ResourceId())
+            stages[i]->reflection =
+                GetShader(GetLiveID(stages[i]->resourceId), stages[i]->entryPoint);
       }
     }
   }

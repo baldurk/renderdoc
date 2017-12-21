@@ -1066,7 +1066,7 @@ TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float max
 
     ret.magnify = (magf == eGL_LINEAR) ? FilterMode::Linear : FilterMode::Point;
   }
-  ret.func = shadowSampler ? FilterFunc::Comparison : FilterFunc::Normal;
+  ret.filter = shadowSampler ? FilterFunction::Comparison : FilterFunction::Normal;
 
   return ret;
 }
@@ -1087,66 +1087,66 @@ ShaderStage MakeShaderStage(GLenum type)
   return ShaderStage::Count;
 }
 
-CompareFunc MakeCompareFunc(GLenum func)
+CompareFunction MakeCompareFunc(GLenum func)
 {
   switch(func)
   {
-    case GL_NEVER: return CompareFunc::Never;
-    case GL_LESS: return CompareFunc::Less;
-    case GL_EQUAL: return CompareFunc::Equal;
-    case GL_LEQUAL: return CompareFunc::LessEqual;
-    case GL_GREATER: return CompareFunc::Greater;
-    case GL_NOTEQUAL: return CompareFunc::NotEqual;
-    case GL_GEQUAL: return CompareFunc::GreaterEqual;
-    case GL_ALWAYS: return CompareFunc::AlwaysTrue;
+    case eGL_NEVER: return CompareFunction::Never;
+    case eGL_LESS: return CompareFunction::Less;
+    case eGL_EQUAL: return CompareFunction::Equal;
+    case eGL_LEQUAL: return CompareFunction::LessEqual;
+    case eGL_GREATER: return CompareFunction::Greater;
+    case eGL_NOTEQUAL: return CompareFunction::NotEqual;
+    case eGL_GEQUAL: return CompareFunction::GreaterEqual;
+    case eGL_ALWAYS: return CompareFunction::AlwaysTrue;
     default: break;
   }
 
-  return CompareFunc::AlwaysTrue;
+  return CompareFunction::AlwaysTrue;
 }
 
-StencilOp MakeStencilOp(GLenum op)
+StencilOperation MakeStencilOp(GLenum op)
 {
   switch(op)
   {
-    case eGL_KEEP: return StencilOp::Keep;
-    case eGL_ZERO: return StencilOp::Zero;
-    case eGL_REPLACE: return StencilOp::Replace;
-    case eGL_INCR: return StencilOp::IncSat;
-    case eGL_DECR: return StencilOp::DecSat;
-    case eGL_INVERT: return StencilOp::Invert;
-    case eGL_INCR_WRAP: return StencilOp::IncWrap;
-    case eGL_DECR_WRAP: return StencilOp::DecWrap;
+    case eGL_KEEP: return StencilOperation::Keep;
+    case eGL_ZERO: return StencilOperation::Zero;
+    case eGL_REPLACE: return StencilOperation::Replace;
+    case eGL_INCR: return StencilOperation::IncSat;
+    case eGL_DECR: return StencilOperation::DecSat;
+    case eGL_INVERT: return StencilOperation::Invert;
+    case eGL_INCR_WRAP: return StencilOperation::IncWrap;
+    case eGL_DECR_WRAP: return StencilOperation::DecWrap;
     default: break;
   }
 
-  return StencilOp::Keep;
+  return StencilOperation::Keep;
 }
 
-LogicOp MakeLogicOp(GLenum op)
+LogicOperation MakeLogicOp(GLenum op)
 {
   switch(op)
   {
-    case GL_CLEAR: return LogicOp::Clear;
-    case GL_AND: return LogicOp::And;
-    case GL_AND_REVERSE: return LogicOp::AndReverse;
-    case GL_COPY: return LogicOp::Copy;
-    case GL_AND_INVERTED: return LogicOp::AndInverted;
-    case GL_NOOP: return LogicOp::NoOp;
-    case GL_XOR: return LogicOp::Xor;
-    case GL_OR: return LogicOp::Or;
-    case GL_NOR: return LogicOp::Nor;
-    case GL_EQUIV: return LogicOp::Equivalent;
-    case GL_INVERT: return LogicOp::Invert;
-    case GL_OR_REVERSE: return LogicOp::OrReverse;
-    case GL_COPY_INVERTED: return LogicOp::CopyInverted;
-    case GL_OR_INVERTED: return LogicOp::OrInverted;
-    case GL_NAND: return LogicOp::Nand;
-    case GL_SET: return LogicOp::Set;
+    case eGL_CLEAR: return LogicOperation::Clear;
+    case eGL_AND: return LogicOperation::And;
+    case eGL_AND_REVERSE: return LogicOperation::AndReverse;
+    case eGL_COPY: return LogicOperation::Copy;
+    case eGL_AND_INVERTED: return LogicOperation::AndInverted;
+    case eGL_NOOP: return LogicOperation::NoOp;
+    case eGL_XOR: return LogicOperation::Xor;
+    case eGL_OR: return LogicOperation::Or;
+    case eGL_NOR: return LogicOperation::Nor;
+    case eGL_EQUIV: return LogicOperation::Equivalent;
+    case eGL_INVERT: return LogicOperation::Invert;
+    case eGL_OR_REVERSE: return LogicOperation::OrReverse;
+    case eGL_COPY_INVERTED: return LogicOperation::CopyInverted;
+    case eGL_OR_INVERTED: return LogicOperation::OrInverted;
+    case eGL_NAND: return LogicOperation::Nand;
+    case eGL_SET: return LogicOperation::Set;
     default: break;
   }
 
-  return LogicOp::NoOp;
+  return LogicOperation::NoOp;
 }
 
 BlendMultiplier MakeBlendMultiplier(GLenum blend)
@@ -1178,19 +1178,19 @@ BlendMultiplier MakeBlendMultiplier(GLenum blend)
   return BlendMultiplier::One;
 }
 
-BlendOp MakeBlendOp(GLenum op)
+BlendOperation MakeBlendOp(GLenum op)
 {
   switch(op)
   {
-    case eGL_FUNC_ADD: return BlendOp::Add;
-    case eGL_FUNC_SUBTRACT: return BlendOp::Subtract;
-    case eGL_FUNC_REVERSE_SUBTRACT: return BlendOp::ReversedSubtract;
-    case eGL_MIN: return BlendOp::Minimum;
-    case eGL_MAX: return BlendOp::Maximum;
+    case eGL_FUNC_ADD: return BlendOperation::Add;
+    case eGL_FUNC_SUBTRACT: return BlendOperation::Subtract;
+    case eGL_FUNC_REVERSE_SUBTRACT: return BlendOperation::ReversedSubtract;
+    case eGL_MIN: return BlendOperation::Minimum;
+    case eGL_MAX: return BlendOperation::Maximum;
     default: break;
   }
 
-  return BlendOp::Add;
+  return BlendOperation::Add;
 }
 
 const char *BlendString(GLenum blendenum)

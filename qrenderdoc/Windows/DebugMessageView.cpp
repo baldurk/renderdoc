@@ -98,7 +98,7 @@ public:
 
         switch(col)
         {
-          case 0: return msg.eventID;
+          case 0: return msg.eventId;
           case 1: return ToQStr(msg.source);
           case 2: return ToQStr(msg.severity);
           case 3: return ToQStr(msg.category);
@@ -111,7 +111,7 @@ public:
 
     if(index.isValid() && role == EIDRole && index.row() >= 0 &&
        index.row() < m_Ctx.DebugMessages().count())
-      return m_Ctx.DebugMessages()[index.row()].eventID;
+      return m_Ctx.DebugMessages()[index.row()].eventId;
 
     return QVariant();
   }
@@ -187,7 +187,7 @@ protected:
     const DebugMessage &leftMsg = m_Ctx.DebugMessages()[left.row()];
     const DebugMessage &rightMsg = m_Ctx.DebugMessages()[right.row()];
 
-    if(leftMsg.eventID < rightMsg.eventID)
+    if(leftMsg.eventId < rightMsg.eventId)
       return true;
 
     if(leftMsg.source < rightMsg.source)

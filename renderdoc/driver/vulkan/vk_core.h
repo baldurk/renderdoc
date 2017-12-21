@@ -82,7 +82,7 @@ struct VulkanDrawcallTreeNode
     for(size_t i = 0; i < child.resourceUsage.size(); i++)
     {
       resourceUsage.push_back(child.resourceUsage[i]);
-      resourceUsage.back().second.eventID += baseEventID;
+      resourceUsage.back().second.eventId += baseEventID;
     }
 
     children.reserve(child.children.size());
@@ -95,14 +95,14 @@ struct VulkanDrawcallTreeNode
 
   void UpdateIDs(uint32_t baseEventID, uint32_t baseDrawID)
   {
-    draw.eventID += baseEventID;
-    draw.drawcallID += baseDrawID;
+    draw.eventId += baseEventID;
+    draw.drawcallId += baseDrawID;
 
     for(APIEvent &ev : draw.events)
-      ev.eventID += baseEventID;
+      ev.eventId += baseEventID;
 
     for(size_t i = 0; i < resourceUsage.size(); i++)
-      resourceUsage[i].second.eventID += baseEventID;
+      resourceUsage[i].second.eventId += baseEventID;
 
     for(size_t i = 0; i < children.size(); i++)
       children[i].UpdateIDs(baseEventID, baseDrawID);
@@ -276,7 +276,7 @@ private:
   void AddResourceCurChunk(ResourceDescription &descr);
   void AddResourceCurChunk(ResourceId id);
 
-  // util function to handle fetching the right eventID, calling any
+  // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
   uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type = DrawFlags::Drawcall,
                              uint32_t multiDrawOffset = 0);
@@ -469,14 +469,14 @@ private:
   // the first one being the 'primary'
   struct DrawcallUse
   {
-    DrawcallUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventID(eid) {}
+    DrawcallUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventId(eid) {}
     uint64_t fileOffset;
-    uint32_t eventID;
+    uint32_t eventId;
     bool operator<(const DrawcallUse &o) const
     {
       if(fileOffset != o.fileOffset)
         return fileOffset < o.fileOffset;
-      return eventID < o.eventID;
+      return eventId < o.eventId;
     }
   };
   vector<DrawcallUse> m_DrawcallUses;
@@ -761,9 +761,9 @@ public:
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  const APIEvent &GetEvent(uint32_t eventID);
-  uint32_t GetMaxEID() { return m_Events.back().eventID; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventID);
+  const APIEvent &GetEvent(uint32_t eventId);
+  uint32_t GetMaxEID() { return m_Events.back().eventId; }
+  const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   ResourceId GetDescLayoutForDescSet(ResourceId descSet)
   {

@@ -202,18 +202,18 @@ ReplayController::~ReplayController()
   m_pDevice = NULL;
 }
 
-void ReplayController::SetFrameEvent(uint32_t eventID, bool force)
+void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 {
-  if(eventID != m_EventID || force)
+  if(eventId != m_EventID || force)
   {
-    m_EventID = eventID;
+    m_EventID = eventId;
 
-    m_pDevice->ReplayLog(eventID, eReplay_WithoutDraw);
+    m_pDevice->ReplayLog(eventId, eReplay_WithoutDraw);
 
     for(size_t i = 0; i < m_Outputs.size(); i++)
-      m_Outputs[i]->SetFrameEvent(eventID);
+      m_Outputs[i]->SetFrameEvent(eventId);
 
-    m_pDevice->ReplayLog(eventID, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(eventId, eReplay_OnlyDraw);
 
     FetchPipelineState();
   }
@@ -268,12 +268,12 @@ const SDFile &ReplayController::GetStructuredFile()
   return m_pDevice->GetStructuredFile();
 }
 
-DrawcallDescription *ReplayController::GetDrawcallByEID(uint32_t eventID)
+DrawcallDescription *ReplayController::GetDrawcallByEID(uint32_t eventId)
 {
-  if(eventID >= m_Drawcalls.size())
+  if(eventId >= m_Drawcalls.size())
     return NULL;
 
-  return m_Drawcalls[eventID];
+  return m_Drawcalls[eventId];
 }
 
 rdcarray<DrawcallDescription> ReplayController::GetDrawcalls()
@@ -348,7 +348,7 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, MeshDataStage stage)
 
   instID = RDCMIN(instID, draw->numInstances - 1);
 
-  return m_pDevice->GetPostVSBuffers(draw->eventID, instID, stage);
+  return m_pDevice->GetPostVSBuffers(draw->eventId, instID, stage);
 }
 
 bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
@@ -1218,7 +1218,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 
   for(size_t t = 0; t < m_Textures.size(); t++)
   {
-    if(m_Textures[t].ID == target)
+    if(m_Textures[t].resourceId == target)
     {
       if(x >= m_Textures[t].width || y >= m_Textures[t].height)
       {
@@ -1248,7 +1248,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 
   for(size_t i = 0; i < usage.size(); i++)
   {
-    if(usage[i].eventID > m_EventID)
+    if(usage[i].eventId > m_EventID)
       continue;
 
     switch(usage[i].usage)
@@ -1390,23 +1390,23 @@ void ReplayController::ReplayLoop(WindowingSystem system, void *data, ResourceId
   ReplayOutput *output = CreateOutput(system, data, ReplayOutputType::Texture);
 
   TextureDisplay d;
-  d.texid = texid;
+  d.resourceId = texid;
   d.mip = 0;
   d.sampleIdx = ~0U;
   d.overlay = DebugOverlay::NoOverlay;
   d.typeHint = CompType::Typeless;
-  d.HDRMul = -1.0f;
+  d.hdrMultiplier = -1.0f;
   d.linearDisplayAsGamma = true;
-  d.FlipY = false;
-  d.rangemin = 0.0f;
-  d.rangemax = 1.0f;
+  d.flipY = false;
+  d.rangeMin = 0.0f;
+  d.rangeMax = 1.0f;
   d.scale = 1.0f;
-  d.offx = 0.0f;
-  d.offy = 0.0f;
+  d.xOffset = 0.0f;
+  d.yOffset = 0.0f;
   d.sliceFace = 0;
-  d.rawoutput = false;
-  d.Red = d.Green = d.Blue = true;
-  d.Alpha = false;
+  d.rawOutput = false;
+  d.red = d.green = d.blue = true;
+  d.alpha = false;
   output->SetTextureDisplay(d);
 
   m_ReplayLoopCancel = 0;

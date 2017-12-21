@@ -863,7 +863,7 @@ void ResourceManagerType::InsertReferencedChunks(WriteSerialiser &ser)
 
   RDCDEBUG("%u frame resource records", (uint32_t)m_FrameReferencedResources.size());
 
-  if(RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+  if(RenderDoc::Inst().GetCaptureOptions().refAllResources)
   {
     for(auto it = m_ResourceRecords.begin(); it != m_ResourceRecords.end(); ++it)
     {
@@ -955,7 +955,7 @@ void ResourceManagerType::InsertInitialContentsChunks(WriteSerialiser &ser)
     ResourceId id = *it;
 
     if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
-       !RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+       !RenderDoc::Inst().GetCaptureOptions().refAllResources)
     {
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
       RDCDEBUG("Dirty tesource %llu is GPU dirty but not referenced - skipping", id);
@@ -1075,7 +1075,7 @@ void ResourceManagerType::ApplyInitialContentsNonChunks(WriteSerialiser &ser)
     ResourceId id = *it;
 
     if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
-       !RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+       !RenderDoc::Inst().GetCaptureOptions().refAllResources)
     {
       continue;
     }

@@ -273,10 +273,10 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
 
   for(const CounterDescription &desc : descriptions)
   {
-    m_CounterToUuid[desc.counterID] = desc.uuid;
-    m_UuidToCounter[desc.uuid] = desc.counterID;
+    m_CounterToUuid[desc.counter] = desc.uuid;
+    m_UuidToCounter[desc.uuid] = desc.counter;
 
-    const CounterFamily family = GetCounterFamily(desc.counterID);
+    const CounterFamily family = GetCounterFamily(desc.counter);
     if(family != currentFamily)
     {
       currentRoot = new RDTreeWidgetItem();
@@ -314,12 +314,12 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     RDTreeWidgetItem *counterItem = new RDTreeWidgetItem();
     counterItem->setText(0, desc.name);
     counterItem->setData(0, CounterDescriptionRole, desc.description);
-    counterItem->setData(0, CounterIdRole, (uint32_t)desc.counterID);
+    counterItem->setData(0, CounterIdRole, (uint32_t)desc.counter);
     counterItem->setCheckState(0, Qt::Unchecked);
     counterItem->setData(0, PreviousCheckStateRole, Qt::Unchecked);
     categoryItem->addChild(counterItem);
 
-    m_CounterToTreeItem[desc.counterID] = counterItem;
+    m_CounterToTreeItem[desc.counter] = counterItem;
   }
 }
 

@@ -59,6 +59,7 @@ set(sources
     api/replay/structured_data.h
     api/replay/capture_options.h
     api/replay/control_types.h
+    api/replay/common_pipestate.h
     api/replay/d3d11_pipestate.h
     api/replay/data_types.h
     api/replay/gl_pipestate.h

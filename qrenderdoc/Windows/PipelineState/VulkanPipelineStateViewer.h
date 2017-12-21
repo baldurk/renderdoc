@@ -57,8 +57,8 @@ public:
 
   void OnCaptureLoaded();
   void OnCaptureClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
+  void OnSelectedEventChanged(uint32_t eventId) {}
+  void OnEventChanged(uint32_t eventId);
 
 private slots:
   // automatic slots
@@ -120,8 +120,8 @@ private:
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::VertexInput &vi);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::Shader &sh);
-  void exportHTML(QXmlStreamWriter &xml, const VKPipe::Raster &rs);
-  void exportHTML(QXmlStreamWriter &xml, const VKPipe::ColorBlend &cb);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::Rasterizer &rs);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::ColorBlendState &cb);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::CurrentPass &pass);
 

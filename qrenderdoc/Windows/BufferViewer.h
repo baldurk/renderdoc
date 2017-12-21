@@ -84,8 +84,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
@@ -164,7 +164,7 @@ private:
 
   struct CalcBoundingBoxData
   {
-    uint32_t eventID;
+    uint32_t eventId;
     uint32_t inst;
     int32_t baseVertex;
 

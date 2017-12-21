@@ -509,7 +509,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
   uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
                    WriteSerialiser::ChunkThreadID;
 
-  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
 
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
@@ -1146,7 +1146,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       const GLHookSet &gl = m_Real;
 
       if(HasExt[KHR_debug] && gl.glDebugMessageCallback &&
-         RenderDoc::Inst().GetCaptureOptions().APIValidation)
+         RenderDoc::Inst().GetCaptureOptions().apiValidation)
       {
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);
         gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -2884,7 +2884,7 @@ void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
   if(IsLoading(m_State) || src == MessageSource::RuntimeWarning)
   {
     DebugMessage msg;
-    msg.eventID = m_CurEventID;
+    msg.eventId = m_CurEventID;
     msg.messageID = 0;
     msg.source = src;
     msg.category = c;
@@ -2921,7 +2921,7 @@ void WrappedOpenGL::Serialise_DebugMessages(SerialiserType &ser)
   {
     for(DebugMessage &msg : DebugMessages)
     {
-      msg.eventID = m_CurEventID;
+      msg.eventId = m_CurEventID;
       AddDebugMessage(msg);
     }
   }
@@ -3024,7 +3024,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     }
   }
 
-  if(m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
+  if(m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
     m_RealDebugFunc(source, type, id, severity, length, message, m_RealDebugFuncParam);
 }
 
@@ -3179,7 +3179,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 #endif
 
   // steal the structured data for ourselves
-  m_StructuredFile->swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(m_StoredStructuredData);
 
   // and in future use this file.
   m_StructuredFile = &m_StoredStructuredData;
@@ -4667,7 +4667,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
   {
     ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
 
-    ser.GetStructuredFile().swap(*m_StructuredFile);
+    ser.GetStructuredFile().Swap(*m_StructuredFile);
 
     m_StructuredFile = &ser.GetStructuredFile();
   }
@@ -4722,7 +4722,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
   if(IsActiveReplaying(m_State))
   {
     APIEvent ev = GetEvent(startEventID);
-    m_CurEventID = ev.eventID;
+    m_CurEventID = ev.eventId;
     if(partial)
       ser.GetReader()->SetOffset(ev.fileOffset);
     m_FirstEventID = startEventID;
@@ -4778,7 +4778,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
-    ser.GetStructuredFile().swap(*prevFile);
+    ser.GetStructuredFile().Swap(*prevFile);
 
   m_StructuredFile = prevFile;
 
@@ -4866,7 +4866,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 
   void *ctx = GetCtx();
 
-  uint32_t e = d.eventID;
+  uint32_t e = d.eventId;
 
   //////////////////////////////
   // Input
@@ -4953,31 +4953,31 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 
       if(refl[i])
       {
-        for(const ConstantBlock &cblock : refl[i]->ConstantBlocks)
+        for(const ConstantBlock &cblock : refl[i]->constantBlocks)
         {
           if(!cblock.bufferBacked)
             continue;
-          if(cblock.bindPoint < 0 || cblock.bindPoint >= mapping[i].ConstantBlocks.count())
+          if(cblock.bindPoint < 0 || cblock.bindPoint >= mapping[i].constantBlocks.count())
             continue;
 
-          int32_t bind = mapping[i].ConstantBlocks[cblock.bindPoint].bind;
+          int32_t bind = mapping[i].constantBlocks[cblock.bindPoint].bind;
 
           if(rs.UniformBinding[bind].res.name)
             m_ResourceUses[rm->GetID(rs.UniformBinding[bind].res)].push_back(cb);
         }
 
-        for(const ShaderResource &res : refl[i]->ReadWriteResources)
+        for(const ShaderResource &res : refl[i]->readWriteResources)
         {
-          int32_t bind = mapping[i].ReadWriteResources[res.bindPoint].bind;
+          int32_t bind = mapping[i].readWriteResources[res.bindPoint].bind;
 
-          if(res.IsTexture)
+          if(res.isTexture)
           {
             if(rs.Images[bind].res.name)
               m_ResourceUses[rm->GetID(rs.Images[bind].res)].push_back(rw);
           }
           else
           {
-            if(res.variableType.descriptor.cols == 1 && res.variableType.descriptor.rows == 1 &&
+            if(res.variableType.descriptor.columns == 1 && res.variableType.descriptor.rows == 1 &&
                res.variableType.descriptor.type == VarType::UInt)
             {
               if(rs.AtomicCounter[bind].res.name)
@@ -4991,9 +4991,9 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
           }
         }
 
-        for(const ShaderResource &res : refl[i]->ReadOnlyResources)
+        for(const ShaderResource &res : refl[i]->readOnlyResources)
         {
-          int32_t bind = mapping[i].ReadOnlyResources[res.bindPoint].bind;
+          int32_t bind = mapping[i].readOnlyResources[res.bindPoint].bind;
 
           GLResource *texList = NULL;
           const int32_t listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
@@ -5001,19 +5001,19 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 
           switch(res.resType)
           {
-            case TextureDim::Unknown: texList = NULL; break;
-            case TextureDim::Buffer: texList = rs.TexBuffer; break;
-            case TextureDim::Texture1D: texList = rs.Tex1D; break;
-            case TextureDim::Texture1DArray: texList = rs.Tex1DArray; break;
-            case TextureDim::Texture2D: texList = rs.Tex2D; break;
-            case TextureDim::TextureRect: texList = rs.TexRect; break;
-            case TextureDim::Texture2DArray: texList = rs.Tex2DArray; break;
-            case TextureDim::Texture2DMS: texList = rs.Tex2DMS; break;
-            case TextureDim::Texture2DMSArray: texList = rs.Tex2DMSArray; break;
-            case TextureDim::Texture3D: texList = rs.Tex3D; break;
-            case TextureDim::TextureCube: texList = rs.TexCube; break;
-            case TextureDim::TextureCubeArray: texList = rs.TexCubeArray; break;
-            case TextureDim::Count: RDCERR("Invalid shader resource type"); break;
+            case TextureType::Unknown: texList = NULL; break;
+            case TextureType::Buffer: texList = rs.TexBuffer; break;
+            case TextureType::Texture1D: texList = rs.Tex1D; break;
+            case TextureType::Texture1DArray: texList = rs.Tex1DArray; break;
+            case TextureType::Texture2D: texList = rs.Tex2D; break;
+            case TextureType::TextureRect: texList = rs.TexRect; break;
+            case TextureType::Texture2DArray: texList = rs.Tex2DArray; break;
+            case TextureType::Texture2DMS: texList = rs.Tex2DMS; break;
+            case TextureType::Texture2DMSArray: texList = rs.Tex2DMSArray; break;
+            case TextureType::Texture3D: texList = rs.Tex3D; break;
+            case TextureType::TextureCube: texList = rs.TexCube; break;
+            case TextureType::TextureCubeArray: texList = rs.TexCubeArray; break;
+            case TextureType::Count: RDCERR("Invalid shader resource type"); break;
           }
 
           if(texList != NULL && bind >= 0 && bind < listSize && texList[bind].name != 0)
@@ -5108,8 +5108,8 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   WrappedOpenGL *context = this;
 
   DrawcallDescription draw = d;
-  draw.eventID = m_CurEventID;
-  draw.drawcallID = m_CurDrawcallID;
+  draw.eventId = m_CurEventID;
+  draw.drawcallId = m_CurDrawcallID;
 
   GLenum type;
   GLuint curCol[8] = {0};
@@ -5182,7 +5182,7 @@ void WrappedOpenGL::AddEvent()
   APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
-  apievent.eventID = m_CurEventID;
+  apievent.eventId = m_CurEventID;
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
@@ -5194,23 +5194,23 @@ void WrappedOpenGL::AddEvent()
     m_Events.push_back(apievent);
 }
 
-const APIEvent &WrappedOpenGL::GetEvent(uint32_t eventID)
+const APIEvent &WrappedOpenGL::GetEvent(uint32_t eventId)
 {
   for(const APIEvent &e : m_Events)
   {
-    if(e.eventID >= eventID)
+    if(e.eventId >= eventId)
       return e;
   }
 
   return m_Events.back();
 }
 
-const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventId)
 {
-  if(eventID >= m_Drawcalls.size())
+  if(eventId >= m_Drawcalls.size())
     return NULL;
 
-  return m_Drawcalls[eventID];
+  return m_Drawcalls[eventId];
 }
 
 void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)

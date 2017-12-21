@@ -121,74 +121,74 @@ void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(D3D12InitParams);
 
-TextureDim MakeTextureDim(D3D12_SRV_DIMENSION dim)
+TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim)
 {
   switch(dim)
   {
-    case D3D12_SRV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
-    case D3D12_SRV_DIMENSION_BUFFER: return TextureDim::Buffer;
-    case D3D12_SRV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
-    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
-    case D3D12_SRV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
-    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
-    case D3D12_SRV_DIMENSION_TEXTURE2DMS: return TextureDim::Texture2DMS;
-    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY: return TextureDim::Texture2DMSArray;
-    case D3D12_SRV_DIMENSION_TEXTURE3D: return TextureDim::Texture3D;
-    case D3D12_SRV_DIMENSION_TEXTURECUBE: return TextureDim::TextureCube;
-    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY: return TextureDim::TextureCubeArray;
+    case D3D12_SRV_DIMENSION_UNKNOWN: return TextureType::Unknown;
+    case D3D12_SRV_DIMENSION_BUFFER: return TextureType::Buffer;
+    case D3D12_SRV_DIMENSION_TEXTURE1D: return TextureType::Texture1D;
+    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY: return TextureType::Texture1DArray;
+    case D3D12_SRV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;
+    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
+    case D3D12_SRV_DIMENSION_TEXTURE2DMS: return TextureType::Texture2DMS;
+    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY: return TextureType::Texture2DMSArray;
+    case D3D12_SRV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
+    case D3D12_SRV_DIMENSION_TEXTURECUBE: return TextureType::TextureCube;
+    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY: return TextureType::TextureCubeArray;
   }
 
-  return TextureDim::Unknown;
+  return TextureType::Unknown;
 }
 
-TextureDim MakeTextureDim(D3D12_RTV_DIMENSION dim)
+TextureType MakeTextureDim(D3D12_RTV_DIMENSION dim)
 {
   switch(dim)
   {
-    case D3D12_RTV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
-    case D3D12_RTV_DIMENSION_BUFFER: return TextureDim::Buffer;
-    case D3D12_RTV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
-    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
-    case D3D12_RTV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
-    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
-    case D3D12_RTV_DIMENSION_TEXTURE2DMS: return TextureDim::Texture2DMS;
-    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY: return TextureDim::Texture2DMSArray;
-    case D3D12_RTV_DIMENSION_TEXTURE3D: return TextureDim::Texture3D;
+    case D3D12_RTV_DIMENSION_UNKNOWN: return TextureType::Unknown;
+    case D3D12_RTV_DIMENSION_BUFFER: return TextureType::Buffer;
+    case D3D12_RTV_DIMENSION_TEXTURE1D: return TextureType::Texture1D;
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY: return TextureType::Texture1DArray;
+    case D3D12_RTV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMS: return TextureType::Texture2DMS;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY: return TextureType::Texture2DMSArray;
+    case D3D12_RTV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
   }
 
-  return TextureDim::Unknown;
+  return TextureType::Unknown;
 }
 
-TextureDim MakeTextureDim(D3D12_DSV_DIMENSION dim)
+TextureType MakeTextureDim(D3D12_DSV_DIMENSION dim)
 {
   switch(dim)
   {
-    case D3D12_DSV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
-    case D3D12_DSV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
-    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
-    case D3D12_DSV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
-    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
-    case D3D12_DSV_DIMENSION_TEXTURE2DMS: return TextureDim::Texture2DMS;
-    case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY: return TextureDim::Texture2DMSArray;
+    case D3D12_DSV_DIMENSION_UNKNOWN: return TextureType::Unknown;
+    case D3D12_DSV_DIMENSION_TEXTURE1D: return TextureType::Texture1D;
+    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY: return TextureType::Texture1DArray;
+    case D3D12_DSV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;
+    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMS: return TextureType::Texture2DMS;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY: return TextureType::Texture2DMSArray;
   }
 
-  return TextureDim::Unknown;
+  return TextureType::Unknown;
 }
 
-TextureDim MakeTextureDim(D3D12_UAV_DIMENSION dim)
+TextureType MakeTextureDim(D3D12_UAV_DIMENSION dim)
 {
   switch(dim)
   {
-    case D3D12_UAV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
-    case D3D12_UAV_DIMENSION_BUFFER: return TextureDim::Buffer;
-    case D3D12_UAV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
-    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
-    case D3D12_UAV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
-    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
-    case D3D12_UAV_DIMENSION_TEXTURE3D: return TextureDim::Texture3D;
+    case D3D12_UAV_DIMENSION_UNKNOWN: return TextureType::Unknown;
+    case D3D12_UAV_DIMENSION_BUFFER: return TextureType::Buffer;
+    case D3D12_UAV_DIMENSION_TEXTURE1D: return TextureType::Texture1D;
+    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY: return TextureType::Texture1DArray;
+    case D3D12_UAV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;
+    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
+    case D3D12_UAV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
   }
 
-  return TextureDim::Unknown;
+  return TextureType::Unknown;
 }
 
 AddressMode MakeAddressMode(D3D12_TEXTURE_ADDRESS_MODE addr)
@@ -206,48 +206,48 @@ AddressMode MakeAddressMode(D3D12_TEXTURE_ADDRESS_MODE addr)
   return AddressMode::Wrap;
 }
 
-CompareFunc MakeCompareFunc(D3D12_COMPARISON_FUNC func)
+CompareFunction MakeCompareFunc(D3D12_COMPARISON_FUNC func)
 {
   switch(func)
   {
-    case D3D12_COMPARISON_FUNC_NEVER: return CompareFunc::Never;
-    case D3D12_COMPARISON_FUNC_LESS: return CompareFunc::Less;
-    case D3D12_COMPARISON_FUNC_EQUAL: return CompareFunc::Equal;
-    case D3D12_COMPARISON_FUNC_LESS_EQUAL: return CompareFunc::LessEqual;
-    case D3D12_COMPARISON_FUNC_GREATER: return CompareFunc::Greater;
-    case D3D12_COMPARISON_FUNC_NOT_EQUAL: return CompareFunc::NotEqual;
-    case D3D12_COMPARISON_FUNC_GREATER_EQUAL: return CompareFunc::GreaterEqual;
-    case D3D12_COMPARISON_FUNC_ALWAYS: return CompareFunc::AlwaysTrue;
+    case D3D12_COMPARISON_FUNC_NEVER: return CompareFunction::Never;
+    case D3D12_COMPARISON_FUNC_LESS: return CompareFunction::Less;
+    case D3D12_COMPARISON_FUNC_EQUAL: return CompareFunction::Equal;
+    case D3D12_COMPARISON_FUNC_LESS_EQUAL: return CompareFunction::LessEqual;
+    case D3D12_COMPARISON_FUNC_GREATER: return CompareFunction::Greater;
+    case D3D12_COMPARISON_FUNC_NOT_EQUAL: return CompareFunction::NotEqual;
+    case D3D12_COMPARISON_FUNC_GREATER_EQUAL: return CompareFunction::GreaterEqual;
+    case D3D12_COMPARISON_FUNC_ALWAYS: return CompareFunction::AlwaysTrue;
     default: break;
   }
 
-  return CompareFunc::AlwaysTrue;
+  return CompareFunction::AlwaysTrue;
 }
 
 TextureFilter MakeFilter(D3D12_FILTER filter)
 {
   TextureFilter ret;
 
-  ret.func = FilterFunc::Normal;
+  ret.filter = FilterFunction::Normal;
 
   if(filter >= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
      filter < D3D12_FILTER_COMPARISON_ANISOTROPIC)
   {
-    ret.func = FilterFunc::Comparison;
+    ret.filter = FilterFunction::Comparison;
     // the first 0x7f is the min/mag/mip filtering
     filter = D3D12_FILTER(filter & 0x7f);
   }
   else if(filter >= D3D12_FILTER_MINIMUM_MIN_MAG_MIP_POINT &&
           filter < D3D12_FILTER_MINIMUM_ANISOTROPIC)
   {
-    ret.func = FilterFunc::Minimum;
+    ret.filter = FilterFunction::Minimum;
     // the first 0x7f is the min/mag/mip filtering
     filter = D3D12_FILTER(filter & 0x7f);
   }
   else if(filter >= D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_POINT &&
           filter < D3D12_FILTER_MAXIMUM_ANISOTROPIC)
   {
-    ret.func = FilterFunc::Maximum;
+    ret.filter = FilterFunction::Maximum;
     // the first 0x7f is the min/mag/mip filtering
     filter = D3D12_FILTER(filter & 0x7f);
   }
@@ -318,30 +318,30 @@ D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_UAV_FLAGS flags)
   return ret;
 }
 
-LogicOp MakeLogicOp(D3D12_LOGIC_OP op)
+LogicOperation MakeLogicOp(D3D12_LOGIC_OP op)
 {
   switch(op)
   {
-    case D3D12_LOGIC_OP_CLEAR: return LogicOp::Clear;
-    case D3D12_LOGIC_OP_AND: return LogicOp::And;
-    case D3D12_LOGIC_OP_AND_REVERSE: return LogicOp::AndReverse;
-    case D3D12_LOGIC_OP_COPY: return LogicOp::Copy;
-    case D3D12_LOGIC_OP_AND_INVERTED: return LogicOp::AndInverted;
-    case D3D12_LOGIC_OP_NOOP: return LogicOp::NoOp;
-    case D3D12_LOGIC_OP_XOR: return LogicOp::Xor;
-    case D3D12_LOGIC_OP_OR: return LogicOp::Or;
-    case D3D12_LOGIC_OP_NOR: return LogicOp::Nor;
-    case D3D12_LOGIC_OP_EQUIV: return LogicOp::Equivalent;
-    case D3D12_LOGIC_OP_INVERT: return LogicOp::Invert;
-    case D3D12_LOGIC_OP_OR_REVERSE: return LogicOp::OrReverse;
-    case D3D12_LOGIC_OP_COPY_INVERTED: return LogicOp::CopyInverted;
-    case D3D12_LOGIC_OP_OR_INVERTED: return LogicOp::OrInverted;
-    case D3D12_LOGIC_OP_NAND: return LogicOp::Nand;
-    case D3D12_LOGIC_OP_SET: return LogicOp::Set;
+    case D3D12_LOGIC_OP_CLEAR: return LogicOperation::Clear;
+    case D3D12_LOGIC_OP_AND: return LogicOperation::And;
+    case D3D12_LOGIC_OP_AND_REVERSE: return LogicOperation::AndReverse;
+    case D3D12_LOGIC_OP_COPY: return LogicOperation::Copy;
+    case D3D12_LOGIC_OP_AND_INVERTED: return LogicOperation::AndInverted;
+    case D3D12_LOGIC_OP_NOOP: return LogicOperation::NoOp;
+    case D3D12_LOGIC_OP_XOR: return LogicOperation::Xor;
+    case D3D12_LOGIC_OP_OR: return LogicOperation::Or;
+    case D3D12_LOGIC_OP_NOR: return LogicOperation::Nor;
+    case D3D12_LOGIC_OP_EQUIV: return LogicOperation::Equivalent;
+    case D3D12_LOGIC_OP_INVERT: return LogicOperation::Invert;
+    case D3D12_LOGIC_OP_OR_REVERSE: return LogicOperation::OrReverse;
+    case D3D12_LOGIC_OP_COPY_INVERTED: return LogicOperation::CopyInverted;
+    case D3D12_LOGIC_OP_OR_INVERTED: return LogicOperation::OrInverted;
+    case D3D12_LOGIC_OP_NAND: return LogicOperation::Nand;
+    case D3D12_LOGIC_OP_SET: return LogicOperation::Set;
     default: break;
   }
 
-  return LogicOp::NoOp;
+  return LogicOperation::NoOp;
 }
 
 BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha)
@@ -373,37 +373,37 @@ BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha)
   return BlendMultiplier::One;
 }
 
-BlendOp MakeBlendOp(D3D12_BLEND_OP op)
+BlendOperation MakeBlendOp(D3D12_BLEND_OP op)
 {
   switch(op)
   {
-    case D3D12_BLEND_OP_ADD: return BlendOp::Add;
-    case D3D12_BLEND_OP_SUBTRACT: return BlendOp::Subtract;
-    case D3D12_BLEND_OP_REV_SUBTRACT: return BlendOp::ReversedSubtract;
-    case D3D12_BLEND_OP_MIN: return BlendOp::Minimum;
-    case D3D12_BLEND_OP_MAX: return BlendOp::Maximum;
+    case D3D12_BLEND_OP_ADD: return BlendOperation::Add;
+    case D3D12_BLEND_OP_SUBTRACT: return BlendOperation::Subtract;
+    case D3D12_BLEND_OP_REV_SUBTRACT: return BlendOperation::ReversedSubtract;
+    case D3D12_BLEND_OP_MIN: return BlendOperation::Minimum;
+    case D3D12_BLEND_OP_MAX: return BlendOperation::Maximum;
     default: break;
   }
 
-  return BlendOp::Add;
+  return BlendOperation::Add;
 }
 
-StencilOp MakeStencilOp(D3D12_STENCIL_OP op)
+StencilOperation MakeStencilOp(D3D12_STENCIL_OP op)
 {
   switch(op)
   {
-    case D3D12_STENCIL_OP_KEEP: return StencilOp::Keep;
-    case D3D12_STENCIL_OP_ZERO: return StencilOp::Zero;
-    case D3D12_STENCIL_OP_REPLACE: return StencilOp::Replace;
-    case D3D12_STENCIL_OP_INCR_SAT: return StencilOp::IncSat;
-    case D3D12_STENCIL_OP_DECR_SAT: return StencilOp::DecSat;
-    case D3D12_STENCIL_OP_INVERT: return StencilOp::Invert;
-    case D3D12_STENCIL_OP_INCR: return StencilOp::IncWrap;
-    case D3D12_STENCIL_OP_DECR: return StencilOp::DecWrap;
+    case D3D12_STENCIL_OP_KEEP: return StencilOperation::Keep;
+    case D3D12_STENCIL_OP_ZERO: return StencilOperation::Zero;
+    case D3D12_STENCIL_OP_REPLACE: return StencilOperation::Replace;
+    case D3D12_STENCIL_OP_INCR_SAT: return StencilOperation::IncSat;
+    case D3D12_STENCIL_OP_DECR_SAT: return StencilOperation::DecSat;
+    case D3D12_STENCIL_OP_INVERT: return StencilOperation::Invert;
+    case D3D12_STENCIL_OP_INCR: return StencilOperation::IncWrap;
+    case D3D12_STENCIL_OP_DECR: return StencilOperation::DecWrap;
     default: break;
   }
 
-  return StencilOp::Keep;
+  return StencilOperation::Keep;
 }
 
 UINT GetResourceNumMipLevels(const D3D12_RESOURCE_DESC *desc)

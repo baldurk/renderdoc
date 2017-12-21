@@ -150,17 +150,17 @@ private:
 template <typename T>
 inline const ResourceRange &GetResourceRange(T *);
 
-TextureDim MakeTextureDim(D3D11_SRV_DIMENSION dim);
-TextureDim MakeTextureDim(D3D11_RTV_DIMENSION dim);
-TextureDim MakeTextureDim(D3D11_DSV_DIMENSION dim);
-TextureDim MakeTextureDim(D3D11_UAV_DIMENSION dim);
+TextureType MakeTextureDim(D3D11_SRV_DIMENSION dim);
+TextureType MakeTextureDim(D3D11_RTV_DIMENSION dim);
+TextureType MakeTextureDim(D3D11_DSV_DIMENSION dim);
+TextureType MakeTextureDim(D3D11_UAV_DIMENSION dim);
 AddressMode MakeAddressMode(D3D11_TEXTURE_ADDRESS_MODE addr);
-CompareFunc MakeCompareFunc(D3D11_COMPARISON_FUNC func);
+CompareFunction MakeCompareFunc(D3D11_COMPARISON_FUNC func);
 TextureFilter MakeFilter(D3D11_FILTER filter);
-LogicOp MakeLogicOp(D3D11_LOGIC_OP op);
+LogicOperation MakeLogicOp(D3D11_LOGIC_OP op);
 BlendMultiplier MakeBlendMultiplier(D3D11_BLEND blend, bool alpha);
-BlendOp MakeBlendOp(D3D11_BLEND_OP op);
-StencilOp MakeStencilOp(D3D11_STENCIL_OP op);
+BlendOperation MakeBlendOp(D3D11_BLEND_OP op);
+StencilOperation MakeStencilOp(D3D11_STENCIL_OP op);
 
 template <class T>
 inline void SetDebugName(T *pObj, const char *name)

@@ -360,7 +360,7 @@ void CrashDialog::sendReport()
     if(!m_ReportID.isEmpty())
     {
       BugReport bug;
-      bug.ID = m_ReportID;
+      bug.reportId = m_ReportID;
       QString url = bug.URL();
 
       text +=
@@ -409,9 +409,9 @@ void CrashDialog::on_buttonBox_accepted()
   {
     // add to list of bug reports to check for updates.
     BugReport bug;
-    bug.ID = m_ReportID;
-    bug.SubmitDate = QDateTime::currentDateTimeUtc();
-    bug.CheckDate = QDateTime::currentDateTimeUtc();
+    bug.reportId = m_ReportID;
+    bug.submitDate = QDateTime::currentDateTimeUtc();
+    bug.checkDate = QDateTime::currentDateTimeUtc();
     m_Config.CrashReport_ReportedBugs.push_back(bug);
 
     if(m_Config.CrashReport_ReportedBugs.count() > 20)

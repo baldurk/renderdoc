@@ -77,7 +77,7 @@ vector<GPUCounter> VulkanReplay::EnumerateCounters()
 CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 {
   CounterDescription desc = {};
-  desc.counterID = counterID;
+  desc.counter = counterID;
   // 6839CB5B-FBD2-4550-B606-8C65157C684C
   desc.uuid.words[0] = 0x6839CB5B;
   desc.uuid.words[1] = 0xFBD24550;
@@ -396,8 +396,8 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
     {
       CounterResult result;
 
-      result.eventID = cb.m_Results[i];
-      result.counterID = counters[c];
+      result.eventId = cb.m_Results[i];
+      result.counter = counters[c];
 
       switch(counters[c])
       {
@@ -436,8 +436,8 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
     for(size_t c = 0; c < counters.size(); c++)
     {
       CounterResult search;
-      search.counterID = counters[c];
-      search.eventID = cb.m_AliasEvents[i].first;
+      search.counter = counters[c];
+      search.eventId = cb.m_AliasEvents[i].first;
 
       // find the result we're aliasing
       auto it = std::find(ret.begin(), ret.end(), search);
@@ -445,13 +445,13 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
       {
         // duplicate the result and append
         CounterResult aliased = *it;
-        aliased.eventID = cb.m_AliasEvents[i].second;
+        aliased.eventId = cb.m_AliasEvents[i].second;
         ret.push_back(aliased);
       }
       else
       {
         RDCERR("Expected to find alias-target result for EID %u counter %u, but didn't",
-               search.eventID, search.counterID);
+               search.eventId, search.counter);
       }
     }
   }

@@ -193,7 +193,7 @@ private:
 #if ENABLED(RDOC_DEVEL)
         RenderDoc::Inst().IsReplayApp() ||
 #endif
-        (m_EnabledHooks && !reading && RenderDoc::Inst().GetCaptureOptions().APIValidation);
+        (m_EnabledHooks && !reading && RenderDoc::Inst().GetCaptureOptions().apiValidation);
 
     if(EnableDebugLayer)
     {

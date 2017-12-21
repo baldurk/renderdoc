@@ -77,13 +77,13 @@ public:
         const ResourceDescription &desc = resources[index.row()];
 
         if(role == Qt::DisplayRole)
-          return m_Ctx.GetResourceName(desc.ID);
+          return m_Ctx.GetResourceName(desc.resourceId);
 
         if(role == ResourceIdRole)
-          return QVariant::fromValue(desc.ID);
+          return QVariant::fromValue(desc.resourceId);
 
         if(role == FilterRole)
-          return ToQStr(desc.type) + lit(" ") + m_Ctx.GetResourceName(desc.ID);
+          return ToQStr(desc.type) + lit(" ") + m_Ctx.GetResourceName(desc.resourceId);
       }
     }
 
@@ -303,7 +303,7 @@ void ResourceInspector::OnCaptureClosed()
   m_Resource = ResourceId();
 }
 
-void ResourceInspector::OnEventChanged(uint32_t eventID)
+void ResourceInspector::OnEventChanged(uint32_t eventId)
 {
   Inspect(m_Resource);
 
@@ -385,9 +385,9 @@ void ResourceInspector::on_viewContents_clicked()
 
   if(tex)
   {
-    if(tex->resType == TextureDim::Buffer)
+    if(tex->type == TextureType::Buffer)
     {
-      IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(0, 0, tex->ID);
+      IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(0, 0, tex->resourceId);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
@@ -396,12 +396,12 @@ void ResourceInspector::on_viewContents_clicked()
       if(!m_Ctx.HasTextureViewer())
         m_Ctx.ShowTextureViewer();
       ITextureViewer *viewer = m_Ctx.GetTextureViewer();
-      viewer->ViewTexture(tex->ID, true);
+      viewer->ViewTexture(tex->resourceId, true);
     }
   }
   else if(buf)
   {
-    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, buf->length, buf->ID);
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, buf->length, buf->resourceId);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }

@@ -137,7 +137,7 @@ void TimelineBar::OnCaptureLoaded()
   layout();
 }
 
-void TimelineBar::OnEventChanged(uint32_t eventID)
+void TimelineBar::OnEventChanged(uint32_t eventId)
 {
   if(!m_HistoryTarget.isEmpty())
     m_HistoryTarget = m_Ctx.GetResourceName(m_ID);
@@ -258,7 +258,7 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
       {
         auto it = std::find_if(m_HistoryEvents.begin(), m_HistoryEvents.end(),
                                [this, eid](const PixelModification &mod) {
-                                 if(mod.eventID == eid)
+                                 if(mod.eventId == eid)
                                    return true;
 
                                  return false;
@@ -274,7 +274,7 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
       {
         auto it = std::find_if(m_UsageEvents.begin(), m_UsageEvents.end(),
                                [this, eid](const EventUsage &use) {
-                                 if(use.eventID == eid)
+                                 if(use.eventId == eid)
                                    return true;
 
                                  return false;
@@ -697,12 +697,12 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       {
         QPointF pos;
 
-        pos.setX(offsetOf(mod.eventID) + m_eidWidth / 2 - triRadius);
+        pos.setX(offsetOf(mod.eventId) + m_eidWidth / 2 - triRadius);
         pos.setY(pipsRect.y());
 
         QPainterPath path = triangle.translated(aliasAlign(pos));
 
-        if(mod.passed())
+        if(mod.Passed())
           paths[HistoryPassed] = paths[HistoryPassed].united(path);
         else
           paths[HistoryFailed] = paths[HistoryFailed].united(path);
@@ -714,7 +714,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       {
         QPointF pos;
 
-        pos.setX(offsetOf(use.eventID) + m_eidWidth / 2 - triRadius);
+        pos.setX(offsetOf(use.eventId) + m_eidWidth / 2 - triRadius);
         pos.setY(pipsRect.y());
 
         QPainterPath path = triangle.translated(aliasAlign(pos));
@@ -935,7 +935,7 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
       Marker &m = markers.back();
 
       m.name = d.name;
-      m.eidStart = d.eventID;
+      m.eidStart = d.eventId;
       m.eidEnd = processDraws(m.children, m.draws, d.children);
 
       maxEID = qMax(maxEID, m.eidEnd);
@@ -954,12 +954,12 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
     {
       if((d.flags & (DrawFlags::SetMarker | DrawFlags::APICalls)) != DrawFlags::SetMarker)
       {
-        m_Draws.push_back(d.eventID);
-        draws.push_back(d.eventID);
+        m_Draws.push_back(d.eventId);
+        draws.push_back(d.eventId);
       }
     }
 
-    maxEID = qMax(maxEID, d.eventID);
+    maxEID = qMax(maxEID, d.eventId);
   }
 
   return maxEID;

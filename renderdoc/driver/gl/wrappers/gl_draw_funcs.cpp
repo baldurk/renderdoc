@@ -1954,14 +1954,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {
@@ -2104,14 +2104,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {
@@ -2257,14 +2257,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {
@@ -2410,14 +2410,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {
@@ -2581,14 +2581,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {
@@ -2753,14 +2753,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {
@@ -2934,14 +2934,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
       size_t i = 0;
       for(; i < m_Events.size(); i++)
       {
-        if(m_Events[i].eventID >= m_CurEventID)
+        if(m_Events[i].eventId >= m_CurEventID)
           break;
       }
 
       while(i > 1 && m_Events[i - 1].fileOffset == m_Events[i].fileOffset)
         i--;
 
-      uint32_t baseEventID = m_Events[i].eventID;
+      uint32_t baseEventID = m_Events[i].eventId;
 
       if(m_LastEventID < baseEventID)
       {

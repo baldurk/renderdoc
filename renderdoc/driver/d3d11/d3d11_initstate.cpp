@@ -337,7 +337,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
       NumSubresources *= desc.SampleDesc.Count;
 
     bool OmittedContents = ShouldOmitInitState(desc, tex->GetResourceID()) &&
-                           !RenderDoc::Inst().GetCaptureOptions().SaveAllInitials;
+                           !RenderDoc::Inst().GetCaptureOptions().saveAllInitials;
 
     if(!OmittedContents)
     {
@@ -692,7 +692,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     SERIALISE_ELEMENT_LOCAL(
         OmittedContents,
-        ShouldOmitInitState(desc, Id) && !RenderDoc::Inst().GetCaptureOptions().SaveAllInitials);
+        ShouldOmitInitState(desc, Id) && !RenderDoc::Inst().GetCaptureOptions().saveAllInitials);
 
     if(OmittedContents)
     {

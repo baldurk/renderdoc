@@ -94,9 +94,9 @@ struct CaptureContextInvoker : ICaptureContext
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Ctx.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Ctx.GetBuffer(id); }
   virtual const rdcarray<BufferDescription> &GetBuffers() override { return m_Ctx.GetBuffers(); }
-  virtual const DrawcallDescription *GetDrawcall(uint32_t eventID) override
+  virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) override
   {
-    return m_Ctx.GetDrawcall(eventID);
+    return m_Ctx.GetDrawcall(eventId);
   }
   virtual const SDFile &GetStructuredFile() override { return m_Ctx.GetStructuredFile(); }
   virtual WindowingSystem CurWindowingSystem() override { return m_Ctx.CurWindowingSystem(); }
@@ -171,9 +171,9 @@ struct CaptureContextInvoker : ICaptureContext
   }
   virtual void CloseCapture() override { InvokeVoidFunction(&ICaptureContext::CloseCapture); }
   virtual void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
-                          uint32_t eventID, bool force = false) override
+                          uint32_t eventId, bool force = false) override
   {
-    InvokeVoidFunction(&ICaptureContext::SetEventID, exclude, selectedEventID, eventID, force);
+    InvokeVoidFunction(&ICaptureContext::SetEventID, exclude, selectedEventID, eventId, force);
   }
   virtual void RefreshStatus() override { InvokeVoidFunction(&ICaptureContext::RefreshStatus); }
   virtual void AddCaptureViewer(ICaptureViewer *viewer) override

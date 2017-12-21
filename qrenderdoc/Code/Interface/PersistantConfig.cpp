@@ -184,10 +184,10 @@ void PersistantConfig::AddAndroidHosts()
   QMap<rdcstr, RemoteHost *> oldHosts;
   for(int i = RemoteHosts.count() - 1; i >= 0; i--)
   {
-    if(RemoteHosts[i]->IsHostADB())
+    if(RemoteHosts[i]->IsADB())
     {
       RemoteHost *host = RemoteHosts.takeAt(i);
-      oldHosts[host->Hostname] = host;
+      oldHosts[host->hostname] = host;
     }
   }
 
@@ -216,12 +216,12 @@ void PersistantConfig::AddAndroidHosts()
     else
       host = new RemoteHost();
 
-    host->Hostname = hostName;
+    host->hostname = hostName;
     rdcstr friendly;
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
-    host->FriendlyName = friendly;
+    host->friendlyName = friendly;
     // Just a command to display in the GUI and allow Launch() to be called.
-    host->RunCommand = lit("org.renderdoc.renderdoccmd");
+    host->runCommand = lit("org.renderdoc.renderdoccmd");
     RemoteHosts.push_back(host);
   }
 
@@ -284,7 +284,7 @@ bool PersistantConfig::Load(const rdcstr &filename)
   if(!foundLocalhost)
   {
     RemoteHost *host = new RemoteHost();
-    host->Hostname = "localhost";
+    host->hostname = "localhost";
     RemoteHosts.insert(0, host);
   }
 
@@ -389,24 +389,24 @@ SPIRVDisassembler::operator QVariant() const
 BugReport::BugReport(const QVariant &var)
 {
   QVariantMap map = var.toMap();
-  if(map.contains(lit("ID")))
-    ID = map[lit("ID")].toString();
-  if(map.contains(lit("SubmitDate")))
-    SubmitDate = map[lit("SubmitDate")].toDateTime();
-  if(map.contains(lit("CheckDate")))
-    CheckDate = map[lit("CheckDate")].toDateTime();
-  if(map.contains(lit("UnreadUpdates")))
-    UnreadUpdates = map[lit("UnreadUpdates")].toBool();
+  if(map.contains(lit("reportId")))
+    reportId = map[lit("reportId")].toString();
+  if(map.contains(lit("submitDate")))
+    submitDate = map[lit("submitDate")].toDateTime();
+  if(map.contains(lit("checkDate")))
+    checkDate = map[lit("checkDate")].toDateTime();
+  if(map.contains(lit("unreadUpdates")))
+    unreadUpdates = map[lit("unreadUpdates")].toBool();
 }
 
 BugReport::operator QVariant() const
 {
   QVariantMap map;
 
-  map[lit("ID")] = ID;
-  map[lit("SubmitDate")] = SubmitDate;
-  map[lit("CheckDate")] = CheckDate;
-  map[lit("UnreadUpdates")] = UnreadUpdates;
+  map[lit("reportId")] = reportId;
+  map[lit("submitDate")] = submitDate;
+  map[lit("checkDate")] = checkDate;
+  map[lit("unreadUpdates")] = unreadUpdates;
 
   return map;
 }

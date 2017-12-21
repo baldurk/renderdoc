@@ -57,19 +57,19 @@ inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
   obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
 }
 
-TextureDim MakeTextureDim(D3D12_SRV_DIMENSION dim);
-TextureDim MakeTextureDim(D3D12_RTV_DIMENSION dim);
-TextureDim MakeTextureDim(D3D12_DSV_DIMENSION dim);
-TextureDim MakeTextureDim(D3D12_UAV_DIMENSION dim);
+TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim);
+TextureType MakeTextureDim(D3D12_RTV_DIMENSION dim);
+TextureType MakeTextureDim(D3D12_DSV_DIMENSION dim);
+TextureType MakeTextureDim(D3D12_UAV_DIMENSION dim);
 AddressMode MakeAddressMode(D3D12_TEXTURE_ADDRESS_MODE addr);
-CompareFunc MakeCompareFunc(D3D12_COMPARISON_FUNC func);
+CompareFunction MakeCompareFunc(D3D12_COMPARISON_FUNC func);
 TextureFilter MakeFilter(D3D12_FILTER filter);
 D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_SRV_FLAGS flags);
 D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_UAV_FLAGS flags);
-LogicOp MakeLogicOp(D3D12_LOGIC_OP op);
+LogicOperation MakeLogicOp(D3D12_LOGIC_OP op);
 BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha);
-BlendOp MakeBlendOp(D3D12_BLEND_OP op);
-StencilOp MakeStencilOp(D3D12_STENCIL_OP op);
+BlendOperation MakeBlendOp(D3D12_BLEND_OP op);
+StencilOperation MakeStencilOp(D3D12_STENCIL_OP op);
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.

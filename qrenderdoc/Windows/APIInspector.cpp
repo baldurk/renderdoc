@@ -66,7 +66,7 @@ void APIInspector::OnCaptureClosed()
   ui->callstack->clear();
 }
 
-void APIInspector::OnSelectedEventChanged(uint32_t eventID)
+void APIInspector::OnSelectedEventChanged(uint32_t eventId)
 {
   ui->apiEvents->clearSelection();
 
@@ -138,7 +138,7 @@ void APIInspector::fillAPIView()
   {
     for(const APIEvent &ev : draw->events)
     {
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), QString()});
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});
 
       if(ev.chunkIndex < file.chunks.size())
       {
@@ -153,7 +153,7 @@ void APIInspector::fillAPIView()
         root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
       }
 
-      if(ev.eventID == draw->eventID)
+      if(ev.eventId == draw->eventId)
         root->setBold(true);
 
       root->setTag(QVariant::fromValue(ev));

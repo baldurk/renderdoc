@@ -51,8 +51,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 private slots:
   // automatic slots
   void on_events_customContextMenuRequested(const QPoint &pos);

@@ -124,7 +124,7 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
     internalDesc.desc = InternalGetCounterDescription(i);
 
     internalDesc.internalIndex = i;
-    internalDesc.desc.counterID = MakeAMDCounter(i);
+    internalDesc.desc.counter = MakeAMDCounter(i);
     counters.push_back(internalDesc);
   }
 

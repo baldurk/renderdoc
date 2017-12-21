@@ -170,9 +170,9 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
 
     // make sure we're on a consistent event before invoking viewer forms
     if(m_LastDrawcall)
-      SetEventID(viewers, m_LastDrawcall->eventID, true);
+      SetEventID(viewers, m_LastDrawcall->eventId, true);
     else if(!m_Drawcalls.empty())
-      SetEventID(viewers, m_Drawcalls.back().eventID, true);
+      SetEventID(viewers, m_Drawcalls.back().eventId, true);
 
     GUIInvoke::blockcall([&viewers]() {
       // notify all the registers viewers that a capture has been loaded
@@ -292,17 +292,17 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
 
     m_ResourceList = r->GetResources();
     for(ResourceDescription &res : m_ResourceList)
-      m_Resources[res.ID] = &res;
+      m_Resources[res.resourceId] = &res;
 
     m_BufferList = r->GetBuffers();
     for(BufferDescription &b : m_BufferList)
-      m_Buffers[b.ID] = &b;
+      m_Buffers[b.resourceId] = &b;
 
     m_PostloadProgress = 0.8f;
 
     m_TextureList = r->GetTextures();
     for(TextureDescription &t : m_TextureList)
-      m_Textures[t.ID] = &t;
+      m_Textures[t.resourceId] = &t;
 
     m_PostloadProgress = 0.9f;
 
@@ -527,8 +527,8 @@ void CaptureContext::AddFakeProfileMarkers()
 
     DrawcallDescription mark;
 
-    mark.eventID = draws[start].eventID;
-    mark.drawcallID = draws[start].drawcallID;
+    mark.eventId = draws[start].eventId;
+    mark.drawcallId = draws[start].drawcallId;
 
     mark.flags = DrawFlags::PushMarker;
     memcpy(mark.outputs, draws[end].outputs, sizeof(mark.outputs));
@@ -563,7 +563,7 @@ void CaptureContext::AddFakeProfileMarkers()
     for(int j = start; j <= end; j++)
     {
       mark.children[j - start] = draws[j];
-      draws[j].parent = mark.eventID;
+      draws[j].parent = mark.eventId;
     }
 
     ret.push_back(mark);
@@ -846,15 +846,15 @@ void CaptureContext::CloseCapture()
 }
 
 void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
-                                uint32_t eventID, bool force)
+                                uint32_t eventId, bool force)
 {
   uint32_t prevSelectedEventID = m_SelectedEventID;
   m_SelectedEventID = selectedEventID;
   uint32_t prevEventID = m_EventID;
-  m_EventID = eventID;
+  m_EventID = eventId;
 
-  m_Renderer.BlockInvoke([this, eventID, force](IReplayController *r) {
-    r->SetFrameEvent(eventID, force);
+  m_Renderer.BlockInvoke([this, eventId, force](IReplayController *r) {
+    r->SetFrameEvent(eventId, force);
     m_CurD3D11PipelineState = &r->GetD3D11PipelineState();
     m_CurD3D12PipelineState = &r->GetD3D12PipelineState();
     m_CurGLPipelineState = &r->GetGLPipelineState();
@@ -864,7 +864,7 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   });
 
   bool updateSelectedEvent = force || prevSelectedEventID != selectedEventID;
-  bool updateEvent = force || prevEventID != eventID;
+  bool updateEvent = force || prevEventID != eventId;
 
   RefreshUIStatus(exclude, updateSelectedEvent, updateEvent);
 }
@@ -1012,7 +1012,7 @@ void CaptureContext::SaveBookmarks()
   for(const EventBookmark &mark : m_Bookmarks)
   {
     QVariantMap variantmark;
-    variantmark[lit("EID")] = mark.EID;
+    variantmark[lit("eventId")] = mark.eventId;
     variantmark[lit("text")] = mark.text;
 
     bookmarks.push_back(variantmark);
@@ -1043,10 +1043,10 @@ void CaptureContext::LoadBookmarks(const QString &data)
       QVariantMap variantmark = v.toMap();
 
       EventBookmark mark;
-      mark.EID = variantmark[lit("EID")].toUInt();
+      mark.eventId = variantmark[lit("eventId")].toUInt();
       mark.text = variantmark[lit("text")].toString();
 
-      if(mark.EID != 0)
+      if(mark.eventId != 0)
         m_Bookmarks.push_back(mark);
     }
   }

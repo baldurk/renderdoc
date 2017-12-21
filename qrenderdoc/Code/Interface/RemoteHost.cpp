@@ -29,65 +29,65 @@
 
 RemoteHost::RemoteHost()
 {
-  ServerRunning = Connected = Busy = VersionMismatch = false;
+  serverRunning = connected = busy = versionMismatch = false;
 }
 
 RemoteHost::RemoteHost(const QVariant &var)
 {
   QVariantMap map = var.toMap();
-  if(map.contains(lit("Hostname")))
-    Hostname = map[lit("Hostname")].toString();
-  if(map.contains(lit("FriendlyName")))
-    FriendlyName = map[lit("FriendlyName")].toString();
-  if(map.contains(lit("RunCommand")))
-    RunCommand = map[lit("RunCommand")].toString();
+  if(map.contains(lit("hostname")))
+    hostname = map[lit("hostname")].toString();
+  if(map.contains(lit("friendlyName")))
+    friendlyName = map[lit("friendlyName")].toString();
+  if(map.contains(lit("runCommand")))
+    runCommand = map[lit("runCommand")].toString();
 
-  ServerRunning = Connected = Busy = VersionMismatch = false;
+  serverRunning = connected = busy = versionMismatch = false;
 }
 
 RemoteHost::operator QVariant() const
 {
   QVariantMap map;
-  map[lit("Hostname")] = Hostname;
-  map[lit("FriendlyName")] = FriendlyName;
-  map[lit("RunCommand")] = RunCommand;
+  map[lit("hostname")] = hostname;
+  map[lit("friendlyName")] = friendlyName;
+  map[lit("runCommand")] = runCommand;
   return map;
 }
 
 void RemoteHost::CheckStatus()
 {
   // special case - this is the local context
-  if(Hostname == "localhost")
+  if(hostname == "localhost")
   {
-    ServerRunning = false;
-    VersionMismatch = Busy = false;
+    serverRunning = false;
+    versionMismatch = busy = false;
     return;
   }
 
   IRemoteServer *rend = NULL;
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(Hostname.c_str(), 0, &rend);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(hostname.c_str(), 0, &rend);
 
   if(status == ReplayStatus::Succeeded)
   {
-    ServerRunning = true;
-    VersionMismatch = Busy = false;
+    serverRunning = true;
+    versionMismatch = busy = false;
   }
   else if(status == ReplayStatus::NetworkRemoteBusy)
   {
-    ServerRunning = true;
-    Busy = true;
-    VersionMismatch = false;
+    serverRunning = true;
+    busy = true;
+    versionMismatch = false;
   }
   else if(status == ReplayStatus::NetworkVersionMismatch)
   {
-    ServerRunning = true;
-    Busy = true;
-    VersionMismatch = true;
+    serverRunning = true;
+    busy = true;
+    versionMismatch = true;
   }
   else
   {
-    ServerRunning = false;
-    VersionMismatch = Busy = false;
+    serverRunning = false;
+    versionMismatch = busy = false;
   }
 
   if(rend)
@@ -106,15 +106,15 @@ void RemoteHost::Launch()
 {
   int WAIT_TIME = 2000;
 
-  if(IsHostADB())
+  if(IsADB())
   {
-    RENDERDOC_StartAndroidRemoteServer(Hostname.c_str());
+    RENDERDOC_StartAndroidRemoteServer(hostname.c_str());
     QThread::msleep(WAIT_TIME);
     return;
   }
 
   RDProcess process;
-  process.start(RunCommand);
+  process.start(runCommand);
   process.waitForFinished(WAIT_TIME);
   process.detach();
 }

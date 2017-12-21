@@ -66,7 +66,7 @@ vector<GPUCounter> D3D12Replay::EnumerateCounters()
 CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
 {
   CounterDescription desc;
-  desc.counterID = counterID;
+  desc.counter = counterID;
   // 0808CC9B-79DF-4549-81F7-85494E648F22
   desc.uuid.words[0] = 0x0808CC9B;
   desc.uuid.words[1] = 0x79DF4549;
@@ -414,8 +414,8 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
     {
       CounterResult result;
 
-      result.eventID = cb.m_Results[i].first;
-      result.counterID = counters[c];
+      result.eventId = cb.m_Results[i].first;
+      result.counter = counters[c];
 
       switch(counters[c])
       {
@@ -447,8 +447,8 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
     for(size_t c = 0; c < counters.size(); c++)
     {
       CounterResult search;
-      search.counterID = counters[c];
-      search.eventID = cb.m_AliasEvents[i].first;
+      search.counter = counters[c];
+      search.eventId = cb.m_AliasEvents[i].first;
 
       // find the result we're aliasing
       auto it = std::find(ret.begin(), ret.end(), search);
@@ -456,13 +456,13 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
       {
         // duplicate the result and append
         CounterResult aliased = *it;
-        aliased.eventID = cb.m_AliasEvents[i].second;
+        aliased.eventId = cb.m_AliasEvents[i].second;
         ret.push_back(aliased);
       }
       else
       {
         RDCERR("Expected to find alias-target result for EID %u counter %u, but didn't",
-               search.eventID, search.counterID);
+               search.eventId, search.counter);
       }
     }
   }

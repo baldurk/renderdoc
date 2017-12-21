@@ -135,6 +135,7 @@
     <ClInclude Include="api\app\renderdoc_app.h" />
     <ClInclude Include="api\replay\basic_types.h" />
     <ClInclude Include="api\replay\capture_options.h" />
+    <ClInclude Include="api\replay\common_pipestate.h" />
     <ClInclude Include="api\replay\control_types.h" />
     <ClInclude Include="api\replay\d3d11_pipestate.h" />
     <ClInclude Include="api\replay\d3d12_pipestate.h" />

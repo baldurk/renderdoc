@@ -42,12 +42,13 @@
 %rename("%(regex:/^I([A-Z].*)/\\1/)s", %$isclass) "";
 
 // Since SWIG will inline all namespaces, and doesn't support nested structs, the namespaces
-// for each pipeline state causes conflicts. We just fall back to a rename with _ as that's
-// still acceptable/intuitive.
-%rename("%(regex:/^D3D11Pipe::(.*)/D3D11_\\1/)s", regextarget=1, fullname=1, %$isclass) "D3D11Pipe::.*";
-%rename("%(regex:/^D3D12Pipe::(.*)/D3D12_\\1/)s", regextarget=1, fullname=1, %$isclass) "D3D12Pipe::.*";
-%rename("%(regex:/^GLPipe::(.*)/GL_\\1/)s", regextarget=1, fullname=1, %$isclass) "GLPipe::.*";
-%rename("%(regex:/^VKPipe::(.*)/VK_\\1/)s", regextarget=1, fullname=1, %$isclass) "VKPipe::.*";
+// for each pipeline state causes conflicts. We just fall back to a rename with just a concatenated
+// prefix as that's still acceptable/intuitive. We don't have a _ as that's less pythonic naming
+// (not that we follow python naming perfectly)
+%rename("%(regex:/^D3D11Pipe::(.*)/D3D11\\1/)s", regextarget=1, fullname=1, %$isclass) "D3D11Pipe::.*";
+%rename("%(regex:/^D3D12Pipe::(.*)/D3D12\\1/)s", regextarget=1, fullname=1, %$isclass) "D3D12Pipe::.*";
+%rename("%(regex:/^GLPipe::(.*)/GL\\1/)s", regextarget=1, fullname=1, %$isclass) "GLPipe::.*";
+%rename("%(regex:/^VKPipe::(.*)/VK\\1/)s", regextarget=1, fullname=1, %$isclass) "VKPipe::.*";
 
 %begin %{
 
@@ -161,6 +162,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %include "structured_data.h"
 %include "capture_options.h"
 %include "control_types.h"
+%include "common_pipestate.h"
 %include "d3d11_pipestate.h"
 %include "d3d12_pipestate.h"
 %include "data_types.h"
@@ -198,7 +200,7 @@ TEMPLATE_ARRAY_INSTANTIATE(rdcarray, DrawcallDescription)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, GPUCounter)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, CounterResult)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, APIEvent)
-TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BindpointMap)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, Bindpoint)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BufferDescription)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, CaptureFileFormat)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ConstantBlock)
@@ -219,49 +221,42 @@ TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ShaderVariable)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, SigParameter)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, TextureDescription)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ShaderEntryPoint)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, Viewport)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, Scissor)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ColorBlend)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, Attachment)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, BindingElement)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, Blend)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, DescriptorBinding)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, DescriptorSet)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, ImageData)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, ImageLayout)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, SpecInfo)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, VB)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, SpecializationConstant)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, VertexBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, VertexAttribute)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, VertexBinding)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, ViewportScissor)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, Blend)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, CBuffer)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, ConstantBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, Layout)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, Sampler)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, Scissor)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, SOBind)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, VB)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, StreamOutBind)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, VertexBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, View)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D11Pipe, Viewport)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, Blend)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, CBuffer)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, ConstantBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, Layout)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, RegisterSpace)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, ResourceData)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, ResourceState)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, Sampler)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, Scissor)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, SOBind)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, VB)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, StreamOutBind)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, VertexBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, View)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, D3D12Pipe, Viewport)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Attachment)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Blend)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Buffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, ImageLoadStore)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Sampler)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Scissor)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Texture)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, VB)
+TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, VertexBuffer)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, VertexAttribute)
-TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, GLPipe, Viewport)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // declare a function for passing external objects into python

@@ -169,7 +169,7 @@ struct ResourceFormat
 )");
   bool Special() const { return type != ResourceFormatType::Regular; }
   DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
-:data:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
+:attr:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
 )");
   ResourceFormatType type;
 
@@ -194,7 +194,7 @@ struct TextureFilter
   DOCUMENT("");
   bool operator==(const TextureFilter &o) const
   {
-    return minify == o.minify && magnify == o.magnify && mip == o.mip && func == o.func;
+    return minify == o.minify && magnify == o.magnify && mip == o.mip && filter == o.filter;
   }
   bool operator<(const TextureFilter &o) const
   {
@@ -204,8 +204,8 @@ struct TextureFilter
       return magnify < o.magnify;
     if(!(mip == o.mip))
       return mip < o.mip;
-    if(!(func == o.func))
-      return func < o.func;
+    if(!(filter == o.filter))
+      return filter < o.filter;
     return false;
   }
   DOCUMENT("The :class:`FilterMode` to use when minifying the texture.");
@@ -214,8 +214,8 @@ struct TextureFilter
   FilterMode magnify = FilterMode::NoFilter;
   DOCUMENT("The :class:`FilterMode` to use when interpolating between mips.");
   FilterMode mip = FilterMode::NoFilter;
-  DOCUMENT("The :class:`FilterFunc` to apply after interpolating values.");
-  FilterFunc func = FilterFunc::Normal;
+  DOCUMENT("The :class:`FilterFunction` to apply after interpolating values.");
+  FilterFunction filter = FilterFunction::Normal;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureFilter);
@@ -224,10 +224,10 @@ DOCUMENT("A description of any type of resource.");
 struct ResourceDescription
 {
   DOCUMENT("");
-  bool operator==(const ResourceDescription &o) const { return ID == o.ID; }
-  bool operator<(const ResourceDescription &o) const { return ID < o.ID; }
+  bool operator==(const ResourceDescription &o) const { return resourceId == o.resourceId; }
+  bool operator<(const ResourceDescription &o) const { return resourceId < o.resourceId; }
   DOCUMENT("The unique :class:`ResourceId` that identifies this resource.");
-  ResourceId ID;
+  ResourceId resourceId;
 
   DOCUMENT("The :class:`ResourceType` of the resource.");
   ResourceType type = ResourceType::Unknown;
@@ -280,12 +280,12 @@ struct BufferDescription
   DOCUMENT("");
   bool operator==(const BufferDescription &o) const
   {
-    return ID == o.ID && creationFlags == o.creationFlags && length == o.length;
+    return resourceId == o.resourceId && creationFlags == o.creationFlags && length == o.length;
   }
   bool operator<(const BufferDescription &o) const
   {
-    if(!(ID == o.ID))
-      return ID < o.ID;
+    if(!(resourceId == o.resourceId))
+      return resourceId < o.resourceId;
     if(!(creationFlags == o.creationFlags))
       return creationFlags < o.creationFlags;
     if(!(length == o.length))
@@ -293,7 +293,7 @@ struct BufferDescription
     return false;
   }
   DOCUMENT("The unique :class:`ResourceId` that identifies this buffer.");
-  ResourceId ID;
+  ResourceId resourceId;
 
   DOCUMENT("The way this buffer will be used in the pipeline.");
   BufferCategory creationFlags;
@@ -310,8 +310,8 @@ struct TextureDescription
   DOCUMENT("");
   bool operator==(const TextureDescription &o) const
   {
-    return format == o.format && dimension == o.dimension && resType == o.resType &&
-           width == o.width && height == o.height && depth == o.depth && ID == o.ID &&
+    return format == o.format && dimension == o.dimension && type == o.type && width == o.width &&
+           height == o.height && depth == o.depth && resourceId == o.resourceId &&
            cubemap == o.cubemap && mips == o.mips && arraysize == o.arraysize &&
            creationFlags == o.creationFlags && msQual == o.msQual && msSamp == o.msSamp &&
            byteSize == o.byteSize;
@@ -322,16 +322,16 @@ struct TextureDescription
       return format < o.format;
     if(!(dimension == o.dimension))
       return dimension < o.dimension;
-    if(!(resType == o.resType))
-      return resType < o.resType;
+    if(!(type == o.type))
+      return type < o.type;
     if(!(width == o.width))
       return width < o.width;
     if(!(height == o.height))
       return height < o.height;
     if(!(depth == o.depth))
       return depth < o.depth;
-    if(!(ID == o.ID))
-      return ID < o.ID;
+    if(!(resourceId == o.resourceId))
+      return resourceId < o.resourceId;
     if(!(cubemap == o.cubemap))
       return cubemap < o.cubemap;
     if(!(mips == o.mips))
@@ -354,8 +354,8 @@ struct TextureDescription
   DOCUMENT("The base dimension of the texture - either 1, 2, or 3.");
   uint32_t dimension;
 
-  DOCUMENT("The :class:`TextureDim` of the texture.");
-  TextureDim resType;
+  DOCUMENT("The :class:`TextureType` of the texture.");
+  TextureType type;
 
   DOCUMENT("The width of the texture, or length for buffer textures.");
   uint32_t width;
@@ -366,8 +366,8 @@ struct TextureDescription
   DOCUMENT("The depth of the texture, or 1 if not applicable.");
   uint32_t depth;
 
-  DOCUMENT("The unique :class:`ResourceId` that identifies this buffer.");
-  ResourceId ID;
+  DOCUMENT("The unique :class:`ResourceId` that identifies this texture.");
+  ResourceId resourceId;
 
   DOCUMENT("``True`` if this texture is used as a cubemap or cubemap array.");
   bool cubemap;
@@ -397,23 +397,23 @@ DOCUMENT("An individual API-level event, generally corresponds one-to-one with a
 struct APIEvent
 {
   DOCUMENT("");
-  bool operator==(const APIEvent &o) const { return eventID == o.eventID; }
-  bool operator<(const APIEvent &o) const { return eventID < o.eventID; }
-  DOCUMENT(R"(The API event's Event ID (EID).
+  bool operator==(const APIEvent &o) const { return eventId == o.eventId; }
+  bool operator<(const APIEvent &o) const { return eventId < o.eventId; }
+  DOCUMENT(R"(The API event's Event ID.
 
-This is a 1-based count of API events in the capture. The EID is used as a reference point in
+This is a 1-based count of API events in the capture. The eventId is used as a reference point in
 many places in the API to represent where in the capture the 'current state' is, and to perform
 analysis in reference to the state at a particular point in the frame.
 
-EIDs are always increasing and positive, but they may not be contiguous - in some circumstances
+eventIds are always increasing and positive, but they may not be contiguous - in some circumstances
 there may be gaps if some events are consumed entirely internally, such as debug marker pops which
 only modify the internal drawcall tree structures.
 
-Also EIDs may not correspond directly to an actual function call - sometimes a function such as a
-multi draw indirect will be one function call that expands to multiple events to allow inspection of
-results part way through the multi draw.
+Also eventIds may not correspond directly to an actual function call - sometimes a function such as
+a multi draw indirect will be one function call that expands to multiple events to allow inspection
+of results part way through the multi draw.
 )");
-  uint32_t eventID;
+  uint32_t eventId;
 
   DOCUMENT("A list of addresses in the CPU callstack where this function was called.");
   rdcarray<uint64_t> callstack;
@@ -437,13 +437,13 @@ struct DebugMessage
   DOCUMENT("");
   bool operator==(const DebugMessage &o) const
   {
-    return eventID == o.eventID && category == o.category && severity == o.severity &&
+    return eventId == o.eventId && category == o.category && severity == o.severity &&
            source == o.source && messageID == o.messageID && description == o.description;
   }
   bool operator<(const DebugMessage &o) const
   {
-    if(!(eventID == o.eventID))
-      return eventID < o.eventID;
+    if(!(eventId == o.eventId))
+      return eventId < o.eventId;
     if(!(category == o.category))
       return category < o.category;
     if(!(severity == o.severity))
@@ -456,8 +456,8 @@ struct DebugMessage
       return description < o.description;
     return false;
   }
-  DOCUMENT("The :data:`EID <APIEvent.eventID>` where this debug message was found.");
-  uint32_t eventID;
+  DOCUMENT("The :data:`eventId <APIEvent.eventId>` where this debug message was found.");
+  uint32_t eventId;
 
   DOCUMENT("The :class:`category <MessageCategory>` of this debug message.");
   MessageCategory category;
@@ -559,7 +559,7 @@ struct ResourceBindStats
   DOCUMENT("How many objects were unbound.");
   uint32_t nulls;
 
-  DOCUMENT(R"(A list with one element for each type in :class:`TextureDim`.
+  DOCUMENT(R"(A list with one element for each type in :class:`TextureType`.
 
 The Nth element contains the number of times a resource of that type was bound.
 )");
@@ -595,7 +595,7 @@ struct ResourceUpdateStats
   DOCUMENT("How many of :data:`calls` were batched updates written in the command queue.");
   uint32_t servers;
 
-  DOCUMENT(R"(A list with one element for each type in :class:`TextureDim`.
+  DOCUMENT(R"(A list with one element for each type in :class:`TextureType`.
 
 The Nth element contains the number of times a resource of that type was updated.
 )");
@@ -904,23 +904,24 @@ this counts the frame number when the capture was made.
 
 DECLARE_REFLECTION_STRUCT(FrameDescription);
 
-DOCUMENT("Describes a particular use of a resource at a specific :data:`EID <APIEvent.eventID>`.");
+DOCUMENT(
+    "Describes a particular use of a resource at a specific :data:`eventId <APIEvent.eventId>`.");
 struct EventUsage
 {
   DOCUMENT("");
-  EventUsage() : eventID(0), usage(ResourceUsage::Unused) {}
-  EventUsage(uint32_t e, ResourceUsage u) : eventID(e), usage(u) {}
-  EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventID(e), usage(u), view(v) {}
+  EventUsage() : eventId(0), usage(ResourceUsage::Unused) {}
+  EventUsage(uint32_t e, ResourceUsage u) : eventId(e), usage(u) {}
+  EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventId(e), usage(u), view(v) {}
   bool operator<(const EventUsage &o) const
   {
-    if(!(eventID == o.eventID))
-      return eventID < o.eventID;
+    if(!(eventId == o.eventId))
+      return eventId < o.eventId;
     return usage < o.usage;
   }
 
-  bool operator==(const EventUsage &o) const { return eventID == o.eventID && usage == o.usage; }
-  DOCUMENT("The :data:`EID <APIEvent.eventID>` where this usage happened.");
-  uint32_t eventID;
+  bool operator==(const EventUsage &o) const { return eventId == o.eventId && usage == o.usage; }
+  DOCUMENT("The :data:`eventId <APIEvent.eventId>` where this usage happened.");
+  uint32_t eventId;
 
   DOCUMENT("The :class:`ResourceUsage` in question.");
   ResourceUsage usage;
@@ -938,8 +939,8 @@ struct DrawcallDescription
   DOCUMENT("Resets the drawcall back to a default/empty state.");
   void Reset()
   {
-    eventID = 0;
-    drawcallID = 0;
+    eventId = 0;
+    drawcallId = 0;
     flags = DrawFlags::NoFlags;
     markerColor[0] = markerColor[1] = markerColor[2] = markerColor[3] = 0.0f;
     numIndices = 0;
@@ -967,12 +968,12 @@ struct DrawcallDescription
     depthOut = ResourceId();
   }
   DOCUMENT("");
-  bool operator==(const DrawcallDescription &o) const { return eventID == o.eventID; }
-  bool operator<(const DrawcallDescription &o) const { return eventID < o.eventID; }
-  DOCUMENT("The :data:`EID <APIEvent.eventID>` that actually produced the drawcall.");
-  uint32_t eventID;
+  bool operator==(const DrawcallDescription &o) const { return eventId == o.eventId; }
+  bool operator<(const DrawcallDescription &o) const { return eventId < o.eventId; }
+  DOCUMENT("The :data:`eventId <APIEvent.eventId>` that actually produced the drawcall.");
+  uint32_t eventId;
   DOCUMENT("A 1-based index of this drawcall relative to other drawcalls.");
-  uint32_t drawcallID;
+  uint32_t drawcallId;
 
   DOCUMENT(R"(The name of this drawcall. Typically a summarised/concise list of parameters.
 
@@ -984,7 +985,7 @@ struct DrawcallDescription
   DOCUMENT("A set of :class:`DrawFlags` properties describing what kind of drawcall this is.");
   DrawFlags flags;
 
-  DOCUMENT("A RGBA colour specified by a debug marker call.");
+  DOCUMENT("A RGBA color specified by a debug marker call.");
   float markerColor[4];
 
   DOCUMENT("The number of indices or vertices as appropriate for the drawcall. 0 if not used.");
@@ -1030,21 +1031,21 @@ operation.
 )");
   ResourceId copyDestination;
 
-  DOCUMENT(R"(The :data:`EID <APIEvent.eventID>` of the parent of this drawcall, or ``0`` if there
+  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` of the parent of this drawcall, or ``0`` if there
 is no parent for this drawcall.
 )");
   int64_t parent;
 
-  DOCUMENT(R"(The :data:`EID <APIEvent.eventID>` of the previous drawcall in the frame, or ``0`` if
+  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` of the previous drawcall in the frame, or ``0`` if
 this is the first drawcall in the frame.
 )");
   int64_t previous;
-  DOCUMENT(R"(The :data:`EID <APIEvent.eventID>` of the next drawcall in the frame, or ``0`` if this
+  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` of the next drawcall in the frame, or ``0`` if this
 is the last drawcall in the frame.
 )");
   int64_t next;
 
-  DOCUMENT(R"(A simple list of the :class:`ResourceId` ids for the colour outputs, which can be used
+  DOCUMENT(R"(A simple list of the :class:`ResourceId` ids for the color outputs, which can be used
 for very coarse bucketing of drawcalls into similar passes by their outputs.
 )");
   ResourceId outputs[8];
@@ -1128,7 +1129,7 @@ struct CounterDescription
 .. note:: The value may not correspond to any of the predefined values if it's a hardware-specific
   counter value.
 )");
-  GPUCounter counterID;
+  GPUCounter counter;
 
   DOCUMENT("A short human-readable name for the counter.");
   rdcstr name;
@@ -1174,20 +1175,14 @@ DECLARE_REFLECTION_STRUCT(CounterValue);
 DOCUMENT("The resulting value from a counter at an event.");
 struct CounterResult
 {
-  CounterResult() : eventID(0), counterID(GPUCounter::EventGPUDuration) { value.u64 = 0; }
-  CounterResult(uint32_t EID, GPUCounter c, float data) : eventID(EID), counterID(c)
-  {
-    value.f = data;
-  }
-  CounterResult(uint32_t EID, GPUCounter c, double data) : eventID(EID), counterID(c)
-  {
-    value.d = data;
-  }
-  CounterResult(uint32_t EID, GPUCounter c, uint32_t data) : eventID(EID), counterID(c)
+  CounterResult() : eventId(0), counter(GPUCounter::EventGPUDuration) { value.u64 = 0; }
+  CounterResult(uint32_t e, GPUCounter c, float data) : eventId(e), counter(c) { value.f = data; }
+  CounterResult(uint32_t e, GPUCounter c, double data) : eventId(e), counter(c) { value.d = data; }
+  CounterResult(uint32_t e, GPUCounter c, uint32_t data) : eventId(e), counter(c)
   {
     value.u32 = data;
   }
-  CounterResult(uint32_t EID, GPUCounter c, uint64_t data) : eventID(EID), counterID(c)
+  CounterResult(uint32_t e, GPUCounter c, uint64_t data) : eventId(e), counter(c)
   {
     value.u64 = data;
   }
@@ -1195,10 +1190,10 @@ struct CounterResult
   DOCUMENT("Compares two ``CounterResult`` objects for less-than.");
   bool operator<(const CounterResult &o) const
   {
-    if(!(eventID == o.eventID))
-      return eventID < o.eventID;
-    if(!(counterID == o.counterID))
-      return counterID < o.counterID;
+    if(!(eventId == o.eventId))
+      return eventId < o.eventId;
+    if(!(counter == o.counter))
+      return counter < o.counter;
 
     // don't compare values, just consider equal
     return false;
@@ -1207,15 +1202,15 @@ struct CounterResult
   DOCUMENT("Compares two ``CounterResult`` objects for equality.");
   bool operator==(const CounterResult &o) const
   {
-    // don't compare values, just consider equal by EID/counterID
-    return eventID == o.eventID && counterID == o.counterID;
+    // don't compare values, just consider equal by eventId/counterID
+    return eventId == o.eventId && counter == o.counter;
   }
 
-  DOCUMENT("The :data:`EID <APIEvent.eventID>` that produced this value.");
-  uint32_t eventID;
+  DOCUMENT("The :data:`eventId <APIEvent.eventId>` that produced this value.");
+  uint32_t eventId;
 
   DOCUMENT("The :data:`counter <GPUCounter>` that produced this value.");
-  GPUCounter counterID;
+  GPUCounter counter;
 
   DOCUMENT("The value itself.");
   CounterValue value;
@@ -1227,13 +1222,11 @@ DOCUMENT("The contents of an RGBA pixel.");
 union PixelValue
 {
   DOCUMENT("The RGBA value interpreted as ``float``.");
-  float value_f[4];
+  float floatValue[4];
   DOCUMENT("The RGBA value interpreted as 32-bit unsigned integer.");
-  uint32_t value_u[4];
+  uint32_t uintValue[4];
   DOCUMENT("The RGBA value interpreted as 32-bit signed integer.");
-  int32_t value_i[4];
-  DOCUMENT("The RGBA value interpreted as 16-bit unsigned integer.");
-  uint16_t value_u16[4];
+  int32_t intValue[4];
 };
 
 DECLARE_REFLECTION_STRUCT(PixelValue);
@@ -1256,7 +1249,7 @@ struct ModificationValue
       return stencil < o.stencil;
     return false;
   }
-  DOCUMENT("The colour value.");
+  DOCUMENT("The color value.");
   PixelValue col;
 
   DOCUMENT("The depth output, as a ``float``.");
@@ -1274,7 +1267,7 @@ struct PixelModification
   DOCUMENT("");
   bool operator==(const PixelModification &o) const
   {
-    return eventID == o.eventID && directShaderWrite == o.directShaderWrite &&
+    return eventId == o.eventId && directShaderWrite == o.directShaderWrite &&
            unboundPS == o.unboundPS && fragIndex == o.fragIndex && primitiveID == o.primitiveID &&
            preMod == o.preMod && shaderOut == o.shaderOut && postMod == o.postMod &&
            sampleMasked == o.sampleMasked && backfaceCulled == o.backfaceCulled &&
@@ -1284,8 +1277,8 @@ struct PixelModification
   }
   bool operator<(const PixelModification &o) const
   {
-    if(!(eventID == o.eventID))
-      return eventID < o.eventID;
+    if(!(eventId == o.eventId))
+      return eventId < o.eventId;
     if(!(directShaderWrite == o.directShaderWrite))
       return directShaderWrite < o.directShaderWrite;
     if(!(unboundPS == o.unboundPS))
@@ -1318,8 +1311,8 @@ struct PixelModification
       return stencilTestFailed < o.stencilTestFailed;
     return false;
   }
-  DOCUMENT("The :data:`EID <APIEvent.eventID>` where the modification happened.");
-  uint32_t eventID;
+  DOCUMENT("The :data:`eventId <APIEvent.eventId>` where the modification happened.");
+  uint32_t eventId;
 
   DOCUMENT("``True`` if this event came as part of an arbitrary shader write.");
   bool directShaderWrite;
@@ -1370,7 +1363,7 @@ pixel.
 :return: ``True`` if it passed all tests, ``False`` if it failed any.
 :rtype: ``bool``
 )");
-  bool passed() const
+  bool Passed() const
   {
     return !sampleMasked && !backfaceCulled && !depthClipped && !viewClipped && !scissorClipped &&
            !shaderDiscarded && !depthTestFailed && !stencilTestFailed && !predicationSkipped;

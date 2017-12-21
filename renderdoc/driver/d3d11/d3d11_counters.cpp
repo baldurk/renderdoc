@@ -78,7 +78,7 @@ vector<GPUCounter> D3D11DebugManager::EnumerateCounters()
 CounterDescription D3D11DebugManager::DescribeCounter(GPUCounter counterID)
 {
   CounterDescription desc = {};
-  desc.counterID = counterID;
+  desc.counter = counterID;
 
   /////AMD//////
   if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
@@ -211,7 +211,7 @@ struct GPUTimer
   ID3D11Query *after;
   ID3D11Query *stats;
   ID3D11Query *occlusion;
-  uint32_t eventID;
+  uint32_t eventId;
 };
 
 struct D3D11CounterContext
@@ -245,7 +245,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescr
       ctx.timers.push_back(GPUTimer());
 
       timer = &ctx.timers.back();
-      timer->eventID = d.eventID;
+      timer->eventId = d.eventId;
       timer->before = timer->after = timer->stats = timer->occlusion = NULL;
 
       hr = m_pDevice->CreateQuery(&qtimedesc, &timer->before);
@@ -258,7 +258,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescr
       RDCASSERTEQUAL(hr, S_OK);
     }
 
-    m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_WithoutDraw);
+    m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventId, eReplay_WithoutDraw);
 
     m_pImmediateContext->Flush();
 
@@ -268,7 +268,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescr
       m_pImmediateContext->Begin(timer->occlusion);
     if(timer->before && timer->after)
       m_pImmediateContext->End(timer->before);
-    m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+    m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventId, eReplay_OnlyDraw);
     if(timer->before && timer->after)
       m_pImmediateContext->End(timer->after);
     if(timer->occlusion)
@@ -276,7 +276,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescr
     if(timer->stats)
       m_pImmediateContext->End(timer->stats);
 
-    ctx.eventStart = d.eventID + 1;
+    ctx.eventStart = d.eventId + 1;
   }
 }
 
@@ -295,19 +295,19 @@ void D3D11DebugManager::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIn
     if(d.events.empty())
       continue;
 
-    eventIDs.push_back(d.eventID);
+    eventIDs.push_back(d.eventId);
 
-    m_WrappedDevice->ReplayLog(eventStartID, d.eventID, eReplay_WithoutDraw);
+    m_WrappedDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
 
     m_pImmediateContext->Flush();
 
     m_pAMDCounters->BeginSample(sampleIndex);
 
-    m_WrappedDevice->ReplayLog(eventStartID, d.eventID, eReplay_OnlyDraw);
+    m_WrappedDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
 
     m_pAMDCounters->EndSample();
 
-    eventStartID = d.eventID + 1;
+    eventStartID = d.eventId + 1;
     sampleIndex++;
   }
 }
@@ -550,55 +550,55 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
             {
               case GPUCounter::EventGPUDuration:
                 ret.push_back(
-                    CounterResult(ctx.timers[i].eventID, GPUCounter::EventGPUDuration, duration));
+                    CounterResult(ctx.timers[i].eventId, GPUCounter::EventGPUDuration, duration));
                 break;
               case GPUCounter::InputVerticesRead:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::InputVerticesRead,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::InputVerticesRead,
                                             pipelineStats.IAVertices));
                 break;
               case GPUCounter::IAPrimitives:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::IAPrimitives,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::IAPrimitives,
                                             pipelineStats.IAPrimitives));
                 break;
               case GPUCounter::VSInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::VSInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::VSInvocations,
                                             pipelineStats.VSInvocations));
                 break;
               case GPUCounter::GSInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::GSInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::GSInvocations,
                                             pipelineStats.GSInvocations));
                 break;
               case GPUCounter::GSPrimitives:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::GSPrimitives,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::GSPrimitives,
                                             pipelineStats.GSPrimitives));
                 break;
               case GPUCounter::RasterizerInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::RasterizerInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::RasterizerInvocations,
                                             pipelineStats.CInvocations));
                 break;
               case GPUCounter::RasterizedPrimitives:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::RasterizedPrimitives,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::RasterizedPrimitives,
                                             pipelineStats.CPrimitives));
                 break;
               case GPUCounter::PSInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::PSInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::PSInvocations,
                                             pipelineStats.PSInvocations));
                 break;
               case GPUCounter::HSInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::HSInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::HSInvocations,
                                             pipelineStats.HSInvocations));
                 break;
               case GPUCounter::DSInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::DSInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::DSInvocations,
                                             pipelineStats.DSInvocations));
                 break;
               case GPUCounter::CSInvocations:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, GPUCounter::CSInvocations,
+                ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::CSInvocations,
                                             pipelineStats.CSInvocations));
                 break;
               case GPUCounter::SamplesWritten:
                 ret.push_back(
-                    CounterResult(ctx.timers[i].eventID, GPUCounter::SamplesWritten, occlusion));
+                    CounterResult(ctx.timers[i].eventId, GPUCounter::SamplesWritten, occlusion));
                 break;
             }
           }
@@ -611,7 +611,7 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
             {
               case GPUCounter::EventGPUDuration:
                 ret.push_back(
-                    CounterResult(ctx.timers[i].eventID, GPUCounter::EventGPUDuration, -1.0));
+                    CounterResult(ctx.timers[i].eventId, GPUCounter::EventGPUDuration, -1.0));
                 break;
               case GPUCounter::InputVerticesRead:
               case GPUCounter::IAPrimitives:
@@ -626,7 +626,7 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
               case GPUCounter::CSInvocations:
               case GPUCounter::SamplesWritten:
                 ret.push_back(
-                    CounterResult(ctx.timers[i].eventID, d3dCounters[c], 0xFFFFFFFFFFFFFFFF));
+                    CounterResult(ctx.timers[i].eventId, d3dCounters[c], 0xFFFFFFFFFFFFFFFF));
                 break;
             }
           }

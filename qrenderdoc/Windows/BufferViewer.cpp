@@ -859,15 +859,15 @@ private:
     {
       if(el.format.compType == CompType::Float)
       {
-        return interpretVariant(QVariant(generics[col].value_f[comp]), el);
+        return interpretVariant(QVariant(generics[col].floatValue[comp]), el);
       }
       else if(el.format.compType == CompType::SInt)
       {
-        return interpretVariant(QVariant(generics[col].value_i[comp]), el);
+        return interpretVariant(QVariant(generics[col].intValue[comp]), el);
       }
       else if(el.format.compType == CompType::UInt)
       {
-        return interpretVariant(QVariant(generics[col].value_u[comp]), el);
+        return interpretVariant(QVariant(generics[col].uintValue[comp]), el);
       }
     }
 
@@ -1379,7 +1379,7 @@ void BufferViewer::OnCaptureClosed()
     ToolWindowManager::closeToolWindow(this);
 }
 
-void BufferViewer::OnEventChanged(uint32_t eventID)
+void BufferViewer::OnEventChanged(uint32_t eventId)
 {
   int vsinHoriz = ui->vsinData->horizontalScrollBar()->value();
   int vsoutHoriz = ui->vsoutData->horizontalScrollBar()->value();
@@ -1554,13 +1554,13 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  BoundBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
+  BoundVBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
 
-  rdcarray<BoundBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
+  rdcarray<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
   bytebuf idata;
-  if(ib.Buffer != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(ib.Buffer, ib.ByteOffset + draw->indexOffset * draw->indexByteWidth,
+  if(ib.resourceId != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
+    idata = r->GetBufferData(ib.resourceId, ib.byteOffset + draw->indexOffset * draw->indexByteWidth,
                              draw->numIndices * draw->indexByteWidth);
 
   uint32_t *indices = NULL;
@@ -1631,7 +1631,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   }
 
   int vbIdx = 0;
-  for(BoundBuffer vb : vbs)
+  for(BoundVBuffer vb : vbs)
   {
     bool used = false;
     bool pi = false;
@@ -1678,13 +1678,13 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     BufferData *buf = new BufferData;
     if(used)
     {
-      bytebuf bufdata = r->GetBufferData(vb.Buffer, vb.ByteOffset + offset * vb.ByteStride,
-                                         (maxIdx + 1) * vb.ByteStride);
+      bytebuf bufdata = r->GetBufferData(vb.resourceId, vb.byteOffset + offset * vb.byteStride,
+                                         (maxIdx + 1) * vb.byteStride);
 
       buf->data = new byte[bufdata.size()];
       memcpy(buf->data, bufdata.data(), bufdata.size());
       buf->end = buf->data + bufdata.size();
-      buf->stride = vb.ByteStride;
+      buf->stride = vb.byteStride;
     }
     // ref passes to model
     m_ModelVSIn->buffers.push_back(buf);
@@ -1692,10 +1692,10 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   m_PostVS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::VSOut);
 
-  m_ModelVSOut->numRows = m_PostVS.numVerts;
+  m_ModelVSOut->numRows = m_PostVS.numIndices;
 
-  if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(m_PostVS.idxbuf, 0, draw->numIndices * draw->indexByteWidth);
+  if(draw && m_PostVS.indexResourceId != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
+    idata = r->GetBufferData(m_PostVS.indexResourceId, 0, draw->numIndices * draw->indexByteWidth);
 
   indices = NULL;
   if(m_ModelVSOut->indices)
@@ -1734,15 +1734,15 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     }
   }
 
-  if(m_PostVS.buf != ResourceId())
+  if(m_PostVS.vertexResourceId != ResourceId())
   {
     BufferData *postvs = new BufferData;
-    bytebuf bufdata = r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0);
+    bytebuf bufdata = r->GetBufferData(m_PostVS.vertexResourceId, m_PostVS.vertexByteOffset, 0);
 
     postvs->data = new byte[bufdata.size()];
     memcpy(postvs->data, bufdata.data(), bufdata.size());
     postvs->end = postvs->data + bufdata.size();
-    postvs->stride = m_PostVS.stride;
+    postvs->stride = m_PostVS.vertexByteStride;
 
     // ref passes to model
     m_ModelVSOut->buffers.push_back(postvs);
@@ -1750,20 +1750,20 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   m_PostGS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::GSOut);
 
-  m_ModelGSOut->numRows = m_PostGS.numVerts;
+  m_ModelGSOut->numRows = m_PostGS.numIndices;
 
   indices = NULL;
   m_ModelGSOut->indices = NULL;
 
-  if(m_PostGS.buf != ResourceId())
+  if(m_PostGS.vertexResourceId != ResourceId())
   {
     BufferData *postgs = new BufferData;
-    bytebuf bufdata = r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0);
+    bytebuf bufdata = r->GetBufferData(m_PostGS.vertexResourceId, m_PostGS.vertexByteOffset, 0);
 
     postgs->data = new byte[bufdata.size()];
     memcpy(postgs->data, bufdata.data(), bufdata.size());
     postgs->end = postgs->data + bufdata.size();
-    postgs->stride = m_PostGS.stride;
+    postgs->stride = m_PostGS.vertexByteStride;
 
     // ref passes to model
     m_ModelGSOut->buffers.push_back(postgs);
@@ -1772,12 +1772,12 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   if(!draw)
     return;
 
-  uint32_t eventID = draw->eventID;
+  uint32_t eventId = draw->eventId;
   bool calcNeeded = false;
 
   {
     QMutexLocker autolock(&m_BBoxLock);
-    calcNeeded = !m_BBoxes.contains(eventID);
+    calcNeeded = !m_BBoxes.contains(eventId);
   }
 
   if(!calcNeeded)
@@ -1788,7 +1788,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   {
     QMutexLocker autolock(&m_BBoxLock);
-    m_BBoxes.insert(eventID, BBoxData());
+    m_BBoxes.insert(eventId, BBoxData());
   }
 
   CalcBoundingBoxData *bbox = new CalcBoundingBoxData;
@@ -1797,7 +1797,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   bbox->inst = m_ModelVSIn->curInstance;
   bbox->baseVertex = draw->baseVertex;
-  bbox->eventID = eventID;
+  bbox->eventId = eventId;
 
   for(size_t i = 0; i < ARRAY_COUNT(bbox->input); i++)
   {
@@ -1919,10 +1919,10 @@ void BufferViewer::updateBoundingBox(const CalcBoundingBoxData &bbox)
 {
   {
     QMutexLocker autolock(&m_BBoxLock);
-    m_BBoxes[bbox.eventID] = bbox.output;
+    m_BBoxes[bbox.eventId] = bbox.output;
   }
 
-  if(m_Ctx.CurEvent() == bbox.eventID)
+  if(m_Ctx.CurEvent() == bbox.eventId)
     UpdateMeshConfig();
 
   resetArcball();
@@ -2094,7 +2094,7 @@ void BufferViewer::updatePreviewColumns()
   if(!m_MeshView)
     return;
 
-  rdcarray<BoundBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
+  rdcarray<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw)
@@ -2108,35 +2108,35 @@ void BufferViewer::updatePreviewColumns()
       if(elIdx < 0 || elIdx >= m_ModelVSIn->columns.count())
         elIdx = 0;
 
-      m_VSInPosition.numVerts = draw->numIndices;
-      m_VSInPosition.topo = draw->topology;
-      m_VSInPosition.idxByteWidth = draw->indexByteWidth;
+      m_VSInPosition.numIndices = draw->numIndices;
+      m_VSInPosition.topology = draw->topology;
+      m_VSInPosition.indexByteStride = draw->indexByteWidth;
       m_VSInPosition.baseVertex = draw->baseVertex;
-      BoundBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
-      m_VSInPosition.idxbuf = ib.Buffer;
-      m_VSInPosition.idxoffs = ib.ByteOffset + draw->indexOffset * draw->indexByteWidth;
+      BoundVBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
+      m_VSInPosition.indexResourceId = ib.resourceId;
+      m_VSInPosition.indexByteOffset = ib.byteOffset + draw->indexOffset * draw->indexByteWidth;
 
-      if((draw->flags & DrawFlags::UseIBuffer) && m_VSInPosition.idxByteWidth == 0)
-        m_VSInPosition.idxByteWidth = 4U;
+      if((draw->flags & DrawFlags::UseIBuffer) && m_VSInPosition.indexByteStride == 0)
+        m_VSInPosition.indexByteStride = 4U;
 
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
 
         if(el.buffer < vbs.count())
         {
-          m_VSInPosition.buf = vbs[el.buffer].Buffer;
-          m_VSInPosition.stride = vbs[el.buffer].ByteStride;
-          m_VSInPosition.offset =
-              vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+          m_VSInPosition.vertexResourceId = vbs[el.buffer].resourceId;
+          m_VSInPosition.vertexByteStride = vbs[el.buffer].byteStride;
+          m_VSInPosition.vertexByteOffset = vbs[el.buffer].byteOffset + el.offset +
+                                            draw->vertexOffset * m_VSInPosition.vertexByteStride;
         }
         else
         {
-          m_VSInPosition.buf = ResourceId();
-          m_VSInPosition.stride = 0;
-          m_VSInPosition.offset = 0;
+          m_VSInPosition.vertexResourceId = ResourceId();
+          m_VSInPosition.vertexByteStride = 0;
+          m_VSInPosition.vertexByteOffset = 0;
         }
 
-        m_VSInPosition.fmt = el.format;
+        m_VSInPosition.format = el.format;
       }
 
       elIdx = m_ModelVSIn->secondaryColumn();
@@ -2147,19 +2147,19 @@ void BufferViewer::updatePreviewColumns()
 
         if(el.buffer < vbs.count())
         {
-          m_VSInSecondary.buf = vbs[el.buffer].Buffer;
-          m_VSInSecondary.stride = vbs[el.buffer].ByteStride;
-          m_VSInSecondary.offset =
-              vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInSecondary.stride;
+          m_VSInSecondary.vertexResourceId = vbs[el.buffer].resourceId;
+          m_VSInSecondary.vertexByteStride = vbs[el.buffer].byteStride;
+          m_VSInSecondary.vertexByteOffset = vbs[el.buffer].byteOffset + el.offset +
+                                             draw->vertexOffset * m_VSInSecondary.vertexByteStride;
         }
         else
         {
-          m_VSInSecondary.buf = ResourceId();
-          m_VSInSecondary.stride = 0;
-          m_VSInSecondary.offset = 0;
+          m_VSInSecondary.vertexResourceId = ResourceId();
+          m_VSInSecondary.vertexByteStride = 0;
+          m_VSInSecondary.vertexByteOffset = 0;
         }
 
-        m_VSInSecondary.fmt = el.format;
+        m_VSInSecondary.format = el.format;
         m_VSInSecondary.showAlpha = m_ModelVSIn->secondaryAlpha();
       }
     }
@@ -2174,14 +2174,14 @@ void BufferViewer::updatePreviewColumns()
         elIdx = 0;
 
       m_PostVSPosition = m_PostVS;
-      m_PostVSPosition.offset += m_ModelVSOut->columns[elIdx].offset;
+      m_PostVSPosition.vertexByteOffset += m_ModelVSOut->columns[elIdx].offset;
 
       elIdx = m_ModelVSOut->secondaryColumn();
 
       if(elIdx >= 0 && elIdx < m_ModelVSOut->columns.count())
       {
         m_PostVSSecondary = m_PostVS;
-        m_PostVSSecondary.offset += m_ModelVSOut->columns[elIdx].offset;
+        m_PostVSSecondary.vertexByteOffset += m_ModelVSOut->columns[elIdx].offset;
         m_PostVSSecondary.showAlpha = m_ModelVSOut->secondaryAlpha();
       }
     }
@@ -2196,22 +2196,22 @@ void BufferViewer::updatePreviewColumns()
         elIdx = 0;
 
       m_PostGSPosition = m_PostGS;
-      m_PostGSPosition.offset += m_ModelGSOut->columns[elIdx].offset;
+      m_PostGSPosition.vertexByteOffset += m_ModelGSOut->columns[elIdx].offset;
 
       elIdx = m_ModelGSOut->secondaryColumn();
 
       if(elIdx >= 0 && elIdx < m_ModelGSOut->columns.count())
       {
         m_PostGSSecondary = m_PostGS;
-        m_PostGSSecondary.offset += m_ModelGSOut->columns[elIdx].offset;
+        m_PostGSSecondary.vertexByteOffset += m_ModelGSOut->columns[elIdx].offset;
         m_PostGSSecondary.showAlpha = m_ModelGSOut->secondaryAlpha();
       }
     }
 
-    m_PostGSPosition.idxByteWidth = 0;
+    m_PostGSPosition.indexByteStride = 0;
 
     if(!(draw->flags & DrawFlags::UseIBuffer))
-      m_PostVSPosition.idxByteWidth = m_VSInPosition.idxByteWidth = 0;
+      m_PostVSPosition.indexByteStride = m_VSInPosition.indexByteStride = 0;
 
     m_PostGSPosition.unproject = true;
     m_PostVSPosition.unproject = !m_Ctx.CurPipelineState().IsTessellationEnabled();
@@ -2243,20 +2243,20 @@ void BufferViewer::configureMeshColumns()
 
   for(const VertexInputAttribute &a : vinputs)
   {
-    if(!a.Used)
+    if(!a.used)
       continue;
 
-    FormatElement f(a.Name, a.VertexBuffer, a.RelativeByteOffset, a.PerInstance, a.InstanceRate,
+    FormatElement f(a.name, a.vertexBuffer, a.byteOffset, a.perInstance, a.instanceRate,
                     false,    // row major matrix
                     1,        // matrix dimension
-                    a.Format, false, false);
+                    a.format, false, false);
 
     m_ModelVSIn->genericsEnabled[m_ModelVSIn->columns.size()] = false;
 
-    if(a.GenericEnabled)
+    if(a.genericEnabled)
     {
       m_ModelVSIn->genericsEnabled[m_ModelVSIn->columns.size()] = true;
-      m_ModelVSIn->generics[m_ModelVSIn->columns.size()] = a.GenericValue;
+      m_ModelVSIn->generics[m_ModelVSIn->columns.size()] = a.genericValue;
     }
 
     m_ModelVSIn->columns.push_back(f);
@@ -2270,7 +2270,7 @@ void BufferViewer::configureMeshColumns()
   Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 
   m_Config.fov = ui->fovGuess->value();
-  m_Config.aspect = vp.width / vp.height;
+  m_Config.aspect = (vp.width > 0.0f && vp.height > 0.0f) ? (vp.width / vp.height) : 1.0f;
   m_Config.highlightVert = 0;
 
   if(ui->aspectGuess->value() > 0.0)
@@ -2288,10 +2288,10 @@ void BufferViewer::configureMeshColumns()
 
   if(draw && vs)
   {
-    m_ModelVSOut->columns.reserve(vs->OutputSig.count());
+    m_ModelVSOut->columns.reserve(vs->outputSignature.count());
 
     int i = 0, posidx = -1;
-    for(const SigParameter &sig : vs->OutputSig)
+    for(const SigParameter &sig : vs->outputSignature)
     {
       FormatElement f;
 
@@ -2355,10 +2355,10 @@ void BufferViewer::configureMeshColumns()
 
     if(last)
     {
-      m_ModelGSOut->columns.reserve(last->OutputSig.count());
+      m_ModelGSOut->columns.reserve(last->outputSignature.count());
 
       int i = 0, posidx = -1;
-      for(const SigParameter &sig : last->OutputSig)
+      for(const SigParameter &sig : last->outputSignature)
       {
         FormatElement f;
 
@@ -2474,12 +2474,12 @@ void BufferViewer::UpdateMeshConfig()
 {
   BBoxData bbox;
 
-  uint32_t eventID = m_Ctx.CurEvent();
+  uint32_t eventId = m_Ctx.CurEvent();
 
   {
     QMutexLocker autolocker(&m_BBoxLock);
-    if(m_BBoxes.contains(eventID))
-      bbox = m_BBoxes[eventID];
+    if(m_BBoxes.contains(eventId))
+      bbox = m_BBoxes[eventId];
   }
 
   m_Config.type = m_CurStage;
@@ -2940,7 +2940,7 @@ void BufferViewer::camGuess_changed(double value)
 
   // take a guess for the aspect ratio, for if the user hasn't overridden it
   Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
-  m_Config.aspect = vp.width / vp.height;
+  m_Config.aspect = (vp.width > 0.0f && vp.height > 0.0f) ? (vp.width / vp.height) : 1.0f;
 
   if(ui->aspectGuess->value() > 0.0)
     m_Config.aspect = ui->aspectGuess->value();

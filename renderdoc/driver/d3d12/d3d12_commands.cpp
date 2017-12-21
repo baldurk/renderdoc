@@ -251,11 +251,11 @@ std::string WrappedID3D12CommandQueue::GetChunkName(uint32_t idx)
   return ToStr((D3D12Chunk)idx);
 }
 
-const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
+const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventId)
 {
   for(const APIEvent &e : m_Cmd.m_Events)
   {
-    if(e.eventID >= eventID)
+    if(e.eventId >= eventId)
       return e;
   }
 
@@ -535,7 +535,7 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
   {
     ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
 
-    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+    ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
 
     m_StructuredFile = &ser.GetStructuredFile();
   }
@@ -566,7 +566,7 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
   if(IsActiveReplaying(m_State))
   {
     APIEvent ev = GetEvent(startEventID);
-    m_Cmd.m_RootEventID = ev.eventID;
+    m_Cmd.m_RootEventID = ev.eventId;
 
     // if not partial, we need to be sure to replay
     // past the command list records, so can't
@@ -660,18 +660,13 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
-    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+    ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
 
   m_StructuredFile = NULL;
 
   if(IsLoading(m_State))
   {
-    struct SortEID
-    {
-      bool operator()(const APIEvent &a, const APIEvent &b) { return a.eventID < b.eventID; }
-    };
-
-    std::sort(m_Cmd.m_Events.begin(), m_Cmd.m_Events.end(), SortEID());
+    std::sort(m_Cmd.m_Events.begin(), m_Cmd.m_Events.end());
   }
 
   for(size_t i = 0; i < m_Cmd.m_RerecordCmdList.size(); i++)
@@ -862,20 +857,20 @@ void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, 
       // can cross command list boundaries.
       RDCASSERT(draws[i].children.empty());
 
-      draws[i].draw.eventID -= shiftEID;
-      draws[i].draw.drawcallID -= shiftDrawID;
+      draws[i].draw.eventId -= shiftEID;
+      draws[i].draw.drawcallId -= shiftDrawID;
 
       for(APIEvent &ev : draws[i].draw.events)
-        ev.eventID -= shiftEID;
+        ev.eventId -= shiftEID;
     }
 
-    uint32_t lastEID = draws[idx].draw.eventID;
+    uint32_t lastEID = draws[idx].draw.eventId;
 
     // shift any resource usage for drawcalls after the removed section
     for(size_t i = 0; i < draw->resourceUsage.size(); i++)
     {
-      if(draw->resourceUsage[i].second.eventID >= lastEID)
-        draw->resourceUsage[i].second.eventID -= shiftEID;
+      if(draw->resourceUsage[i].second.eventId >= lastEID)
+        draw->resourceUsage[i].second.eventId -= shiftEID;
     }
 
     // patch any subsequent executes
@@ -978,31 +973,31 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bo
     return 0;
   }
 
-  uint32_t eventID = it->eventID;
+  uint32_t eventId = it->eventId;
 
-  RDCASSERT(eventID != 0);
+  RDCASSERT(eventId != 0);
 
   // handle all aliases of this drawcall as long as it's not a multidraw
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
   if(draw == NULL || !(draw->flags & DrawFlags::MultiDraw))
   {
     ++it;
     while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
     {
-      m_DrawcallCallback->AliasEvent(eventID, it->eventID);
+      m_DrawcallCallback->AliasEvent(eventId, it->eventId);
       ++it;
     }
   }
 
-  eventID += multiDrawOffset;
+  eventId += multiDrawOffset;
 
   if(dispatch)
-    m_DrawcallCallback->PreDispatch(eventID, list);
+    m_DrawcallCallback->PreDispatch(eventId, list);
   else
-    m_DrawcallCallback->PreDraw(eventID, list);
+    m_DrawcallCallback->PreDraw(eventId, list);
 
-  return eventID;
+  return eventId;
 }
 
 bool D3D12CommandData::InRerecordRange(ResourceId cmdid)
@@ -1070,7 +1065,7 @@ void D3D12CommandData::AddEvent()
   APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
-  apievent.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
+  apievent.eventId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
                                                      : m_RootEventID;
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
@@ -1078,7 +1073,7 @@ void D3D12CommandData::AddEvent()
   apievent.callstack = m_ChunkMetadata.callstack;
 
   for(size_t i = 0; i < m_EventMessages.size(); i++)
-    m_EventMessages[i].eventID = apievent.eventID;
+    m_EventMessages[i].eventId = apievent.eventId;
 
   if(m_LastCmdListID != ResourceId())
   {
@@ -1114,7 +1109,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   DrawcallDescription &d = drawNode.draw;
 
   const D3D12RenderState &state = m_BakedCmdListInfo[m_LastCmdListID].state;
-  uint32_t e = d.eventID;
+  uint32_t e = d.eventId;
 
   DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
   if(!(d.flags & DrawMask))
@@ -1281,9 +1276,9 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
   m_AddedDrawcall = true;
 
   DrawcallDescription draw = d;
-  draw.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
+  draw.eventId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
                                                  : m_RootEventID;
-  draw.drawcallID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].drawCount
+  draw.drawcallId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].drawCount
                                                     : m_RootDrawcallID;
 
   for(int i = 0; i < 8; i++)
@@ -1363,16 +1358,16 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
     }
 
     D3D12DrawcallTreeNode n = cmdBufNodes[i];
-    n.draw.eventID += m_RootEventID;
-    n.draw.drawcallID += m_RootDrawcallID;
+    n.draw.eventId += m_RootEventID;
+    n.draw.drawcallId += m_RootDrawcallID;
 
     for(APIEvent &ev : n.draw.events)
     {
-      ev.eventID += m_RootEventID;
+      ev.eventId += m_RootEventID;
       m_Events.push_back(ev);
     }
 
-    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID, cmd, cmdBufNodes[i].draw.eventID);
+    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventId, cmd, cmdBufNodes[i].draw.eventId);
 
     // insert in sorted location
     auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
@@ -1383,7 +1378,7 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
     for(auto it = n.resourceUsage.begin(); it != n.resourceUsage.end(); ++it)
     {
       EventUsage u = it->second;
-      u.eventID += m_RootEventID;
+      u.eventId += m_RootEventID;
       m_ResourceUses[it->first].push_back(u);
     }
 

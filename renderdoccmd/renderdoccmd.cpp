@@ -79,25 +79,25 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   d.sampleIdx = ~0U;
   d.overlay = DebugOverlay::NoOverlay;
   d.typeHint = CompType::Typeless;
-  d.CustomShader = ResourceId();
-  d.HDRMul = -1.0f;
+  d.customShaderId = ResourceId();
+  d.hdrMultiplier = -1.0f;
   d.linearDisplayAsGamma = true;
-  d.FlipY = false;
-  d.rangemin = 0.0f;
-  d.rangemax = 1.0f;
+  d.flipY = false;
+  d.rangeMin = 0.0f;
+  d.rangeMax = 1.0f;
   d.scale = 1.0f;
-  d.offx = 0.0f;
-  d.offy = 0.0f;
+  d.xOffset = 0.0f;
+  d.yOffset = 0.0f;
   d.sliceFace = 0;
-  d.rawoutput = false;
-  d.Red = d.Green = d.Blue = true;
-  d.Alpha = false;
+  d.rawOutput = false;
+  d.red = d.green = d.blue = true;
+  d.alpha = false;
 
   for(const TextureDescription &desc : texs)
   {
     if(desc.creationFlags & TextureCategory::SwapBuffer)
     {
-      d.texid = desc.ID;
+      d.resourceId = desc.resourceId;
       break;
     }
   }
@@ -108,7 +108,7 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   {
     ResourceId id = draws.back().copyDestination;
     if(id != ResourceId())
-      d.texid = id;
+      d.resourceId = id;
   }
 
   DisplayRendererPreview(renderer, d, width, height);
@@ -1208,29 +1208,29 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
     if(it->second->IsCaptureCommand())
     {
       if(cmd.exist("opt-disallow-vsync"))
-        opts.AllowVSync = false;
+        opts.allowVSync = false;
       if(cmd.exist("opt-disallow-fullscreen"))
-        opts.AllowFullscreen = false;
+        opts.allowFullscreen = false;
       if(cmd.exist("opt-api-validation"))
-        opts.APIValidation = true;
+        opts.apiValidation = true;
       if(cmd.exist("opt-api-validation-unmute"))
-        opts.DebugOutputMute = false;
+        opts.debugOutputMute = false;
       if(cmd.exist("opt-capture-callstacks"))
-        opts.CaptureCallstacks = true;
+        opts.captureCallstacks = true;
       if(cmd.exist("opt-capture-callstacks-only-draws"))
-        opts.CaptureCallstacksOnlyDraws = true;
+        opts.captureCallstacksOnlyDraws = true;
       if(cmd.exist("opt-verify-map-writes"))
-        opts.VerifyMapWrites = true;
+        opts.verifyMapWrites = true;
       if(cmd.exist("opt-hook-children"))
-        opts.HookIntoChildren = true;
+        opts.hookIntoChildren = true;
       if(cmd.exist("opt-ref-all-resources"))
-        opts.RefAllResources = true;
+        opts.refAllResources = true;
       if(cmd.exist("opt-save-all-initials"))
-        opts.SaveAllInitials = true;
+        opts.saveAllInitials = true;
       if(cmd.exist("opt-capture-all-cmd-lists"))
-        opts.CaptureAllCmdLists = true;
+        opts.captureAllCmdLists = true;
 
-      opts.DelayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
+      opts.delayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
     }
 
     if(cmd.exist("help"))

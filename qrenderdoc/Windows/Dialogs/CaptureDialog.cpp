@@ -425,7 +425,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
 
   LambdaThread *scan = new LambdaThread([this, filename]() {
 
-    rdcstr host = m_Ctx.Replay().CurrentRemote()->Hostname;
+    rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
     RENDERDOC_CheckAndroidPackage(host.c_str(), filename.toUtf8().data(), &m_AndroidFlags);
 
     const bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
@@ -544,7 +544,7 @@ void CaptureDialog::androidWarn_mouseClick()
 
       // Call into layer push routine, then continue
       LambdaThread *push = new LambdaThread([this, exe, &pushSucceeded]() {
-        rdcstr host = m_Ctx.Replay().CurrentRemote()->Hostname;
+        rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
         if(RENDERDOC_PushLayerToInstalledAndroidApp(host.c_str(), exe.toUtf8().data()))
         {
           // Sucess!
@@ -609,7 +609,7 @@ void CaptureDialog::androidWarn_mouseClick()
 
       // call into APK pull, patch, install routine, then continue
       LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
-        rdcstr host = m_Ctx.Replay().CurrentRemote()->Hostname;
+        rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
         if(RENDERDOC_AddLayerToAndroidPackage(host.c_str(), exe.toUtf8().data(), &progress))
         {
           // Sucess!
@@ -698,7 +698,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
   {
     SetExecutableFilename(filename);
 
-    if(m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->IsHostADB())
+    if(m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->IsADB())
     {
       CheckAndroidSetup(filename);
     }
@@ -831,7 +831,7 @@ void CaptureDialog::on_toggleGlobal_clicked()
     QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());
 
     bool success = RENDERDOC_StartGlobalHook(exe.toUtf8().data(), capturefile.toUtf8().data(),
-                                             Settings().Options);
+                                             Settings().options);
 
     if(!success)
     {
@@ -907,30 +907,30 @@ void CaptureDialog::on_close_clicked()
 
 void CaptureDialog::SetSettings(CaptureSettings settings)
 {
-  SetInjectMode(settings.Inject);
+  SetInjectMode(settings.inject);
 
-  ui->exePath->setText(settings.Executable);
-  ui->workDirPath->setText(settings.WorkingDir);
-  ui->cmdline->setText(settings.CmdLine);
+  ui->exePath->setText(settings.executable);
+  ui->workDirPath->setText(settings.workingDir);
+  ui->cmdline->setText(settings.commandLine);
 
-  SetEnvironmentModifications(settings.Environment);
+  SetEnvironmentModifications(settings.environment);
 
-  ui->AllowFullscreen->setChecked(settings.Options.AllowFullscreen);
-  ui->AllowVSync->setChecked(settings.Options.AllowVSync);
-  ui->HookIntoChildren->setChecked(settings.Options.HookIntoChildren);
-  ui->CaptureCallstacks->setChecked(settings.Options.CaptureCallstacks);
-  ui->CaptureCallstacksOnlyDraws->setChecked(settings.Options.CaptureCallstacksOnlyDraws);
-  ui->APIValidation->setChecked(settings.Options.APIValidation);
-  ui->RefAllResources->setChecked(settings.Options.RefAllResources);
-  ui->SaveAllInitials->setChecked(settings.Options.SaveAllInitials);
-  ui->DelayForDebugger->setValue(settings.Options.DelayForDebugger);
-  ui->VerifyMapWrites->setChecked(settings.Options.VerifyMapWrites);
-  ui->AutoStart->setChecked(settings.AutoStart);
+  ui->AllowFullscreen->setChecked(settings.options.allowFullscreen);
+  ui->AllowVSync->setChecked(settings.options.allowVSync);
+  ui->HookIntoChildren->setChecked(settings.options.hookIntoChildren);
+  ui->CaptureCallstacks->setChecked(settings.options.captureCallstacks);
+  ui->CaptureCallstacksOnlyDraws->setChecked(settings.options.captureCallstacksOnlyDraws);
+  ui->APIValidation->setChecked(settings.options.apiValidation);
+  ui->RefAllResources->setChecked(settings.options.refAllResources);
+  ui->SaveAllInitials->setChecked(settings.options.saveAllInitials);
+  ui->DelayForDebugger->setValue(settings.options.delayForDebugger);
+  ui->VerifyMapWrites->setChecked(settings.options.verifyMapWrites);
+  ui->AutoStart->setChecked(settings.autoStart);
 
   // force flush this state
   on_CaptureCallstacks_toggled(ui->CaptureCallstacks->isChecked());
 
-  if(settings.AutoStart)
+  if(settings.autoStart)
   {
     TriggerCapture();
   }
@@ -940,27 +940,27 @@ CaptureSettings CaptureDialog::Settings()
 {
   CaptureSettings ret;
 
-  ret.Inject = IsInjectMode();
+  ret.inject = IsInjectMode();
 
-  ret.AutoStart = ui->AutoStart->isChecked();
+  ret.autoStart = ui->AutoStart->isChecked();
 
-  ret.Executable = ui->exePath->text();
-  ret.WorkingDir = ui->workDirPath->text();
-  ret.CmdLine = ui->cmdline->text();
+  ret.executable = ui->exePath->text();
+  ret.workingDir = ui->workDirPath->text();
+  ret.commandLine = ui->cmdline->text();
 
-  ret.Environment = m_EnvModifications;
+  ret.environment = m_EnvModifications;
 
-  ret.Options.AllowFullscreen = ui->AllowFullscreen->isChecked();
-  ret.Options.AllowVSync = ui->AllowVSync->isChecked();
-  ret.Options.HookIntoChildren = ui->HookIntoChildren->isChecked();
-  ret.Options.CaptureCallstacks = ui->CaptureCallstacks->isChecked();
-  ret.Options.CaptureCallstacksOnlyDraws = ui->CaptureCallstacksOnlyDraws->isChecked();
-  ret.Options.APIValidation = ui->APIValidation->isChecked();
-  ret.Options.RefAllResources = ui->RefAllResources->isChecked();
-  ret.Options.SaveAllInitials = ui->SaveAllInitials->isChecked();
-  ret.Options.CaptureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
-  ret.Options.DelayForDebugger = (uint32_t)ui->DelayForDebugger->value();
-  ret.Options.VerifyMapWrites = ui->VerifyMapWrites->isChecked();
+  ret.options.allowFullscreen = ui->AllowFullscreen->isChecked();
+  ret.options.allowVSync = ui->AllowVSync->isChecked();
+  ret.options.hookIntoChildren = ui->HookIntoChildren->isChecked();
+  ret.options.captureCallstacks = ui->CaptureCallstacks->isChecked();
+  ret.options.captureCallstacksOnlyDraws = ui->CaptureCallstacksOnlyDraws->isChecked();
+  ret.options.apiValidation = ui->APIValidation->isChecked();
+  ret.options.refAllResources = ui->RefAllResources->isChecked();
+  ret.options.saveAllInitials = ui->SaveAllInitials->isChecked();
+  ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
+  ret.options.delayForDebugger = (uint32_t)ui->DelayForDebugger->value();
+  ret.options.verifyMapWrites = ui->VerifyMapWrites->isChecked();
 
   return ret;
 }
@@ -1107,7 +1107,7 @@ void CaptureDialog::TriggerCapture()
       QString name = m_ProcessModel->data(m_ProcessModel->index(item.row(), 0)).toString();
       uint32_t PID = m_ProcessModel->data(m_ProcessModel->index(item.row(), 1)).toUInt();
 
-      m_InjectCallback(PID, Settings().Environment, name, Settings().Options,
+      m_InjectCallback(PID, Settings().environment, name, Settings().options,
                        [this](LiveCapture *live) {
                          if(ui->queueFrameCap->isChecked())
                            live->QueueCapture((int)ui->queuedFrame->value());
@@ -1144,7 +1144,7 @@ void CaptureDialog::TriggerCapture()
 
     QString cmdLine = ui->cmdline->text();
 
-    m_CaptureCallback(exe, workingDir, cmdLine, Settings().Environment, Settings().Options,
+    m_CaptureCallback(exe, workingDir, cmdLine, Settings().environment, Settings().options,
                       [this](LiveCapture *live) {
                         if(ui->queueFrameCap->isChecked())
                           live->QueueCapture((int)ui->queuedFrame->value());

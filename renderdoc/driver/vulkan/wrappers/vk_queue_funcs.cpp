@@ -215,7 +215,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
           {
             m_DebugMessages.push_back(cmdBufInfo.debugMessages[i]);
-            m_DebugMessages.back().eventID += m_RootEventID;
+            m_DebugMessages.back().eventId += m_RootEventID;
           }
 
           // only primary command buffers can be submitted
@@ -364,16 +364,16 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     }
 
     VulkanDrawcallTreeNode n = cmdBufNodes[i];
-    n.draw.eventID += m_RootEventID;
-    n.draw.drawcallID += m_RootDrawcallID;
+    n.draw.eventId += m_RootEventID;
+    n.draw.drawcallId += m_RootDrawcallID;
 
     for(APIEvent &ev : n.draw.events)
     {
-      ev.eventID += m_RootEventID;
+      ev.eventId += m_RootEventID;
       m_Events.push_back(ev);
     }
 
-    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID);
+    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventId);
 
     // insert in sorted location
     auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
@@ -384,7 +384,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     for(auto it = n.resourceUsage.begin(); it != n.resourceUsage.end(); ++it)
     {
       EventUsage u = it->second;
-      u.eventID += m_RootEventID;
+      u.eventId += m_RootEventID;
       m_ResourceUses[it->first].push_back(u);
     }
 

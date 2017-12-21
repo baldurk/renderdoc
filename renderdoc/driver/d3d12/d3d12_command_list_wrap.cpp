@@ -1473,7 +1473,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
         num = base->samp.heap->GetNumDescriptors() - offset;
       }
 
-      if(!RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+      if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
       {
         std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
 
@@ -2035,7 +2035,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
         num = base->samp.heap->GetNumDescriptors() - offset;
       }
 
-      if(!RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+      if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
       {
         std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
 
@@ -3060,16 +3060,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
       {
         ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventID = m_Cmd->HandlePreCallback(list);
+        uint32_t eventId = m_Cmd->HandlePreCallback(list);
 
         Unwrap(list)->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
                                     StartInstanceLocation);
 
-        if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+        if(eventId && m_Cmd->m_DrawcallCallback->PostDraw(eventId, list))
         {
           Unwrap(list)->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
                                       StartInstanceLocation);
-          m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+          m_Cmd->m_DrawcallCallback->PostRedraw(eventId, list);
         }
       }
     }
@@ -3144,16 +3144,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
       {
         ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventID = m_Cmd->HandlePreCallback(list);
+        uint32_t eventId = m_Cmd->HandlePreCallback(list);
 
         Unwrap(list)->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
                                            BaseVertexLocation, StartInstanceLocation);
 
-        if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+        if(eventId && m_Cmd->m_DrawcallCallback->PostDraw(eventId, list))
         {
           Unwrap(list)->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
                                              BaseVertexLocation, StartInstanceLocation);
-          m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+          m_Cmd->m_DrawcallCallback->PostRedraw(eventId, list);
         }
       }
     }
@@ -3230,14 +3230,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
       {
         ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventID = m_Cmd->HandlePreCallback(list, true);
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
 
         Unwrap(list)->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 
-        if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+        if(eventId && m_Cmd->m_DrawcallCallback->PostDraw(eventId, list))
         {
           Unwrap(list)->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-          m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+          m_Cmd->m_DrawcallCallback->PostRedraw(eventId, list);
         }
       }
     }
@@ -3302,14 +3302,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
       {
         ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventID = m_Cmd->HandlePreCallback(list, true);
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
 
         Unwrap(list)->ExecuteBundle(Unwrap(pBundle));
 
-        if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+        if(eventId && m_Cmd->m_DrawcallCallback->PostDraw(eventId, list))
         {
           Unwrap(list)->ExecuteBundle(Unwrap(pBundle));
-          m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+          m_Cmd->m_DrawcallCallback->PostRedraw(eventId, list);
         }
       }
     }
@@ -3466,7 +3466,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
   // find the draw where our execute begins
   for(; idx < draws.size(); idx++)
-    if(draws[idx].draw.eventID == eid)
+    if(draws[idx].draw.eventId == eid)
       break;
 
   RDCASSERTMSG("Couldn't find base event draw!", idx < draws.size(), idx, draws.size());
@@ -3510,7 +3510,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           // if this is the first draw of the indirect, we could have picked up previous
           // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
           // assign the draw's EID
-          eid = draw.eventID;
+          eid = draw.eventId;
 
           m_Cmd->AddUsage(draws[idx]);
 
@@ -3539,7 +3539,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           // if this is the first draw of the indirect, we could have picked up previous
           // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
           // assign the draw's EID
-          eid = draw.eventID;
+          eid = draw.eventId;
 
           m_Cmd->AddUsage(draws[idx]);
 
@@ -3566,7 +3566,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           // if this is the first draw of the indirect, we could have picked up previous
           // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
           // assign the draw's EID
-          eid = draw.eventID;
+          eid = draw.eventId;
 
           m_Cmd->AddUsage(draws[idx]);
 
@@ -3660,7 +3660,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
     uint32_t shiftDrawID = 0;
 
-    while(idx < draws.size() && draws[idx].draw.eventID < lastEID)
+    while(idx < draws.size() && draws[idx].draw.eventId < lastEID)
     {
       draws.erase(draws.begin() + idx);
       shiftDrawID++;
@@ -3770,7 +3770,7 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
     }
     else
     {
-      uint32_t baseEventID = it->eventID;
+      uint32_t baseEventID = it->eventId;
 
       // TODO when using a drawcall callback, we should submit every drawcall individually
       if(m_Cmd->m_DrawcallCallback)
@@ -4109,9 +4109,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
       drawNode.resourceUsage.push_back(std::make_pair(
-          GetResID(pArgumentBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::Indirect)));
+          GetResID(pArgumentBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
       drawNode.resourceUsage.push_back(std::make_pair(
-          GetResID(pCountBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::Indirect)));
+          GetResID(pCountBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
       ID3D12GraphicsCommandList *cracked = GetCrackedList();
 
@@ -4267,7 +4267,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
 
         drawNode.resourceUsage.push_back(
             std::make_pair(GetResID(descriptor->nonsamp.resource),
-                           EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
+                           EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -4348,7 +4348,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
         drawNode.resourceUsage.push_back(
             std::make_pair(GetResID(descriptor->nonsamp.resource),
-                           EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
+                           EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -4432,7 +4432,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
+            GetResID(pResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -4524,7 +4524,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
+            GetResID(pResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -4673,14 +4673,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
         if(pSrcBuffer == pDstBuffer)
         {
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::Copy)));
+              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::CopySrc)));
+              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pDstBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::CopyDst)));
+              GetResID(pDstBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
     }
@@ -4771,14 +4771,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
         if(origSrc == origDst)
         {
           drawNode.resourceUsage.push_back(
-              std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, ResourceUsage::Copy)));
+              std::make_pair(liveSrc, EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
           drawNode.resourceUsage.push_back(
-              std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, ResourceUsage::CopySrc)));
+              std::make_pair(liveSrc, EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
           drawNode.resourceUsage.push_back(
-              std::make_pair(liveDst, EventUsage(drawNode.draw.eventID, ResourceUsage::CopyDst)));
+              std::make_pair(liveDst, EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
     }
@@ -4860,14 +4860,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
         if(pSrcResource == pDstResource)
         {
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Copy)));
+              GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::CopySrc)));
+              GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pDstResource), EventUsage(drawNode.draw.eventID, ResourceUsage::CopyDst)));
+              GetResID(pDstResource), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
     }
@@ -4949,14 +4949,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
         if(pSrcResource == pDstResource)
         {
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Resolve)));
+              GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Resolve)));
         }
         else
         {
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::ResolveSrc)));
+              GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
           drawNode.resourceUsage.push_back(std::make_pair(
-              GetResID(pDstResource), EventUsage(drawNode.draw.eventID, ResourceUsage::ResolveDst)));
+              GetResID(pDstResource), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveDst)));
         }
       }
     }

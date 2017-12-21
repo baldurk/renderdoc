@@ -3464,7 +3464,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   }
 
   outConst.type.descriptor.elements = 1;
-  outConst.type.descriptor.arrayStride = 0;
+  outConst.type.descriptor.arrayByteStride = 0;
 
   if(type->type == SPVTypeData::eArray)
   {
@@ -3483,7 +3483,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     {
       if(decorations[d].decoration == spv::DecorationArrayStride)
       {
-        outConst.type.descriptor.arrayStride = decorations[d].val;
+        outConst.type.descriptor.arrayByteStride = decorations[d].val;
         foundArrayStride = true;
         break;
       }
@@ -3493,7 +3493,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     {
       if((*type->decorations)[d].decoration == spv::DecorationArrayStride)
       {
-        outConst.type.descriptor.arrayStride = (*type->decorations)[d].val;
+        outConst.type.descriptor.arrayByteStride = (*type->decorations)[d].val;
         break;
       }
     }
@@ -3526,12 +3526,12 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     if(type->type == SPVTypeData::eMatrix)
     {
       outConst.type.descriptor.rows = (uint8_t)type->vectorSize;
-      outConst.type.descriptor.cols = (uint8_t)type->matrixSize;
+      outConst.type.descriptor.columns = (uint8_t)type->matrixSize;
     }
     else
     {
       outConst.type.descriptor.rows = 1;
-      outConst.type.descriptor.cols = (uint8_t)type->vectorSize;
+      outConst.type.descriptor.columns = (uint8_t)type->vectorSize;
     }
 
     outConst.type.descriptor.name = type->GetName();
@@ -3549,7 +3549,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
 
     outConst.type.descriptor.rowMajorStorage = false;
     outConst.type.descriptor.rows = 1;
-    outConst.type.descriptor.cols = 1;
+    outConst.type.descriptor.columns = 1;
 
     outConst.type.descriptor.name = type->GetName();
   }
@@ -3558,7 +3558,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     outConst.type.descriptor.type = VarType::Float;
     outConst.type.descriptor.rowMajorStorage = false;
     outConst.type.descriptor.rows = 0;
-    outConst.type.descriptor.cols = 0;
+    outConst.type.descriptor.columns = 0;
 
     outConst.type.descriptor.name = type->GetName();
 
@@ -3591,8 +3591,8 @@ uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variables)
   uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
 
   // arrays are easy
-  if(last.type.descriptor.arrayStride > 0)
-    return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
+  if(last.type.descriptor.arrayByteStride > 0)
+    return byteOffset + last.type.descriptor.arrayByteStride * last.type.descriptor.elements;
 
   if(last.type.members.empty())
   {
@@ -3606,7 +3606,7 @@ uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variables)
       basicTypeSize = 8;
 
     uint32_t rows = last.type.descriptor.rows;
-    uint32_t cols = last.type.descriptor.cols;
+    uint32_t cols = last.type.descriptor.columns;
 
     // vectors are also easy
     if(rows == 1)
@@ -3678,10 +3678,10 @@ ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el)
 template <typename T>
 struct bindpair
 {
-  BindpointMap map;
+  Bindpoint map;
   T bindres;
 
-  bindpair(const BindpointMap &m, const T &res) : map(m), bindres(res) {}
+  bindpair(const Bindpoint &m, const T &res) : map(m), bindres(res) {}
   bool operator<(const bindpair &o) const
   {
     if(map.bindset != o.map.bindset)
@@ -3921,25 +3921,25 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   vector<shaderrespair> samplers, roresources, rwresources;
 
   // VKTODOLOW filter to only functions/resources used by entryPoint
-  reflection.EntryPoint = entryPoint;
-  reflection.Stage = stage;
+  reflection.entryPoint = entryPoint;
+  reflection.stage = stage;
 
   // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())
   {
-    reflection.DebugInfo.files.resize(sourceFiles.size());
+    reflection.debugInfo.files.resize(sourceFiles.size());
 
     for(size_t i = 0; i < sourceFiles.size(); i++)
     {
-      reflection.DebugInfo.files[i].Filename = sourceFiles[i].first;
-      reflection.DebugInfo.files[i].Contents = sourceFiles[i].second;
+      reflection.debugInfo.files[i].filename = sourceFiles[i].first;
+      reflection.debugInfo.files[i].contents = sourceFiles[i].second;
     }
   }
 
   // TODO need to fetch these
-  reflection.DispatchThreadsDimension[0] = 0;
-  reflection.DispatchThreadsDimension[1] = 0;
-  reflection.DispatchThreadsDimension[2] = 0;
+  reflection.dispatchThreadsDimension[0] = 0;
+  reflection.dispatchThreadsDimension[1] = 0;
+  reflection.dispatchThreadsDimension[2] = 0;
 
   for(size_t i = 0; i < globals.size(); i++)
   {
@@ -4123,7 +4123,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           cblock.name = StringFormat::Fmt("uniforms%u", inst->id);
         cblock.bufferBacked = !pushConst;
 
-        BindpointMap bindmap;
+        Bindpoint bindmap;
         // set can be implicitly 0, but the binding must be set explicitly.
         // If no binding is found, we set -1 and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
@@ -4153,12 +4153,12 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
         if(ssbo)
         {
-          res.IsReadOnly = false;
-          res.IsTexture = false;
+          res.isReadOnly = false;
+          res.isTexture = false;
           res.name = cblock.name;
-          res.resType = TextureDim::Buffer;
+          res.resType = TextureType::Buffer;
 
-          res.variableType.descriptor.cols = 0;
+          res.variableType.descriptor.columns = 0;
           res.variableType.descriptor.rows = 0;
           res.variableType.descriptor.rowMajorStorage = false;
           res.variableType.descriptor.rows = 0;
@@ -4212,33 +4212,33 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         res.name = inst->str.empty() ? StringFormat::Fmt("res%u", inst->id) : inst->str;
 
         if(type->multisampled)
-          res.resType = type->arrayed ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
+          res.resType = type->arrayed ? TextureType::Texture2DMSArray : TextureType::Texture2DMS;
         else if(type->texdim == spv::Dim1D)
-          res.resType = type->arrayed ? TextureDim::Texture1DArray : TextureDim::Texture1D;
+          res.resType = type->arrayed ? TextureType::Texture1DArray : TextureType::Texture1D;
         else if(type->texdim == spv::Dim2D)
-          res.resType = type->arrayed ? TextureDim::Texture2DArray : TextureDim::Texture2D;
+          res.resType = type->arrayed ? TextureType::Texture2DArray : TextureType::Texture2D;
         else if(type->texdim == spv::DimCube)
-          res.resType = type->arrayed ? TextureDim::TextureCubeArray : TextureDim::TextureCube;
+          res.resType = type->arrayed ? TextureType::TextureCubeArray : TextureType::TextureCube;
         else if(type->texdim == spv::Dim3D)
-          res.resType = TextureDim::Texture3D;
+          res.resType = TextureType::Texture3D;
         else if(type->texdim == spv::DimRect)
-          res.resType = TextureDim::TextureRect;
+          res.resType = TextureType::TextureRect;
         else if(type->texdim == spv::DimBuffer)
-          res.resType = TextureDim::Buffer;
+          res.resType = TextureType::Buffer;
 
         bool sepSampler = (type->type == SPVTypeData::eSampler);
 
-        res.IsTexture = res.resType != TextureDim::Buffer && type->type != SPVTypeData::eSampler;
-        res.IsReadOnly = true;
+        res.isTexture = res.resType != TextureType::Buffer && type->type != SPVTypeData::eSampler;
+        res.isReadOnly = true;
 
         SPVTypeData *sampledType = type->baseType;
         if(type->type == SPVTypeData::eSampler)
         {
-          res.resType = TextureDim::Unknown;
+          res.resType = TextureType::Unknown;
         }
         else if(type->texdim == spv::DimSubpassData)
         {
-          res.resType = TextureDim::Texture2D;
+          res.resType = TextureType::Texture2D;
 
           if(sampledType->type == SPVTypeData::eFloat)
             res.variableType.descriptor.type = VarType::Float;
@@ -4263,7 +4263,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
             isrw = (type->sampled == 2);
           }
 
-          res.IsReadOnly = !isrw;
+          res.isReadOnly = !isrw;
 
           if(sampledType->type == SPVTypeData::eFloat)
             res.variableType.descriptor.type = VarType::Float;
@@ -4276,12 +4276,12 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         }
 
         res.variableType.descriptor.rows = 1;
-        res.variableType.descriptor.cols = 1;
+        res.variableType.descriptor.columns = 1;
         res.variableType.descriptor.elements = 1;
         res.variableType.descriptor.rowMajorStorage = false;
         res.variableType.descriptor.rowMajorStorage = false;
 
-        BindpointMap bindmap;
+        Bindpoint bindmap;
         // set can be implicitly 0, but the binding must be set explicitly.
         // If no binding is found, we set -1 and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
@@ -4320,7 +4320,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
         if(sepSampler)
           samplers.push_back(shaderrespair(bindmap, res));
-        else if(res.IsReadOnly)
+        else if(res.isReadOnly)
           roresources.push_back(shaderrespair(bindmap, res));
         else
           rwresources.push_back(shaderrespair(bindmap, res));
@@ -4346,7 +4346,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     cblock.bufferBacked = false;
     cblock.byteSize = 0;
 
-    BindpointMap bindmap;
+    Bindpoint bindmap;
 
     // set something crazy so this doesn't overlap with a real buffer binding
     // also identify this as specialization constant data
@@ -4428,9 +4428,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
     std::sort(indices.begin(), indices.end(), sig_param_sort(inputs));
 
-    reflection.InputSig.reserve(inputs.size());
+    reflection.inputSignature.reserve(inputs.size());
     for(size_t i = 0; i < inputs.size(); i++)
-      reflection.InputSig.push_back(inputs[indices[i]]);
+      reflection.inputSignature.push_back(inputs[indices[i]]);
   }
 
   {
@@ -4440,9 +4440,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
     std::sort(indices.begin(), indices.end(), sig_param_sort(outputs));
 
-    reflection.OutputSig.reserve(outputs.size());
+    reflection.outputSignature.reserve(outputs.size());
     for(size_t i = 0; i < outputs.size(); i++)
-      reflection.OutputSig.push_back(outputs[indices[i]]);
+      reflection.outputSignature.push_back(outputs[indices[i]]);
 
     std::vector<SPIRVPatchData::OutputAccess> outPatch = patchData.outputs;
     for(size_t i = 0; i < outputs.size(); i++)
@@ -4451,81 +4451,81 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
   size_t numInputs = 16;
 
-  for(size_t i = 0; i < reflection.InputSig.size(); i++)
-    if(reflection.InputSig[i].systemValue == ShaderBuiltin::Undefined)
-      numInputs = RDCMAX(numInputs, (size_t)reflection.InputSig[i].regIndex + 1);
+  for(size_t i = 0; i < reflection.inputSignature.size(); i++)
+    if(reflection.inputSignature[i].systemValue == ShaderBuiltin::Undefined)
+      numInputs = RDCMAX(numInputs, (size_t)reflection.inputSignature[i].regIndex + 1);
 
-  mapping.InputAttributes.resize(numInputs);
+  mapping.inputAttributes.resize(numInputs);
   for(size_t i = 0; i < numInputs; i++)
-    mapping.InputAttributes[i] = -1;
+    mapping.inputAttributes[i] = -1;
 
-  for(size_t i = 0; i < reflection.InputSig.size(); i++)
-    if(reflection.InputSig[i].systemValue == ShaderBuiltin::Undefined)
-      mapping.InputAttributes[reflection.InputSig[i].regIndex] = (int32_t)i;
+  for(size_t i = 0; i < reflection.inputSignature.size(); i++)
+    if(reflection.inputSignature[i].systemValue == ShaderBuiltin::Undefined)
+      mapping.inputAttributes[reflection.inputSignature[i].regIndex] = (int32_t)i;
 
   std::sort(cblocks.begin(), cblocks.end());
   std::sort(samplers.begin(), samplers.end());
   std::sort(roresources.begin(), roresources.end());
   std::sort(rwresources.begin(), rwresources.end());
 
-  mapping.ConstantBlocks.resize(cblocks.size());
-  reflection.ConstantBlocks.resize(cblocks.size());
+  mapping.constantBlocks.resize(cblocks.size());
+  reflection.constantBlocks.resize(cblocks.size());
 
-  mapping.Samplers.resize(samplers.size());
-  reflection.Samplers.resize(samplers.size());
+  mapping.samplers.resize(samplers.size());
+  reflection.samplers.resize(samplers.size());
 
-  mapping.ReadOnlyResources.resize(roresources.size());
-  reflection.ReadOnlyResources.resize(roresources.size());
+  mapping.readOnlyResources.resize(roresources.size());
+  reflection.readOnlyResources.resize(roresources.size());
 
-  mapping.ReadWriteResources.resize(rwresources.size());
-  reflection.ReadWriteResources.resize(rwresources.size());
+  mapping.readWriteResources.resize(rwresources.size());
+  reflection.readWriteResources.resize(rwresources.size());
 
   for(size_t i = 0; i < cblocks.size(); i++)
   {
-    mapping.ConstantBlocks[i] = cblocks[i].map;
+    mapping.constantBlocks[i] = cblocks[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.ConstantBlocks[i].bind == -1)
-      mapping.ConstantBlocks[i].bind = 0;
-    reflection.ConstantBlocks[i] = cblocks[i].bindres;
-    reflection.ConstantBlocks[i].bindPoint = (int32_t)i;
+    if(mapping.constantBlocks[i].bind == -1)
+      mapping.constantBlocks[i].bind = 0;
+    reflection.constantBlocks[i] = cblocks[i].bindres;
+    reflection.constantBlocks[i].bindPoint = (int32_t)i;
   }
 
   for(size_t i = 0; i < samplers.size(); i++)
   {
-    mapping.Samplers[i] = samplers[i].map;
+    mapping.samplers[i] = samplers[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.Samplers[i].bind == -1)
-      mapping.Samplers[i].bind = 0;
-    reflection.Samplers[i].name = samplers[i].bindres.name;
-    reflection.Samplers[i].bindPoint = (int32_t)i;
+    if(mapping.samplers[i].bind == -1)
+      mapping.samplers[i].bind = 0;
+    reflection.samplers[i].name = samplers[i].bindres.name;
+    reflection.samplers[i].bindPoint = (int32_t)i;
   }
 
   for(size_t i = 0; i < roresources.size(); i++)
   {
-    mapping.ReadOnlyResources[i] = roresources[i].map;
+    mapping.readOnlyResources[i] = roresources[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.ReadOnlyResources[i].bind == -1)
-      mapping.ReadOnlyResources[i].bind = 0;
-    reflection.ReadOnlyResources[i] = roresources[i].bindres;
-    reflection.ReadOnlyResources[i].bindPoint = (int32_t)i;
+    if(mapping.readOnlyResources[i].bind == -1)
+      mapping.readOnlyResources[i].bind = 0;
+    reflection.readOnlyResources[i] = roresources[i].bindres;
+    reflection.readOnlyResources[i].bindPoint = (int32_t)i;
   }
 
   for(size_t i = 0; i < rwresources.size(); i++)
   {
-    mapping.ReadWriteResources[i] = rwresources[i].map;
+    mapping.readWriteResources[i] = rwresources[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.ReadWriteResources[i].bind == -1)
-      mapping.ReadWriteResources[i].bind = 0;
-    reflection.ReadWriteResources[i] = rwresources[i].bindres;
-    reflection.ReadWriteResources[i].bindPoint = (int32_t)i;
+    if(mapping.readWriteResources[i].bind == -1)
+      mapping.readWriteResources[i].bind = 0;
+    reflection.readWriteResources[i] = rwresources[i].bindres;
+    reflection.readWriteResources[i].bindPoint = (int32_t)i;
   }
 }
 

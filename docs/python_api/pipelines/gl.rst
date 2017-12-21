@@ -1,15 +1,14 @@
 OpenGL Pipeline State
 =====================
 
-.. module:: renderdoc
+.. currentmodule:: renderdoc
 
-.. autoclass:: GL_State
+.. autoclass:: GLState
   :members:
   :undoc-members:
 
 .. automodule:: renderdoc
   :members:
-  :noindex:
   :undoc-members:
   :imported-members:
-  :exclude-members: GL_State, free_functions__, enum_constants__, name_match__include_only__startswith__GL_
+  :exclude-members: GLState, free_functions__, enum_constants__, name_match__include_only__startswith__GL

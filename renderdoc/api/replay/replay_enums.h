@@ -254,7 +254,7 @@ DOCUMENT(R"(A texture addressing mode in a single direction (U,V or W).
 .. data:: ClampBorder
 
   The texture is clamped such that texture co-ordinates outside the range of ``[0.0, 1.0]`` are set
-  to the border colour specified in the sampler.
+  to the border color specified in the sampler.
 )");
 enum class AddressMode : uint32_t
 {
@@ -438,7 +438,7 @@ DOCUMENT(R"(The dimensionality of a texture binding.
 
   A Cubemap texture array.
 )");
-enum class TextureDim : uint32_t
+enum class TextureType : uint32_t
 {
   Unknown,
   First = Unknown,
@@ -456,8 +456,8 @@ enum class TextureDim : uint32_t
   Count,
 };
 
-ITERABLE_OPERATORS(TextureDim);
-DECLARE_REFLECTION_ENUM(TextureDim);
+ITERABLE_OPERATORS(TextureType);
+DECLARE_REFLECTION_ENUM(TextureType);
 
 DOCUMENT(R"(The type of a shader resource bind.
 
@@ -2031,7 +2031,7 @@ DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
 
 .. data:: Solid
 
-  The mesh should be rendered in a single flat unshaded colour.
+  The mesh should be rendered in a single flat unshaded color.
 
 .. data:: Lit
 
@@ -2039,7 +2039,7 @@ DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
 
 .. data:: Secondary
 
-  The mesh should be rendered using the secondary element as colour.
+  The mesh should be rendered using the secondary element as color.
 
 )");
 enum class SolidShade : uint32_t
@@ -2164,7 +2164,7 @@ DOCUMENT(R"(The function used to process the returned value after interpolation.
 
   Texels that were weight to 0 during interpolation are not included in the max function.
 )");
-enum class FilterFunc : uint32_t
+enum class FilterFunction : uint32_t
 {
   Normal,
   Comparison,
@@ -2172,7 +2172,7 @@ enum class FilterFunc : uint32_t
   Maximum,
 };
 
-DECLARE_REFLECTION_ENUM(FilterFunc);
+DECLARE_REFLECTION_ENUM(FilterFunction);
 
 DOCUMENT(R"(A comparison function to return a ``bool`` result from two inputs ``A`` and ``B``.
 
@@ -2209,7 +2209,7 @@ DOCUMENT(R"(A comparison function to return a ``bool`` result from two inputs ``
   ``A != B``
 
 )");
-enum class CompareFunc : uint32_t
+enum class CompareFunction : uint32_t
 {
   Never,
   AlwaysTrue,
@@ -2221,7 +2221,7 @@ enum class CompareFunc : uint32_t
   NotEqual,
 };
 
-DECLARE_REFLECTION_ENUM(CompareFunc);
+DECLARE_REFLECTION_ENUM(CompareFunction);
 
 DOCUMENT(R"(A stencil operation to apply in stencil processing.
 
@@ -2257,7 +2257,7 @@ DOCUMENT(R"(A stencil operation to apply in stencil processing.
 
   Invert the bits in the stencil value (bitwise ``NOT``).
 )");
-enum class StencilOp : uint32_t
+enum class StencilOperation : uint32_t
 {
   Keep,
   Zero,
@@ -2269,7 +2269,7 @@ enum class StencilOp : uint32_t
   Invert,
 };
 
-DECLARE_REFLECTION_ENUM(StencilOp);
+DECLARE_REFLECTION_ENUM(StencilOperation);
 
 DOCUMENT(R"(A multiplier on one component in the blend equation.
 
@@ -2279,7 +2279,7 @@ DOCUMENT(R"(A multiplier on one component in the blend equation.
 
   The "destination" value is the value in the target being blended to.
 
-  These values are combined using a given blend operation, see :class:`BlendOp`.
+  These values are combined using a given blend operation, see :class:`BlendOperation`.
 
   Where a color is referenced, the value depends on where the multiplier appears in the blend
   equation. If it is a multiplier on the color component then it refers to the color component. If
@@ -2333,11 +2333,11 @@ DOCUMENT(R"(A multiplier on one component in the blend equation.
 
 .. data:: FactorRGB
 
-  The colour components of the fixed blend factor constant.
+  The color components of the fixed blend factor constant.
 
 .. data:: InvFactorRGB
 
-  ``1.0`` minus the colour components of the fixed blend factor constant.
+  ``1.0`` minus the color components of the fixed blend factor constant.
 
 .. data:: FactorAlpha
 
@@ -2388,7 +2388,7 @@ enum class BlendMultiplier : uint32_t
 
 DECLARE_REFLECTION_ENUM(BlendMultiplier);
 
-DOCUMENT(R"(A blending operation to apply in colour blending.
+DOCUMENT(R"(A blending operation to apply in color blending.
 
 .. note:: The "source" value is the value written out by the shader.
 
@@ -2416,7 +2416,7 @@ DOCUMENT(R"(A blending operation to apply in colour blending.
 
   The maximum of the source and destination value.
 )");
-enum class BlendOp : uint32_t
+enum class BlendOperation : uint32_t
 {
   Add,
   Subtract,
@@ -2425,7 +2425,7 @@ enum class BlendOp : uint32_t
   Maximum,
 };
 
-DECLARE_REFLECTION_ENUM(BlendOp);
+DECLARE_REFLECTION_ENUM(BlendOperation);
 
 DOCUMENT(R"(A logical operation to apply when writing texture values to an output.
 
@@ -2502,7 +2502,7 @@ DOCUMENT(R"(A logical operation to apply when writing texture values to an outpu
   The inverted source and destination values are combined with the bitwise ``OR`` operator - i.e.
   ``(NOT s) OR d``.
 )");
-enum class LogicOp : uint32_t
+enum class LogicOperation : uint32_t
 {
   NoOp,
   Clear,
@@ -2522,7 +2522,7 @@ enum class LogicOp : uint32_t
   OrInverted,
 };
 
-DECLARE_REFLECTION_ENUM(LogicOp);
+DECLARE_REFLECTION_ENUM(LogicOperation);
 
 DOCUMENT(R"(Pre-defined GPU counters that can be supported by a given implementation.
 
@@ -3382,7 +3382,7 @@ DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
 
 .. data:: ClearColor
 
-  The drawcall clears a colour target.
+  The drawcall clears a color target.
 
 .. data:: ClearDepthStencil
 

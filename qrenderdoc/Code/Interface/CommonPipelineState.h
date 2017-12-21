@@ -35,42 +35,42 @@ struct BoundResource
   DOCUMENT("");
   BoundResource()
   {
-    Id = ResourceId();
-    HighestMip = -1;
-    FirstSlice = -1;
+    resourceId = ResourceId();
+    firstMip = -1;
+    firstSlice = -1;
     typeHint = CompType::Typeless;
   }
   BoundResource(ResourceId id)
   {
-    Id = id;
-    HighestMip = -1;
-    FirstSlice = -1;
+    resourceId = id;
+    firstMip = -1;
+    firstSlice = -1;
     typeHint = CompType::Typeless;
   }
 
   bool operator==(const BoundResource &o) const
   {
-    return Id == o.Id && HighestMip == o.HighestMip && FirstSlice == o.FirstSlice &&
+    return resourceId == o.resourceId && firstMip == o.firstMip && firstSlice == o.firstSlice &&
            typeHint == o.typeHint;
   }
   bool operator<(const BoundResource &o) const
   {
-    if(Id != o.Id)
-      return Id < o.Id;
-    if(HighestMip != o.HighestMip)
-      return HighestMip < o.HighestMip;
-    if(FirstSlice != o.FirstSlice)
-      return FirstSlice < o.FirstSlice;
+    if(resourceId != o.resourceId)
+      return resourceId < o.resourceId;
+    if(firstMip != o.firstMip)
+      return firstMip < o.firstMip;
+    if(firstSlice != o.firstSlice)
+      return firstSlice < o.firstSlice;
     if(typeHint != o.typeHint)
       return typeHint < o.typeHint;
     return false;
   }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the bound resource.");
-  ResourceId Id;
+  ResourceId resourceId;
   DOCUMENT("For textures, the highest mip level available on this binding, or -1 for all mips");
-  int HighestMip;
+  int firstMip;
   DOCUMENT("For textures, the first array slice available on this binding. or -1 for all slices.");
-  int FirstSlice;
+  int firstSlice;
   DOCUMENT(
       "For textures, a :class:`~renderdoc.CompType` hint for how to interpret typeless textures.");
   CompType typeHint;
@@ -86,61 +86,58 @@ struct BoundResourceArray
 {
   DOCUMENT("");
   BoundResourceArray() = default;
-  BoundResourceArray(BindpointMap b) : BindPoint(b) {}
-  BoundResourceArray(BindpointMap b, const rdcarray<BoundResource> &r) : BindPoint(b), Resources(r)
-  {
-  }
-
+  BoundResourceArray(Bindpoint b) : bindPoint(b) {}
+  BoundResourceArray(Bindpoint b, const rdcarray<BoundResource> &r) : bindPoint(b), resources(r) {}
   // for convenience for searching the array, we compare only using the BindPoint
-  bool operator==(const BoundResourceArray &o) const { return BindPoint == o.BindPoint; }
-  bool operator!=(const BoundResourceArray &o) const { return !(BindPoint == o.BindPoint); }
-  bool operator<(const BoundResourceArray &o) const { return BindPoint < o.BindPoint; }
+  bool operator==(const BoundResourceArray &o) const { return bindPoint == o.bindPoint; }
+  bool operator!=(const BoundResourceArray &o) const { return !(bindPoint == o.bindPoint); }
+  bool operator<(const BoundResourceArray &o) const { return bindPoint < o.bindPoint; }
   DOCUMENT("The bind point for this array of bound resources.");
-  BindpointMap BindPoint;
+  Bindpoint bindPoint;
 
   DOCUMENT("The resources at this bind point");
-  rdcarray<BoundResource> Resources;
+  rdcarray<BoundResource> resources;
 };
 
 DECLARE_REFLECTION_STRUCT(BoundResourceArray);
 
 DOCUMENT("Information about a single vertex or index buffer binding.");
-struct BoundBuffer
+struct BoundVBuffer
 {
   DOCUMENT("");
-  bool operator==(const BoundBuffer &o) const
+  bool operator==(const BoundVBuffer &o) const
   {
-    return Buffer == o.Buffer && ByteOffset == o.ByteOffset && ByteStride == o.ByteStride;
+    return resourceId == o.resourceId && byteOffset == o.byteOffset && byteStride == o.byteStride;
   }
-  bool operator<(const BoundBuffer &o) const
+  bool operator<(const BoundVBuffer &o) const
   {
-    if(Buffer != o.Buffer)
-      return Buffer < o.Buffer;
-    if(ByteOffset != o.ByteOffset)
-      return ByteOffset < o.ByteOffset;
-    if(ByteStride != o.ByteStride)
-      return ByteStride < o.ByteStride;
+    if(resourceId != o.resourceId)
+      return resourceId < o.resourceId;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(byteStride != o.byteStride)
+      return byteStride < o.byteStride;
     return false;
   }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
-  ResourceId Buffer;
+  ResourceId resourceId;
   DOCUMENT("The offset in bytes from the start of the buffer to the data.");
-  uint64_t ByteOffset = 0;
+  uint64_t byteOffset = 0;
   DOCUMENT("The stride in bytes between the start of one element and the start of the next.");
-  uint32_t ByteStride = 0;
+  uint32_t byteStride = 0;
 };
 
-DECLARE_REFLECTION_STRUCT(BoundBuffer);
+DECLARE_REFLECTION_STRUCT(BoundVBuffer);
 
 DOCUMENT("Information about a single constant buffer binding.");
 struct BoundCBuffer
 {
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
-  ResourceId Buffer;
+  ResourceId resourceId;
   DOCUMENT("The offset in bytes from the start of the buffer to the constant data.");
-  uint64_t ByteOffset = 0;
+  uint64_t byteOffset = 0;
   DOCUMENT("The size in bytes for the constant buffer. Access outside this size returns 0.");
-  uint32_t ByteSize = 0;
+  uint32_t byteSize = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(BoundCBuffer);
@@ -151,75 +148,59 @@ struct VertexInputAttribute
   DOCUMENT("");
   bool operator==(const VertexInputAttribute &o) const
   {
-    return Name == o.Name && VertexBuffer == o.VertexBuffer &&
-           RelativeByteOffset == o.RelativeByteOffset && PerInstance == o.PerInstance &&
-           InstanceRate == o.InstanceRate && Format == o.Format &&
-           !memcmp(&GenericValue, &o.GenericValue, sizeof(GenericValue)) &&
-           GenericEnabled == o.GenericEnabled && Used == o.Used;
+    return name == o.name && vertexBuffer == o.vertexBuffer && byteOffset == o.byteOffset &&
+           perInstance == o.perInstance && instanceRate == o.instanceRate && format == o.format &&
+           !memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) &&
+           genericEnabled == o.genericEnabled && used == o.used;
   }
   bool operator<(const VertexInputAttribute &o) const
   {
-    if(Name != o.Name)
-      return Name < o.Name;
-    if(VertexBuffer != o.VertexBuffer)
-      return VertexBuffer < o.VertexBuffer;
-    if(RelativeByteOffset != o.RelativeByteOffset)
-      return RelativeByteOffset < o.RelativeByteOffset;
-    if(PerInstance != o.PerInstance)
-      return PerInstance < o.PerInstance;
-    if(InstanceRate != o.InstanceRate)
-      return InstanceRate < o.InstanceRate;
-    if(Format != o.Format)
-      return Format < o.Format;
-    if(memcmp(&GenericValue, &o.GenericValue, sizeof(GenericValue)) < 0)
+    if(name != o.name)
+      return name < o.name;
+    if(vertexBuffer != o.vertexBuffer)
+      return vertexBuffer < o.vertexBuffer;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(perInstance != o.perInstance)
+      return perInstance < o.perInstance;
+    if(instanceRate != o.instanceRate)
+      return instanceRate < o.instanceRate;
+    if(format != o.format)
+      return format < o.format;
+    if(memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) < 0)
       return true;
-    if(GenericEnabled != o.GenericEnabled)
-      return GenericEnabled < o.GenericEnabled;
-    if(Used != o.Used)
-      return Used < o.Used;
+    if(genericEnabled != o.genericEnabled)
+      return genericEnabled < o.genericEnabled;
+    if(used != o.used)
+      return used < o.used;
     return false;
   }
 
   DOCUMENT("The name of this input. This may be a variable name or a semantic name.");
-  rdcstr Name;
+  rdcstr name;
   DOCUMENT("The index of the vertex buffer used to provide this attribute.");
-  int VertexBuffer;
+  int vertexBuffer;
   DOCUMENT("The byte offset from the start of the vertex data for this VB to this attribute.");
-  uint32_t RelativeByteOffset;
+  uint32_t byteOffset;
   DOCUMENT("``True`` if this attribute runs at instance rate.");
-  bool PerInstance;
-  DOCUMENT(R"(If :data:`PerInstance` is ``True``, the number of instances that source the same value
+  bool perInstance;
+  DOCUMENT(R"(If :data:`perInstance` is ``True``, the number of instances that source the same value
 from the vertex buffer before advancing to the next value.
 )");
-  int InstanceRate;
+  int instanceRate;
   DOCUMENT("A :class:`~renderdoc.ResourceFormat` with the interpreted format of this attribute.");
-  ResourceFormat Format;
+  ResourceFormat format;
   DOCUMENT(R"(A :class:`~renderdoc.PixelValue` with the generic value for this attribute if it has
 no VB bound.
 )");
-  PixelValue GenericValue;
-  DOCUMENT("``True`` if this attribute is using :data:`GenericValue` for its data.");
-  bool GenericEnabled;
+  PixelValue genericValue;
+  DOCUMENT("``True`` if this attribute is using :data:`genericValue` for its data.");
+  bool genericEnabled;
   DOCUMENT("``True`` if this attribute is enabled and used by the vertex shader.");
-  bool Used;
+  bool used;
 };
 
 DECLARE_REFLECTION_STRUCT(VertexInputAttribute);
-
-DOCUMENT("Information about a viewport.");
-struct Viewport
-{
-  DOCUMENT("The X co-ordinate of the viewport.");
-  float x;
-  DOCUMENT("The Y co-ordinate of the viewport.");
-  float y;
-  DOCUMENT("The width of the viewport.");
-  float width;
-  DOCUMENT("The height of the viewport.");
-  float height;
-};
-
-DECLARE_REFLECTION_STRUCT(Viewport);
 
 DOCUMENT(R"(An API-agnostic view of the common aspects of the pipeline state. This allows simple
 access to e.g. find out the bound resources or vertex buffers, or certain pipeline state which is
@@ -235,10 +216,10 @@ public:
   DOCUMENT(R"(Set the source API-specific states to read data from.
 
 :param ~renderdoc.APIProperties props: The properties of the current capture.
-:param ~renderdoc.D3D11_State d3d11: The D3D11 state.
-:param ~renderdoc.D3D12_State d3d12: The D3D11 state.
-:param ~renderdoc.GL_State gl: The OpenGL state.
-:param ~renderdoc.VK_State vk: The Vulkan state.
+:param ~renderdoc.D3D11State d3d11: The D3D11 state.
+:param ~renderdoc.D3D12State d3d12: The D3D11 state.
+:param ~renderdoc.GLState gl: The OpenGL state.
+:param ~renderdoc.VKState vk: The Vulkan state.
 )");
   void SetStates(APIProperties props, const D3D11Pipe::State *d3d11, const D3D12Pipe::State *d3d12,
                  const GLPipe::State *gl, const VKPipe::State *vk)
@@ -253,7 +234,7 @@ public:
   DOCUMENT(
       "The default :class:`~renderdoc.GraphicsAPI` to pretend to contain, if no capture is "
       "loaded.");
-  GraphicsAPI DefaultType = GraphicsAPI::D3D11;
+  GraphicsAPI defaultType = GraphicsAPI::D3D11;
 
   DOCUMENT(R"(Determines whether or not a capture is currently loaded.
 
@@ -317,16 +298,16 @@ public:
     if(IsCaptureLoaded())
     {
       if(IsCaptureD3D11())
-        return m_D3D11 != NULL && m_D3D11->m_HS.Object != ResourceId();
+        return m_D3D11 != NULL && m_D3D11->hullShader.resourceId != ResourceId();
 
       if(IsCaptureD3D12())
-        return m_D3D12 != NULL && m_D3D12->m_HS.Object != ResourceId();
+        return m_D3D12 != NULL && m_D3D12->hullShader.resourceId != ResourceId();
 
       if(IsCaptureGL())
-        return m_GL != NULL && m_GL->m_TES.Object != ResourceId();
+        return m_GL != NULL && m_GL->tessEvalShader.shaderResourceId != ResourceId();
 
       if(IsCaptureVK())
-        return m_Vulkan != NULL && m_Vulkan->m_TES.Object != ResourceId();
+        return m_Vulkan != NULL && m_Vulkan->tessEvalShader.resourceId != ResourceId();
     }
 
     return false;
@@ -377,11 +358,19 @@ requirements.
 
   DOCUMENT(R"(Retrieves the viewport for a given index.
 
-:param int index: The viewport index to retrieve.
+:param int index: The index to retrieve.
 :return: The viewport for the given index.
-:rtype: Viewport
+:rtype: ~renderdoc.Viewport
 )");
   Viewport GetViewport(int index);
+
+  DOCUMENT(R"(Retrieves the scissor region for a given index.
+
+:param int index: The index to retrieve.
+:return: The scissor region for the given index.
+:rtype: ~renderdoc.Scissor
+)");
+  Scissor GetScissor(int index);
 
   DOCUMENT(R"(Retrieves the current bindpoint mapping for a shader stage.
 
@@ -454,10 +443,10 @@ Typically this is ``glsl`` or ``hlsl``.
 
   DOCUMENT(R"(Retrieves the current index buffer binding.
 
-:return: A :class:`BoundBuffer` with the index buffer details. The stride is always 0.
-:rtype: ``BoundBuffer``
+:return: A :class:`BoundVBuffer` with the index buffer details. The stride is always 0.
+:rtype: ``BoundVBuffer``
 )");
-  BoundBuffer GetIBuffer();
+  BoundVBuffer GetIBuffer();
 
   DOCUMENT(R"(Determines whether or not primitive restart is enabled.
 
@@ -477,9 +466,9 @@ Typically this is ``glsl`` or ``hlsl``.
   DOCUMENT(R"(Retrieves the currently bound vertex buffers.
 
 :return: The list of bound vertex buffers.
-:rtype: ``list`` of :class:`BoundBuffer`.
+:rtype: ``list`` of :class:`BoundVBuffer`.
 )");
-  rdcarray<BoundBuffer> GetVBuffers();
+  rdcarray<BoundVBuffer> GetVBuffers();
 
   DOCUMENT(R"(Retrieves the currently specified vertex attributes.
 
@@ -522,7 +511,7 @@ Typically this is ``glsl`` or ``hlsl``.
 )");
   BoundResource GetDepthTarget();
 
-  DOCUMENT(R"(Retrieves the resources bound to the colour outputs.
+  DOCUMENT(R"(Retrieves the resources bound to the color outputs.
 
 :return: The currently bound output targets.
 :rtype: ``list`` of :class:`BoundResource`.

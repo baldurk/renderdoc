@@ -937,17 +937,17 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
         }
       }
 
-      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < trace->cbuffers.count(), cb,
-                   trace->cbuffers.count());
+      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < trace->constantBlocks.count(), cb,
+                   trace->constantBlocks.count());
 
-      if(cb >= 0 && cb < trace->cbuffers.count())
+      if(cb >= 0 && cb < trace->constantBlocks.count())
       {
         RDCASSERTMSG("Out of bounds cbuffer lookup",
-                     indices[1] < (uint32_t)trace->cbuffers[cb].members.count(), indices[1],
-                     trace->cbuffers[cb].members.count());
+                     indices[1] < (uint32_t)trace->constantBlocks[cb].members.count(), indices[1],
+                     trace->constantBlocks[cb].members.count());
 
-        if(indices[1] < (uint32_t)trace->cbuffers[cb].members.count())
-          v = s = trace->cbuffers[cb].members[indices[1]];
+        if(indices[1] < (uint32_t)trace->constantBlocks[cb].members.count())
+          v = s = trace->constantBlocks[cb].members[indices[1]];
         else
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
       }

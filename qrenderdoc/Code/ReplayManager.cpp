@@ -300,9 +300,9 @@ void ReplayManager::CloseThread()
 
 ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 {
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host->Hostname.c_str(), 0, &m_Remote);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host->hostname.c_str(), 0, &m_Remote);
 
-  if(host->IsHostADB())
+  if(host->IsADB())
   {
     ANALYTIC_SET(UIFeatures.RemoteReplay.Android, true);
   }
@@ -315,7 +315,7 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 
   if(status == ReplayStatus::Succeeded)
   {
-    m_RemoteHost->Connected = true;
+    m_RemoteHost->connected = true;
     return status;
   }
 
@@ -325,7 +325,7 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 void ReplayManager::DisconnectFromRemoteServer()
 {
   if(m_RemoteHost)
-    m_RemoteHost->Connected = false;
+    m_RemoteHost->connected = false;
 
   if(m_Remote)
   {
@@ -358,7 +358,7 @@ void ReplayManager::PingRemote()
     if(!IsRunning() || m_Thread->isCurrentThread())
     {
       if(!m_Remote->Ping())
-        m_RemoteHost->ServerRunning = false;
+        m_RemoteHost->serverRunning = false;
     }
     m_RemoteLock.unlock();
   }

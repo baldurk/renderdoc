@@ -58,13 +58,13 @@ public:
   ResourceId GetDebugOverlayTexID() { return m_OverlayResourceId; }
   PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                        uint32_t sliceFace, uint32_t mip, uint32_t sample);
-  rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
+  rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventId, uint32_t x, uint32_t y);
 
 private:
   ReplayOutput(ReplayController *parent, WindowingSystem system, void *data, ReplayOutputType type);
   virtual ~ReplayOutput();
 
-  void SetFrameEvent(int eventID);
+  void SetFrameEvent(int eventId);
 
   void RefreshOverlay();
 
@@ -132,7 +132,7 @@ public:
 
   void FileChanged();
 
-  void SetFrameEvent(uint32_t eventID, bool force);
+  void SetFrameEvent(uint32_t eventId, bool force);
 
   void FetchPipelineState();
 
@@ -204,7 +204,7 @@ public:
 private:
   ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
 
-  DrawcallDescription *GetDrawcallByEID(uint32_t eventID);
+  DrawcallDescription *GetDrawcallByEID(uint32_t eventId);
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;

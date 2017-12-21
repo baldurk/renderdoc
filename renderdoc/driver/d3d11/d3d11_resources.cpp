@@ -184,7 +184,7 @@ void WrappedShader::ShaderEntry::BuildReflection()
       "Mismatched vertex input count");
 
   MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
-  m_Details.ID = m_ID;
+  m_Details.resourceId = m_ID;
 }
 
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)

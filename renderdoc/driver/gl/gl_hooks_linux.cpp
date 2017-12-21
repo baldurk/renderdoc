@@ -546,7 +546,7 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
 
       if(name == GLX_CONTEXT_FLAGS_ARB)
       {
-        if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
+        if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
           val |= GLX_CONTEXT_DEBUG_BIT_ARB;
         else
           val &= ~GLX_CONTEXT_DEBUG_BIT_ARB;
@@ -561,7 +561,7 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
       attribVec.push_back(val);
     }
 
-    if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+    if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
       attribVec.push_back(GLX_CONTEXT_FLAGS_ARB);
       attribVec.push_back(GLX_CONTEXT_DEBUG_BIT_ARB);

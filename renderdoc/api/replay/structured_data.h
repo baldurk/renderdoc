@@ -341,7 +341,7 @@ struct SDObject
   SDObjectData data;
 
   DOCUMENT("Find a child object by a given name.");
-  inline SDObject *findChild(const char *childName) const
+  inline SDObject *FindChild(const char *childName) const
   {
     for(size_t i = 0; i < data.children.size(); i++)
       if(data.children[i]->name == childName)
@@ -351,7 +351,7 @@ struct SDObject
   }
 
   DOCUMENT("Add a new child object by duplicating it.");
-  inline void addChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
+  inline void AddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
 #if defined(RENDERDOC_QT_COMPAT)
   operator QVariant() const
   {
@@ -646,7 +646,7 @@ struct SDFile
   DOCUMENT("The version of this structured stream, typically only used internally.");
   uint64_t version = 0;
 
-  inline void swap(SDFile &other)
+  inline void Swap(SDFile &other)
   {
     chunks.swap(other.chunks);
     buffers.swap(other.buffers);

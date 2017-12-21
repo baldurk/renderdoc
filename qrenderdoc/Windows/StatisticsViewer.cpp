@@ -460,7 +460,7 @@ void StatisticsViewer::AppendResourceBindStatistics()
   {
     uint32_t count = totalResourcesForAllStages.types[s];
     int slice = SliceForString(Stars, count, maxCount);
-    TextureDim type = (TextureDim)s;
+    TextureType type = (TextureType)s;
     m_Report.append(
         QFormatStr("%1: %2 %3\n").arg(ToQStr(type), 20).arg(Stars.left(slice)).arg(CountOrEmpty(count)));
   }
@@ -518,7 +518,7 @@ void StatisticsViewer::AppendUpdateStatistics()
   {
     uint32_t count = totalUpdates.types[s];
     int slice = SliceForString(Stars, count, maxCount);
-    TextureDim type = (TextureDim)s;
+    TextureType type = (TextureType)s;
     m_Report.append(
         QFormatStr("%1: %2 %3\n").arg(ToQStr(type), 20).arg(Stars.left(slice)).arg(CountOrEmpty(count)));
   }
@@ -694,7 +694,7 @@ void StatisticsViewer::GenerateReport()
     CountContributingEvents(d, drawCount, dispatchCount, diagnosticCount);
 
   uint32_t numAPIcalls =
-      m_Ctx.GetLastDrawcall()->eventID - (drawCount + dispatchCount + diagnosticCount);
+      m_Ctx.GetLastDrawcall()->eventId - (drawCount + dispatchCount + diagnosticCount);
 
   int numTextures = m_Ctx.GetTextures().count();
   int numBuffers = m_Ctx.GetBuffers().count();

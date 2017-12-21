@@ -173,7 +173,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     m_CurrentPipelineState->SetDevice(m_pDevice);
     m_pDevice->SoftRef();
 
-    if(IsCaptureMode(m_State) && RenderDoc::Inst().GetCaptureOptions().CaptureAllCmdLists)
+    if(IsCaptureMode(m_State) && RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists)
       m_State = CaptureState::ActiveCapturing;
   }
 
@@ -490,7 +490,7 @@ void WrappedID3D11DeviceContext::AttemptCapture()
 void WrappedID3D11DeviceContext::FinishCapture()
 {
   if(GetType() != D3D11_DEVICE_CONTEXT_DEFERRED ||
-     !RenderDoc::Inst().GetCaptureOptions().CaptureAllCmdLists)
+     !RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists)
   {
     m_State = CaptureState::BackgroundCapturing;
 
@@ -568,7 +568,7 @@ void WrappedID3D11DeviceContext::CleanupCapture()
         record->FreeContextID(it->second);
     }
 
-    if(RenderDoc::Inst().GetCaptureOptions().CaptureAllCmdLists)
+    if(RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists)
       return;
   }
   else
@@ -898,7 +898,7 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
 void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
 {
   const D3D11RenderState *pipe = m_CurrentPipelineState;
-  uint32_t e = d.eventID;
+  uint32_t e = d.eventId;
 
   DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch | DrawFlags::CmdList;
   if(!(d.flags & DrawMask))
@@ -1004,8 +1004,8 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
 
   m_AddedDrawcall = true;
 
-  draw.eventID = m_CurEventID;
-  draw.drawcallID = m_CurDrawcallID;
+  draw.eventId = m_CurEventID;
+  draw.drawcallId = m_CurDrawcallID;
 
   draw.indexByteWidth = 0;
   if(m_CurrentPipelineState->IA.IndexFormat == DXGI_FORMAT_R16_UINT)
@@ -1060,7 +1060,7 @@ void WrappedID3D11DeviceContext::AddEvent()
   APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
-  apievent.eventID = m_CurEventID;
+  apievent.eventId = m_CurEventID;
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
@@ -1072,11 +1072,11 @@ void WrappedID3D11DeviceContext::AddEvent()
     m_Events.push_back(apievent);
 }
 
-const APIEvent &WrappedID3D11DeviceContext::GetEvent(uint32_t eventID)
+const APIEvent &WrappedID3D11DeviceContext::GetEvent(uint32_t eventId)
 {
   for(const APIEvent &e : m_Events)
   {
-    if(e.eventID >= eventID)
+    if(e.eventId >= eventId)
       return e;
   }
 
@@ -1110,7 +1110,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
   {
     ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
 
-    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+    ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
 
     m_StructuredFile = &ser.GetStructuredFile();
   }
@@ -1133,7 +1133,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
   if(IsActiveReplaying(m_State))
   {
     APIEvent ev = GetEvent(startEventID);
-    m_CurEventID = ev.eventID;
+    m_CurEventID = ev.eventId;
     ser.GetReader()->SetOffset(ev.fileOffset);
 
     ClearMaps();
@@ -1274,7 +1274,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
-    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+    ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
 
   m_StructuredFile = NULL;
 
@@ -1464,11 +1464,11 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT Num
   RDCASSERT(NumResources < resources.bindslots.size());
   resources.bindslots[NumResources] += 1;
 
-  const TextureDim mapping[] = {
-      TextureDim::Unknown,        TextureDim::Buffer,           TextureDim::Texture1D,
-      TextureDim::Texture1DArray, TextureDim::Texture2D,        TextureDim::Texture2DArray,
-      TextureDim::Texture2DMS,    TextureDim::Texture2DMSArray, TextureDim::Texture3D,
-      TextureDim::TextureCube,    TextureDim::TextureCubeArray, TextureDim::Buffer,
+  const TextureType mapping[] = {
+      TextureType::Unknown,        TextureType::Buffer,           TextureType::Texture1D,
+      TextureType::Texture1DArray, TextureType::Texture2D,        TextureType::Texture2DArray,
+      TextureType::Texture2DMS,    TextureType::Texture2DMSArray, TextureType::Texture3D,
+      TextureType::TextureCube,    TextureType::TextureCubeArray, TextureType::Buffer,
   };
   RDCCOMPILE_ASSERT(ARRAY_COUNT(mapping) == D3D_SRV_DIMENSION_BUFFEREX + 1,
                     "Update mapping table.");
@@ -1482,7 +1482,7 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT Num
       D3D11_SHADER_RESOURCE_VIEW_DESC desc;
       Resources[i]->GetDesc(&desc);
       RDCASSERT(desc.ViewDimension < ARRAY_COUNT(mapping));
-      TextureDim type = mapping[desc.ViewDimension];
+      TextureType type = mapping[desc.ViewDimension];
       // #mivance surprisingly this is not asserted in operator[] for
       // rdcarray so I'm being paranoid
       RDCASSERT((int)type < (int)resources.types.size());
@@ -1526,18 +1526,18 @@ void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource *res, uint32_t
   updates.clients += (Server == false);
   updates.servers += (Server == true);
 
-  const TextureDim mapping[] = {
-      TextureDim::Unknown,      // D3D11_RESOURCE_DIMENSION_UNKNOWN	= 0,
-      TextureDim::Buffer,       // D3D11_RESOURCE_DIMENSION_BUFFER	= 1,
-      TextureDim::Texture1D,    // D3D11_RESOURCE_DIMENSION_TEXTURE1D	= 2,
-      TextureDim::Texture2D,    // D3D11_RESOURCE_DIMENSION_TEXTURE2D	= 3,
-      TextureDim::Texture3D,    // D3D11_RESOURCE_DIMENSION_TEXTURE3D	= 4
+  const TextureType mapping[] = {
+      TextureType::Unknown,      // D3D11_RESOURCE_DIMENSION_UNKNOWN	= 0,
+      TextureType::Buffer,       // D3D11_RESOURCE_DIMENSION_BUFFER	= 1,
+      TextureType::Texture1D,    // D3D11_RESOURCE_DIMENSION_TEXTURE1D	= 2,
+      TextureType::Texture2D,    // D3D11_RESOURCE_DIMENSION_TEXTURE2D	= 3,
+      TextureType::Texture3D,    // D3D11_RESOURCE_DIMENSION_TEXTURE3D	= 4
   };
 
   D3D11_RESOURCE_DIMENSION dim;
   res->GetType(&dim);
   RDCASSERT(dim < ARRAY_COUNT(mapping));
-  TextureDim type = mapping[dim];
+  TextureType type = mapping[dim];
   RDCASSERT((int)type < (int)updates.types.size());
   updates.types[(int)type] += 1;
 

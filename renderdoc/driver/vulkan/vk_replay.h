@@ -167,7 +167,7 @@ public:
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
   const SDFile &GetStructuredFile();
 
-  vector<uint32_t> GetPassEvents(uint32_t eventID);
+  vector<uint32_t> GetPassEvents(uint32_t eventId);
 
   vector<WindowingSystem> GetSupportedWindowSystems();
 
@@ -181,7 +181,7 @@ public:
   bool IsOutputWindowVisible(uint64_t id);
   void FlipOutputWindow(uint64_t id);
 
-  void InitPostVSBuffers(uint32_t eventID);
+  void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(const vector<uint32_t> &passEvents);
 
   ResourceId GetLiveID(ResourceId id);
@@ -196,7 +196,7 @@ public:
                     CompType typeHint, float minval, float maxval, bool channels[4],
                     vector<uint32_t> &histogram);
 
-  MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
+  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData);
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
@@ -205,7 +205,7 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
+  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                          ShaderStage type, ResourceId *id, string *errors);
@@ -225,18 +225,18 @@ public:
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
                                          uint32_t y, uint32_t slice, uint32_t mip,
                                          uint32_t sampleIdx, CompType typeHint);
-  ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx,
+  ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
-  ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
+  ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                               uint32_t primitive);
-  ShaderDebugTrace DebugThread(uint32_t eventID, const uint32_t groupid[3],
+  ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                const uint32_t threadid[3]);
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, CompType typeHint, float pixel[4]);
-  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
+  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   ResourceId RenderOverlay(ResourceId cfg, CompType typeHint, DebugOverlay overlay,
-                           uint32_t eventID, const vector<uint32_t> &passEvents);
+                           uint32_t eventId, const vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 

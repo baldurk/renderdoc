@@ -146,12 +146,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
       reflData.entryPoint = shad.entryPoint;
       reflData.stage = stageIndex;
-      reflData.refl.ID = resourceMan->GetOriginalID(id);
+      reflData.refl.resourceId = resourceMan->GetOriginalID(id);
 
       if(!spv.spirv.empty())
       {
         const std::vector<uint32_t> &spirv = spv.spirv;
-        reflData.refl.RawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
+        reflData.refl.rawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
       }
     }
 
@@ -370,12 +370,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       SPVModule &spv = info.m_ShaderModule[id].spirv;
       spv.MakeReflection(ShaderStage::Compute, shad.entryPoint, reflData.refl, reflData.mapping,
                          reflData.patchData);
-      reflData.refl.ID = resourceMan->GetOriginalID(id);
+      reflData.refl.resourceId = resourceMan->GetOriginalID(id);
 
       if(!spv.spirv.empty())
       {
         const vector<uint32_t> &spirv = spv.spirv;
-        reflData.refl.RawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
+        reflData.refl.rawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
       }
     }
 

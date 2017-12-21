@@ -64,15 +64,15 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
   {
     DrawcallDescription *draw = &draws[i];
 
-    draw->parent = parent ? parent->eventID : 0;
+    draw->parent = parent ? parent->eventId : 0;
 
     if(!draw->children.empty())
     {
       if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
-        (*drawcallTable)[draw->eventID] = draw;
+        RDCASSERT(drawcallTable->empty() || draw->eventId > drawcallTable->back()->eventId);
+        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventId + 1)));
+        (*drawcallTable)[draw->eventId] = draw;
       }
 
       ret = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
@@ -85,22 +85,22 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
 
       if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
-        (*drawcallTable)[draw->eventID] = draw;
+        RDCASSERT(drawcallTable->empty() || draw->eventId > drawcallTable->back()->eventId);
+        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventId + 1)));
+        (*drawcallTable)[draw->eventId] = draw;
       }
     }
     else
     {
       if(previous != NULL)
-        previous->next = draw->eventID;
-      draw->previous = previous ? previous->eventID : 0;
+        previous->next = draw->eventId;
+      draw->previous = previous ? previous->eventId : 0;
 
       if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
-        (*drawcallTable)[draw->eventID] = draw;
+        RDCASSERT(drawcallTable->empty() || draw->eventId > drawcallTable->back()->eventId);
+        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventId + 1)));
+        (*drawcallTable)[draw->eventId] = draw;
       }
 
       ret = previous = draw;
@@ -134,11 +134,11 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
-  data += vert * cfg.position.stride;
+  data += vert * cfg.position.vertexByteStride;
 
   float *out = &ret.x;
 
-  const ResourceFormat &fmt = cfg.position.fmt;
+  const ResourceFormat &fmt = cfg.position.format;
 
   if(fmt.type == ResourceFormatType::R10G10B10A2)
   {
@@ -197,19 +197,20 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
   return ret;
 }
 
-void HighlightCache::CacheHighlightingData(uint32_t eventID, const MeshDisplay &cfg)
+void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &cfg)
 {
-  if(EID != eventID || cfg.type != stage || cfg.position.buf != buf || cfg.position.offset != offs)
+  if(EID != eventId || cfg.type != stage || cfg.position.vertexResourceId != buf ||
+     cfg.position.vertexByteOffset != offs)
   {
-    EID = eventID;
-    buf = cfg.position.buf;
-    offs = cfg.position.offset;
+    EID = eventId;
+    buf = cfg.position.vertexResourceId;
+    offs = cfg.position.vertexByteOffset;
     stage = cfg.type;
 
-    uint32_t bytesize = cfg.position.idxByteWidth;
-    uint64_t maxIndex = cfg.position.numVerts - 1;
+    uint32_t bytesize = cfg.position.indexByteStride;
+    uint64_t maxIndex = cfg.position.numIndices - 1;
 
-    if(cfg.position.idxByteWidth == 0 || stage == MeshDataStage::GSOut)
+    if(cfg.position.indexByteStride == 0 || stage == MeshDataStage::GSOut)
     {
       indices.clear();
       idxData = false;
@@ -219,15 +220,15 @@ void HighlightCache::CacheHighlightingData(uint32_t eventID, const MeshDisplay &
       idxData = true;
 
       bytebuf idxdata;
-      if(cfg.position.idxbuf != ResourceId())
-        driver->GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs,
-                              cfg.position.numVerts * bytesize, idxdata);
+      if(cfg.position.indexResourceId != ResourceId())
+        driver->GetBufferData(cfg.position.indexResourceId, cfg.position.indexByteOffset,
+                              cfg.position.numIndices * bytesize, idxdata);
 
       uint8_t *idx8 = (uint8_t *)&idxdata[0];
       uint16_t *idx16 = (uint16_t *)&idxdata[0];
       uint32_t *idx32 = (uint32_t *)&idxdata[0];
 
-      uint32_t numIndices = RDCMIN(cfg.position.numVerts, uint32_t(idxdata.size() / bytesize));
+      uint32_t numIndices = RDCMIN(cfg.position.numIndices, uint32_t(idxdata.size() / bytesize));
 
       indices.resize(numIndices);
 
@@ -278,8 +279,8 @@ void HighlightCache::CacheHighlightingData(uint32_t eventID, const MeshDisplay &
       }
     }
 
-    driver->GetBufferData(cfg.position.buf, cfg.position.offset,
-                          (maxIndex + 1) * cfg.position.stride, vertexData);
+    driver->GetBufferData(cfg.position.vertexResourceId, cfg.position.vertexByteOffset,
+                          (maxIndex + 1) * cfg.position.vertexByteStride, vertexData);
   }
 }
 
@@ -294,16 +295,16 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
   byte *dataEnd = data + vertexData.size();
 
   uint32_t idx = cfg.highlightVert;
-  Topology meshtopo = cfg.position.topo;
+  Topology meshtopo = cfg.position.topology;
 
   activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
 
   uint32_t primRestart = 0;
   if(IsStrip(meshtopo))
   {
-    if(cfg.position.idxByteWidth == 1)
+    if(cfg.position.indexByteStride == 1)
       primRestart = 0xff;
-    else if(cfg.position.idxByteWidth == 2)
+    else if(cfg.position.indexByteStride == 2)
       primRestart = 0xffff;
     else
       primRestart = 0xffffffff;
@@ -453,7 +454,7 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
     // Triangle strip with adjacency is the most complex topology, as
     // we need to handle the ends separately where the pattern breaks.
 
-    uint32_t numidx = cfg.position.numVerts;
+    uint32_t numidx = cfg.position.numIndices;
 
     if(numidx < 6)
     {
@@ -590,7 +591,7 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
   }
   else if(meshtopo >= Topology::PatchList)
   {
-    uint32_t dim = PatchList_Count(cfg.position.topo);
+    uint32_t dim = PatchList_Count(cfg.position.topology);
 
     uint32_t v0 = uint32_t(idx / dim) * dim;
 

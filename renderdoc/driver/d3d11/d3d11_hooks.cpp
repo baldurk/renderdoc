@@ -196,7 +196,7 @@ private:
 
     if(m_EnabledHooks)
     {
-      if(!reading && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
       {
         Flags |= D3D11_CREATE_DEVICE_DEBUG;
       }
@@ -215,7 +215,7 @@ private:
       pUsedSwapDesc = &swapDesc;
     }
 
-    if(pUsedSwapDesc && m_EnabledHooks && !RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+    if(pUsedSwapDesc && m_EnabledHooks && !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
     {
       pUsedSwapDesc->Windowed = TRUE;
     }
@@ -373,7 +373,7 @@ private:
 
     if(d3d11hooks.m_EnabledHooks)
     {
-      if(!reading && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
       {
         Flags |= D3D11_CREATE_DEVICE_DEBUG;
       }
@@ -434,7 +434,7 @@ private:
 
     if(d3d11hooks.m_EnabledHooks)
     {
-      if(!reading && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
       {
         Flags |= D3D11_CREATE_DEVICE_DEBUG;
       }
@@ -454,7 +454,7 @@ private:
     }
 
     if(pUsedSwapDesc && d3d11hooks.m_EnabledHooks &&
-       !RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+       !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
     {
       pUsedSwapDesc->Windowed = TRUE;
     }

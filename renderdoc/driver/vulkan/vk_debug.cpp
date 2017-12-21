@@ -3926,7 +3926,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
 }
 
 // TODO: Point meshes don't pick correctly
-uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
+uint32_t VulkanDebugManager::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x,
                                         uint32_t y, uint32_t w, uint32_t h)
 {
   VkDevice dev = m_pDriver->GetDev();
@@ -4007,11 +4007,11 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
   ubo->rayPos = rayPos;
   ubo->rayDir = rayDir;
-  ubo->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
-  ubo->numVerts = cfg.position.numVerts;
+  ubo->use_indices = cfg.position.indexByteStride ? 1U : 0U;
+  ubo->numVerts = cfg.position.numIndices;
   bool isTriangleMesh = true;
 
-  switch(cfg.position.topo)
+  switch(cfg.position.topology)
   {
     case Topology::TriangleList:
     {
@@ -4055,8 +4055,8 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
   bytebuf idxs;
 
-  if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
-    GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, 0, idxs);
+  if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
+    GetBufferData(cfg.position.indexResourceId, cfg.position.indexByteOffset, 0, idxs);
 
   // We copy into our own buffers to promote to the target type (uint32) that the
   // shader expects. Most IBs will be 16-bit indices, most VBs will not be float4.
@@ -4064,7 +4064,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   if(!idxs.empty())
   {
     // resize up on demand
-    if(m_MeshPickIBSize < cfg.position.numVerts * sizeof(uint32_t))
+    if(m_MeshPickIBSize < cfg.position.numIndices * sizeof(uint32_t))
     {
       if(m_MeshPickIBSize > 0)
       {
@@ -4072,7 +4072,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
         m_MeshPickIBUpload.Destroy();
       }
 
-      m_MeshPickIBSize = cfg.position.numVerts * sizeof(uint32_t);
+      m_MeshPickIBSize = cfg.position.numIndices * sizeof(uint32_t);
 
       m_MeshPickIB.Create(m_pDriver, dev, m_MeshPickIBSize, 1,
                           GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
@@ -4088,24 +4088,24 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
     // if indices are 16-bit, manually upcast them so the shader only
     // has to deal with one type
-    if(cfg.position.idxByteWidth == 2)
+    if(cfg.position.indexByteStride == 2)
     {
       size_t bufsize = idxs.size() / 2;
 
-      for(uint32_t i = 0; i < bufsize && i < cfg.position.numVerts; i++)
+      for(uint32_t i = 0; i < bufsize && i < cfg.position.numIndices; i++)
         outidxs[i] = idxs16[i];
     }
     else
     {
       size_t bufsize = idxs.size() / 4;
 
-      memcpy(outidxs, idxs32, RDCMIN(bufsize, cfg.position.numVerts * sizeof(uint32_t)));
+      memcpy(outidxs, idxs32, RDCMIN(bufsize, cfg.position.numIndices * sizeof(uint32_t)));
     }
 
     m_MeshPickIBUpload.Unmap();
   }
 
-  if(m_MeshPickVBSize < cfg.position.numVerts * sizeof(FloatVector))
+  if(m_MeshPickVBSize < cfg.position.numIndices * sizeof(FloatVector))
   {
     if(m_MeshPickVBSize > 0)
     {
@@ -4113,7 +4113,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
       m_MeshPickVBUpload.Destroy();
     }
 
-    m_MeshPickVBSize = cfg.position.numVerts * sizeof(FloatVector);
+    m_MeshPickVBSize = cfg.position.numIndices * sizeof(FloatVector);
 
     m_MeshPickVB.Create(m_pDriver, dev, m_MeshPickVBSize, 1,
                         GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
@@ -4123,7 +4123,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   // unpack and linearise the data
   {
     bytebuf oldData;
-    GetBufferData(cfg.position.buf, cfg.position.offset, 0, oldData);
+    GetBufferData(cfg.position.vertexResourceId, cfg.position.vertexByteOffset, 0, oldData);
 
     byte *data = &oldData[0];
     byte *dataEnd = data + oldData.size();
@@ -4136,7 +4136,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     if(cfg.position.baseVertex < 0)
       idxclamp = uint32_t(-cfg.position.baseVertex);
 
-    for(uint32_t i = 0; i < cfg.position.numVerts; i++)
+    for(uint32_t i = 0; i < cfg.position.numIndices; i++)
     {
       uint32_t idx = i;
 
@@ -4241,7 +4241,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MeshPickLayout),
                             0, 1, UnwrapPtr(m_MeshPickDescSet), 0, NULL);
 
-  uint32_t workgroupx = uint32_t(cfg.position.numVerts / 128 + 1);
+  uint32_t workgroupx = uint32_t(cfg.position.numIndices / 128 + 1);
   vt->CmdDispatch(Unwrap(cmd), workgroupx, 1, 1);
 
   // wait for shader to finish writing before transferring to readback buffer
@@ -5041,7 +5041,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 };
 
 ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay overlay,
-                                             uint32_t eventID, const vector<uint32_t> &passEvents)
+                                             uint32_t eventId, const vector<uint32_t> &passEvents)
 {
   const VkLayerDispatchTable *vt = ObjDisp(m_Device);
 
@@ -5221,7 +5221,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
   VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-  const DrawcallDescription *mainDraw = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *mainDraw = m_pDriver->GetDrawcall(eventId);
 
   // Secondary commands can't have render passes
   if((mainDraw && !(mainDraw->flags & DrawFlags::Drawcall)) ||
@@ -5433,7 +5433,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     if(overlay == DebugOverlay::Wireframe)
       m_pDriver->m_RenderState.lineWidth = 1.0f;
 
-    m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     // submit & flush so that we don't have to keep pipeline around for a while
     m_pDriver->SubmitCmds();
@@ -5720,11 +5720,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
     }
 
-    m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
 
-    m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     // submit & flush so that we don't have to keep pipeline around for a while
     m_pDriver->SubmitCmds();
@@ -5990,7 +5990,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
     }
 
-    m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
     if(depthRP != VK_NULL_HANDLE)
@@ -5999,7 +5999,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       m_pDriver->m_RenderState.framebuffer = GetResID(depthFB);
     }
 
-    m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     // submit & flush so that we don't have to keep pipeline around for a while
     m_pDriver->SubmitCmds();
@@ -6057,7 +6057,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
 
-    events.push_back(eventID);
+    events.push_back(eventId);
 
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
@@ -6185,7 +6185,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       if(overlay == DebugOverlay::QuadOverdrawDraw)
         events.clear();
 
-      events.push_back(eventID);
+      events.push_back(eventId);
 
       VkImage quadImg;
       VkDeviceMemory quadImgMem;
@@ -6364,7 +6364,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     }
 
     // restore back to normal
-    m_pDriver->ReplayLog(0, eventID, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
     cmd = m_pDriver->GetNextCmd();
 
@@ -6427,7 +6427,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           break;
       }
 
-      events.push_back(eventID);
+      events.push_back(eventId);
 
       m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
@@ -6663,16 +6663,16 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {
           MeshFormat fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::GSOut);
-          if(fmt.buf == ResourceId())
+          if(fmt.vertexResourceId == ResourceId())
             fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::VSOut);
 
-          if(fmt.buf != ResourceId())
+          if(fmt.vertexResourceId != ResourceId())
           {
-            ia.topology = MakeVkPrimitiveTopology(fmt.topo);
+            ia.topology = MakeVkPrimitiveTopology(fmt.topology);
 
-            binds[0].stride = binds[1].stride = fmt.stride;
+            binds[0].stride = binds[1].stride = fmt.vertexByteStride;
 
-            PipeKey key = std::make_pair(fmt.stride, fmt.topo);
+            PipeKey key = std::make_pair(fmt.vertexByteStride, fmt.topology);
             VkPipeline pipe = pipes[key];
 
             if(pipe == VK_NULL_HANDLE)
@@ -6682,9 +6682,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
               RDCASSERTEQUAL(vkr, VK_SUCCESS);
             }
 
-            VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.buf);
+            VkBuffer vb =
+                m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.vertexResourceId);
 
-            VkDeviceSize offs = fmt.offset;
+            VkDeviceSize offs = fmt.vertexByteOffset;
             vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
 
             pipes[key] = pipe;
@@ -6746,23 +6747,24 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
               }
             }
 
-            if(fmt.idxByteWidth)
+            if(fmt.indexByteStride)
             {
               VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
-              if(fmt.idxByteWidth == 4)
+              if(fmt.indexByteStride == 4)
                 idxtype = VK_INDEX_TYPE_UINT32;
 
-              if(fmt.idxbuf != ResourceId())
+              if(fmt.indexResourceId != ResourceId())
               {
-                VkBuffer ib = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.idxbuf);
+                VkBuffer ib =
+                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.indexResourceId);
 
-                vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.idxoffs, idxtype);
-                vt->CmdDrawIndexed(Unwrap(cmd), fmt.numVerts, 1, 0, fmt.baseVertex, 0);
+                vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.indexByteOffset, idxtype);
+                vt->CmdDrawIndexed(Unwrap(cmd), fmt.numIndices, 1, 0, fmt.baseVertex, 0);
               }
             }
             else
             {
-              vt->CmdDraw(Unwrap(cmd), fmt.numVerts, 1, 0, 0);
+              vt->CmdDraw(Unwrap(cmd), fmt.numIndices, 1, 0, 0);
             }
           }
         }
@@ -6785,7 +6787,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     }
 
     // restore back to normal
-    m_pDriver->ReplayLog(0, eventID, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
     // restore state
     m_pDriver->m_RenderState = prevstate;
@@ -6814,17 +6816,18 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
   uint64_t bit = 0;
 
-  if(primary.idxByteWidth == 4)
+  if(primary.indexByteStride == 4)
     key |= 1ULL << bit;
   bit++;
 
-  RDCASSERT((uint32_t)primary.topo < 64);
-  key |= uint64_t((uint32_t)primary.topo & 0x3f) << bit;
+  RDCASSERT((uint32_t)primary.topology < 64);
+  key |= uint64_t((uint32_t)primary.topology & 0x3f) << bit;
   bit += 6;
 
-  VkFormat primaryFmt = MakeVkFormat(primary.fmt);
-  VkFormat secondaryFmt =
-      secondary.buf == ResourceId() ? VK_FORMAT_UNDEFINED : MakeVkFormat(secondary.fmt);
+  VkFormat primaryFmt = MakeVkFormat(primary.format);
+  VkFormat secondaryFmt = secondary.vertexResourceId == ResourceId()
+                              ? VK_FORMAT_UNDEFINED
+                              : MakeVkFormat(secondary.format);
 
   RDCCOMPILE_ASSERT(VK_FORMAT_RANGE_SIZE <= 255,
                     "Mesh pipeline cache key needs an extra bit for format");
@@ -6835,14 +6838,14 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   key |= uint64_t((uint32_t)secondaryFmt & 0xff) << bit;
   bit += 8;
 
-  RDCASSERT(primary.stride <= 0xffff);
-  key |= uint64_t((uint32_t)primary.stride & 0xffff) << bit;
+  RDCASSERT(primary.vertexByteStride <= 0xffff);
+  key |= uint64_t((uint32_t)primary.vertexByteStride & 0xffff) << bit;
   bit += 16;
 
-  if(secondary.buf != ResourceId())
+  if(secondary.vertexResourceId != ResourceId())
   {
-    RDCASSERT(secondary.stride <= 0xffff);
-    key |= uint64_t((uint32_t)secondary.stride & 0xffff) << bit;
+    RDCASSERT(secondary.vertexByteStride <= 0xffff);
+    key |= uint64_t((uint32_t)secondary.vertexByteStride & 0xffff) << bit;
   }
   bit += 16;
 
@@ -6857,10 +6860,11 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   // should we try and evict old pipelines from the cache here?
   // or just keep them forever
 
-  VkVertexInputBindingDescription binds[] = {// primary
-                                             {0, primary.stride, VK_VERTEX_INPUT_RATE_VERTEX},
-                                             // secondary
-                                             {1, secondary.stride, VK_VERTEX_INPUT_RATE_VERTEX}};
+  VkVertexInputBindingDescription binds[] = {
+      // primary
+      {0, primary.vertexByteStride, VK_VERTEX_INPUT_RATE_VERTEX},
+      // secondary
+      {1, secondary.vertexByteStride, VK_VERTEX_INPUT_RATE_VERTEX}};
 
   RDCASSERT(primaryFmt != VK_FORMAT_UNDEFINED);
 
@@ -6890,8 +6894,8 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
   VkPipelineInputAssemblyStateCreateInfo ia = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
-      primary.topo >= Topology::PatchList ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST
-                                          : MakeVkPrimitiveTopology(primary.topo),
+      primary.topology >= Topology::PatchList ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST
+                                              : MakeVkPrimitiveTopology(primary.topology),
       false,
   };
 
@@ -7070,7 +7074,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
                                     &cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  if(secondary.buf != ResourceId())
+  if(secondary.vertexResourceId != ResourceId())
   {
     // pull secondary information from second vertex buffer
     vertAttrs[1].binding = 1;
@@ -7122,7 +7126,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
   uint32_t *spirv = &modSpirv[0];
   size_t spirvLength = modSpirv.size();
 
-  int numOutputs = refl.OutputSig.count();
+  int numOutputs = refl.outputSignature.count();
 
   RDCASSERT(numOutputs > 0);
 
@@ -7231,36 +7235,37 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
 
       if(outs[i].basetypeID == 0)
       {
-        if(refl.OutputSig[i].compCount > 1 && opcode == spv::OpTypeVector)
+        if(refl.outputSignature[i].compCount > 1 && opcode == spv::OpTypeVector)
         {
           uint32_t baseID = 0;
 
-          if(refl.OutputSig[i].compType == CompType::UInt)
+          if(refl.outputSignature[i].compType == CompType::UInt)
             baseID = uint32ID;
-          else if(refl.OutputSig[i].compType == CompType::SInt)
+          else if(refl.outputSignature[i].compType == CompType::SInt)
             baseID = sint32ID;
-          else if(refl.OutputSig[i].compType == CompType::Float)
+          else if(refl.outputSignature[i].compType == CompType::Float)
             baseID = floatID;
-          else if(refl.OutputSig[i].compType == CompType::Double)
+          else if(refl.outputSignature[i].compType == CompType::Double)
             baseID = doubleID;
           else
             RDCERR("Unexpected component type for output signature element");
 
           // if we have the base type, see if this is the right sized vector of that type
-          if(baseID != 0 && spirv[it + 2] == baseID && spirv[it + 3] == refl.OutputSig[i].compCount)
+          if(baseID != 0 && spirv[it + 2] == baseID &&
+             spirv[it + 3] == refl.outputSignature[i].compCount)
             outs[i].basetypeID = spirv[it + 1];
         }
 
         // handle non-vectors
-        if(refl.OutputSig[i].compCount == 1)
+        if(refl.outputSignature[i].compCount == 1)
         {
-          if(refl.OutputSig[i].compType == CompType::UInt)
+          if(refl.outputSignature[i].compType == CompType::UInt)
             outs[i].basetypeID = uint32ID;
-          else if(refl.OutputSig[i].compType == CompType::SInt)
+          else if(refl.outputSignature[i].compType == CompType::SInt)
             outs[i].basetypeID = sint32ID;
-          else if(refl.OutputSig[i].compType == CompType::Float)
+          else if(refl.outputSignature[i].compType == CompType::Float)
             outs[i].basetypeID = floatID;
-          else if(refl.OutputSig[i].compType == CompType::Double)
+          else if(refl.outputSignature[i].compType == CompType::Double)
             outs[i].basetypeID = doubleID;
         }
       }
@@ -7522,8 +7527,8 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
       if(!patchData.outputs[i].isMatrix)
       {
         RDCERR("No output pointer ID found for non-matrix output %d: %s (%u %u)", i,
-               refl.OutputSig[i].varName.c_str(), refl.OutputSig[i].compType,
-               refl.OutputSig[i].compCount);
+               refl.outputSignature[i].varName.c_str(), refl.outputSignature[i].compType,
+               refl.outputSignature[i].compCount);
       }
 
       outs[i].outputPtrID = idBound++;
@@ -7680,16 +7685,16 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
     for(int o = 0; o < numOutputs; o++)
     {
       uint32_t elemSize = 0;
-      if(refl.OutputSig[o].compType == CompType::Double)
+      if(refl.outputSignature[o].compType == CompType::Double)
         elemSize = 8;
-      else if(refl.OutputSig[o].compType == CompType::SInt ||
-              refl.OutputSig[o].compType == CompType::UInt ||
-              refl.OutputSig[o].compType == CompType::Float)
+      else if(refl.outputSignature[o].compType == CompType::SInt ||
+              refl.outputSignature[o].compType == CompType::UInt ||
+              refl.outputSignature[o].compType == CompType::Float)
         elemSize = 4;
       else
         RDCERR("Unexpected component type for output signature element");
 
-      uint32_t numComps = refl.OutputSig[o].compCount;
+      uint32_t numComps = refl.outputSignature[o].compCount;
 
       // ensure member is std430 packed (vec4 alignment for vec3/vec4)
       if(numComps == 2)
@@ -7703,7 +7708,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
       decorations.push_back(spv::DecorationOffset);
       decorations.push_back(memberOffset);
 
-      memberOffset += elemSize * refl.OutputSig[o].compCount;
+      memberOffset += elemSize * refl.outputSignature[o].compCount;
     }
 
     // align to 16 bytes (vec4) since we will almost certainly have
@@ -7912,13 +7917,13 @@ void VulkanDebugManager::ClearPostVSCache()
   m_PostVSData.clear();
 }
 
-void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
+void VulkanDebugManager::InitPostVSBuffers(uint32_t eventId)
 {
   // go through any aliasing
-  if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
-    eventID = m_PostVSAlias[eventID];
+  if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())
+    eventId = m_PostVSAlias[eventId];
 
-  if(m_PostVSData.find(eventID) != m_PostVSData.end())
+  if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
   if(!m_pDriver->GetDeviceFeatures().vertexPipelineStoresAndAtomics)
@@ -7942,25 +7947,25 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 
   // no outputs from this shader? unexpected but theoretically possible (dummy VS before
   // tessellation maybe). Just fill out an empty data set
-  if(refl->OutputSig.empty())
+  if(refl->outputSignature.empty())
   {
     // empty vertex output signature
-    m_PostVSData[eventID].vsin.topo = pipeInfo.topology;
-    m_PostVSData[eventID].vsout.buf = VK_NULL_HANDLE;
-    m_PostVSData[eventID].vsout.instStride = 0;
-    m_PostVSData[eventID].vsout.vertStride = 0;
-    m_PostVSData[eventID].vsout.nearPlane = 0.0f;
-    m_PostVSData[eventID].vsout.farPlane = 0.0f;
-    m_PostVSData[eventID].vsout.useIndices = false;
-    m_PostVSData[eventID].vsout.hasPosOut = false;
-    m_PostVSData[eventID].vsout.idxBuf = VK_NULL_HANDLE;
+    m_PostVSData[eventId].vsin.topo = pipeInfo.topology;
+    m_PostVSData[eventId].vsout.buf = VK_NULL_HANDLE;
+    m_PostVSData[eventId].vsout.instStride = 0;
+    m_PostVSData[eventId].vsout.vertStride = 0;
+    m_PostVSData[eventId].vsout.nearPlane = 0.0f;
+    m_PostVSData[eventId].vsout.farPlane = 0.0f;
+    m_PostVSData[eventId].vsout.useIndices = false;
+    m_PostVSData[eventId].vsout.hasPosOut = false;
+    m_PostVSData[eventId].vsout.idxBuf = VK_NULL_HANDLE;
 
-    m_PostVSData[eventID].vsout.topo = pipeInfo.topology;
+    m_PostVSData[eventId].vsout.topo = pipeInfo.topology;
 
     return;
   }
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
 
   if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
@@ -8575,7 +8580,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   // expect position at the start of the buffer, as system values are sorted first
   // and position is the first value
 
-  for(uint32_t i = 1; refl->OutputSig[0].systemValue == ShaderBuiltin::Position && i < numVerts; i++)
+  for(uint32_t i = 1;
+      refl->outputSignature[0].systemValue == ShaderBuiltin::Position && i < numVerts; i++)
   {
     //////////////////////////////////////////////////////////////////////////////////
     // derive near/far, assuming a standard perspective matrix
@@ -8643,32 +8649,33 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   }
 
   // fill out m_PostVSData
-  m_PostVSData[eventID].vsin.topo = topo;
-  m_PostVSData[eventID].vsout.topo = topo;
-  m_PostVSData[eventID].vsout.buf = meshBuffer;
-  m_PostVSData[eventID].vsout.bufmem = meshMem;
+  m_PostVSData[eventId].vsin.topo = topo;
+  m_PostVSData[eventId].vsout.topo = topo;
+  m_PostVSData[eventId].vsout.buf = meshBuffer;
+  m_PostVSData[eventId].vsout.bufmem = meshMem;
 
-  m_PostVSData[eventID].vsout.vertStride = bufStride;
-  m_PostVSData[eventID].vsout.nearPlane = nearp;
-  m_PostVSData[eventID].vsout.farPlane = farp;
+  m_PostVSData[eventId].vsout.vertStride = bufStride;
+  m_PostVSData[eventId].vsout.nearPlane = nearp;
+  m_PostVSData[eventId].vsout.farPlane = farp;
 
-  m_PostVSData[eventID].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
-  m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
+  m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
+  m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
 
-  m_PostVSData[eventID].vsout.instStride = 0;
+  m_PostVSData[eventId].vsout.instStride = 0;
   if(drawcall->flags & DrawFlags::Instanced)
-    m_PostVSData[eventID].vsout.instStride = uint32_t(bufSize / drawcall->numInstances);
+    m_PostVSData[eventId].vsout.instStride = uint32_t(bufSize / drawcall->numInstances);
 
-  m_PostVSData[eventID].vsout.idxBuf = VK_NULL_HANDLE;
-  if(m_PostVSData[eventID].vsout.useIndices && idxBuf != VK_NULL_HANDLE)
+  m_PostVSData[eventId].vsout.idxBuf = VK_NULL_HANDLE;
+  if(m_PostVSData[eventId].vsout.useIndices && idxBuf != VK_NULL_HANDLE)
   {
-    m_PostVSData[eventID].vsout.idxBuf = idxBuf;
-    m_PostVSData[eventID].vsout.idxBufMem = idxBufMem;
-    m_PostVSData[eventID].vsout.idxFmt =
+    m_PostVSData[eventId].vsout.idxBuf = idxBuf;
+    m_PostVSData[eventId].vsout.idxBufMem = idxBufMem;
+    m_PostVSData[eventId].vsout.idxFmt =
         state.ibuffer.bytewidth == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
   }
 
-  m_PostVSData[eventID].vsout.hasPosOut = refl->OutputSig[0].systemValue == ShaderBuiltin::Position;
+  m_PostVSData[eventId].vsout.hasPosOut =
+      refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
 
   // delete pipeline layout
   m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
@@ -8680,17 +8687,17 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
 
-MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
   // go through any aliasing
-  if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
-    eventID = m_PostVSAlias[eventID];
+  if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())
+    eventId = m_PostVSAlias[eventId];
 
   VulkanPostVSData postvs;
   RDCEraseEl(postvs);
 
-  if(m_PostVSData.find(eventID) != m_PostVSData.end())
-    postvs = m_PostVSData[eventID];
+  if(m_PostVSData.find(eventId) != m_PostVSData.end())
+    postvs = m_PostVSData[eventId];
 
   VulkanPostVSData::StageData s = postvs.GetStage(stage);
 
@@ -8698,35 +8705,35 @@ MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instI
 
   if(s.useIndices && s.idxBuf != VK_NULL_HANDLE)
   {
-    ret.idxbuf = GetResID(s.idxBuf);
-    ret.idxByteWidth = s.idxFmt == VK_INDEX_TYPE_UINT16 ? 2 : 4;
+    ret.indexResourceId = GetResID(s.idxBuf);
+    ret.indexByteStride = s.idxFmt == VK_INDEX_TYPE_UINT16 ? 2 : 4;
   }
   else
   {
-    ret.idxbuf = ResourceId();
-    ret.idxByteWidth = 0;
+    ret.indexResourceId = ResourceId();
+    ret.indexByteStride = 0;
   }
-  ret.idxoffs = 0;
+  ret.indexByteOffset = 0;
   ret.baseVertex = 0;
 
   if(s.buf != VK_NULL_HANDLE)
-    ret.buf = GetResID(s.buf);
+    ret.vertexResourceId = GetResID(s.buf);
   else
-    ret.buf = ResourceId();
+    ret.vertexResourceId = ResourceId();
 
-  ret.offset = s.instStride * instID;
-  ret.stride = s.vertStride;
+  ret.vertexByteOffset = s.instStride * instID;
+  ret.vertexByteStride = s.vertStride;
 
-  ret.fmt.compCount = 4;
-  ret.fmt.compByteWidth = 4;
-  ret.fmt.compType = CompType::Float;
-  ret.fmt.type = ResourceFormatType::Regular;
-  ret.fmt.bgraOrder = false;
+  ret.format.compCount = 4;
+  ret.format.compByteWidth = 4;
+  ret.format.compType = CompType::Float;
+  ret.format.type = ResourceFormatType::Regular;
+  ret.format.bgraOrder = false;
 
   ret.showAlpha = false;
 
-  ret.topo = MakePrimitiveTopology(s.topo, 1);
-  ret.numVerts = s.numVerts;
+  ret.topology = MakePrimitiveTopology(s.topo, 1);
+  ret.numIndices = s.numVerts;
 
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;

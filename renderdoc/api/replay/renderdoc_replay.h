@@ -444,11 +444,11 @@ Should only be called for texture outputs.
 :param WindowingSystem system: The type of native window handle data being provided.
 :param data: The native window data, in a format defined by the system.
 :type data: opaque void * pointer.
-:param ResourceId texID: The texture ID to display in the thumbnail preview.
+:param ResourceId textureId: The texture ID to display in the thumbnail preview.
 :return: A boolean indicating if the thumbnail was successfully created.
 :rtype: ``bool``
 )");
-  virtual bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
+  virtual bool AddThumbnail(WindowingSystem system, void *data, ResourceId textureId,
                             CompType typeHint) = 0;
 
   DOCUMENT(R"(Render to the window handle specified when the output was created.
@@ -533,7 +533,7 @@ Should only be called for texture outputs.
 
 Should only be called for texture outputs.
 
-:param ResourceId texID: The texture to pick the pixel from.
+:param ResourceId textureId: The texture to pick the pixel from.
 :param bool customShader: Whether to apply the configured custom shader.
 :param int x: The x co-ordinate to pick from.
 :param int y: The y co-ordinate to pick from.
@@ -543,7 +543,7 @@ Should only be called for texture outputs.
 :return: The contents of the pixel.
 :rtype: PixelValue
 )");
-  virtual PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
+  virtual PixelValue PickPixel(ResourceId textureId, bool customShader, uint32_t x, uint32_t y,
                                uint32_t sliceFace, uint32_t mip, uint32_t sample) = 0;
 
   DOCUMENT(R"(Retrieves the vertex and instance that is under the cursor location, when viewed
@@ -551,14 +551,14 @@ relative to the current window with the current mesh display configuration.
 
 Should only be called for mesh outputs.
 
-:param int eventID: The event ID to pick at.
+:param int eventId: The event ID to pick at.
 :param int x: The x co-ordinate to pick from.
 :param int y: The y co-ordinate to pick from.
 :return: A tuple with the first value being the vertex index in the mesh, and the second value being
   the instance index. The values are set to :data:`NoResult` if no vertex was found, 
 :rtype: ``tuple`` of ``int`` and ``int``
 )");
-  virtual rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y) = 0;
+  virtual rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventId, uint32_t x, uint32_t y) = 0;
 
   static const uint32_t NoResult = ~0U;
 
@@ -572,7 +572,7 @@ well as control the replay and analysis functionality available.
 
 .. data:: NoPreference
 
-  No preference for a particular value, see :meth:`DebugPixel`.
+  No preference for a particular value, see :meth:`ReplayController.DebugPixel`.
 )");
 struct IReplayController
 {
@@ -607,7 +607,7 @@ struct IReplayController
   DOCUMENT(R"(Goes into a blocking loop, repeatedly replaying the open capture as fast as possible,
 displaying the selected texture in a default unscaled manner to the given output window.
 
-The function won't return until :meth:`CancelLoop` is called. Since this function is blocking, that
+The function won't return until :meth:`CancelReplayLoop` is called. Since this function is blocking, that
 function must be called from another thread.
 
 :param WindowingSystem system: The type of native window handle data being provided
@@ -624,51 +624,51 @@ function must be called from another thread.
   virtual void FileChanged() = 0;
 
   DOCUMENT(R"(Move the replay to reflect the state immediately *after* the given
-:data:`EID <APIEvent.eventID>`.
+:data:`eventId <APIEvent.eventId>`.
 
-:param int eventID: The :data:`EID <APIEvent.eventID>` to move to.
-:param bool force: ``True`` if the internal replay should refresh even if the ``eventID`` is
+:param int eventId: The :data:`eventId <APIEvent.eventId>` to move to.
+:param bool force: ``True`` if the internal replay should refresh even if the ``eventId`` is
   already current. This can be useful if external factors might cause the replay to vary.
 )");
-  virtual void SetFrameEvent(uint32_t eventID, bool force) = 0;
+  virtual void SetFrameEvent(uint32_t eventId, bool force) = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`D3D11_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`D3D11State` pipeline state.
 
 This pipeline state will be filled with default values if the capture is not using the D3D11 API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
 
 :return: The current D3D11 pipeline state.
-:rtype: D3D11_State
+:rtype: D3D11State
 )");
   virtual const D3D11Pipe::State &GetD3D11PipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`D3D12_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`D3D12State` pipeline state.
 
 This pipeline state will be filled with default values if the capture is not using the D3D12 API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
 
 :return: The current D3D12 pipeline state.
-:rtype: D3D12_State
+:rtype: D3D12State
 )");
   virtual const D3D12Pipe::State &GetD3D12PipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`GL_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`GLState` pipeline state.
 
 This pipeline state will be filled with default values if the capture is not using the OpenGL API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
 
 :return: The current OpenGL pipeline state.
-:rtype: GL_State
+:rtype: GLState
 )");
   virtual const GLPipe::State &GetGLPipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`VK_State` pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`VKState` pipeline state.
 
 This pipeline state will be filled with default values if the capture is not using the Vulkan API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
 
 :return: The current Vulkan pipeline state.
-:rtype: VK_State
+:rtype: VKState
 )");
   virtual const VKPipe::State &GetVulkanPipelineState() = 0;
 
@@ -698,7 +698,7 @@ or hardware-specific ISA formats.
 
 The language used is native to the local renderer - HLSL for D3D based renderers, GLSL otherwise.
 
-See :data:`TextureDisplay.CustomShader`.
+See :data:`TextureDisplay.customShaderId`.
 
 :param str entry: The entry point to use when compiling.
 :param str source: The source file.
@@ -804,11 +804,11 @@ implementation.
   DOCUMENT(R"(Get information about what a counter actually represents, in terms of a human-readable
 understanding as well as the type and unit of the resulting information.
 
-:param GPUCounter counterID: The counter to query about.
+:param GPUCounter counter: The counter to query about.
 :return: The description of the counter.
 :rtype: CounterDescription
 )");
-  virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
+  virtual CounterDescription DescribeCounter(GPUCounter counter) = 0;
 
   DOCUMENT(R"(Retrieve the list of all resources in the capture.
 
@@ -939,7 +939,7 @@ otherwise.
 
 :param ResourceId shader: The id of the shader to use for metadata.
 :param str entryPoint: The entry point of the shader being used. In some APIs, this is ignored.
-:param int cbufslot: The index in the :data:`ShaderReflection.ConstantBlocks` list to look up.
+:param int cbufslot: The index in the :data:`ShaderReflection.constantBlocks` list to look up.
 :param ResourceId buffer: The id of the buffer to use for data. If
   :data:`ConstantBlock.bufferBacked` is ``False`` this is ignored.
 :param int offs: Retrieve buffer contents starting at this byte offset.
@@ -963,12 +963,12 @@ texture to something compatible with the target file format.
 
   DOCUMENT(R"(Retrieve the generated data from one of the geometry processing shader stages.
 
-:param int instID: The index of the instance to retrieve data for.
+:param int instance: The index of the instance to retrieve data for.
 :param MeshDataStage stage: The stage of the geometry processing pipeline to retrieve data from.
 :return: The information describing where the post-transform data is stored.
 :rtype: MeshFormat
 )");
-  virtual MeshFormat GetPostVSData(uint32_t instID, MeshDataStage stage) = 0;
+  virtual MeshFormat GetPostVSData(uint32_t instance, MeshDataStage stage) = 0;
 
   DOCUMENT(R"(Retrieve the contents of a range of a buffer as a ``bytes``.
 
@@ -1065,16 +1065,16 @@ begin a capture is begun, and it ends when this frame number ends.
   DOCUMENT(R"(Begin copying a given capture stored on a remote machine to the local machine over the
 target control connection.
 
-:param int remoteID: The identifier of the remote capture.
+:param int captureId: The identifier of the remote capture.
 :param str localpath: The absolute path on the local system where the file should be saved.
 )");
-  virtual void CopyCapture(uint32_t remoteID, const char *localpath) = 0;
+  virtual void CopyCapture(uint32_t captureId, const char *localpath) = 0;
 
   DOCUMENT(R"(Delete a capture from the remote machine.
 
-:param int remoteID: The identifier of the remote capture.
+:param int captureId: The identifier of the remote capture.
 )");
-  virtual void DeleteCapture(uint32_t remoteID) = 0;
+  virtual void DeleteCapture(uint32_t captureId) = 0;
 
   DOCUMENT(R"(Query to see if a message has been received from the remote system.
 
@@ -1134,7 +1134,7 @@ This index should not be cached, as writing sections could re-order the indices.
 
 :param int index: The index of the section.
 :return: The properties of the section, if the index is valid.
-:rtype: SectionProperties.
+:rtype: SectionProperties
 )");
   virtual SectionProperties GetSectionProperties(int index) = 0;
 
@@ -1199,7 +1199,7 @@ much work as possible happening on the local machine.
 
 .. data:: NoPreference
 
-  No preference for a particular value, see :meth:`DebugPixel`.
+  No preference for a particular value, see :meth:`ReplayController.DebugPixel`.
 )");
 struct IRemoteServer : public ICaptureAccess
 {
@@ -1459,8 +1459,8 @@ replay support.
 This function may only be called if the handle is 'empty' - i.e. no file has been opened with
 :meth:`OpenFile` or :meth:`OpenBuffer`.
 
-.. note:: The only supported values for :paramref:`SetMetadata.thumbType` are :data:`FileType.JPG`,
-  :data:`FileType.PNG`, :data:`FileType.TGA`, and :data:`FileType.BMP`.
+.. note:: The only supported values for :paramref:`SetMetadata.thumbType` are :attr:`FileType.JPG`,
+  :attr:`FileType.PNG`, :attr:`FileType.TGA`, and :attr:`FileType.BMP`.
 
 :param str driverName: The name of the driver. Must be a recognised driver name (even if replay
   support for that driver is not compiled in locally.
@@ -1518,8 +1518,8 @@ The data is copied internally so it can be destroyed after calling this function
 
   DOCUMENT(R"(Retrieves the embedded thumbnail from the capture.
 
-.. note:: The only supported values for :paramref:`GetThumbnail.type` are :data:`FileType.JPG`,
-  :data:`FileType.PNG`, :data:`FileType.TGA`, and :data:`FileType.BMP`.
+.. note:: The only supported values for :paramref:`GetThumbnail.type` are :attr:`FileType.JPG`,
+  :attr:`FileType.PNG`, :attr:`FileType.TGA`, and :attr:`FileType.BMP`.
 
 :param FileType type: The image format to convert the thumbnail to.
 :param int maxsize: The largest width or height allowed. If the thumbnail is larger, it's resized.
@@ -1685,7 +1685,7 @@ This function returns a new handle to a capture file. Once initialised by openin
 can only be shut-down, it is not re-usable.
 
 :return: A handle to the specified path.
-:rtype: ICaptureFile
+:rtype: CaptureFile
 )");
 extern "C" RENDERDOC_API ICaptureFile *RENDERDOC_CC RENDERDOC_OpenCaptureFile();
 

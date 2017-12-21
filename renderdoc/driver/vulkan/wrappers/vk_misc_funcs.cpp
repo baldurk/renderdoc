@@ -1015,7 +1015,7 @@ VkBool32 VKAPI_PTR UserDebugCallback(VkDebugReportFlagsEXT flags,
 {
   UserDebugCallbackData *user = (UserDebugCallbackData *)pUserData;
 
-  if(RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
+  if(RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
   {
     if(user->muteWarned)
       return false;

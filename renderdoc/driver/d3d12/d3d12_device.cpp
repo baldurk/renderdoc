@@ -225,7 +225,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   if(m_pInfoQueue)
   {
-    if(RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
+    if(RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
       m_pInfoQueue->SetMuteDebugOutput(true);
 
     UINT size = m_pInfoQueue->GetStorageFilterStackSize();
@@ -1709,7 +1709,7 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
   D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
   DebugMessage msg;
-  msg.eventID = 0;
+  msg.eventId = 0;
   msg.messageID = 0;
   msg.source = src;
   msg.category = c;
@@ -1723,7 +1723,7 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
     RDCASSERT(it != cmd.m_DrawcallUses.end());
 
     if(it != cmd.m_DrawcallUses.end())
-      msg.eventID = it->eventID;
+      msg.eventId = it->eventId;
     else
       RDCERR("Couldn't locate drawcall use for current chunk offset %llu", cmd.m_CurChunkOffset);
   }
@@ -1769,7 +1769,7 @@ std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
     m_pInfoQueue->GetMessage(i, message, &len);
 
     DebugMessage msg;
-    msg.eventID = 0;
+    msg.eventId = 0;
     msg.source = MessageSource::API;
     msg.category = MessageCategory::Miscellaneous;
     msg.severity = MessageSeverity::Medium;
@@ -2013,7 +2013,7 @@ WriteSerialiser &WrappedID3D12Device::GetThreadSerialiser()
   uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
                    WriteSerialiser::ChunkThreadID;
 
-  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
 
   ser->SetChunkMetadataRecording(flags);
@@ -2244,12 +2244,12 @@ void WrappedID3D12Device::FlushLists(bool forceSync, ID3D12CommandQueue *queue)
   }
 }
 
-const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventId)
 {
-  if(eventID >= m_Drawcalls.size())
+  if(eventId >= m_Drawcalls.size())
     return NULL;
 
-  return m_Drawcalls[eventID];
+  return m_Drawcalls[eventId];
 }
 
 bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
@@ -2486,7 +2486,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 
   // steal the structured data for ourselves
-  m_StructuredFile->swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(m_StoredStructuredData);
 
   // and in future use this file.
   m_StructuredFile = &m_StoredStructuredData;

@@ -252,9 +252,9 @@ std::string DoStringise(const FilterMode &el)
 }
 
 template <>
-std::string DoStringise(const FilterFunc &el)
+std::string DoStringise(const FilterFunction &el)
 {
-  BEGIN_ENUM_STRINGISE(FilterFunc)
+  BEGIN_ENUM_STRINGISE(FilterFunction)
   {
     STRINGISE_ENUM_CLASS(Normal);
     STRINGISE_ENUM_CLASS(Comparison);
@@ -265,9 +265,9 @@ std::string DoStringise(const FilterFunc &el)
 }
 
 template <>
-std::string DoStringise(const CompareFunc &el)
+std::string DoStringise(const CompareFunction &el)
 {
-  BEGIN_ENUM_STRINGISE(CompareFunc)
+  BEGIN_ENUM_STRINGISE(CompareFunction)
   {
     STRINGISE_ENUM_CLASS_NAMED(Never, "Never");
     STRINGISE_ENUM_CLASS_NAMED(AlwaysTrue, "Always");
@@ -310,9 +310,9 @@ std::string DoStringise(const BlendMultiplier &el)
 }
 
 template <>
-std::string DoStringise(const BlendOp &el)
+std::string DoStringise(const BlendOperation &el)
 {
-  BEGIN_ENUM_STRINGISE(BlendOp)
+  BEGIN_ENUM_STRINGISE(BlendOperation)
   {
     STRINGISE_ENUM_CLASS_NAMED(Add, "Add");
     STRINGISE_ENUM_CLASS_NAMED(Subtract, "Subtract");
@@ -324,9 +324,9 @@ std::string DoStringise(const BlendOp &el)
 }
 
 template <>
-std::string DoStringise(const StencilOp &el)
+std::string DoStringise(const StencilOperation &el)
 {
-  BEGIN_ENUM_STRINGISE(StencilOp)
+  BEGIN_ENUM_STRINGISE(StencilOperation)
   {
     STRINGISE_ENUM_CLASS_NAMED(Keep, "Keep");
     STRINGISE_ENUM_CLASS_NAMED(Zero, "Zero");
@@ -341,9 +341,9 @@ std::string DoStringise(const StencilOp &el)
 }
 
 template <>
-std::string DoStringise(const LogicOp &el)
+std::string DoStringise(const LogicOperation &el)
 {
-  BEGIN_ENUM_STRINGISE(LogicOp)
+  BEGIN_ENUM_STRINGISE(LogicOperation)
   {
     STRINGISE_ENUM_CLASS_NAMED(NoOp, "No-Op");
     STRINGISE_ENUM_CLASS_NAMED(Clear, "Clear");
@@ -451,9 +451,9 @@ std::string DoStringise(const ResourceType &el)
 }
 
 template <>
-std::string DoStringise(const TextureDim &el)
+std::string DoStringise(const TextureType &el)
 {
-  BEGIN_ENUM_STRINGISE(TextureDim)
+  BEGIN_ENUM_STRINGISE(TextureType)
   {
     STRINGISE_ENUM_CLASS_NAMED(Unknown, "Unknown");
     STRINGISE_ENUM_CLASS_NAMED(Buffer, "Buffer");

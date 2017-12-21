@@ -73,7 +73,7 @@ public:
 
   void RenderCheckerboard();
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
+  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                  CompType typeHint, float *minval, float *maxval);
@@ -83,22 +83,22 @@ public:
                     vector<uint32_t> &histogram);
 
   ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                           uint32_t eventID, const vector<uint32_t> &passEvents);
+                           uint32_t eventId, const vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, CompType typeHint, float pixel[4]);
-  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
+  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
                             vector<ShaderVariable> &outvars, bool flattenVec4s, const bytebuf &data);
 
-  void InitPostVSBuffers(uint32_t eventID);
+  void InitPostVSBuffers(uint32_t eventId);
 
-  // indicates that EID alias is the same as eventID
-  void AliasPostVSBuffers(uint32_t eventID, uint32_t alias) { m_PostVSAlias[alias] = eventID; }
-  MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
+  // indicates that EID alias is the same as eventId
+  void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVSAlias[alias] = eventId; }
+  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage);
   void ClearPostVSCache();
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData);

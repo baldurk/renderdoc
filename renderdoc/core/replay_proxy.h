@@ -233,17 +233,17 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(cfg.texid, cfg.sliceFace, cfg.mip);
-      if(cfg.texid == ResourceId() || m_ProxyTextures[cfg.texid] == ResourceId())
+      EnsureTexCached(cfg.resourceId, cfg.sliceFace, cfg.mip);
+      if(cfg.resourceId == ResourceId() || m_ProxyTextures[cfg.resourceId] == ResourceId())
         return false;
-      cfg.texid = m_ProxyTextures[cfg.texid];
+      cfg.resourceId = m_ProxyTextures[cfg.resourceId];
 
       // due to OpenGL having origin bottom-left compared to the rest of the world,
       // we need to flip going in or out of GL.
       if((m_APIProps.pipelineType == GraphicsAPI::OpenGL) !=
          (m_APIProps.localRenderer == GraphicsAPI::OpenGL))
       {
-        cfg.FlipY = !cfg.FlipY;
+        cfg.flipY = !cfg.flipY;
       }
 
       return m_Proxy->RenderTexture(cfg);
@@ -279,75 +279,75 @@ public:
     }
   }
 
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
+  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
-    if(m_Proxy && cfg.position.buf != ResourceId())
+    if(m_Proxy && cfg.position.vertexResourceId != ResourceId())
     {
       MeshDisplay proxiedCfg = cfg;
 
-      EnsureBufCached(proxiedCfg.position.buf);
-      if(proxiedCfg.position.buf == ResourceId() ||
-         m_ProxyBufferIds[proxiedCfg.position.buf] == ResourceId())
+      EnsureBufCached(proxiedCfg.position.vertexResourceId);
+      if(proxiedCfg.position.vertexResourceId == ResourceId() ||
+         m_ProxyBufferIds[proxiedCfg.position.vertexResourceId] == ResourceId())
         return;
-      proxiedCfg.position.buf = m_ProxyBufferIds[proxiedCfg.position.buf];
+      proxiedCfg.position.vertexResourceId = m_ProxyBufferIds[proxiedCfg.position.vertexResourceId];
 
-      if(proxiedCfg.second.buf != ResourceId())
+      if(proxiedCfg.second.vertexResourceId != ResourceId())
       {
-        EnsureBufCached(proxiedCfg.second.buf);
-        proxiedCfg.second.buf = m_ProxyBufferIds[proxiedCfg.second.buf];
+        EnsureBufCached(proxiedCfg.second.vertexResourceId);
+        proxiedCfg.second.vertexResourceId = m_ProxyBufferIds[proxiedCfg.second.vertexResourceId];
       }
 
-      if(proxiedCfg.position.idxbuf != ResourceId())
+      if(proxiedCfg.position.indexResourceId != ResourceId())
       {
-        EnsureBufCached(proxiedCfg.position.idxbuf);
-        proxiedCfg.position.idxbuf = m_ProxyBufferIds[proxiedCfg.position.idxbuf];
+        EnsureBufCached(proxiedCfg.position.indexResourceId);
+        proxiedCfg.position.indexResourceId = m_ProxyBufferIds[proxiedCfg.position.indexResourceId];
       }
 
       vector<MeshFormat> secDraws = secondaryDraws;
 
       for(size_t i = 0; i < secDraws.size(); i++)
       {
-        if(secDraws[i].buf != ResourceId())
+        if(secDraws[i].vertexResourceId != ResourceId())
         {
-          EnsureBufCached(secDraws[i].buf);
-          secDraws[i].buf = m_ProxyBufferIds[secDraws[i].buf];
+          EnsureBufCached(secDraws[i].vertexResourceId);
+          secDraws[i].vertexResourceId = m_ProxyBufferIds[secDraws[i].vertexResourceId];
         }
-        if(secDraws[i].idxbuf != ResourceId())
+        if(secDraws[i].indexResourceId != ResourceId())
         {
-          EnsureBufCached(secDraws[i].idxbuf);
-          secDraws[i].idxbuf = m_ProxyBufferIds[secDraws[i].idxbuf];
+          EnsureBufCached(secDraws[i].indexResourceId);
+          secDraws[i].indexResourceId = m_ProxyBufferIds[secDraws[i].indexResourceId];
         }
       }
 
-      m_Proxy->RenderMesh(eventID, secDraws, proxiedCfg);
+      m_Proxy->RenderMesh(eventId, secDraws, proxiedCfg);
     }
   }
 
-  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
   {
-    if(m_Proxy && cfg.position.buf != ResourceId())
+    if(m_Proxy && cfg.position.vertexResourceId != ResourceId())
     {
       MeshDisplay proxiedCfg = cfg;
 
-      EnsureBufCached(proxiedCfg.position.buf);
-      if(proxiedCfg.position.buf == ResourceId() ||
-         m_ProxyBufferIds[proxiedCfg.position.buf] == ResourceId())
+      EnsureBufCached(proxiedCfg.position.vertexResourceId);
+      if(proxiedCfg.position.vertexResourceId == ResourceId() ||
+         m_ProxyBufferIds[proxiedCfg.position.vertexResourceId] == ResourceId())
         return ~0U;
-      proxiedCfg.position.buf = m_ProxyBufferIds[proxiedCfg.position.buf];
+      proxiedCfg.position.vertexResourceId = m_ProxyBufferIds[proxiedCfg.position.vertexResourceId];
 
-      if(proxiedCfg.second.buf != ResourceId())
+      if(proxiedCfg.second.vertexResourceId != ResourceId())
       {
-        EnsureBufCached(proxiedCfg.second.buf);
-        proxiedCfg.second.buf = m_ProxyBufferIds[proxiedCfg.second.buf];
+        EnsureBufCached(proxiedCfg.second.vertexResourceId);
+        proxiedCfg.second.vertexResourceId = m_ProxyBufferIds[proxiedCfg.second.vertexResourceId];
       }
 
-      if(proxiedCfg.position.idxbuf != ResourceId())
+      if(proxiedCfg.position.indexResourceId != ResourceId())
       {
-        EnsureBufCached(proxiedCfg.position.idxbuf);
-        proxiedCfg.position.idxbuf = m_ProxyBufferIds[proxiedCfg.position.idxbuf];
+        EnsureBufCached(proxiedCfg.position.indexResourceId);
+        proxiedCfg.position.indexResourceId = m_ProxyBufferIds[proxiedCfg.position.indexResourceId];
       }
 
-      return m_Proxy->PickVertex(eventID, proxiedCfg, x, y);
+      return m_Proxy->PickVertex(eventId, proxiedCfg, x, y);
     }
 
     return ~0U;
@@ -418,7 +418,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(void, SavePipelineState);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplayLog, uint32_t endEventID, ReplayLogType replayType);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<uint32_t>, GetPassEvents, uint32_t eventID);
+  IMPLEMENT_FUNCTION_PROXIED(std::vector<uint32_t>, GetPassEvents, uint32_t eventId);
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<EventUsage>, GetUsage, ResourceId id);
   IMPLEMENT_FUNCTION_PROXIED(FrameRecord, GetFrameRecord);
@@ -441,13 +441,13 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(void, GetTextureData, ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                              const GetTextureDataParams &params, bytebuf &data);
 
-  IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, uint32_t eventID);
+  IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, uint32_t eventId);
   IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, const std::vector<uint32_t> &passEvents);
-  IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventID, uint32_t instID,
+  IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventId, uint32_t instID,
                              MeshDataStage stage);
 
   IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, CompType typeHint,
-                             DebugOverlay overlay, uint32_t eventID,
+                             DebugOverlay overlay, uint32_t eventId,
                              const std::vector<uint32_t> &passEvents);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
@@ -464,11 +464,11 @@ public:
                              std::vector<EventUsage> events, ResourceId target, uint32_t x,
                              uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx,
                              CompType typeHint);
-  IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugVertex, uint32_t eventID, uint32_t vertid,
+  IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugVertex, uint32_t eventId, uint32_t vertid,
                              uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
-  IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugPixel, uint32_t eventID, uint32_t x, uint32_t y,
+  IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugPixel, uint32_t eventId, uint32_t x, uint32_t y,
                              uint32_t sample, uint32_t primitive);
-  IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugThread, uint32_t eventID,
+  IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugThread, uint32_t eventId,
                              const uint32_t groupid[3], const uint32_t threadid[3]);
 
   IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, std::string source, std::string entry,

@@ -1298,22 +1298,22 @@ void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor)
   }
 }
 
-CompareFunc MakeCompareFunc(VkCompareOp func)
+CompareFunction MakeCompareFunc(VkCompareOp func)
 {
   switch(func)
   {
-    case VK_COMPARE_OP_NEVER: return CompareFunc::Never;
-    case VK_COMPARE_OP_LESS: return CompareFunc::Less;
-    case VK_COMPARE_OP_EQUAL: return CompareFunc::Equal;
-    case VK_COMPARE_OP_LESS_OR_EQUAL: return CompareFunc::LessEqual;
-    case VK_COMPARE_OP_GREATER: return CompareFunc::Greater;
-    case VK_COMPARE_OP_NOT_EQUAL: return CompareFunc::NotEqual;
-    case VK_COMPARE_OP_GREATER_OR_EQUAL: return CompareFunc::GreaterEqual;
-    case VK_COMPARE_OP_ALWAYS: return CompareFunc::AlwaysTrue;
+    case VK_COMPARE_OP_NEVER: return CompareFunction::Never;
+    case VK_COMPARE_OP_LESS: return CompareFunction::Less;
+    case VK_COMPARE_OP_EQUAL: return CompareFunction::Equal;
+    case VK_COMPARE_OP_LESS_OR_EQUAL: return CompareFunction::LessEqual;
+    case VK_COMPARE_OP_GREATER: return CompareFunction::Greater;
+    case VK_COMPARE_OP_NOT_EQUAL: return CompareFunction::NotEqual;
+    case VK_COMPARE_OP_GREATER_OR_EQUAL: return CompareFunction::GreaterEqual;
+    case VK_COMPARE_OP_ALWAYS: return CompareFunction::AlwaysTrue;
     default: break;
   }
 
-  return CompareFunc::AlwaysTrue;
+  return CompareFunction::AlwaysTrue;
 }
 
 static FilterMode MakeFilterMode(VkFilter f)
@@ -1356,35 +1356,35 @@ TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmap
     ret.magnify = MakeFilterMode(magFilter);
     ret.mip = MakeFilterMode(mipmapMode);
   }
-  ret.func = compareEnable ? FilterFunc::Comparison : FilterFunc::Normal;
+  ret.filter = compareEnable ? FilterFunction::Comparison : FilterFunction::Normal;
 
   return ret;
 }
 
-LogicOp MakeLogicOp(VkLogicOp op)
+LogicOperation MakeLogicOp(VkLogicOp op)
 {
   switch(op)
   {
-    case VK_LOGIC_OP_CLEAR: return LogicOp::Clear;
-    case VK_LOGIC_OP_AND: return LogicOp::And;
-    case VK_LOGIC_OP_AND_REVERSE: return LogicOp::AndReverse;
-    case VK_LOGIC_OP_COPY: return LogicOp::Copy;
-    case VK_LOGIC_OP_AND_INVERTED: return LogicOp::AndInverted;
-    case VK_LOGIC_OP_NO_OP: return LogicOp::NoOp;
-    case VK_LOGIC_OP_XOR: return LogicOp::Xor;
-    case VK_LOGIC_OP_OR: return LogicOp::Or;
-    case VK_LOGIC_OP_NOR: return LogicOp::Nor;
-    case VK_LOGIC_OP_EQUIVALENT: return LogicOp::Equivalent;
-    case VK_LOGIC_OP_INVERT: return LogicOp::Invert;
-    case VK_LOGIC_OP_OR_REVERSE: return LogicOp::OrReverse;
-    case VK_LOGIC_OP_COPY_INVERTED: return LogicOp::CopyInverted;
-    case VK_LOGIC_OP_OR_INVERTED: return LogicOp::OrInverted;
-    case VK_LOGIC_OP_NAND: return LogicOp::Nand;
-    case VK_LOGIC_OP_SET: return LogicOp::Set;
+    case VK_LOGIC_OP_CLEAR: return LogicOperation::Clear;
+    case VK_LOGIC_OP_AND: return LogicOperation::And;
+    case VK_LOGIC_OP_AND_REVERSE: return LogicOperation::AndReverse;
+    case VK_LOGIC_OP_COPY: return LogicOperation::Copy;
+    case VK_LOGIC_OP_AND_INVERTED: return LogicOperation::AndInverted;
+    case VK_LOGIC_OP_NO_OP: return LogicOperation::NoOp;
+    case VK_LOGIC_OP_XOR: return LogicOperation::Xor;
+    case VK_LOGIC_OP_OR: return LogicOperation::Or;
+    case VK_LOGIC_OP_NOR: return LogicOperation::Nor;
+    case VK_LOGIC_OP_EQUIVALENT: return LogicOperation::Equivalent;
+    case VK_LOGIC_OP_INVERT: return LogicOperation::Invert;
+    case VK_LOGIC_OP_OR_REVERSE: return LogicOperation::OrReverse;
+    case VK_LOGIC_OP_COPY_INVERTED: return LogicOperation::CopyInverted;
+    case VK_LOGIC_OP_OR_INVERTED: return LogicOperation::OrInverted;
+    case VK_LOGIC_OP_NAND: return LogicOperation::Nand;
+    case VK_LOGIC_OP_SET: return LogicOperation::Set;
     default: break;
   }
 
-  return LogicOp::NoOp;
+  return LogicOperation::NoOp;
 }
 
 BlendMultiplier MakeBlendMultiplier(VkBlendFactor blend)
@@ -1416,38 +1416,38 @@ BlendMultiplier MakeBlendMultiplier(VkBlendFactor blend)
   return BlendMultiplier::One;
 }
 
-BlendOp MakeBlendOp(VkBlendOp op)
+BlendOperation MakeBlendOp(VkBlendOp op)
 {
   // Need to update this when we support VK_EXT_blend_operation_advanced
   switch(op)
   {
-    case VK_BLEND_OP_ADD: return BlendOp::Add;
-    case VK_BLEND_OP_SUBTRACT: return BlendOp::Subtract;
-    case VK_BLEND_OP_REVERSE_SUBTRACT: return BlendOp::ReversedSubtract;
-    case VK_BLEND_OP_MIN: return BlendOp::Minimum;
-    case VK_BLEND_OP_MAX: return BlendOp::Maximum;
+    case VK_BLEND_OP_ADD: return BlendOperation::Add;
+    case VK_BLEND_OP_SUBTRACT: return BlendOperation::Subtract;
+    case VK_BLEND_OP_REVERSE_SUBTRACT: return BlendOperation::ReversedSubtract;
+    case VK_BLEND_OP_MIN: return BlendOperation::Minimum;
+    case VK_BLEND_OP_MAX: return BlendOperation::Maximum;
     default: break;
   }
 
-  return BlendOp::Add;
+  return BlendOperation::Add;
 }
 
-StencilOp MakeStencilOp(VkStencilOp op)
+StencilOperation MakeStencilOp(VkStencilOp op)
 {
   switch(op)
   {
-    case VK_STENCIL_OP_KEEP: return StencilOp::Keep;
-    case VK_STENCIL_OP_ZERO: return StencilOp::Zero;
-    case VK_STENCIL_OP_REPLACE: return StencilOp::Replace;
-    case VK_STENCIL_OP_INCREMENT_AND_CLAMP: return StencilOp::IncSat;
-    case VK_STENCIL_OP_DECREMENT_AND_CLAMP: return StencilOp::DecSat;
-    case VK_STENCIL_OP_INVERT: return StencilOp::Invert;
-    case VK_STENCIL_OP_INCREMENT_AND_WRAP: return StencilOp::IncWrap;
-    case VK_STENCIL_OP_DECREMENT_AND_WRAP: return StencilOp::DecWrap;
+    case VK_STENCIL_OP_KEEP: return StencilOperation::Keep;
+    case VK_STENCIL_OP_ZERO: return StencilOperation::Zero;
+    case VK_STENCIL_OP_REPLACE: return StencilOperation::Replace;
+    case VK_STENCIL_OP_INCREMENT_AND_CLAMP: return StencilOperation::IncSat;
+    case VK_STENCIL_OP_DECREMENT_AND_CLAMP: return StencilOperation::DecSat;
+    case VK_STENCIL_OP_INVERT: return StencilOperation::Invert;
+    case VK_STENCIL_OP_INCREMENT_AND_WRAP: return StencilOperation::IncWrap;
+    case VK_STENCIL_OP_DECREMENT_AND_WRAP: return StencilOperation::DecWrap;
     default: break;
   }
 
-  return StencilOp::Keep;
+  return StencilOperation::Keep;
 }
 
 template <typename SerialiserType>

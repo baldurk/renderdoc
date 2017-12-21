@@ -618,8 +618,8 @@ bool LiveCapture::checkAllowClose()
     // to by having an active connection or replay context on that host.
     if(suppressRemoteWarning == false && (!m_Connection || !m_Connection->Connected()) &&
        !cap->local && (!m_Ctx.Replay().CurrentRemote() ||
-                       QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
-                       !m_Ctx.Replay().CurrentRemote()->Connected))
+                       QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
+                       !m_Ctx.Replay().CurrentRemote()->connected))
     {
       QMessageBox::StandardButton res2 = RDDialog::question(
           this, tr("No active replay context"),
@@ -671,8 +671,8 @@ void LiveCapture::openCapture(Capture *cap)
   cap->opened = true;
 
   if(!cap->local && (!m_Ctx.Replay().CurrentRemote() ||
-                     QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
-                     !m_Ctx.Replay().CurrentRemote()->Connected))
+                     QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
+                     !m_Ctx.Replay().CurrentRemote()->connected))
   {
     RDDialog::critical(
         this, tr("No active replay context"),
@@ -726,8 +726,8 @@ bool LiveCapture::saveCapture(Capture *cap)
     else
     {
       if(!m_Ctx.Replay().CurrentRemote() ||
-         QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
-         !m_Ctx.Replay().CurrentRemote()->Connected)
+         QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
+         !m_Ctx.Replay().CurrentRemote()->connected)
       {
         RDDialog::critical(this, tr("No active replay context"),
                            tr("This capture is on remote host %1 and there is no active replay "
@@ -952,8 +952,8 @@ void LiveCapture::connectionClosed()
       if(!cap->local)
       {
         if(!m_Ctx.Replay().CurrentRemote() ||
-           QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
-           !m_Ctx.Replay().CurrentRemote()->Connected)
+           QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
+           !m_Ctx.Replay().CurrentRemote()->connected)
           return;
       }
 
@@ -1089,9 +1089,9 @@ void LiveCapture::connectionThreadEntry()
 
     TargetControlMessage msg = m_Connection->ReceiveMessage();
 
-    if(msg.Type == TargetControlMessageType::RegisterAPI)
+    if(msg.type == TargetControlMessageType::RegisterAPI)
     {
-      QString api = msg.RegisterAPI.APIName;
+      QString api = msg.apiUse.name;
       GUIInvoke::call([this, api]() {
         QString target = QString::fromUtf8(m_Connection->GetTarget());
         uint32_t pid = m_Connection->GetPID();
@@ -1111,16 +1111,16 @@ void LiveCapture::connectionThreadEntry()
       });
     }
 
-    if(msg.Type == TargetControlMessageType::NewCapture)
+    if(msg.type == TargetControlMessageType::NewCapture)
     {
-      uint32_t capID = msg.NewCapture.ID;
+      uint32_t capID = msg.newCapture.captureId;
       QDateTime timestamp = QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0));
-      timestamp = timestamp.addSecs(msg.NewCapture.timestamp).toLocalTime();
-      bytebuf thumb = msg.NewCapture.thumbnail;
-      int32_t thumbWidth = msg.NewCapture.thumbWidth;
-      int32_t thumbHeight = msg.NewCapture.thumbHeight;
-      QString path = msg.NewCapture.path;
-      bool local = msg.NewCapture.local;
+      timestamp = timestamp.addSecs(msg.newCapture.timestamp).toLocalTime();
+      bytebuf thumb = msg.newCapture.thumbnail;
+      int32_t thumbWidth = msg.newCapture.thumbWidth;
+      int32_t thumbHeight = msg.newCapture.thumbHeight;
+      QString path = msg.newCapture.path;
+      bool local = msg.newCapture.local;
 
       GUIInvoke::call([this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, local]() {
         QString target = QString::fromUtf8(m_Connection->GetTarget());
@@ -1130,21 +1130,21 @@ void LiveCapture::connectionThreadEntry()
       });
     }
 
-    if(msg.Type == TargetControlMessageType::CaptureCopied)
+    if(msg.type == TargetControlMessageType::CaptureCopied)
     {
-      uint32_t capID = msg.NewCapture.ID;
-      QString path = msg.NewCapture.path;
+      uint32_t capID = msg.newCapture.captureId;
+      QString path = msg.newCapture.path;
 
       GUIInvoke::call([=]() { captureCopied(capID, path); });
     }
 
-    if(msg.Type == TargetControlMessageType::NewChild)
+    if(msg.type == TargetControlMessageType::NewChild)
     {
-      if(msg.NewChild.PID != 0)
+      if(msg.newChild.processId != 0)
       {
         ChildProcess c;
-        c.PID = (int)msg.NewChild.PID;
-        c.ident = msg.NewChild.ident;
+        c.PID = (int)msg.newChild.processId;
+        c.ident = msg.newChild.ident;
 
         {
           QMutexLocker l(&m_ChildrenLock);

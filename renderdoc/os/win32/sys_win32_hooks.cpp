@@ -276,7 +276,7 @@ private:
 
   static bool ShouldInject(LPCWSTR lpApplicationName, LPCWSTR lpCommandLine)
   {
-    if(!RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
+    if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
       return false;
 
     bool inject = true;
@@ -310,7 +310,7 @@ private:
 
   static bool ShouldInject(LPCSTR lpApplicationName, LPCSTR lpCommandLine)
   {
-    if(!RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
+    if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
       return false;
 
     return ShouldInject(lpApplicationName ? StringFormat::UTF82Wide(lpApplicationName).c_str() : NULL,

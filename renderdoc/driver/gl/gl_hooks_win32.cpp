@@ -1012,7 +1012,7 @@ private:
 
         if(name == WGL_CONTEXT_FLAGS_ARB)
         {
-          if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
+          if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
             val |= WGL_CONTEXT_DEBUG_BIT_ARB;
           else
             val &= ~WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -1027,7 +1027,7 @@ private:
         attribVec.push_back(val);
       }
 
-      if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().apiValidation)
       {
         attribVec.push_back(WGL_CONTEXT_FLAGS_ARB);
         attribVec.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);
@@ -1213,7 +1213,7 @@ private:
 
   static LONG WINAPI ChangeDisplaySettingsA_hooked(DEVMODEA *mode, DWORD flags)
   {
-    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
       return glhooks.ChangeDisplaySettingsA_hook()(mode, flags);
 
     return DISP_CHANGE_SUCCESSFUL;
@@ -1221,7 +1221,7 @@ private:
 
   static LONG WINAPI ChangeDisplaySettingsW_hooked(DEVMODEW *mode, DWORD flags)
   {
-    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
       return glhooks.ChangeDisplaySettingsW_hook()(mode, flags);
 
     return DISP_CHANGE_SUCCESSFUL;
@@ -1230,7 +1230,7 @@ private:
   static LONG WINAPI ChangeDisplaySettingsExA_hooked(LPCSTR devname, DEVMODEA *mode, HWND wnd,
                                                      DWORD flags, LPVOID param)
   {
-    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
       return glhooks.ChangeDisplaySettingsExA_hook()(devname, mode, wnd, flags, param);
 
     return DISP_CHANGE_SUCCESSFUL;
@@ -1239,7 +1239,7 @@ private:
   static LONG WINAPI ChangeDisplaySettingsExW_hooked(LPCWSTR devname, DEVMODEW *mode, HWND wnd,
                                                      DWORD flags, LPVOID param)
   {
-    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+    if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
       return glhooks.ChangeDisplaySettingsExW_hook()(devname, mode, wnd, flags, param);
 
     return DISP_CHANGE_SUCCESSFUL;

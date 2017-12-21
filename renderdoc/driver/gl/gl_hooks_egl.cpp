@@ -265,7 +265,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
 
       if(name == EGL_CONTEXT_FLAGS_KHR)
       {
-        if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
+        if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
           val |= EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
         else
           val &= ~EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
@@ -277,7 +277,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
       attribVec.push_back(val);
     }
 
-    if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+    if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
       attribVec.push_back(EGL_CONTEXT_FLAGS_KHR);
       attribVec.push_back(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR);

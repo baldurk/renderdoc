@@ -309,7 +309,7 @@ public:
   void ClearMaps();
 
   uint32_t GetEventID() { return m_CurEventID; }
-  const APIEvent &GetEvent(uint32_t eventID);
+  const APIEvent &GetEvent(uint32_t eventId);
 
   const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
   void ThreadSafe_SetMarker(uint32_t col, const wchar_t *name);

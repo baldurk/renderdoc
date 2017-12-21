@@ -52,8 +52,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 
 private slots:
   // automatic slots
@@ -109,9 +109,9 @@ private:
 
   QVariantList exportViewHTML(const D3D12Pipe::View &view, bool rw,
                               const ShaderResource *shaderInput, const QString &extraParams);
-  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::IA &ia);
+  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh);
-  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Streamout &so);
+  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::StreamOut &so);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Rasterizer &rs);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::OM &om);
 

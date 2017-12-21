@@ -501,5 +501,5 @@ void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
       "Mismatched vertex input count");
 
   MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
-  m_Details.ID = GetResourceID();
+  m_Details.resourceId = GetResourceID();
 }

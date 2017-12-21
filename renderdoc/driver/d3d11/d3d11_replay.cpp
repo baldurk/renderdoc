@@ -56,7 +56,7 @@ void D3D11Replay::Shutdown()
 TextureDescription D3D11Replay::GetTexture(ResourceId id)
 {
   TextureDescription tex = {};
-  tex.ID = ResourceId();
+  tex.resourceId = ResourceId();
 
   auto it1D = WrappedID3D11Texture1D::m_TextureList.find(id);
   if(it1D != WrappedID3D11Texture1D::m_TextureList.end())
@@ -68,7 +68,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     D3D11_TEXTURE1D_DESC desc;
     d3dtex->GetDesc(&desc);
 
-    tex.ID = m_pDevice->GetResourceManager()->GetOriginalID(it1D->first);
+    tex.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it1D->first);
     tex.dimension = 1;
     tex.width = desc.Width;
     tex.height = 1;
@@ -93,7 +93,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
 
     tex.arraysize = desc.ArraySize;
 
-    tex.resType = tex.arraysize > 1 ? TextureDim::Texture1DArray : TextureDim::Texture1D;
+    tex.type = tex.arraysize > 1 ? TextureType::Texture1DArray : TextureType::Texture1D;
 
     tex.msQual = 0;
     tex.msSamp = 1;
@@ -118,7 +118,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     if(d3dtex->m_RealDescriptor)
       desc.Format = d3dtex->m_RealDescriptor->Format;
 
-    tex.ID = m_pDevice->GetResourceManager()->GetOriginalID(it2D->first);
+    tex.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it2D->first);
     tex.dimension = 2;
     tex.width = desc.Width;
     tex.height = desc.Height;
@@ -151,11 +151,11 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     tex.msQual = desc.SampleDesc.Quality;
     tex.msSamp = RDCMAX(1U, desc.SampleDesc.Count);
 
-    tex.resType = tex.arraysize > 1 ? TextureDim::Texture2DArray : TextureDim::Texture2D;
+    tex.type = tex.arraysize > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
     if(tex.cubemap)
-      tex.resType = tex.arraysize > 1 ? TextureDim::TextureCubeArray : TextureDim::TextureCube;
+      tex.type = tex.arraysize > 1 ? TextureType::TextureCubeArray : TextureType::TextureCube;
     if(tex.msSamp > 1)
-      tex.resType = tex.arraysize > 1 ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
+      tex.type = tex.arraysize > 1 ? TextureType::Texture2DMSArray : TextureType::Texture2DMS;
 
     tex.byteSize = 0;
     for(uint32_t s = 0; s < tex.arraysize * tex.mips; s++)
@@ -174,7 +174,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     D3D11_TEXTURE3D_DESC desc;
     d3dtex->GetDesc(&desc);
 
-    tex.ID = m_pDevice->GetResourceManager()->GetOriginalID(it3D->first);
+    tex.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it3D->first);
     tex.dimension = 3;
     tex.width = desc.Width;
     tex.height = desc.Height;
@@ -182,7 +182,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     tex.cubemap = false;
     tex.format = MakeResourceFormat(desc.Format);
 
-    tex.resType = TextureDim::Texture3D;
+    tex.type = TextureType::Texture3D;
 
     tex.creationFlags = TextureCategory::NoFlags;
     if(desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -215,7 +215,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
 
   tex.byteSize = 0;
   tex.dimension = 2;
-  tex.resType = TextureDim::Texture2D;
+  tex.type = TextureType::Texture2D;
   tex.width = 1;
   tex.height = 1;
   tex.depth = 1;
@@ -237,7 +237,7 @@ rdcarray<ShaderEntryPoint> D3D11Replay::GetShaderEntryPoints(ResourceId shader)
 
   ShaderReflection &ret = it->second->GetDetails();
 
-  return {{"main", ret.Stage}};
+  return {{"main", ret.stage}};
 }
 
 ShaderReflection *D3D11Replay::GetShader(ResourceId shader, string entryPoint)
@@ -267,7 +267,8 @@ vector<string> D3D11Replay::GetDisassemblyTargets()
 string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                       const string &target)
 {
-  auto it = WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->ID));
+  auto it =
+      WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
 
   if(it == WrappedShader::m_ShaderList.end())
     return "Invalid Shader Specified";
@@ -334,7 +335,7 @@ ResourceDescription &D3D11Replay::GetResourceDesc(ResourceId id)
   {
     m_ResourceIdx[id] = m_Resources.size();
     m_Resources.push_back(ResourceDescription());
-    m_Resources.back().ID = id;
+    m_Resources.back().resourceId = id;
     return m_Resources.back();
   }
 
@@ -368,7 +369,7 @@ std::vector<ResourceId> D3D11Replay::GetBuffers()
 BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 {
   BufferDescription ret = {};
-  ret.ID = ResourceId();
+  ret.resourceId = ResourceId();
 
   auto it = WrappedID3D11Buffer::m_BufferList.find(id);
 
@@ -379,7 +380,7 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 
   string str = GetDebugName(d3dbuf);
 
-  ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
+  ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 
   D3D11_BUFFER_DESC desc;
   it->second.m_Buffer->GetDesc(&desc);
@@ -452,7 +453,7 @@ void D3D11Replay::SavePipelineState()
 
   D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  ret.m_IA.Bytecode = NULL;
+  ret.inputAssembly.bytecode = NULL;
 
   if(rs->IA.Layout)
   {
@@ -460,44 +461,44 @@ void D3D11Replay::SavePipelineState()
 
     ResourceId layoutId = GetIDForResource(rs->IA.Layout);
 
-    ret.m_IA.layout = rm->GetOriginalID(layoutId);
-    ret.m_IA.Bytecode = GetShader(layoutId, "");
+    ret.inputAssembly.resourceId = rm->GetOriginalID(layoutId);
+    ret.inputAssembly.bytecode = GetShader(layoutId, "");
 
-    ret.m_IA.layouts.resize(vec.size());
+    ret.inputAssembly.layouts.resize(vec.size());
     for(size_t i = 0; i < vec.size(); i++)
     {
-      D3D11Pipe::Layout &l = ret.m_IA.layouts[i];
+      D3D11Pipe::Layout &l = ret.inputAssembly.layouts[i];
 
-      l.ByteOffset = vec[i].AlignedByteOffset;
-      l.Format = MakeResourceFormat(vec[i].Format);
-      l.InputSlot = vec[i].InputSlot;
-      l.PerInstance = vec[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA;
-      l.InstanceDataStepRate = vec[i].InstanceDataStepRate;
-      l.SemanticIndex = vec[i].SemanticIndex;
-      l.SemanticName = vec[i].SemanticName;
+      l.byteOffset = vec[i].AlignedByteOffset;
+      l.format = MakeResourceFormat(vec[i].Format);
+      l.inputSlot = vec[i].InputSlot;
+      l.perInstance = vec[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA;
+      l.instanceDataStepRate = vec[i].InstanceDataStepRate;
+      l.semanticIndex = vec[i].SemanticIndex;
+      l.semanticName = vec[i].SemanticName;
     }
   }
 
-  ret.m_IA.vbuffers.resize(ARRAY_COUNT(rs->IA.VBs));
+  ret.inputAssembly.vertexBuffers.resize(ARRAY_COUNT(rs->IA.VBs));
   for(size_t i = 0; i < ARRAY_COUNT(rs->IA.VBs); i++)
   {
-    D3D11Pipe::VB &vb = ret.m_IA.vbuffers[i];
+    D3D11Pipe::VertexBuffer &vb = ret.inputAssembly.vertexBuffers[i];
 
-    vb.Buffer = rm->GetOriginalID(GetIDForResource(rs->IA.VBs[i]));
-    vb.Offset = rs->IA.Offsets[i];
-    vb.Stride = rs->IA.Strides[i];
+    vb.resourceId = rm->GetOriginalID(GetIDForResource(rs->IA.VBs[i]));
+    vb.byteOffset = rs->IA.Offsets[i];
+    vb.byteStride = rs->IA.Strides[i];
   }
 
-  ret.m_IA.ibuffer.Buffer = rm->GetOriginalID(GetIDForResource(rs->IA.IndexBuffer));
-  ret.m_IA.ibuffer.Offset = rs->IA.IndexOffset;
+  ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(GetIDForResource(rs->IA.IndexBuffer));
+  ret.inputAssembly.indexBuffer.byteOffset = rs->IA.IndexOffset;
 
   /////////////////////////////////////////////////
   // Shaders
   /////////////////////////////////////////////////
 
   {
-    D3D11Pipe::Shader *dstArr[] = {&ret.m_VS, &ret.m_HS, &ret.m_DS,
-                                   &ret.m_GS, &ret.m_PS, &ret.m_CS};
+    D3D11Pipe::Shader *dstArr[] = {&ret.vertexShader,   &ret.hullShader,  &ret.domainShader,
+                                   &ret.geometryShader, &ret.pixelShader, &ret.computeShader};
     const D3D11RenderState::Shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
                                                 &rs->GS, &rs->PS, &rs->CS};
 
@@ -519,162 +520,163 @@ void D3D11Replay::SavePipelineState()
       if(shad != NULL)
       {
         refl = &shad->GetDetails();
-        dst.BindpointMapping = shad->GetMapping();
+        dst.bindpointMapping = shad->GetMapping();
       }
 
-      dst.Object = rm->GetOriginalID(id);
-      dst.ShaderDetails = refl;
+      dst.resourceId = rm->GetOriginalID(id);
+      dst.reflection = refl;
 
-      dst.ConstantBuffers.resize(D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
+      dst.constantBuffers.resize(D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
       {
-        dst.ConstantBuffers[s].Buffer = rm->GetOriginalID(GetIDForResource(src.ConstantBuffers[s]));
-        dst.ConstantBuffers[s].VecOffset = src.CBOffsets[s];
-        dst.ConstantBuffers[s].VecCount = src.CBCounts[s];
+        dst.constantBuffers[s].resourceId =
+            rm->GetOriginalID(GetIDForResource(src.ConstantBuffers[s]));
+        dst.constantBuffers[s].vecOffset = src.CBOffsets[s];
+        dst.constantBuffers[s].vecCount = src.CBCounts[s];
       }
 
-      dst.Samplers.resize(D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT);
+      dst.samplers.resize(D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; s++)
       {
-        D3D11Pipe::Sampler &samp = dst.Samplers[s];
+        D3D11Pipe::Sampler &samp = dst.samplers[s];
 
-        samp.Samp = rm->GetOriginalID(GetIDForResource(src.Samplers[s]));
+        samp.resourceId = rm->GetOriginalID(GetIDForResource(src.Samplers[s]));
 
-        if(samp.Samp != ResourceId())
+        if(samp.resourceId != ResourceId())
         {
           D3D11_SAMPLER_DESC desc;
           src.Samplers[s]->GetDesc(&desc);
 
-          samp.AddressU = MakeAddressMode(desc.AddressU);
-          samp.AddressV = MakeAddressMode(desc.AddressV);
-          samp.AddressW = MakeAddressMode(desc.AddressW);
+          samp.addressU = MakeAddressMode(desc.AddressU);
+          samp.addressV = MakeAddressMode(desc.AddressV);
+          samp.addressW = MakeAddressMode(desc.AddressW);
 
-          memcpy(samp.BorderColor, desc.BorderColor, sizeof(FLOAT) * 4);
+          memcpy(samp.borderColor, desc.BorderColor, sizeof(FLOAT) * 4);
 
-          samp.Comparison = MakeCompareFunc(desc.ComparisonFunc);
-          samp.Filter = MakeFilter(desc.Filter);
-          samp.MaxAniso = 0;
-          if(samp.Filter.mip == FilterMode::Anisotropic)
-            samp.MaxAniso = desc.MaxAnisotropy;
-          samp.MaxLOD = desc.MaxLOD;
-          samp.MinLOD = desc.MinLOD;
-          samp.MipLODBias = desc.MipLODBias;
+          samp.compareFunction = MakeCompareFunc(desc.ComparisonFunc);
+          samp.filter = MakeFilter(desc.Filter);
+          samp.maxAnisotropy = 0;
+          if(samp.filter.mip == FilterMode::Anisotropic)
+            samp.maxAnisotropy = desc.MaxAnisotropy;
+          samp.maxLOD = desc.MaxLOD;
+          samp.minLOD = desc.MinLOD;
+          samp.mipLODBias = desc.MipLODBias;
         }
       }
 
-      dst.SRVs.resize(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
+      dst.srvs.resize(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; s++)
       {
-        D3D11Pipe::View &view = dst.SRVs[s];
+        D3D11Pipe::View &view = dst.srvs[s];
 
-        view.Object = rm->GetOriginalID(GetIDForResource(src.SRVs[s]));
+        view.viewResourceId = rm->GetOriginalID(GetIDForResource(src.SRVs[s]));
 
-        if(view.Object != ResourceId())
+        if(view.viewResourceId != ResourceId())
         {
           D3D11_SHADER_RESOURCE_VIEW_DESC desc;
           src.SRVs[s]->GetDesc(&desc);
 
-          view.Format = MakeResourceFormat(desc.Format);
+          view.viewFormat = MakeResourceFormat(desc.Format);
 
           ID3D11Resource *res = NULL;
           src.SRVs[s]->GetResource(&res);
 
-          view.Structured = false;
-          view.BufferStructCount = 0;
+          view.structured = false;
+          view.bufferStructCount = 0;
 
-          view.ElementSize =
+          view.elementByteSize =
               desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
-          view.Resource = rm->GetOriginalID(GetIDForResource(res));
+          view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
 
-          view.Type = MakeTextureDim(desc.ViewDimension);
+          view.type = MakeTextureDim(desc.ViewDimension);
 
           if(desc.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
           {
-            view.FirstElement = desc.Buffer.FirstElement;
-            view.NumElements = desc.Buffer.NumElements;
+            view.firstElement = desc.Buffer.FirstElement;
+            view.numElements = desc.Buffer.NumElements;
 
             D3D11_BUFFER_DESC bufdesc;
             ((ID3D11Buffer *)res)->GetDesc(&bufdesc);
 
-            view.Structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
+            view.structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
 
-            if(view.Structured)
-              view.ElementSize = bufdesc.StructureByteStride;
+            if(view.structured)
+              view.elementByteSize = bufdesc.StructureByteStride;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_BUFFEREX)
           {
-            view.FirstElement = desc.BufferEx.FirstElement;
-            view.NumElements = desc.BufferEx.NumElements;
-            view.Flags = D3DBufferViewFlags(desc.BufferEx.Flags);
+            view.firstElement = desc.BufferEx.FirstElement;
+            view.numElements = desc.BufferEx.NumElements;
+            view.bufferFlags = D3DBufferViewFlags(desc.BufferEx.Flags);
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1D)
           {
-            view.HighestMip = desc.Texture1D.MostDetailedMip;
-            view.NumMipLevels = desc.Texture1D.MipLevels;
+            view.firstMip = desc.Texture1D.MostDetailedMip;
+            view.numMips = desc.Texture1D.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1DARRAY)
           {
-            view.ArraySize = desc.Texture1DArray.ArraySize;
-            view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-            view.HighestMip = desc.Texture1DArray.MostDetailedMip;
-            view.NumMipLevels = desc.Texture1DArray.MipLevels;
+            view.numSlices = desc.Texture1DArray.ArraySize;
+            view.firstSlice = desc.Texture1DArray.FirstArraySlice;
+            view.firstMip = desc.Texture1DArray.MostDetailedMip;
+            view.numMips = desc.Texture1DArray.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2D)
           {
-            view.HighestMip = desc.Texture2D.MostDetailedMip;
-            view.NumMipLevels = desc.Texture2D.MipLevels;
+            view.firstMip = desc.Texture2D.MostDetailedMip;
+            view.numMips = desc.Texture2D.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DARRAY)
           {
-            view.ArraySize = desc.Texture2DArray.ArraySize;
-            view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-            view.HighestMip = desc.Texture2DArray.MostDetailedMip;
-            view.NumMipLevels = desc.Texture2DArray.MipLevels;
+            view.numSlices = desc.Texture2DArray.ArraySize;
+            view.firstSlice = desc.Texture2DArray.FirstArraySlice;
+            view.firstMip = desc.Texture2DArray.MostDetailedMip;
+            view.numMips = desc.Texture2DArray.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMS)
           {
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY)
           {
-            view.ArraySize = desc.Texture2DArray.ArraySize;
-            view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
+            view.numSlices = desc.Texture2DArray.ArraySize;
+            view.firstSlice = desc.Texture2DArray.FirstArraySlice;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE3D)
           {
-            view.HighestMip = desc.Texture3D.MostDetailedMip;
-            view.NumMipLevels = desc.Texture3D.MipLevels;
+            view.firstMip = desc.Texture3D.MostDetailedMip;
+            view.numMips = desc.Texture3D.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBE)
           {
-            view.ArraySize = 6;
-            view.HighestMip = desc.TextureCube.MostDetailedMip;
-            view.NumMipLevels = desc.TextureCube.MipLevels;
+            view.numSlices = 6;
+            view.firstMip = desc.TextureCube.MostDetailedMip;
+            view.numMips = desc.TextureCube.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBEARRAY)
           {
-            view.ArraySize = desc.TextureCubeArray.NumCubes * 6;
-            view.FirstArraySlice = desc.TextureCubeArray.First2DArrayFace;
-            view.HighestMip = desc.TextureCubeArray.MostDetailedMip;
-            view.NumMipLevels = desc.TextureCubeArray.MipLevels;
+            view.numSlices = desc.TextureCubeArray.NumCubes * 6;
+            view.firstSlice = desc.TextureCubeArray.First2DArrayFace;
+            view.firstMip = desc.TextureCubeArray.MostDetailedMip;
+            view.numMips = desc.TextureCubeArray.MipLevels;
           }
 
           SAFE_RELEASE(res);
         }
         else
         {
-          view.Resource = ResourceId();
+          view.resourceResourceId = ResourceId();
         }
       }
 
-      dst.UAVs.resize(D3D11_1_UAV_SLOT_COUNT);
+      dst.uavs.resize(D3D11_1_UAV_SLOT_COUNT);
       for(size_t s = 0; dst.stage == ShaderStage::Compute && s < D3D11_1_UAV_SLOT_COUNT; s++)
       {
-        D3D11Pipe::View &view = dst.UAVs[s];
+        D3D11Pipe::View &view = dst.uavs[s];
 
-        view.Object = rm->GetOriginalID(GetIDForResource(rs->CSUAVs[s]));
+        view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->CSUAVs[s]));
 
-        if(view.Object != ResourceId())
+        if(view.viewResourceId != ResourceId())
         {
           D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
           rs->CSUAVs[s]->GetDesc(&desc);
@@ -682,78 +684,78 @@ void D3D11Replay::SavePipelineState()
           ID3D11Resource *res = NULL;
           rs->CSUAVs[s]->GetResource(&res);
 
-          view.Structured = false;
-          view.BufferStructCount = 0;
+          view.structured = false;
+          view.bufferStructCount = 0;
 
-          view.ElementSize =
+          view.elementByteSize =
               desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
           if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
              (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
           {
-            view.BufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
+            view.bufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
           }
 
-          view.Resource = rm->GetOriginalID(GetIDForResource(res));
+          view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
 
-          view.Format = MakeResourceFormat(desc.Format);
-          view.Type = MakeTextureDim(desc.ViewDimension);
+          view.viewFormat = MakeResourceFormat(desc.Format);
+          view.type = MakeTextureDim(desc.ViewDimension);
 
           if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
           {
-            view.FirstElement = desc.Buffer.FirstElement;
-            view.NumElements = desc.Buffer.NumElements;
-            view.Flags = D3DBufferViewFlags(desc.Buffer.Flags);
+            view.firstElement = desc.Buffer.FirstElement;
+            view.numElements = desc.Buffer.NumElements;
+            view.bufferFlags = D3DBufferViewFlags(desc.Buffer.Flags);
 
             D3D11_BUFFER_DESC bufdesc;
             ((ID3D11Buffer *)res)->GetDesc(&bufdesc);
 
-            view.Structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
+            view.structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
 
-            if(view.Structured)
-              view.ElementSize = bufdesc.StructureByteStride;
+            if(view.structured)
+              view.elementByteSize = bufdesc.StructureByteStride;
           }
           else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
           {
-            view.HighestMip = desc.Texture1D.MipSlice;
-            view.NumMipLevels = 1;
+            view.firstMip = desc.Texture1D.MipSlice;
+            view.numMips = 1;
           }
           else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
           {
-            view.ArraySize = desc.Texture1DArray.ArraySize;
-            view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-            view.HighestMip = desc.Texture1DArray.MipSlice;
-            view.NumMipLevels = 1;
+            view.numSlices = desc.Texture1DArray.ArraySize;
+            view.firstSlice = desc.Texture1DArray.FirstArraySlice;
+            view.firstMip = desc.Texture1DArray.MipSlice;
+            view.numMips = 1;
           }
           else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
           {
-            view.HighestMip = desc.Texture2D.MipSlice;
-            view.NumMipLevels = 1;
+            view.firstMip = desc.Texture2D.MipSlice;
+            view.numMips = 1;
           }
           else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
           {
-            view.ArraySize = desc.Texture2DArray.ArraySize;
-            view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-            view.HighestMip = desc.Texture2DArray.MipSlice;
-            view.NumMipLevels = 1;
+            view.numSlices = desc.Texture2DArray.ArraySize;
+            view.firstSlice = desc.Texture2DArray.FirstArraySlice;
+            view.firstMip = desc.Texture2DArray.MipSlice;
+            view.numMips = 1;
           }
           else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
           {
-            view.ArraySize = desc.Texture3D.WSize;
-            view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-            view.HighestMip = desc.Texture3D.MipSlice;
-            view.NumMipLevels = 1;
+            view.numSlices = desc.Texture3D.WSize;
+            view.firstSlice = desc.Texture3D.FirstWSlice;
+            view.firstMip = desc.Texture3D.MipSlice;
+            view.numMips = 1;
           }
 
           SAFE_RELEASE(res);
         }
         else
         {
-          view.Resource = ResourceId();
+          view.resourceResourceId = ResourceId();
         }
       }
 
-      dst.ClassInstances.reserve(src.NumInstances);
+      dst.classInstances.reserve(src.NumInstances);
       for(UINT s = 0; s < src.NumInstances; s++)
       {
         D3D11_CLASS_INSTANCE_DESC desc;
@@ -767,7 +769,7 @@ void D3D11Replay::SavePipelineState()
         count = 255;
         src.Instances[s]->GetInstanceName(instName, &count);
 
-        dst.ClassInstances.push_back(instName);
+        dst.classInstances.push_back(instName);
       }
     }
   }
@@ -777,11 +779,11 @@ void D3D11Replay::SavePipelineState()
   /////////////////////////////////////////////////
 
   {
-    ret.m_SO.Outputs.resize(D3D11_SO_BUFFER_SLOT_COUNT);
+    ret.streamOut.outputs.resize(D3D11_SO_BUFFER_SLOT_COUNT);
     for(size_t s = 0; s < D3D11_SO_BUFFER_SLOT_COUNT; s++)
     {
-      ret.m_SO.Outputs[s].Buffer = rm->GetOriginalID(GetIDForResource(rs->SO.Buffers[s]));
-      ret.m_SO.Outputs[s].Offset = rs->SO.Offsets[s];
+      ret.streamOut.outputs[s].resourceId = rm->GetOriginalID(GetIDForResource(rs->SO.Buffers[s]));
+      ret.streamOut.outputs[s].byteOffset = rs->SO.Offsets[s];
     }
   }
 
@@ -796,26 +798,26 @@ void D3D11Replay::SavePipelineState()
     {
       rs->RS.State->GetDesc(&desc);
 
-      ret.m_RS.m_State.AntialiasedLineEnable = desc.AntialiasedLineEnable == TRUE;
+      ret.rasterizer.state.antialiasedLines = desc.AntialiasedLineEnable == TRUE;
 
-      ret.m_RS.m_State.cullMode = CullMode::NoCull;
+      ret.rasterizer.state.cullMode = CullMode::NoCull;
       if(desc.CullMode == D3D11_CULL_FRONT)
-        ret.m_RS.m_State.cullMode = CullMode::Front;
+        ret.rasterizer.state.cullMode = CullMode::Front;
       if(desc.CullMode == D3D11_CULL_BACK)
-        ret.m_RS.m_State.cullMode = CullMode::Back;
+        ret.rasterizer.state.cullMode = CullMode::Back;
 
-      ret.m_RS.m_State.fillMode = FillMode::Solid;
+      ret.rasterizer.state.fillMode = FillMode::Solid;
       if(desc.FillMode == D3D11_FILL_WIREFRAME)
-        ret.m_RS.m_State.fillMode = FillMode::Wireframe;
+        ret.rasterizer.state.fillMode = FillMode::Wireframe;
 
-      ret.m_RS.m_State.DepthBias = desc.DepthBias;
-      ret.m_RS.m_State.DepthBiasClamp = desc.DepthBiasClamp;
-      ret.m_RS.m_State.DepthClip = desc.DepthClipEnable == TRUE;
-      ret.m_RS.m_State.FrontCCW = desc.FrontCounterClockwise == TRUE;
-      ret.m_RS.m_State.MultisampleEnable = desc.MultisampleEnable == TRUE;
-      ret.m_RS.m_State.ScissorEnable = desc.ScissorEnable == TRUE;
-      ret.m_RS.m_State.SlopeScaledDepthBias = desc.SlopeScaledDepthBias;
-      ret.m_RS.m_State.ForcedSampleCount = 0;
+      ret.rasterizer.state.depthBias = desc.DepthBias;
+      ret.rasterizer.state.depthBiasClamp = desc.DepthBiasClamp;
+      ret.rasterizer.state.depthClip = desc.DepthClipEnable == TRUE;
+      ret.rasterizer.state.frontCCW = desc.FrontCounterClockwise == TRUE;
+      ret.rasterizer.state.multisampleEnable = desc.MultisampleEnable == TRUE;
+      ret.rasterizer.state.scissorEnable = desc.ScissorEnable == TRUE;
+      ret.rasterizer.state.slopeScaledDepthBias = desc.SlopeScaledDepthBias;
+      ret.rasterizer.state.forcedSampleCount = 0;
 
       D3D11_RASTERIZER_DESC1 desc1;
       RDCEraseEl(desc1);
@@ -823,7 +825,7 @@ void D3D11Replay::SavePipelineState()
       if(CanQuery<ID3D11RasterizerState1>(rs->RS.State))
       {
         ((ID3D11RasterizerState1 *)rs->RS.State)->GetDesc1(&desc1);
-        ret.m_RS.m_State.ForcedSampleCount = desc1.ForcedSampleCount;
+        ret.rasterizer.state.forcedSampleCount = desc1.ForcedSampleCount;
       }
 
       D3D11_RASTERIZER_DESC2 desc2;
@@ -832,47 +834,47 @@ void D3D11Replay::SavePipelineState()
       if(CanQuery<ID3D11RasterizerState2>(rs->RS.State))
       {
         ((ID3D11RasterizerState2 *)rs->RS.State)->GetDesc2(&desc2);
-        ret.m_RS.m_State.ConservativeRasterization =
+        ret.rasterizer.state.conservativeRasterization =
             desc2.ConservativeRaster == D3D11_CONSERVATIVE_RASTERIZATION_MODE_ON;
       }
 
-      ret.m_RS.m_State.State = rm->GetOriginalID(GetIDForResource(rs->RS.State));
+      ret.rasterizer.state.resourceId = rm->GetOriginalID(GetIDForResource(rs->RS.State));
     }
     else
     {
-      ret.m_RS.m_State.AntialiasedLineEnable = FALSE;
-      ret.m_RS.m_State.cullMode = CullMode::Back;
-      ret.m_RS.m_State.DepthBias = 0;
-      ret.m_RS.m_State.DepthBiasClamp = 0.0f;
-      ret.m_RS.m_State.DepthClip = TRUE;
-      ret.m_RS.m_State.fillMode = FillMode::Solid;
-      ret.m_RS.m_State.FrontCCW = FALSE;
-      ret.m_RS.m_State.MultisampleEnable = FALSE;
-      ret.m_RS.m_State.ScissorEnable = FALSE;
-      ret.m_RS.m_State.SlopeScaledDepthBias = 0.0f;
-      ret.m_RS.m_State.ForcedSampleCount = 0;
-      ret.m_RS.m_State.State = ResourceId();
+      ret.rasterizer.state.antialiasedLines = FALSE;
+      ret.rasterizer.state.cullMode = CullMode::Back;
+      ret.rasterizer.state.depthBias = 0;
+      ret.rasterizer.state.depthBiasClamp = 0.0f;
+      ret.rasterizer.state.depthClip = TRUE;
+      ret.rasterizer.state.fillMode = FillMode::Solid;
+      ret.rasterizer.state.frontCCW = FALSE;
+      ret.rasterizer.state.multisampleEnable = FALSE;
+      ret.rasterizer.state.scissorEnable = FALSE;
+      ret.rasterizer.state.slopeScaledDepthBias = 0.0f;
+      ret.rasterizer.state.forcedSampleCount = 0;
+      ret.rasterizer.state.resourceId = ResourceId();
     }
 
     size_t i = 0;
-    ret.m_RS.Scissors.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
+    ret.rasterizer.scissors.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumScissors; i++)
-      ret.m_RS.Scissors[i] =
-          D3D11Pipe::Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
-                             rs->RS.Scissors[i].right, rs->RS.Scissors[i].bottom, true);
+      ret.rasterizer.scissors[i] = Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
+                                           rs->RS.Scissors[i].right - rs->RS.Scissors[i].left,
+                                           rs->RS.Scissors[i].bottom - rs->RS.Scissors[i].top, true);
 
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      ret.m_RS.Scissors[i] = D3D11Pipe::Scissor(0, 0, 0, 0, false);
+      ret.rasterizer.scissors[i] = Scissor(0, 0, 0, 0, false);
 
-    ret.m_RS.Viewports.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
+    ret.rasterizer.viewports.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumViews; i++)
-      ret.m_RS.Viewports[i] =
-          D3D11Pipe::Viewport(rs->RS.Viewports[i].TopLeftX, rs->RS.Viewports[i].TopLeftY,
-                              rs->RS.Viewports[i].Width, rs->RS.Viewports[i].Height,
-                              rs->RS.Viewports[i].MinDepth, rs->RS.Viewports[i].MaxDepth, true);
+      ret.rasterizer.viewports[i] =
+          Viewport(rs->RS.Viewports[i].TopLeftX, rs->RS.Viewports[i].TopLeftY,
+                   rs->RS.Viewports[i].Width, rs->RS.Viewports[i].Height,
+                   rs->RS.Viewports[i].MinDepth, rs->RS.Viewports[i].MaxDepth, true);
 
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      ret.m_RS.Viewports[i] = D3D11Pipe::Viewport(0, 0, 0, 0, 0, 0, false);
+      ret.rasterizer.viewports[i] = Viewport(0, 0, 0, 0, 0, 0, false);
   }
 
   /////////////////////////////////////////////////
@@ -880,14 +882,14 @@ void D3D11Replay::SavePipelineState()
   /////////////////////////////////////////////////
 
   {
-    ret.m_OM.RenderTargets.resize(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+    ret.outputMerger.renderTargets.resize(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
     for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
     {
-      D3D11Pipe::View &view = ret.m_OM.RenderTargets[i];
+      D3D11Pipe::View &view = ret.outputMerger.renderTargets[i];
 
-      view.Object = rm->GetOriginalID(GetIDForResource(rs->OM.RenderTargets[i]));
+      view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->OM.RenderTargets[i]));
 
-      if(view.Object != ResourceId())
+      if(view.viewResourceId != ResourceId())
       {
         D3D11_RENDER_TARGET_VIEW_DESC desc;
         rs->OM.RenderTargets[i]->GetDesc(&desc);
@@ -895,71 +897,71 @@ void D3D11Replay::SavePipelineState()
         ID3D11Resource *res = NULL;
         rs->OM.RenderTargets[i]->GetResource(&res);
 
-        view.Structured = false;
-        view.BufferStructCount = 0;
-        view.ElementSize =
+        view.structured = false;
+        view.bufferStructCount = 0;
+        view.elementByteSize =
             desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
-        view.Resource = rm->GetOriginalID(GetIDForResource(res));
+        view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
 
-        view.Format = MakeResourceFormat(desc.Format);
-        view.Type = MakeTextureDim(desc.ViewDimension);
+        view.viewFormat = MakeResourceFormat(desc.Format);
+        view.type = MakeTextureDim(desc.ViewDimension);
 
         if(desc.ViewDimension == D3D11_RTV_DIMENSION_BUFFER)
         {
-          view.FirstElement = desc.Buffer.FirstElement;
-          view.NumElements = desc.Buffer.NumElements;
+          view.firstElement = desc.Buffer.FirstElement;
+          view.numElements = desc.Buffer.NumElements;
         }
         else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D)
         {
-          view.HighestMip = desc.Texture1D.MipSlice;
-          view.NumMipLevels = 1;
+          view.firstMip = desc.Texture1D.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY)
         {
-          view.ArraySize = desc.Texture1DArray.ArraySize;
-          view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-          view.HighestMip = desc.Texture1DArray.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture1DArray.ArraySize;
+          view.firstSlice = desc.Texture1DArray.FirstArraySlice;
+          view.firstMip = desc.Texture1DArray.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D)
         {
-          view.HighestMip = desc.Texture2D.MipSlice;
-          view.NumMipLevels = 1;
+          view.firstMip = desc.Texture2D.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY)
         {
-          view.ArraySize = desc.Texture2DArray.ArraySize;
-          view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-          view.HighestMip = desc.Texture2DArray.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture2DArray.ArraySize;
+          view.firstSlice = desc.Texture2DArray.FirstArraySlice;
+          view.firstMip = desc.Texture2DArray.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE3D)
         {
-          view.ArraySize = desc.Texture3D.WSize;
-          view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-          view.HighestMip = desc.Texture3D.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture3D.WSize;
+          view.firstSlice = desc.Texture3D.FirstWSlice;
+          view.firstMip = desc.Texture3D.MipSlice;
+          view.numMips = 1;
         }
 
         SAFE_RELEASE(res);
       }
       else
       {
-        view.Resource = ResourceId();
+        view.resourceResourceId = ResourceId();
       }
     }
 
-    ret.m_OM.UAVStartSlot = rs->OM.UAVStartSlot;
+    ret.outputMerger.uavStartSlot = rs->OM.UAVStartSlot;
 
-    ret.m_OM.UAVs.resize(D3D11_1_UAV_SLOT_COUNT);
+    ret.outputMerger.uavs.resize(D3D11_1_UAV_SLOT_COUNT);
     for(size_t s = 0; s < D3D11_1_UAV_SLOT_COUNT; s++)
     {
       D3D11Pipe::View view;
 
-      view.Object = rm->GetOriginalID(GetIDForResource(rs->OM.UAVs[s]));
+      view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->OM.UAVs[s]));
 
-      if(view.Object != ResourceId())
+      if(view.viewResourceId != ResourceId())
       {
         D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
         rs->OM.UAVs[s]->GetDesc(&desc);
@@ -967,79 +969,79 @@ void D3D11Replay::SavePipelineState()
         ID3D11Resource *res = NULL;
         rs->OM.UAVs[s]->GetResource(&res);
 
-        view.Structured = false;
-        view.BufferStructCount = 0;
-        view.ElementSize =
+        view.structured = false;
+        view.bufferStructCount = 0;
+        view.elementByteSize =
             desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
         if(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER))
         {
-          view.BufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->OM.UAVs[s]);
+          view.bufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->OM.UAVs[s]);
         }
 
-        view.Resource = rm->GetOriginalID(GetIDForResource(res));
+        view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
 
-        view.Format = MakeResourceFormat(desc.Format);
-        view.Type = MakeTextureDim(desc.ViewDimension);
+        view.viewFormat = MakeResourceFormat(desc.Format);
+        view.type = MakeTextureDim(desc.ViewDimension);
 
         if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
         {
-          view.FirstElement = desc.Buffer.FirstElement;
-          view.NumElements = desc.Buffer.NumElements;
-          view.Flags = D3DBufferViewFlags(desc.Buffer.Flags);
+          view.firstElement = desc.Buffer.FirstElement;
+          view.numElements = desc.Buffer.NumElements;
+          view.bufferFlags = D3DBufferViewFlags(desc.Buffer.Flags);
 
           D3D11_BUFFER_DESC bufdesc;
           ((ID3D11Buffer *)res)->GetDesc(&bufdesc);
 
-          view.Structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
+          view.structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
 
-          if(view.Structured)
-            view.ElementSize = bufdesc.StructureByteStride;
+          if(view.structured)
+            view.elementByteSize = bufdesc.StructureByteStride;
         }
         else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
         {
-          view.HighestMip = desc.Texture1D.MipSlice;
-          view.NumMipLevels = 1;
+          view.firstMip = desc.Texture1D.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
         {
-          view.ArraySize = desc.Texture1DArray.ArraySize;
-          view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-          view.HighestMip = desc.Texture1DArray.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture1DArray.ArraySize;
+          view.firstSlice = desc.Texture1DArray.FirstArraySlice;
+          view.firstMip = desc.Texture1DArray.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
         {
-          view.HighestMip = desc.Texture2D.MipSlice;
-          view.NumMipLevels = 1;
+          view.firstMip = desc.Texture2D.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
         {
-          view.ArraySize = desc.Texture2DArray.ArraySize;
-          view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-          view.HighestMip = desc.Texture2DArray.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture2DArray.ArraySize;
+          view.firstSlice = desc.Texture2DArray.FirstArraySlice;
+          view.firstMip = desc.Texture2DArray.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
         {
-          view.ArraySize = desc.Texture3D.WSize;
-          view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-          view.HighestMip = desc.Texture3D.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture3D.WSize;
+          view.firstSlice = desc.Texture3D.FirstWSlice;
+          view.firstMip = desc.Texture3D.MipSlice;
+          view.numMips = 1;
         }
 
         SAFE_RELEASE(res);
       }
 
-      ret.m_OM.UAVs[s] = view;
+      ret.outputMerger.uavs[s] = view;
     }
 
     {
-      D3D11Pipe::View &view = ret.m_OM.DepthTarget;
+      D3D11Pipe::View &view = ret.outputMerger.depthTarget;
 
-      view.Object = rm->GetOriginalID(GetIDForResource(rs->OM.DepthView));
+      view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->OM.DepthView));
 
-      if(view.Object != ResourceId())
+      if(view.viewResourceId != ResourceId())
       {
         D3D11_DEPTH_STENCIL_VIEW_DESC desc;
         rs->OM.DepthView->GetDesc(&desc);
@@ -1047,66 +1049,66 @@ void D3D11Replay::SavePipelineState()
         ID3D11Resource *res = NULL;
         rs->OM.DepthView->GetResource(&res);
 
-        view.Structured = false;
-        view.BufferStructCount = 0;
-        view.ElementSize =
+        view.structured = false;
+        view.bufferStructCount = 0;
+        view.elementByteSize =
             desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
-        ret.m_OM.DepthReadOnly = false;
-        ret.m_OM.StencilReadOnly = false;
+        ret.outputMerger.depthReadOnly = false;
+        ret.outputMerger.stencilReadOnly = false;
 
         if(desc.Flags & D3D11_DSV_READ_ONLY_DEPTH)
-          ret.m_OM.DepthReadOnly = true;
+          ret.outputMerger.depthReadOnly = true;
         if(desc.Flags & D3D11_DSV_READ_ONLY_STENCIL)
-          ret.m_OM.StencilReadOnly = true;
+          ret.outputMerger.stencilReadOnly = true;
 
-        view.Resource = rm->GetOriginalID(GetIDForResource(res));
+        view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
 
-        view.Format = MakeResourceFormat(desc.Format);
-        view.Type = MakeTextureDim(desc.ViewDimension);
+        view.viewFormat = MakeResourceFormat(desc.Format);
+        view.type = MakeTextureDim(desc.ViewDimension);
 
         if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D)
         {
-          view.HighestMip = desc.Texture1D.MipSlice;
-          view.NumMipLevels = 1;
+          view.firstMip = desc.Texture1D.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY)
         {
-          view.ArraySize = desc.Texture1DArray.ArraySize;
-          view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-          view.HighestMip = desc.Texture1DArray.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture1DArray.ArraySize;
+          view.firstSlice = desc.Texture1DArray.FirstArraySlice;
+          view.firstMip = desc.Texture1DArray.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D)
         {
-          view.HighestMip = desc.Texture2D.MipSlice;
-          view.NumMipLevels = 1;
+          view.firstMip = desc.Texture2D.MipSlice;
+          view.numMips = 1;
         }
         else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY)
         {
-          view.ArraySize = desc.Texture2DArray.ArraySize;
-          view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-          view.HighestMip = desc.Texture2DArray.MipSlice;
-          view.NumMipLevels = 1;
+          view.numSlices = desc.Texture2DArray.ArraySize;
+          view.firstSlice = desc.Texture2DArray.FirstArraySlice;
+          view.firstMip = desc.Texture2DArray.MipSlice;
+          view.numMips = 1;
         }
 
         SAFE_RELEASE(res);
       }
     }
 
-    ret.m_OM.m_BlendState.SampleMask = rs->OM.SampleMask;
+    ret.outputMerger.blendState.sampleMask = rs->OM.SampleMask;
 
-    memcpy(ret.m_OM.m_BlendState.BlendFactor, rs->OM.BlendFactor, sizeof(FLOAT) * 4);
+    memcpy(ret.outputMerger.blendState.blendFactor, rs->OM.BlendFactor, sizeof(FLOAT) * 4);
 
     if(rs->OM.BlendState)
     {
       D3D11_BLEND_DESC desc;
       rs->OM.BlendState->GetDesc(&desc);
 
-      ret.m_OM.m_BlendState.State = rm->GetOriginalID(GetIDForResource(rs->OM.BlendState));
+      ret.outputMerger.blendState.resourceId = rm->GetOriginalID(GetIDForResource(rs->OM.BlendState));
 
-      ret.m_OM.m_BlendState.AlphaToCoverage = desc.AlphaToCoverageEnable == TRUE;
-      ret.m_OM.m_BlendState.IndependentBlend = desc.IndependentBlendEnable == TRUE;
+      ret.outputMerger.blendState.alphaToCoverage = desc.AlphaToCoverageEnable == TRUE;
+      ret.outputMerger.blendState.independentBlend = desc.IndependentBlendEnable == TRUE;
 
       bool state1 = false;
       D3D11_BLEND_DESC1 desc1;
@@ -1119,55 +1121,55 @@ void D3D11Replay::SavePipelineState()
         state1 = true;
       }
 
-      ret.m_OM.m_BlendState.Blends.resize(8);
+      ret.outputMerger.blendState.blends.resize(8);
       for(size_t i = 0; i < 8; i++)
       {
-        D3D11Pipe::Blend &blend = ret.m_OM.m_BlendState.Blends[i];
+        ColorBlend &blend = ret.outputMerger.blendState.blends[i];
 
-        blend.Enabled = desc.RenderTarget[i].BlendEnable == TRUE;
+        blend.enabled = desc.RenderTarget[i].BlendEnable == TRUE;
 
-        blend.LogicEnabled = state1 && desc1.RenderTarget[i].LogicOpEnable == TRUE;
-        blend.Logic = state1 ? MakeLogicOp(desc1.RenderTarget[i].LogicOp) : LogicOp::NoOp;
+        blend.logicOperationEnabled = state1 && desc1.RenderTarget[i].LogicOpEnable == TRUE;
+        blend.logicOperation =
+            state1 ? MakeLogicOp(desc1.RenderTarget[i].LogicOp) : LogicOperation::NoOp;
 
-        blend.m_AlphaBlend.Source = MakeBlendMultiplier(desc.RenderTarget[i].SrcBlendAlpha, true);
-        blend.m_AlphaBlend.Destination =
-            MakeBlendMultiplier(desc.RenderTarget[i].DestBlendAlpha, true);
-        blend.m_AlphaBlend.Operation = MakeBlendOp(desc.RenderTarget[i].BlendOpAlpha);
+        blend.alphaBlend.source = MakeBlendMultiplier(desc.RenderTarget[i].SrcBlendAlpha, true);
+        blend.alphaBlend.destination = MakeBlendMultiplier(desc.RenderTarget[i].DestBlendAlpha, true);
+        blend.alphaBlend.operation = MakeBlendOp(desc.RenderTarget[i].BlendOpAlpha);
 
-        blend.m_Blend.Source = MakeBlendMultiplier(desc.RenderTarget[i].SrcBlend, false);
-        blend.m_Blend.Destination = MakeBlendMultiplier(desc.RenderTarget[i].DestBlend, false);
-        blend.m_Blend.Operation = MakeBlendOp(desc.RenderTarget[i].BlendOp);
+        blend.colorBlend.source = MakeBlendMultiplier(desc.RenderTarget[i].SrcBlend, false);
+        blend.colorBlend.destination = MakeBlendMultiplier(desc.RenderTarget[i].DestBlend, false);
+        blend.colorBlend.operation = MakeBlendOp(desc.RenderTarget[i].BlendOp);
 
-        blend.WriteMask = desc.RenderTarget[i].RenderTargetWriteMask;
+        blend.writeMask = desc.RenderTarget[i].RenderTargetWriteMask;
       }
     }
     else
     {
-      ret.m_OM.m_BlendState.State = ResourceId();
+      ret.outputMerger.blendState.resourceId = ResourceId();
 
-      ret.m_OM.m_BlendState.AlphaToCoverage = false;
-      ret.m_OM.m_BlendState.IndependentBlend = false;
+      ret.outputMerger.blendState.alphaToCoverage = false;
+      ret.outputMerger.blendState.independentBlend = false;
 
-      D3D11Pipe::Blend blend;
+      ColorBlend blend;
 
-      blend.Enabled = false;
+      blend.enabled = false;
 
-      blend.m_AlphaBlend.Source = BlendMultiplier::One;
-      blend.m_AlphaBlend.Destination = BlendMultiplier::Zero;
-      blend.m_AlphaBlend.Operation = BlendOp::Add;
+      blend.alphaBlend.source = BlendMultiplier::One;
+      blend.alphaBlend.destination = BlendMultiplier::Zero;
+      blend.alphaBlend.operation = BlendOperation::Add;
 
-      blend.m_Blend.Source = BlendMultiplier::One;
-      blend.m_Blend.Destination = BlendMultiplier::Zero;
-      blend.m_Blend.Operation = BlendOp::Add;
+      blend.colorBlend.source = BlendMultiplier::One;
+      blend.colorBlend.destination = BlendMultiplier::Zero;
+      blend.colorBlend.operation = BlendOperation::Add;
 
-      blend.LogicEnabled = false;
-      blend.Logic = LogicOp::NoOp;
+      blend.logicOperationEnabled = false;
+      blend.logicOperation = LogicOperation::NoOp;
 
-      blend.WriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+      blend.writeMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-      ret.m_OM.m_BlendState.Blends.resize(8);
+      ret.outputMerger.blendState.blends.resize(8);
       for(size_t i = 0; i < 8; i++)
-        ret.m_OM.m_BlendState.Blends[i] = blend;
+        ret.outputMerger.blendState.blends[i] = blend;
     }
 
     if(rs->OM.DepthStencilState)
@@ -1175,45 +1177,67 @@ void D3D11Replay::SavePipelineState()
       D3D11_DEPTH_STENCIL_DESC desc;
       rs->OM.DepthStencilState->GetDesc(&desc);
 
-      ret.m_OM.m_State.DepthEnable = desc.DepthEnable == TRUE;
-      ret.m_OM.m_State.DepthFunc = MakeCompareFunc(desc.DepthFunc);
-      ret.m_OM.m_State.DepthWrites = desc.DepthWriteMask == D3D11_DEPTH_WRITE_MASK_ALL;
-      ret.m_OM.m_State.StencilEnable = desc.StencilEnable == TRUE;
-      ret.m_OM.m_State.StencilRef = rs->OM.StencRef;
-      ret.m_OM.m_State.StencilReadMask = desc.StencilReadMask;
-      ret.m_OM.m_State.StencilWriteMask = desc.StencilWriteMask;
-      ret.m_OM.m_State.State = rm->GetOriginalID(GetIDForResource(rs->OM.DepthStencilState));
+      ret.outputMerger.depthStencilState.depthEnable = desc.DepthEnable == TRUE;
+      ret.outputMerger.depthStencilState.depthFunction = MakeCompareFunc(desc.DepthFunc);
+      ret.outputMerger.depthStencilState.depthWrites =
+          desc.DepthWriteMask == D3D11_DEPTH_WRITE_MASK_ALL;
+      ret.outputMerger.depthStencilState.stencilEnable = desc.StencilEnable == TRUE;
+      ret.outputMerger.depthStencilState.resourceId =
+          rm->GetOriginalID(GetIDForResource(rs->OM.DepthStencilState));
 
-      ret.m_OM.m_State.m_FrontFace.Func = MakeCompareFunc(desc.FrontFace.StencilFunc);
-      ret.m_OM.m_State.m_FrontFace.DepthFailOp = MakeStencilOp(desc.FrontFace.StencilDepthFailOp);
-      ret.m_OM.m_State.m_FrontFace.PassOp = MakeStencilOp(desc.FrontFace.StencilPassOp);
-      ret.m_OM.m_State.m_FrontFace.FailOp = MakeStencilOp(desc.FrontFace.StencilFailOp);
+      ret.outputMerger.depthStencilState.frontFace.function =
+          MakeCompareFunc(desc.FrontFace.StencilFunc);
+      ret.outputMerger.depthStencilState.frontFace.depthFailOperation =
+          MakeStencilOp(desc.FrontFace.StencilDepthFailOp);
+      ret.outputMerger.depthStencilState.frontFace.passOperation =
+          MakeStencilOp(desc.FrontFace.StencilPassOp);
+      ret.outputMerger.depthStencilState.frontFace.failOperation =
+          MakeStencilOp(desc.FrontFace.StencilFailOp);
 
-      ret.m_OM.m_State.m_BackFace.Func = MakeCompareFunc(desc.BackFace.StencilFunc);
-      ret.m_OM.m_State.m_BackFace.DepthFailOp = MakeStencilOp(desc.BackFace.StencilDepthFailOp);
-      ret.m_OM.m_State.m_BackFace.PassOp = MakeStencilOp(desc.BackFace.StencilPassOp);
-      ret.m_OM.m_State.m_BackFace.FailOp = MakeStencilOp(desc.BackFace.StencilFailOp);
+      ret.outputMerger.depthStencilState.backFace.function =
+          MakeCompareFunc(desc.BackFace.StencilFunc);
+      ret.outputMerger.depthStencilState.backFace.depthFailOperation =
+          MakeStencilOp(desc.BackFace.StencilDepthFailOp);
+      ret.outputMerger.depthStencilState.backFace.passOperation =
+          MakeStencilOp(desc.BackFace.StencilPassOp);
+      ret.outputMerger.depthStencilState.backFace.failOperation =
+          MakeStencilOp(desc.BackFace.StencilFailOp);
+
+      // due to shared structs, this is slightly duplicated - D3D doesn't have separate states for
+      // front/back.
+      ret.outputMerger.depthStencilState.frontFace.reference = rs->OM.StencRef;
+      ret.outputMerger.depthStencilState.frontFace.compareMask = desc.StencilReadMask;
+      ret.outputMerger.depthStencilState.frontFace.writeMask = desc.StencilWriteMask;
+      ret.outputMerger.depthStencilState.backFace.reference = rs->OM.StencRef;
+      ret.outputMerger.depthStencilState.backFace.compareMask = desc.StencilReadMask;
+      ret.outputMerger.depthStencilState.backFace.writeMask = desc.StencilWriteMask;
     }
     else
     {
-      ret.m_OM.m_State.DepthEnable = true;
-      ret.m_OM.m_State.DepthFunc = CompareFunc::Less;
-      ret.m_OM.m_State.DepthWrites = true;
-      ret.m_OM.m_State.StencilEnable = false;
-      ret.m_OM.m_State.StencilRef = rs->OM.StencRef;
-      ret.m_OM.m_State.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-      ret.m_OM.m_State.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-      ret.m_OM.m_State.State = ResourceId();
+      ret.outputMerger.depthStencilState.depthEnable = true;
+      ret.outputMerger.depthStencilState.depthFunction = CompareFunction::Less;
+      ret.outputMerger.depthStencilState.depthWrites = true;
+      ret.outputMerger.depthStencilState.stencilEnable = false;
+      ret.outputMerger.depthStencilState.resourceId = ResourceId();
 
-      ret.m_OM.m_State.m_FrontFace.Func = CompareFunc::AlwaysTrue;
-      ret.m_OM.m_State.m_FrontFace.DepthFailOp = StencilOp::Keep;
-      ret.m_OM.m_State.m_FrontFace.PassOp = StencilOp::Keep;
-      ret.m_OM.m_State.m_FrontFace.FailOp = StencilOp::Keep;
+      ret.outputMerger.depthStencilState.frontFace.function = CompareFunction::AlwaysTrue;
+      ret.outputMerger.depthStencilState.frontFace.depthFailOperation = StencilOperation::Keep;
+      ret.outputMerger.depthStencilState.frontFace.passOperation = StencilOperation::Keep;
+      ret.outputMerger.depthStencilState.frontFace.failOperation = StencilOperation::Keep;
 
-      ret.m_OM.m_State.m_BackFace.Func = CompareFunc::AlwaysTrue;
-      ret.m_OM.m_State.m_BackFace.DepthFailOp = StencilOp::Keep;
-      ret.m_OM.m_State.m_BackFace.PassOp = StencilOp::Keep;
-      ret.m_OM.m_State.m_BackFace.FailOp = StencilOp::Keep;
+      ret.outputMerger.depthStencilState.backFace.function = CompareFunction::AlwaysTrue;
+      ret.outputMerger.depthStencilState.backFace.depthFailOperation = StencilOperation::Keep;
+      ret.outputMerger.depthStencilState.backFace.passOperation = StencilOperation::Keep;
+      ret.outputMerger.depthStencilState.backFace.failOperation = StencilOperation::Keep;
+
+      // due to shared structs, this is slightly duplicated - D3D doesn't have separate states for
+      // front/back.
+      ret.outputMerger.depthStencilState.frontFace.reference = rs->OM.StencRef;
+      ret.outputMerger.depthStencilState.frontFace.compareMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+      ret.outputMerger.depthStencilState.frontFace.writeMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+      ret.outputMerger.depthStencilState.backFace.reference = rs->OM.StencRef;
+      ret.outputMerger.depthStencilState.backFace.compareMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+      ret.outputMerger.depthStencilState.backFace.writeMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
     }
   }
 
@@ -1221,9 +1245,9 @@ void D3D11Replay::SavePipelineState()
   // Predication
   /////////////////////////////////////////////////
 
-  ret.m_Predicate.Obj = rm->GetOriginalID(GetIDForResource(rs->Predicate));
-  ret.m_Predicate.Value = rs->PredicateValue == TRUE ? true : false;
-  ret.m_Predicate.Passing = rs->PredicationWouldPass();
+  ret.predication.resourceId = rm->GetOriginalID(GetIDForResource(rs->Predicate));
+  ret.predication.value = rs->PredicateValue == TRUE ? true : false;
+  ret.predication.isPassing = rs->PredicationWouldPass();
 }
 
 ReplayStatus D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
@@ -1241,11 +1265,11 @@ const SDFile &D3D11Replay::GetStructuredFile()
   return m_pDevice->GetStructuredFile();
 }
 
-vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
+vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
 {
   vector<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
   const DrawcallDescription *start = draw;
   while(start && start->previous != 0 &&
@@ -1266,7 +1290,7 @@ vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
       break;
 
     if(start->flags & DrawFlags::Drawcall)
-      passEvents.push_back(start->eventID);
+      passEvents.push_back(start->eventId);
 
     start = m_pDevice->GetDrawcall((uint32_t)start->next);
   }
@@ -1319,9 +1343,9 @@ void D3D11Replay::FlipOutputWindow(uint64_t id)
   m_pDevice->GetDebugManager()->FlipOutputWindow(id);
 }
 
-void D3D11Replay::InitPostVSBuffers(uint32_t eventID)
+void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 {
-  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventID);
+  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventId);
 }
 
 void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
@@ -1368,9 +1392,9 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
                                                     maxval, channels, histogram);
 }
 
-MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
-  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
+  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventId, instID, stage);
 }
 
 void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
@@ -1411,10 +1435,10 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
   return m_pDevice->GetDebugManager()->FetchCounters(counters);
 }
 
-void D3D11Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
+void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
 {
-  return m_pDevice->GetDebugManager()->RenderMesh(eventID, secondaryDraws, cfg);
+  return m_pDevice->GetDebugManager()->RenderMesh(eventId, secondaryDraws, cfg);
 }
 
 void D3D11Replay::BuildTargetShader(string source, string entry,
@@ -1476,28 +1500,28 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
                                                     typeHint);
 }
 
-ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
+ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-  return m_pDevice->GetDebugManager()->DebugVertex(eventID, vertid, instid, idx, instOffset,
+  return m_pDevice->GetDebugManager()->DebugVertex(eventId, vertid, instid, idx, instOffset,
                                                    vertOffset);
 }
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
+ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                          uint32_t primitive)
 {
-  return m_pDevice->GetDebugManager()->DebugPixel(eventID, x, y, sample, primitive);
+  return m_pDevice->GetDebugManager()->DebugPixel(eventId, x, y, sample, primitive);
 }
 
-ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventID, const uint32_t groupid[3],
+ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                           const uint32_t threadid[3])
 {
-  return m_pDevice->GetDebugManager()->DebugThread(eventID, groupid, threadid);
+  return m_pDevice->GetDebugManager()->DebugThread(eventId, groupid, threadid);
 }
 
-uint32_t D3D11Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+uint32_t D3D11Replay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
-  return m_pDevice->GetDebugManager()->PickVertex(eventID, cfg, x, y);
+  return m_pDevice->GetDebugManager()->PickVertex(eventId, cfg, x, y);
 }
 
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
@@ -1507,9 +1531,9 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
 }
 
 ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventID, const vector<uint32_t> &passEvents)
+                                      uint32_t eventId, const vector<uint32_t> &passEvents)
 {
-  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventID, passEvents);
+  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventId, passEvents);
 }
 
 ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
@@ -1523,13 +1547,13 @@ bool D3D11Replay::IsRenderOutput(ResourceId id)
 {
   for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    if(m_CurPipelineState.m_OM.RenderTargets[i].Object == id ||
-       m_CurPipelineState.m_OM.RenderTargets[i].Resource == id)
+    if(m_CurPipelineState.outputMerger.renderTargets[i].viewResourceId == id ||
+       m_CurPipelineState.outputMerger.renderTargets[i].resourceResourceId == id)
       return true;
   }
 
-  if(m_CurPipelineState.m_OM.DepthTarget.Object == id ||
-     m_CurPipelineState.m_OM.DepthTarget.Resource == id)
+  if(m_CurPipelineState.outputMerger.depthTarget.viewResourceId == id ||
+     m_CurPipelineState.outputMerger.depthTarget.resourceResourceId == id)
     return true;
 
   return false;
@@ -2063,7 +2087,7 @@ void D3D11_ProcessStructured(RDCFile *rdc, SDFile &output)
   ReplayStatus status = device.ReadLogInitialisation(rdc, true);
 
   if(status == ReplayStatus::Succeeded)
-    device.GetStructuredFile().swap(output);
+    device.GetStructuredFile().Swap(output);
 }
 
 static StructuredProcessRegistration D3D11ProcessRegistration(RDC_D3D11, &D3D11_ProcessStructured);

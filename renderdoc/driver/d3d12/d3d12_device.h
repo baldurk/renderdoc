@@ -378,7 +378,7 @@ public:
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain4 *swap);
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventID);
+  const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);

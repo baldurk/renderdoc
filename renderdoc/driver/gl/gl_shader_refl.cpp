@@ -596,7 +596,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_DOUBLE_MAT4x3:
     case eGL_UNSIGNED_INT_VEC4:
     case eGL_BOOL_VEC4:
-    case eGL_INT_VEC4: var.type.descriptor.cols = 4; break;
+    case eGL_INT_VEC4: var.type.descriptor.columns = 4; break;
     case eGL_FLOAT_VEC3:
     case eGL_FLOAT_MAT3:
     case eGL_FLOAT_MAT3x4:
@@ -607,7 +607,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_DOUBLE_MAT3x2:
     case eGL_UNSIGNED_INT_VEC3:
     case eGL_BOOL_VEC3:
-    case eGL_INT_VEC3: var.type.descriptor.cols = 3; break;
+    case eGL_INT_VEC3: var.type.descriptor.columns = 3; break;
     case eGL_FLOAT_VEC2:
     case eGL_FLOAT_MAT2:
     case eGL_FLOAT_MAT2x4:
@@ -618,12 +618,12 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_DOUBLE_MAT2x3:
     case eGL_UNSIGNED_INT_VEC2:
     case eGL_BOOL_VEC2:
-    case eGL_INT_VEC2: var.type.descriptor.cols = 2; break;
+    case eGL_INT_VEC2: var.type.descriptor.columns = 2; break;
     case eGL_FLOAT:
     case eGL_DOUBLE:
     case eGL_UNSIGNED_INT:
     case eGL_INT:
-    case eGL_BOOL: var.type.descriptor.cols = 1; break;
+    case eGL_BOOL: var.type.descriptor.columns = 1; break;
     default: break;
   }
 
@@ -689,7 +689,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
   }
 
   var.type.descriptor.rowMajorStorage = (values[6] > 0);
-  var.type.descriptor.arrayStride = values[7];
+  var.type.descriptor.arrayByteStride = values[7];
 
   var.name.resize(values[1] - 1);
   gl.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
@@ -781,11 +781,11 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     parentVar.reg.comp = 0;
     parentVar.type.descriptor.name = "struct";
     parentVar.type.descriptor.rows = 0;
-    parentVar.type.descriptor.cols = 0;
+    parentVar.type.descriptor.columns = 0;
     parentVar.type.descriptor.rowMajorStorage = false;
     parentVar.type.descriptor.type = var.type.descriptor.type;
     parentVar.type.descriptor.elements = isarray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
-    parentVar.type.descriptor.arrayStride = topLevelStride;
+    parentVar.type.descriptor.arrayByteStride = topLevelStride;
 
     bool found = false;
 
@@ -840,15 +840,15 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 {
   if(shadType == eGL_COMPUTE_SHADER)
   {
-    gl.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.DispatchThreadsDimension);
+    gl.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.dispatchThreadsDimension);
   }
   else
   {
-    RDCEraseEl(refl.DispatchThreadsDimension);
+    RDCEraseEl(refl.dispatchThreadsDimension);
   }
 
-  rdcarray<ShaderResource> &roresources = refl.ReadOnlyResources;
-  rdcarray<ShaderResource> &rwresources = refl.ReadWriteResources;
+  rdcarray<ShaderResource> &roresources = refl.readOnlyResources;
+  rdcarray<ShaderResource> &rwresources = refl.readWriteResources;
 
   GLint numUniforms = 0;
   gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
@@ -866,494 +866,494 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
 
     ShaderResource res;
-    res.IsReadOnly = true;
-    res.IsTexture = true;
+    res.isReadOnly = true;
+    res.isTexture = true;
     res.variableType.descriptor.rows = 1;
-    res.variableType.descriptor.cols = 4;
+    res.variableType.descriptor.columns = 4;
     res.variableType.descriptor.elements = 0;
     res.variableType.descriptor.rowMajorStorage = false;
-    res.variableType.descriptor.arrayStride = 0;
+    res.variableType.descriptor.arrayByteStride = 0;
 
     // float samplers
     if(values[0] == eGL_SAMPLER_BUFFER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "samplerBuffer";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "sampler1D";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D_ARRAY)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "sampler1DArray";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D_SHADOW)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "sampler1DShadow";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D_ARRAY_SHADOW)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "sampler1DArrayShadow";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "sampler2D";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_ARRAY)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "sampler2DArray";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_SHADOW)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "sampler2DShadow";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_ARRAY_SHADOW)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "sampler2DArrayShadow";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_RECT)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "sampler2DRect";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_RECT_SHADOW)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "sampler2DRectShadow";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_3D)
     {
-      res.resType = TextureDim::Texture3D;
+      res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "sampler3D";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_CUBE)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "samplerCube";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_CUBE_SHADOW)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "samplerCubeShadow";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureDim::TextureCubeArray;
+      res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "samplerCubeArray";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_MULTISAMPLE)
     {
-      res.resType = TextureDim::Texture2DMS;
+      res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "sampler2DMS";
       res.variableType.descriptor.type = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureDim::Texture2DMSArray;
+      res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "sampler2DMSArray";
       res.variableType.descriptor.type = VarType::Float;
     }
     // int samplers
     else if(values[0] == eGL_INT_SAMPLER_BUFFER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "isamplerBuffer";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "isampler1D";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D_ARRAY)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "isampler1DArray";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "isampler2D";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_ARRAY)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "isampler2DArray";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_RECT)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "isampler2DRect";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_3D)
     {
-      res.resType = TextureDim::Texture3D;
+      res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "isampler3D";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_CUBE)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "isamplerCube";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureDim::TextureCubeArray;
+      res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "isamplerCubeArray";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE)
     {
-      res.resType = TextureDim::Texture2DMS;
+      res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "isampler2DMS";
       res.variableType.descriptor.type = VarType::Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureDim::Texture2DMSArray;
+      res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "isampler2DMSArray";
       res.variableType.descriptor.type = VarType::Int;
     }
     // unsigned int samplers
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_BUFFER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "usamplerBuffer";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "usampler1D";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "usampler1DArray";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "usampler2D";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "usampler2DArray";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_RECT)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "usampler2DRect";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_3D)
     {
-      res.resType = TextureDim::Texture3D;
+      res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "usampler3D";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_CUBE)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "usamplerCube";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureDim::TextureCubeArray;
+      res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "usamplerCubeArray";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
     {
-      res.resType = TextureDim::Texture2DMS;
+      res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "usampler2DMS";
       res.variableType.descriptor.type = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureDim::Texture2DMSArray;
+      res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "usampler2DMSArray";
       res.variableType.descriptor.type = VarType::UInt;
     }
     // float images
     else if(values[0] == eGL_IMAGE_BUFFER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "imageBuffer";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_1D)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "image1D";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_1D_ARRAY)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "image1DArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "image2D";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_ARRAY)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "image2DArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_RECT)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "image2DRect";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_3D)
     {
-      res.resType = TextureDim::Texture3D;
+      res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "image3D";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_CUBE)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "imageCube";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureDim::TextureCubeArray;
+      res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "imageCubeArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE)
     {
-      res.resType = TextureDim::Texture2DMS;
+      res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "image2DMS";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureDim::Texture2DMSArray;
+      res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "image2DMSArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     // int images
     else if(values[0] == eGL_INT_IMAGE_BUFFER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "iimageBuffer";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "iimage1D";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D_ARRAY)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "iimage1DArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "iimage2D";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_ARRAY)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "iimage2DArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_RECT)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "iimage2DRect";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_3D)
     {
-      res.resType = TextureDim::Texture3D;
+      res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "iimage3D";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "iimageCube";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureDim::TextureCubeArray;
+      res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "iimageCubeArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE)
     {
-      res.resType = TextureDim::Texture2DMS;
+      res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "iimage2DMS";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureDim::Texture2DMSArray;
+      res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "iimage2DMSArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     // unsigned int images
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_BUFFER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "uimageBuffer";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D)
     {
-      res.resType = TextureDim::Texture1D;
+      res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "uimage1D";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D_ARRAY)
     {
-      res.resType = TextureDim::Texture1DArray;
+      res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "uimage1DArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D)
     {
-      res.resType = TextureDim::Texture2D;
+      res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "uimage2D";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_ARRAY)
     {
-      res.resType = TextureDim::Texture2DArray;
+      res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "uimage2DArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_RECT)
     {
-      res.resType = TextureDim::TextureRect;
+      res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "uimage2DRect";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_3D)
     {
-      res.resType = TextureDim::Texture3D;
+      res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "uimage3D";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE)
     {
-      res.resType = TextureDim::TextureCube;
+      res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "uimageCube";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureDim::TextureCubeArray;
+      res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "uimageCubeArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE)
     {
-      res.resType = TextureDim::Texture2DMS;
+      res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "uimage2DMS";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureDim::Texture2DMSArray;
+      res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "uimage2DMSArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
+      res.isReadOnly = false;
     }
     // atomic counter
     else if(values[0] == eGL_UNSIGNED_INT_ATOMIC_COUNTER)
     {
-      res.resType = TextureDim::Buffer;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "atomic_uint";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsReadOnly = false;
-      res.IsTexture = false;
-      res.variableType.descriptor.cols = 1;
+      res.isReadOnly = false;
+      res.isTexture = false;
+      res.variableType.descriptor.columns = 1;
     }
     else
     {
@@ -1369,7 +1369,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
     res.name = name;
 
-    rdcarray<ShaderResource> &reslist = (res.IsReadOnly ? roresources : rwresources);
+    rdcarray<ShaderResource> &reslist = (res.isReadOnly ? roresources : rwresources);
 
     res.bindPoint = (int32_t)reslist.size();
     reslist.push_back(res);
@@ -1408,14 +1408,14 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       gl.glGetProgramResourceName(sepProg, eGL_SHADER_STORAGE_BLOCK, u, len + 1, NULL, nm);
 
       ShaderResource res;
-      res.IsReadOnly = false;
-      res.IsTexture = false;
-      res.resType = TextureDim::Buffer;
+      res.isReadOnly = false;
+      res.isTexture = false;
+      res.resType = TextureType::Buffer;
       res.variableType.descriptor.rows = 0;
-      res.variableType.descriptor.cols = 0;
+      res.variableType.descriptor.columns = 0;
       res.variableType.descriptor.elements = len;
       res.variableType.descriptor.rowMajorStorage = false;
-      res.variableType.descriptor.arrayStride = 0;
+      res.variableType.descriptor.arrayByteStride = 0;
       res.variableType.descriptor.name = "buffer";
       res.variableType.descriptor.type = VarType::UInt;
       res.bindPoint = (int32_t)rwresources.size();
@@ -1448,11 +1448,11 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       // account for padding for std430 layout, if we have a root array of
       // structs, we need to pad the struct up to have the correct alignment
       if(members[ssbo].size() == 1 && !members[ssbo][0].type.members.empty() &&
-         members[ssbo][0].type.descriptor.arrayStride != 0)
+         members[ssbo][0].type.descriptor.arrayByteStride != 0)
       {
         // now that we're sorted, see what the tightly packed stride would be by looking at the last
         // member
-        uint32_t desiredStride = members[ssbo][0].type.descriptor.arrayStride;
+        uint32_t desiredStride = members[ssbo][0].type.descriptor.arrayByteStride;
 
         ShaderConstant *last = &members[ssbo][0].type.members.back();
         while(!last->type.members.empty())
@@ -1462,7 +1462,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         uint32_t stride = last->reg.vec * 16 + last->reg.comp * 4;
 
         // add its size
-        uint32_t size = last->type.descriptor.rows * last->type.descriptor.cols * 4;
+        uint32_t size = last->type.descriptor.rows * last->type.descriptor.columns * 4;
         if(last->type.descriptor.type == VarType::Double)
           size *= 2;
 
@@ -1482,10 +1482,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
           paddingVar.reg.comp = (last->reg.comp + size / 4) % 16;
           paddingVar.type.descriptor.type = VarType::UInt;
           paddingVar.type.descriptor.rows = 1;
-          paddingVar.type.descriptor.cols = (uint8_t)RDCMIN(padding, 255U);
+          paddingVar.type.descriptor.columns = (uint8_t)RDCMIN(padding, 255U);
           paddingVar.type.descriptor.elements = 1;
           paddingVar.type.descriptor.rowMajorStorage = false;
-          paddingVar.type.descriptor.arrayStride = 0;
+          paddingVar.type.descriptor.arrayByteStride = 0;
           paddingVar.type.descriptor.name = StringFormat::Fmt("uint%u", padding);
 
           members[ssbo][0].type.members.push_back(paddingVar);
@@ -1528,7 +1528,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     ReconstructVarTree(gl, eGL_UNIFORM, sepProg, u, numUBOs, ubos, &globalUniforms);
   }
 
-  refl.ConstantBlocks.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
+  refl.constantBlocks.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
 
   if(ubos)
   {
@@ -1539,7 +1539,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         ConstantBlock cblock;
         cblock.name = uboNames[i];
         cblock.bufferBacked = true;
-        cblock.bindPoint = (int32_t)refl.ConstantBlocks.size();
+        cblock.bindPoint = (int32_t)refl.constantBlocks.size();
 
         GLenum bufSize = eGL_BUFFER_DATA_SIZE;
         gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, i, 1, &bufSize, 1, NULL,
@@ -1548,7 +1548,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         sort(ubos[i]);
         std::swap(cblock.variables, ubos[i]);
 
-        refl.ConstantBlocks.push_back(cblock);
+        refl.constantBlocks.push_back(cblock);
       }
     }
   }
@@ -1558,12 +1558,12 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     ConstantBlock globals;
     globals.name = "$Globals";
     globals.bufferBacked = false;
-    globals.bindPoint = (int32_t)refl.ConstantBlocks.size();
+    globals.bindPoint = (int32_t)refl.constantBlocks.size();
 
     sort(globalUniforms);
     std::swap(globals.variables, globalUniforms);
 
-    refl.ConstantBlocks.push_back(globals);
+    refl.constantBlocks.push_back(globals);
   }
 
   delete[] ubos;
@@ -1571,7 +1571,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   for(int sigType = 0; sigType < 2; sigType++)
   {
     GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
-    rdcarray<SigParameter> *sigArray = (sigType == 0 ? &refl.InputSig : &refl.OutputSig);
+    rdcarray<SigParameter> *sigArray = (sigType == 0 ? &refl.inputSignature : &refl.outputSignature);
 
     GLint numInputs;
     gl.glGetProgramInterfaceiv(sepProg, sigEnum, eGL_ACTIVE_RESOURCES, &numInputs);
@@ -1907,24 +1907,24 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       eGL_REFERENCED_BY_FRAGMENT_SHADER,        eGL_REFERENCED_BY_COMPUTE_SHADER,
   };
 
-  mapping.ReadOnlyResources.resize(refl->ReadOnlyResources.size());
-  for(size_t i = 0; i < refl->ReadOnlyResources.size(); i++)
+  mapping.readOnlyResources.resize(refl->readOnlyResources.size());
+  for(size_t i = 0; i < refl->readOnlyResources.size(); i++)
   {
-    if(refl->ReadOnlyResources[i].IsTexture)
+    if(refl->readOnlyResources[i].isTexture)
     {
       // normal sampler or image load/store
 
-      GLint loc = gl.glGetUniformLocation(curProg, refl->ReadOnlyResources[i].name.c_str());
+      GLint loc = gl.glGetUniformLocation(curProg, refl->readOnlyResources[i].name.c_str());
       if(loc >= 0)
       {
         gl.glGetUniformiv(curProg, loc, dummyReadback);
-        mapping.ReadOnlyResources[i].bindset = 0;
-        mapping.ReadOnlyResources[i].bind = dummyReadback[0];
-        mapping.ReadOnlyResources[i].arraySize = 1;
+        mapping.readOnlyResources[i].bindset = 0;
+        mapping.readOnlyResources[i].bind = dummyReadback[0];
+        mapping.readOnlyResources[i].arraySize = 1;
       }
 
       // handle sampler arrays, use the base name
-      std::string name = refl->ReadOnlyResources[i].name.c_str();
+      std::string name = refl->readOnlyResources[i].name.c_str();
       if(name.back() == ']')
       {
         do
@@ -1939,42 +1939,42 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
       if(idx == GL_INVALID_INDEX)
       {
-        mapping.ReadOnlyResources[i].used = false;
+        mapping.readOnlyResources[i].used = false;
       }
       else
       {
         GLint used = 0;
         gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-        mapping.ReadOnlyResources[i].used = (used != 0);
+        mapping.readOnlyResources[i].used = (used != 0);
       }
     }
     else
     {
-      mapping.ReadOnlyResources[i].bindset = -1;
-      mapping.ReadOnlyResources[i].bind = -1;
-      mapping.ReadOnlyResources[i].used = false;
-      mapping.ReadOnlyResources[i].arraySize = 1;
+      mapping.readOnlyResources[i].bindset = -1;
+      mapping.readOnlyResources[i].bind = -1;
+      mapping.readOnlyResources[i].used = false;
+      mapping.readOnlyResources[i].arraySize = 1;
     }
   }
 
-  mapping.ReadWriteResources.resize(refl->ReadWriteResources.size());
-  for(size_t i = 0; i < refl->ReadWriteResources.size(); i++)
+  mapping.readWriteResources.resize(refl->readWriteResources.size());
+  for(size_t i = 0; i < refl->readWriteResources.size(); i++)
   {
-    if(refl->ReadWriteResources[i].IsTexture)
+    if(refl->readWriteResources[i].isTexture)
     {
       // image load/store
 
-      GLint loc = gl.glGetUniformLocation(curProg, refl->ReadWriteResources[i].name.c_str());
+      GLint loc = gl.glGetUniformLocation(curProg, refl->readWriteResources[i].name.c_str());
       if(loc >= 0)
       {
         gl.glGetUniformiv(curProg, loc, dummyReadback);
-        mapping.ReadWriteResources[i].bindset = 0;
-        mapping.ReadWriteResources[i].bind = dummyReadback[0];
-        mapping.ReadWriteResources[i].arraySize = 1;
+        mapping.readWriteResources[i].bindset = 0;
+        mapping.readWriteResources[i].bind = dummyReadback[0];
+        mapping.readWriteResources[i].arraySize = 1;
       }
 
       // handle sampler arrays, use the base name
-      std::string name = refl->ReadWriteResources[i].name.c_str();
+      std::string name = refl->readWriteResources[i].name.c_str();
       if(name.back() == ']')
       {
         do
@@ -1989,31 +1989,31 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
       if(idx == GL_INVALID_INDEX)
       {
-        mapping.ReadWriteResources[i].used = false;
+        mapping.readWriteResources[i].used = false;
       }
       else
       {
         GLint used = 0;
         gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-        mapping.ReadWriteResources[i].used = (used != 0);
+        mapping.readWriteResources[i].used = (used != 0);
       }
     }
-    else if(!refl->ReadWriteResources[i].IsTexture)
+    else if(!refl->readWriteResources[i].isTexture)
     {
-      if(refl->ReadWriteResources[i].variableType.descriptor.cols == 1 &&
-         refl->ReadWriteResources[i].variableType.descriptor.rows == 1 &&
-         refl->ReadWriteResources[i].variableType.descriptor.type == VarType::UInt)
+      if(refl->readWriteResources[i].variableType.descriptor.columns == 1 &&
+         refl->readWriteResources[i].variableType.descriptor.rows == 1 &&
+         refl->readWriteResources[i].variableType.descriptor.type == VarType::UInt)
       {
         // atomic uint
         GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM,
-                                                  refl->ReadWriteResources[i].name.c_str());
+                                                  refl->readWriteResources[i].name.c_str());
 
         if(idx == GL_INVALID_INDEX)
         {
-          mapping.ReadWriteResources[i].bindset = -1;
-          mapping.ReadWriteResources[i].bind = -1;
-          mapping.ReadWriteResources[i].used = false;
-          mapping.ReadWriteResources[i].arraySize = 1;
+          mapping.readWriteResources[i].bindset = -1;
+          mapping.readWriteResources[i].bind = -1;
+          mapping.readWriteResources[i].used = false;
+          mapping.readWriteResources[i].arraySize = 1;
         }
         else
         {
@@ -2024,24 +2024,24 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
           if(atomicIndex == GL_INVALID_INDEX)
           {
-            mapping.ReadWriteResources[i].bindset = -1;
-            mapping.ReadWriteResources[i].bind = -1;
-            mapping.ReadWriteResources[i].used = false;
-            mapping.ReadWriteResources[i].arraySize = 1;
+            mapping.readWriteResources[i].bindset = -1;
+            mapping.readWriteResources[i].bind = -1;
+            mapping.readWriteResources[i].used = false;
+            mapping.readWriteResources[i].arraySize = 1;
           }
           else
           {
             if(IsGLES)
             {
               prop = eGL_BUFFER_BINDING;
-              mapping.ReadWriteResources[i].bindset = 0;
+              mapping.readWriteResources[i].bindset = 0;
               gl.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1, &prop,
-                                        1, NULL, &mapping.ReadWriteResources[i].bind);
+                                        1, NULL, &mapping.readWriteResources[i].bind);
               GLint used = 0;
               gl.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1,
                                         &refEnum[shadIdx], 1, NULL, &used);
-              mapping.ReadWriteResources[i].used = (used != 0);
-              mapping.ReadWriteResources[i].arraySize = 1;
+              mapping.readWriteResources[i].used = (used != 0);
+              mapping.readWriteResources[i].arraySize = 1;
             }
             else
             {
@@ -2053,15 +2053,15 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
                   eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
                   eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
               };
-              mapping.ReadWriteResources[i].bindset = 0;
+              mapping.readWriteResources[i].bindset = 0;
               gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
                                                   eGL_ATOMIC_COUNTER_BUFFER_BINDING,
-                                                  &mapping.ReadWriteResources[i].bind);
+                                                  &mapping.readWriteResources[i].bind);
               GLint used = 0;
               gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx],
                                                   &used);
-              mapping.ReadWriteResources[i].used = (used != 0);
-              mapping.ReadWriteResources[i].arraySize = 1;
+              mapping.readWriteResources[i].used = (used != 0);
+              mapping.readWriteResources[i].arraySize = 1;
             }
           }
         }
@@ -2070,77 +2070,77 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       {
         // shader storage buffer object
         GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK,
-                                                  refl->ReadWriteResources[i].name.c_str());
+                                                  refl->readWriteResources[i].name.c_str());
 
         if(idx == GL_INVALID_INDEX)
         {
-          mapping.ReadWriteResources[i].bindset = -1;
-          mapping.ReadWriteResources[i].bind = -1;
-          mapping.ReadWriteResources[i].used = false;
-          mapping.ReadWriteResources[i].arraySize = 1;
+          mapping.readWriteResources[i].bindset = -1;
+          mapping.readWriteResources[i].bind = -1;
+          mapping.readWriteResources[i].used = false;
+          mapping.readWriteResources[i].arraySize = 1;
         }
         else
         {
           GLenum prop = eGL_BUFFER_BINDING;
-          mapping.ReadWriteResources[i].bindset = 0;
+          mapping.readWriteResources[i].bindset = 0;
           gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL,
-                                    &mapping.ReadWriteResources[i].bind);
+                                    &mapping.readWriteResources[i].bind);
           GLint used = 0;
           gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1,
                                     NULL, &used);
-          mapping.ReadWriteResources[i].used = (used != 0);
-          mapping.ReadWriteResources[i].arraySize = 1;
+          mapping.readWriteResources[i].used = (used != 0);
+          mapping.readWriteResources[i].arraySize = 1;
         }
       }
     }
     else
     {
-      mapping.ReadWriteResources[i].bindset = -1;
-      mapping.ReadWriteResources[i].bind = -1;
-      mapping.ReadWriteResources[i].used = false;
-      mapping.ReadWriteResources[i].arraySize = 1;
+      mapping.readWriteResources[i].bindset = -1;
+      mapping.readWriteResources[i].bind = -1;
+      mapping.readWriteResources[i].used = false;
+      mapping.readWriteResources[i].arraySize = 1;
     }
   }
 
-  mapping.ConstantBlocks.resize(refl->ConstantBlocks.size());
-  for(size_t i = 0; i < refl->ConstantBlocks.size(); i++)
+  mapping.constantBlocks.resize(refl->constantBlocks.size());
+  for(size_t i = 0; i < refl->constantBlocks.size(); i++)
   {
-    if(refl->ConstantBlocks[i].bufferBacked)
+    if(refl->constantBlocks[i].bufferBacked)
     {
-      GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks[i].name.c_str());
+      GLint loc = gl.glGetUniformBlockIndex(curProg, refl->constantBlocks[i].name.c_str());
       if(loc >= 0)
       {
         gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
-        mapping.ConstantBlocks[i].bindset = 0;
-        mapping.ConstantBlocks[i].bind = dummyReadback[0];
-        mapping.ConstantBlocks[i].arraySize = 1;
+        mapping.constantBlocks[i].bindset = 0;
+        mapping.constantBlocks[i].bind = dummyReadback[0];
+        mapping.constantBlocks[i].arraySize = 1;
       }
     }
     else
     {
-      mapping.ConstantBlocks[i].bindset = -1;
-      mapping.ConstantBlocks[i].bind = -1;
-      mapping.ConstantBlocks[i].arraySize = 1;
+      mapping.constantBlocks[i].bindset = -1;
+      mapping.constantBlocks[i].bind = -1;
+      mapping.constantBlocks[i].arraySize = 1;
     }
 
-    if(!refl->ConstantBlocks[i].bufferBacked)
+    if(!refl->constantBlocks[i].bufferBacked)
     {
-      mapping.ConstantBlocks[i].used = true;
+      mapping.constantBlocks[i].used = true;
     }
     else
     {
       GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK,
-                                                refl->ConstantBlocks[i].name.c_str());
+                                                refl->constantBlocks[i].name.c_str());
       if(idx == GL_INVALID_INDEX)
       {
-        mapping.ConstantBlocks[i].used = false;
+        mapping.constantBlocks[i].used = false;
       }
       else
       {
         GLint used = 0;
         gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL,
                                   &used);
-        mapping.ConstantBlocks[i].used = (used != 0);
+        mapping.constantBlocks[i].used = (used != 0);
       }
     }
   }
@@ -2148,20 +2148,20 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
   GLint numVAttribBindings = 16;
   gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
 
-  mapping.InputAttributes.resize(numVAttribBindings);
+  mapping.inputAttributes.resize(numVAttribBindings);
   for(int32_t i = 0; i < numVAttribBindings; i++)
-    mapping.InputAttributes[i] = -1;
+    mapping.inputAttributes[i] = -1;
 
   // override identity map with bindings
   if(shadIdx == 0)
   {
-    for(int32_t i = 0; i < refl->InputSig.count(); i++)
+    for(int32_t i = 0; i < refl->inputSignature.count(); i++)
     {
-      GLint loc = gl.glGetAttribLocation(curProg, refl->InputSig[i].varName.c_str());
+      GLint loc = gl.glGetAttribLocation(curProg, refl->inputSignature[i].varName.c_str());
 
       if(loc >= 0 && loc < numVAttribBindings)
       {
-        mapping.InputAttributes[loc] = i;
+        mapping.inputAttributes[loc] = i;
       }
     }
   }
@@ -2280,44 +2280,44 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
     }
   };
 
-  permutation.resize(mapping->ReadOnlyResources.size());
-  for(size_t i = 0; i < mapping->ReadOnlyResources.size(); i++)
-    permutation[i] = std::make_pair(i, mapping->ReadOnlyResources[i].bind);
+  permutation.resize(mapping->readOnlyResources.size());
+  for(size_t i = 0; i < mapping->readOnlyResources.size(); i++)
+    permutation[i] = std::make_pair(i, mapping->readOnlyResources[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
   // apply the permutation to the mapping array, and update the bindPoint values in the shader
   // reflection to match, so that the re-order is applied
   ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
-    std::swap(mapping->ReadOnlyResources[a], mapping->ReadOnlyResources[b]);
+    std::swap(mapping->readOnlyResources[a], mapping->readOnlyResources[b]);
   });
 
   for(size_t i = 0; i < permutation.size(); i++)
-    refl->ReadOnlyResources[i].bindPoint = (int)permutation[i].first;
+    refl->readOnlyResources[i].bindPoint = (int)permutation[i].first;
 
-  permutation.resize(mapping->ReadWriteResources.size());
-  for(size_t i = 0; i < mapping->ReadWriteResources.size(); i++)
-    permutation[i] = std::make_pair(i, mapping->ReadWriteResources[i].bind);
+  permutation.resize(mapping->readWriteResources.size());
+  for(size_t i = 0; i < mapping->readWriteResources.size(); i++)
+    permutation[i] = std::make_pair(i, mapping->readWriteResources[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
   ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
-    std::swap(mapping->ReadWriteResources[a], mapping->ReadWriteResources[b]);
+    std::swap(mapping->readWriteResources[a], mapping->readWriteResources[b]);
   });
 
   for(size_t i = 0; i < permutation.size(); i++)
-    refl->ReadWriteResources[i].bindPoint = (int)permutation[i].first;
+    refl->readWriteResources[i].bindPoint = (int)permutation[i].first;
 
-  permutation.resize(mapping->ConstantBlocks.size());
-  for(size_t i = 0; i < mapping->ConstantBlocks.size(); i++)
-    permutation[i] = std::make_pair(i, mapping->ConstantBlocks[i].bind);
+  permutation.resize(mapping->constantBlocks.size());
+  for(size_t i = 0; i < mapping->constantBlocks.size(); i++)
+    permutation[i] = std::make_pair(i, mapping->constantBlocks[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
   ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
-    std::swap(mapping->ConstantBlocks[a], mapping->ConstantBlocks[b]);
+    std::swap(mapping->constantBlocks[a], mapping->constantBlocks[b]);
   });
 
   for(size_t i = 0; i < permutation.size(); i++)
-    refl->ConstantBlocks[i].bindPoint = (int)permutation[i].first;
+    refl->constantBlocks[i].bindPoint = (int)permutation[i].first;
 }

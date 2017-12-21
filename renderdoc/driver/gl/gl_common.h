@@ -304,11 +304,11 @@ BufferCategory MakeBufferCategory(GLenum bufferTarget);
 AddressMode MakeAddressMode(GLenum addr);
 TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float maxAniso);
 ShaderStage MakeShaderStage(GLenum type);
-CompareFunc MakeCompareFunc(GLenum func);
-StencilOp MakeStencilOp(GLenum op);
-LogicOp MakeLogicOp(GLenum op);
+CompareFunction MakeCompareFunc(GLenum func);
+StencilOperation MakeStencilOp(GLenum op);
+LogicOperation MakeLogicOp(GLenum op);
 BlendMultiplier MakeBlendMultiplier(GLenum blend);
-BlendOp MakeBlendOp(GLenum op);
+BlendOperation MakeBlendOp(GLenum op);
 const char *BlendString(GLenum blendenum);
 const char *SamplerString(GLenum smpenum);
 

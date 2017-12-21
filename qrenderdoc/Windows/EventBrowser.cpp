@@ -38,8 +38,8 @@
 struct EventItemTag
 {
   EventItemTag() = default;
-  EventItemTag(uint32_t eventID) : EID(eventID), lastEID(eventID) {}
-  EventItemTag(uint32_t eventID, uint32_t lastEventID) : EID(eventID), lastEID(lastEventID) {}
+  EventItemTag(uint32_t eventId) : EID(eventId), lastEID(eventId) {}
+  EventItemTag(uint32_t eventId, uint32_t lastEventID) : EID(eventId), lastEID(lastEventID) {}
   uint32_t EID = 0;
   uint32_t lastEID = 0;
   double duration = -1.0;
@@ -237,9 +237,9 @@ void EventBrowser::OnCaptureClosed()
   ui->stepNext->setEnabled(false);
 }
 
-void EventBrowser::OnEventChanged(uint32_t eventID)
+void EventBrowser::OnEventChanged(uint32_t eventId)
 {
-  SelectEvent(eventID);
+  SelectEvent(eventId);
   repopulateBookmarks();
   highlightBookmarks();
 }
@@ -254,28 +254,28 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
     const DrawcallDescription &d = draws[i];
 
     RDTreeWidgetItem *child = new RDTreeWidgetItem(
-        {d.name, QString::number(d.eventID), QString::number(d.drawcallID), lit("---")});
+        {d.name, QString::number(d.eventId), QString::number(d.drawcallId), lit("---")});
 
     QPair<uint32_t, uint32_t> last = AddDrawcalls(child, d.children);
     lastEID = last.first;
     lastDraw = last.second;
 
-    if(lastEID > d.eventID)
+    if(lastEID > d.eventId)
     {
-      child->setText(COL_EID, QFormatStr("%1-%2").arg(d.eventID).arg(lastEID));
-      child->setText(COL_DRAW, QFormatStr("%1-%2").arg(d.drawcallID).arg(lastDraw));
+      child->setText(COL_EID, QFormatStr("%1-%2").arg(d.eventId).arg(lastEID));
+      child->setText(COL_DRAW, QFormatStr("%1-%2").arg(d.drawcallId).arg(lastDraw));
     }
 
     if(lastEID == 0)
     {
-      lastEID = d.eventID;
-      lastDraw = d.drawcallID;
+      lastEID = d.eventId;
+      lastDraw = d.drawcallId;
 
       if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count())
-        lastEID = draws[i + 1].eventID;
+        lastEID = draws[i + 1].eventId;
     }
 
-    child->setTag(QVariant::fromValue(EventItemTag(draws[i].eventID, lastEID)));
+    child->setTag(QVariant::fromValue(EventItemTag(draws[i].eventId, lastEID)));
 
     if(m_Ctx.Config().EventBrowser_ApplyColors)
     {
@@ -320,7 +320,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<Count
 
     for(const CounterResult &r : results)
     {
-      if(r.eventID == eid)
+      if(r.eventId == eid)
         duration = r.value.d;
     }
 
@@ -435,7 +435,7 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
     ui->stepNext->setEnabled(true);
 
   // special case for the first 'virtual' draw at EID 0
-  if(m_Ctx.GetFirstDrawcall() && tag.lastEID == m_Ctx.GetFirstDrawcall()->eventID)
+  if(m_Ctx.GetFirstDrawcall() && tag.lastEID == m_Ctx.GetFirstDrawcall()->eventId)
     ui->stepPrev->setEnabled(true);
 
   highlightBookmarks();
@@ -540,7 +540,7 @@ void EventBrowser::on_stepNext_clicked()
 
   // special case for the first 'virtual' draw at EID 0
   if(m_Ctx.CurEvent() == 0)
-    SelectEvent(m_Ctx.GetFirstDrawcall()->eventID);
+    SelectEvent(m_Ctx.GetFirstDrawcall()->eventId);
 }
 
 void EventBrowser::on_stepPrev_clicked()
@@ -554,7 +554,7 @@ void EventBrowser::on_stepPrev_clicked()
     SelectEvent(draw->previous);
 
   // special case for the first 'virtual' draw at EID 0
-  if(m_Ctx.CurEvent() == m_Ctx.GetFirstDrawcall()->eventID)
+  if(m_Ctx.CurEvent() == m_Ctx.GetFirstDrawcall()->eventId)
     SelectEvent(0);
 }
 
@@ -715,7 +715,7 @@ double EventBrowser::GetDrawTime(const DrawcallDescription &drawcall)
 
   for(const CounterResult &r : m_Times)
   {
-    if(r.eventID == drawcall.eventID)
+    if(r.eventId == drawcall.eventId)
       return r.value.d;
   }
 
@@ -741,14 +741,14 @@ void EventBrowser::GetMaxNameLength(int &maxNameLength, int indent, bool firstch
 void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int indent,
                                   bool firstchild, const DrawcallDescription &drawcall)
 {
-  QString eidString = drawcall.children.empty() ? QString::number(drawcall.eventID) : QString();
+  QString eidString = drawcall.children.empty() ? QString::number(drawcall.eventId) : QString();
 
   QString nameString = GetExportDrawcallString(indent, firstchild, drawcall);
 
   QString line = QFormatStr("%1 | %2 | %3")
                      .arg(eidString, -5)
                      .arg(nameString, -maxNameLength)
-                     .arg(drawcall.drawcallID, -6);
+                     .arg(drawcall.drawcallId, -6);
 
   if(!m_Times.empty())
   {
@@ -929,9 +929,9 @@ void EventBrowser::repopulateBookmarks()
   // add any bookmark markers that we don't have
   for(const EventBookmark &mark : bookmarks)
   {
-    if(!m_BookmarkButtons.contains(mark.EID))
+    if(!m_BookmarkButtons.contains(mark.eventId))
     {
-      uint32_t EID = mark.EID;
+      uint32_t EID = mark.eventId;
 
       QToolButton *but = new QToolButton(this);
 
@@ -1007,7 +1007,7 @@ void EventBrowser::jumpToBookmark(int idx)
     return;
 
   // don't exclude ourselves, so we're updated as normal
-  SelectEvent(bookmarks[idx].EID);
+  SelectEvent(bookmarks[idx].eventId);
 }
 
 void EventBrowser::highlightBookmarks()
@@ -1046,7 +1046,7 @@ void EventBrowser::RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag)
     item->setIcon(COL_NAME, QIcon());
 }
 
-bool EventBrowser::FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventID)
+bool EventBrowser::FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventId)
 {
   // do a reverse search to find the last match (in case of 'set' markers that
   // inherit the event of the next real draw).
@@ -1057,15 +1057,15 @@ bool EventBrowser::FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *par
     uint nEID = n->tag().value<EventItemTag>().lastEID;
     uint fEID = found ? found->tag().value<EventItemTag>().lastEID : 0;
 
-    if(nEID >= eventID && (found == NULL || nEID <= fEID))
+    if(nEID >= eventId && (found == NULL || nEID <= fEID))
       found = n;
 
-    if(nEID == eventID && n->childCount() == 0)
+    if(nEID == eventId && n->childCount() == 0)
       return true;
 
     if(n->childCount() > 0)
     {
-      bool exact = FindEventNode(found, n, eventID);
+      bool exact = FindEventNode(found, n, eventId);
       if(exact)
         return true;
     }
@@ -1087,13 +1087,13 @@ void EventBrowser::ExpandNode(RDTreeWidgetItem *node)
     ui->events->scrollToItem(n);
 }
 
-bool EventBrowser::SelectEvent(uint32_t eventID)
+bool EventBrowser::SelectEvent(uint32_t eventId)
 {
   if(!m_Ctx.IsCaptureLoaded())
     return false;
 
   RDTreeWidgetItem *found = NULL;
-  FindEventNode(found, ui->events->topLevelItem(0), eventID);
+  FindEventNode(found, ui->events->topLevelItem(0), eventId);
   if(found != NULL)
   {
     ui->events->setCurrentItem(found);

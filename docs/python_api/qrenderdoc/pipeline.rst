@@ -3,7 +3,7 @@ Pipeline Abstraction
 
 .. contents::
 
-.. module:: qrenderdoc
+.. currentmodule:: qrenderdoc
 
 Pipeline
 --------
@@ -23,7 +23,7 @@ Bindings
   :members:
   :undoc-members:
 
-.. autoclass:: qrenderdoc.BoundBuffer
+.. autoclass:: qrenderdoc.BoundVBuffer
   :members:
   :undoc-members:
 
@@ -32,10 +32,6 @@ Bindings
   :undoc-members:
 
 .. autoclass:: qrenderdoc.VertexInputAttribute
-  :members:
-  :undoc-members:
-
-.. autoclass:: qrenderdoc.Viewport
   :members:
   :undoc-members:
 

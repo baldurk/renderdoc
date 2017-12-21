@@ -1049,7 +1049,7 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
   if(rdc)
   {
     // add the resolve database if we were capturing callstacks.
-    if(m_Options.CaptureCallstacks)
+    if(m_Options.captureCallstacks)
     {
       SectionProperties props = {};
       props.type = SectionType::ResolveDatabase;

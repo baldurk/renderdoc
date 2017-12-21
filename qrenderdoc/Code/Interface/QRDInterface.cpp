@@ -71,41 +71,41 @@ EnvironmentModification EnvModFromVariant(const QVariant &v)
 
 CaptureSettings::CaptureSettings()
 {
-  Inject = false;
-  AutoStart = false;
-  RENDERDOC_GetDefaultCaptureOptions(&Options);
+  inject = false;
+  autoStart = false;
+  RENDERDOC_GetDefaultCaptureOptions(&options);
 }
 
 CaptureSettings::operator QVariant() const
 {
   QVariantMap ret;
 
-  ret[lit("Inject")] = Inject;
-  ret[lit("AutoStart")] = AutoStart;
+  ret[lit("inject")] = inject;
+  ret[lit("autoStart")] = autoStart;
 
-  ret[lit("Executable")] = Executable;
-  ret[lit("WorkingDir")] = WorkingDir;
-  ret[lit("CmdLine")] = CmdLine;
+  ret[lit("executable")] = executable;
+  ret[lit("workingDir")] = workingDir;
+  ret[lit("commandLine")] = commandLine;
 
   QVariantList env;
-  for(int i = 0; i < Environment.count(); i++)
-    env.push_back(EnvModToVariant(Environment[i]));
-  ret[lit("Environment")] = env;
+  for(int i = 0; i < environment.count(); i++)
+    env.push_back(EnvModToVariant(environment[i]));
+  ret[lit("environment")] = env;
 
   QVariantMap opts;
-  opts[lit("AllowVSync")] = Options.AllowVSync;
-  opts[lit("AllowFullscreen")] = Options.AllowFullscreen;
-  opts[lit("APIValidation")] = Options.APIValidation;
-  opts[lit("CaptureCallstacks")] = Options.CaptureCallstacks;
-  opts[lit("CaptureCallstacksOnlyDraws")] = Options.CaptureCallstacksOnlyDraws;
-  opts[lit("DelayForDebugger")] = Options.DelayForDebugger;
-  opts[lit("VerifyMapWrites")] = Options.VerifyMapWrites;
-  opts[lit("HookIntoChildren")] = Options.HookIntoChildren;
-  opts[lit("RefAllResources")] = Options.RefAllResources;
-  opts[lit("SaveAllInitials")] = Options.SaveAllInitials;
-  opts[lit("CaptureAllCmdLists")] = Options.CaptureAllCmdLists;
-  opts[lit("DebugOutputMute")] = Options.DebugOutputMute;
-  ret[lit("Options")] = opts;
+  opts[lit("allowVSync")] = options.allowVSync;
+  opts[lit("allowFullscreen")] = options.allowFullscreen;
+  opts[lit("apiValidation")] = options.apiValidation;
+  opts[lit("captureCallstacks")] = options.captureCallstacks;
+  opts[lit("captureCallstacksOnlyDraws")] = options.captureCallstacksOnlyDraws;
+  opts[lit("delayForDebugger")] = options.delayForDebugger;
+  opts[lit("verifyMapWrites")] = options.verifyMapWrites;
+  opts[lit("hookIntoChildren")] = options.hookIntoChildren;
+  opts[lit("refAllResources")] = options.refAllResources;
+  opts[lit("saveAllInitials")] = options.saveAllInitials;
+  opts[lit("captureAllCmdLists")] = options.captureAllCmdLists;
+  opts[lit("debugOutputMute")] = options.debugOutputMute;
+  ret[lit("options")] = opts;
 
   return ret;
 }
@@ -114,34 +114,34 @@ CaptureSettings::CaptureSettings(const QVariant &v)
 {
   QVariantMap data = v.toMap();
 
-  Inject = data[lit("Inject")].toBool();
-  AutoStart = data[lit("AutoStart")].toBool();
+  inject = data[lit("inject")].toBool();
+  autoStart = data[lit("autoStart")].toBool();
 
-  Executable = data[lit("Executable")].toString();
-  WorkingDir = data[lit("WorkingDir")].toString();
-  CmdLine = data[lit("CmdLine")].toString();
+  executable = data[lit("executable")].toString();
+  workingDir = data[lit("workingDir")].toString();
+  commandLine = data[lit("commandLine")].toString();
 
-  QVariantList env = data[lit("Environment")].toList();
+  QVariantList env = data[lit("environment")].toList();
   for(int i = 0; i < env.size(); i++)
   {
     EnvironmentModification e = EnvModFromVariant(env[i]);
-    Environment.push_back(e);
+    environment.push_back(e);
   }
 
-  QVariantMap opts = data[lit("Options")].toMap();
+  QVariantMap opts = data[lit("options")].toMap();
 
-  Options.AllowVSync = opts[lit("AllowVSync")].toBool();
-  Options.AllowFullscreen = opts[lit("AllowFullscreen")].toBool();
-  Options.APIValidation = opts[lit("APIValidation")].toBool();
-  Options.CaptureCallstacks = opts[lit("CaptureCallstacks")].toBool();
-  Options.CaptureCallstacksOnlyDraws = opts[lit("CaptureCallstacksOnlyDraws")].toBool();
-  Options.DelayForDebugger = opts[lit("DelayForDebugger")].toUInt();
-  Options.VerifyMapWrites = opts[lit("VerifyMapWrites")].toBool();
-  Options.HookIntoChildren = opts[lit("HookIntoChildren")].toBool();
-  Options.RefAllResources = opts[lit("RefAllResources")].toBool();
-  Options.SaveAllInitials = opts[lit("SaveAllInitials")].toBool();
-  Options.CaptureAllCmdLists = opts[lit("CaptureAllCmdLists")].toBool();
-  Options.DebugOutputMute = opts[lit("DebugOutputMute")].toBool();
+  options.allowVSync = opts[lit("allowVSync")].toBool();
+  options.allowFullscreen = opts[lit("allowFullscreen")].toBool();
+  options.apiValidation = opts[lit("apiValidation")].toBool();
+  options.captureCallstacks = opts[lit("captureCallstacks")].toBool();
+  options.captureCallstacksOnlyDraws = opts[lit("captureCallstacksOnlyDraws")].toBool();
+  options.delayForDebugger = opts[lit("delayForDebugger")].toUInt();
+  options.verifyMapWrites = opts[lit("verifyMapWrites")].toBool();
+  options.hookIntoChildren = opts[lit("hookIntoChildren")].toBool();
+  options.refAllResources = opts[lit("refAllResources")].toBool();
+  options.saveAllInitials = opts[lit("saveAllInitials")].toBool();
+  options.captureAllCmdLists = opts[lit("captureAllCmdLists")].toBool();
+  options.debugOutputMute = opts[lit("debugOutputMute")].toBool();
 }
 
 rdcstr configFilePath(const rdcstr &filename)

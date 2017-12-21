@@ -102,8 +102,8 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventId) override {}
+  void OnEventChanged(uint32_t eventId) override;
 
 private slots:
   // automatic slots
@@ -236,6 +236,6 @@ private:
   void runTo(int runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
 
   QString stringRep(const ShaderVariable &var, bool useType);
-  RDTreeWidgetItem *makeResourceRegister(const BindpointMap &bind, uint32_t idx,
+  RDTreeWidgetItem *makeResourceRegister(const Bindpoint &bind, uint32_t idx,
                                          const BoundResource &ro, const ShaderResource &resources);
 };

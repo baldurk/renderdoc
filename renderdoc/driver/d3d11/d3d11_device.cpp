@@ -64,7 +64,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
                    WriteSerialiser::ChunkThreadID;
 
-  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
 
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
@@ -167,7 +167,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   if(m_pInfoQueue)
   {
-    if(RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
+    if(RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
       m_pInfoQueue->SetMuteDebugOutput(true);
 
     UINT size = m_pInfoQueue->GetStorageFilterStackSize();
@@ -570,7 +570,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     }
     else
     {
-      if(!RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      if(!RenderDoc::Inst().GetCaptureOptions().apiValidation)
       {
         RDCWARN("API Validation is not enabled, RenderDoc disabled the debug layer.");
         RDCWARN(
@@ -635,7 +635,7 @@ void WrappedID3D11Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
   if(!IsActiveReplaying(m_State) || src == MessageSource::RuntimeWarning)
   {
     DebugMessage msg;
-    msg.eventID = IsCaptureMode(m_State) ? 0 : m_pImmediateContext->GetEventID();
+    msg.eventId = IsCaptureMode(m_State) ? 0 : m_pImmediateContext->GetEventID();
     msg.messageID = 0;
     msg.source = src;
     msg.category = c;
@@ -680,7 +680,7 @@ std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
     m_pInfoQueue->GetMessage(i, message, &len);
 
     DebugMessage msg;
-    msg.eventID = 0;
+    msg.eventId = 0;
     msg.source = MessageSource::API;
     msg.category = MessageCategory::Miscellaneous;
     msg.severity = MessageSeverity::Medium;
@@ -922,11 +922,11 @@ bool WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
 
       stats.samplers[stage].bindslots.resize(D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
 
-      stats.resources[stage].types.resize(uint32_t(TextureDim::Count));
+      stats.resources[stage].types.resize(uint32_t(TextureType::Count));
       stats.resources[stage].bindslots.resize(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
     }
 
-    stats.updates.types.resize(uint32_t(TextureDim::Count));
+    stats.updates.types.resize(uint32_t(TextureType::Count));
     stats.updates.sizes.resize(ResourceUpdateStats::BucketCount);
 
     stats.draws.counts.resize(DrawcallStats::BucketCount);
@@ -1041,7 +1041,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 
   // steal the structured data for ourselves
-  m_StructuredFile->swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(m_StoredStructuredData);
 
   // and in future use this file.
   m_StructuredFile = &m_StoredStructuredData;
@@ -2302,10 +2302,10 @@ WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext(size_t idx)
   return *it;
 }
 
-const DrawcallDescription *WrappedID3D11Device::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedID3D11Device::GetDrawcall(uint32_t eventId)
 {
-  if(eventID >= m_Drawcalls.size())
+  if(eventId >= m_Drawcalls.size())
     return NULL;
 
-  return m_Drawcalls[eventID];
+  return m_Drawcalls[eventId];
 }

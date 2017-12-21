@@ -508,7 +508,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
                       PROCESS_VM_WRITE | PROCESS_VM_READ | SYNCHRONIZE,
                   FALSE, pid);
 
-  if(opts.DelayForDebugger > 0)
+  if(opts.delayForDebugger > 0)
   {
     RDCDEBUG("Waiting for debugger attach to %lu", pid);
     uint32_t timeout = 0;
@@ -522,14 +522,14 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
       Sleep(10);
       timeout += 10;
 
-      if(timeout > opts.DelayForDebugger * 1000)
+      if(timeout > opts.delayForDebugger * 1000)
         break;
     }
 
     if(debuggerAttached)
       RDCDEBUG("Debugger attach detected after %.2f s", float(timeout) / 1000.0f);
     else
-      RDCDEBUG("Timed out waiting for debugger, gave up after %u s", opts.DelayForDebugger);
+      RDCDEBUG("Timed out waiting for debugger, gave up after %u s", opts.delayForDebugger);
   }
 
   RDCLOG("Injecting renderdoc into process %lu", pid);
