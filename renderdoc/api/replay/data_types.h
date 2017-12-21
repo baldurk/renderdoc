@@ -194,14 +194,14 @@ struct TextureFilter
   DOCUMENT("");
   bool operator==(const TextureFilter &o) const
   {
-    return minify == o.magnify && minify == o.magnify && mip == o.mip && func == o.func;
+    return minify == o.minify && magnify == o.magnify && mip == o.mip && func == o.func;
   }
   bool operator<(const TextureFilter &o) const
   {
-    if(!(minify == o.magnify))
-      return minify < o.magnify;
-    if(!(minify == o.magnify))
-      return minify < o.magnify;
+    if(!(minify == o.minify))
+      return minify < o.minify;
+    if(!(magnify == o.magnify))
+      return magnify < o.magnify;
     if(!(mip == o.mip))
       return mip < o.mip;
     if(!(func == o.func))
