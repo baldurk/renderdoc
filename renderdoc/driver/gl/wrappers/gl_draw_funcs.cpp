@@ -3533,7 +3533,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
 
   uint64_t data[4] = {0};
 
-  if(ser.IsWriting() && dataPtr)
+  if(ser.IsWriting())
   {
     size_t s = 1;
     switch(format)
