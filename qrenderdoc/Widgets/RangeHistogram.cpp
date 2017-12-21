@@ -140,8 +140,6 @@ void RangeHistogram::mousePressEvent(QMouseEvent *e)
 
   QRect r = rect();
 
-  r.marginsRemoved(QMargins(totalSpace(), totalSpace(), totalSpace(), totalSpace()));
-
   int whiteX = (int)(whiteDelta() * r.width());
   int blackX = (int)(blackDelta() * r.width());
 
