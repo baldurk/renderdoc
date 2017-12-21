@@ -1367,7 +1367,7 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
   {
     buffer = m_pDevice->GetLiveID(buffer);
     if(buffer != ResourceId())
-      m_pDevice->GetBufferData(m_pDevice->GetLiveID(buffer), offs, 0, data);
+      m_pDevice->GetBufferData(buffer, offs, 0, data);
   }
 
   vector<ShaderVariable> v;
@@ -1375,7 +1375,7 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
   shader = m_pDevice->GetLiveID(shader);
 
   if(shader != ResourceId())
-    m_pDevice->FillCBufferVariables(m_pDevice->GetLiveID(shader), entryPoint, cbufslot, v, data);
+    m_pDevice->FillCBufferVariables(shader, entryPoint, cbufslot, v, data);
 
   return v;
 }
