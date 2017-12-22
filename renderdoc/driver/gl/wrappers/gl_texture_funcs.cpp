@@ -224,8 +224,11 @@ bool WrappedOpenGL::Serialise_glBindTexture(SerialiserType &ser, GLenum target, 
 
     if(IsLoading(m_State))
     {
-      m_Textures[GetResourceManager()->GetID(texture)].curType = TextureTarget(target);
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ShaderRead;
+      TextureData &tex = m_Textures[GetResourceManager()->GetID(texture)];
+      // only set texture type if we don't have one. Otherwise refuse to re-type.
+      if(tex.curType == eGL_NONE)
+        tex.curType = TextureTarget(target);
+      tex.creationFlags |= TextureCategory::ShaderRead;
     }
   }
 
