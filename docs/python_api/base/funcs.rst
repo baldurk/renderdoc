@@ -34,7 +34,7 @@ Local Execution & Injection
 .. autofunction:: renderdoc.IsGlobalHookActive
 .. autofunction:: renderdoc.CanGlobalHook
 
-Logging & Versioning 
+Logging & Versioning
 --------------------
 
 .. autofunction:: renderdoc.SetDebugLogFile

@@ -2,7 +2,7 @@ QRenderDoc
 ==========
 
 .. toctree::
-	main
-	windows
-	config
-	pipeline
+  main
+  windows
+  config
+  pipeline
