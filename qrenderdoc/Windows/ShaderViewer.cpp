@@ -311,7 +311,18 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       GUIInvoke::call([this, targets, disasm]() {
         QStringList targetNames;
         for(const rdcstr &t : targets)
-          targetNames << t;
+        {
+          QString target = t;
+          targetNames << target;
+
+          // if we have a SPIR-V disassembly option, and the shader is natively SPIR-V, add our own
+          // SPIR-V disassemblers right after
+          if(target.contains(lit("SPIR-V")) && m_ShaderDetails->encoding == ShaderEncoding::SPIRV)
+          {
+            for(const SPIRVDisassembler &d : m_Ctx.Config().SPIRVDisassemblers)
+              targetNames << targetName(d);
+          }
+        }
 
         m_DisassemblyType->addItems(targetNames);
         m_DisassemblyType->setCurrentIndex(0);
@@ -856,7 +867,22 @@ void ShaderViewer::disassemble_typeChanged(int index)
   if(m_ShaderDetails == NULL)
     return;
 
-  QByteArray target = m_DisassemblyType->currentText().toUtf8();
+  QString targetStr = m_DisassemblyType->currentText();
+  QByteArray target = targetStr.toUtf8();
+
+  for(const SPIRVDisassembler &disasm : m_Ctx.Config().SPIRVDisassemblers)
+  {
+    if(targetStr == targetName(disasm))
+    {
+      QString result = disasm.DisassembleShader(this, m_ShaderDetails);
+
+      m_DisassemblyView->setReadOnly(false);
+      m_DisassemblyView->setText(result.toUtf8().data());
+      m_DisassemblyView->setReadOnly(true);
+      m_DisassemblyView->emptyUndoBuffer();
+      return;
+    }
+  }
 
   m_Ctx.Replay().AsyncInvoke([this, target](IReplayController *r) {
     rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
@@ -1102,6 +1128,11 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const Bindpoint &bind, uint
     return new RDTreeWidgetItem(
         {regname + name, lit("Resource"), m_Ctx.GetResourceName(bound.resourceId)});
   }
+}
+
+QString ShaderViewer::targetName(const SPIRVDisassembler &disasm)
+{
+  return lit("SPIR-V (%1)").arg(disasm.name);
 }
 
 void ShaderViewer::addFileList()

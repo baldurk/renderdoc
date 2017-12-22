@@ -214,6 +214,8 @@ private:
   static const int INDICATOR_FINDRESULT = 0;
   static const int INDICATOR_REGHIGHLIGHT = 1;
 
+  QString targetName(const SPIRVDisassembler &disasm);
+
   void addFileList();
 
   ScintillaEdit *MakeEditor(const QString &name, const QString &text, int lang);
