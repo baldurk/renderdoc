@@ -2984,8 +2984,10 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     {
       DebugMessage msg;
 
+      msg.eventId = 0;
       msg.messageID = id;
       msg.description = string(message, message + length);
+      msg.source = MessageSource::API;
 
       switch(severity)
       {
