@@ -23,8 +23,8 @@
  ******************************************************************************/
 
 #include "amd_isa.h"
+#include "common/common.h"
 #include "core/plugins.h"
-#include "driver/shaders/dxbc/dxbc_inspect.h"
 #include "official/RGA/Common/AmdDxGsaCompile.h"
 #include "official/RGA/elf/elf32.h"
 #include "amd_isa_devices.h"
@@ -46,7 +46,6 @@ https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
 namespace GCNISA
 {
 extern std::string pluginPath;
-};
 
 static HMODULE GetAMDModule()
 {
@@ -60,7 +59,7 @@ static HMODULE GetAMDModule()
   return module;
 }
 
-std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &target)
+std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target)
 {
   HMODULE mod = GetAMDModule();
 
@@ -73,9 +72,9 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
 ; To see instructions on how to download and configure it on your system, go to:
 ; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
 
-  // if DXBC is NULL we're testing support, so return empty string - indicating no error
+  // if shaderBytes is empty we're testing support, so return empty string - indicating no error
   // initialising
-  if(dxbc == NULL || target == "")
+  if(shaderBytes.empty() || target == "")
     return "";
 
   PfnAmdDxGsaCompileShader compileShader =
@@ -114,8 +113,65 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
   if(in.chipFamily == 0)
     return "; Invalid ISA Target specified";
 
-  in.pShaderByteCode = dxbc->m_HexDump.data();
-  in.byteCodeLength = dxbc->m_HexDump.size();
+  // we do a little mini parse of the DXBC file, just enough to get the shader code out. This is
+  // because we're getting called from outside the D3D backend where the shader bytes are opaque.
+
+  const char *dxbcParseError = "; Failed to fetch D3D shader code from DXBC";
+
+  const byte *base = shaderBytes.data();
+  const uint32_t *end = (const uint32_t *)(base + shaderBytes.size());
+  const uint32_t *dxbc = (const uint32_t *)base;
+
+  if(*dxbc != MAKE_FOURCC('D', 'X', 'B', 'C'))
+    return dxbcParseError;
+
+  dxbc++;       // fourcc
+  dxbc += 4;    // hash
+  dxbc++;       // unknown
+  dxbc++;       // fileLength
+
+  if(dxbc >= end)
+    return dxbcParseError;
+
+  const uint32_t numChunks = *dxbc;
+  dxbc++;
+
+  std::vector<uint32_t> chunkOffsets;
+  for(uint32_t i = 0; i < numChunks; i++)
+  {
+    if(dxbc >= end)
+      return dxbcParseError;
+
+    chunkOffsets.push_back(*dxbc);
+    dxbc++;
+  }
+
+  in.pShaderByteCode = NULL;
+  in.byteCodeLength = 0;
+
+  for(uint32_t offs : chunkOffsets)
+  {
+    dxbc = (const uint32_t *)(base + offs);
+
+    if(dxbc + 2 >= end)
+      return dxbcParseError;
+
+    if(*dxbc == MAKE_FOURCC('S', 'H', 'E', 'X') || *dxbc == MAKE_FOURCC('S', 'H', 'D', 'R'))
+    {
+      dxbc++;
+      in.byteCodeLength = *dxbc;
+      dxbc++;
+      in.pShaderByteCode = dxbc;
+
+      if(dxbc + in.byteCodeLength >= end)
+        return dxbcParseError;
+
+      break;
+    }
+  }
+
+  if(in.byteCodeLength == 0)
+    return dxbcParseError;
 
   out.size = sizeof(out);
 
@@ -194,3 +250,4 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
 
   return ret;
 }
+};

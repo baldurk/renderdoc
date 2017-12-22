@@ -25,7 +25,6 @@
 
 #include "d3d11_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
-#include "driver/ihv/amd/amd_isa.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
@@ -34,6 +33,8 @@
 #include "d3d11_device.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
+
+static const char *DXBCDisassemblyTarget = "DXBC";
 
 D3D11Replay::D3D11Replay()
 {
@@ -256,10 +257,8 @@ vector<string> D3D11Replay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  GCNISA::GetTargets(GraphicsAPI::D3D11, ret);
-
   // DXBC is always first
-  ret.insert(ret.begin(), "DXBC");
+  ret.insert(ret.begin(), DXBCDisassemblyTarget);
 
   return ret;
 }
@@ -271,14 +270,14 @@ string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
       WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
 
   if(it == WrappedShader::m_ShaderList.end())
-    return "Invalid Shader Specified";
+    return "; Invalid Shader Specified";
 
   DXBC::DXBCFile *dxbc = it->second->GetDXBC();
 
-  if(target == "DXBC" || target.empty())
+  if(target == DXBCDisassemblyTarget || target.empty())
     return dxbc->GetDisassembly();
 
-  return GCNISA::Disassemble(dxbc, target);
+  return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
 void D3D11Replay::FreeTargetResource(ResourceId id)

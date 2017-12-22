@@ -24,7 +24,6 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
-#include "driver/ihv/amd/amd_isa.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
@@ -33,6 +32,8 @@
 
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
+
+static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 
 GLReplay::GLReplay()
 {
@@ -792,10 +793,8 @@ vector<string> GLReplay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  GCNISA::GetTargets(GraphicsAPI::OpenGL, ret);
-
   // default is always first
-  ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
+  ret.insert(ret.begin(), SPIRVDisassemblyTarget);
 
   return ret;
 }
@@ -807,9 +806,9 @@ string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
       m_pDriver->m_Shaders[m_pDriver->GetResourceManager()->GetLiveID(refl->resourceId)];
 
   if(shaderDetails.sources.empty())
-    return "Invalid Shader Specified";
+    return "; Invalid Shader Specified";
 
-  if(target == "SPIR-V (RenderDoc)" || target.empty())
+  if(target == SPIRVDisassemblyTarget || target.empty())
   {
     std::string &disasm = shaderDetails.disassembly;
 
@@ -819,12 +818,7 @@ string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
     return disasm;
   }
 
-  ShaderStage stages[] = {
-      ShaderStage::Vertex,   ShaderStage::Tess_Control, ShaderStage::Tess_Eval,
-      ShaderStage::Geometry, ShaderStage::Fragment,     ShaderStage::Compute,
-  };
-
-  return GCNISA::Disassemble(stages[ShaderIdx(shaderDetails.type)], shaderDetails.sources, target);
+  return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
 void GLReplay::SavePipelineState()

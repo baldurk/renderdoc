@@ -38,8 +38,6 @@ namespace GCNISA
 {
 void GetTargets(GraphicsAPI api, std::vector<std::string> &targets);
 
-std::string Disassemble(const DXBC::DXBCFile *dxbc, const std::string &target);
-std::string Disassemble(const SPVModule *spv, const std::string &entry, const std::string &target);
-std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
+std::string Disassemble(ShaderEncoding api, ShaderStage stage, const bytebuf &shaderBytes,
                         const std::string &target);
 };

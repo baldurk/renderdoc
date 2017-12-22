@@ -25,11 +25,12 @@
 #include "d3d12_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
-#include "driver/ihv/amd/amd_isa.h"
 #include "serialise/rdcfile.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
+
+static const char *DXBCDisassemblyTarget = "DXBC";
 
 template <class T>
 T &resize_and_add(rdcarray<T> &vec, size_t idx)
@@ -262,10 +263,8 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  GCNISA::GetTargets(GraphicsAPI::D3D12, ret);
-
   // DXBC is always first
-  ret.insert(ret.begin(), "DXBC");
+  ret.insert(ret.begin(), DXBCDisassemblyTarget);
 
   return ret;
 }
@@ -277,14 +276,14 @@ string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
       m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->resourceId);
 
   if(!sh)
-    return "Invalid Shader Specified";
+    return "; Invalid Shader Specified";
 
   DXBC::DXBCFile *dxbc = sh->GetDXBC();
 
-  if(target == "DXBC" || target.empty())
+  if(target == DXBCDisassemblyTarget || target.empty())
     return dxbc->GetDisassembly();
 
-  return GCNISA::Disassemble(dxbc, target);
+  return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
 void D3D12Replay::FreeTargetResource(ResourceId id)

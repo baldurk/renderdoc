@@ -210,6 +210,9 @@ private:
   FrameRecord m_FrameRecord;
   vector<DrawcallDescription *> m_Drawcalls;
 
+  APIProperties m_APIProps;
+  std::vector<std::string> m_GCNTargets;
+
   volatile int32_t m_ReplayLoopCancel = 0;
   volatile int32_t m_ReplayLoopFinished = 0;
 

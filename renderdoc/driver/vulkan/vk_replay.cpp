@@ -24,7 +24,6 @@
 
 #include "vk_replay.h"
 #include <float.h>
-#include "driver/ihv/amd/amd_isa.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
@@ -35,6 +34,9 @@
 
 #define VULKAN 1
 #include "data/glsl/debuguniforms.h"
+
+static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
+static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 
 VulkanReplay::OutputWindow::OutputWindow()
     : m_WindowSystem(WindowingSystem::Unknown), width(0), height(0)
@@ -951,12 +953,10 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
   const VkLayerDispatchTable *vt = ObjDisp(dev);
 
   if(vt->GetShaderInfoAMD)
-    ret.push_back("Live driver disassembly");
-
-  GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
+    ret.push_back(LiveDriverDisassemblyTarget);
 
   // default is always first
-  ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
+  ret.insert(ret.begin(), SPIRVDisassemblyTarget);
 
   // could add canonical disassembly here if spirv-dis is available
   // Ditto for SPIRV-cross (to glsl/hlsl)
@@ -971,9 +971,9 @@ string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
       GetResourceManager()->GetLiveID(refl->resourceId));
 
   if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
-    return "Invalid Shader Specified";
+    return "; Invalid Shader Specified";
 
-  if(target == "SPIR-V (RenderDoc)" || target.empty())
+  if(target == SPIRVDisassemblyTarget || target.empty())
   {
     std::string &disasm = it->second.m_Reflections[refl->entryPoint.c_str()].disassembly;
 
@@ -986,12 +986,12 @@ string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-  if(vt->GetShaderInfoAMD)
+  if(target == LiveDriverDisassemblyTarget && vt->GetShaderInfoAMD)
   {
     if(pipeline == ResourceId())
     {
-      return "No pipeline specified, live driver disassembly is not available\n"
-             "Shader must be disassembled with a specific pipeline to get live driver assembly.";
+      return "; No pipeline specified, live driver disassembly is not available\n"
+             "; Shader must be disassembled with a specific pipeline to get live driver assembly.";
     }
 
     VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
@@ -1011,7 +1011,7 @@ string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
     return disasm;
   }
 
-  return GCNISA::Disassemble(&it->second.spirv, refl->entryPoint.c_str(), target);
+  return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,

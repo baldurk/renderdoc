@@ -24,7 +24,10 @@
 
 #include "amd_isa.h"
 
-std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &target)
+namespace GCNISA
+{
+std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target)
 {
   return "Disassembling D3D shaders is only supported on windows";
 }
+};

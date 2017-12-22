@@ -41,9 +41,12 @@ static const std::string virtualcontext_name = "VirtualContext";
 
 std::string pluginPath = "amd/isa";
 
-static bool IsSupported(GraphicsAPI api)
+// in amd_isa_<plat>.cpp
+std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target);
+
+static bool IsSupported(ShaderEncoding encoding)
 {
-  if(api == GraphicsAPI::OpenGL)
+  if(encoding == ShaderEncoding::GLSL)
   {
     std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
@@ -57,7 +60,7 @@ static bool IsSupported(GraphicsAPI api)
     return true;
   }
 
-  if(api == GraphicsAPI::Vulkan)
+  if(encoding == ShaderEncoding::SPIRV)
   {
     // TODO need to check if an AMD context is running
     std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
@@ -73,10 +76,9 @@ static bool IsSupported(GraphicsAPI api)
   }
 
   // we only need to check if we can get atidxx64.dll
-  if(api == GraphicsAPI::D3D11 || api == GraphicsAPI::D3D12)
+  if(encoding == ShaderEncoding::DXBC)
   {
-    DXBC::DXBCFile *dummy = NULL;
-    std::string test = Disassemble(dummy, "");
+    std::string test = DisassembleDXBC(bytebuf(), "");
 
     return test.empty();
   }
@@ -88,7 +90,25 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
 {
   targets.reserve(asicCount + 1);
 
-  if(IsSupported(api))
+  ShaderEncoding primary = ShaderEncoding::SPIRV, secondary = ShaderEncoding::SPIRV;
+
+  if(IsD3D(api))
+  {
+    primary = ShaderEncoding::DXBC;
+    secondary = ShaderEncoding::DXBC;
+  }
+  else if(api == GraphicsAPI::OpenGL)
+  {
+    primary = ShaderEncoding::GLSL;
+    secondary = ShaderEncoding::SPIRV;
+  }
+  else if(api == GraphicsAPI::Vulkan)
+  {
+    primary = ShaderEncoding::SPIRV;
+    secondary = ShaderEncoding::SPIRV;
+  }
+
+  if(IsSupported(primary) || IsSupported(secondary))
   {
     // OpenGL doesn't support AMDIL
     if(api != GraphicsAPI::OpenGL)
@@ -105,9 +125,9 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
   }
 }
 
-std::string Disassemble(const SPVModule *spv, const std::string &entry, const std::string &target)
+std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const std::string &target)
 {
-  if(!IsSupported(GraphicsAPI::Vulkan))
+  if(!IsSupported(ShaderEncoding::SPIRV))
   {
     return "; SPIR-V disassembly not supported, couldn't locate " + amdspv_name + R"(
 ; Normally it's in plugins/amd/isa/ in your build - if you are building locally you'll need to
@@ -146,8 +166,6 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
   if(!found)
     return "; Invalid ISA Target specified";
 
-  ShaderStage stage = spv->StageForEntry(entry);
-
   const char *stageName = "unk";
 
   switch(stage)
@@ -171,7 +189,7 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
       tempPath.c_str(), stageName, tempPath.c_str(), stageName, tempPath.c_str(), stageName,
       tempPath.c_str(), stageName, tempPath.c_str(), tempPath.c_str());
 
-  FileIO::dump(inPath.c_str(), spv->spirv.data(), spv->spirv.size() * sizeof(uint32_t));
+  FileIO::dump(inPath.c_str(), shaderBytes.data(), shaderBytes.size());
 
   // try to locate the amdspv relative to our running program
   std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
@@ -226,10 +244,9 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
   return ret;
 }
 
-std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
-                        const std::string &target)
+std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const std::string &target)
 {
-  if(!IsSupported(GraphicsAPI::OpenGL))
+  if(!IsSupported(ShaderEncoding::GLSL))
   {
     return R"(; GLSL disassembly not supported, couldn't locate VirtualContext.exe or it failed to run.
 ; It only works when the AMD driver is currently being used for graphics.
@@ -325,16 +342,7 @@ std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
 
   cmdLine += ";\"";
 
-  std::string source;
-
-  // concatenate the source files together
-  for(const std::string &s : glsl)
-  {
-    source += s;
-    source += "\n";
-  }
-
-  FileIO::dump(inPath.c_str(), source.data(), source.size());
+  FileIO::dump(inPath.c_str(), shaderBytes.data(), shaderBytes.size());
 
   // try to locate the amdspv relative to our running program
   std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
@@ -375,6 +383,21 @@ std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
   ret.insert(ret.begin(), header.begin(), header.end());
 
   return ret;
+}
+
+std::string Disassemble(ShaderEncoding encoding, ShaderStage stage, const bytebuf &shaderBytes,
+                        const std::string &target)
+{
+  if(encoding == ShaderEncoding::DXBC)
+    return DisassembleDXBC(shaderBytes, target);
+
+  if(encoding == ShaderEncoding::SPIRV)
+    return DisassembleSPIRV(stage, shaderBytes, target);
+
+  if(encoding == ShaderEncoding::GLSL)
+    return DisassembleGLSL(stage, shaderBytes, target);
+
+  return StringFormat::Fmt("Unsupported encoding for shader '%s'", ToStr(encoding).c_str());
 }
 
 };    // namespace GCNISA

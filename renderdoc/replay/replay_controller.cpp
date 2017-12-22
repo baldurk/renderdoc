@@ -27,6 +27,7 @@
 #include <string.h>
 #include <time.h>
 #include "common/dds_readwrite.h"
+#include "driver/ihv/amd/amd_isa.h"
 #include "jpeg-compressor/jpgd.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
@@ -249,12 +250,19 @@ rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
   for(const std::string &t : targets)
     ret.push_back(t);
 
+  for(const std::string &t : m_GCNTargets)
+    ret.push_back(t);
+
   return ret;
 }
 
 rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                            const char *target)
 {
+  for(const std::string &t : m_GCNTargets)
+    if(t == target)
+      return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
+
   return m_pDevice->DisassembleShader(pipeline, refl, target);
 }
 
@@ -1593,6 +1601,11 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
     return status;
 
   FetchPipelineState();
+
+  m_APIProps = m_pDevice->GetAPIProperties();
+
+  // fetch GCN ISA targets
+  GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
 
   {
     std::vector<ResourceId> ids = m_pDevice->GetBuffers();
