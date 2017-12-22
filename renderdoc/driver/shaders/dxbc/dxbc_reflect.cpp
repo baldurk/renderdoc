@@ -289,6 +289,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     }
   }
 
+  refl->encoding = ShaderEncoding::DXBC;
   refl->rawBytes = dxbc->m_ShaderBlob;
 
   refl->dispatchThreadsDimension[0] = dxbc->DispatchThreadsDimension[0];

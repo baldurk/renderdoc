@@ -310,7 +310,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(interfaces);
 
-  SIZE_CHECK(208);
+  SIZE_CHECK(216);
 }
 
 template <typename SerialiserType>

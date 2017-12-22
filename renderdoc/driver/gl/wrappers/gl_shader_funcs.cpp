@@ -78,6 +78,7 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
       concatenated += sources[i];
     }
 
+    reflection.encoding = ShaderEncoding::GLSL;
     reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
   }
 

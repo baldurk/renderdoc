@@ -1239,6 +1239,29 @@ constexpr inline bool IsD3D(GraphicsAPI api)
   return api == GraphicsAPI::D3D11 || api == GraphicsAPI::D3D12;
 }
 
+DOCUMENT(R"(Identifies a shader encoding used to pass shader code to an API.
+
+.. data:: DXBC
+
+  DXBC binary shader, used by D3D11 and D3D12.
+
+.. data:: GLSL
+
+  GLSL in string format, used by OpenGL.
+
+.. data:: SPIRV
+
+  SPIR-V binary shader, used by Vulkan and with an extension by OpenGL.
+)");
+enum class ShaderEncoding : uint32_t
+{
+  DXBC,
+  GLSL,
+  SPIRV,
+};
+
+DECLARE_REFLECTION_ENUM(ShaderEncoding);
+
 DOCUMENT(R"(A primitive topology used for processing vertex data.
 
 .. data:: Unknown

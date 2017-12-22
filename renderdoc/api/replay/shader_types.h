@@ -766,7 +766,12 @@ struct ShaderReflection
       "A :class:`ShaderDebugInfo` containing any embedded debugging information in this shader.");
   ShaderDebugInfo debugInfo;
 
-  DOCUMENT("A raw ``bytes`` dump of the original shader, encoded in API specific binary form.");
+  DOCUMENT("The :class:`ShaderEncoding` of this shader. See :data:`rawBytes`.");
+  ShaderEncoding encoding;
+
+  DOCUMENT(R"(A raw ``bytes`` dump of the original shader, encoded in the form denoted by
+:data:`encoding`.
+)");
   bytebuf rawBytes;
 
   DOCUMENT("The 3D dimensions of a compute workgroup, for compute shaders.");

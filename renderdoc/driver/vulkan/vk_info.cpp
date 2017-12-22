@@ -151,6 +151,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       if(!spv.spirv.empty())
       {
         const std::vector<uint32_t> &spirv = spv.spirv;
+        reflData.refl.encoding = ShaderEncoding::SPIRV;
         reflData.refl.rawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
       }
     }
@@ -375,6 +376,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       if(!spv.spirv.empty())
       {
         const vector<uint32_t> &spirv = spv.spirv;
+        reflData.refl.encoding = ShaderEncoding::SPIRV;
         reflData.refl.rawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
       }
     }

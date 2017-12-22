@@ -782,6 +782,18 @@ std::string DoStringise(const GraphicsAPI &el)
 }
 
 template <>
+std::string DoStringise(const ShaderEncoding &el)
+{
+  BEGIN_ENUM_STRINGISE(ShaderEncoding)
+  {
+    STRINGISE_ENUM_CLASS(DXBC);
+    STRINGISE_ENUM_CLASS(GLSL);
+    STRINGISE_ENUM_CLASS_NAMED(SPIRV, "SPIR-V");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const SectionType &el)
 {
   BEGIN_ENUM_STRINGISE(SectionType);
