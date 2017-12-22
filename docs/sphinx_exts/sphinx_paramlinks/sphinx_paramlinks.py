@@ -135,7 +135,7 @@ class LinkParams(Transform):
                         pos + 1,
                         nodes.reference(
                             '', '',
-                            nodes.Text(u"¶", u"¶"),
+                            nodes.Text(u"#", u"#"),
                             refid=refid,
                             # paramlink is our own CSS class, headerlink
                             # is theirs.  Trying to get everything we can for
