@@ -171,7 +171,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="../../Resources/resources.qrc">:/logo.svg</pixmap>
+         <pixmap>:/logo.svg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -226,7 +226,7 @@
      <item>
       <widget class="RDLabel" name="updateText">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -234,12 +234,6 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>200</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
          <height>200</height>
         </size>
        </property>
@@ -416,8 +410,6 @@
    <header>Widgets/Extended/RDLabel.h</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../Resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
