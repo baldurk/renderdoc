@@ -59,6 +59,18 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
 
   if(IsReplayingAndReading())
   {
+    // if we've already sync'd, delete the old one
+    if(GetResourceManager()->HasLiveResource(sync))
+    {
+      GLResource res = GetResourceManager()->GetLiveResource(sync);
+      GLsync oldSyncObj = GetResourceManager()->GetSync(res.name);
+
+      m_Real.glDeleteSync(oldSyncObj);
+
+      GetResourceManager()->UnregisterResource(res);
+      GetResourceManager()->EraseLiveResource(sync);
+    }
+
     real = m_Real.glFenceSync(condition, flags);
 
     GLuint name = 0;
