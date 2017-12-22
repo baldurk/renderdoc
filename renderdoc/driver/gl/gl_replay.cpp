@@ -669,7 +669,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
   tex.mips = GetNumMips(gl.m_Real, target, res.resource.name, tex.width, tex.height, tex.depth);
 
-  GLint compressed;
+  GLint compressed = 0;
   gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED,
                                      &compressed);
   tex.byteSize = 0;
@@ -677,7 +677,10 @@ void GLReplay::CacheTexture(ResourceId id)
   {
     for(uint32_t m = 0; m < tex.mips; m++)
     {
-      if(compressed)
+      if(fmt == eGL_NONE)
+      {
+      }
+      else if(compressed)
       {
         tex.byteSize += (uint64_t)GetCompressedByteSize(
             RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m), 1, (GLenum)fmt);
