@@ -61,3 +61,9 @@ PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
 {
   return NULL;
 }
+
+QString SPIRVDisassembler::DisassembleShader(QWidget *window,
+                                             const ShaderReflection *shaderDetails) const
+{
+  return QString();
+}

@@ -48,13 +48,21 @@ struct SPIRVDisassembler
       return args < o.args;
     return false;
   }
-
   DOCUMENT("The human-readable name of the program.");
   rdcstr name;
   DOCUMENT("The path to the executable to run for this program.");
   rdcstr executable;
   DOCUMENT("The command line argmuents to pass to the program.");
   rdcstr args;
+
+  DOCUMENT(R"(Runs this disassembler for a given shader reflection.
+
+:param QWidget window: A handle to the window to use when showing a progress bar or error messages.
+:param ~renderdoc.ShaderReflection shader: The shader to disassemble.
+:return: The disassembly, or an empty string if something went wrong.
+:rtype: ``str``
+)");
+  QString DisassembleShader(QWidget *window, const ShaderReflection *reflection) const;
 };
 
 DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);

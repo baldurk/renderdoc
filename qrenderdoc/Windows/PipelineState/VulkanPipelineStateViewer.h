@@ -107,8 +107,6 @@ private:
   QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);
   const VKPipe::Shader *stageForSender(QWidget *widget);
 
-  QString disassembleSPIRV(const ShaderReflection *shaderDetails);
-
   template <typename viewType>
   void setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex);
 

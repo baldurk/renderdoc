@@ -702,6 +702,9 @@
     <ClCompile Include="Windows\Dialogs\UpdateDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Code\Interface\SPIRVDisassembler.cpp">
+      <Filter>Code\Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">

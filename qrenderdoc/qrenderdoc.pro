@@ -165,6 +165,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/Interface/QRDInterface.cpp \
     Code/Interface/Analytics.cpp \
     Code/Interface/CommonPipelineState.cpp \
+    Code/Interface/SPIRVDisassembler.cpp \
     Code/Interface/PersistantConfig.cpp \
     Code/Interface/RemoteHost.cpp \
     Styles/StyleData.cpp \

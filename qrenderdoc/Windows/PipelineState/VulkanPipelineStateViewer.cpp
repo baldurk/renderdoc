@@ -2343,7 +2343,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
     QString glsl;
 
     if(!m_Ctx.Config().SPIRVDisassemblers.isEmpty())
-      glsl = disassembleSPIRV(shaderDetails);
+      glsl = m_Ctx.Config().SPIRVDisassemblers[0].DisassembleShader(this, shaderDetails);
 
     if(!glsl.isEmpty())
     {
@@ -2366,90 +2366,6 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
   }
 
   m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, files);
-}
-
-QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shaderDetails)
-{
-  QString glsl;
-
-  const SPIRVDisassembler &disasm = m_Ctx.Config().SPIRVDisassemblers[0];
-
-  if(disasm.executable.isEmpty())
-    return QString();
-
-  QString spv_bin_file = QDir(QDir::tempPath()).absoluteFilePath(lit("spv_bin.spv"));
-
-  QFile binHandle(spv_bin_file);
-  if(binHandle.open(QFile::WriteOnly | QIODevice::Truncate))
-  {
-    binHandle.write(
-        QByteArray((const char *)shaderDetails->rawBytes.data(), shaderDetails->rawBytes.count()));
-    binHandle.close();
-  }
-  else
-  {
-    RDDialog::critical(this, tr("Error writing temp file"),
-                       tr("Couldn't write temporary SPIR-V file %1.").arg(spv_bin_file));
-    return QString();
-  }
-
-  if(!QString(disasm.args).contains(lit("{spv_bin}")))
-  {
-    RDDialog::critical(
-        this, tr("Wrongly configured disassembler"),
-        tr("Please use {spv_bin} in the disassembler arguments to specify the input file."));
-    return QString();
-  }
-
-  LambdaThread *thread = new LambdaThread([this, &glsl, &disasm, spv_bin_file]() {
-    QString spv_disas_file = QDir(QDir::tempPath()).absoluteFilePath(lit("spv_disas.txt"));
-
-    QString args = disasm.args;
-
-    bool writesToFile = args.contains(lit("{spv_disas}"));
-
-    args.replace(lit("{spv_bin}"), spv_bin_file);
-    args.replace(lit("{spv_disas}"), spv_disas_file);
-
-    QStringList argList = ParseArgsList(args);
-
-    QProcess process;
-    process.start(disasm.executable, argList);
-    process.waitForFinished();
-
-    if(process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
-    {
-      GUIInvoke::call([this]() {
-        RDDialog::critical(this, tr("Error running disassembler"),
-                           tr("There was an error invoking the external SPIR-V disassembler."));
-      });
-    }
-
-    if(writesToFile)
-    {
-      QFile outputHandle(spv_disas_file);
-      if(outputHandle.open(QFile::ReadOnly | QIODevice::Text))
-      {
-        glsl = QString::fromUtf8(outputHandle.readAll());
-        outputHandle.close();
-      }
-    }
-    else
-    {
-      glsl = QString::fromUtf8(process.readAll());
-    }
-
-    QFile::remove(spv_bin_file);
-    QFile::remove(spv_disas_file);
-  });
-  thread->start();
-
-  ShowProgressDialog(this, tr("Please wait - running external disassembler"),
-                     [thread]() { return !thread->isRunning(); });
-
-  thread->deleteLater();
-
-  return glsl;
 }
 
 void VulkanPipelineStateViewer::shaderSave_clicked()
