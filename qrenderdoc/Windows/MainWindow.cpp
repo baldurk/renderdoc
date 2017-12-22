@@ -51,6 +51,9 @@
 #include "ui_MainWindow.h"
 #include "version.h"
 
+#undef RENDERDOC_OFFICIAL_BUILD
+#define RENDERDOC_OFFICIAL_BUILD 1
+
 #define JSON_ID "rdocLayoutData"
 #define JSON_VER 1
 
@@ -183,22 +186,34 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   m_NetManager = new QNetworkAccessManager(this);
 
+  updateAction = new QAction(this);
+  updateAction->setText(tr("Update Available!"));
+  updateAction->setIcon(Icons::update());
+
+  QObject::connect(updateAction, &QAction::triggered, this, &MainWindow::updateAvailable_triggered);
+
 #if !defined(Q_OS_WIN32)
   // update checks only happen on windows
   {
     QList<QAction *> actions = ui->menu_Help->actions();
-    int idx = actions.indexOf(ui->action_Update_Available);
+    int idx = actions.indexOf(ui->action_Check_for_Updates);
     idx++;
     if(idx < actions.count() && actions[idx]->isSeparator())
       delete actions[idx];
 
-    delete ui->action_Update_Available;
-    ui->action_Update_Available = NULL;
-
     delete ui->action_Check_for_Updates;
     ui->action_Check_for_Updates = NULL;
+
+    delete updateAction;
+    updateAction = NULL;
   }
 #endif
+
+  if(updateAction)
+  {
+    ui->menuBar->addAction(updateAction);
+    updateAction->setVisible(false);
+  }
 
   PopulateRecentCaptureFiles();
   PopulateRecentCaptureSettings();
@@ -1027,7 +1042,7 @@ void MainWindow::PopulateReportedBugs()
 
 void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
 {
-  if(!ui->action_Update_Available)
+  if(!updateAction)
     return;
 
   bool mismatch = HandleMismatchedVersions();
@@ -1036,33 +1051,46 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
 
   if(!forceCheck && !m_Ctx.Config().CheckUpdate_AllowChecks)
   {
-    ui->action_Update_Available->setText(tr("Update checks disabled"));
-    ui->action_Update_Available->setEnabled(false);
+    updateAction->setVisible(false);
     if(callback)
       callback(UpdateResult::Disabled);
     return;
   }
 
 #if RENDERDOC_OFFICIAL_BUILD
+  QDateTime today = QDateTime::currentDateTime();
+
+  // check by default every 2 days
+  QDateTime compare = today.addDays(-2);
+
+  // if there's already an update available, go down to checking every week.
+  if(m_Ctx.Config().CheckUpdate_UpdateAvailable)
+    compare = today.addDays(-7);
+
+  bool checkDue = compare.secsTo(m_Ctx.Config().CheckUpdate_LastUpdate) < 0;
+
   if(m_Ctx.Config().CheckUpdate_UpdateAvailable)
   {
-    if(m_Ctx.Config().CheckUpdate_UpdateResponse.isEmpty())
+    // Mark an update available
+    SetUpdateAvailable();
+
+    // If we don't have a proper update response, or we're overdue for a check, then do it again.
+    // The reason for this is twofold: first, if someone has been delaying their updates for a long
+    // time then there might be a newer update available that we should refresh to, so we should
+    // find out and refresh the update status. The other reason is that when we get a positive
+    // response from the server we force-display the popup which means the user will get reminded
+    // every week or so that an update is pending.
+    if(m_Ctx.Config().CheckUpdate_UpdateResponse.isEmpty() || checkDue)
     {
       forceCheck = true;
     }
-    else if(!forceCheck)
-    {
-      SetUpdateAvailable();
+
+    // If we're not forcing a recheck, we're done.
+    if(!forceCheck)
       return;
-    }
   }
 
-  QDateTime today = QDateTime::currentDateTime();
-  QDateTime compare = today.addDays(-2);
-
-  qint64 diff = compare.secsTo(m_Ctx.Config().CheckUpdate_LastUpdate);
-
-  if(!forceCheck && diff > 0)
+  if(!forceCheck && checkDue)
   {
     if(callback)
       callback(UpdateResult::Toosoon);
@@ -1132,22 +1160,14 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
 
 void MainWindow::SetUpdateAvailable()
 {
-  if(!ui->action_Update_Available)
-    return;
-
-  ui->menu_Help->setIcon(Icons::hourglass());
-  ui->action_Update_Available->setEnabled(true);
-  ui->action_Update_Available->setText(tr("An update is available"));
+  if(updateAction)
+    updateAction->setVisible(true);
 }
 
 void MainWindow::SetNoUpdate()
 {
-  if(!ui->action_Update_Available)
-    return;
-
-  ui->menu_Help->setIcon(QIcon());
-  ui->action_Update_Available->setEnabled(false);
-  ui->action_Update_Available->setText(tr("No update available"));
+  if(updateAction)
+    updateAction->setVisible(false);
 }
 
 void MainWindow::UpdatePopup()
@@ -2215,7 +2235,7 @@ void MainWindow::on_action_Check_for_Updates_triggered()
   });
 }
 
-void MainWindow::on_action_Update_Available_triggered()
+void MainWindow::updateAvailable_triggered()
 {
   bool mismatch = HandleMismatchedVersions();
   if(mismatch)

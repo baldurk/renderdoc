@@ -1753,6 +1753,12 @@
     <Image Include="Resources\zoom%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
+    <Image Include="Resources\update.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\update%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="Resources\glsl.xml">

@@ -76,6 +76,7 @@
   RESOURCE_DEF(time, "time.png")                                        \
   RESOURCE_DEF(timeline_marker, "timeline_marker.png")                  \
   RESOURCE_DEF(upfolder, "upfolder.png")                                \
+  RESOURCE_DEF(update, "update.png")                                    \
   RESOURCE_DEF(wand, "wand.png")                                        \
   RESOURCE_DEF(wireframe_mesh, "wireframe_mesh.png")                    \
   RESOURCE_DEF(wrench, "wrench.png")                                    \

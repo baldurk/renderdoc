@@ -139,11 +139,11 @@ private slots:
   void on_action_Resource_Inspector_triggered();
   void on_action_Send_Error_Report_triggered();
   void on_action_Check_for_Updates_triggered();
-  void on_action_Update_Available_triggered();
 
   // manual slots
   void saveLayout_triggered();
   void loadLayout_triggered();
+  void updateAvailable_triggered();
   void messageCheck();
   void remoteProbe();
   void statusDoubleClicked(QMouseEvent *event);
@@ -188,6 +188,8 @@ private:
   QProgressBar *statusProgress;
   QMenu *contextChooserMenu;
   QToolButton *contextChooser;
+
+  QAction *updateAction = NULL;
 
   QTimer m_MessageTick;
   QSemaphore m_RemoteProbeSemaphore;

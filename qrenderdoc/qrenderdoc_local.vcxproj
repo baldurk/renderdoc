@@ -1813,6 +1813,8 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\time.png" />
     <Image Include="Resources\timeline_marker%402x.png" />
     <Image Include="Resources\timeline_marker.png" />
+    <Image Include="Resources\update%402x.png" />
+    <Image Include="Resources\update.png" />
     <Image Include="Resources\upfolder%402x.png" />
     <Image Include="Resources\upfolder.png" />
     <Image Include="Resources\wand%402x.png" />

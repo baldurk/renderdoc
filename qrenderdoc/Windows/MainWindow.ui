@@ -14,7 +14,7 @@
    <string>QRenderDoc</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../Resources/resources.qrc">
+   <iconset>
     <normaloff>:/logo.svg</normaloff>:/logo.svg</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
@@ -155,7 +155,6 @@
     <addaction name="menu_Reported_Bugs"/>
     <addaction name="separator"/>
     <addaction name="action_Check_for_Updates"/>
-    <addaction name="action_Update_Available"/>
     <addaction name="separator"/>
     <addaction name="action_Source_on_GitHub"/>
     <addaction name="action_Build_Release_Downloads"/>
@@ -254,11 +253,6 @@
     <string>T&amp;imeline</string>
    </property>
   </action>
-  <action name="actionLayout_1">
-   <property name="text">
-    <string>Layout 1</string>
-   </property>
-  </action>
   <action name="action_Save_Default_Layout">
    <property name="text">
     <string>&amp;Default Layout</string>
@@ -287,11 +281,6 @@
   <action name="action_Save_Layout_4">
    <property name="text">
     <string>Layout &amp;4</string>
-   </property>
-  </action>
-  <action name="actionLayout_t">
-   <property name="text">
-    <string>Layout &amp;5</string>
    </property>
   </action>
   <action name="action_Save_Layout_5">
@@ -362,18 +351,6 @@
   <action name="action_Send_Error_Report">
    <property name="text">
     <string>Send &amp;Error Report</string>
-   </property>
-  </action>
-  <action name="action_Update_Available">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="../Resources/resources.qrc">
-     <normaloff>:/hourglass.png</normaloff>:/hourglass.png</iconset>
-   </property>
-   <property name="text">
-    <string>No update available</string>
    </property>
   </action>
   <action name="action_Source_on_GitHub">
@@ -465,8 +442,6 @@
    <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../Resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
