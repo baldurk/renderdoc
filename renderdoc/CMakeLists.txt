@@ -369,7 +369,7 @@ target_include_directories(renderdoc ${RDOC_INCLUDES})
 target_link_libraries(renderdoc ${RDOC_LIBRARIES})
 
 if(UNIX AND NOT ANDROID AND NOT APPLE)
-    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.version")
+    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.version -Wl,--no-undefined")
 endif()
 
 if(ANDROID)
