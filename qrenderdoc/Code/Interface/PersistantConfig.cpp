@@ -275,6 +275,9 @@ bool PersistantConfig::Load(const rdcstr &filename)
 
   for(RemoteHost host : RemoteHostList)
   {
+    if(host.hostname.isEmpty())
+      continue;
+
     RemoteHosts.push_back(new RemoteHost(host));
 
     if(host.IsLocalhost())
