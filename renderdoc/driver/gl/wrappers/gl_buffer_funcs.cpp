@@ -2021,7 +2021,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
           memset(record->GetShadowPtr(1) + offset, 0xcc, length);
         }
 
-        record->Map.ptr = ptr = shadow;
+        record->Map.ptr = ptr = shadow + offset;
         record->Map.status = GLResourceRecord::Mapped_Write;
       }
       else if(IsBackgroundCapturing(m_State))
@@ -2227,7 +2227,7 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
     // update shadow stores for future diff'ing
     if(IsActiveCapturing(m_State) && record->GetShadowPtr(1))
     {
-      memcpy(record->GetShadowPtr(1) + (size_t)diffStart, MapWrittenData,
+      memcpy(record->GetShadowPtr(1) + (size_t)offset + (size_t)diffStart, MapWrittenData,
              size_t(diffEnd - diffStart));
     }
   }
@@ -2408,6 +2408,7 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
   return m_Real.glUnmapBuffer(target);
 }
 
+// offsetPtr here is from the start of the buffer, not the mapped region
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &ser,
                                                                GLuint bufferHandle,
@@ -2428,7 +2429,7 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
   {
     record = GetResourceManager()->GetResourceRecord(buffer);
 
-    FlushedData = record->Map.ptr + offset;
+    FlushedData = record->Map.ptr + offset - record->Map.offset;
 
     // update the comparison buffer in case this buffer is subsequently mapped and we want to find
     // the difference region
@@ -2449,7 +2450,7 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
     // need to account for the offset
 
     memcpy(record->Map.persistentPtr + (size_t)offset,
-           record->Map.ptr - record->Map.offset + (size_t)offset, (size_t)length);
+           record->Map.ptr + (size_t)(offset - record->Map.offset), (size_t)length);
     m_Real.glFlushMappedNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length);
   }
   else if(buffer.name && FlushedData && length > 0)
@@ -2506,28 +2507,28 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
       }
       else if(record->Map.status == GLResourceRecord::Mapped_Write)
       {
-        if(offset < record->Map.offset || offset + length > record->Map.offset + record->Map.length)
+        if(offset < 0 || offset + length > record->Map.length)
         {
           RDCWARN("Flushed buffer range is outside of mapped range, clamping");
 
           // maintain the length/end boundary of the flushed range if the flushed offset
           // is below the mapped range
-          if(offset < record->Map.offset)
+          if(offset < 0)
           {
-            offset += (record->Map.offset - offset);
-            length -= (record->Map.offset - offset);
+            offset = 0;
+            length += offset;
           }
 
           // clamp the length if it's beyond the mapped range.
-          if(offset + length > record->Map.offset + record->Map.length)
+          if(offset + length > record->Map.length)
           {
-            length = (record->Map.offset + record->Map.length - offset);
+            length = (record->Map.length - offset);
           }
         }
 
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-        Serialise_glFlushMappedNamedBufferRangeEXT(ser, buffer, offset, length);
+        Serialise_glFlushMappedNamedBufferRangeEXT(ser, buffer, record->Map.offset + offset, length);
         m_ContextRecord->AddChunk(scope.Get());
       }
       // other statuses is GLResourceRecord::Mapped_Read
@@ -2539,7 +2540,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
     // the real pointer and perform a real flush.
     if(record && record->Map.persistentPtr)
     {
-      memcpy(record->Map.persistentPtr + offset, record->Map.ptr - record->Map.offset + offset,
+      memcpy(record->Map.persistentPtr + record->Map.offset + offset, record->Map.ptr + offset,
              length);
       m_Real.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
 
