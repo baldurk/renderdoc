@@ -436,6 +436,8 @@ GLRenderState::GLRenderState(const GLHookSet *funcs) : m_Real(funcs)
     TransformFeedback[i].res.Namespace = eResBuffer;
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(UniformBinding); i++)
     UniformBinding[i].res.Namespace = eResBuffer;
+  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Images); i++)
+    Images[i].res.Namespace = eResTexture;
 
   ReadFBO.Namespace = DrawFBO.Namespace = eResFramebuffer;
 }
