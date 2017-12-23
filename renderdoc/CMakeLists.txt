@@ -26,6 +26,7 @@ elseif(UNIX)
     list(APPEND RDOC_LIBRARIES
         PRIVATE m
         PRIVATE dl
+        PRIVATE rt
         PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 
     if(ENABLE_XLIB)
