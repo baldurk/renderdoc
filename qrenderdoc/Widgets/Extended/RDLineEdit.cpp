@@ -59,7 +59,8 @@ bool RDLineEdit::event(QEvent *e)
     QKeyEvent *ke = (QKeyEvent *)e;
     if(ke->key() == Qt::Key_Tab)
     {
-      insert(lit("\t"));
+      keyPressEvent(ke);
+      e->accept();
       return true;
     }
   }
