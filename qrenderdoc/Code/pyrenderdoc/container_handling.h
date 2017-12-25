@@ -560,7 +560,7 @@ PyObject *array_getsubscript(arrayType *thisptr, PyObject *idxobj)
 
     PyObject *ret = NULL;
 
-    for(int i = start, count = 0; count < slicelength; i += step, count++)
+    for(Py_ssize_t i = start, count = 0; count < slicelength; i += step, count++)
     {
       ret = ConvertToPy(thisptr->at(i));
 
@@ -613,9 +613,9 @@ int array_setsubscript(arrayType *thisptr, PyObject *idxobj, PyObject *val)
     {
       // we're deleting this slice. Erase all the indices
 
-      for(int i = start, count = 0; count < slicelength; i += step, count++)
+      for(Py_ssize_t i = start, count = 0; count < slicelength; i += step, count++)
       {
-        int idx = i;
+        Py_ssize_t idx = i;
 
         // if we're stepping forwards, erasing the earlier indices will have moved the ones to
         // delete, so adjust the index based on how many we've deleted.
@@ -623,8 +623,8 @@ int array_setsubscript(arrayType *thisptr, PyObject *idxobj, PyObject *val)
         if(step > 1)
           idx -= count;
 
-        ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(idx));
-        thisptr->erase(idx);
+        ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at((size_t)idx));
+        thisptr->erase((size_t)idx);
       }
     }
     else
@@ -646,7 +646,7 @@ int array_setsubscript(arrayType *thisptr, PyObject *idxobj, PyObject *val)
                               "can't assign sequence of different size to extended slice");
         }
 
-        for(int i = start, count = 0; count < slicelength; i += step, count++)
+        for(Py_ssize_t i = start, count = 0; count < slicelength; i += step, count++)
         {
           // dec refcount on previous item in this index
           ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(i));
@@ -663,8 +663,8 @@ int array_setsubscript(arrayType *thisptr, PyObject *idxobj, PyObject *val)
       else
       {
         // the range is contiguous. First erase it, dec refcount if needed
-        for(int i = start; i < start + slicelength; i++)
-          ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(i));
+        for(Py_ssize_t i = start; i < start + slicelength; i++)
+          ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at((size_t)i));
         thisptr->erase(start, slicelength);
 
         // then insert the new items

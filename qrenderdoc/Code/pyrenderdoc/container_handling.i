@@ -211,7 +211,7 @@ int setitem_##unique_name(PyObject *self, Py_ssize_t idx, PyObject *val)
   return array_setitem(thisptr, idx, val);
 }
 
-int length_##unique_name(PyObject *self, Py_ssize_t idx, PyObject *val)
+Py_ssize_t length_##unique_name(PyObject *self, Py_ssize_t idx, PyObject *val)
 {
   array_type *thisptr = array_thisptr<array_type>(self);
 
