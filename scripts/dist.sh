@@ -27,11 +27,11 @@ mkdir -p dist/Release{32,64}
 
 # Copy files from release build in, without copying obj/
 pushd x64/Release
-find * -not -path 'obj*' -exec cp -r --parents '{}' ../../dist/Release64/ \;
+find * -not -path 'obj*' -and -not -path 'pymodules*' -exec cp -r --parents '{}' ../../dist/Release64/ \;
 popd
 
 pushd Win32/Release
-find * -not -path 'obj*' -exec cp -r --parents '{}' ../../dist/Release32/ \;
+find * -not -path 'obj*' -and -not -path 'pymodules*' -exec cp -r --parents '{}' ../../dist/Release32/ \;
 popd
 
 # Copy in d3dcompiler from windows kit 8.1

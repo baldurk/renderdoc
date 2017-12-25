@@ -73,24 +73,15 @@ target_compile_definitions(_qrenderdoc ${MODULE_DEFINES})
 target_include_directories(_qrenderdoc ${MODULE_INCLUDES})
 target_link_libraries(_qrenderdoc ${MODULE_LIBRARIES})
 
-# Don't prefix with lib, python expects a bare .so
+# Don't prefix with lib, python expects a bare .so.
+# Also rename to non-underscore due to this (We couldn't call the
+# python library 'renderdoc' since htat would clash with the
+# prefixed target)
 set_target_properties(_renderdoc PROPERTIES PREFIX "")
 set_target_properties(_qrenderdoc PROPERTIES PREFIX "")
+set_target_properties(_renderdoc PROPERTIES OUTPUT_NAME "renderdoc")
+set_target_properties(_qrenderdoc PROPERTIES OUTPUT_NAME "qrenderdoc")
 
 # Make sure we build after the wrappers are generated
 add_dependencies(_renderdoc swig-bindings)
 add_dependencies(_qrenderdoc swig-bindings)
-
-# Copy in the .py wrappers from qrenderdoc's build
-add_custom_command(
-        TARGET _renderdoc POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/qrenderdoc/renderdoc.py
-                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc.py)
-
-add_custom_command(
-        TARGET _qrenderdoc POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc.py
-                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/qrenderdoc.py)
-

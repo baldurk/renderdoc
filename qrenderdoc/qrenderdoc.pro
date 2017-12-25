@@ -67,10 +67,6 @@ win32 {
 	SWIGSOURCES += Code/pyrenderdoc/renderdoc.i
 	SWIGSOURCES += Code/pyrenderdoc/qrenderdoc.i
 
-	# Embed renderdoc.py and qrenderdoc.py
-	RC_DEFINES = RENDERDOC_PY_PATH=renderdoc.py
-	RC_DEFINES += QRENDERDOC_PY_PATH=qrenderdoc.py
-
 	# Include and link against python
 	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/python/include
 	!contains(QMAKE_TARGET.arch, x86_64) {
