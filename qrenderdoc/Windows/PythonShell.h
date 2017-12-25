@@ -82,6 +82,9 @@ private:
   QString m_storedLines;
 
   PythonContext *newContext();
+  void setGlobals(PythonContext *ret);
+
+  void startAutocomplete();
 
   QString scriptHeader();
   void appendText(QTextEdit *output, const QString &text);

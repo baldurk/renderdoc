@@ -242,6 +242,18 @@ void PythonContext::GlobalInit()
   // import sys
   PyDict_SetItemString(main_dict, "sys", PyImport_ImportModule("sys"));
 
+  PyObject *rlcompleter = PyImport_ImportModule("rlcompleter");
+
+  if(rlcompleter)
+  {
+    PyDict_SetItemString(main_dict, "rlcompleter", rlcompleter);
+  }
+  else
+  {
+    // ignore a failed import
+    PyErr_Clear();
+  }
+
   // sysobj = sys
   PyObject *sysobj = PyDict_GetItemString(main_dict, "sys");
 
@@ -329,6 +341,8 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   // clone our own local context
   context_namespace = PyDict_Copy(main_dict);
 
+  PyObject *rlcompleter = PyDict_GetItemString(main_dict, "rlcompleter");
+
   // for compatibility with earlier versions of python that took a char * instead of const char *
   char noparams[1] = "";
 
@@ -342,6 +356,40 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->context = this;
     Py_DECREF(redirector);
+  }
+
+  if(rlcompleter)
+  {
+    PyObject *Completer = PyObject_GetAttrString(rlcompleter, "Completer");
+
+    if(Completer)
+    {
+      // create a completer for our context's namespace
+      m_Completer = PyObject_CallFunction(Completer, "O", context_namespace);
+
+      if(m_Completer)
+      {
+        PyDict_SetItemString(context_namespace, "_renderdoc_completer", m_Completer);
+      }
+      else
+      {
+        QString typeStr;
+        QString valueStr;
+        int finalLine = -1;
+        QList<QString> frames;
+        FetchException(typeStr, valueStr, finalLine, frames);
+
+        // failure is not fatal
+        qWarning() << "Couldn't create completion object. " << typeStr << ": " << valueStr;
+        PyErr_Clear();
+      }
+    }
+
+    Py_DecRef(Completer);
+  }
+  else
+  {
+    m_Completer = NULL;
   }
 
   // release the GIL again
@@ -358,6 +406,11 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
 
 PythonContext::~PythonContext()
 {
+  PyGILState_STATE gil = PyGILState_Ensure();
+  if(m_Completer)
+    Py_DecRef(m_Completer);
+  PyGILState_Release(gil);
+
   // do a final tick to gather any remaining output
   outputTick();
 }
@@ -575,6 +628,77 @@ QWidget *PythonContext::QWidgetFromPy(PyObject *widget)
 #else
   return UnwrapBareQWidget(widget);
 #endif
+}
+
+QStringList PythonContext::completionOptions(QString base)
+{
+  QStringList ret;
+
+  if(!m_Completer)
+    return ret;
+
+  QByteArray bytes = base.toUtf8();
+  const char *input = (const char *)bytes.data();
+
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  PyObject *completeFunction = PyObject_GetAttrString(m_Completer, "complete");
+
+  int idx = 0;
+  PyObject *opt = NULL;
+  do
+  {
+    opt = PyObject_CallFunction(completeFunction, "si", input, idx);
+
+    if(opt && opt != Py_None)
+    {
+      QString optstr = ToQStr(opt);
+
+      bool add = true;
+
+      // little hack, remove some of the ugly swig template instantiations that we can't avoid.
+      if(optstr.contains(lit("renderdoc.rdcarray")) || optstr.contains(lit("renderdoc.rdcstr")) ||
+         optstr.contains(lit("renderdoc.bytebuf")))
+        add = false;
+
+      if(add)
+        ret << optstr;
+    }
+
+    idx++;
+  } while(opt && opt != Py_None);
+
+  // extra hack, remove the swig object functions/data but ONLY if we find a sure-fire identifier
+  // (thisown) since otherwise we could remove append from a list object
+  bool containsSwigInternals = false;
+  for(const QString &optstr : ret)
+  {
+    if(optstr.contains(lit(".thisown")))
+    {
+      containsSwigInternals = true;
+      break;
+    }
+  }
+
+  if(containsSwigInternals)
+  {
+    for(int i = 0; i < ret.count();)
+    {
+      if(ret[i].endsWith(lit(".acquire(")) || ret[i].endsWith(lit(".append(")) ||
+         ret[i].endsWith(lit(".disown(")) || ret[i].endsWith(lit(".next(")) ||
+         ret[i].endsWith(lit(".own(")) || ret[i].endsWith(lit(".this")) ||
+         ret[i].endsWith(lit(".thisown")))
+        ret.removeAt(i);
+      else
+        i++;
+    }
+  }
+
+  Py_DecRef(completeFunction);
+
+  PyGILState_Release(gil);
+
+  return ret;
 }
 
 PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)

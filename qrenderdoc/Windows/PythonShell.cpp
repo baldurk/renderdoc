@@ -458,6 +458,8 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   scriptEditor->markerDefine(CURRENT_MARKER, SC_MARK_SHORTARROW);
   scriptEditor->markerDefine(CURRENT_MARKER + 1, SC_MARK_BACKGROUND);
 
+  scriptEditor->autoCSetMaxHeight(10);
+
   ConfigureSyntax(scriptEditor, SCLEX_PYTHON);
 
   scriptEditor->setTabWidth(4);
@@ -473,6 +475,20 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
     {
       scriptEditor->markerDeleteAll(CURRENT_MARKER);
       scriptEditor->markerDeleteAll(CURRENT_MARKER + 1);
+    }
+  });
+
+  QObject::connect(scriptEditor, &ScintillaEdit::charAdded, [this](int ch) {
+    if(ch == '.')
+    {
+      startAutocomplete();
+    }
+  });
+
+  QObject::connect(scriptEditor, &ScintillaEdit::keyPressed, [this](QKeyEvent *ev) {
+    if(ev->key() == Qt::Key_Space && ev->modifiers() && Qt::ControlModifier)
+    {
+      startAutocomplete();
     }
   });
 
@@ -693,6 +709,79 @@ void PythonShell::textOutput(bool isStdError, const QString &output)
 
 void PythonShell::interactive_keypress(QKeyEvent *event)
 {
+  if(event->key() == Qt::Key_Tab)
+  {
+    QString base = ui->lineInput->text();
+    if(!base.isEmpty() && !base.rbegin()->isSpace())
+    {
+      // search backwards from the end for the first non dotted identifier first, and extract that
+      // substring. This is just ASCII, not unicode
+      for(int i = base.count() - 1; i >= 0; i--)
+      {
+        if(!base[i].isLetterOrNumber() && base[i] != QLatin1Char('.') && base[i] != QLatin1Char('_'))
+        {
+          base = base.right(base.count() - 1 - i);
+          break;
+        }
+      }
+
+      // skip any initial digits that got included in the coarse search above
+      while(!base.isEmpty() && base[0].isDigit())
+        base.remove(0, 1);
+
+      QStringList options = interactiveContext->completionOptions(base);
+
+      QString line = ui->lineInput->text();
+
+      if(!options.isEmpty())
+      {
+        QString commonSubstring = options[0];
+
+        for(int i = 1; i < options.count(); i++)
+        {
+          const QString &opt = options[i];
+          if(opt.count() < commonSubstring.count())
+            commonSubstring.truncate(opt.count());
+
+          for(int j = 0; j < commonSubstring.count(); j++)
+          {
+            if(commonSubstring[j] != opt[j])
+            {
+              commonSubstring.truncate(j);
+              break;
+            }
+          }
+        }
+
+        if(commonSubstring.length() > base.length())
+        {
+          line.chop(base.length());
+          line += commonSubstring;
+          ui->lineInput->setText(line);
+        }
+
+        if(options.count() > 1)
+        {
+          QString text;
+          text += line;
+          text += lit("\n");
+          for(const QString &opt : options)
+          {
+            text += opt;
+            text += lit("\n");
+          }
+          text += m_storedLines.isEmpty() ? lit(">> ") : lit(".. ");
+          appendText(ui->interactiveOutput, text);
+        }
+      }
+
+      return;
+    }
+
+    ui->lineInput->insert(lit("\t"));
+    return;
+  }
+
   if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
     on_execute_clicked();
 
@@ -756,6 +845,65 @@ void PythonShell::enableButtons(bool enable)
   ui->abortRun->setEnabled(!enable);
 }
 
+void PythonShell::startAutocomplete()
+{
+  sptr_t pos = scriptEditor->currentPos();
+  sptr_t line = scriptEditor->lineFromPosition(pos);
+  sptr_t lineStart = scriptEditor->positionFromLine(line);
+  QByteArray lineText = scriptEditor->getLine(line);
+
+  sptr_t end = pos - lineStart - 1;
+  sptr_t start;
+  for(start = end; start >= 0; start--)
+  {
+    if(QChar::fromLatin1(lineText[start]).isLetterOrNumber() || lineText[start] == '.' ||
+       lineText[start] == '_')
+      continue;
+
+    start++;
+    break;
+  }
+
+  QString comp = QString::fromUtf8(lineText.mid(start, end - start + 1));
+
+  PythonContext *context = new PythonContext();
+
+  setGlobals(context);
+
+  // super hack. Try to import any modules to get completion suggestions from them.
+  // we only process imports with no indentation since they should be unconditional. We ignore
+  // imports that fail.
+  QByteArray text = scriptEditor->getText(pos + 1);
+
+  for(int offs = 0; offs < text.length();)
+  {
+    // find the next newline (may be NULL if we're at the end)
+    int newline = text.indexOf('\n', offs);
+
+    // execute the import if there is one
+    const char *c = text.data() + offs;
+    if(!strncmp(c, "import ", 7))
+    {
+      context->executeString(newline >= 0 ? QString::fromUtf8(c, newline - offs + 1)
+                                          : QString::fromUtf8(c));
+    }
+
+    if(newline < 0)
+      break;
+
+    // move to the next line
+    offs = newline + 1;
+  }
+
+  QStringList completions = context->completionOptions(comp);
+
+  context->Finish();
+
+  qDebug() << "auto complete from" << comp;
+
+  scriptEditor->autoCShow(comp.count(), completions.join(QLatin1Char(' ')).toUtf8().data());
+}
+
 PythonContext *PythonShell::newContext()
 {
   PythonContext *ret = new PythonContext();
@@ -764,7 +912,12 @@ PythonContext *PythonShell::newContext()
   QObject::connect(ret, &PythonContext::exception, this, &PythonShell::exception);
   QObject::connect(ret, &PythonContext::textOutput, this, &PythonShell::textOutput);
 
-  ret->setGlobal("pyrenderdoc", (ICaptureContext *)m_ThreadCtx);
+  setGlobals(ret);
 
   return ret;
+}
+
+void PythonShell::setGlobals(PythonContext *ret)
+{
+  ret->setGlobal("pyrenderdoc", (ICaptureContext *)m_ThreadCtx);
 }

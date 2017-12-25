@@ -87,6 +87,8 @@ public:
   static PyObject *QWidgetToPy(QWidget *widget) { return QtObjectToPython("QWidget", widget); }
   static QWidget *QWidgetFromPy(PyObject *widget);
 
+  QStringList completionOptions(QString base);
+
   void setThreadBlocking(bool block) { m_Block = block; }
   bool threadBlocking() { return m_Block; }
   void abort() { m_Abort = true; }
@@ -115,6 +117,9 @@ private:
   // this is local to this context, containing a dict copied from a pristine __main__ that any
   // globals are set into and any scripts execute in
   PyObject *context_namespace = NULL;
+
+  // a rlcompleter.Completer object used for tab-completion
+  PyObject *m_Completer = NULL;
 
   // this is set during an execute, so we can identify when a callback happens within our execute or
   // not
