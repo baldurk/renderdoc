@@ -61,9 +61,11 @@ private slots:
 
   // manual slots
   void interactive_keypress(QKeyEvent *e);
+  void helpSearch_keypress(QKeyEvent *e);
   void traceLine(const QString &file, int line);
   void exception(const QString &type, const QString &value, int finalLine, QList<QString> frames);
   void textOutput(bool isStdError, const QString &output);
+  void editor_contextMenu(const QPoint &pos);
 
 private:
   Ui::PythonShell *ui;
@@ -81,10 +83,15 @@ private:
 
   QString m_storedLines;
 
+  QString getDottedWordAtPoint(int scintillaPos);
+
   PythonContext *newContext();
+  PythonContext *newImportedDummyContext();
   void setGlobals(PythonContext *ret);
 
   void startAutocomplete();
+  void selectedHelp(QString word);
+  void refreshCurrentHelp();
 
   QString scriptHeader();
   void appendText(QTextEdit *output, const QString &text);

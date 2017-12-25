@@ -25,6 +25,7 @@
 #include "PythonShell.h"
 #include <QFontDatabase>
 #include <QKeyEvent>
+#include <QMenu>
 #include <QScrollBar>
 #include "3rdparty/scintilla/include/SciLexer.h"
 #include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
@@ -435,10 +436,12 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   m_ThreadCtx = new CaptureContextInvoker(m_Ctx);
 
   QObject::connect(ui->lineInput, &RDLineEdit::keyPress, this, &PythonShell::interactive_keypress);
+  QObject::connect(ui->helpSearch, &RDLineEdit::keyPress, this, &PythonShell::helpSearch_keypress);
 
   ui->lineInput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->interactiveOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->scriptOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->helpText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
   ui->lineInput->setAcceptTabCharacters(true);
 
@@ -459,6 +462,12 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   scriptEditor->markerDefine(CURRENT_MARKER + 1, SC_MARK_BACKGROUND);
 
   scriptEditor->autoCSetMaxHeight(10);
+
+  scriptEditor->usePopUp(SC_POPUP_NEVER);
+
+  scriptEditor->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(scriptEditor, &ScintillaEdit::customContextMenuRequested, this,
+                   &PythonShell::editor_contextMenu);
 
   ConfigureSyntax(scriptEditor, SCLEX_PYTHON);
 
@@ -489,6 +498,17 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
     if(ev->key() == Qt::Key_Space && ev->modifiers() && Qt::ControlModifier)
     {
       startAutocomplete();
+    }
+
+    if(ev->key() == Qt::Key_F1)
+    {
+      QString curWord = getDottedWordAtPoint(scriptEditor->currentPos());
+
+      if(!curWord.isEmpty())
+      {
+        ui->helpSearch->setText(curWord);
+        refreshCurrentHelp();
+      }
     }
   });
 
@@ -633,6 +653,8 @@ void PythonShell::on_runScript_clicked()
 
   ANALYTIC_SET(UIFeatures.PythonInterop, true);
 
+  ui->outputHelpTabs->setCurrentIndex(0);
+
   ui->scriptOutput->clear();
 
   QString script = QString::fromUtf8(scriptEditor->getText(scriptEditor->textLength() + 1));
@@ -705,6 +727,139 @@ void PythonShell::textOutput(bool isStdError, const QString &output)
     out = ui->interactiveOutput;
 
   appendText(out, output);
+}
+
+void PythonShell::editor_contextMenu(const QPoint &pos)
+{
+  int scintillaPos = scriptEditor->positionFromPoint(pos.x(), pos.y());
+
+  QMenu contextMenu(this);
+
+  QString curWord = getDottedWordAtPoint(scintillaPos);
+
+  bool valid = !curWord.isEmpty();
+
+  QAction help(valid ? tr("Help for '%1'").arg(curWord) : tr("Help"), this);
+
+  QObject::connect(&help, &QAction::triggered, [this, curWord] { selectedHelp(curWord); });
+
+  help.setEnabled(valid);
+
+  contextMenu.addAction(&help);
+  contextMenu.addSeparator();
+
+  QAction undo(tr("Undo"), this);
+  QAction redo(tr("Redo"), this);
+
+  QObject::connect(&undo, &QAction::triggered, [this] { scriptEditor->undo(); });
+  QObject::connect(&redo, &QAction::triggered, [this] { scriptEditor->redo(); });
+
+  undo.setEnabled(scriptEditor->canUndo());
+  redo.setEnabled(scriptEditor->canRedo());
+
+  contextMenu.addAction(&undo);
+  contextMenu.addAction(&redo);
+  contextMenu.addSeparator();
+
+  QAction cutText(tr("Cut"), this);
+  QAction copyText(tr("Copy"), this);
+  QAction pasteText(tr("Paste"), this);
+  QAction deleteText(tr("Delete"), this);
+
+  QObject::connect(&cutText, &QAction::triggered, [this] { scriptEditor->cut(); });
+
+  QObject::connect(&copyText, &QAction::triggered, [this] {
+    scriptEditor->copyRange(scriptEditor->selectionStart(), scriptEditor->selectionEnd());
+  });
+
+  QObject::connect(&pasteText, &QAction::triggered, [this] { scriptEditor->paste(); });
+
+  QObject::connect(&deleteText, &QAction::triggered, [this] {
+    scriptEditor->deleteRange(scriptEditor->selectionStart(), scriptEditor->selectionEnd());
+  });
+
+  contextMenu.addAction(&cutText);
+  contextMenu.addAction(&copyText);
+  contextMenu.addAction(&pasteText);
+  contextMenu.addAction(&deleteText);
+  contextMenu.addSeparator();
+
+  if(scriptEditor->selectionEmpty())
+  {
+    cutText.setEnabled(false);
+    copyText.setEnabled(false);
+    deleteText.setEnabled(false);
+  }
+
+  pasteText.setEnabled(scriptEditor->canPaste());
+
+  QAction selectAll(tr("Select All"), this);
+  QObject::connect(&selectAll, &QAction::triggered, [this] { scriptEditor->selectAll(); });
+  contextMenu.addAction(&selectAll);
+
+  RDDialog::show(&contextMenu, scriptEditor->viewport()->mapToGlobal(pos));
+}
+
+QString PythonShell::getDottedWordAtPoint(int scintillaPos)
+{
+  QByteArray wordChars = scriptEditor->wordChars();
+
+  QByteArray wordCharsAndDot = wordChars;
+  if(wordCharsAndDot.indexOf('.') < 0)
+    wordCharsAndDot.append('.');
+
+  scriptEditor->setWordChars(wordCharsAndDot.data());
+
+  sptr_t start = scriptEditor->wordStartPosition(scintillaPos, true);
+  sptr_t end = scriptEditor->wordEndPosition(scintillaPos, true);
+
+  scriptEditor->setWordChars(wordChars.data());
+
+  QString curWord = QString::fromUtf8(scriptEditor->textRange(start, end));
+
+  bool valid = true;
+
+  if(curWord.isEmpty() || (!curWord[0].isLetterOrNumber() && curWord[0] != QLatin1Char('_')))
+    valid = false;
+
+  for(QChar c : curWord)
+  {
+    if(!c.isLetterOrNumber() && c != QLatin1Char('_') && c != QLatin1Char('.'))
+      valid = false;
+  }
+
+  return valid ? curWord : QString();
+}
+
+void PythonShell::selectedHelp(QString word)
+{
+  ui->helpSearch->setText(word);
+
+  refreshCurrentHelp();
+}
+
+void PythonShell::refreshCurrentHelp()
+{
+  PythonContext *context = newImportedDummyContext();
+
+  ui->helpText->clear();
+
+  QObject::connect(
+      context, &PythonContext::textOutput,
+      [this](bool isStdError, const QString &output) { appendText(ui->helpText, output); });
+
+  context->executeString(lit(R"(
+try:
+  import keyword
+  if keyword.iskeyword("%1"):
+    help("%1")
+  else:
+    help(%1)
+except ImportError:
+  help(%1)
+)").arg(ui->helpSearch->text()));
+
+  context->Finish();
 }
 
 void PythonShell::interactive_keypress(QKeyEvent *event)
@@ -817,6 +972,12 @@ void PythonShell::interactive_keypress(QKeyEvent *event)
   }
 }
 
+void PythonShell::helpSearch_keypress(QKeyEvent *e)
+{
+  if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+    refreshCurrentHelp();
+}
+
 QString PythonShell::scriptHeader()
 {
   return tr(R"(RenderDoc Python console, powered by python %1.
@@ -866,6 +1027,19 @@ void PythonShell::startAutocomplete()
 
   QString comp = QString::fromUtf8(lineText.mid(start, end - start + 1));
 
+  PythonContext *context = newImportedDummyContext();
+
+  QStringList completions = context->completionOptions(comp);
+
+  context->Finish();
+
+  scriptEditor->autoCShow(comp.count(), completions.join(QLatin1Char(' ')).toUtf8().data());
+}
+
+PythonContext *PythonShell::newImportedDummyContext()
+{
+  sptr_t pos = scriptEditor->currentPos();
+
   PythonContext *context = new PythonContext();
 
   setGlobals(context);
@@ -895,13 +1069,7 @@ void PythonShell::startAutocomplete()
     offs = newline + 1;
   }
 
-  QStringList completions = context->completionOptions(comp);
-
-  context->Finish();
-
-  qDebug() << "auto complete from" << comp;
-
-  scriptEditor->autoCShow(comp.count(), completions.join(QLatin1Char(' ')).toUtf8().data());
+  return context;
 }
 
 PythonContext *PythonShell::newContext()
