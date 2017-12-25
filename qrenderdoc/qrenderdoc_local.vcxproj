@@ -657,9 +657,11 @@
     <ClCompile Include="$(IntDir)generated\qrc_qtconf.cpp" />
     <ClCompile Include="$(IntDir)generated\renderdoc_python.cxx">
       <DisableSpecificWarnings>4101;4456;4459;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DebugInformationFormat Condition="'$(Configuration)'=='Release'">None</DebugInformationFormat>
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\qrenderdoc_python.cxx">
       <DisableSpecificWarnings>4101;4456;4459;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DebugInformationFormat Condition="'$(Configuration)'=='Release'">None</DebugInformationFormat>
     </ClCompile>
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp" />
     <ClCompile Include="Widgets\FindReplace.cpp" />

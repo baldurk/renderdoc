@@ -123,6 +123,7 @@
     </CustomBuild>
     <ClCompile Include="$(IntDir)generated\qrenderdoc_module_python.cxx">
       <DisableSpecificWarnings>4127;4189;4456;4459;4701;4244;4706;4101;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DebugInformationFormat Condition="'$(Configuration)'=='Release'">None</DebugInformationFormat>
     </ClCompile>
     <CustomBuild Include="renderdoc.i">
       <FileType>Document</FileType>
@@ -134,6 +135,7 @@
     </CustomBuild>
     <ClCompile Include="$(IntDir)generated\renderdoc_module_python.cxx">
       <DisableSpecificWarnings>4127;4189;4456;4459;4701;4244;4706;4101;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DebugInformationFormat Condition="'$(Configuration)'=='Release'">None</DebugInformationFormat>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
