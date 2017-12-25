@@ -1017,8 +1017,8 @@ void PythonShell::startAutocomplete()
   sptr_t start;
   for(start = end; start >= 0; start--)
   {
-    if(QChar::fromLatin1(lineText[start]).isLetterOrNumber() || lineText[start] == '.' ||
-       lineText[start] == '_')
+    char c = lineText[(int)start];
+    if(QChar::fromLatin1(c).isLetterOrNumber() || c == '.' || c == '_')
       continue;
 
     start++;
