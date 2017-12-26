@@ -1,11 +1,9 @@
 #pragma once
 
-// take care before adding any more headers here, as they must be converted to python types. Any
-// types in the RenderDoc core interface are already wrapped, and Qt types must either be manually
-// converted directly to python, or interfaced with PySide, otherwise we get into the situation
-// where pyside and SWIG have independent incompatible wrappers of Qt types
-#include <QDateTime>
-
+// don't add any Qt headers visible to SWIG, as we don't want a Qt dependency for the SWIG-generated
+// qrenderdoc module. Instead we should use public RDC types for any public QRenderDoc headers, and
+// define conversions to/from Qt types. See rdcstr / QString, rdcpair / QPair, and
+// rdcdatetime / QDateTime.
 #include <functional>
 
 // For string literals - use either tr() for translated strings, lit() for untranslated strings, or
@@ -35,7 +33,7 @@ class QWidget;
 // we only support QVariant as an 'internal' interface, it's not exposed to python. However we need
 // to use it in constructors/operators so conditionally compile it rather than split small structs
 // into interface/implementations
-#if defined(SWIG)
+#if defined(SWIG) || defined(SWIG_GENERATED)
 
 #define VARIANT_CAST(classname)
 
@@ -52,6 +50,7 @@ class QWidget;
 // is not exposed to swig
 #define RENDERDOC_QT_COMPAT
 #include <QColor>
+#include <QDateTime>
 #include <QList>
 #include <QString>
 #include <QVector>

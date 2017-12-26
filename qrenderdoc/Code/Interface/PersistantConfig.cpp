@@ -179,6 +179,23 @@ void PersistantConfig::applyValues(const QVariantMap &values)
   RENAMED_SETTING(QDateTime, DegradedLog_LastUpdate, DegradedCapture_LastUpdate);
 }
 
+int PersistantConfig::RemoteHostCount()
+{
+  return RemoteHosts.count();
+}
+
+RemoteHost *PersistantConfig::GetRemoteHost(int index)
+{
+  if(index < 0 || index >= RemoteHostCount())
+    return NULL;
+  return RemoteHosts[index];
+}
+
+void PersistantConfig::AddRemoteHost(RemoteHost host)
+{
+  RemoteHosts.push_back(new RemoteHost(host));
+}
+
 void PersistantConfig::AddAndroidHosts()
 {
   QMap<rdcstr, RemoteHost *> oldHosts;
@@ -400,6 +417,11 @@ BugReport::BugReport(const QVariant &var)
     checkDate = map[lit("checkDate")].toDateTime();
   if(map.contains(lit("unreadUpdates")))
     unreadUpdates = map[lit("unreadUpdates")].toBool();
+}
+
+rdcstr BugReport::URL() const
+{
+  return lit(BUGREPORT_URL "/report/%1").arg(QString(reportId));
 }
 
 BugReport::operator QVariant() const

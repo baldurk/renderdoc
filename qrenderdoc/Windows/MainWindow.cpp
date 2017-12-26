@@ -229,7 +229,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     for(const BugReport &b : bugs)
     {
       // check bugs every two days
-      qint64 diff = b.checkDate.secsTo(now);
+      qint64 diff = QDateTime(b.checkDate).secsTo(now);
       if(diff > 2 * 24 * 60 * 60)
       {
         // update the check date on the stored bug
@@ -1001,8 +1001,8 @@ void MainWindow::PopulateReportedBugs()
     if(bug.unreadUpdates)
       fmt = tr("&%1: (Update) Bug reported at %2");
 
-    QAction *action =
-        ui->menu_Reported_Bugs->addAction(fmt.arg(idx).arg(bug.submitDate.toString()), [this, i] {
+    QAction *action = ui->menu_Reported_Bugs->addAction(
+        fmt.arg(idx).arg(QDateTime(bug.submitDate).toString()), [this, i] {
           BugReport &bug = m_Ctx.Config().CrashReport_ReportedBugs[i];
 
           QDesktopServices::openUrl(QString(bug.URL()));

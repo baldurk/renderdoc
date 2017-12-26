@@ -62,7 +62,7 @@ struct SPIRVDisassembler
 :return: The disassembly, or an empty string if something went wrong.
 :rtype: ``str``
 )");
-  QString DisassembleShader(QWidget *window, const ShaderReflection *reflection) const;
+  rdcstr DisassembleShader(QWidget *window, const ShaderReflection *reflection) const;
 };
 
 DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
@@ -95,9 +95,9 @@ struct BugReport
   DOCUMENT("The private ID of the bug report.");
   rdcstr reportId;
   DOCUMENT("The original date when this bug was submitted.");
-  QDateTime submitDate;
+  rdcdatetime submitDate;
   DOCUMENT("The last date that we checked for updates.");
-  QDateTime checkDate;
+  rdcdatetime checkDate;
   DOCUMENT("Unread updates to the bug exist");
   bool unreadUpdates = false;
 
@@ -106,7 +106,7 @@ struct BugReport
 :return: The URL to the report.
 :rtype: ``str``
 )");
-  rdcstr URL() const { return lit(BUGREPORT_URL "/report/%1").arg(QString(reportId)); }
+  rdcstr URL() const;
 };
 
 DECLARE_REFLECTION_STRUCT(BugReport);
@@ -188,11 +188,11 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_UpdateResponse, "")              \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QDateTime, QDateTime, CheckUpdate_LastUpdate,                 \
-                     QDateTime(QDate(2012, 06, 27), QTime(0, 0, 0)))                       \
+  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, CheckUpdate_LastUpdate,               \
+                     rdcdatetime(2012, 06, 27))                                            \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QDateTime, QDateTime, DegradedCapture_LastUpdate,             \
-                     QDateTime(QDate(2015, 01, 01), QTime(0, 0, 0)))                       \
+  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, DegradedCapture_LastUpdate,           \
+                     rdcdatetime(2015, 01, 01))                                            \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Tips_HasSeenFirst, false)                         \
                                                                                            \
@@ -570,25 +570,20 @@ public:
 :return: The number of remote hosts.
 :rtype: ``int``
 )");
-  int RemoteHostCount() { return RemoteHosts.count(); }
+  int RemoteHostCount();
   DOCUMENT(R"(Returns a given remote host at an index.
 
 :param int index: The index of the remote host to retrieve
 :return: The remote host specified, or ``None`` if an invalid index was passed
 :rtype: ``RemoteHost``
 )");
-  RemoteHost *GetRemoteHost(int index)
-  {
-    if(index < 0 || index >= RemoteHostCount())
-      return NULL;
-    return RemoteHosts[index];
-  }
+  RemoteHost *GetRemoteHost(int index);
 
   DOCUMENT(R"(Adds a new remote host.
 
 :param RemoteHost host: The remote host to add.
 R)");
-  void AddRemoteHost(RemoteHost host) { RemoteHosts.push_back(new RemoteHost(host)); }
+  void AddRemoteHost(RemoteHost host);
   DOCUMENT("If configured, queries ``adb`` to add android hosts to :data:`RemoteHosts`.");
   void AddAndroidHosts();
 
@@ -657,8 +652,11 @@ sure the new style is applied, the application should be restarted.
 private:
   bool Deserialize(const rdcstr &filename);
   bool Serialize(const rdcstr &filename);
+
+#if !defined(SWIG_GENERATED)
   QVariantMap storeValues() const;
   void applyValues(const QVariantMap &values);
+#endif
 
   rdcstr m_Filename;
 };

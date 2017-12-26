@@ -51,12 +51,20 @@
 %rename("%(regex:/^VKPipe::(.*)/VK\\1/)s", regextarget=1, fullname=1, %$isclass) "VKPipe::.*";
 
 %begin %{
+  #undef slots
+%}
 
-#undef slots
-
+%{
+  #include "datetime.h"
+%}
+%init %{
+  PyDateTime_IMPORT;
 %}
 
 %include "pyconversion.i"
+
+// completely ignore rdcdatetime, we custom convert to/from a native python datetime
+%ignore rdcdatetime;
 
 // ignore some operators SWIG doesn't have to worry about
 %ignore SDType::operator=;
@@ -120,6 +128,7 @@
 }
 
 SIMPLE_TYPEMAPS(rdcstr)
+SIMPLE_TYPEMAPS(rdcdatetime)
 SIMPLE_TYPEMAPS(bytebuf)
 
 FIXED_ARRAY_TYPEMAPS(ResourceId)

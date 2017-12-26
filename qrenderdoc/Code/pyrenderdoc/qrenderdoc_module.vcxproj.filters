@@ -2,23 +2,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <CustomBuild Include="qrenderdoc.i" />
+    <CustomBuild Include="renderdoc.i" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(IntDir)generated\qrenderdoc_python.cxx" />
     <ClCompile Include="pyrenderdoc_stub.cpp" />
     <ClCompile Include="qrenderdoc_stub.cpp" />
-    <ClCompile Include="..\Interface\CommonPipelineState.cpp">
-      <Filter>Interface</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Interface\PersistantConfig.cpp">
-      <Filter>Interface</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Interface\QRDInterface.cpp">
-      <Filter>Interface</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Interface\RemoteHost.cpp">
-      <Filter>Interface</Filter>
-    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\qrenderdoc_module_python.cxx" />
+    <ClCompile Include="$(IntDir)generated\renderdoc_module_python.cxx" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">

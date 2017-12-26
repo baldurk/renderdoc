@@ -917,3 +917,13 @@ extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
   if(redirector && redirector->context)
     return redirector->context->setThreadBlocking(block);
 }
+
+extern "C" QWidget *QWidgetFromPy(PyObject *widget)
+{
+  return PythonContext::QWidgetFromPy(widget);
+}
+
+extern "C" PyObject *QWidgetToPy(QWidget *widget)
+{
+  return PythonContext::QWidgetToPy(widget);
+}

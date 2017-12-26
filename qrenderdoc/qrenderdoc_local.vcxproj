@@ -894,7 +894,6 @@
     <ClInclude Include="Code\pyrenderdoc\interface_check.h" />
     <ClInclude Include="Code\pyrenderdoc\ext_refcounts.h" />
     <ClInclude Include="Code\pyrenderdoc\function_conversion.h" />
-    <ClInclude Include="Code\pyrenderdoc\qt_conversion.h" />
     <ClInclude Include="Code\pyrenderdoc\structured_conversion.h" />
     <ClInclude Include="Code\Resources.h" />
     <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h" />

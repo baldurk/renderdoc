@@ -75,15 +75,15 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/wd4100 /wd4512 /wd4127</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay;..\..\3rdparty\qt\$(Platform)\include;..\..\3rdparty\qt\$(Platform)\include\QtWidgets;..\..\3rdparty\qt\$(Platform)\include\QtGui;..\..\3rdparty\qt\$(Platform)\include\QtCore</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4714;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-      <AdditionalLibraryDirectories>..\..\3rdparty\python\$(Platform);..\..\3rdparty\qt\$(Platform)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>python36.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\3rdparty\python\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>python36.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -107,10 +107,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Interface\CommonPipelineState.cpp" />
-    <ClCompile Include="..\Interface\PersistantConfig.cpp" />
-    <ClCompile Include="..\Interface\QRDInterface.cpp" />
-    <ClCompile Include="..\Interface\RemoteHost.cpp" />
     <ClCompile Include="pyrenderdoc_stub.cpp" />
     <ClCompile Include="qrenderdoc_stub.cpp" />
     <CustomBuild Include="qrenderdoc.i">

@@ -27,11 +27,10 @@
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
-QString SPIRVDisassembler::DisassembleShader(QWidget *window,
-                                             const ShaderReflection *shaderDetails) const
+rdcstr SPIRVDisassembler::DisassembleShader(QWidget *window, const ShaderReflection *shaderDetails) const
 {
   if(executable.isEmpty())
-    return QString();
+    return "";
 
   QString spv_bin_file = QDir(QDir::tempPath()).absoluteFilePath(lit("spv_bin.spv"));
 
@@ -48,7 +47,7 @@ QString SPIRVDisassembler::DisassembleShader(QWidget *window,
         window, QApplication::translate("SPIRVDisassembler", "Error writing temp file"),
         QApplication::translate("SPIRVDisassembler", "Couldn't write temporary SPIR-V file %1.")
             .arg(spv_bin_file));
-    return QString();
+    return "";
   }
 
   if(!QString(args).contains(lit("{spv_bin}")))
@@ -58,7 +57,7 @@ QString SPIRVDisassembler::DisassembleShader(QWidget *window,
         QApplication::translate(
             "SPIRVDisassembler",
             "Please use {spv_bin} in the disassembler arguments to specify the input file."));
-    return QString();
+    return "";
   }
 
   QString glsl;

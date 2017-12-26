@@ -305,6 +305,33 @@ struct TypeConversion<T, true>
   }
 };
 
+// specialisation for datetime
+template <>
+struct TypeConversion<rdcdatetime, false>
+{
+  static int ConvertFromPy(PyObject *in, rdcdatetime &out)
+  {
+    if(!PyDateTime_Check(in))
+      return SWIG_TypeError;
+
+    out.year = PyDateTime_GET_YEAR(in);
+    out.month = PyDateTime_GET_MONTH(in);
+    out.day = PyDateTime_GET_DAY(in);
+    out.hour = PyDateTime_DATE_GET_HOUR(in);
+    out.minute = PyDateTime_DATE_GET_MINUTE(in);
+    out.second = PyDateTime_DATE_GET_SECOND(in);
+    out.microsecond = PyDateTime_TIME_GET_MICROSECOND(in);
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(const rdcdatetime &in)
+  {
+    return PyDateTime_FromDateAndTime(in.year, in.month, in.day, in.hour, in.minute, in.second,
+                                      in.microsecond);
+  }
+};
+
 // specialisation for pair
 template <typename A, typename B>
 struct TypeConversion<rdcpair<A, B>, false>
@@ -554,8 +581,6 @@ struct TypeConversion<rdcstr, false>
     return PyUnicode_FromStringAndSize(in.c_str(), in.size());
   }
 };
-
-#include "qt_conversion.h"
 
 #include "structured_conversion.h"
 

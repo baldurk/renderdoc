@@ -9,24 +9,16 @@
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
 %begin %{
-
   #undef slots
+
+  #define SWIG_GENERATED
 %}
 
 %{
-  #define ENABLE_QT_CONVERT
-  #define RENDERDOC_QT_COMPAT
-
-  #include <QColor>
-  #include <QDateTime>
-  #include <QTimeZone>
-  #include <QMap>
-  #include <QString>
-  #include <QList>
-  #include <QVector>
-
   #include "datetime.h"
-
+%}
+%init %{
+  PyDateTime_IMPORT;
 %}
 
 %include "pyconversion.i"
@@ -34,14 +26,18 @@
 // import the renderdoc interface that we depend on
 %import "renderdoc.i"
 
-SIMPLE_TYPEMAPS(QString)
-SIMPLE_TYPEMAPS(QDateTime)
-
 TEMPLATE_ARRAY_DECLARE(rdcarray);
 
 // pass QWidget objects to PySide
+%{
+  class QWidget;
+
+  extern "C" QWidget *QWidgetFromPy(PyObject *widget);
+  extern "C" PyObject *QWidgetToPy(QWidget *widget);
+%}
+
 %typemap(in) QWidget * {
-  $1 = PythonContext::QWidgetFromPy($input);
+  $1 = QWidgetFromPy($input);
   if($input && !$1)
   {
     SWIG_exception_fail(SWIG_TypeError, "in method '$symname' QWidget expected for argument $argnum of type '$1_basetype'");
@@ -49,7 +45,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 }
 
 %typemap(out) QWidget * {
-  $result = PythonContext::QWidgetToPy($1);
+  $result = QWidgetToPy($1);
 }
 
 // need to ignore the original function and add a helper that releases the python GIL while calling
@@ -63,12 +59,11 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %rename("%(regex:/^I([A-Z].*)/\\1/)s", %$isclass) "";
 
 %{
-#ifndef slots
-#define slots
-#endif
-
   #include "Code/Interface/QRDInterface.h"
-  #include "Code/pyrenderdoc/PythonContext.h"
+
+  #ifndef slots
+  #define slots
+  #endif
 %}
 
 %include <stdint.i>
