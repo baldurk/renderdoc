@@ -51,9 +51,6 @@
 #include "ui_MainWindow.h"
 #include "version.h"
 
-#undef RENDERDOC_OFFICIAL_BUILD
-#define RENDERDOC_OFFICIAL_BUILD 1
-
 #define JSON_ID "rdocLayoutData"
 #define JSON_VER 1
 
