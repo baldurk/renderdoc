@@ -68,6 +68,7 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(SerialiserType &ser, uint32
       draw.markerColor[2] = float(blue) / 255.0f;
       draw.markerColor[3] = float(alpha) / 255.0f;
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }
@@ -105,6 +106,7 @@ bool WrappedID3D11DeviceContext::Serialise_PushMarker(SerialiserType &ser, uint3
       draw.markerColor[2] = float(blue) / 255.0f;
       draw.markerColor[3] = float(alpha) / 255.0f;
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }
@@ -126,6 +128,7 @@ bool WrappedID3D11DeviceContext::Serialise_PopMarker(SerialiserType &ser)
       draw.name = "API Calls";
       draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
 
+      AddEvent();
       AddDrawcall(draw, true);
     }
   }

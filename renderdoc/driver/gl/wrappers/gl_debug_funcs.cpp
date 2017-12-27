@@ -170,6 +170,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
       draw.name = name;
       draw.flags |= DrawFlags::SetMarker;
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }
@@ -238,6 +239,7 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
       draw.name = marker;
       draw.flags |= DrawFlags::SetMarker;
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }
@@ -300,6 +302,7 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
       draw.name = name;
       draw.flags |= DrawFlags::PushMarker;
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }

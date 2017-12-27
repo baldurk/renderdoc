@@ -1804,13 +1804,7 @@ bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 
   if(IsLoading(m_State))
   {
-    if(chunk == VulkanChunk::vkCmdDebugMarkerInsertEXT)
-    {
-      // no push/pop necessary
-    }
-    else if(chunk == VulkanChunk::vkBeginCommandBuffer || chunk == VulkanChunk::vkEndCommandBuffer ||
-            chunk == VulkanChunk::vkCmdDebugMarkerBeginEXT ||
-            chunk == VulkanChunk::vkCmdDebugMarkerEndEXT)
+    if(chunk == VulkanChunk::vkBeginCommandBuffer || chunk == VulkanChunk::vkEndCommandBuffer)
     {
       // don't add these events - they will be handled when inserted in-line into queue submit
     }

@@ -178,6 +178,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
         {
           ResourceId cmd =
               GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
+
+          BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
+
           GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
 
           std::string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)",
@@ -188,10 +191,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           draw.name = name;
           draw.flags |= DrawFlags::SetMarker;
           AddEvent();
+
+          m_RootEvents.back().chunkIndex = cmdBufInfo.beginChunk;
+          m_Events.back().chunkIndex = cmdBufInfo.beginChunk;
+
           AddDrawcall(draw, true);
           m_RootEventID++;
-
-          BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
           // insert the baked command buffer in-line into this list of notes, assigning new event
           // and drawIDs
@@ -228,6 +233,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
                                    ToStr(cmd).c_str());
           draw.name = name;
           AddEvent();
+
+          m_RootEvents.back().chunkIndex = cmdBufInfo.endChunk;
+          m_Events.back().chunkIndex = cmdBufInfo.endChunk;
+
           AddDrawcall(draw, true);
           m_RootEventID++;
         }

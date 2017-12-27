@@ -171,33 +171,37 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
       {
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
 
+        BakedCmdListInfo &cmdListInfo = m_Cmd.m_BakedCmdListInfo[cmd];
+
         // add a fake marker
         DrawcallDescription draw;
         draw.name = StringFormat::Fmt("=> %s[%u]: ID3D12CommandList(%s)", basename.c_str(), c,
                                       ToStr(cmd).c_str());
         draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
         m_Cmd.AddEvent();
+
+        m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.beginChunk;
+        m_Cmd.m_Events.back().chunkIndex = cmdListInfo.beginChunk;
+
         m_Cmd.AddDrawcall(draw, true);
         m_Cmd.m_RootEventID++;
 
-        BakedCmdListInfo &cmdBufInfo = m_Cmd.m_BakedCmdListInfo[cmd];
-
         // insert the baked command list in-line into this list of notes, assigning new event and
         // drawIDs
-        m_Cmd.InsertDrawsAndRefreshIDs(cmd, cmdBufInfo.draw->children);
+        m_Cmd.InsertDrawsAndRefreshIDs(cmd, cmdListInfo.draw->children);
 
-        for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+        for(size_t e = 0; e < cmdListInfo.draw->executedCmds.size(); e++)
         {
           vector<uint32_t> &submits = m_Cmd.m_Partial[D3D12CommandData::Secondary]
-                                          .cmdListExecs[cmdBufInfo.draw->executedCmds[e]];
+                                          .cmdListExecs[cmdListInfo.draw->executedCmds[e]];
 
           for(size_t s = 0; s < submits.size(); s++)
             submits[s] += m_Cmd.m_RootEventID;
         }
 
-        for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
+        for(size_t i = 0; i < cmdListInfo.debugMessages.size(); i++)
         {
-          DebugMessage msg = cmdBufInfo.debugMessages[i];
+          DebugMessage msg = cmdListInfo.debugMessages[i];
           msg.eventId += m_Cmd.m_RootEventID;
           m_pDevice->AddDebugMessage(msg);
         }
@@ -205,13 +209,17 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         // only primary command lists can be submitted
         m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmd].push_back(m_Cmd.m_RootEventID);
 
-        m_Cmd.m_RootEventID += cmdBufInfo.eventCount;
-        m_Cmd.m_RootDrawcallID += cmdBufInfo.drawCount;
+        m_Cmd.m_RootEventID += cmdListInfo.eventCount;
+        m_Cmd.m_RootDrawcallID += cmdListInfo.drawCount;
 
         draw.name =
             StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmd).c_str());
         draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
         m_Cmd.AddEvent();
+
+        m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.endChunk;
+        m_Cmd.m_Events.back().chunkIndex = cmdListInfo.endChunk;
+
         m_Cmd.AddDrawcall(draw, true);
         m_Cmd.m_RootEventID++;
       }

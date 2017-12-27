@@ -114,6 +114,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
       baked.curEventID = 0;
       baked.parentList = CommandList;
 
+      baked.endChunk = uint32_t(m_Cmd->m_StructuredFile->chunks.size() - 1);
+
       parent.curEventID = 0;
       parent.eventCount = 0;
       parent.drawCount = 0;
@@ -151,9 +153,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
                                                        ID3D12PipelineState *pInitialState)
 {
   // parameters to create the list with if needed
-  SERIALISE_ELEMENT_LOCAL(riid, m_Init.riid);
-  SERIALISE_ELEMENT_LOCAL(nodeMask, m_Init.nodeMask);
-  SERIALISE_ELEMENT_LOCAL(type, m_Init.type);
+  SERIALISE_ELEMENT_LOCAL(riid, m_Init.riid).Hidden();
+  SERIALISE_ELEMENT_LOCAL(nodeMask, m_Init.nodeMask).Hidden();
+  SERIALISE_ELEMENT_LOCAL(type, m_Init.type).Hidden();
 
   ResourceId BakedCommandList;
 
@@ -328,6 +330,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         m_Cmd->m_BakedCmdListInfo[BakedCommandList].drawCount = 0;
 
         m_Cmd->m_BakedCmdListInfo[BakedCommandList].drawStack.push_back(draw);
+
+        m_Cmd->m_BakedCmdListInfo[BakedCommandList].beginChunk =
+            uint32_t(m_Cmd->m_StructuredFile->chunks.size() - 1);
 
         // reset state
         D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[BakedCommandList].state;
@@ -2853,6 +2858,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
       draw.name = MarkerText;
       draw.flags |= DrawFlags::SetMarker;
 
+      m_Cmd->AddEvent();
       m_Cmd->AddDrawcall(draw, false);
     }
   }
@@ -2936,6 +2942,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
       draw.name = MarkerText;
       draw.flags |= DrawFlags::PushMarker;
 
+      m_Cmd->AddEvent();
       m_Cmd->AddDrawcall(draw, false);
     }
   }
@@ -3005,6 +3012,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
       draw.name = "Pop()";
       draw.flags = DrawFlags::PopMarker;
 
+      m_Cmd->AddEvent();
       m_Cmd->AddDrawcall(draw, false);
     }
   }
@@ -4098,13 +4106,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       else
         draw.flags |= DrawFlags::SetMarker;
 
-      // this drawcall needs an event to anchor its file offset. This is a bit of a hack,
-      // but a proper solution for handling 'fake' events that don't correspond to actual
-      // events in the file, or duplicates, is overkill.
-      draw.events = {m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.back()};
-      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.pop_back();
-
-      m_Cmd->AddDrawcall(draw, false);
+      m_Cmd->AddDrawcall(draw, true);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 

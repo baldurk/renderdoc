@@ -423,6 +423,9 @@ private:
     vector<DebugMessage> debugMessages;
     std::list<VulkanDrawcallTreeNode *> drawStack;
 
+    uint32_t beginChunk = 0;
+    uint32_t endChunk = 0;
+
     VkCommandBufferLevel level;
     VkCommandBufferUsageFlags beginFlags;
 

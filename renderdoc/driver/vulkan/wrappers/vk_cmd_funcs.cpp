@@ -556,7 +556,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
   SERIALISE_ELEMENT_LOCAL(BeginInfo, *pBeginInfo);
   SERIALISE_ELEMENT(BakedCommandBuffer);
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(AllocateInfo);
+  SERIALISE_ELEMENT(AllocateInfo).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -745,6 +745,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         m_BakedCmdBufferInfo[BakedCommandBuffer].drawCount = 0;
 
         m_BakedCmdBufferInfo[BakedCommandBuffer].drawStack.push_back(draw);
+
+        m_BakedCmdBufferInfo[BakedCommandBuffer].beginChunk =
+            uint32_t(m_StructuredFile->chunks.size() - 1);
       }
 
       ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
@@ -897,6 +900,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount =
             m_BakedCmdBufferInfo[BakedCommandBuffer].curEventID;
         m_BakedCmdBufferInfo[BakedCommandBuffer].curEventID = 0;
+
+        m_BakedCmdBufferInfo[BakedCommandBuffer].endChunk =
+            uint32_t(m_StructuredFile->chunks.size() - 1);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].eventCount = 0;
@@ -2702,6 +2708,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
       draw.markerColor[2] = RDCCLAMP(Marker.color[2], 0.0f, 1.0f);
       draw.markerColor[3] = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }
@@ -2776,6 +2783,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
       draw.name = "Pop()";
       draw.flags = DrawFlags::PopMarker;
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }
@@ -2841,6 +2849,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
       draw.markerColor[2] = RDCCLAMP(Marker.color[2], 0.0f, 1.0f);
       draw.markerColor[3] = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
 
+      AddEvent();
       AddDrawcall(draw, false);
     }
   }

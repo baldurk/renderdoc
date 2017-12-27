@@ -493,11 +493,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
   if(IsLoading(m_State))
   {
-    if(chunk == D3D12Chunk::PushMarker)
-    {
-      // no push/pop necessary
-    }
-    else if(chunk == D3D12Chunk::SetMarker || chunk == D3D12Chunk::PopMarker)
+    if(chunk == D3D12Chunk::List_Reset || chunk == D3D12Chunk::List_Close)
     {
       // don't add these events - they will be handled when inserted in-line into queue submit
     }
