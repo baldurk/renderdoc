@@ -2373,6 +2373,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
       GLintptr offs = (GLintptr)offset;
 
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
       for(GLsizei i = 0; i < drawcount; i++)
       {
         m_CurEventID++;
@@ -2398,6 +2400,29 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
+
+        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
+        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+
+        SDObject *command = new SDObject("command", "DrawArraysIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(DrawArraysIndirectCommand);
+
+        command->AddChild(makeSDObject("count", params.count));
+        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
+        command->AddChild(makeSDObject("first", params.first));
+        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
         AddDrawcall(multidraw, true);
@@ -2541,6 +2566,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
       GLintptr offs = (GLintptr)offset;
 
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
       for(GLsizei i = 0; i < drawcount; i++)
       {
         m_CurEventID++;
@@ -2569,6 +2596,30 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
         multidraw.indexByteWidth = IdxSize;
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
+
+        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
+        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+
+        SDObject *command = new SDObject("command", "DrawElementsIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(DrawElementsIndirectCommand);
+
+        command->AddChild(makeSDObject("count", params.count));
+        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
+        command->AddChild(makeSDObject("firstIndex", params.firstIndex));
+        command->AddChild(makeSDObject("baseVertex", params.baseVertex));
+        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
         AddDrawcall(multidraw, true);
@@ -2716,6 +2767,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
 
       GLintptr offs = (GLintptr)offset;
 
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
       for(GLsizei i = 0; i < realdrawcount; i++)
       {
         m_CurEventID++;
@@ -2741,6 +2794,29 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
         multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
+
+        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
+        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+
+        SDObject *command = new SDObject("command", "DrawArraysIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(DrawArraysIndirectCommand);
+
+        command->AddChild(makeSDObject("count", params.count));
+        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
+        command->AddChild(makeSDObject("first", params.first));
+        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
         AddDrawcall(multidraw, true);
@@ -2894,6 +2970,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
 
       GLintptr offs = (GLintptr)offset;
 
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
       for(GLsizei i = 0; i < realdrawcount; i++)
       {
         m_CurEventID++;
@@ -2922,6 +3000,30 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
         multidraw.indexByteWidth = IdxSize;
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
+
+        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
+        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+
+        SDObject *command = new SDObject("command", "DrawElementsIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(DrawElementsIndirectCommand);
+
+        command->AddChild(makeSDObject("count", params.count));
+        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
+        command->AddChild(makeSDObject("firstIndex", params.firstIndex));
+        command->AddChild(makeSDObject("baseVertex", params.baseVertex));
+        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
         AddDrawcall(multidraw, true);

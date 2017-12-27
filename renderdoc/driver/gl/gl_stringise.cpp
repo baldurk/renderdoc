@@ -35,6 +35,8 @@ std::string DoStringise(const GLChunk &el)
 
     STRINGISE_ENUM_CLASS_NAMED(MakeContextCurrent, "MakeContextCurrent");
 
+    STRINGISE_ENUM_CLASS_NAMED(glIndirectSubCommand, "Indirect sub-command");
+
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain);
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain2);
 

@@ -3490,6 +3490,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   idx++;
   eid++;
 
+  SDChunk *baseChunk = m_Cmd->m_StructuredFile->chunks[draws[idx].draw.events[0].chunkIndex];
+
   for(uint32_t i = 0; i < count; i++)
   {
     byte *data = mapPtr + exec.argOffs;
@@ -3499,6 +3501,86 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
     {
       const D3D12_INDIRECT_ARGUMENT_DESC &arg = comSig->sig.arguments[a];
 
+      DrawcallDescription &curDraw = draws[idx].draw;
+
+      APIEvent *curEvent = NULL;
+
+      for(APIEvent &ev : curDraw.events)
+      {
+        if(ev.eventId == eid)
+        {
+          curEvent = &ev;
+          break;
+        }
+      }
+
+      APIEvent dummy;
+      if(!curEvent)
+      {
+        RDCWARN("Couldn't find EID %u in current draw while patching ExecuteIndirect", eid);
+        // assign a dummy so we don't have to NULL-check below
+        curEvent = &dummy;
+      }
+
+      SDChunk *fakeChunk = new SDChunk("");
+      fakeChunk->metadata.chunkID = (uint32_t)D3D12Chunk::List_IndirectSubCommand;
+      // just copy the metadata
+      fakeChunk->metadata = baseChunk->metadata;
+
+      fakeChunk->AddChild(makeSDObject("CommandIndex", i));
+      fakeChunk->AddChild(makeSDObject("ArgumentIndex", a));
+
+      SDObject *argsig = new SDObject("ArgumentSignature", "D3D12_INDIRECT_ARGUMENT_DESC");
+
+      argsig->type.basetype = SDBasic::Struct;
+      argsig->type.byteSize = sizeof(D3D12_INDIRECT_ARGUMENT_DESC);
+
+      {
+        SDObject *argtype = new SDObject("Type", "D3D12_INDIRECT_ARGUMENT_TYPE");
+
+        argtype->type.basetype = SDBasic::Enum;
+        argtype->type.byteSize = 4;
+        argtype->type.flags = SDTypeFlags::HasCustomString;
+
+        argtype->data.basic.u = (uint32_t)arg.Type;
+        argtype->data.str = ToStr(arg.Type);
+
+        argsig->AddChild(argtype);
+      }
+
+      switch(arg.Type)
+      {
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+          // no extra data in the argument descriptor
+          break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+          argsig->AddChild(makeSDObject("Slot", arg.VertexBuffer.Slot));
+          break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+          argsig->AddChild(makeSDObject("RootParameterIndex", arg.Constant.RootParameterIndex));
+          argsig->AddChild(
+              makeSDObject("DestOffsetIn32BitValues", arg.Constant.DestOffsetIn32BitValues));
+          argsig->AddChild(makeSDObject("Num32BitValuesToSet", arg.Constant.Num32BitValuesToSet));
+          break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+          argsig->AddChild(
+              makeSDObject("RootParameterIndex", arg.ConstantBufferView.RootParameterIndex));
+          break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+          argsig->AddChild(
+              makeSDObject("RootParameterIndex", arg.ShaderResourceView.RootParameterIndex));
+          break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+          argsig->AddChild(
+              makeSDObject("RootParameterIndex", arg.UnorderedAccessView.RootParameterIndex));
+          break;
+      }
+
+      fakeChunk->AddChild(argsig);
+
       switch(arg.Type)
       {
         case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
@@ -3506,19 +3588,32 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
           data += sizeof(D3D12_DRAW_ARGUMENTS);
 
-          DrawcallDescription &draw = draws[idx].draw;
-          draw.numIndices = args->VertexCountPerInstance;
-          draw.numInstances = args->InstanceCount;
-          draw.vertexOffset = args->StartVertexLocation;
-          draw.instanceOffset = args->StartInstanceLocation;
-          draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
-          draw.name = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a, draw.numIndices,
-                                        draw.numInstances);
+          curDraw.numIndices = args->VertexCountPerInstance;
+          curDraw.numInstances = args->InstanceCount;
+          curDraw.vertexOffset = args->StartVertexLocation;
+          curDraw.instanceOffset = args->StartInstanceLocation;
+          curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+          curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a,
+                                           curDraw.numIndices, curDraw.numInstances);
+
+          fakeChunk->name = curDraw.name;
+
+          SDObject *command = new SDObject("ArgumentData", "D3D12_DRAW_ARGUMENTS");
+
+          command->type.basetype = SDBasic::Struct;
+          command->type.byteSize = sizeof(D3D12_DRAW_ARGUMENTS);
+
+          command->AddChild(makeSDObject("VertexCountPerInstance", curDraw.numIndices));
+          command->AddChild(makeSDObject("InstanceCount", curDraw.numInstances));
+          command->AddChild(makeSDObject("StartVertexLocation", curDraw.vertexOffset));
+          command->AddChild(makeSDObject("StartInstanceLocation", curDraw.instanceOffset));
+
+          fakeChunk->AddChild(command);
 
           // if this is the first draw of the indirect, we could have picked up previous
           // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
           // assign the draw's EID
-          eid = draw.eventId;
+          eid = curDraw.eventId;
 
           m_Cmd->AddUsage(draws[idx]);
 
@@ -3533,21 +3628,35 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
           data += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 
-          DrawcallDescription &draw = draws[idx].draw;
-          draw.numIndices = args->IndexCountPerInstance;
-          draw.numInstances = args->InstanceCount;
-          draw.baseVertex = args->BaseVertexLocation;
-          draw.vertexOffset = args->StartIndexLocation;
-          draw.instanceOffset = args->StartInstanceLocation;
-          draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
-                        DrawFlags::Indirect;
-          draw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
-                                        draw.numIndices, draw.numInstances);
+          curDraw.numIndices = args->IndexCountPerInstance;
+          curDraw.numInstances = args->InstanceCount;
+          curDraw.baseVertex = args->BaseVertexLocation;
+          curDraw.vertexOffset = args->StartIndexLocation;
+          curDraw.instanceOffset = args->StartInstanceLocation;
+          curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
+                           DrawFlags::Indirect;
+          curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
+                                           curDraw.numIndices, curDraw.numInstances);
+
+          fakeChunk->name = curDraw.name;
+
+          SDObject *command = new SDObject("ArgumentData", "D3D12_DRAW_INDEXED_ARGUMENTS");
+
+          command->type.basetype = SDBasic::Struct;
+          command->type.byteSize = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+
+          command->AddChild(makeSDObject("IndexCountPerInstance", curDraw.numIndices));
+          command->AddChild(makeSDObject("InstanceCount", curDraw.numInstances));
+          command->AddChild(makeSDObject("BaseVertexLocation", curDraw.baseVertex));
+          command->AddChild(makeSDObject("StartIndexLocation", curDraw.vertexOffset));
+          command->AddChild(makeSDObject("StartInstanceLocation", curDraw.instanceOffset));
+
+          fakeChunk->AddChild(command);
 
           // if this is the first draw of the indirect, we could have picked up previous
           // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
           // assign the draw's EID
-          eid = draw.eventId;
+          eid = curDraw.eventId;
 
           m_Cmd->AddUsage(draws[idx]);
 
@@ -3562,19 +3671,31 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DISPATCH_ARGUMENTS *args = (D3D12_DISPATCH_ARGUMENTS *)data;
           data += sizeof(D3D12_DISPATCH_ARGUMENTS);
 
-          DrawcallDescription &draw = draws[idx].draw;
-          draw.dispatchDimension[0] = args->ThreadGroupCountX;
-          draw.dispatchDimension[1] = args->ThreadGroupCountY;
-          draw.dispatchDimension[2] = args->ThreadGroupCountZ;
-          draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
-          draw.name = StringFormat::Fmt("[%u] arg%u: IndirectDispatch(<%u, %u, %u>)", i, a,
-                                        draw.dispatchDimension[0], draw.dispatchDimension[1],
-                                        draw.dispatchDimension[2]);
+          curDraw.dispatchDimension[0] = args->ThreadGroupCountX;
+          curDraw.dispatchDimension[1] = args->ThreadGroupCountY;
+          curDraw.dispatchDimension[2] = args->ThreadGroupCountZ;
+          curDraw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
+          curDraw.name = StringFormat::Fmt(
+              "[%u] arg%u: IndirectDispatch(<%u, %u, %u>)", i, a, curDraw.dispatchDimension[0],
+              curDraw.dispatchDimension[1], curDraw.dispatchDimension[2]);
+
+          fakeChunk->name = curDraw.name;
+
+          SDObject *command = new SDObject("ArgumentData", "D3D12_DISPATCH_ARGUMENTS");
+
+          command->type.basetype = SDBasic::Struct;
+          command->type.byteSize = sizeof(D3D12_DISPATCH_ARGUMENTS);
+
+          command->AddChild(makeSDObject("ThreadGroupCountX", curDraw.dispatchDimension[0]));
+          command->AddChild(makeSDObject("ThreadGroupCountY", curDraw.dispatchDimension[1]));
+          command->AddChild(makeSDObject("ThreadGroupCountZ", curDraw.dispatchDimension[2]));
+
+          fakeChunk->AddChild(command);
 
           // if this is the first draw of the indirect, we could have picked up previous
           // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
           // assign the draw's EID
-          eid = draw.eventId;
+          eid = curDraw.eventId;
 
           m_Cmd->AddUsage(draws[idx]);
 
@@ -3587,7 +3708,20 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
         case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
         {
           size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
+          uint32_t *data32 = (uint32_t *)data;
           data += argSize;
+
+          fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants()", i, a);
+
+          SDObject *values = new SDObject("Values", "uint32_t");
+
+          values->type.basetype = SDBasic::Array;
+          values->type.byteSize = argSize;
+
+          for(UINT v = 0; v < arg.Constant.Num32BitValuesToSet; v++)
+            values->AddChild(makeSDObject("$el", data32[v]));
+
+          fakeChunk->AddChild(values);
 
           // advance only the EID, since we're still in the same draw
           eid++;
@@ -3608,6 +3742,36 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           if(res)
             vb->BufferLocation = res->GetGPUVirtualAddress() + offs;
 
+          fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
+
+          SDObject *command = new SDObject("ArgumentData", "D3D12_VERTEX_BUFFER_VIEW");
+
+          command->type.basetype = SDBasic::Struct;
+          command->type.byteSize = sizeof(D3D12_VERTEX_BUFFER_VIEW);
+
+          {
+            SDObject *buf = new SDObject("BufferLocation", "D3D12BufferLocation");
+
+            buf->type.basetype = SDBasic::Struct;
+            buf->type.byteSize = sizeof(D3D12BufferLocation);
+
+            uint64_t bufid;
+            memcpy(&bufid, &id, sizeof(bufid));
+
+            buf->AddChild(makeSDObject("Buffer", bufid));
+            buf->AddChild(makeSDObject("Offset", offs));
+
+            buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
+            buf->data.children[0]->data.str = ToStr(id);
+
+            command->AddChild(buf);
+          }
+
+          command->AddChild(makeSDObject("SizeInBytes", vb->SizeInBytes));
+          command->AddChild(makeSDObject("StrideInBytes", vb->StrideInBytes));
+
+          fakeChunk->AddChild(command);
+
           // advance only the EID, since we're still in the same draw
           eid++;
 
@@ -3626,6 +3790,36 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           RDCASSERT(res);
           if(res)
             ib->BufferLocation = res->GetGPUVirtualAddress() + offs;
+
+          fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
+
+          SDObject *command = new SDObject("ArgumentData", "D3D12_INDEX_BUFFER_VIEW");
+
+          command->type.basetype = SDBasic::Struct;
+          command->type.byteSize = sizeof(D3D12_INDEX_BUFFER_VIEW);
+
+          {
+            SDObject *buf = new SDObject("BufferLocation", "D3D12BufferLocation");
+
+            buf->type.basetype = SDBasic::Struct;
+            buf->type.byteSize = sizeof(D3D12BufferLocation);
+
+            uint64_t bufid;
+            memcpy(&bufid, &id, sizeof(bufid));
+
+            buf->AddChild(makeSDObject("Buffer", bufid));
+            buf->AddChild(makeSDObject("Offset", offs));
+
+            buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
+            buf->data.children[0]->data.str = ToStr(id);
+
+            command->AddChild(buf);
+          }
+
+          command->AddChild(makeSDObject("SizeInBytes", ib->SizeInBytes));
+          command->AddChild(makeSDObject("Format", ib->Format));
+
+          fakeChunk->AddChild(command);
 
           // advance only the EID, since we're still in the same draw
           eid++;
@@ -3648,6 +3842,36 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           if(res)
             *addr = res->GetGPUVirtualAddress() + offs;
 
+          const char *viewTypeStr = "?";
+
+          if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
+            viewTypeStr = "ConstantBuffer";
+          else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
+            viewTypeStr = "ShaderResource";
+          else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+            viewTypeStr = "UnorderedAccess";
+
+          fakeChunk->name =
+              StringFormat::Fmt("[%u] arg%u: IndirectSetRoot%sView()", i, a, viewTypeStr);
+
+          {
+            SDObject *buf = new SDObject("BufferLocation", "D3D12BufferLocation");
+
+            buf->type.basetype = SDBasic::Struct;
+            buf->type.byteSize = sizeof(D3D12BufferLocation);
+
+            uint64_t bufid;
+            memcpy(&bufid, &id, sizeof(bufid));
+
+            buf->AddChild(makeSDObject("Buffer", bufid));
+            buf->AddChild(makeSDObject("Offset", offs));
+
+            buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
+            buf->data.children[0]->data.str = ToStr(id);
+
+            fakeChunk->AddChild(buf);
+          }
+
           // advance only the EID, since we're still in the same draw
           eid++;
 
@@ -3655,6 +3879,10 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
         }
         default: RDCERR("Unexpected argument type! %d", arg.Type); break;
       }
+
+      m_Cmd->m_StructuredFile->chunks.push_back(fakeChunk);
+
+      curEvent->chunkIndex = uint32_t(m_Cmd->m_StructuredFile->chunks.size() - 1);
     }
   }
 

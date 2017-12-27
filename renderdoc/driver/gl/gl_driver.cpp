@@ -4329,6 +4329,11 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       // re-use the serialisation for beginning of the frame
       return Serialise_BeginCaptureFrame(ser);
 
+    case GLChunk::glIndirectSubCommand:
+      // this is a fake chunk generated at runtime as part of indirect draws.
+      // Just in case it gets exported and imported, completely ignore it.
+      return true;
+
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
     // where and how they're called).

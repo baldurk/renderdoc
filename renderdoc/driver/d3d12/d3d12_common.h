@@ -539,5 +539,6 @@ enum class D3D12Chunk : uint32_t
   List_CopyTiles,
   Resource_Unmap,
   Resource_WriteToSubresource,
+  List_IndirectSubCommand,
   Max,
 };

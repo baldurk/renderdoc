@@ -2141,6 +2141,12 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCreateSwapchainKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
       break;
 
+    case VulkanChunk::vkCmdIndirectSubCommand:
+      // this is a fake chunk generated at runtime as part of indirect draws.
+      // Just in case it gets exported and imported, completely ignore it.
+      return true;
+      break;
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;

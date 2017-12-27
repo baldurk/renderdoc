@@ -538,6 +538,30 @@ inline SDObject *makeSDStruct(const char *name)
   return ret;
 }
 
+// some extra overloads that we don't bother exposing since python doesn't have the concept of
+// different width types like 32-bit vs 64-bit ints
+#if !defined(SWIG)
+
+inline SDObject *makeSDObject(const char *name, int32_t val)
+{
+  SDObject *ret = new SDObject(name, "int32_t");
+  ret->type.basetype = SDBasic::SignedInteger;
+  ret->type.byteSize = 4;
+  ret->data.basic.u = val;
+  return ret;
+}
+
+inline SDObject *makeSDObject(const char *name, uint32_t val)
+{
+  SDObject *ret = new SDObject(name, "uint32_t");
+  ret->type.basetype = SDBasic::UnsignedInteger;
+  ret->type.byteSize = 4;
+  ret->data.basic.u = val;
+  return ret;
+}
+
+#endif
+
 DOCUMENT("Defines a single structured chunk, which is a :class:`SDObject`.");
 struct SDChunk : public SDObject
 {

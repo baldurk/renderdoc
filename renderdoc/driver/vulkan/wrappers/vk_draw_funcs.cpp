@@ -462,7 +462,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-      uint32_t cmdOffs = 0;
+      VkDeviceSize cmdOffs = offset;
+
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
       for(uint32_t i = 0; i < count; i++)
       {
@@ -473,10 +475,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         {
           params = *((VkDrawIndirectCommand *)&argbuf[cmdOffs]);
           valid = true;
-          cmdOffs += sizeof(VkDrawIndirectCommand);
+          cmdOffs += stride;
         }
-
-        offset += stride;
 
         DrawcallDescription multi;
         multi.numIndices = params.vertexCount;
@@ -488,6 +488,29 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                      ToStr(multi.numInstances) + ">)";
 
         multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk(multi.name.c_str());
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
+
+        fakeChunk->AddChild(makeSDObject("drawIndex", i));
+        fakeChunk->AddChild(makeSDObject("offset", cmdOffs));
+
+        SDObject *command = new SDObject("command", "VkDrawIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(VkDrawIndirectCommand);
+
+        command->AddChild(makeSDObject("vertexCount", params.vertexCount));
+        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
+        command->AddChild(makeSDObject("firstVertex", params.firstVertex));
+        command->AddChild(makeSDObject("firstInstance", params.firstInstance));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
         AddDrawcall(multi, true);
@@ -752,7 +775,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-      uint32_t cmdOffs = 0;
+      VkDeviceSize cmdOffs = offset;
+
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
       for(uint32_t i = 0; i < count; i++)
       {
@@ -763,10 +788,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         {
           params = *((VkDrawIndexedIndirectCommand *)&argbuf[cmdOffs]);
           valid = true;
-          cmdOffs += sizeof(VkDrawIndexedIndirectCommand);
+          cmdOffs += stride;
         }
-
-        offset += stride;
 
         DrawcallDescription multi;
         multi.numIndices = params.indexCount;
@@ -779,6 +802,30 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                      ", " + ToStr(multi.numInstances) + ">)";
 
         multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk(multi.name.c_str());
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
+
+        fakeChunk->AddChild(makeSDObject("drawIndex", i));
+        fakeChunk->AddChild(makeSDObject("offset", cmdOffs));
+
+        SDObject *command = new SDObject("command", "VkDrawIndexedIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(VkDrawIndexedIndirectCommand);
+
+        command->AddChild(makeSDObject("indexCount", params.indexCount));
+        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
+        command->AddChild(makeSDObject("firstIndex", params.firstIndex));
+        command->AddChild(makeSDObject("vertexOffset", params.vertexOffset));
+        command->AddChild(makeSDObject("firstInstance", params.firstInstance));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
         AddDrawcall(multi, true);

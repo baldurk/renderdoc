@@ -379,6 +379,7 @@ enum class VulkanChunk : uint32_t
   SetShaderDebugPath,
   vkRegisterDeviceEventEXT,
   vkRegisterDisplayEventEXT,
+  vkCmdIndirectSubCommand,
   Max,
 };
 

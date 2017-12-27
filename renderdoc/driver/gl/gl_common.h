@@ -1756,6 +1756,8 @@ enum class GLChunk : uint32_t
   wglDXLockObjectsNV,
   wglDXUnlockObjectsNV,
 
+  glIndirectSubCommand,
+
   Max,
 };
 

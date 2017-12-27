@@ -114,6 +114,11 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
     if(IsLoading(m_State))
     {
+      m_Cmd.AddEvent();
+
+      // we're adding multiple events, need to increment ourselves
+      m_Cmd.m_RootEventID++;
+
       for(uint32_t i = 0; i < NumCommandLists; i++)
       {
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[i]));
@@ -159,11 +164,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         ResourceId cmd = GetResID(ppCommandLists[i]);
         m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
       }
-
-      m_Cmd.AddEvent();
-
-      // we're adding multiple events, need to increment ourselves
-      m_Cmd.m_RootEventID++;
 
       std::string basename = StringFormat::Fmt("ExecuteCommandLists(%u)", NumCommandLists);
 
