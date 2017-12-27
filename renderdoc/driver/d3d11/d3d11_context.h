@@ -269,7 +269,7 @@ public:
   void EndFrame();
 
   template <typename SerialiserType>
-  bool Serialise_BeginCaptureFrame(SerialiserType &ser, bool applyInitialState);
+  bool Serialise_BeginCaptureFrame(SerialiserType &ser);
   void BeginCaptureFrame();
   void EndCaptureFrame();
 

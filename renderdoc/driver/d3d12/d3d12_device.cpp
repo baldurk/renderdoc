@@ -1179,7 +1179,7 @@ bool WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser, bool applyInitialState)
+bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
 
@@ -1190,7 +1190,7 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser, bool 
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(applyInitialState && !barriers.empty())
+  if(IsReplayingAndReading() && !barriers.empty())
   {
     // apply initial resource states
     ID3D12GraphicsCommandList *list = GetNewList();
@@ -1206,10 +1206,8 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser, bool 
   return true;
 }
 
-template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(ReadSerialiser &ser,
-                                                               bool applyInitialState);
-template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(WriteSerialiser &ser,
-                                                               bool applyInitialState);
+template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(ReadSerialiser &ser);
+template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(WriteSerialiser &ser);
 
 void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
 {
@@ -1277,7 +1275,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
       SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
 
-      Serialise_BeginCaptureFrame(ser, false);
+      Serialise_BeginCaptureFrame(ser);
 
       // need to hold onto this as it must come right after the capture chunk,
       // before any command lists

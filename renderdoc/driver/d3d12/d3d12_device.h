@@ -469,7 +469,7 @@ public:
   bool EndFrameCapture(void *dev, void *wnd);
 
   template <typename SerialiserType>
-  bool Serialise_BeginCaptureFrame(SerialiserType &ser, bool applyInitialState);
+  bool Serialise_BeginCaptureFrame(SerialiserType &ser);
 
   template <typename SerialiserType>
   bool Serialise_DynamicDescriptorWrite(SerialiserType &ser, const DynamicDescriptorWrite *write);

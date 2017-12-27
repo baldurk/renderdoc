@@ -545,7 +545,10 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
   SystemChunk header = ser.ReadChunk<SystemChunk>();
   RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
-  m_pDevice->Serialise_BeginCaptureFrame(ser, !partial);
+  if(partial)
+    ser.SkipCurrentChunk();
+  else
+    m_pDevice->Serialise_BeginCaptureFrame(ser);
 
   ser.EndChunk();
 

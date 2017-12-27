@@ -243,8 +243,7 @@ void DoSerialise(SerialiserType &ser, HiddenCounter &el)
 }
 
 template <typename SerialiserType>
-bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser,
-                                                             bool applyInitialState)
+bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
   D3D11RenderState state(D3D11RenderState::Empty);
 
@@ -348,9 +347,8 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayingAndReading() && applyInitialState)
+  if(IsReplayingAndReading())
   {
-    if(applyInitialState)
     {
       m_DoStateVerify = false;
       {
@@ -428,7 +426,7 @@ void WrappedID3D11DeviceContext::BeginCaptureFrame()
   WriteSerialiser &ser = m_ScratchSerialiser;
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
 
-  Serialise_BeginCaptureFrame(ser, false);
+  Serialise_BeginCaptureFrame(ser);
 
   {
     SCOPED_LOCK(m_AnnotLock);
@@ -1124,7 +1122,10 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
   SystemChunk header = ser.ReadChunk<SystemChunk>();
   RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
-  Serialise_BeginCaptureFrame(ser, !partial);
+  if(partial)
+    ser.SkipCurrentChunk();
+  else
+    Serialise_BeginCaptureFrame(ser);
 
   ser.EndChunk();
 
