@@ -473,7 +473,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
         if(cmdOffs + sizeof(VkDrawIndirectCommand) <= argbuf.size())
         {
-          params = *((VkDrawIndirectCommand *)&argbuf[cmdOffs]);
+          params = *((VkDrawIndirectCommand *)&argbuf[(size_t)cmdOffs]);
           valid = true;
           cmdOffs += stride;
         }
@@ -786,7 +786,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
         if(cmdOffs + sizeof(VkDrawIndexedIndirectCommand) <= argbuf.size())
         {
-          params = *((VkDrawIndexedIndirectCommand *)&argbuf[cmdOffs]);
+          params = *((VkDrawIndexedIndirectCommand *)&argbuf[(size_t)cmdOffs]);
           valid = true;
           cmdOffs += stride;
         }
