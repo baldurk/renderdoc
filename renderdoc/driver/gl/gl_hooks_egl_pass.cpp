@@ -154,7 +154,7 @@ EGL_PASSTHRU_3(EGLBoolean, eglBindTexImage, EGLDisplay, dpy, EGLSurface, surface
 EGL_PASSTHRU_3(EGLBoolean, eglReleaseTexImage, EGLDisplay, dpy, EGLSurface, surface, EGLint, buffer)
 EGL_PASSTHRU_4(EGLBoolean, eglSurfaceAttrib, EGLDisplay, dpy, EGLSurface, surface, EGLint,
                attribute, EGLint, value)
-EGL_PASSTHRU_2(EGLBoolean, glSwapInterval, EGLDisplay, dpy, EGLint, interval)
+EGL_PASSTHRU_2(EGLBoolean, eglSwapInterval, EGLDisplay, dpy, EGLint, interval)
 
 /* EGL 1.2 */
 
