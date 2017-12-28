@@ -2285,7 +2285,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     }
     else
     {
-      GLint internalFormat = eGL_RGBA16;
+      GLint internalFormat = eGL_RGBA16F;
       GLenum format = eGL_RGBA;
       GLenum type = eGL_FLOAT;
 
