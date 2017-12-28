@@ -1073,8 +1073,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     if(availFeatures.fillModeNonSolid)
       enabledFeatures.fillModeNonSolid = true;
-    else
-      RDCWARN("fillModeNonSolid = false, wireframe overlay will be solid");
+
+    // we have a fallback for this case, so no warning
 
     if(availFeatures.robustBufferAccess)
       enabledFeatures.robustBufferAccess = true;

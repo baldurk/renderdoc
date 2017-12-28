@@ -144,8 +144,9 @@ public:
     {
       eGPUBufferReadback = 0x1,
       eGPUBufferVBuffer = 0x2,
-      eGPUBufferSSBO = 0x4,
-      eGPUBufferGPULocal = 0x8,
+      eGPUBufferIBuffer = 0x4,
+      eGPUBufferSSBO = 0x8,
+      eGPUBufferGPULocal = 0x10,
     };
     GPUBuffer()
         : sz(0),
@@ -358,6 +359,8 @@ private:
                                uint32_t samples, VkFormat fmt);
 
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
+  void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
+                                 uint32_t &indexCount);
 
   void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
   static const uint32_t FONT_TEX_WIDTH = 256;

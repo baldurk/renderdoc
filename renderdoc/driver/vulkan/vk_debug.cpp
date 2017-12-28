@@ -67,6 +67,9 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
   if(flags & eGPUBufferVBuffer)
     bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
+  if(flags & eGPUBufferIBuffer)
+    bufInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
   if(flags & eGPUBufferSSBO)
     bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
@@ -101,8 +104,11 @@ void VulkanDebugManager::GPUBuffer::FillDescriptor(VkDescriptorBufferInfo &desc)
 
 void VulkanDebugManager::GPUBuffer::Destroy()
 {
-  m_pDriver->vkDestroyBuffer(device, buf, NULL);
-  m_pDriver->vkFreeMemory(device, mem, NULL);
+  if(device != VK_NULL_HANDLE)
+  {
+    m_pDriver->vkDestroyBuffer(device, buf, NULL);
+    m_pDriver->vkFreeMemory(device, mem, NULL);
+  }
 }
 
 void *VulkanDebugManager::GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
@@ -4811,6 +4817,72 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
+void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *draw,
+                                                   GPUBuffer &indexBuffer, uint32_t &indexCount)
+{
+  VulkanRenderState &rs = m_pDriver->m_RenderState;
+
+  bytebuf indices;
+
+  uint16_t *idx16 = NULL;
+  uint32_t *idx32 = NULL;
+
+  if(draw->flags & DrawFlags::UseIBuffer)
+  {
+    GetBufferData(rs.ibuffer.buf,
+                  rs.ibuffer.offs + uint64_t(draw->indexOffset) * draw->indexByteWidth,
+                  uint64_t(draw->numIndices) * draw->indexByteWidth, indices);
+
+    if(rs.ibuffer.bytewidth == 2)
+      idx16 = (uint16_t *)indices.data();
+    else
+      idx32 = (uint32_t *)indices.data();
+  }
+
+  // we just patch up to 32-bit since we'll be adding more indices and we might overflow 16-bit.
+  std::vector<uint32_t> patchedIndices;
+
+  PatchLineStripIndexBufer(draw, idx16, idx32, patchedIndices);
+
+  indexBuffer.Create(m_pDriver, m_Device, patchedIndices.size() * sizeof(uint32_t), 1,
+                     GPUBuffer::eGPUBufferIBuffer);
+
+  void *ptr = indexBuffer.Map(0, patchedIndices.size() * sizeof(uint32_t));
+  memcpy(ptr, patchedIndices.data(), patchedIndices.size() * sizeof(uint32_t));
+  indexBuffer.Unmap();
+
+  rs.ibuffer.offs = 0;
+  rs.ibuffer.bytewidth = 4;
+  rs.ibuffer.buf = GetResID(indexBuffer.buf);
+
+  VkBufferMemoryBarrier uploadbarrier = {
+      VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+      NULL,
+      VK_ACCESS_HOST_WRITE_BIT,
+      VK_ACCESS_INDEX_READ_BIT,
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
+      Unwrap(indexBuffer.buf),
+      0,
+      indexBuffer.totalsize,
+  };
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  VkResult vkr = ObjDisp(m_Device)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  // ensure host writes finish before using as index buffer
+  DoPipelineBarrier(cmd, 1, &uploadbarrier);
+
+  ObjDisp(m_Device)->EndCommandBuffer(Unwrap(cmd));
+
+  indexCount = (uint32_t)patchedIndices.size();
+}
+
 struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
@@ -5280,13 +5352,19 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
   }
   else if(overlay == DebugOverlay::Drawcall || overlay == DebugOverlay::Wireframe)
   {
-    float highlightCol[] = {0.8f, 0.1f, 0.8f, 0.0f};
+    float highlightCol[] = {0.8f, 0.1f, 0.8f, 1.0f};
+    float clearCol[] = {0.0f, 0.0f, 0.0f, 0.5f};
 
     if(overlay == DebugOverlay::Wireframe)
     {
       highlightCol[0] = 200 / 255.0f;
       highlightCol[1] = 1.0f;
       highlightCol[2] = 0.0f;
+
+      clearCol[0] = 200 / 255.0f;
+      clearCol[1] = 1.0f;
+      clearCol[2] = 0.0f;
+      clearCol[3] = 0.0f;
     }
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -5303,7 +5381,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+                           (VkClearColorValue *)clearCol, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -5311,7 +5389,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    highlightCol[3] = 1.0f;
+    vkr = vt->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // backup state
     VulkanRenderState prevstate = m_pDriver->m_RenderState;
@@ -5344,10 +5423,46 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       rs->depthClampEnable = true;
     }
 
-    if(overlay == DebugOverlay::Wireframe && m_pDriver->GetDeviceFeatures().fillModeNonSolid)
+    uint32_t patchedIndexCount = 0;
+    GPUBuffer patchedIB;
+
+    if(overlay == DebugOverlay::Wireframe)
     {
-      rs->polygonMode = VK_POLYGON_MODE_LINE;
       rs->lineWidth = 1.0f;
+
+      if(m_pDriver->GetDeviceFeatures().fillModeNonSolid)
+      {
+        rs->polygonMode = VK_POLYGON_MODE_LINE;
+      }
+      else if(mainDraw->topology == Topology::TriangleList ||
+              mainDraw->topology == Topology::TriangleStrip ||
+              mainDraw->topology == Topology::TriangleFan ||
+              mainDraw->topology == Topology::TriangleList_Adj ||
+              mainDraw->topology == Topology::TriangleStrip_Adj)
+      {
+        // bad drivers (aka mobile) won't have non-solid fill mode, so we have to fall back to
+        // manually patching the index buffer and using a line list. This doesn't work with
+        // adjacency or patchlist topologies since those imply a vertex processing pipeline that
+        // requires a particular topology, or can't be implicitly converted to lines at input stage.
+        // It's unlikely those features will be used on said poor hw, so this should still catch
+        // most cases.
+        VkPipelineInputAssemblyStateCreateInfo *ia =
+            (VkPipelineInputAssemblyStateCreateInfo *)pipeCreateInfo.pInputAssemblyState;
+
+        ia->topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+
+        // thankfully, primitive restart is always supported! This makes the index buffer a bit more
+        // compact in the common cases where we don't need to repeat two indices for a triangle's
+        // three lines, instead we have a single restart index after each triangle.
+        ia->primitiveRestartEnable = true;
+
+        PatchLineStripIndexBuffer(mainDraw, patchedIB, patchedIndexCount);
+      }
+      else
+      {
+        RDCWARN("Unable to draw wireframe overlay for %s topology draw via software patching",
+                ToStr(mainDraw->topology).c_str());
+      }
     }
 
     VkPipelineColorBlendStateCreateInfo *cb =
@@ -5405,9 +5520,6 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       sh.pSpecializationInfo = NULL;
     }
 
-    vkr = vt->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
     VkPipeline pipe = VK_NULL_HANDLE;
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
@@ -5433,7 +5545,28 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     if(overlay == DebugOverlay::Wireframe)
       m_pDriver->m_RenderState.lineWidth = 1.0f;
 
-    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    if(patchedIndexCount == 0)
+    {
+      m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    }
+    else
+    {
+      // if we patched the index buffer we need to manually play the draw with a higher index count
+      // and no index offset.
+      cmd = m_pDriver->GetNextCmd();
+
+      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      // do single draw
+      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), patchedIndexCount, mainDraw->numInstances, 0, 0,
+                                   mainDraw->instanceOffset);
+      m_pDriver->m_RenderState.EndRenderPass(cmd);
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
 
     // submit & flush so that we don't have to keep pipeline around for a while
     m_pDriver->SubmitCmds();
@@ -5446,6 +5579,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
     // restore state
     m_pDriver->m_RenderState = prevstate;
+
+    patchedIB.Destroy();
 
     m_pDriver->vkDestroyPipeline(m_Device, pipe, NULL);
     m_pDriver->vkDestroyShaderModule(m_Device, mod, NULL);

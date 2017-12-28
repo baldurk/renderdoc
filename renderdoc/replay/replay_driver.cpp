@@ -110,6 +110,98 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
   return ret;
 }
 
+void PatchLineStripIndexBufer(const DrawcallDescription *draw, uint16_t *idx16, uint32_t *idx32,
+                              std::vector<uint32_t> &patchedIndices)
+{
+  const uint32_t restart = 0xffffffff;
+
+#define IDX_VALUE(offs) (idx16 ? idx16[index + offs] : (idx32 ? idx32[index + offs] : index + offs))
+
+  switch(draw->topology)
+  {
+    case Topology::TriangleList:
+    {
+      for(uint32_t index = 0; index + 3 <= draw->numIndices; index += 3)
+      {
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(IDX_VALUE(1));
+        patchedIndices.push_back(IDX_VALUE(2));
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(restart);
+      }
+      break;
+    }
+    case Topology::TriangleStrip:
+    {
+      // we decompose into individual triangles. This will mean the shared lines will be overwritten
+      // twice but it's a simple algorithm and otherwise decomposing a tristrip into a line strip
+      // would need some more complex handling (you could two pairs of triangles in a single strip
+      // by changing the winding, but then you'd need to restart and jump back, and handle a
+      // trailing single triangle, etc).
+      for(uint32_t index = 0; index + 3 <= draw->numIndices; index++)
+      {
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(IDX_VALUE(1));
+        patchedIndices.push_back(IDX_VALUE(2));
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(restart);
+      }
+      break;
+    }
+    case Topology::TriangleFan:
+    {
+      uint32_t index = 0;
+      uint32_t base = IDX_VALUE(0);
+      index++;
+
+      // this would be easier to do as a line list and just do base -> 1, 1 -> 2 lines for each
+      // triangle then a base -> 2 for the last one. However I would be amazed if this code ever
+      // runs except in an artificial test, so let's go with the simple and easy to understand
+      // solution.
+      for(; index + 2 <= draw->numIndices; index++)
+      {
+        patchedIndices.push_back(base);
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(IDX_VALUE(1));
+        patchedIndices.push_back(base);
+        patchedIndices.push_back(restart);
+      }
+      break;
+    }
+    case Topology::TriangleList_Adj:
+    {
+      // skip the adjacency values
+      for(uint32_t index = 0; index + 6 <= draw->numIndices; index += 6)
+      {
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(IDX_VALUE(2));
+        patchedIndices.push_back(IDX_VALUE(4));
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(restart);
+      }
+      break;
+    }
+    case Topology::TriangleStrip_Adj:
+    {
+      // skip the adjacency values
+      for(uint32_t index = 0; index + 6 <= draw->numIndices; index += 2)
+      {
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(IDX_VALUE(2));
+        patchedIndices.push_back(IDX_VALUE(4));
+        patchedIndices.push_back(IDX_VALUE(0));
+        patchedIndices.push_back(restart);
+      }
+      break;
+    }
+    default:
+      RDCERR("Unsupported topology %s for line-list patching", ToStr(draw->topology).c_str());
+      return;
+  }
+
+#undef IDX_VALUE
+}
+
 FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
                                             byte *end, bool useidx, bool &valid)
 {
