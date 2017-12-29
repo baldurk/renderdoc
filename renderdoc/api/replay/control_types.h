@@ -476,6 +476,12 @@ struct TargetControlMessage
   BusyData busy;
   DOCUMENT("The :class:`new child process data <NewChildData>`.");
   NewChildData newChild;
+  DOCUMENT(R"(The progress of an on-going capture.
+
+When valid, will be in the range of 0.0 to 1.0 (0 - 100%). If not valid when a capture isn't going
+or has finished, it will be -1.0
+)");
+  float capProgress = -1.0f;
 };
 
 DECLARE_REFLECTION_STRUCT(TargetControlMessage);

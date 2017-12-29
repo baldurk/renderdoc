@@ -333,6 +333,9 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
     RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, false);
   }
 
+  if(IsActiveCapturing(m_State))
+    m_pDevice->AddCaptureSubmission();
+
   SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
 
   if(IsCaptureMode(m_State))

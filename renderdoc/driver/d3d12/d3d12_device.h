@@ -299,6 +299,8 @@ private:
   Threading::CriticalSection m_CapTransitionLock;
   CaptureState m_State;
 
+  uint32_t m_SubmitCounter = 0;
+
   D3D12InitParams m_InitParams;
   uint64_t m_SectionVersion;
   ID3D12InfoQueue *m_pInfoQueue;
@@ -457,6 +459,8 @@ public:
   void CloseInitialStateList();
   ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
   void ApplyInitialContents();
+
+  void AddCaptureSubmission();
 
   void ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue = NULL);
   void ExecuteLists(ID3D12CommandQueue *queue = NULL);

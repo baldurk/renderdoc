@@ -2929,6 +2929,10 @@ DOCUMENT(R"(The type of message received from or sent to an application target c
 .. data:: NewChild
 
   The target has created a child process.
+
+.. data:: CaptureProgress
+
+  Progress update on an on-going frame capture.
 )");
 enum class TargetControlMessageType : uint32_t
 {
@@ -2940,6 +2944,7 @@ enum class TargetControlMessageType : uint32_t
   CaptureCopied,
   RegisterAPI,
   NewChild,
+  CaptureProgress,
 };
 
 DECLARE_REFLECTION_ENUM(TargetControlMessageType);

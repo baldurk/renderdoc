@@ -540,6 +540,18 @@ void WrappedID3D12Device::ApplyInitialContents()
   initStateCurList = NULL;
 }
 
+void WrappedID3D12Device::AddCaptureSubmission()
+{
+  if(IsActiveCapturing(m_State))
+  {
+    // 15 is quite a lot of submissions.
+    const int expectedMaxSubmissions = 15;
+
+    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture, FakeProgress(m_SubmitCounter, 15));
+    m_SubmitCounter++;
+  }
+}
+
 void WrappedID3D12Device::CheckForDeath()
 {
   if(!m_Alive)
@@ -1226,6 +1238,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     return;
 
   m_AppControlledCapture = true;
+
+  m_SubmitCounter = 0;
 
   m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 

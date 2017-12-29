@@ -416,6 +416,15 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, false);
   }
 
+  if(IsActiveCapturing(m_State))
+  {
+    // 15 is quite a lot of submissions.
+    const int expectedMaxSubmissions = 15;
+
+    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture, FakeProgress(m_SubmitCounter, 15));
+    m_SubmitCounter++;
+  }
+
   size_t tempmemSize = sizeof(VkSubmitInfo) * submitCount;
 
   // need to count how many semaphore and command buffer arrays to allocate for

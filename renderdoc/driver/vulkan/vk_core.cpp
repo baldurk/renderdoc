@@ -881,6 +881,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   m_AppControlledCapture = true;
 
+  m_SubmitCounter = 0;
+
   m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
   FrameDescription frame;

@@ -247,8 +247,14 @@ enum class CaptureProgress
 {
   PrepareInitialStates,
   First = PrepareInitialStates,
-  // frame capture goes here but we have no way to estimate its length, and the progress would be
-  // updated all over the place as every API call or every draw call would have to update it.
+  // In general we can't know how long the frame capture will take to have an explicit progress, but
+  // we can hack it by getting closer and closer to 100% without quite reaching it, with some
+  // heuristic for how far we expect to get. Some APIs will have no useful way to update progress
+  // during frame capture, but for explicit APIs like Vulkan we can update once per submission, and
+  // tune it so that it doesn't start crawling approaching 100% until well past the number of
+  // submissions we'd expect in a frame.
+  // Other APIs will simply skip this progress section entirely, which is fine.
+  FrameCapture,
   AddReferencedResources,
   SerialiseInitialStates,
   SerialiseFrameContents,
@@ -259,18 +265,45 @@ enum class CaptureProgress
 DECLARE_REFLECTION_ENUM(CaptureProgress);
 ITERABLE_OPERATORS(CaptureProgress);
 
+// different APIs spend their capture time in different places. So the weighting is roughly even for
+// the potential hot-spots. So D3D11 might zoom past the PrepareInitialStates while Vulkan takes a
+// couple of seconds, but then the situation is reversed for AddReferencedResources
 inline constexpr float ProgressWeight(CaptureProgress section)
 {
   // values must sum to 1.0
   return section == CaptureProgress::PrepareInitialStates
-             ? 0.35f
+             ? 0.25f
              : section == CaptureProgress::AddReferencedResources
-                   ? 0.1f
-                   : section == CaptureProgress::SerialiseInitialStates
-                         ? 0.5f
-                         : section == CaptureProgress::SerialiseFrameContents
-                               ? 0.04f
-                               : section == CaptureProgress::FileWriting ? 0.01f : 0.0f;
+                   ? 0.25f
+                   : section == CaptureProgress::FrameCapture
+                         ? 0.15f
+                         : section == CaptureProgress::SerialiseInitialStates
+                               ? 0.25f
+                               : section == CaptureProgress::SerialiseFrameContents
+                                     ? 0.08f
+                                     : section == CaptureProgress::FileWriting ? 0.02f : 0.0f;
+}
+
+// utility function to fake progress with x going from 0 to infinity, mapping to 0% to 100% in an
+// inverse curve. For x from 0 to maxX the progress is reasonably spaced, past that it will be quite
+// crushed.
+//
+// The equation is y = 1 - (1 / (x * param) + 1)
+//
+// => maxX will be when the curve reaches 80%
+// 0.8 = 1 - (1 / (maxX * param) + 1)
+//
+// => gather constants on RHS
+// 1 / (maxX * param) + 1 = 0.2
+//
+// => switch denominators
+// maxX * param + 1 = 5
+//
+// => re-arrange for param
+// param = 4 / maxX
+inline constexpr float FakeProgress(uint32_t x, uint32_t maxX)
+{
+  return 1.0f - (1.0f / (x * (4.0f / float(maxX)) + 1));
 }
 
 class IRemoteDriver;

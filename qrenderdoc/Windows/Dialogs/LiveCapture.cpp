@@ -1113,6 +1113,12 @@ void LiveCapture::connectionThreadEntry()
       });
     }
 
+    if(msg.type == TargetControlMessageType::CaptureProgress)
+    {
+      float progress = msg.capProgress;
+      GUIInvoke::call([this, progress]() {});
+    }
+
     if(msg.type == TargetControlMessageType::NewCapture)
     {
       uint32_t capID = msg.newCapture.captureId;

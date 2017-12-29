@@ -44,6 +44,7 @@ enum PacketType : uint32_t
   ePacket_DeleteCapture,
   ePacket_QueueCapture,
   ePacket_NewChild,
+  ePacket_CaptureProgress,
 };
 
 DECLARE_REFLECTION_ENUM(PacketType);
@@ -104,13 +105,18 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
     return;
   }
 
-  const int pingtime = 1000;    // ping every 1000ms
-  const int ticktime = 10;      // tick every 10ms
+  float captureProgress = -1.0f;
+  RenderDoc::Inst().SetProgressPointer<CaptureProgress>(&captureProgress);
+
+  const int pingtime = 1000;       // ping every 1000ms
+  const int ticktime = 10;         // tick every 10ms
+  const int progresstime = 100;    // update capture progress every 100ms
   int curtime = 0;
 
   std::vector<CaptureData> captures;
   std::vector<pair<uint32_t, uint32_t> > children;
   std::map<RDCDriver, bool> drivers;
+  float prevCaptureProgress = captureProgress;
 
   while(client)
   {
@@ -200,6 +206,26 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         SERIALISE_ELEMENT(children.back().second);
       }
     }
+    else if(prevCaptureProgress != captureProgress)
+    {
+      if(captureProgress == 1.0f || captureProgress == -1.0f)
+        captureProgress = -1.0f;
+
+      // send progress packets at reduced rate (not every tick), or if the progress is finished.
+      // we don't need to ping while we're sending capture progress, so we re-use curtime
+      if(captureProgress == -1.0f || curtime > progresstime)
+      {
+        curtime = 0;
+
+        prevCaptureProgress = captureProgress;
+
+        WRITE_DATA_SCOPE();
+        {
+          SCOPED_SERIALISE_CHUNK(ePacket_CaptureProgress);
+          SERIALISE_ELEMENT(captureProgress);
+        }
+      }
+    }
 
     if(curtime > pingtime)
     {
@@ -283,6 +309,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         SAFE_DELETE(client);
     }
   }
+
+  RenderDoc::Inst().SetProgressPointer<CaptureProgress>(NULL);
 
   // give up our connection
   {
@@ -606,6 +634,16 @@ public:
       SERIALISE_ELEMENT(msg.newChild.ident).Named("Child ident");
 
       RDCLOG("Got a new child process: %u %u", msg.newChild.processId, msg.newChild.ident);
+
+      reader.EndChunk();
+      return msg;
+    }
+    else if(type == ePacket_CaptureProgress)
+    {
+      msg.type = TargetControlMessageType::CaptureProgress;
+
+      READ_DATA_SCOPE();
+      SERIALISE_ELEMENT(msg.capProgress).Named("Capture Progress");
 
       reader.EndChunk();
       return msg;

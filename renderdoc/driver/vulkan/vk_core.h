@@ -221,6 +221,7 @@ private:
   bool m_AppControlledCapture;
 
   bool m_MarkedActive = false;
+  uint32_t m_SubmitCounter = 0;
 
   uint64_t threadSerialiserTLSSlot;
 
