@@ -30,6 +30,8 @@
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
 
+static const uint32_t TargetControlProtocolVersion = 2;
+
 enum PacketType : uint32_t
 {
   ePacket_Noop = 1,
@@ -68,7 +70,7 @@ std::string DoStringise(const PacketType &el)
 #define WRITE_DATA_SCOPE() WriteSerialiser &ser = writer;
 #define READ_DATA_SCOPE() ReadSerialiser &ser = reader;
 
-void RenderDoc::TargetControlClientThread(Network::Socket *client)
+void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *client)
 {
   Threading::KeepModuleAlive();
 
@@ -84,6 +86,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(ePacket_Handshake);
+    SERIALISE_ELEMENT(TargetControlProtocolVersion);
     SERIALISE_ELEMENT(target);
     SERIALISE_ELEMENT(mypid);
   }
@@ -322,6 +325,7 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
     std::string existingClient;
     std::string newClient;
+    uint32_t version;
     bool kick = false;
 
     // receive handshake from client and get its name
@@ -336,6 +340,7 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
         continue;
       }
 
+      SERIALISE_ELEMENT(version);
       SERIALISE_ELEMENT(newClient);
       SERIALISE_ELEMENT(kick);
 
@@ -374,7 +379,8 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
     // if we've claimed client status, spawn a thread to communicate
     if(existingClient.empty() || kick)
     {
-      clientThread = Threading::CreateThread([client] { TargetControlClientThread(client); });
+      clientThread =
+          Threading::CreateThread([version, client] { TargetControlClientThread(version, client); });
       continue;
     }
     else
@@ -388,6 +394,7 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
       std::string target = RenderDoc::Inst().GetCurrentTarget();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_Busy);
+        SERIALISE_ELEMENT(TargetControlProtocolVersion);
         SERIALISE_ELEMENT(target);
         SERIALISE_ELEMENT(RenderDoc::Inst().m_SingleClientName);
       }
@@ -427,6 +434,7 @@ public:
 
       {
         SCOPED_SERIALISE_CHUNK(ePacket_Handshake);
+        SERIALISE_ELEMENT(TargetControlProtocolVersion);
         SERIALISE_ELEMENT(clientName);
         SERIALISE_ELEMENT(forceConnection);
       }
@@ -456,9 +464,11 @@ public:
     if(m_Socket == NULL)
       return;
 
+    uint32_t version = TargetControlProtocolVersion;
 
     {
       READ_DATA_SCOPE();
+      SERIALISE_ELEMENT(version);
       SERIALISE_ELEMENT(m_Target);
       SERIALISE_ELEMENT(m_PID);
     }
