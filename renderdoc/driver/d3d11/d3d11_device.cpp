@@ -1646,7 +1646,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    RDCFile *rdc = RenderDoc::Inst().CreateRDC(m_FrameCounter, jpgbuf, len, thwidth, thheight);
+    RDCFile *rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D11, m_FrameCounter, jpgbuf, len,
+                                               thwidth, thheight);
 
     SAFE_DELETE_ARRAY(jpgbuf);
     SAFE_DELETE_ARRAY(thpixels);

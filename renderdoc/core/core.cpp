@@ -699,8 +699,8 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
   return ret;
 }
 
-RDCFile *RenderDoc::CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, uint16_t thwidth,
-                              uint16_t thheight)
+RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixels, size_t thlen,
+                              uint16_t thwidth, uint16_t thheight)
 {
   RDCFile *ret = new RDCFile;
 
@@ -731,7 +731,7 @@ RDCFile *RenderDoc::CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, u
     thumb = &th;
   }
 
-  ret->SetData(m_CurrentDriver, ToStr(m_CurrentDriver).c_str(), OSUtility::GetMachineIdent(), thumb);
+  ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), thumb);
 
   ret->Create(m_CurrentLogFile.c_str());
 

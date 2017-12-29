@@ -2401,8 +2401,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     if(bbim == NULL)
       bbim = SaveBackbufferImage();
 
-    RDCFile *rdc = RenderDoc::Inst().CreateRDC(m_FrameCounter, bbim->jpgbuf, bbim->len,
-                                               bbim->thwidth, bbim->thheight);
+    RDCFile *rdc = RenderDoc::Inst().CreateRDC(GetDriverType(), m_FrameCounter, bbim->jpgbuf,
+                                               bbim->len, bbim->thwidth, bbim->thheight);
 
     SAFE_DELETE(bbim);
 
