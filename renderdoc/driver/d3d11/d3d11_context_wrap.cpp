@@ -3569,6 +3569,8 @@ void WrappedID3D11DeviceContext::DrawIndexedInstanced(UINT IndexCountPerInstance
 {
   DrainAnnotationQueue();
 
+  MarkAPIActive();
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount,
@@ -3637,6 +3639,8 @@ void WrappedID3D11DeviceContext::DrawInstanced(UINT VertexCountPerInstance, UINT
 {
   DrainAnnotationQueue();
 
+  MarkAPIActive();
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawInstanced(VertexCountPerInstance, InstanceCount,
@@ -3700,6 +3704,8 @@ void WrappedID3D11DeviceContext::DrawIndexed(UINT IndexCount, UINT StartIndexLoc
 {
   DrainAnnotationQueue();
 
+  MarkAPIActive();
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation));
@@ -3756,6 +3762,8 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(SerialiserType &ser, UINT Vertex
 void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation)
 {
   DrainAnnotationQueue();
+
+  MarkAPIActive();
 
   m_EmptyCommandList = false;
 
@@ -3865,6 +3873,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
 void WrappedID3D11DeviceContext::DrawAuto()
 {
   DrainAnnotationQueue();
+
+  MarkAPIActive();
 
   m_EmptyCommandList = false;
 
@@ -3989,6 +3999,8 @@ void WrappedID3D11DeviceContext::DrawIndexedInstancedIndirect(ID3D11Buffer *pBuf
 {
   DrainAnnotationQueue();
 
+  MarkAPIActive();
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->DrawIndexedInstancedIndirect(
@@ -4112,6 +4124,8 @@ void WrappedID3D11DeviceContext::DrawInstancedIndirect(ID3D11Buffer *pBufferForA
                                                        UINT AlignedByteOffsetForArgs)
 {
   DrainAnnotationQueue();
+
+  MarkAPIActive();
 
   m_EmptyCommandList = false;
 
@@ -4668,6 +4682,8 @@ void WrappedID3D11DeviceContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGro
 {
   DrainAnnotationQueue();
 
+  MarkAPIActive();
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(
@@ -4784,6 +4800,8 @@ void WrappedID3D11DeviceContext::DispatchIndirect(ID3D11Buffer *pBufferForArgs,
                                                   UINT AlignedByteOffsetForArgs)
 {
   DrainAnnotationQueue();
+
+  MarkAPIActive();
 
   m_EmptyCommandList = false;
 

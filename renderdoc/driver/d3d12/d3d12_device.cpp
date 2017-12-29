@@ -1143,10 +1143,10 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
     }
   }
 
+  RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D12, true);
+
   if(!activeWindow)
     return S_OK;
-
-  RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D12);
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
@@ -1224,8 +1224,6 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 {
   if(!IsBackgroundCapturing(m_State))
     return;
-
-  RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D12);
 
   m_AppControlledCapture = true;
 

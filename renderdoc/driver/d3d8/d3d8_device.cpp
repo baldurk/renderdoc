@@ -286,10 +286,7 @@ HRESULT __stdcall WrappedD3DDevice8::Present(CONST RECT *pSourceRect, CONST RECT
     }
   }
 
-  if(activeWindow)
-  {
-    RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D8);
-  }
+  RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D8, true);
 
   return m_device->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }

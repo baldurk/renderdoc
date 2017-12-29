@@ -327,6 +327,12 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   for(UINT i = 0; i < NumCommandLists; i++)
     unwrapped[i] = Unwrap(ppCommandLists[i]);
 
+  if(!m_MarkedActive)
+  {
+    m_MarkedActive = true;
+    RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, false);
+  }
+
   SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
 
   if(IsCaptureMode(m_State))

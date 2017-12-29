@@ -85,6 +85,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   CaptureState &m_State;
 
+  bool m_MarkedActive = false;
+
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
   WrappedID3D12DebugCommandQueue m_WrappedDebug;

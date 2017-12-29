@@ -115,6 +115,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture;
 
+  bool m_MarkedActive = false;
+
   GLReplay m_Replay;
   RDCDriver m_DriverType;
 
@@ -195,6 +197,12 @@ private:
   {
     if(!m_CoherentMaps.empty())
       PersistentMapMemoryBarrier(m_CoherentMaps);
+
+    if(!m_MarkedActive)
+    {
+      m_MarkedActive = true;
+      RenderDoc::Inst().AddActiveDriver(GetDriverType(), false);
+    }
   }
 
   vector<FrameDescription> m_CapturedFrames;

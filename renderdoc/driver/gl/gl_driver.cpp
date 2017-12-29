@@ -2181,10 +2181,10 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   if(IsActiveCapturing(m_State) && m_AppControlledCapture)
     m_BackbufferImages[windowHandle] = SaveBackbufferImage();
 
+  RenderDoc::Inst().AddActiveDriver(GetDriverType(), true);
+
   if(!activeWindow)
     return;
-
-  RenderDoc::Inst().SetCurrentDriver(GetDriverType());
 
   // only allow capturing on 'modern' created contexts
   if(ctxdata.Legacy())
@@ -2305,8 +2305,6 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
     return;
 
   SCOPED_LOCK(GetGLLock());
-
-  RenderDoc::Inst().SetCurrentDriver(GetDriverType());
 
   m_State = CaptureState::ActiveCapturing;
 

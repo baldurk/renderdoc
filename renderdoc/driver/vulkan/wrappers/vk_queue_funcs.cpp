@@ -410,6 +410,12 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 {
   SCOPED_DBG_SINK();
 
+  if(!m_MarkedActive)
+  {
+    m_MarkedActive = true;
+    RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, false);
+  }
+
   size_t tempmemSize = sizeof(VkSubmitInfo) * submitCount;
 
   // need to count how many semaphore and command buffer arrays to allocate for

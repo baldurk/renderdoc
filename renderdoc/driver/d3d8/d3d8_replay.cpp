@@ -24,6 +24,11 @@
 
 #include "d3d8_common.h"
 
+// disabled until capture is actually supported, so we can actually tell programmatically that the
+// API is unsupported. E.g. when we detect the API and let the user know, but disable a capture
+// button.
+#if 0
+
 ReplayStatus D3D8_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCERR("D3D8 captures are not currently supported");
@@ -31,3 +36,5 @@ ReplayStatus D3D8_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 }
 
 static DriverRegistration D3D8DriverRegistration(RDCDriver::D3D8, &D3D8_CreateReplayDevice);
+
+#endif

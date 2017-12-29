@@ -167,6 +167,16 @@ private:
   bool m_SuccessfulCapture;
   bool m_EmptyCommandList;
 
+  bool m_MarkedActive = false;
+
+  inline void MarkAPIActive()
+  {
+    if(m_MarkedActive)
+      return;
+
+    RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D11, false);
+  }
+
   bool m_PresentChunk;
 
   ResourceId m_FakeContext;

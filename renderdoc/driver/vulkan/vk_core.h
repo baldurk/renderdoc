@@ -220,6 +220,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture;
 
+  bool m_MarkedActive = false;
+
   uint64_t threadSerialiserTLSSlot;
 
   Threading::CriticalSection m_ThreadSerialisersLock;

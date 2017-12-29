@@ -1092,7 +1092,9 @@ void LiveCapture::connectionThreadEntry()
     if(msg.type == TargetControlMessageType::RegisterAPI)
     {
       QString api = msg.apiUse.name;
-      GUIInvoke::call([this, api]() {
+      bool presenting = msg.apiUse.presenting;
+      bool supported = msg.apiUse.supported;
+      GUIInvoke::call([this, api, presenting, supported]() {
         QString target = QString::fromUtf8(m_Connection->GetTarget());
         uint32_t pid = m_Connection->GetPID();
 

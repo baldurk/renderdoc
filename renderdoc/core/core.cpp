@@ -201,7 +201,6 @@ RenderDoc::RenderDoc()
 {
   m_LogFile = "";
   m_MarkerIndentLevel = 0;
-  m_CurrentDriver = RDCDriver::Unknown;
 
   m_CapturesActive = 0;
 
@@ -957,18 +956,47 @@ ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver)
   return ReplayStatus::APIUnsupported;
 }
 
-void RenderDoc::SetCurrentDriver(RDCDriver driver)
+void RenderDoc::AddActiveDriver(RDCDriver driver, bool present)
 {
-  if(!HasReplayDriver(driver) && !HasRemoteDriver(driver))
+  if(driver == RDCDriver::Unknown)
+    return;
+
+  uint64_t timestamp = present ? Timing::GetUnixTimestamp() : 0;
+
   {
-    RDCFATAL("Trying to register unsupported driver!");
+    SCOPED_LOCK(m_DriverLock);
+
+    uint64_t &active = m_ActiveDrivers[driver];
+    active = RDCMAX(active, timestamp);
   }
-  m_CurrentDriver = driver;
 }
 
-void RenderDoc::GetCurrentDriver(RDCDriver &driver)
+std::map<RDCDriver, bool> RenderDoc::GetActiveDrivers()
 {
-  driver = m_CurrentDriver;
+  std::map<RDCDriver, uint64_t> drivers;
+
+  {
+    SCOPED_LOCK(m_DriverLock);
+    drivers = m_ActiveDrivers;
+  }
+
+  std::map<RDCDriver, bool> ret;
+
+  for(auto it = drivers.begin(); it != drivers.end(); ++it)
+  {
+    // driver is presenting if the timestamp is greater than 0 and less than 10 seconds ago (gives a
+    // little leeway for loading screens or something where the presentation stops temporarily).
+    // we also assume that during a capture if it was presenting, then it's still capturing.
+    // Otherwise a long capture would temporarily set it as not presenting.
+    bool presenting = it->second > 0;
+
+    if(presenting && !IsFrameCapturing() && it->second < Timing::GetUnixTimestamp() - 10)
+      presenting = false;
+
+    ret[it->first] = presenting;
+  }
+
+  return ret;
 }
 
 map<RDCDriver, string> RenderDoc::GetReplayDrivers()

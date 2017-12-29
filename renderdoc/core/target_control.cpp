@@ -36,7 +36,7 @@ enum PacketType : uint32_t
   ePacket_Handshake,
   ePacket_Busy,
   ePacket_NewCapture,
-  ePacket_RegisterAPI,
+  ePacket_APIUse,
   ePacket_TriggerCapture,
   ePacket_CopyCapture,
   ePacket_DeleteCapture,
@@ -55,7 +55,7 @@ std::string DoStringise(const PacketType &el)
     STRINGISE_ENUM_NAMED(ePacket_Handshake, "Handshake");
     STRINGISE_ENUM_NAMED(ePacket_Busy, "Busy");
     STRINGISE_ENUM_NAMED(ePacket_NewCapture, "New Capture");
-    STRINGISE_ENUM_NAMED(ePacket_RegisterAPI, "Register API");
+    STRINGISE_ENUM_NAMED(ePacket_APIUse, "API Use");
     STRINGISE_ENUM_NAMED(ePacket_TriggerCapture, "Trigger Capture");
     STRINGISE_ENUM_NAMED(ePacket_CopyCapture, "Copy Capture");
     STRINGISE_ENUM_NAMED(ePacket_DeleteCapture, "Delete Capture");
@@ -78,9 +78,6 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
   writer.SetStreamingMode(true);
   reader.SetStreamingMode(true);
 
-  RDCDriver driver;
-  RenderDoc::Inst().GetCurrentDriver(driver);
-
   std::string target = RenderDoc::Inst().GetCurrentTarget();
   uint32_t mypid = Process::GetCurrentPID();
 
@@ -88,7 +85,6 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(ePacket_Handshake);
     SERIALISE_ELEMENT(target);
-    SERIALISE_ELEMENT(driver);
     SERIALISE_ELEMENT(mypid);
   }
 
@@ -111,6 +107,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
 
   std::vector<CaptureData> captures;
   std::vector<pair<uint32_t, uint32_t> > children;
+  std::map<RDCDriver, bool> drivers;
 
   while(client)
   {
@@ -123,20 +120,42 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
     Threading::Sleep(ticktime);
     curtime += ticktime;
 
-    RDCDriver curdriver = RDCDriver::Unknown;
-    RenderDoc::Inst().GetCurrentDriver(curdriver);
+    std::map<RDCDriver, bool> curdrivers = RenderDoc::Inst().GetActiveDrivers();
 
     std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
     std::vector<pair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
 
-    if(curdriver != driver)
+    if(curdrivers != drivers)
     {
-      driver = curdriver;
+      // find the first difference, either a new key or a key with a different value, and send it.
+      RDCDriver driver = RDCDriver::Unknown;
+      bool presenting = false;
+
+      // search for new drivers
+      for(auto it = curdrivers.begin(); it != curdrivers.end(); it++)
+      {
+        if(drivers.find(it->first) == drivers.end() || drivers[it->first] != it->second)
+        {
+          driver = it->first;
+          presenting = it->second;
+          break;
+        }
+      }
+
+      RDCASSERTNOTEQUAL(driver, RDCDriver::Unknown);
+
+      if(driver != RDCDriver::Unknown)
+        drivers[driver] = presenting;
+
+      bool supported =
+          RenderDoc::Inst().HasRemoteDriver(driver) || RenderDoc::Inst().HasReplayDriver(driver);
 
       WRITE_DATA_SCOPE();
       {
-        SCOPED_SERIALISE_CHUNK(ePacket_RegisterAPI);
+        SCOPED_SERIALISE_CHUNK(ePacket_APIUse);
         SERIALISE_ELEMENT(driver);
+        SERIALISE_ELEMENT(presenting);
+        SERIALISE_ELEMENT(supported);
       }
     }
     else if(caps.size() != captures.size())
@@ -366,14 +385,10 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
       ser.SetStreamingMode(true);
 
-      RDCDriver driver;
-      RenderDoc::Inst().GetCurrentDriver(driver);
-
       std::string target = RenderDoc::Inst().GetCurrentTarget();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_Busy);
         SERIALISE_ELEMENT(target);
-        SERIALISE_ELEMENT(driver);
         SERIALISE_ELEMENT(RenderDoc::Inst().m_SingleClientName);
       }
 
@@ -441,27 +456,22 @@ public:
     if(m_Socket == NULL)
       return;
 
-    {
-      RDCDriver driver = RDCDriver::Unknown;
 
+    {
       READ_DATA_SCOPE();
       SERIALISE_ELEMENT(m_Target);
-      SERIALISE_ELEMENT(driver);
       SERIALISE_ELEMENT(m_PID);
-
-      m_API = ToStr(driver);
     }
 
     reader.EndChunk();
 
     if(type == ePacket_Handshake)
     {
-      RDCLOG("Got remote handshake: %s (%s) [%u]", m_Target.c_str(), m_API.c_str(), m_PID);
+      RDCLOG("Got remote handshake: %s [%u]", m_Target.c_str(), m_PID);
     }
     else if(type == ePacket_Busy)
     {
-      RDCLOG("Got remote busy signal: %s (%s) owned by %s", m_Target.c_str(), m_API.c_str(),
-             m_BusyClient.c_str());
+      RDCLOG("Got remote busy signal: %s owned by %s", m_Target.c_str(), m_BusyClient.c_str());
     }
   }
 
@@ -632,18 +642,26 @@ public:
       reader.EndChunk();
       return msg;
     }
-    else if(type == ePacket_RegisterAPI)
+    else if(type == ePacket_APIUse)
     {
       msg.type = TargetControlMessageType::RegisterAPI;
 
       RDCDriver driver = RDCDriver::Unknown;
+      bool presenting = false;
+      bool supported = false;
 
       READ_DATA_SCOPE();
       SERIALISE_ELEMENT(driver);
+      SERIALISE_ELEMENT(presenting);
+      SERIALISE_ELEMENT(supported);
 
       msg.apiUse.name = ToStr(driver);
+      msg.apiUse.presenting = presenting;
+      msg.apiUse.supported = supported;
 
-      RDCLOG("Used API: %s", msg.apiUse.name.c_str());
+      RDCLOG("Used API: %s (%s & %s)", msg.apiUse.name.c_str(),
+             presenting ? "Presenting" : "Not presenting",
+             supported ? "supported" : "not supported");
 
       reader.EndChunk();
       return msg;

@@ -370,8 +370,8 @@ public:
   bool HasReplayDriver(RDCDriver driver) const;
   bool HasRemoteDriver(RDCDriver driver) const;
 
-  void SetCurrentDriver(RDCDriver driver);
-  void GetCurrentDriver(RDCDriver &driver);
+  void AddActiveDriver(RDCDriver driver, bool present);
+  std::map<RDCDriver, bool> GetActiveDrivers();
 
   uint32_t GetTargetControlIdent() const { return m_RemoteIdent; }
   bool IsTargetControlConnected();
@@ -459,7 +459,8 @@ private:
   Threading::ThreadHandle m_RemoteThread;
 
   int32_t m_MarkerIndentLevel;
-  RDCDriver m_CurrentDriver;
+  Threading::CriticalSection m_DriverLock;
+  std::map<RDCDriver, uint64_t> m_ActiveDrivers;
 
   float *m_ProgressPtr;
 
@@ -539,7 +540,7 @@ private:
   PerformanceTimer m_Timer;
 
   static void TargetControlServerThread(Network::Socket *sock);
-  static void TargetControlClientThread(Network::Socket *client);
+  static void TargetControlClientThread(uint32_t version, Network::Socket *client);
 
   ICrashHandler *m_ExHandler;
 };

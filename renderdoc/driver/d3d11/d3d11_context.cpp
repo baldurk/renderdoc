@@ -167,11 +167,17 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   if(!context || context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_CurrentPipelineState->SetImmediatePipeline(m_pDevice);
+
+    m_MarkedActive = false;
   }
   else
   {
     m_CurrentPipelineState->SetDevice(m_pDevice);
     m_pDevice->SoftRef();
+
+    // we haven't actually marked active, but this makes the check much easier - just look at this
+    // bool flag rather than "if immediate and not flagged"
+    m_MarkedActive = true;
 
     if(IsCaptureMode(m_State) && RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists)
       m_State = CaptureState::ActiveCapturing;

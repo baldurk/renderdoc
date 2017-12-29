@@ -719,10 +719,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   VkResult vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo);
 
+  RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
+
   if(!activeWindow)
     return vkr;
-
-  RenderDoc::Inst().SetCurrentDriver(RDCDriver::Vulkan);
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)

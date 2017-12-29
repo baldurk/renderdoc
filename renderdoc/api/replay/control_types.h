@@ -435,6 +435,9 @@ struct APIUseData
 
   DOCUMENT("``True`` if the API is presenting to a swapchain");
   bool presenting = false;
+
+  DOCUMENT("``True`` if the API can be captured.");
+  bool supported = false;
 };
 
 DECLARE_REFLECTION_STRUCT(APIUseData);
