@@ -43,13 +43,13 @@ static void writeToByteVector(void *context, void *data, int size)
 
 static RDCDriver driverFromName(const char *driverName)
 {
-  for(int d = RDC_Unknown; d < RDC_MaxBuiltin; d++)
+  for(int d = (int)RDCDriver::Unknown; d < (int)RDCDriver::MaxBuiltin; d++)
   {
     if(driverName == ToStr((RDCDriver)d))
       return (RDCDriver)d;
   }
 
-  return RDC_Unknown;
+  return RDCDriver::Unknown;
 }
 
 static RDCThumb convertThumb(FileType thumbType, uint32_t thumbWidth, uint32_t thumbHeight,
@@ -313,7 +313,7 @@ ReplayStatus CaptureFile::Init()
       }
 
       // can't open files without a capture in them (except images, which are special)
-      if(driverType != RDC_Image && m_RDC->SectionIndex(SectionType::FrameCapture) == -1)
+      if(driverType != RDCDriver::Image && m_RDC->SectionIndex(SectionType::FrameCapture) == -1)
         m_Support = ReplaySupport::Unsupported;
 
       return ReplayStatus::Succeeded;
@@ -364,7 +364,7 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
 
   RDCDriver driver = driverFromName(driverName);
 
-  if(driver == RDC_Unknown)
+  if(driver == RDCDriver::Unknown)
   {
     RDCERR("Unrecognised driver name '%s'.", driverName);
     return;

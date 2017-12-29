@@ -696,7 +696,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       GetDebugManager()->BeginText(textstate);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_Vulkan, m_FrameCounter, flags);
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, m_FrameCounter, flags);
 
       if(!overlayText.empty())
         GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, overlayText.c_str());
@@ -722,7 +722,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
   if(!activeWindow)
     return vkr;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
+  RenderDoc::Inst().SetCurrentDriver(RDCDriver::Vulkan);
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)

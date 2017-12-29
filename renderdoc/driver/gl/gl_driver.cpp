@@ -500,7 +500,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
   BuildGLExtensions();
   BuildGLESExtensions();
   // by default we assume OpenGL driver
-  SetDriverType(RDC_OpenGL);
+  SetDriverType(RDCDriver::OpenGL);
 
   m_Replay.SetDriver(this);
 

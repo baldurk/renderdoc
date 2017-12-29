@@ -5520,7 +5520,7 @@ struct VulkanDriverRegistration
 {
   VulkanDriverRegistration()
   {
-    RenderDoc::Inst().RegisterReplayProvider(RDC_Vulkan, "Vulkan", &Vulkan_CreateReplayDevice);
+    RenderDoc::Inst().RegisterReplayProvider(RDCDriver::Vulkan, &Vulkan_CreateReplayDevice);
     RenderDoc::Inst().SetVulkanLayerCheck(&VulkanReplay::CheckVulkanLayer);
     RenderDoc::Inst().SetVulkanLayerInstall(&VulkanReplay::InstallVulkanLayer);
   }
@@ -5544,4 +5544,5 @@ void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
     vulkan.GetStructuredFile().Swap(output);
 }
 
-static StructuredProcessRegistration VulkanProcessRegistration(RDC_Vulkan, &Vulkan_ProcessStructured);
+static StructuredProcessRegistration VulkanProcessRegistration(RDCDriver::Vulkan,
+                                                               &Vulkan_ProcessStructured);

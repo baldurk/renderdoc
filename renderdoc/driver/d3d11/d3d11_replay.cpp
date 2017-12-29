@@ -2071,7 +2071,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   return ReplayStatus::APIHardwareUnsupported;
 }
 
-static DriverRegistration D3D11DriverRegistration(RDC_D3D11, "D3D11", &D3D11_CreateReplayDevice);
+static DriverRegistration D3D11DriverRegistration(RDCDriver::D3D11, &D3D11_CreateReplayDevice);
 
 void D3D11_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
@@ -2089,4 +2089,5 @@ void D3D11_ProcessStructured(RDCFile *rdc, SDFile &output)
     device.GetStructuredFile().Swap(output);
 }
 
-static StructuredProcessRegistration D3D11ProcessRegistration(RDC_D3D11, &D3D11_ProcessStructured);
+static StructuredProcessRegistration D3D11ProcessRegistration(RDCDriver::D3D11,
+                                                              &D3D11_ProcessStructured);

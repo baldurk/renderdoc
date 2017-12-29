@@ -64,17 +64,17 @@ std::string DoStringise(const RDCDriver &el)
 {
   BEGIN_ENUM_STRINGISE(RDCDriver);
   {
-    STRINGISE_ENUM_NAMED(RDC_Unknown, "Unknown");
-    STRINGISE_ENUM_NAMED(RDC_OpenGL, "OpenGL");
-    STRINGISE_ENUM_NAMED(RDC_OpenGLES, "OpenGLES");
-    STRINGISE_ENUM_NAMED(RDC_Mantle, "Mantle");
-    STRINGISE_ENUM_NAMED(RDC_D3D12, "D3D12");
-    STRINGISE_ENUM_NAMED(RDC_D3D11, "D3D11");
-    STRINGISE_ENUM_NAMED(RDC_D3D10, "D3D10");
-    STRINGISE_ENUM_NAMED(RDC_D3D9, "D3D9");
-    STRINGISE_ENUM_NAMED(RDC_D3D8, "D3D8");
-    STRINGISE_ENUM_NAMED(RDC_Image, "Image");
-    STRINGISE_ENUM_NAMED(RDC_Vulkan, "Vulkan");
+    STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(OpenGL);
+    STRINGISE_ENUM_CLASS(OpenGLES);
+    STRINGISE_ENUM_CLASS(Mantle);
+    STRINGISE_ENUM_CLASS(D3D12);
+    STRINGISE_ENUM_CLASS(D3D11);
+    STRINGISE_ENUM_CLASS(D3D10);
+    STRINGISE_ENUM_CLASS(D3D9);
+    STRINGISE_ENUM_CLASS(D3D8);
+    STRINGISE_ENUM_CLASS(Image);
+    STRINGISE_ENUM_CLASS(Vulkan);
   }
   END_ENUM_STRINGISE();
 }
@@ -201,7 +201,7 @@ RenderDoc::RenderDoc()
 {
   m_LogFile = "";
   m_MarkerIndentLevel = 0;
-  m_CurrentDriver = RDC_Unknown;
+  m_CurrentDriver = RDCDriver::Unknown;
 
   m_CapturesActive = 0;
 
@@ -731,7 +731,7 @@ RDCFile *RenderDoc::CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, u
     thumb = &th;
   }
 
-  ret->SetData(m_CurrentDriver, m_CurrentDriverName.c_str(), OSUtility::GetMachineIdent(), thumb);
+  ret->SetData(m_CurrentDriver, ToStr(m_CurrentDriver).c_str(), OSUtility::GetMachineIdent(), thumb);
 
   ret->Create(m_CurrentLogFile.c_str());
 
@@ -747,7 +747,7 @@ RDCFile *RenderDoc::CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, u
 bool RenderDoc::HasReplayDriver(RDCDriver driver) const
 {
   // Image driver is handled specially and isn't registered in the map
-  if(driver == RDC_Image)
+  if(driver == RDCDriver::Image)
     return true;
 
   return m_ReplayDriverProviders.find(driver) != m_ReplayDriverProviders.end();
@@ -761,29 +761,23 @@ bool RenderDoc::HasRemoteDriver(RDCDriver driver) const
   return HasReplayDriver(driver);
 }
 
-void RenderDoc::RegisterReplayProvider(RDCDriver driver, const char *name,
-                                       ReplayDriverProvider provider)
+void RenderDoc::RegisterReplayProvider(RDCDriver driver, ReplayDriverProvider provider)
 {
   if(HasReplayDriver(driver))
-    RDCERR("Re-registering provider for %s (was %s)", name, m_DriverNames[driver].c_str());
+    RDCERR("Re-registering provider for %s", ToStr(driver).c_str());
   if(HasRemoteDriver(driver))
-    RDCWARN("Registering local provider %s for existing remote provider %s", name,
-            m_DriverNames[driver].c_str());
+    RDCWARN("Registering local provider for existing remote provider %s", ToStr(driver).c_str());
 
-  m_DriverNames[driver] = name;
   m_ReplayDriverProviders[driver] = provider;
 }
 
-void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const char *name,
-                                       RemoteDriverProvider provider)
+void RenderDoc::RegisterRemoteProvider(RDCDriver driver, RemoteDriverProvider provider)
 {
   if(HasRemoteDriver(driver))
-    RDCERR("Re-registering provider for %s (was %s)", name, m_DriverNames[driver].c_str());
+    RDCERR("Re-registering provider for %s", ToStr(driver).c_str());
   if(HasReplayDriver(driver))
-    RDCWARN("Registering remote provider %s for existing local provider %s", name,
-            m_DriverNames[driver].c_str());
+    RDCWARN("Registering remote provider for existing local provider %s", ToStr(driver).c_str());
 
-  m_DriverNames[driver] = name;
   m_RemoteDriverProviders[driver] = provider;
 }
 
@@ -882,10 +876,10 @@ std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
 
 bool RenderDoc::HasReplaySupport(RDCDriver driverType)
 {
-  if(driverType == RDC_Image)
+  if(driverType == RDCDriver::Image)
     return true;
 
-  if(driverType == RDC_Unknown && !m_ReplayDriverProviders.empty())
+  if(driverType == RDCDriver::Unknown && !m_ReplayDriverProviders.empty())
     return true;
 
   return m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end();
@@ -893,8 +887,8 @@ bool RenderDoc::HasReplaySupport(RDCDriver driverType)
 
 ReplayStatus RenderDoc::CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver)
 {
-  // passing RDC_Unknown means 'I don't care, give me a proxy driver of any type'
-  if(proxyDriver == RDC_Unknown)
+  // passing RDCDriver::Unknown means 'I don't care, give me a proxy driver of any type'
+  if(proxyDriver == RDCDriver::Unknown)
   {
     if(!m_ReplayDriverProviders.empty())
       return m_ReplayDriverProviders.begin()->second(NULL, driver);
@@ -925,7 +919,7 @@ ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver)
   RDCDriver driverType = rdc->GetDriver();
 
   // image support is special, handle it here
-  if(driverType == RDC_Image)
+  if(driverType == RDCDriver::Image)
     return IMG_CreateReplayDevice(rdc, driver);
 
   if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
@@ -970,20 +964,18 @@ void RenderDoc::SetCurrentDriver(RDCDriver driver)
     RDCFATAL("Trying to register unsupported driver!");
   }
   m_CurrentDriver = driver;
-  m_CurrentDriverName = m_DriverNames[driver];
 }
 
-void RenderDoc::GetCurrentDriver(RDCDriver &driver, string &name)
+void RenderDoc::GetCurrentDriver(RDCDriver &driver)
 {
   driver = m_CurrentDriver;
-  name = m_CurrentDriverName;
 }
 
 map<RDCDriver, string> RenderDoc::GetReplayDrivers()
 {
   map<RDCDriver, string> ret;
   for(auto it = m_ReplayDriverProviders.begin(); it != m_ReplayDriverProviders.end(); ++it)
-    ret[it->first] = m_DriverNames[it->first];
+    ret[it->first] = ToStr(it->first);
   return ret;
 }
 
@@ -992,11 +984,11 @@ map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
   map<RDCDriver, string> ret;
 
   for(auto it = m_RemoteDriverProviders.begin(); it != m_RemoteDriverProviders.end(); ++it)
-    ret[it->first] = m_DriverNames[it->first];
+    ret[it->first] = ToStr(it->first);
 
   // replay drivers are remote drivers.
   for(auto it = m_ReplayDriverProviders.begin(); it != m_ReplayDriverProviders.end(); ++it)
-    ret[it->first] = m_DriverNames[it->first];
+    ret[it->first] = ToStr(it->first);
 
   return ret;
 }

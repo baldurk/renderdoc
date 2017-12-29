@@ -1069,7 +1069,7 @@ public:
 
         for(uint32_t i = 0; i < count; i++)
         {
-          RDCDriver driverType = RDC_Unknown;
+          RDCDriver driverType = RDCDriver::Unknown;
           std::string driverName = "";
 
           SERIALISE_ELEMENT(driverType);
@@ -1333,7 +1333,7 @@ public:
 
     // if the proxy id is ~0U, then we just don't care so let RenderDoc pick the most
     // appropriate supported proxy for the current platform.
-    RDCDriver proxydrivertype = proxyid == ~0U ? RDC_Unknown : m_Proxies[proxyid].first;
+    RDCDriver proxydrivertype = proxyid == ~0U ? RDCDriver::Unknown : m_Proxies[proxyid].first;
 
     {
       WRITE_DATA_SCOPE();

@@ -1832,7 +1832,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   return ReplayStatus::Succeeded;
 }
 
-static DriverRegistration D3D12DriverRegistration(RDC_D3D12, "D3D12", &D3D12_CreateReplayDevice);
+static DriverRegistration D3D12DriverRegistration(RDCDriver::D3D12, &D3D12_CreateReplayDevice);
 
 void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
@@ -1850,4 +1850,5 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
     device.GetStructuredFile().Swap(output);
 }
 
-static StructuredProcessRegistration D3D12ProcessRegistration(RDC_D3D12, &D3D12_ProcessStructured);
+static StructuredProcessRegistration D3D12ProcessRegistration(RDCDriver::D3D12,
+                                                              &D3D12_ProcessStructured);

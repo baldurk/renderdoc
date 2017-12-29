@@ -395,7 +395,7 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   FileIO::fclose(f);
 
   IReplayDriver *proxy = NULL;
-  ReplayStatus status = RenderDoc::Inst().CreateProxyReplayDriver(RDC_Unknown, &proxy);
+  ReplayStatus status = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::Unknown, &proxy);
 
   if(status != ReplayStatus::Succeeded || !proxy)
   {

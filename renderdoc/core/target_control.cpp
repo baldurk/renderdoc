@@ -78,9 +78,8 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
   writer.SetStreamingMode(true);
   reader.SetStreamingMode(true);
 
-  std::string api = "";
   RDCDriver driver;
-  RenderDoc::Inst().GetCurrentDriver(driver, api);
+  RenderDoc::Inst().GetCurrentDriver(driver);
 
   std::string target = RenderDoc::Inst().GetCurrentTarget();
   uint32_t mypid = Process::GetCurrentPID();
@@ -89,7 +88,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(ePacket_Handshake);
     SERIALISE_ELEMENT(target);
-    SERIALISE_ELEMENT(api);
+    SERIALISE_ELEMENT(driver);
     SERIALISE_ELEMENT(mypid);
   }
 
@@ -124,20 +123,20 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
     Threading::Sleep(ticktime);
     curtime += ticktime;
 
-    std::string curapi;
-    RenderDoc::Inst().GetCurrentDriver(driver, curapi);
+    RDCDriver curdriver = RDCDriver::Unknown;
+    RenderDoc::Inst().GetCurrentDriver(curdriver);
 
     std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
     std::vector<pair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
 
-    if(curapi != api)
+    if(curdriver != driver)
     {
-      api = curapi;
+      driver = curdriver;
 
       WRITE_DATA_SCOPE();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_RegisterAPI);
-        SERIALISE_ELEMENT(api);
+        SERIALISE_ELEMENT(driver);
       }
     }
     else if(caps.size() != captures.size())
@@ -367,15 +366,14 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
       ser.SetStreamingMode(true);
 
-      std::string api = "";
       RDCDriver driver;
-      RenderDoc::Inst().GetCurrentDriver(driver, api);
+      RenderDoc::Inst().GetCurrentDriver(driver);
 
       std::string target = RenderDoc::Inst().GetCurrentTarget();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_Busy);
         SERIALISE_ELEMENT(target);
-        SERIALISE_ELEMENT(api);
+        SERIALISE_ELEMENT(driver);
         SERIALISE_ELEMENT(RenderDoc::Inst().m_SingleClientName);
       }
 
@@ -444,10 +442,14 @@ public:
       return;
 
     {
+      RDCDriver driver = RDCDriver::Unknown;
+
       READ_DATA_SCOPE();
       SERIALISE_ELEMENT(m_Target);
-      SERIALISE_ELEMENT(m_API);
+      SERIALISE_ELEMENT(driver);
       SERIALISE_ELEMENT(m_PID);
+
+      m_API = ToStr(driver);
     }
 
     reader.EndChunk();
@@ -634,8 +636,12 @@ public:
     {
       msg.type = TargetControlMessageType::RegisterAPI;
 
+      RDCDriver driver = RDCDriver::Unknown;
+
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.apiUse.name).Named("API Name");
+      SERIALISE_ELEMENT(driver);
+
+      msg.apiUse.name = ToStr(driver);
 
       RDCLOG("Used API: %s", msg.apiUse.name.c_str());
 

@@ -1127,7 +1127,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       list->OMSetRenderTargets(1, &rtv, FALSE, NULL);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D12, m_FrameCounter, flags);
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
 
       if(!overlayText.empty())
         GetDebugManager()->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
@@ -1146,7 +1146,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
   if(!activeWindow)
     return S_OK;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_D3D12);
+  RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D12);
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
@@ -1225,7 +1225,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_D3D12);
+  RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D12);
 
   m_AppControlledCapture = true;
 

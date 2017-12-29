@@ -242,7 +242,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       flags |= RenderDoc::eOverlay_CaptureDisabled;
 
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D9, m_FrameCounter, flags);
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D9, m_FrameCounter, flags);
 
       overlayText += "Captures not supported with D3D9\n";
 
@@ -256,7 +256,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
 
   if(activeWindow)
   {
-    RenderDoc::Inst().SetCurrentDriver(RDC_D3D9);
+    RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D9);
   }
 
   return m_device->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);

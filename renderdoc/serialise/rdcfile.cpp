@@ -170,7 +170,7 @@ struct CaptureMetaData
   uint64_t machineIdent = 0;
 
   // the RDCDriver used for this log
-  RDCDriver driverID = RDC_Unknown;
+  RDCDriver driverID = RDCDriver::Unknown;
   // length in bytes of the driver name
   uint8_t driverNameLength = 1;
   // the driver name in ASCII. Useful if the current implementation doesn't recognise the driver
@@ -268,7 +268,7 @@ void RDCFile::Open(const char *path)
 
     if(ret == 1 && x > 0 && y > 0 && comp > 0)
     {
-      m_Driver = RDC_Image;
+      m_Driver = RDCDriver::Image;
       m_DriverName = "Image";
       m_MachineIdent = 0;
       return;
@@ -1130,7 +1130,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
 FILE *RDCFile::StealImageFileHandle(std::string &filename)
 {
-  if(m_Driver != RDC_Image)
+  if(m_Driver != RDCDriver::Image)
   {
     RDCERR("Can't steal image file handle for non-image RDCFile");
     return NULL;

@@ -162,31 +162,31 @@ enum class SystemChunk : uint32_t
 
 DECLARE_REFLECTION_ENUM(SystemChunk);
 
-enum RDCDriver
+enum class RDCDriver
 {
-  RDC_Unknown = 0,
-  RDC_D3D11 = 1,
-  RDC_OpenGL = 2,
-  RDC_Mantle = 3,
-  RDC_D3D12 = 4,
-  RDC_D3D10 = 5,
-  RDC_D3D9 = 6,
-  RDC_Image = 7,
-  RDC_Vulkan = 8,
-  RDC_OpenGLES = 9,
-  RDC_D3D8 = 10,
-  RDC_MaxBuiltin,
-  RDC_Custom = 100000,
-  RDC_Custom0 = RDC_Custom,
-  RDC_Custom1,
-  RDC_Custom2,
-  RDC_Custom3,
-  RDC_Custom4,
-  RDC_Custom5,
-  RDC_Custom6,
-  RDC_Custom7,
-  RDC_Custom8,
-  RDC_Custom9,
+  Unknown = 0,
+  D3D11 = 1,
+  OpenGL = 2,
+  Mantle = 3,
+  D3D12 = 4,
+  D3D10 = 5,
+  D3D9 = 6,
+  Image = 7,
+  Vulkan = 8,
+  OpenGLES = 9,
+  D3D8 = 10,
+  MaxBuiltin,
+  Custom = 100000,
+  Custom0 = Custom,
+  Custom1,
+  Custom2,
+  Custom3,
+  Custom4,
+  Custom5,
+  Custom6,
+  Custom7,
+  Custom8,
+  Custom9,
 };
 
 DECLARE_REFLECTION_ENUM(RDCDriver);
@@ -318,8 +318,8 @@ public:
     }
   }
 
-  void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
-  void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);
+  void RegisterReplayProvider(RDCDriver driver, ReplayDriverProvider provider);
+  void RegisterRemoteProvider(RDCDriver driver, RemoteDriverProvider provider);
 
   void RegisterStructuredProcessor(RDCDriver driver, StructuredProcessor provider);
 
@@ -371,7 +371,7 @@ public:
   bool HasRemoteDriver(RDCDriver driver) const;
 
   void SetCurrentDriver(RDCDriver driver);
-  void GetCurrentDriver(RDCDriver &driver, string &name);
+  void GetCurrentDriver(RDCDriver &driver);
 
   uint32_t GetTargetControlIdent() const { return m_RemoteIdent; }
   bool IsTargetControlConnected();
@@ -460,7 +460,6 @@ private:
 
   int32_t m_MarkerIndentLevel;
   RDCDriver m_CurrentDriver;
-  string m_CurrentDriverName;
 
   float *m_ProgressPtr;
 
@@ -472,7 +471,6 @@ private:
 
   map<string, string> m_ConfigSettings;
 
-  map<RDCDriver, string> m_DriverNames;
   map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
@@ -548,13 +546,13 @@ private:
 
 struct DriverRegistration
 {
-  DriverRegistration(RDCDriver driver, const char *name, ReplayDriverProvider provider)
+  DriverRegistration(RDCDriver driver, ReplayDriverProvider provider)
   {
-    RenderDoc::Inst().RegisterReplayProvider(driver, name, provider);
+    RenderDoc::Inst().RegisterReplayProvider(driver, provider);
   }
-  DriverRegistration(RDCDriver driver, const char *name, RemoteDriverProvider provider)
+  DriverRegistration(RDCDriver driver, RemoteDriverProvider provider)
   {
-    RenderDoc::Inst().RegisterRemoteProvider(driver, name, provider);
+    RenderDoc::Inst().RegisterRemoteProvider(driver, provider);
   }
 };
 

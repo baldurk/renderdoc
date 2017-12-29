@@ -879,7 +879,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
+  RenderDoc::Inst().SetCurrentDriver(RDCDriver::Vulkan);
 
   m_AppControlledCapture = true;
 

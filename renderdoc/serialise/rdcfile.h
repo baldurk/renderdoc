@@ -86,7 +86,7 @@ public:
   StreamReader *ReadSection(int index) const;
   StreamWriter *WriteSection(const SectionProperties &props);
 
-  // Only valid if GetDriver returns RDC_Image, passes over the underlying FILE * for use
+  // Only valid if GetDriver returns RDCDriver::Image, passes over the underlying FILE * for use
   // loading the image directly, since the RDC container isn't there to read from a section.
   FILE *StealImageFileHandle(std::string &filename);
 
@@ -101,7 +101,7 @@ private:
 
   uint32_t m_SerVer = 0;
 
-  RDCDriver m_Driver = RDC_Unknown;
+  RDCDriver m_Driver = RDCDriver::Unknown;
   std::string m_DriverName;
   uint64_t m_MachineIdent = 0;
   RDCThumb m_Thumb;

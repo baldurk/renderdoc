@@ -1342,7 +1342,7 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
+  RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D11);
 
   m_State = CaptureState::ActiveCapturing;
 
@@ -2016,7 +2016,7 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D11, m_FrameCounter, flags);
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
 
       if(activeWindow && m_FailedFrame > 0)
       {
@@ -2042,7 +2042,7 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
   if(!activeWindow)
     return S_OK;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
+  RenderDoc::Inst().SetCurrentDriver(RDCDriver::D3D11);
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)

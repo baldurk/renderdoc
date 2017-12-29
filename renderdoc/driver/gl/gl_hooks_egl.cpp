@@ -190,7 +190,7 @@ public:
     if(m_GLDriver == NULL)
     {
       m_GLDriver = new WrappedOpenGL(GL, *this);
-      m_GLDriver->SetDriverType(RDC_OpenGLES);
+      m_GLDriver->SetDriverType(RDCDriver::OpenGLES);
     }
 
     return m_GLDriver;
@@ -226,7 +226,7 @@ void EGLHook::libHooked(void *realLib)
 {
   libGLdlsymHandle = realLib;
   eglhooks.CreateHooks(NULL);
-  eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
+  eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
 }
 
 // everything below here needs to have C linkage
@@ -317,7 +317,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   data.egl_wnd = (EGLSurface)NULL;
   data.egl_ctx = ret;
 
-  eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
+  eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
   {
     SCOPED_LOCK(glLock);
     eglhooks.GetDriver()->CreateContext(data, shareContext, init, true, true);
@@ -331,7 +331,7 @@ __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay d
   if(eglhooks.real.DestroyContext == NULL)
     eglhooks.SetupExportedFunctions();
 
-  eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
+  eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
   {
     SCOPED_LOCK(glLock);
     eglhooks.GetDriver()->DeleteContext(ctx);
@@ -362,7 +362,7 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
   data.egl_wnd = draw;
   data.egl_ctx = ctx;
 
-  eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
+  eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
   eglhooks.GetDriver()->ActivateContext(data);
 
   return ret;
@@ -385,7 +385,7 @@ __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy,
   // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
   init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
 
-  eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
+  eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
   eglhooks.GetDriver()->WindowSize(surface, width, height);
   eglhooks.GetDriver()->SwapBuffers(surface);
 

@@ -30,4 +30,4 @@ ReplayStatus D3D9_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   return ReplayStatus::APIUnsupported;
 }
 
-static DriverRegistration D3D9DriverRegistration(RDC_D3D9, "D3D9", &D3D9_CreateReplayDevice);
+static DriverRegistration D3D9DriverRegistration(RDCDriver::D3D9, &D3D9_CreateReplayDevice);

@@ -3359,15 +3359,16 @@ void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
     device.GetStructuredFile().Swap(output);
 }
 
-static StructuredProcessRegistration GLProcessRegistration(RDC_OpenGL, &GL_ProcessStructured);
-static StructuredProcessRegistration GLESProcessRegistration(RDC_OpenGLES, &GL_ProcessStructured);
+static StructuredProcessRegistration GLProcessRegistration(RDCDriver::OpenGL, &GL_ProcessStructured);
+static StructuredProcessRegistration GLESProcessRegistration(RDCDriver::OpenGLES,
+                                                             &GL_ProcessStructured);
 
 #if defined(RENDERDOC_SUPPORT_GL)
 
 // defined in gl_replay_<platform>.cpp
 ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
-static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);
+static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateReplayDevice);
 
 #endif
 
@@ -3377,6 +3378,6 @@ static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateR
 ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 void GLES_ProcessStructured(RDCFile *rdc, SDFile &output);
 
-static DriverRegistration GLESDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);
+static DriverRegistration GLESDriverRegistration(RDCDriver::OpenGLES, &GLES_CreateReplayDevice);
 
 #endif
