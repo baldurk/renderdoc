@@ -437,7 +437,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         AddEvent();
 
         draw.name = name;
-        draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced;
+        draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
         AddDrawcall(draw, true);
 
@@ -685,12 +685,14 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                 uint32_t eventId = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, drawidx + 1);
 
                 ObjDisp(commandBuffer)
-                    ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+                    ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
+                                             stride);
 
                 if(eventId && m_DrawcallCallback->PostDraw(eventId, commandBuffer))
                 {
                   ObjDisp(commandBuffer)
-                      ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+                      ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count,
+                                               stride);
                   m_DrawcallCallback->PostRedraw(eventId, commandBuffer);
                 }
               }
@@ -750,7 +752,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         AddEvent();
 
         draw.name = name;
-        draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced;
+        draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
+                     DrawFlags::Indirect;
 
         AddDrawcall(draw, true);
 
@@ -801,7 +804,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         multi.name = "vkCmdDrawIndexedIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) +
                      ", " + ToStr(multi.numInstances) + ">)";
 
-        multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+        multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
+                       DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multi.name.c_str());
