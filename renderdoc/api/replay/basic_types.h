@@ -170,6 +170,18 @@ struct ItemHelper
       new(first + i) T();
   }
 
+  static void copyRange(T *dest, const T *src, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      new(dest + i) T(src[i]);
+  }
+
+  static void destroyRange(T *first, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      (first + i)->~T();
+  }
+
   static bool equalRange(T *a, T *b, int32_t count)
   {
     for(int32_t i = 0; i < count; i++)
@@ -193,6 +205,11 @@ template <typename T>
 struct ItemHelper<T, true>
 {
   static void initRange(T *first, int32_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
+  static void copyRange(T *dest, const T *src, int32_t count)
+  {
+    memcpy(dest, src, count * sizeof(T));
+  }
+  static void destroyRange(T *first, int32_t itemCount) {}
   static bool equalRange(T *a, T *b, int32_t count) { return !memcmp(a, b, count * sizeof(T)); }
   static bool lessthanRange(T *a, T *b, int32_t count)
   {
@@ -309,12 +326,10 @@ public:
     if(elems)
     {
       // copy the elements to new storage
-      for(int32_t i = 0; i < usedCount; i++)
-        new(newElems + i) T(elems[i]);
+      ItemHelper<T>::copyRange(newElems, elems, usedCount);
 
       // delete the old elements
-      for(int32_t i = 0; i < usedCount; i++)
-        elems[i].~T();
+      ItemHelper<T>::destroyRange(elems, usedCount);
     }
 
     // deallocate tee old storage
@@ -351,8 +366,7 @@ public:
       // resizing down, we just need to update the count and destruct removed elements
       setUsedCount((int32_t)s);
 
-      for(int32_t i = usedCount; i < oldCount; i++)
-        elems[i].~T();
+      ItemHelper<T>::destroyRange(elems + usedCount, oldCount - usedCount);
     }
   }
 
@@ -586,8 +600,7 @@ public:
     setUsedCount((int32_t)in.size());
 
     // copy construct the new elems
-    for(int32_t i = 0; i < usedCount; i++)
-      new(elems + i) T(in[i]);
+    ItemHelper<T>::copyRange(elems, in.data(), usedCount);
 
     null_terminator<T>::fixup(elems, usedCount);
 
@@ -632,8 +645,7 @@ public:
     setUsedCount((int32_t)in.size());
 
     // copy construct the new elems
-    for(int32_t i = 0; i < usedCount; i++)
-      new(elems + i) T(in[i]);
+    ItemHelper<T>::copyRange(elems, in.data(), usedCount);
 
     null_terminator<T>::fixup(elems, usedCount);
 
@@ -652,8 +664,7 @@ public:
     setUsedCount((int32_t)count);
 
     // copy construct the new elems
-    for(int32_t i = 0; i < usedCount; i++)
-      new(elems + i) T(in[i]);
+    ItemHelper<T>::copyRange(elems, in, usedCount);
   }
 
 #if defined(RENDERDOC_QT_COMPAT)
