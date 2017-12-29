@@ -218,8 +218,6 @@ RenderDoc::RenderDoc()
   m_CaptureKeys.push_back(eRENDERDOC_Key_F12);
   m_CaptureKeys.push_back(eRENDERDOC_Key_PrtScrn);
 
-  m_ProgressPtr = NULL;
-
   m_ExHandler = NULL;
 
   m_Overlay = eRENDERDOC_Overlay_Default;
@@ -1041,31 +1039,10 @@ void RenderDoc::SetLogFile(const char *logFile)
   FileIO::CreateParentDirectory(m_LogFile);
 }
 
-void RenderDoc::SetProgress(LoadProgressSection section, float delta)
-{
-  if(m_ProgressPtr == NULL || section < 0 || section >= NumSections)
-    return;
-
-  float weights[NumSections];
-
-  // must sum to 1.0
-  weights[DebugManagerInit] = 0.1f;
-  weights[FileInitialRead] = 0.75f;
-  weights[FrameEventsRead] = 0.15f;
-
-  float progress = 0.0f;
-  for(int i = 0; i < section; i++)
-  {
-    progress += weights[i];
-  }
-
-  progress += weights[section] * delta;
-
-  *m_ProgressPtr = progress;
-}
-
 void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
 {
+  RenderDoc::Inst().SetProgress(CaptureProgress::FileWriting, 0.0f);
+
   if(rdc)
   {
     // add the resolve database if we were capturing callstacks.
@@ -1099,6 +1076,8 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       m_Captures.push_back(cap);
     }
   }
+
+  RenderDoc::Inst().SetProgress(CaptureProgress::FileWriting, 1.0f);
 }
 
 void RenderDoc::AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap)

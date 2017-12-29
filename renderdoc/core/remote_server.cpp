@@ -406,7 +406,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
           bool kill = false;
           float progress = 0.0f;
 
-          RenderDoc::Inst().SetProgressPtr(&progress);
+          RenderDoc::Inst().SetProgressPointer<LoadProgress>(&progress);
 
           Threading::ThreadHandle ticker = Threading::CreateThread([&writer, &kill, &progress]() {
             while(!kill)
@@ -439,7 +439,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
             else
             {
-              RenderDoc::Inst().SetProgressPtr(NULL);
+              RenderDoc::Inst().SetProgressPointer<LoadProgress>(NULL);
 
               kill = true;
               Threading::JoinThread(ticker);

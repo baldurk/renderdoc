@@ -2474,8 +2474,15 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
         RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());
 
+        float num = float(recordlist.size());
+        float idx = 0.0f;
+
         for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+        {
+          RenderDoc::Inst().SetProgress(CaptureProgress::SerialiseFrameContents, idx / num);
+          idx += 1.0f;
           it->second->Write(ser);
+        }
 
         RDCDEBUG("Done");
       }
@@ -3137,7 +3144,8 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     uint64_t offsetEnd = reader->GetOffset();
 
-    RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
+    RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
+                                  float(offsetEnd) / float(reader->GetSize()));
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
@@ -4773,7 +4781,8 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
       return m_FailedReplayStatus;
 
     RenderDoc::Inst().SetProgress(
-        FileInitialRead, float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
+        LoadProgress::FrameEventsRead,
+        float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
     if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;

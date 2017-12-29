@@ -1189,7 +1189,8 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
       return m_FailedReplayStatus;
 
     RenderDoc::Inst().SetProgress(
-        FrameEventsRead, float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
+        LoadProgress::FrameEventsRead,
+        float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
     if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;

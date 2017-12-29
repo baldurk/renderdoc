@@ -865,8 +865,14 @@ void ResourceManagerType::InsertReferencedChunks(WriteSerialiser &ser)
 
   if(RenderDoc::Inst().GetCaptureOptions().refAllResources)
   {
+    float num = float(m_ResourceRecords.size());
+    float idx = 0.0f;
+
     for(auto it = m_ResourceRecords.begin(); it != m_ResourceRecords.end(); ++it)
     {
+      RenderDoc::Inst().SetProgress(CaptureProgress::AddReferencedResources, idx / num);
+      idx += 1.0f;
+
       if(!SerialisableResource(it->first, it->second))
         continue;
 
@@ -875,8 +881,14 @@ void ResourceManagerType::InsertReferencedChunks(WriteSerialiser &ser)
   }
   else
   {
+    float num = float(m_FrameReferencedResources.size());
+    float idx = 0.0f;
+
     for(auto it = m_FrameReferencedResources.begin(); it != m_FrameReferencedResources.end(); ++it)
     {
+      RenderDoc::Inst().SetProgress(CaptureProgress::AddReferencedResources, idx / num);
+      idx += 1.0f;
+
       RecordType *record = GetResourceRecord(it->first);
       if(record)
         record->Insert(sortedChunks);
@@ -899,9 +911,15 @@ void ResourceManagerType::PrepareInitialContents()
   RDCDEBUG("Preparing up to %u potentially dirty resources", (uint32_t)m_DirtyResources.size());
   uint32_t prepared = 0;
 
+  float num = float(m_DirtyResources.size());
+  float idx = 0.0f;
+
   for(auto it = m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
   {
     ResourceId id = *it;
+
+    RenderDoc::Inst().SetProgress(CaptureProgress::PrepareInitialStates, idx / num);
+    idx += 1.0f;
 
     if(!HasCurrentResource(id))
       continue;
@@ -950,9 +968,15 @@ void ResourceManagerType::InsertInitialContentsChunks(WriteSerialiser &ser)
 
   RDCDEBUG("Checking %u possibly dirty resources", (uint32_t)m_DirtyResources.size());
 
+  float num = float(m_DirtyResources.size());
+  float idx = 0.0f;
+
   for(auto it = m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
   {
     ResourceId id = *it;
+
+    RenderDoc::Inst().SetProgress(CaptureProgress::SerialiseInitialStates, idx / num);
+    idx += 1.0f;
 
     if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
        !RenderDoc::Inst().GetCaptureOptions().refAllResources)

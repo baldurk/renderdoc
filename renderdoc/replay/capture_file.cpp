@@ -332,11 +332,11 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float *progr
   ReplayController *render = new ReplayController();
   ReplayStatus ret;
 
-  RenderDoc::Inst().SetProgressPtr(progress);
+  RenderDoc::Inst().SetProgressPointer<LoadProgress>(progress);
 
   ret = render->CreateDevice(m_RDC);
 
-  RenderDoc::Inst().SetProgressPtr(NULL);
+  RenderDoc::Inst().SetProgressPointer<LoadProgress>(NULL);
 
   if(ret != ReplayStatus::Succeeded)
     SAFE_DELETE(render);

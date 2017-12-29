@@ -110,7 +110,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   RDCEraseEl(m_TileMinMaxPipe);
   RDCEraseEl(m_HistogramPipe);
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
 
   m_pFactory = NULL;
 
@@ -281,7 +281,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       m_DebugList->Close();
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
 
   // create fixed samplers, point and linear
   D3D12_CPU_DESCRIPTOR_HANDLE samp;
@@ -310,7 +310,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_RingConstantBuffer = MakeCBuffer(bufsize);
   m_RingConstantOffset = 0;
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
   bool success = LoadShaderCache("d3d12shaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
                                  m_ShaderCache, ShaderCache12Callbacks);
@@ -525,7 +525,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   SAFE_RELEASE(root);
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.6f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
   RDCEraseEl(pipeDesc);
@@ -703,7 +703,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
   histogramhlsl += GetEmbeddedResource(histogram_hlsl);
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.7f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.7f);
 
   D3D12_COMPUTE_PIPELINE_STATE_DESC compPipeDesc;
   RDCEraseEl(compPipeDesc);
@@ -986,7 +986,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxResultBuffer, NULL, &tileDesc, uav);
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
 
   // font rendering
   {
@@ -1262,7 +1262,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     SAFE_RELEASE(TextPS);
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
   m_CacheShaders = false;
 }

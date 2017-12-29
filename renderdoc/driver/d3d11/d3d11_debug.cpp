@@ -103,7 +103,7 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 
   wrapper->InternalRef();
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
 
   m_pFactory = NULL;
 
@@ -156,7 +156,7 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 
   PostDeviceInitCounters();
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -720,7 +720,7 @@ bool D3D11DebugManager::InitDebugRendering()
     histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
     histogramhlsl += GetEmbeddedResource(histogram_hlsl);
 
-    RenderDoc::Inst().SetProgress(DebugManagerInit, 0.1f);
+    RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.1f);
 
     for(int t = eTexType_1D; t < eTexType_Max; t++)
     {
@@ -745,13 +745,13 @@ bool D3D11DebugManager::InitDebugRendering()
               MakeCShader(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", "cs_5_0");
 
         RenderDoc::Inst().SetProgress(
-            DebugManagerInit,
+            LoadProgress::DebugManagerInit,
             (float(i + 3.0f * t) / float(2.0f + 3.0f * (eTexType_Max - 1))) * 0.7f + 0.1f);
       }
     }
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
 
   RDCCOMPILE_ASSERT(eTexType_1D == RESTYPE_TEX1D, "Tex type enum doesn't match shader defines");
   RDCCOMPILE_ASSERT(eTexType_2D == RESTYPE_TEX2D, "Tex type enum doesn't match shader defines");
@@ -923,7 +923,7 @@ bool D3D11DebugManager::InitDebugRendering()
     }
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.9f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
 
   if(RenderDoc::Inst().IsReplayApp())
   {

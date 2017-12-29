@@ -1012,7 +1012,8 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
     uint64_t offsetEnd = reader->GetOffset();
 
-    RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
+    RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
+                                  float(offsetEnd) / float(reader->GetSize()));
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
@@ -1722,8 +1723,15 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
         RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());
 
+        float num = float(recordlist.size());
+        float idx = 0.0f;
+
         for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+        {
+          RenderDoc::Inst().SetProgress(CaptureProgress::SerialiseFrameContents, idx / num);
+          idx += 1.0f;
           it->second->Write(ser);
+        }
 
         RDCDEBUG("Done");
       }

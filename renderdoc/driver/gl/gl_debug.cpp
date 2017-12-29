@@ -247,7 +247,7 @@ void GLReplay::InitDebugData()
 
   m_HighlightCache.driver = m_pDriver->GetReplay();
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
 
   {
     uint64_t id = MakeOutputWindow(WindowingSystem::Unknown, NULL, true);
@@ -308,7 +308,7 @@ void GLReplay::InitDebugData()
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
 
   if(GLCoreVersion >= 43 && !IsGLES)
   {
@@ -414,7 +414,7 @@ void GLReplay::InitDebugData()
 
   gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
   gl.glGenSamplers(1, &DebugData.linearSampler);
   gl.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
@@ -470,7 +470,7 @@ void GLReplay::InitDebugData()
   gl.glGenVertexArrays(1, &DebugData.emptyVAO);
   gl.glBindVertexArray(DebugData.emptyVAO);
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.6f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
 
   // histogram/minmax data
   {
@@ -597,7 +597,7 @@ void GLReplay::InitDebugData()
                                "GL_ARB_compute_shader not supported, disabling mesh picking.");
   }
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
 
   DebugData.pickResultBuf = 0;
 
@@ -691,7 +691,7 @@ void GLReplay::InitDebugData()
   gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 
-  RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
   if(!HasExt[ARB_gpu_shader5])
   {

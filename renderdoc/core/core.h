@@ -221,13 +221,57 @@ struct CaptureData
   bool retrieved;
 };
 
-enum LoadProgressSection
+enum class LoadProgress
 {
   DebugManagerInit,
+  First = DebugManagerInit,
   FileInitialRead,
   FrameEventsRead,
-  NumSections,
+  Count,
 };
+
+DECLARE_REFLECTION_ENUM(LoadProgress);
+ITERABLE_OPERATORS(LoadProgress);
+
+inline constexpr float ProgressWeight(LoadProgress section)
+{
+  // values must sum to 1.0
+  return section == LoadProgress::DebugManagerInit
+             ? 0.1f
+             : section == LoadProgress::FileInitialRead
+                   ? 0.75f
+                   : section == LoadProgress::FrameEventsRead ? 0.15f : 0.0f;
+}
+
+enum class CaptureProgress
+{
+  PrepareInitialStates,
+  First = PrepareInitialStates,
+  // frame capture goes here but we have no way to estimate its length, and the progress would be
+  // updated all over the place as every API call or every draw call would have to update it.
+  AddReferencedResources,
+  SerialiseInitialStates,
+  SerialiseFrameContents,
+  FileWriting,
+  Count,
+};
+
+DECLARE_REFLECTION_ENUM(CaptureProgress);
+ITERABLE_OPERATORS(CaptureProgress);
+
+inline constexpr float ProgressWeight(CaptureProgress section)
+{
+  // values must sum to 1.0
+  return section == CaptureProgress::PrepareInitialStates
+             ? 0.35f
+             : section == CaptureProgress::AddReferencedResources
+                   ? 0.1f
+                   : section == CaptureProgress::SerialiseInitialStates
+                         ? 0.5f
+                         : section == CaptureProgress::SerialiseFrameContents
+                               ? 0.04f
+                               : section == CaptureProgress::FileWriting ? 0.01f : 0.0f;
+}
 
 class IRemoteDriver;
 class IReplayDriver;
@@ -262,8 +306,36 @@ class RenderDoc
 public:
   static RenderDoc &Inst();
 
-  void SetProgressPtr(float *progress) { m_ProgressPtr = progress; }
-  void SetProgress(LoadProgressSection section, float delta);
+  template <typename ProgressType>
+  void SetProgressPointer(float *progress)
+  {
+    m_ProgressPointers[TypeName<ProgressType>()] = progress;
+  }
+
+  template <typename ProgressType>
+  void SetProgress(ProgressType section, float delta)
+  {
+    float *ptr = m_ProgressPointers[TypeName<ProgressType>()];
+    if(ptr == NULL || section < ProgressType::First || section >= ProgressType::Count)
+      return;
+
+    float progress = 0.0f;
+    for(ProgressType s : values<ProgressType>())
+    {
+      if(s == section)
+        break;
+
+      progress += ProgressWeight(s);
+    }
+
+    progress += ProgressWeight(section) * delta;
+
+    // round up to ensure that we always finish on a 1.0 to let things know that the process is over
+    if(progress >= 0.9999f)
+      progress = 1.0f;
+
+    *ptr = progress;
+  }
 
   // set from outside of the device creation interface
   void SetLogFile(const char *logFile);
@@ -462,7 +534,7 @@ private:
   Threading::CriticalSection m_DriverLock;
   std::map<RDCDriver, uint64_t> m_ActiveDrivers;
 
-  float *m_ProgressPtr;
+  std::map<std::string, float *> m_ProgressPointers;
 
   Threading::CriticalSection m_CaptureLock;
   vector<CaptureData> m_Captures;
