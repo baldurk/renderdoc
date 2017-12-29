@@ -504,8 +504,9 @@ bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
   IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
   if(frameCap)
   {
+    bool ret = frameCap->EndFrameCapture(dev, wnd);
     m_CapturesActive--;
-    return frameCap->EndFrameCapture(dev, wnd);
+    return ret;
   }
   return false;
 }
