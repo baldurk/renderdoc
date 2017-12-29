@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "LiveCapture.h"
+#include <QDesktopServices>
 #include <QMenu>
 #include <QMetaProperty>
 #include <QMouseEvent>
@@ -112,9 +113,19 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
 
   ui->preview->setMouseTracking(true);
 
-  setTitle(tr("Connecting.."));
-  ui->connectionStatus->setText(tr("Connecting.."));
+  setTitle(tr("Connecting"));
+  ui->connectionStatus->setText(tr("Connecting"));
   ui->connectionIcon->setPixmap(Pixmaps::hourglass(ui->connectionIcon));
+
+  ui->apiIcon->setVisible(false);
+
+  ui->triggerCapture->setEnabled(false);
+  ui->queueCap->setEnabled(false);
+
+  ui->target->setText(QString());
+
+  ui->captureProgressLabel->setVisible(false);
+  ui->captureProgress->setVisible(false);
 
   ui->captures->setItemDelegate(new NameEditOnlyDelegate(this));
 
@@ -566,6 +577,41 @@ bool LiveCapture::checkAllowDelete()
   return (res == QMessageBox::Yes);
 }
 
+void LiveCapture::updateAPIStatus()
+{
+  QString apiStatus;
+
+  bool nonpresenting = false;
+
+  // add any fully working APIs first in the list.
+  for(QString api : m_APIs.keys())
+  {
+    if(m_APIs[api].supported && m_APIs[api].presenting)
+      apiStatus += lit(", <b>%1</b>").arg(api);
+  }
+
+  // then add any problem APIs
+  for(QString api : m_APIs.keys())
+  {
+    if(!m_APIs[api].supported)
+    {
+      apiStatus += tr(", %1 (Unsupported)").arg(api);
+    }
+    else if(!m_APIs[api].presenting)
+    {
+      apiStatus += tr(", %1 (Not Presenting)").arg(api);
+      nonpresenting = true;
+    }
+  }
+
+  // remove the redundant starting ", "
+  apiStatus.remove(0, 2);
+
+  ui->apiStatus->setText(apiStatus);
+
+  ui->apiIcon->setVisible(nonpresenting);
+}
+
 QString LiveCapture::MakeText(Capture *cap)
 {
   QString text = cap->name;
@@ -818,6 +864,11 @@ void LiveCapture::on_previewSplit_splitterMoved(int pos, int index)
   m_IgnorePreviewToggle = false;
 }
 
+void LiveCapture::on_apiIcon_clicked(QMouseEvent *event)
+{
+  QDesktopServices::openUrl(QUrl(lit("https://renderdoc.org/docs/in_application_api.html")));
+}
+
 void LiveCapture::captures_keyPress(QKeyEvent *e)
 {
   if(e->key() == Qt::Key_Delete)
@@ -1018,7 +1069,7 @@ void LiveCapture::connectionThreadEntry()
   {
     GUIInvoke::call([this]() {
       setTitle(tr("Connection failed"));
-      ui->connectionStatus->setText(tr("Connection failed"));
+      ui->connectionStatus->setText(tr("Failed"));
       ui->connectionIcon->setPixmap(Pixmaps::del(ui->connectionIcon));
 
       connectionClosed();
@@ -1028,25 +1079,16 @@ void LiveCapture::connectionThreadEntry()
   }
 
   GUIInvoke::call([this]() {
-    QString api = QString::fromUtf8(m_Connection->GetAPI());
-    if(api.isEmpty())
-      api = tr("No API detected");
-
-    QString target = QString::fromUtf8(m_Connection->GetTarget());
     uint32_t pid = m_Connection->GetPID();
-
-    if(pid == 0)
-    {
-      ui->connectionStatus->setText(tr("Connection established to %1 (%2)").arg(target).arg(api));
-      setTitle(target);
-    }
-    else
-    {
-      ui->connectionStatus->setText(
-          tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
+    QString target = QString::fromUtf8(m_Connection->GetTarget());
+    if(pid)
       setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
-    }
+    else
+      setTitle(target);
+
+    ui->target->setText(windowTitle());
     ui->connectionIcon->setPixmap(Pixmaps::connect(ui->connectionIcon));
+    ui->connectionStatus->setText(tr("Established"));
   });
 
   while(m_Connection && m_Connection->Connected())
@@ -1095,28 +1137,37 @@ void LiveCapture::connectionThreadEntry()
       bool presenting = msg.apiUse.presenting;
       bool supported = msg.apiUse.supported;
       GUIInvoke::call([this, api, presenting, supported]() {
-        QString target = QString::fromUtf8(m_Connection->GetTarget());
-        uint32_t pid = m_Connection->GetPID();
+        m_APIs[api] = APIStatus(presenting, supported);
 
-        if(pid == 0)
+        if(presenting && supported)
         {
-          ui->connectionStatus->setText(tr("Connection established to %1 (%2)").arg(target).arg(api));
-          setTitle(target);
+          ui->triggerCapture->setEnabled(true);
+          ui->queueCap->setEnabled(true);
         }
-        else
-        {
-          ui->connectionStatus->setText(
-              tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
-          setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
-        }
-        ui->connectionIcon->setPixmap(Pixmaps::connect(ui->connectionIcon));
+
+        updateAPIStatus();
       });
     }
 
     if(msg.type == TargetControlMessageType::CaptureProgress)
     {
       float progress = msg.capProgress;
-      GUIInvoke::call([this, progress]() {});
+      GUIInvoke::call([this, progress]() {
+
+        if(progress >= 0.0f && progress < 1.0f)
+        {
+          ui->captureProgressLabel->setVisible(true);
+          ui->captureProgress->setVisible(true);
+          ui->captureProgress->setMaximum(1000);
+          ui->captureProgress->setValue(1000 * progress);
+        }
+        else
+        {
+          ui->captureProgressLabel->setVisible(false);
+          ui->captureProgress->setVisible(false);
+        }
+
+      });
     }
 
     if(msg.type == TargetControlMessageType::NewCapture)
@@ -1143,7 +1194,7 @@ void LiveCapture::connectionThreadEntry()
       uint32_t capID = msg.newCapture.captureId;
       QString path = msg.newCapture.path;
 
-      GUIInvoke::call([=]() { captureCopied(capID, path); });
+      GUIInvoke::call([this, capID, path]() { captureCopied(capID, path); });
     }
 
     if(msg.type == TargetControlMessageType::NewChild)
@@ -1163,7 +1214,7 @@ void LiveCapture::connectionThreadEntry()
   }
 
   GUIInvoke::call([this]() {
-    ui->connectionStatus->setText(tr("Connection closed"));
+    ui->connectionStatus->setText(tr("Closed"));
     ui->connectionIcon->setPixmap(Pixmaps::disconnect(ui->connectionIcon));
 
     ui->numFrames->setEnabled(false);
@@ -1171,6 +1222,9 @@ void LiveCapture::connectionThreadEntry()
     ui->captureFrame->setEnabled(false);
     ui->triggerCapture->setEnabled(false);
     ui->queueCap->setEnabled(false);
+
+    ui->apiStatus->setText(tr("None"));
+    ui->apiIcon->setVisible(false);
 
     connectionClosed();
   });

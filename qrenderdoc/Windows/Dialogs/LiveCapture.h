@@ -72,6 +72,7 @@ private slots:
   void on_triggerCapture_clicked();
   void on_queueCap_clicked();
   void on_previewSplit_splitterMoved(int pos, int index);
+  void on_apiIcon_clicked(QMouseEvent *event);
 
   // manual slots
   void captures_keyPress(QKeyEvent *e);
@@ -116,11 +117,21 @@ private:
     bool added = false;
   };
 
+  struct APIStatus
+  {
+    APIStatus() = default;
+    APIStatus(bool p, bool s) : presenting(p), supported(s) {}
+    bool presenting = false;
+    bool supported = false;
+  };
+
   Capture *GetCapture(QListWidgetItem *item);
   void AddCapture(QListWidgetItem *item, Capture *cap);
 
   QString MakeText(Capture *cap);
   QImage MakeThumb(const QImage &screenshot);
+
+  void updateAPIStatus();
 
   void connectionThreadEntry();
   void captureCopied(uint32_t ID, const QString &localPath);
@@ -177,4 +188,5 @@ private:
 
   QMutex m_ChildrenLock;
   QList<ChildProcess> m_Children;
+  QMap<QString, APIStatus> m_APIs;
 };
