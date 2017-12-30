@@ -821,6 +821,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 
   RenderDoc::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
 
+  GetResourceManager()->DeleteContext(contextHandle);
+
   if(ctxdata.built && ctxdata.ready)
   {
     if(ctxdata.Program)

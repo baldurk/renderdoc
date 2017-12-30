@@ -92,6 +92,26 @@ public:
     ResourceManager::Shutdown();
   }
 
+  void DeleteContext(void *context)
+  {
+    size_t count = 0;
+    for(auto it = m_CurrentResourceIds.begin(); it != m_CurrentResourceIds.end(); it++)
+    {
+      if(it->first.Context == context)
+      {
+        ++count;
+        ResourceId res = it->second;
+        MarkCleanResource(res);
+        if(HasResourceRecord(res))
+          GetResourceRecord(res)->Delete(this);
+        ReleaseCurrentResource(it->second);
+        it = m_CurrentResourceIds.erase(it);
+      }
+    }
+    RDCDEBUG("Removed %zu/%zu resources belonging to context %p", count,
+             m_CurrentResourceIds.size(), context);
+  }
+
   inline void RemoveResourceRecord(ResourceId id)
   {
     for(auto it = m_GLResourceRecords.begin(); it != m_GLResourceRecords.end(); it++)
