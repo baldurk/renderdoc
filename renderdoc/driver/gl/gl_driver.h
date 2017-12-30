@@ -491,14 +491,13 @@ private:
   struct QueuedInitialStateFetch
   {
     GLResource res;
-    byte *blob;
 
     bool operator<(const QueuedInitialStateFetch &o) const { return res.Context < o.res.Context; }
   };
 
   vector<QueuedInitialStateFetch> m_QueuedInitialFetches;
 
-  void QueuePrepareInitialState(GLResource res, byte *blob);
+  void QueuePrepareInitialState(GLResource res);
 
   static const int FONT_TEX_WIDTH = 256;
   static const int FONT_TEX_HEIGHT = 128;
