@@ -256,14 +256,23 @@ bool GLResourceManager::Need_InitialStateChunk(GLResource res)
   return true;
 }
 
-bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
+void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 {
   const GLHookSet &gl = m_GL->GetHookset();
+
+  ResourceId Id = GetID(res);
+
+  void *blob = GetInitialContents(Id).blob;
+  RDCASSERT(blob);
+
+  if(!blob)
+    return;
 
   if(res.Namespace == eResFramebuffer)
   {
     FramebufferInitialData *data = (FramebufferInitialData *)blob;
 
+    RDCASSERT(!data->valid);
     data->valid = true;
 
     GLuint prevread = 0, prevdraw = 0;
@@ -334,6 +343,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
   {
     PipelineInitialData *data = (PipelineInitialData *)blob;
 
+    RDCASSERT(!data->valid);
     data->valid = true;
 
 #if ENABLED(RDOC_DEVEL)
@@ -355,6 +365,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
   {
     FeedbackInitialData *data = (FeedbackInitialData *)blob;
 
+    RDCASSERT(!data->valid);
     data->valid = true;
 
     GLuint prevfeedback = 0;
@@ -380,6 +391,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
   {
     VAOInitialData *data = (VAOInitialData *)blob;
 
+    RDCASSERT(!data->valid);
     data->valid = true;
 
     GLuint prevVAO = 0;
@@ -419,8 +431,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
 
     gl.glBindVertexArray(prevVAO);
   }
-
-  return true;
 }
 
 bool GLResourceManager::Prepare_InitialState(GLResource res)
@@ -503,14 +513,14 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // thread.
     if(!VendorCheck[VendorCheck_EXT_fbo_shared] && res.Context && m_GL->GetCtx() != res.Context)
     {
-      m_GL->QueuePrepareInitialState(res, data);
+      m_GL->QueuePrepareInitialState(res);
     }
     else
     {
       // call immediately, we are on the right context or for one reason or another the context
       // doesn't matter for fetching this resource (res.Context is NULL or vendorcheck means they're
       // shared).
-      Prepare_InitialState(res, (byte *)data);
+      ContextPrepare_InitialState(res);
     }
   }
   else if(res.Namespace == eResProgramPipe)
@@ -524,11 +534,11 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // explanation of this.
     if(res.Context && m_GL->GetCtx() != res.Context)
     {
-      m_GL->QueuePrepareInitialState(res, data);
+      m_GL->QueuePrepareInitialState(res);
     }
     else
     {
-      Prepare_InitialState(res, (byte *)data);
+      ContextPrepare_InitialState(res);
     }
   }
   else if(res.Namespace == eResFeedback)
@@ -542,11 +552,11 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // explanation of this.
     if(res.Context && m_GL->GetCtx() != res.Context)
     {
-      m_GL->QueuePrepareInitialState(res, data);
+      m_GL->QueuePrepareInitialState(res);
     }
     else
     {
-      Prepare_InitialState(res, (byte *)data);
+      ContextPrepare_InitialState(res);
     }
   }
   else if(res.Namespace == eResVertexArray)
@@ -560,11 +570,11 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // explanation of this.
     if(res.Context && m_GL->GetCtx() != res.Context)
     {
-      m_GL->QueuePrepareInitialState(res, data);
+      m_GL->QueuePrepareInitialState(res);
     }
     else
     {
-      Prepare_InitialState(res, (byte *)data);
+      ContextPrepare_InitialState(res);
     }
   }
   else if(res.Namespace == eResRenderbuffer)
@@ -1785,7 +1795,7 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
     SetInitialContents(id,
                        InitialContentData(eResVertexArray, GLResource(MakeNullResource), 0, data));
 
-    Prepare_InitialState(live, data);
+    ContextPrepare_InitialState(live);
   }
   else if(live.Namespace != eResBuffer && live.Namespace != eResProgram &&
           live.Namespace != eResRenderbuffer)

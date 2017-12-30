@@ -229,7 +229,7 @@ public:
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, GLResource res);
 
-  bool Prepare_InitialState(GLResource res, byte *blob);
+  void ContextPrepare_InitialState(GLResource res);
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, GLResource res)
   {
     return Serialise_InitialState<WriteSerialiser>(ser, resid, res);

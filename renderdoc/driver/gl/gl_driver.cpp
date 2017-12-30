@@ -1128,7 +1128,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
       for(; it != m_QueuedInitialFetches.end();)
       {
-        GetResourceManager()->Prepare_InitialState(it->res, it->blob);
+        GetResourceManager()->ContextPrepare_InitialState(it->res);
         it = m_QueuedInitialFetches.erase(it);
       }
 
@@ -2808,11 +2808,10 @@ void WrappedOpenGL::FreeCaptureData()
 {
 }
 
-void WrappedOpenGL::QueuePrepareInitialState(GLResource res, byte *blob)
+void WrappedOpenGL::QueuePrepareInitialState(GLResource res)
 {
   QueuedInitialStateFetch fetch;
   fetch.res = res;
-  fetch.blob = blob;
 
   auto insertPos =
       std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
