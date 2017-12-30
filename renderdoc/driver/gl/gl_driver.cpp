@@ -1125,12 +1125,18 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       // For now we assume we'll only get GL commands from a single thread
       QueuedInitialStateFetch fetch;
       fetch.res.Context = winData.ctx;
+      size_t before = m_QueuedInitialFetches.size();
       auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
-      for(; it != m_QueuedInitialFetches.end();)
+      for(; it->res.Context == winData.ctx && it != m_QueuedInitialFetches.end();)
       {
         GetResourceManager()->ContextPrepare_InitialState(it->res);
         it = m_QueuedInitialFetches.erase(it);
       }
+      size_t after = m_QueuedInitialFetches.size();
+
+      (void)before;
+      (void)after;
+      RDCDEBUG("Prepared %zu resources on context %p, %zu left", before - after, winData.ctx, after);
 
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
