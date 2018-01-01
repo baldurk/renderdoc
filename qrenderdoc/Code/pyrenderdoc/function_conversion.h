@@ -155,7 +155,7 @@ struct varfunc
   rettype call(const char *funcname, PyObject *func, PyObject *global_handle,
                ExceptionHandling &exHandle)
   {
-    if(!func || func == Py_None || !PyCallable_Check(func) || !args)
+    if(!func || !PyCallable_Check(func) || !args)
     {
       HandleCallbackFailure(global_handle, exHandle);
       return rettype();
@@ -197,6 +197,10 @@ struct ScopedFuncCall
 template <typename funcType>
 funcType ConvertFunc(const char *funcname, PyObject *func, ExceptionHandling &exHandle)
 {
+  // allow None to indicate no callback
+  if(func == Py_None)
+    return funcType();
+
   // add a reference to the global object so it stays alive while we execute, in case this is an
   // async call
   PyObject *global_internal_handle = NULL;
