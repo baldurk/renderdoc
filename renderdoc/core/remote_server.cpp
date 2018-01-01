@@ -510,7 +510,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
           });
 
-          resolver = Callstack::MakeResolver(buf.data(), buf.size(), &progress, NULL);
+          resolver = Callstack::MakeResolver(buf.data(), buf.size(), &progress);
 
           Threading::JoinThread(ticker);
           Threading::CloseThread(ticker);
@@ -1624,7 +1624,7 @@ public:
     return hasCallstacks;
   }
 
-  bool InitResolver(float *progressPtr, volatile bool *killSignal)
+  bool InitResolver(float *progressPtr)
   {
     float dummy = 0.0f;
     if(progressPtr == NULL)

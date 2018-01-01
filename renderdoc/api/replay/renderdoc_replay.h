@@ -1242,12 +1242,10 @@ separate thread.
 
 :param float progress: A reference to a ``float`` value that will be updated as the init happens
   from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
-:param bool killSignal: A reference to a ``bool`` that can be set to ``True`` to stop the lookup
-  process.
 :return: ``True`` if the resolver successfully initialised, ``False`` if something went wrong.
 :rtype: ``bool``
 )");
-  virtual bool InitResolver(float *progress, volatile bool *killSignal) = 0;
+  virtual bool InitResolver(float *progress) = 0;
 
   DOCUMENT(R"(Retrieve the details of each stackframe in the provided callstack.
 

@@ -76,7 +76,7 @@ bool GetLoadedModules(byte *buf, size_t &size)
   return true;
 }
 
-StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress, volatile bool *killSignal)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress)
 {
   RDCERR("Callstack resolving not supported on Android.");
   return NULL;

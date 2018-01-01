@@ -221,7 +221,7 @@ private:
   std::map<uint64_t, Callstack::AddressDetails> m_Cache;
 };
 
-StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress, volatile bool *killSignal)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress)
 {
   // we look in the original locations for the files, we don't prompt if we can't
   // find the file, or the file doesn't have symbols (and we don't validate that
@@ -242,9 +242,6 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress, vola
 
   while(search && search < dbend)
   {
-    if(killSignal && *killSignal)
-      break;
-
     if(progress)
       *progress = float(search - start) / float(DBSize);
 
