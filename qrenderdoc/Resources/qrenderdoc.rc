@@ -87,7 +87,7 @@ BEGIN
             VALUE "FileDescription", "QRenderDoc - https://renderdoc.org/"
             VALUE "FileVersion", MAJOR_MINOR_VERSION_STRING ".0.0"
             VALUE "InternalName", "qrenderdoc.exe"
-            VALUE "LegalCopyright", "Copyright © 2017 Baldur Karlsson"
+            VALUE "LegalCopyright", "Copyright © 2018 Baldur Karlsson"
             VALUE "OriginalFilename", "qrenderdoc.exe"
             VALUE "ProductName", "RenderDoc"
             VALUE "ProductVersion", FULL_VERSION_STRING
