@@ -372,6 +372,9 @@
     <ClInclude Include="api\replay\common_pipestate.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="os\posix\posix_network.h">
+      <Filter>OS\Posix</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -637,6 +640,15 @@
     </ClCompile>
     <ClCompile Include="serialise\codecs\chrome_json_codec.cpp">
       <Filter>Common\Serialise\Codecs</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_network.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_network.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_network.cpp">
+      <Filter>OS\Posix\Android</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -182,6 +182,9 @@
     <ClInclude Include="os\posix\posix_hook.h">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="os\posix\posix_network.h">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="os\posix\posix_specific.h">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClInclude>
@@ -326,6 +329,9 @@
     <ClCompile Include="os\posix\android\android_hook.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="os\posix\android\android_network.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="os\posix\android\android_process.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -341,6 +347,9 @@
     <ClCompile Include="os\posix\apple\apple_hook.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_network.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="os\posix\apple\apple_process.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -354,6 +363,9 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="os\posix\linux\linux_hook.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_network.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="os\posix\linux\linux_process.cpp">
