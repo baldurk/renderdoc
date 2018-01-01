@@ -92,14 +92,13 @@ inline T get_return(const char *funcname, PyObject *result, PyObject *global_han
 {
   T val = T();
 
-  int res = ConvertToPy(result, val);
+  int res = ConvertFromPy(result, val);
 
   if(!SWIG_IsOK(res))
   {
     HandleCallbackFailure(global_handle, exHandle);
 
-    PyErr_Format(PyExc_TypeError, "Expected a '%s' for return value of callback in %s",
-                 TypeName<T>(), funcname);
+    PyErr_Format(PyExc_TypeError, "Unexpected type for return value of callback in %s", funcname);
   }
 
   Py_XDECREF(result);
