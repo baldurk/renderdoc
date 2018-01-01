@@ -137,10 +137,10 @@ public:
       return m_Proxy->GetSupportedWindowSystems();
     return vector<WindowingSystem>();
   }
-  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+  uint64_t MakeOutputWindow(WindowingData window, bool depth)
   {
     if(m_Proxy)
-      return m_Proxy->MakeOutputWindow(system, data, depth);
+      return m_Proxy->MakeOutputWindow(window, depth);
     return 0;
   }
   void DestroyOutputWindow(uint64_t id)

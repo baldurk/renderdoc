@@ -1393,9 +1393,9 @@ rdcarray<WindowingSystem> ReplayController::GetSupportedWindowSystems()
   return m_pDevice->GetSupportedWindowSystems();
 }
 
-void ReplayController::ReplayLoop(WindowingSystem system, void *data, ResourceId texid)
+void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
 {
-  ReplayOutput *output = CreateOutput(system, data, ReplayOutputType::Texture);
+  ReplayOutput *output = CreateOutput(window, ReplayOutputType::Texture);
 
   TextureDisplay d;
   d.resourceId = texid;
@@ -1445,9 +1445,9 @@ void ReplayController::CancelReplayLoop()
     Threading::Sleep(1);
 }
 
-ReplayOutput *ReplayController::CreateOutput(WindowingSystem system, void *data, ReplayOutputType type)
+ReplayOutput *ReplayController::CreateOutput(WindowingData window, ReplayOutputType type)
 {
-  ReplayOutput *out = new ReplayOutput(this, system, data, type);
+  ReplayOutput *out = new ReplayOutput(this, window, type);
 
   m_Outputs.push_back(out);
 

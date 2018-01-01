@@ -25,10 +25,9 @@
 #include "vk_core.h"
 #include "vk_replay.h"
 
-void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
+void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
 {
   RDCUNIMPLEMENTED("SetWindowHandle");
-  m_WindowSystem = system;
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)

@@ -250,7 +250,8 @@ void GLReplay::InitDebugData()
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
 
   {
-    uint64_t id = MakeOutputWindow(WindowingSystem::Unknown, NULL, true);
+    WindowingData window = {WindowingSystem::Unknown};
+    uint64_t id = MakeOutputWindow(window, true);
 
     m_DebugID = id;
     m_DebugCtx = &m_OutputWindows[id];

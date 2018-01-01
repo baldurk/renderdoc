@@ -139,7 +139,7 @@ public:
     return ret;
   }
 
-  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
+  uint64_t MakeOutputWindow(WindowingData window, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);

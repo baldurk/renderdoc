@@ -3266,9 +3266,9 @@ void GLReplay::CloseReplayContext()
   m_pDriver->m_Platform.DeleteReplayContext(m_ReplayCtx);
 }
 
-uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+uint64_t GLReplay::MakeOutputWindow(WindowingData window, bool depth)
 {
-  OutputWindow win = m_pDriver->m_Platform.MakeOutputWindow(system, data, depth, m_ReplayCtx);
+  OutputWindow win = m_pDriver->m_Platform.MakeOutputWindow(window, depth, m_ReplayCtx);
   if(!win.wnd)
     return 0;
 
@@ -3330,7 +3330,7 @@ class GLDummyPlatform : public GLPlatform
   virtual void SwapBuffers(GLWindowingData context) {}
   virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) {}
   virtual bool IsOutputWindowVisible(GLWindowingData context) { return false; }
-  virtual GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+  virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,
                                            GLWindowingData share_context)
   {
     return GLWindowingData();

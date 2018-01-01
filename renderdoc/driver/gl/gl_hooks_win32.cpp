@@ -698,14 +698,15 @@ public:
     return (IsWindowVisible(context.wnd) == TRUE);
   }
 
-  GLWindowingData GLPlatform::MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+  GLWindowingData GLPlatform::MakeOutputWindow(WindowingData window, bool depth,
                                                GLWindowingData share_context)
   {
     GLWindowingData ret;
 
-    RDCASSERT(system == WindowingSystem::Win32 || system == WindowingSystem::Unknown, system);
+    RDCASSERT(window.system == WindowingSystem::Win32 || window.system == WindowingSystem::Unknown,
+              window.system);
 
-    HWND w = (HWND)data;
+    HWND w = window.win32.window;
 
     if(w == NULL)
       w = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdocGLclass", L"", WS_OVERLAPPEDWINDOW,

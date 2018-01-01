@@ -104,59 +104,6 @@
 #define RENDERDOC_API RENDERDOC_IMPORT_API
 #endif
 
-// windowing structures
-
-#if defined(RENDERDOC_PLATFORM_WIN32)
-
-// Win32 uses HWND
-
-#endif
-
-#if defined(RENDERDOC_WINDOWING_XLIB)
-
-// can't include xlib.h here as it defines a ton of crap like None
-// and Bool etc which can interfere with other headers
-typedef struct _XDisplay Display;
-typedef unsigned long Drawable;
-
-struct XlibWindowData
-{
-  Display *display;
-  Drawable window;
-};
-
-#else
-
-typedef struct _XDisplay Display;
-
-#endif
-
-#if defined(RENDERDOC_WINDOWING_XCB)
-
-struct xcb_connection_t;
-typedef uint32_t xcb_window_t;
-
-struct XCBWindowData
-{
-  xcb_connection_t *connection;
-  xcb_window_t window;
-};
-
-#endif
-
-#if defined(RENDERDOC_PLATFORM_ANDROID)
-
-// android uses ANativeWindow*
-
-#endif
-
-DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
-struct GlobalEnvironment
-{
-  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
-  Display *xlibDisplay = NULL;
-};
-
 // needs to be declared up here for reference in basic_types
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
@@ -311,23 +258,23 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
 .. data:: Unknown
 
-  No windowing data is passed and no native window will be output to.
+  No windowing data is passed and no native window is described.
 
 .. data:: Win32
 
-  The windowing data refers to a Win32 ``HWND`` handle.
+  The windowing data refers to a Win32 window. See :func:`CreateWin32WindowingData`.
 
 .. data:: Xlib
 
-  The windowing data refers to an Xlib pair of ``Display *`` and ``Drawable``.
+  The windowing data refers to an Xlib window. See :func:`CreateXLibWindowingData`.
 
 .. data:: XCB
 
-  The windowing data refers to an XCB pair of ``xcb_connection_t *`` and ``xcb_window_t``.
+  The windowing data refers to an XCB window. See :func:`CreateXCBWindowingData`.
 
 .. data:: Android
 
-  The windowing data refers to an Android ``ANativeWindow *``.
+  The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
 )");
 enum class WindowingSystem : uint32_t
 {
@@ -339,6 +286,140 @@ enum class WindowingSystem : uint32_t
 };
 
 DECLARE_REFLECTION_ENUM(WindowingSystem);
+
+// typedef the window data structs so this will compile on all platforms without system headers. We
+// only actually need the real definitions when we're using the data, otherwise it's mostly opaque
+// pointers or integers.
+
+// Win32
+typedef struct HWND__ *HWND;
+
+// xlib
+typedef struct _XDisplay Display;
+typedef unsigned long Drawable;
+
+// xcb
+struct xcb_connection_t;
+typedef uint32_t xcb_window_t;
+
+// android
+struct ANativeWindow;
+
+// for swig bindings treat the windowing data struct as completely opaque
+#if defined(SWIG)
+
+struct WindowingData;
+
+#else
+
+struct WindowingData
+{
+  WindowingSystem system;
+
+  union
+  {
+    struct
+    {
+      HWND window;
+    } win32;
+
+    struct
+    {
+      Display *display;
+      Drawable window;
+    } xlib;
+
+    struct
+    {
+      xcb_connection_t *connection;
+      xcb_window_t window;
+    } xcb;
+
+    struct
+    {
+      ANativeWindow *window;
+    } android;
+  };
+};
+
+DECLARE_REFLECTION_ENUM(WindowingData);
+
+#endif
+
+DOCUMENT(R"(Create a :class:`WindowingData` for a Win32 ``HWND`` handle.
+
+:param HWND window: The native ``HWND`` handle for this window.
+:return: A :class:`WindowingData` corresponding to the given window.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateWin32WindowingData(HWND window)
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::Win32;
+  ret.win32.window = window;
+
+  return ret;
+}
+
+DOCUMENT(R"(Create a :class:`WindowingData` for an Xlib ``Drawable`` handle.
+
+:param Display display: The ``Display`` connection used for this window.
+:param Drawable window: The native ``Drawable`` handle for this window.
+:return: A :class:`WindowingData` corresponding to the given window.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateXlibWindowingData(Display *display, Drawable window)
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::Xlib;
+  ret.xlib.display = display;
+  ret.xlib.window = window;
+
+  return ret;
+}
+
+DOCUMENT(R"(Create a :class:`WindowingData` for an XCB ``xcb_window_t`` handle.
+
+:param xcb_connection_t connection: The ``xcb_connection_t`` connection used for this window.
+:param xcb_window_t window: The native ``xcb_window_t`` handle for this window.
+:return: A :class:`WindowingData` corresponding to the given window.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateXCBWindowingData(xcb_connection_t *connection, xcb_window_t window)
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::XCB;
+  ret.xcb.connection = connection;
+  ret.xcb.window = window;
+
+  return ret;
+}
+
+DOCUMENT(R"(Create a :class:`WindowingData` for an Android ``ANativeWindow`` handle.
+
+:param ANativeWindow window: The native ``ANativeWindow`` handle for this window.
+:return: A :class:`WindowingData` corresponding to the given window.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateAndroidWindowingData(ANativeWindow *window)
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::Android;
+  ret.android.window = window;
+
+  return ret;
+}
+
+DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
+struct GlobalEnvironment
+{
+  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
+  Display *xlibDisplay = NULL;
+};
 
 #ifdef RENDERDOC_EXPORTS
 struct ResourceId;
@@ -441,15 +522,12 @@ you can call this function multiple times to just change the texture.
 
 Should only be called for texture outputs.
 
-:param WindowingSystem system: The type of native window handle data being provided.
-:param data: The native window data, in a format defined by the system.
-:type data: opaque void * pointer.
+:param WindowingData window: A :class:`WindowingData` describing the native window.
 :param ResourceId textureId: The texture ID to display in the thumbnail preview.
 :return: A boolean indicating if the thumbnail was successfully created.
 :rtype: ``bool``
 )");
-  virtual bool AddThumbnail(WindowingSystem system, void *data, ResourceId textureId,
-                            CompType typeHint) = 0;
+  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, CompType typeHint) = 0;
 
   DOCUMENT(R"(Render to the window handle specified when the output was created.
 
@@ -464,13 +542,11 @@ fixed high zoom value and a fixed position, see :meth:`SetPixelContextLocation`.
 
 Should only be called for texture outputs.
 
-:param WindowingSystem system: The type of native window handle data being provided.
-:param data: The native window data, in a format defined by the system.
-:type data: opaque void * pointer.
+:param WindowingData window: A :class:`WindowingData` describing the native window.
 :return: A boolean indicating if the pixel context was successfully configured.
 :rtype: ``bool``
 )");
-  virtual bool SetPixelContext(WindowingSystem system, void *data) = 0;
+  virtual bool SetPixelContext(WindowingData window) = 0;
 
   DOCUMENT(R"(Sets the pixel that the pixel context should be centred on.
 
@@ -592,14 +668,12 @@ struct IReplayController
 
   DOCUMENT(R"(Creates a replay output of the given type to the given native window
 
-:param WindowingSystem system: The type of native window handle data being provided
-:param data: The native window data, in a format defined by the system
-:type data: opaque void * pointer
+:param WindowingData window: A :class:`WindowingData` describing the native window.
 :param ReplayOutputType type: What type of output to create
 :return: A handle to the created output, or ``None`` on failure
 :rtype: ReplayOutput
 )");
-  virtual IReplayOutput *CreateOutput(WindowingSystem system, void *data, ReplayOutputType type) = 0;
+  virtual IReplayOutput *CreateOutput(WindowingData window, ReplayOutputType type) = 0;
 
   DOCUMENT("Shutdown and destroy the current interface and all outputs that have been created.");
   virtual void Shutdown() = 0;
@@ -610,12 +684,10 @@ displaying the selected texture in a default unscaled manner to the given output
 The function won't return until :meth:`CancelReplayLoop` is called. Since this function is blocking, that
 function must be called from another thread.
 
-:param WindowingSystem system: The type of native window handle data being provided
-:param data: The native window data, in a format defined by the system
-:type data: opaque void * pointer
+:param WindowingData window: A :class:`WindowingData` describing the native window.
 :param ResourceId texid: The id of the texture to display.
 )");
-  virtual void ReplayLoop(WindowingSystem system, void *data, ResourceId texid) = 0;
+  virtual void ReplayLoop(WindowingData window, ResourceId texid) = 0;
 
   DOCUMENT("Cancels a replay loop begun in :meth:`ReplayLoop`. Does nothing if no loop is active.");
   virtual void CancelReplayLoop() = 0;

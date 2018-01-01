@@ -64,8 +64,7 @@ public:
     RDCUNIMPLEMENTED("IsOutputWindowVisible");
     return true;
   }
-  virtual GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
-                                           GLWindowingData share_context)
+  virtual GLWindowingData MakeOutputWindow(WindowingData window, GLWindowingData share_context)
   {
     RDCUNIMPLEMENTED("MakeOutputWindow");
     return GLWindowingData();

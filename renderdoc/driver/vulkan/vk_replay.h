@@ -171,7 +171,7 @@ public:
 
   vector<WindowingSystem> GetSupportedWindowSystems();
 
-  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
+  uint64_t MakeOutputWindow(WindowingData window, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);
@@ -287,7 +287,7 @@ private:
 
     // implemented in vk_replay_platform.cpp
     void CreateSurface(VkInstance inst);
-    void SetWindowHandle(WindowingSystem system, void *data);
+    void SetWindowHandle(WindowingData window);
 
     WindowingSystem m_WindowSystem;
 

@@ -44,6 +44,10 @@ Logging & Versioning
 Maths & Utilities
 -----------------
 
+.. autofunction:: renderdoc.CreateWin32WindowingData
+.. autofunction:: renderdoc.CreateXlibWindowingData
+.. autofunction:: renderdoc.CreateXCBWindowingData
+.. autofunction:: renderdoc.CreateAndroidWindowingData
 .. autofunction:: renderdoc.InitCamera
 .. autofunction:: renderdoc.HalfToFloat
 .. autofunction:: renderdoc.FloatToHalf

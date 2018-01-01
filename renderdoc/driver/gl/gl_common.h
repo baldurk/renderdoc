@@ -196,7 +196,7 @@ struct GLPlatform
   virtual void SwapBuffers(GLWindowingData context) = 0;
   virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) = 0;
   virtual bool IsOutputWindowVisible(GLWindowingData context) = 0;
-  virtual GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+  virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,
                                            GLWindowingData share_context) = 0;
 
   // for 'backwards compatible' overlay rendering

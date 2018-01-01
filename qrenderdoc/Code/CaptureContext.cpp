@@ -1144,33 +1144,23 @@ int CaptureContext::ResourceNameCacheID()
   return m_CustomNameCachedID;
 }
 
-void *CaptureContext::FillWindowingData(uintptr_t widget)
+WindowingData CaptureContext::CreateWindowingData(uintptr_t widget)
 {
 #if defined(WIN32)
 
-  return (void *)widget;
+  return CreateWin32WindowingData((HWND)widget);
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
-  static XCBWindowData xcb;
-  static XlibWindowData xlib;
-
   if(m_CurWinSystem == WindowingSystem::XCB)
-  {
-    xcb.connection = m_XCBConnection;
-    xcb.window = (xcb_window_t)widget;
-    return &xcb;
-  }
+    return CreateXCBWindowingData(m_XCBConnection, (xcb_window_t)widget);
   else
-  {
-    xlib.display = m_X11Display;
-    xlib.window = (Drawable)widget;
-    return &xlib;
-  }
+    return CreateXlibWindowingData(m_X11Display, (Drawable)widget);
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
 
-  return (void *)widget;
+  WindowingData ret = {WindowingSystem::Unknown};
+  return ret;
 
 #else
 

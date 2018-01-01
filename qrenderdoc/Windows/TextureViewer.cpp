@@ -1875,15 +1875,13 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
     if(m_Ctx.GetTexture(id))
     {
       m_Ctx.Replay().AsyncInvoke([this, handle, id, typeHint](IReplayController *) {
-        m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle), id,
-                               typeHint);
+        m_Output->AddThumbnail(m_Ctx.CreateWindowingData(handle), id, typeHint);
       });
     }
     else
     {
       m_Ctx.Replay().AsyncInvoke([this, handle](IReplayController *) {
-        m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle),
-                               ResourceId(), CompType::Typeless);
+        m_Output->AddThumbnail(m_Ctx.CreateWindowingData(handle), ResourceId(), CompType::Typeless);
       });
     }
 
@@ -1900,8 +1898,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 
     WId handle = prev->thumbWinId();
     m_Ctx.Replay().AsyncInvoke([this, handle](IReplayController *) {
-      m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle),
-                             ResourceId(), CompType::Typeless);
+      m_Output->AddThumbnail(m_Ctx.CreateWindowingData(handle), ResourceId(), CompType::Typeless);
     });
   }
   else
@@ -2445,10 +2442,9 @@ void TextureViewer::OnCaptureLoaded()
                         : FloatVector();
 
   m_Ctx.Replay().BlockInvoke([renderID, contextID, this](IReplayController *r) {
-    m_Output = r->CreateOutput(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(renderID),
-                               ReplayOutputType::Texture);
+    m_Output = r->CreateOutput(m_Ctx.CreateWindowingData(renderID), ReplayOutputType::Texture);
 
-    m_Output->SetPixelContext(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(contextID));
+    m_Output->SetPixelContext(m_Ctx.CreateWindowingData(contextID));
 
     ui->render->setOutput(m_Output);
     ui->pixelContext->setOutput(m_Output);

@@ -42,12 +42,12 @@ public:
   void SetMeshDisplay(const MeshDisplay &o);
 
   void ClearThumbnails();
-  bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID, CompType typeHint);
+  bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint);
 
   void Display();
 
   ReplayOutputType GetType() { return m_Type; }
-  bool SetPixelContext(WindowingSystem system, void *data);
+  bool SetPixelContext(WindowingData window);
   void SetPixelContextLocation(uint32_t x, uint32_t y);
   void DisablePixelContext();
 
@@ -61,7 +61,7 @@ public:
   rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventId, uint32_t x, uint32_t y);
 
 private:
-  ReplayOutput(ReplayController *parent, WindowingSystem system, void *data, ReplayOutputType type);
+  ReplayOutput(ReplayController *parent, WindowingData window, ReplayOutputType type);
   virtual ~ReplayOutput();
 
   void SetFrameEvent(int eventId);
@@ -193,10 +193,10 @@ public:
 
   rdcarray<WindowingSystem> GetSupportedWindowSystems();
 
-  void ReplayLoop(WindowingSystem system, void *data, ResourceId texid);
+  void ReplayLoop(WindowingData window, ResourceId texid);
   void CancelReplayLoop();
 
-  ReplayOutput *CreateOutput(WindowingSystem, void *data, ReplayOutputType type);
+  ReplayOutput *CreateOutput(WindowingData window, ReplayOutputType type);
 
   void ShutdownOutput(IReplayOutput *output);
   void Shutdown();

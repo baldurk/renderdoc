@@ -1296,16 +1296,11 @@ considered out of date
   DOCUMENT(R"(Create an opaque pointer suitable for passing to
 :meth:`~renderdoc.ReplayController.CreateOutput` or other functions that expect windowing data.
 
-.. note::
-
-  This data only stays valid until the next call to FillWindowingData. You should pass it to the
-  consuming function immediately.
-
 :param int winId: The window ID as returned from ``QWidget.winId()``.
 :return: The windowing data.
-:rtype: opaque void * pointer.
+:rtype: ~renderdoc.WindowingData
 )");
-  virtual void *FillWindowingData(uintptr_t winId) = 0;
+  virtual WindowingData CreateWindowingData(uintptr_t winId) = 0;
 
   DOCUMENT(R"(Retrieve the current list of debug messages. This includes messages from the capture
 as well as messages generated during replay and analysis.

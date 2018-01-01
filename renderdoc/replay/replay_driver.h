@@ -174,7 +174,7 @@ public:
 
   virtual vector<WindowingSystem> GetSupportedWindowSystems() = 0;
 
-  virtual uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth) = 0;
+  virtual uint64_t MakeOutputWindow(WindowingData window, bool depth) = 0;
   virtual void DestroyOutputWindow(uint64_t id) = 0;
   virtual bool CheckResizeOutputWindow(uint64_t id) = 0;
   virtual void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h) = 0;

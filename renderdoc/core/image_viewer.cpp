@@ -74,9 +74,9 @@ public:
   {
     return m_Proxy->GetSupportedWindowSystems();
   }
-  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+  uint64_t MakeOutputWindow(WindowingData window, bool depth)
   {
-    return m_Proxy->MakeOutputWindow(system, data, depth);
+    return m_Proxy->MakeOutputWindow(window, depth);
   }
   void DestroyOutputWindow(uint64_t id) { m_Proxy->DestroyOutputWindow(id); }
   bool CheckResizeOutputWindow(uint64_t id) { return m_Proxy->CheckResizeOutputWindow(id); }

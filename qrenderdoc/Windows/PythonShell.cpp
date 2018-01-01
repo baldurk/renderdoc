@@ -101,9 +101,9 @@ struct CaptureContextInvoker : ICaptureContext
   }
   virtual const SDFile &GetStructuredFile() override { return m_Ctx.GetStructuredFile(); }
   virtual WindowingSystem CurWindowingSystem() override { return m_Ctx.CurWindowingSystem(); }
-  virtual void *FillWindowingData(uintptr_t winId) override
+  virtual WindowingData CreateWindowingData(uintptr_t winId) override
   {
-    return m_Ctx.FillWindowingData(winId);
+    return m_Ctx.CreateWindowingData(winId);
   }
   virtual const rdcarray<DebugMessage> &DebugMessages() override { return m_Ctx.DebugMessages(); }
   virtual int UnreadMessageCount() override { return m_Ctx.UnreadMessageCount(); }

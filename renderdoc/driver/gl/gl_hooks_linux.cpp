@@ -220,28 +220,25 @@ public:
     return true;
   }
 
-  GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
-                                   GLWindowingData share_context)
+  GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)
   {
     GLWindowingData ret;
 
     Display *dpy = NULL;
     Drawable draw = 0;
 
-    if(system == WindowingSystem::Xlib)
+    if(window.system == WindowingSystem::Xlib)
     {
 #if ENABLED(RDOC_XLIB)
-      XlibWindowData *xlib = (XlibWindowData *)data;
-
-      dpy = xlib->display;
-      draw = xlib->window;
+      dpy = window.xlib.display;
+      draw = window.xlib.window;
 #else
       RDCERR(
           "Xlib windowing system data passed in, but support is not compiled in. GL must have xlib "
           "support compiled in");
 #endif
     }
-    else if(system == WindowingSystem::Unknown)
+    else if(window.system == WindowingSystem::Unknown)
     {
       // allow WindowingSystem::Unknown so that internally we can create a window-less context
       dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;

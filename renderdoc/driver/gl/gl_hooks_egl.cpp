@@ -154,22 +154,16 @@ public:
   }
 
   bool IsOutputWindowVisible(GLWindowingData context) { return true; }
-  GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
-                                   GLWindowingData share_context)
+  GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)
   {
-    EGLNativeWindowType window = 0;
+    EGLNativeWindowType win = 0;
 
-    switch(system)
+    switch(window.system)
     {
 #if ENABLED(RDOC_ANDROID)
-      case WindowingSystem::Android: window = (EGLNativeWindowType)data; break;
+      case WindowingSystem::Android: win = window.android.window; break;
 #elif ENABLED(RDOC_LINUX)
-      case WindowingSystem::Xlib:
-      {
-        XlibWindowData *xlib = (XlibWindowData *)data;
-        window = (EGLNativeWindowType)xlib->window;
-        break;
-      }
+      case WindowingSystem::Xlib: win = window.xlib.window; break;
 #endif
       case WindowingSystem::Unknown:
         // allow WindowingSystem::Unknown so that internally we can create a window-less context
@@ -180,7 +174,7 @@ public:
     EGLDisplay eglDisplay = real.GetDisplay(EGL_DEFAULT_DISPLAY);
     RDCASSERT(eglDisplay);
 
-    return CreateWindowingData(real, eglDisplay, share_context.ctx, window);
+    return CreateWindowingData(real, eglDisplay, share_context.ctx, win);
   }
 
   bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);

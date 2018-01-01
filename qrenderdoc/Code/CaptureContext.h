@@ -132,7 +132,7 @@ public:
   }
   const SDFile &GetStructuredFile() override { return *m_StructuredFile; }
   WindowingSystem CurWindowingSystem() override { return m_CurWinSystem; }
-  void *FillWindowingData(uintptr_t winId) override;
+  WindowingData CreateWindowingData(uintptr_t winId) override;
 
   const rdcarray<DebugMessage> &DebugMessages() override { return m_DebugMessages; }
   int UnreadMessageCount() override { return m_UnreadMessageCount; }

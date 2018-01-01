@@ -282,19 +282,13 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   // prefer xcb
   if(xcb)
   {
-    XCBWindowData windowData;
-    windowData.connection = connection;
-    windowData.window = window;
-
-    out = renderer->CreateOutput(WindowingSystem::XCB, &windowData, ReplayOutputType::Texture);
+    out = renderer->CreateOutput(CreateXCBWindowingData(connection, window),
+                                 ReplayOutputType::Texture);
   }
   else if(xlib)
   {
-    XlibWindowData windowData;
-    windowData.display = display;
-    windowData.window = (Drawable)window;    // safe to cast types
-
-    out = renderer->CreateOutput(WindowingSystem::Xlib, &windowData, ReplayOutputType::Texture);
+    out = renderer->CreateOutput(CreateXlibWindowingData(display, (Drawable)window),
+                                 ReplayOutputType::Texture);
   }
   else
   {

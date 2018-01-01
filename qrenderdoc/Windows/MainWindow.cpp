@@ -2087,11 +2087,9 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
                              .arg(tr("nothing")));
   }
 
-  WindowingSystem winSys = m_Ctx.CurWindowingSystem();
-  void *winData = m_Ctx.FillWindowingData(popup.winId());
+  WindowingData winData = m_Ctx.CreateWindowingData(popup.winId());
 
-  m_Ctx.Replay().AsyncInvoke(
-      [winSys, winData, id](IReplayController *r) { r->ReplayLoop(winSys, winData, id); });
+  m_Ctx.Replay().AsyncInvoke([winData, id](IReplayController *r) { r->ReplayLoop(winData, id); });
 
   RDDialog::show(&popup);
 

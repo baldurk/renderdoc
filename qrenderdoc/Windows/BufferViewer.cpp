@@ -1362,8 +1362,7 @@ void BufferViewer::OnCaptureLoaded()
   WId renderID = ui->render->winId();
 
   m_Ctx.Replay().BlockInvoke([renderID, this](IReplayController *r) {
-    m_Output = r->CreateOutput(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(renderID),
-                               ReplayOutputType::Mesh);
+    m_Output = r->CreateOutput(m_Ctx.CreateWindowingData(renderID), ReplayOutputType::Mesh);
 
     ui->render->setOutput(m_Output);
 

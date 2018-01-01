@@ -1494,9 +1494,9 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint3
   return m_pDevice->GetDebugManager()->PickVertex(eventId, cfg, x, y);
 }
 
-uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
 {
-  return m_pDevice->GetDebugManager()->MakeOutputWindow(system, data, depth);
+  return m_pDevice->GetDebugManager()->MakeOutputWindow(window, depth);
 }
 
 void D3D12Replay::DestroyOutputWindow(uint64_t id)

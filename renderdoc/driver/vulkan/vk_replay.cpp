@@ -2893,15 +2893,16 @@ vector<WindowingSystem> VulkanReplay::GetSupportedWindowSystems()
   return m_pDriver->m_SupportedWindowSystems;
 }
 
-uint64_t VulkanReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+uint64_t VulkanReplay::MakeOutputWindow(WindowingData window, bool depth)
 {
   uint64_t id = m_OutputWinID;
   m_OutputWinID++;
 
-  m_OutputWindows[id].SetWindowHandle(system, data);
+  m_OutputWindows[id].m_WindowSystem = window.system;
+  m_OutputWindows[id].SetWindowHandle(window);
   m_OutputWindows[id].m_ResourceManager = GetResourceManager();
 
-  if(system != WindowingSystem::Unknown)
+  if(window.system != WindowingSystem::Unknown)
   {
     int32_t w, h;
     GetOutputWindowDimensions(id, w, h);

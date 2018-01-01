@@ -28,23 +28,23 @@
 #include "strings/string_utils.h"
 #include "replay_controller.h"
 
-static uint64_t GetHandle(WindowingSystem system, void *data)
+static uint64_t GetHandle(WindowingData window)
 {
 #if ENABLED(RDOC_LINUX)
 
-  if(system == WindowingSystem::Xlib)
+  if(window.system == WindowingSystem::Xlib)
   {
 #if ENABLED(RDOC_XLIB)
-    return (uint64_t)((XlibWindowData *)data)->window;
+    return (uint64_t)window.xlib.window;
 #else
     RDCERR("Xlib windowing system data passed in, but support is not compiled in");
 #endif
   }
 
-  if(system == WindowingSystem::XCB)
+  if(window.system == WindowingSystem::XCB)
   {
 #if ENABLED(RDOC_XCB)
-    return (uint64_t)((XCBWindowData *)data)->window;
+    return (uint64_t)window.xcb.window;
 #else
     RDCERR("XCB windowing system data passed in, but support is not compiled in");
 #endif
@@ -56,21 +56,20 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 
 #elif ENABLED(RDOC_WIN32)
 
-  RDCASSERT(system == WindowingSystem::Win32);
-  return (uint64_t)data;    // HWND
+  RDCASSERT(window.system == WindowingSystem::Win32);
+  return (uint64_t)window.win32.window;    // HWND
 
 #elif ENABLED(RDOC_ANDROID)
 
-  RDCASSERT(system == WindowingSystem::Android);
-  return (uint64_t)data;    // ANativeWindow *
+  RDCASSERT(window.system == WindowingSystem::Android);
+  return (uint64_t)window.android.window;    // ANativeWindow *
 
 #else
   RDCFATAL("No windowing data defined for this platform! Must be implemented for replay outputs");
 #endif
 }
 
-ReplayOutput::ReplayOutput(ReplayController *parent, WindowingSystem system, void *data,
-                           ReplayOutputType type)
+ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, ReplayOutputType type)
 {
   m_pRenderer = parent;
 
@@ -96,8 +95,8 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingSystem system, voi
 
   m_Type = type;
 
-  if(system != WindowingSystem::Unknown)
-    m_MainOutput.outputID = m_pDevice->MakeOutputWindow(system, data, type == ReplayOutputType::Mesh);
+  if(window.system != WindowingSystem::Unknown)
+    m_MainOutput.outputID = m_pDevice->MakeOutputWindow(window, type == ReplayOutputType::Mesh);
   else
     m_MainOutput.outputID = 0;
   m_MainOutput.texture = ResourceId();
@@ -226,9 +225,9 @@ void ReplayOutput::ClearThumbnails()
   m_Thumbnails.clear();
 }
 
-bool ReplayOutput::SetPixelContext(WindowingSystem system, void *data)
+bool ReplayOutput::SetPixelContext(WindowingData window)
 {
-  m_PixelContext.outputID = m_pDevice->MakeOutputWindow(system, data, false);
+  m_PixelContext.outputID = m_pDevice->MakeOutputWindow(window, false);
   m_PixelContext.texture = ResourceId();
   m_PixelContext.depthMode = false;
 
@@ -237,12 +236,11 @@ bool ReplayOutput::SetPixelContext(WindowingSystem system, void *data)
   return m_PixelContext.outputID != 0;
 }
 
-bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
-                                CompType typeHint)
+bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint)
 {
   OutputPair p;
 
-  RDCASSERT(data);
+  RDCASSERT(window.system != WindowingSystem::Unknown);
 
   bool depthMode = false;
 
@@ -258,7 +256,7 @@ bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId t
 
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
   {
-    if(m_Thumbnails[i].wndHandle == GetHandle(system, data))
+    if(m_Thumbnails[i].wndHandle == GetHandle(window))
     {
       m_Thumbnails[i].texture = texID;
 
@@ -272,8 +270,8 @@ bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId t
     }
   }
 
-  p.wndHandle = GetHandle(system, data);
-  p.outputID = m_pDevice->MakeOutputWindow(system, data, false);
+  p.wndHandle = GetHandle(window);
+  p.outputID = m_pDevice->MakeOutputWindow(window, false);
   p.texture = texID;
   p.depthMode = depthMode;
   p.typeHint = typeHint;

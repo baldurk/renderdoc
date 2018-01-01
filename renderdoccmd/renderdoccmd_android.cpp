@@ -64,7 +64,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
   pthread_mutex_lock(&m_DrawLock.lock);
 
-  IReplayOutput *out = renderer->CreateOutput(WindowingSystem::Android, connectionScreenWindow,
+  IReplayOutput *out = renderer->CreateOutput(CreateAndroidWindowingData(connectionScreenWindow),
                                               ReplayOutputType::Texture);
 
   out->SetTextureDisplay(displayCfg);

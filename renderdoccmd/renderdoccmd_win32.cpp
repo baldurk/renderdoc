@@ -144,7 +144,8 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   ShowWindow(wnd, SW_SHOW);
   UpdateWindow(wnd);
 
-  IReplayOutput *out = renderer->CreateOutput(WindowingSystem::Win32, wnd, ReplayOutputType::Texture);
+  IReplayOutput *out =
+      renderer->CreateOutput(CreateWin32WindowingData(wnd), ReplayOutputType::Texture);
 
   out->SetTextureDisplay(displayCfg);
 
