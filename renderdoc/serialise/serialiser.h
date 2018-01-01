@@ -132,7 +132,7 @@ public:
   // up-front
   void SetStreamingMode(bool stream) { m_DataStreaming = stream; }
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
-  void WriteStructuredFile(const SDFile &file, float *progress);
+  void WriteStructuredFile(const SDFile &file, RENDERDOC_ProgressCallback progress);
   void SetDrawChunk() { m_DrawChunk = true; }
   //////////////////////////////////////////
   // Public serialisation interface
@@ -1208,7 +1208,8 @@ public:
     return SerialiseNullable(name, (T *&)el, flags);
   }
 
-  Serialiser &SerialiseStream(const std::string &name, StreamReader &stream, float *progress = NULL)
+  Serialiser &SerialiseStream(const std::string &name, StreamReader &stream,
+                              RENDERDOC_ProgressCallback progress = RENDERDOC_ProgressCallback())
   {
     RDCCOMPILE_ASSERT(IsWriting(), "Can't read into a StreamReader");
 
@@ -1228,7 +1229,8 @@ public:
     return *this;
   }
 
-  Serialiser &SerialiseStream(const std::string &name, StreamWriter &stream, float *progress = NULL)
+  Serialiser &SerialiseStream(const std::string &name, StreamWriter &stream,
+                              RENDERDOC_ProgressCallback progress)
   {
     RDCCOMPILE_ASSERT(IsReading(), "Can't write from a StreamWriter");
 
@@ -1294,7 +1296,7 @@ public:
       byte *buf = new byte[byteSize];
 
       if(progress)
-        *progress = 0.0001f;
+        progress(0.0001f);
 
       for(uint64_t i = 0; i < numBufs; i++)
       {
@@ -1311,7 +1313,7 @@ public:
 
         totalSize -= payloadLength;
         if(progress)
-          *progress = float(i + 1) / float(numBufs);
+          progress(float(i + 1) / float(numBufs));
       }
 
       delete[] buf;
@@ -1319,7 +1321,7 @@ public:
     else
     {
       if(progress)
-        *progress = 1.0f;
+        progress(1.0f);
     }
 
     return *this;

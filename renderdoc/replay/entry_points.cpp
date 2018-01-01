@@ -400,22 +400,20 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerP
   return RenderDoc_RemoteServerPort;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
-                                                                        uint32_t port,
-                                                                        volatile bool *killReplay)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
+    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay)
 {
-  bool dummy = false;
-
-  if(killReplay == NULL)
-    killReplay = &dummy;
-
   if(listenhost == NULL || listenhost[0] == 0)
     listenhost = "0.0.0.0";
+
+  // ensure a sensible default if no callback is provided, that just never kills
+  if(!killReplay)
+    killReplay = []() { return false; };
 
   if(port == 0)
     port = RENDERDOC_GetDefaultRemoteServerPort();
 
-  RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, *killReplay);
+  RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, killReplay);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname)

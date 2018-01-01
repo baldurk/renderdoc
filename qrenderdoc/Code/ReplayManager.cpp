@@ -42,15 +42,13 @@ ReplayManager::~ReplayManager()
   RENDERDOC_UnregisterMemoryRegion(this);
 }
 
-void ReplayManager::OpenCapture(const QString &capturefile, float *progress)
+void ReplayManager::OpenCapture(const QString &capturefile, RENDERDOC_ProgressCallback progress)
 {
   if(m_Running)
     return;
 
   // TODO maybe we could expose this choice to the user?
   int proxyRenderer = -1;
-
-  *progress = 0.0f;
 
   m_Thread = new LambdaThread([this, proxyRenderer, capturefile, progress]() {
     run(proxyRenderer, capturefile, progress);
@@ -171,7 +169,8 @@ rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *wind
 
   auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    remotepath = m_Remote->CopyCaptureToRemote(localpath.c_str(), &progress);
+    remotepath =
+        m_Remote->CopyCaptureToRemote(localpath.c_str(), [&progress](float p) { progress = p; });
     copied = true;
   };
 
@@ -204,7 +203,8 @@ void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr
 
   auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    m_Remote->CopyCaptureFromRemote(remotepath.c_str(), localpath.c_str(), &progress);
+    m_Remote->CopyCaptureFromRemote(remotepath.c_str(), localpath.c_str(),
+                                    [&progress](float p) { progress = p; });
     copied = true;
   };
 
@@ -408,7 +408,8 @@ void ReplayManager::PushInvoke(ReplayManager::InvokeHandle *cmd)
   m_RenderCondition.wakeAll();
 }
 
-void ReplayManager::run(int proxyRenderer, const QString &capturefile, float *progress)
+void ReplayManager::run(int proxyRenderer, const QString &capturefile,
+                        RENDERDOC_ProgressCallback progress)
 {
   m_Renderer = NULL;
 

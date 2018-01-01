@@ -47,7 +47,7 @@ public:
   ReplayManager();
   ~ReplayManager();
 
-  void OpenCapture(const QString &capturefile, float *progress);
+  void OpenCapture(const QString &capturefile, RENDERDOC_ProgressCallback progress);
   void DeleteCapture(const rdcstr &capturefile, bool local);
 
   bool IsRunning();
@@ -111,7 +111,7 @@ private:
     bool selfdelete;
   };
 
-  void run(int proxyRenderer, const QString &capturefile, float *progress);
+  void run(int proxyRenderer, const QString &capturefile, RENDERDOC_ProgressCallback progress);
 
   QMutex m_RenderLock;
   QQueue<InvokeHandle *> m_RenderQueue;

@@ -320,9 +320,10 @@ typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **drive
 typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
 
 typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &reader, RDCFile *rdc,
-                                        SDFile &structData, float *progress);
+                                        SDFile &structData, RENDERDOC_ProgressCallback progress);
 typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
-                                        const SDFile &structData, float *progress);
+                                        const SDFile &structData,
+                                        RENDERDOC_ProgressCallback progress);
 
 typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                  std::vector<std::string> &otherJSONs);
@@ -340,16 +341,16 @@ public:
   static RenderDoc &Inst();
 
   template <typename ProgressType>
-  void SetProgressPointer(float *progress)
+  void SetProgressCallback(RENDERDOC_ProgressCallback progress)
   {
-    m_ProgressPointers[TypeName<ProgressType>()] = progress;
+    m_ProgressCallbacks[TypeName<ProgressType>()] = progress;
   }
 
   template <typename ProgressType>
   void SetProgress(ProgressType section, float delta)
   {
-    float *ptr = m_ProgressPointers[TypeName<ProgressType>()];
-    if(ptr == NULL || section < ProgressType::First || section >= ProgressType::Count)
+    RENDERDOC_ProgressCallback cb = m_ProgressCallbacks[TypeName<ProgressType>()];
+    if(!cb || section < ProgressType::First || section >= ProgressType::Count)
       return;
 
     float progress = 0.0f;
@@ -367,7 +368,7 @@ public:
     if(progress >= 0.9999f)
       progress = 1.0f;
 
-    *ptr = progress;
+    cb(progress);
   }
 
   // set from outside of the device creation interface
@@ -386,7 +387,7 @@ public:
   bool IsReplayApp() const { return m_Replay; }
   const string &GetConfigSetting(string name) { return m_ConfigSettings[name]; }
   void SetConfigSetting(string name, string value) { m_ConfigSettings[name] = value; }
-  void BecomeRemoteServer(const char *listenhost, uint16_t port, volatile bool &killReplay);
+  void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay);
 
   void SetCaptureOptions(const CaptureOptions &opts);
   const CaptureOptions &GetCaptureOptions() const { return m_Options; }
@@ -567,7 +568,7 @@ private:
   Threading::CriticalSection m_DriverLock;
   std::map<RDCDriver, uint64_t> m_ActiveDrivers;
 
-  std::map<std::string, float *> m_ProgressPointers;
+  std::map<std::string, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
 
   Threading::CriticalSection m_CaptureLock;
   vector<CaptureData> m_Captures;

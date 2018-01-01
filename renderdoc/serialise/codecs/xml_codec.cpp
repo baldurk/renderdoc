@@ -258,7 +258,8 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
 }
 
 static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, uint64_t version,
-                                   const StructuredChunkList &chunks, float *progress)
+                                   const StructuredChunkList &chunks,
+                                   RENDERDOC_ProgressCallback progress)
 {
   pugi::xml_document doc;
 
@@ -473,8 +474,9 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   return ret;
 }
 
-static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &buffers, RDCFile *rdc,
-                                   uint64_t &version, StructuredChunkList &chunks, float *progress)
+static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &buffers,
+                                   RDCFile *rdc, uint64_t &version, StructuredChunkList &chunks,
+                                   RENDERDOC_ProgressCallback progress)
 {
   pugi::xml_document doc;
   doc.load_string(xml);
@@ -540,7 +542,7 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
   pugi::xml_node xSection = xHeader.next_sibling();
 
   if(progress)
-    *progress = StructuredProgress(0.1f);
+    progress(StructuredProgress(0.1f));
 
   while(!strcmp(xSection.name(), "section"))
   {
@@ -611,7 +613,7 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
   }
 
   if(progress)
-    *progress = StructuredProgress(0.2f);
+    progress(StructuredProgress(0.2f));
 
   pugi::xml_node xChunks = xSection;
 
@@ -679,7 +681,7 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
     chunks.push_back(chunk);
 
     if(progress)
-      *progress = StructuredProgress(0.2f + 0.8f * (float(chunkIdx) / float(numChunks)));
+      progress(StructuredProgress(0.2f + 0.8f * (float(chunkIdx) / float(numChunks))));
 
     chunkIdx++;
   }
@@ -688,7 +690,8 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
 }
 
 static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file,
-                                const StructuredBufferList &buffers, float *progress)
+                                const StructuredBufferList &buffers,
+                                RENDERDOC_ProgressCallback progress)
 {
   std::string zipFile = filename + ".zip";
 
@@ -709,7 +712,7 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
                           MZ_BEST_COMPRESSION);
 
     if(progress)
-      *progress = BufferProgress(float(i) / float(buffers.size()));
+      progress(BufferProgress(float(i) / float(buffers.size())));
   }
 
   const RDCThumb &th = file.GetThumbnail();
@@ -722,7 +725,8 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
   return ReplayStatus::Succeeded;
 }
 
-static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers, float *progress)
+static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers,
+                        RENDERDOC_ProgressCallback progress)
 {
   std::string zipFile = filename + ".zip";
 
@@ -767,7 +771,7 @@ static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffe
       }
 
       if(progress)
-        *progress = BufferProgress(float(i) / float(numfiles));
+        progress(BufferProgress(float(i) / float(numfiles)));
     }
   }
 
@@ -775,7 +779,7 @@ static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffe
 }
 
 ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc,
-                        SDFile &structData, float *progress)
+                        SDFile &structData, RENDERDOC_ProgressCallback progress)
 {
   if(filename)
     ZIP2Buffers(filename, structData.buffers, progress);
@@ -790,7 +794,7 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
 }
 
 ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &structData,
-                        float *progress)
+                        RENDERDOC_ProgressCallback progress)
 {
   ReplayStatus ret = Buffers2ZIP(filename, rdc, structData.buffers, progress);
 

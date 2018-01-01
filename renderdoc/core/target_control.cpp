@@ -106,7 +106,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
   }
 
   float captureProgress = -1.0f;
-  RenderDoc::Inst().SetProgressPointer<CaptureProgress>(&captureProgress);
+  RenderDoc::Inst().SetProgressCallback<CaptureProgress>(
+      [&captureProgress](float p) { captureProgress = p; });
 
   const int pingtime = 1000;       // ping every 1000ms
   const int ticktime = 10;         // tick every 10ms
@@ -310,7 +311,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
     }
   }
 
-  RenderDoc::Inst().SetProgressPointer<CaptureProgress>(NULL);
+  RenderDoc::Inst().SetProgressCallback<CaptureProgress>(RENDERDOC_ProgressCallback());
 
   // give up our connection
   {

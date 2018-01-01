@@ -1341,9 +1341,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroid
   return SearchForAndroidLayer(deviceID, layerDst, layerName, foundLayer);
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(const char *host,
-                                                                              const char *exe,
-                                                                              float *progress)
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(
+    const char *host, const char *exe, RENDERDOC_ProgressCallback progress)
 {
   Process::ProcessResult result = {};
   string packageName(basename(string(exe)));
@@ -1352,12 +1351,16 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(co
   std::string deviceID;
   Android::extractDeviceIDAndIndex(host, index, deviceID);
 
-  *progress = 0.0f;
+  // make sure progress is valid so we don't have to check it everywhere
+  if(!progress)
+    progress = [](float) {};
+
+  progress(0.0f);
 
   if(!CheckPatchingRequirements())
     return false;
 
-  *progress = 0.11f;
+  progress(0.11f);
 
   // Detect which ABI was installed on the device
   string abi = DetermineInstalledABI(deviceID, packageName);
@@ -1376,48 +1379,48 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(co
   string origAPK(tmpDir + packageName + ".orig.apk");
   string alignedAPK(origAPK + ".aligned.apk");
 
-  *progress = 0.21f;
+  progress(0.21f);
 
   // Try the following steps, bailing if anything fails
   if(!PullAPK(deviceID, pkgPath, origAPK))
     return false;
 
-  *progress = 0.31f;
+  progress(0.31f);
 
   if(!CheckAPKPermissions(origAPK))
     return false;
 
-  *progress = 0.41f;
+  progress(0.41f);
 
   if(!RemoveAPKSignature(origAPK))
     return false;
 
-  *progress = 0.51f;
+  progress(0.51f);
 
   if(!AddLayerToAPK(origAPK, layerPath, layerName, abi, tmpDir))
     return false;
 
-  *progress = 0.61f;
+  progress(0.61f);
 
   if(!RealignAPK(origAPK, alignedAPK, tmpDir))
     return false;
 
-  *progress = 0.71f;
+  progress(0.71f);
 
   if(!DebugSignAPK(alignedAPK, tmpDir))
     return false;
 
-  *progress = 0.81f;
+  progress(0.81f);
 
   if(!UninstallOriginalAPK(deviceID, packageName, tmpDir))
     return false;
 
-  *progress = 0.91f;
+  progress(0.91f);
 
   if(!ReinstallPatchedAPK(deviceID, alignedAPK, abi, packageName, tmpDir))
     return false;
 
-  *progress = 1.0f;
+  progress(1.0f);
 
   // All clean!
   return true;

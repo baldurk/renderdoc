@@ -221,7 +221,7 @@ private:
   std::map<uint64_t, Callstack::AddressDetails> m_Cache;
 };
 
-StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCallback progress)
 {
   // we look in the original locations for the files, we don't prompt if we can't
   // find the file, or the file doesn't have symbols (and we don't validate that
@@ -243,7 +243,7 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress)
   while(search && search < dbend)
   {
     if(progress)
-      *progress = float(search - start) / float(DBSize);
+      progress(float(search - start) / float(DBSize));
 
     // find .text segments
     {
@@ -322,7 +322,7 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress)
     }
 
     if(progress)
-      *progress = RDCMIN(1.0f, float(search - start) / float(DBSize));
+      progress(RDCMIN(1.0f, float(search - start) / float(DBSize)));
 
     if(search >= dbend)
       break;

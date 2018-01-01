@@ -369,7 +369,7 @@ private:
 class Win32CallstackResolver : public Callstack::StackResolver
 {
 public:
-  Win32CallstackResolver(byte *moduleDB, size_t DBSize, float *progress);
+  Win32CallstackResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCallback progress);
   ~Win32CallstackResolver();
 
   Callstack::AddressDetails GetAddr(uint64_t addr);
@@ -675,7 +675,8 @@ wstring Win32CallstackResolver::pdbBrowse(wstring startingPoint)
   return outBuf;
 }
 
-Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize, float *progress)
+Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
+                                               RENDERDOC_ProgressCallback progress)
 {
   wstring configPath = StringFormat::UTF82Wide(FileIO::GetAppFolderFilename("config.ini"));
   {
@@ -722,7 +723,7 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize, fl
     modName = (WCHAR *)(chunks + sizeof(EnumModChunk));
 
     if(progress)
-      *progress = float(chunks - moduleDB) / float(end - moduleDB);
+      progress(float(chunks - moduleDB) / float(end - moduleDB));
 
     Module m;
 
@@ -851,7 +852,7 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize, fl
     }
 
     if(progress)
-      *progress = RDCMIN(1.0f, float(chunks - moduleDB) / float(end - moduleDB));
+      progress(RDCMIN(1.0f, float(chunks - moduleDB) / float(end - moduleDB)));
 
     DIA2::SetBaseAddress(m.moduleId, chunk->base);
 
@@ -962,7 +963,7 @@ Stackwalk *Create()
   return new Win32Callstack(NULL, 0);
 }
 
-StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCallback progress)
 {
   if(DBSize < 8 || memcmp(moduleDB, "WN32CALL", 8))
   {

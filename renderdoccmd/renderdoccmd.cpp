@@ -499,7 +499,8 @@ struct RemoteServerCommand : public Command
 
     usingKillSignal = true;
 
-    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), port, &killSignal);
+    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), port,
+                                 []() { return killSignal; });
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 

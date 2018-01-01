@@ -2012,7 +2012,8 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
   bool finished = false;
 
   m_Ctx.Replay().AsyncInvoke([this, &progress, &finished](IReplayController *) {
-    bool success = m_Ctx.Replay().GetCaptureAccess()->InitResolver(&progress);
+    bool success =
+        m_Ctx.Replay().GetCaptureAccess()->InitResolver([&progress](float p) { progress = p; });
 
     if(!success)
     {

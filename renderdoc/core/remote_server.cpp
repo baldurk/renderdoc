@@ -406,7 +406,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
           bool kill = false;
           float progress = 0.0f;
 
-          RenderDoc::Inst().SetProgressPointer<LoadProgress>(&progress);
+          RenderDoc::Inst().SetProgressCallback<LoadProgress>([&progress](float p) { progress = p; });
 
           Threading::ThreadHandle ticker = Threading::CreateThread([&writer, &kill, &progress]() {
             while(!kill)
@@ -439,7 +439,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
             else
             {
-              RenderDoc::Inst().SetProgressPointer<LoadProgress>(NULL);
+              RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 
               kill = true;
               Threading::JoinThread(ticker);
@@ -510,7 +510,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
           });
 
-          resolver = Callstack::MakeResolver(buf.data(), buf.size(), &progress);
+          resolver = Callstack::MakeResolver(buf.data(), buf.size(),
+                                             [&progress](float p) { progress = p; });
 
           Threading::JoinThread(ticker);
           Threading::CloseThread(ticker);
@@ -764,7 +765,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
   SAFE_DELETE(client);
 }
 
-void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volatile bool &killReplay)
+void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
+                                   RENDERDOC_KillCallback killReplay)
 {
   Network::Socket *sock = Network::CreateServerSocket(listenhost, port, 1);
 
@@ -855,7 +857,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
   std::vector<ClientThread *> inactives;
 
-  while(!killReplay)
+  while(!killReplay())
   {
     Network::Socket *client = sock->AcceptClient(false);
 
@@ -1230,7 +1232,8 @@ public:
     return ident;
   }
 
-  void CopyCaptureFromRemote(const char *remotepath, const char *localpath, float *progress)
+  void CopyCaptureFromRemote(const char *remotepath, const char *localpath,
+                             RENDERDOC_ProgressCallback progress)
   {
     std::string path = remotepath;
 
@@ -1240,10 +1243,6 @@ public:
       SERIALISE_ELEMENT(path);
     }
 
-    float dummy = 0.0f;
-    if(progress == NULL)
-      progress = &dummy;
-
     {
       READ_DATA_SCOPE();
       RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
@@ -1252,7 +1251,7 @@ public:
       {
         StreamWriter streamWriter(FileIO::fopen(localpath, "wb"), Ownership::Stream);
 
-        ser.SerialiseStream(localpath, streamWriter, NULL);
+        ser.SerialiseStream(localpath, streamWriter, progress);
 
         if(ser.IsErrored())
         {
@@ -1269,14 +1268,14 @@ public:
     }
   }
 
-  rdcstr CopyCaptureToRemote(const char *filename, float *progress)
+  rdcstr CopyCaptureToRemote(const char *filename, RENDERDOC_ProgressCallback progress)
   {
     {
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureToRemote);
 
       StreamReader fileStream(FileIO::fopen(filename, "rb"));
-      ser.SerialiseStream(filename, fileStream);
+      ser.SerialiseStream(filename, fileStream, progress);
     }
 
     std::string path;
@@ -1312,7 +1311,7 @@ public:
   }
 
   rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid, const char *filename,
-                                                         float *progressPtr)
+                                                         RENDERDOC_ProgressCallback progress)
   {
     rdcpair<ReplayStatus, IReplayController *> ret;
     ret.first = ReplayStatus::InternalError;
@@ -1324,12 +1323,6 @@ public:
       ret.first = ReplayStatus::InternalError;
       return ret;
     }
-
-    float dummy = 0.0f;
-    if(progressPtr == NULL)
-      progressPtr = &dummy;
-
-    float &progress = *progressPtr;
 
     // if the proxy id is ~0U, then we just don't care so let RenderDoc pick the most
     // appropriate supported proxy for the current platform.
@@ -1350,11 +1343,16 @@ public:
       if(reader.IsErrored() || type != eRemoteServer_LogOpenProgress)
         break;
 
-      SERIALISE_ELEMENT(progress);
+      float progressValue = 0.0f;
+
+      SERIALISE_ELEMENT(progressValue);
 
       ser.EndChunk();
 
-      RDCLOG("% 3.0f%%...", progress * 100.0f);
+      if(progress)
+        progress(progressValue);
+
+      RDCLOG("% 3.0f%%...", progressValue * 100.0f);
     }
 
     if(reader.IsErrored() || type != eRemoteServer_LogOpened)
@@ -1370,7 +1368,8 @@ public:
       ser.EndChunk();
     }
 
-    progress = 1.0f;
+    if(progress)
+      progress(1.0f);
 
     if(status != ReplayStatus::Succeeded)
     {
@@ -1624,14 +1623,8 @@ public:
     return hasCallstacks;
   }
 
-  bool InitResolver(float *progressPtr)
+  bool InitResolver(RENDERDOC_ProgressCallback progress)
   {
-    float dummy = 0.0f;
-    if(progressPtr == NULL)
-      progressPtr = &dummy;
-
-    float &progress = *progressPtr;
-
     {
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_InitResolver);
@@ -1646,11 +1639,16 @@ public:
       if(reader.IsErrored() || type != eRemoteServer_ResolverProgress)
         break;
 
-      SERIALISE_ELEMENT(progress);
+      float progressValue = 0.0f;
+
+      SERIALISE_ELEMENT(progressValue);
 
       ser.EndChunk();
 
-      RDCLOG("% 3.0f%%...", progress * 100.0f);
+      if(progress)
+        progress(progressValue);
+
+      RDCLOG("% 3.0f%%...", progressValue * 100.0f);
     }
 
     if(reader.IsErrored() || type != eRemoteServer_InitResolver)
@@ -1665,7 +1663,8 @@ public:
       ser.EndChunk();
     }
 
-    progress = 1.0f;
+    if(progress)
+      progress(1.0f);
 
     return success;
   }

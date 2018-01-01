@@ -120,12 +120,13 @@ public:
   ReplaySupport LocalReplaySupport() { return m_Support; }
   const char *DriverName() { return m_DriverName.c_str(); }
   const char *RecordedMachineIdent() { return m_Ident.c_str(); }
-  rdcpair<ReplayStatus, IReplayController *> OpenCapture(float *progress);
+  rdcpair<ReplayStatus, IReplayController *> OpenCapture(RENDERDOC_ProgressCallback progress);
 
   void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
                    uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData);
 
-  ReplayStatus Convert(const char *filename, const char *filetype, float *progress);
+  ReplayStatus Convert(const char *filename, const char *filetype,
+                       RENDERDOC_ProgressCallback progress);
 
   rdcarray<CaptureFileFormat> GetCaptureFileFormats()
   {
@@ -175,7 +176,7 @@ public:
   void WriteSection(const SectionProperties &props, const bytebuf &contents);
 
   bool HasCallstacks();
-  bool InitResolver(float *progress);
+  bool InitResolver(RENDERDOC_ProgressCallback progress);
   rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
 
 private:
@@ -324,7 +325,7 @@ ReplayStatus CaptureFile::Init()
   return ReplayStatus::InternalError;
 }
 
-rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float *progress)
+rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC || m_RDC->ErrorCode() != ContainerError::NoError)
     return make_rdcpair<ReplayStatus, IReplayController *>(ReplayStatus::InternalError, NULL);
@@ -332,11 +333,11 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float *progr
   ReplayController *render = new ReplayController();
   ReplayStatus ret;
 
-  RenderDoc::Inst().SetProgressPointer<LoadProgress>(progress);
+  RenderDoc::Inst().SetProgressCallback<LoadProgress>(progress);
 
   ret = render->CreateDevice(m_RDC);
 
-  RenderDoc::Inst().SetProgressPointer<LoadProgress>(NULL);
+  RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 
   if(ret != ReplayStatus::Succeeded)
     SAFE_DELETE(render);
@@ -376,7 +377,8 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
   free((void *)th.pixels);
 }
 
-ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, float *progress)
+ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype,
+                                  RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC)
   {
@@ -678,7 +680,7 @@ bool CaptureFile::HasCallstacks()
   return m_RDC && m_RDC->SectionIndex(SectionType::ResolveDatabase) >= 0;
 }
 
-bool CaptureFile::InitResolver(float *progress)
+bool CaptureFile::InitResolver(RENDERDOC_ProgressCallback progress)
 {
   if(!HasCallstacks())
   {
@@ -687,7 +689,7 @@ bool CaptureFile::InitResolver(float *progress)
   }
 
   if(progress)
-    *progress = 0.001f;
+    progress(0.001f);
 
   int idx = m_RDC->SectionIndex(SectionType::ResolveDatabase);
 
@@ -709,7 +711,7 @@ bool CaptureFile::InitResolver(float *progress)
   }
 
   if(progress)
-    *progress = 0.002f;
+    progress(0.002f);
 
   m_Resolver = Callstack::MakeResolver(buf.data(), buf.size(), progress);
 

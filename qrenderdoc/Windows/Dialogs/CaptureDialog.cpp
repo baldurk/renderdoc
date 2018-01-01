@@ -610,7 +610,8 @@ void CaptureDialog::androidWarn_mouseClick()
       // call into APK pull, patch, install routine, then continue
       LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
         rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
-        if(RENDERDOC_AddLayerToAndroidPackage(host.c_str(), exe.toUtf8().data(), &progress))
+        if(RENDERDOC_AddLayerToAndroidPackage(host.c_str(), exe.toUtf8().data(),
+                                              [&progress](float p) { progress = p; }))
         {
           // Sucess!
           patchSucceeded = true;

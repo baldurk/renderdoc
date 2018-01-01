@@ -27,6 +27,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <functional>
 
 // Guidelines for documentation:
 //
@@ -483,11 +484,36 @@ DECLARE_REFLECTION_STRUCT(ResourceId);
 #include "shader_types.h"
 #include "vk_pipestate.h"
 
+// there's not a good way to document a callback, so for lack of a better place we declare these
+// here and document them immediately below. They can be linked to from anywhere by name.
+typedef std::function<bool()> RENDERDOC_KillCallback;
+typedef std::function<void(float)> RENDERDOC_ProgressCallback;
+
 DOCUMENT(R"(A stateful output handle that contains the current configuration for one particular view
 of the capture. This allows multiple outputs to run independently without interfering with each
 other.
 
 The different types are enumerated in :class:`ReplayOutputType`.
+
+.. function:: KillCallback()
+
+  Not an actual member function - the signature for any ``KillCallback`` callbacks.
+
+  Called whenever some on-going blocking process needs to determine if it should close.
+
+  :return: Whether or not the process should be killed.
+  :rtype: ``bool``
+
+.. function:: ProgressCallback()
+
+  Not an actual member function - the signature for any ``ProgressCallback`` callbacks.
+
+  Called by an on-going blocking process to update a progress bar or similar user feedback.
+
+  The progress value will go from 0.0 to 1.0 as the process completes. Any other value will indicate
+  that the process has completed
+
+  :param float progress: The latest progress amount.
 
 .. data:: NoResult
 
@@ -1240,12 +1266,12 @@ necessary.
 This function blocks while trying to initialise callstack resolving, so it should be called on a
 separate thread.
 
-:param float progress: A reference to a ``float`` value that will be updated as the init happens
-  from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value for the resolver process. Can be ``None`` if no progress is desired.
 :return: ``True`` if the resolver successfully initialised, ``False`` if something went wrong.
 :rtype: ``bool``
 )");
-  virtual bool InitResolver(float *progress) = 0;
+  virtual bool InitResolver(RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Retrieve the details of each stackframe in the provided callstack.
 
@@ -1362,12 +1388,12 @@ This is primarily useful for when a capture is only stored locally and must be r
 the capture must be available on the machine where the replay happens.
 
 :param str filename: The path to the file on the local system.
-:param float progress: A reference to a float value that will be updated as the copy happens from
-  ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value for the copy. Can be ``None`` if no progress is desired.
 :return: The path on the remote system where the capture was saved temporarily.
 :rtype: ``str``
 )");
-  virtual rdcstr CopyCaptureToRemote(const char *filename, float *progress) = 0;
+  virtual rdcstr CopyCaptureToRemote(const char *filename, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Copy a capture file that is stored on the remote system to the local system.
 
@@ -1375,11 +1401,11 @@ This function will block until the copy is fully complete, or an error has occur
 
 :param str remotepath: The remote path where the file should be copied from.
 :param str localpath: The local path where the file should be saved.
-:param float progress: A reference to a ``float`` value that will be updated as the copy happens
-  from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value for the copy. Can be ``None`` if no progress is desired.
 )");
   virtual void CopyCaptureFromRemote(const char *remotepath, const char *localpath,
-                                     float *progress) = 0;
+                                     RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Open a capture file for remote capture and replay. The capture will be opened and
 replayed on the remote system, and proxied to the local system with a given renderer. As much work
@@ -1396,15 +1422,14 @@ or an error has occurred.
   or :data:`NoPreference` to indicate no preference for any proxy.
 :param str logfile: The path on the remote system where the file is. If the file is only available
   locally you can use :meth:`CopyCaptureToRemote` to transfer it over the remote connection.
-:param float progress: A reference to a ``float`` value that will be updated as the copy happens
-  from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value for the opening. Can be ``None`` if no progress is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
   resulting :class:`ReplayController` handle if successful.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`
 )");
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
-                                                                 const char *logfile,
-                                                                 float *progress) = 0;
+  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
+      uint32_t proxyid, const char *logfile, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Close a capture analysis handle previously opened by :meth:`OpenCapture`.
 
@@ -1477,11 +1502,13 @@ representation back to native RDC.
 
 :param str filename: The filename to save to.
 :param str filetype: The format to convert to.
-:param float progress: A reference to a ``float`` value that will be updated as the copy happens
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value for the conversion. Can be ``None`` if no progress is desired.
 :return: The status of the conversion operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus Convert(const char *filename, const char *filetype, float *progress) = 0;
+  virtual ReplayStatus Convert(const char *filename, const char *filetype,
+                               RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the human-readable error string for the last error received.
 
@@ -1556,13 +1583,13 @@ This function will block until the capture is fully loaded and ready.
 Once the replay is created, this :class:`CaptureFile` can be shut down, there is no dependency on it
 by the :class:`ReplayController`.
 
-:param float progress: A reference to a ``float`` value that will be updated as the copy happens
-  from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value for the opening. Can be ``None`` if no progress is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
   resulting :class:`ReplayController` handle if successful.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`.
 )");
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(float *progress) = 0;
+  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the structured data for this capture.
 
@@ -1825,16 +1852,15 @@ DOCUMENT(R"(This launches a remote server which will continually run in a loop t
 from external sources.
 
 This function will block until a remote connection tells the server to shut down, or the
-``killReplay`` value becomes ``True``.
+``killReplay`` callback returns ``True``.
 
 :param str host: The name of the interface to listen on.
 :param int port: The port to listen on, or the default port if 0.
-:param bool killReplay: A reference to a ``bool`` that can be set to ``True`` to shut down the
-  server.
+:param KillCallback killReplay: A callback that returns a ``bool`` indicating if the server should
+  be shut down or not.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
-                                                                        uint32_t port,
-                                                                        volatile bool *killReplay);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
+    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.
@@ -2035,9 +2061,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroid
                                                                                     const char *exe);
 
 DOCUMENT("Internal function that attempts to modify APK contents, adding Vulkan layer.");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(const char *host,
-                                                                              const char *exe,
-                                                                              float *progress);
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(
+    const char *host, const char *exe, RENDERDOC_ProgressCallback progress);
 
 DOCUMENT("Internal function that runs unit tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,

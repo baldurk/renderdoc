@@ -214,7 +214,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
   m_PostloadProgress = 0.0f;
 
   // this function call will block until the capture is either loaded, or there's some failure
-  m_Renderer.OpenCapture(captureFile, &m_LoadProgress);
+  m_Renderer.OpenCapture(captureFile, [this](float p) { m_LoadProgress = p; });
 
   // if the renderer isn't running, we hit a failure case so display an error message
   if(!m_Renderer.IsRunning())
@@ -670,7 +670,7 @@ void CaptureContext::RecompressCapture()
   float progress = 0.0f;
 
   LambdaThread *th = new LambdaThread([this, cap, destFilename, &progress]() {
-    cap->Convert(destFilename.toUtf8().data(), "rdc", &progress);
+    cap->Convert(destFilename.toUtf8().data(), "rdc", [&progress](float p) { progress = p; });
   });
   th->start();
   // wait a few ms before popping up a progress bar

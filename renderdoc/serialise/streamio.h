@@ -488,4 +488,4 @@ private:
   std::vector<StreamCloseCallback> m_Callbacks;
 };
 
-void StreamTransfer(StreamWriter *writer, StreamReader *reader, float *progress);
+void StreamTransfer(StreamWriter *writer, StreamReader *reader, RENDERDOC_ProgressCallback progress);

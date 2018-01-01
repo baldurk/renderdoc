@@ -27,7 +27,7 @@
 #include "serialise/rdcfile.h"
 
 ReplayStatus exportChrome(const char *filename, const RDCFile &rdc, const SDFile &structData,
-                          float *progress)
+                          RENDERDOC_ProgressCallback progress)
 {
   FILE *f = FileIO::fopen(filename, "w");
 
@@ -45,6 +45,9 @@ ReplayStatus exportChrome(const char *filename, const RDCFile &rdc, const SDFile
 
   // stupid JSON not allowing trailing ,s :(
   bool first = true;
+
+  int i = 0;
+  int numChunks = structData.chunks.count();
 
   for(const SDChunk *chunk : structData.chunks)
   {
@@ -69,7 +72,15 @@ ReplayStatus exportChrome(const char *filename, const RDCFile &rdc, const SDFile
     str += StringFormat::Fmt(
         fmt, chunk->name.c_str(), category, chunk->metadata.timestampMicro, chunk->metadata.threadID,
         chunk->metadata.timestampMicro + chunk->metadata.durationMicro, chunk->metadata.threadID);
+
+    if(progress)
+      progress(float(i) / float(numChunks));
+
+    i++;
   }
+
+  if(progress)
+    progress(1.0f);
 
   // end trace events
   str += "\n  ]\n}";

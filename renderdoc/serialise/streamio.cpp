@@ -488,7 +488,7 @@ void StreamWriter::HandleError()
   m_InMemory = false;
 }
 
-void StreamTransfer(StreamWriter *writer, StreamReader *reader, float *progress)
+void StreamTransfer(StreamWriter *writer, StreamReader *reader, RENDERDOC_ProgressCallback progress)
 {
   uint64_t totalSize = reader->GetSize();
 
@@ -504,7 +504,7 @@ void StreamTransfer(StreamWriter *writer, StreamReader *reader, float *progress)
   byte *buf = new byte[(size_t)bufSize];
 
   if(progress)
-    *progress = 0.0001f;
+    progress(0.0001f);
 
   for(uint64_t i = 0; i < numBufs; i++)
   {
@@ -515,8 +515,11 @@ void StreamTransfer(StreamWriter *writer, StreamReader *reader, float *progress)
 
     totalSize -= payloadLength;
     if(progress)
-      *progress = float(i + 1) / float(numBufs);
+      progress(float(i + 1) / float(numBufs));
   }
+
+  if(progress)
+    progress(1.0f);
 
   delete[] buf;
 }
