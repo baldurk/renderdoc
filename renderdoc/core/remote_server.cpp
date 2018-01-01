@@ -146,7 +146,8 @@ static void InactiveRemoteClientThread(ClientThread *threadData)
   }
 }
 
-static void ActiveRemoteClientThread(ClientThread *threadData)
+static void ActiveRemoteClientThread(ClientThread *threadData,
+                                     RENDERDOC_PreviewWindowCallback previewWindow)
 {
   Network::Socket *&client = threadData->socket;
 
@@ -197,7 +198,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
   }
 
   std::vector<std::string> tempFiles;
-  IRemoteDriver *driver = NULL;
+  IRemoteDriver *remoteDriver = NULL;
+  IReplayDriver *replayDriver = NULL;
   ReplayProxy *proxy = NULL;
   RDCFile *rdc = NULL;
   Callstack::StackResolver *resolver = NULL;
@@ -228,6 +230,9 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
     if(type == eRemoteServer_Ping)
     {
       reader.EndChunk();
+
+      if(proxy)
+        proxy->RefreshPreviewWindow();
 
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_Ping);
@@ -378,7 +383,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
 
       reader.EndChunk();
 
-      RDCASSERT(driver == NULL && proxy == NULL && rdc == NULL);
+      RDCASSERT(remoteDriver == NULL && proxy == NULL && rdc == NULL);
       ReplayStatus status = ReplayStatus::InternalError;
 
       rdc = new RDCFile();
@@ -420,22 +425,32 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
           });
 
-          status = RenderDoc::Inst().CreateRemoteDriver(rdc, &driver);
+          // if we have a replay driver, try to create it so we can display a local preview e.g.
+          if(RenderDoc::Inst().HasReplayDriver(rdc->GetDriver()))
+          {
+            status = RenderDoc::Inst().CreateReplayDriver(rdc, &replayDriver);
+            if(replayDriver)
+              remoteDriver = replayDriver;
+          }
+          else
+          {
+            status = RenderDoc::Inst().CreateRemoteDriver(rdc, &remoteDriver);
+          }
 
-          if(status != ReplayStatus::Succeeded || driver == NULL)
+          if(status != ReplayStatus::Succeeded || remoteDriver == NULL)
           {
             RDCERR("Failed to create remote driver for driver '%s'", rdc->GetDriverName().c_str());
           }
           else
           {
-            status = driver->ReadLogInitialisation(rdc, false);
+            status = remoteDriver->ReadLogInitialisation(rdc, false);
 
             if(status != ReplayStatus::Succeeded)
             {
               RDCERR("Failed to initialise remote driver.");
 
-              driver->Shutdown();
-              driver = NULL;
+              remoteDriver->Shutdown();
+              remoteDriver = NULL;
             }
             else
             {
@@ -445,7 +460,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
               Threading::JoinThread(ticker);
               Threading::CloseThread(ticker);
 
-              proxy = new ReplayProxy(reader, writer, driver);
+              proxy = new ReplayProxy(reader, writer, remoteDriver, replayDriver, previewWindow);
             }
           }
         }
@@ -692,11 +707,13 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
     {
       reader.EndChunk();
 
-      if(driver)
-        driver->Shutdown();
-      driver = NULL;
-
       SAFE_DELETE(proxy);
+
+      if(remoteDriver)
+        remoteDriver->Shutdown();
+      remoteDriver = NULL;
+      replayDriver = NULL;
+
       SAFE_DELETE(rdc);
       SAFE_DELETE(resolver);
     }
@@ -746,9 +763,12 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
     }
   }
 
-  if(driver)
-    driver->Shutdown();
   SAFE_DELETE(proxy);
+
+  if(remoteDriver)
+    remoteDriver->Shutdown();
+  remoteDriver = NULL;
+  replayDriver = NULL;
   SAFE_DELETE(rdc);
   SAFE_DELETE(resolver);
 
@@ -766,7 +786,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
 }
 
 void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
-                                   RENDERDOC_KillCallback killReplay)
+                                   RENDERDOC_KillCallback killReplay,
+                                   RENDERDOC_PreviewWindowCallback previewWindow)
 {
   Network::Socket *sock = Network::CreateServerSocket(listenhost, port, 1);
 
@@ -934,8 +955,9 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
       activeClientData->socket = client;
       activeClientData->allowExecution = allowExecution;
 
-      activeClientData->thread = Threading::CreateThread(
-          [activeClientData]() { ActiveRemoteClientThread(activeClientData); });
+      activeClientData->thread = Threading::CreateThread([activeClientData, previewWindow]() {
+        ActiveRemoteClientThread(activeClientData, previewWindow);
+      });
 
       RDCLOG("Making active connection");
     }

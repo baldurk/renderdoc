@@ -128,6 +128,61 @@ void Daemonise()
   // nothing really to do, windows version of renderdoccmd is already 'detached'
 }
 
+WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
+{
+  static WindowingData remoteServerPreview = {WindowingSystem::Unknown};
+
+  if(active)
+  {
+    if(remoteServerPreview.system == WindowingSystem::Unknown)
+    {
+      // if we're first initialising, create the window
+
+      RECT wr = {0, 0, (LONG)1280, (LONG)720};
+      AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
+
+      HWND wnd =
+          CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"Remote Server Preview",
+                         WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
+                         wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+
+      if(wnd == NULL)
+        return remoteServerPreview;
+
+      ShowWindow(wnd, SW_SHOW);
+      UpdateWindow(wnd);
+
+      remoteServerPreview.system = WindowingSystem::Win32;
+      remoteServerPreview.win32.window = wnd;
+    }
+    else
+    {
+      // otherwise, pump messages
+      MSG msg;
+      ZeroMemory(&msg, sizeof(msg));
+
+      // Check to see if any messages are waiting in the queue
+      while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+      {
+        // Translate the message and dispatch it to WindowProc()
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+      }
+    }
+  }
+  else
+  {
+    // if we had a previous window, destroy it.
+    if(remoteServerPreview.win32.window != NULL)
+      DestroyWindow(remoteServerPreview.win32.window);
+
+    // reset the windowing data to 'no window'
+    remoteServerPreview = {WindowingSystem::Unknown};
+  }
+
+  return remoteServerPreview;
+}
+
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

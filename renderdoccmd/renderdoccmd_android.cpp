@@ -57,31 +57,6 @@ void Daemonise()
 {
 }
 
-void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
-                            uint32_t height)
-{
-  ANativeWindow *connectionScreenWindow = android_state->window;
-
-  pthread_mutex_lock(&m_DrawLock.lock);
-
-  IReplayOutput *out = renderer->CreateOutput(CreateAndroidWindowingData(connectionScreenWindow),
-                                              ReplayOutputType::Texture);
-
-  out->SetTextureDisplay(displayCfg);
-
-  for(int i = 0; i < 100; i++)
-  {
-    renderer->SetFrameEvent(10000000, true);
-
-    ANDROID_LOG("Frame %i", i);
-    out->Display();
-
-    usleep(100000);
-  }
-
-  pthread_mutex_unlock(&m_DrawLock.lock);
-}
-
 void DisplayGenericSplash()
 {
   // if something else is drawing and holding the lock, then bail
@@ -265,6 +240,57 @@ void main()
   }
 
   dlclose(libEGL);
+
+  pthread_mutex_unlock(&m_DrawLock.lock);
+}
+
+WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
+{
+  static bool wasActive = false;
+
+  // detect when the preview starts or stops
+  if(wasActive != active)
+  {
+    wasActive = active;
+
+    // if we're opening it, aquire the draw lock, otherwise release it.
+    if(active)
+    {
+      pthread_mutex_lock(&m_DrawLock.lock);
+    }
+    else
+    {
+      pthread_mutex_unlock(&m_DrawLock.lock);
+
+      // when we release it, re-draw the splash
+      DisplayGenericSplash();
+    }
+  }
+
+  return CreateAndroidWindowingData(android_state->window);
+}
+
+void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
+                            uint32_t height)
+{
+  ANativeWindow *connectionScreenWindow = android_state->window;
+
+  pthread_mutex_lock(&m_DrawLock.lock);
+
+  IReplayOutput *out = renderer->CreateOutput(CreateAndroidWindowingData(connectionScreenWindow),
+                                              ReplayOutputType::Texture);
+
+  out->SetTextureDisplay(displayCfg);
+
+  for(int i = 0; i < 100; i++)
+  {
+    renderer->SetFrameEvent(10000000, true);
+
+    ANDROID_LOG("Frame %i", i);
+    out->Display();
+
+    usleep(100000);
+  }
 
   pthread_mutex_unlock(&m_DrawLock.lock);
 }

@@ -401,7 +401,8 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerP
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
-    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay)
+    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay,
+    RENDERDOC_PreviewWindowCallback previewWindow)
 {
   if(listenhost == NULL || listenhost[0] == 0)
     listenhost = "0.0.0.0";
@@ -410,10 +411,17 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
   if(!killReplay)
     killReplay = []() { return false; };
 
+  // ditto for preview windows
+  if(!previewWindow)
+    previewWindow = [](bool, const rdcarray<WindowingSystem> &) {
+      WindowingData ret = {WindowingSystem::Unknown};
+      return ret;
+    };
+
   if(port == 0)
     port = RENDERDOC_GetDefaultRemoteServerPort();
 
-  RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, killReplay);
+  RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, killReplay, previewWindow);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname)

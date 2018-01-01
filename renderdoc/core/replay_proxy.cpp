@@ -68,6 +68,8 @@
 
 ReplayProxy::~ReplayProxy()
 {
+  ShutdownPreviewWindow();
+
   if(m_Proxy)
     m_Proxy->Shutdown();
   m_Proxy = NULL;
@@ -1295,6 +1297,9 @@ void ReplayProxy::Proxied_ReplayLog(ParamSerialiser &paramser, ReturnSerialiser 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
     m_Remote->ReplayLog(endEventID, replayType);
 
+  if(m_RemoteServer)
+    m_PreviewEvent = endEventID;
+
   if(retser.IsReading())
   {
     m_TextureProxyCache.clear();
@@ -1834,6 +1839,141 @@ void ReplayProxy::EnsureBufCached(ResourceId bufid)
   }
 }
 
+const DrawcallDescription *ReplayProxy::FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
+                                                 uint32_t eventId)
+{
+  for(const DrawcallDescription &d : drawcallList)
+  {
+    if(!d.children.empty())
+    {
+      const DrawcallDescription *draw = FindDraw(d.children, eventId);
+      if(draw != NULL)
+        return draw;
+    }
+
+    if(d.eventId == eventId)
+      return &d;
+  }
+
+  return NULL;
+}
+
+void ReplayProxy::InitPreviewWindow()
+{
+  if(m_Replay && m_PreviewWindow)
+  {
+    WindowingData data = m_PreviewWindow(true, m_Replay->GetSupportedWindowSystems());
+    if(data.system != WindowingSystem::Unknown)
+      m_PreviewOutput = m_Replay->MakeOutputWindow(data, false);
+
+    m_FrameRecord = m_Replay->GetFrameRecord();
+  }
+}
+
+void ReplayProxy::ShutdownPreviewWindow()
+{
+  if(m_Replay && m_PreviewOutput)
+  {
+    m_Replay->DestroyOutputWindow(m_PreviewOutput);
+    m_PreviewWindow(false, {});
+  }
+}
+
+void ReplayProxy::RefreshPreviewWindow()
+{
+  if(m_Replay && m_PreviewOutput)
+  {
+    m_Replay->BindOutputWindow(m_PreviewOutput, false);
+    m_Replay->ClearOutputWindowColor(m_PreviewOutput, FloatVector(0.0f, 0.0f, 0.0f, 1.0f));
+
+    int32_t winWidth = 1;
+    int32_t winHeight = 1;
+    m_Replay->GetOutputWindowDimensions(m_PreviewOutput, winWidth, winHeight);
+
+    m_Replay->RenderCheckerboard();
+
+    const DrawcallDescription *curDraw = FindDraw(m_FrameRecord.drawcallList, m_PreviewEvent);
+
+    if(curDraw)
+    {
+      TextureDisplay cfg = {};
+
+      cfg.red = cfg.green = cfg.blue = true;
+      cfg.alpha = false;
+
+      for(ResourceId id : curDraw->outputs)
+      {
+        if(id != ResourceId())
+        {
+          cfg.resourceId = id;
+          break;
+        }
+      }
+
+      // if we didn't get a colour target, try the depth target
+      if(cfg.resourceId == ResourceId() && curDraw->depthOut != ResourceId())
+      {
+        cfg.resourceId = curDraw->depthOut;
+        // red only for depth textures
+        cfg.green = cfg.blue = false;
+      }
+
+      // if we didn't get any target, use the copy destination
+      if(cfg.resourceId == ResourceId())
+        cfg.resourceId = curDraw->copyDestination;
+
+      // if we did get a texture, get the live ID for it
+      if(cfg.resourceId != ResourceId())
+        cfg.resourceId = m_Replay->GetLiveID(cfg.resourceId);
+
+      if(cfg.resourceId != ResourceId())
+      {
+        TextureDescription texInfo = m_Replay->GetTexture(cfg.resourceId);
+
+        cfg.typeHint = CompType::Typeless;
+        cfg.rangeMin = 0.0f;
+        cfg.rangeMax = 1.0f;
+        cfg.flipY = false;
+        cfg.hdrMultiplier = -1.0f;
+        cfg.linearDisplayAsGamma = true;
+        cfg.customShaderId = ResourceId();
+        cfg.mip = 0;
+        cfg.sliceFace = 0;
+        cfg.sampleIdx = 0;
+        cfg.rawOutput = false;
+        cfg.backgroundColor = FloatVector(0, 0, 0, 0);
+        cfg.overlay = DebugOverlay::NoOverlay;
+        cfg.xOffset = 0.0f;
+        cfg.yOffset = 0.0f;
+
+        float xScale = float(winWidth) / float(texInfo.width);
+        float yScale = float(winHeight) / float(texInfo.height);
+
+        if(xScale > yScale)
+        {
+          // use the y scale, calculate the x offset to centre horizontally
+          cfg.scale = yScale;
+
+          cfg.xOffset = (float(winWidth) - float(texInfo.width) * cfg.scale) / 2.0f;
+        }
+        else
+        {
+          // use the x scale, calculate the y offset to centre vertically
+          cfg.scale = xScale;
+
+          cfg.yOffset = (float(winHeight) - float(texInfo.height) * cfg.scale) / 2.0f;
+        }
+
+        m_Replay->RenderTexture(cfg);
+      }
+    }
+
+    m_Replay->FlipOutputWindow(m_PreviewOutput);
+
+    m_PreviewWindow(true, m_Replay->GetSupportedWindowSystems());
+  }
+}
+
 bool ReplayProxy::Tick(int type)
 {
   if(!m_RemoteServer)
@@ -1926,6 +2066,8 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;
     default: RDCERR("Unexpected command %u", type); return false;
   }
+
+  RefreshPreviewWindow();
 
   if(m_Writer.IsErrored() || m_Reader.IsErrored() || m_IsErrored)
     return false;

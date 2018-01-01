@@ -34,6 +34,12 @@ void Daemonise()
 {
 }
 
+WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
+{
+  WindowingData ret = {WindowingSystem::Unknown};
+  return ret;
+}
+
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

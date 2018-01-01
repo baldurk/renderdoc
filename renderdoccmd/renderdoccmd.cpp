@@ -474,6 +474,7 @@ struct RemoteServerCommand : public Command
         "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
     parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
                          RENDERDOC_GetDefaultRemoteServerPort());
+    parser.add("preview", 'v', "Display a preview window when a replay is active.");
   }
   virtual const char *Description()
   {
@@ -499,8 +500,19 @@ struct RemoteServerCommand : public Command
 
     usingKillSignal = true;
 
+    // by default have a do-nothing callback that creates no windows
+    RENDERDOC_PreviewWindowCallback previewWindow;
+
+    // if the user asked for a preview, then call to the platform-specific preview function
+    if(parser.exist("preview"))
+      previewWindow = &DisplayRemoteServerPreview;
+
+    // OR if the platform-specific preview function always has a window, then return it anyway.
+    if(DisplayRemoteServerPreview(false, {}).system != WindowingSystem::Unknown)
+      previewWindow = &DisplayRemoteServerPreview;
+
     RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), port,
-                                 []() { return killSignal; });
+                                 []() { return killSignal; }, previewWindow);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 

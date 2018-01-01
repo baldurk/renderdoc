@@ -387,7 +387,8 @@ public:
   bool IsReplayApp() const { return m_Replay; }
   const string &GetConfigSetting(string name) { return m_ConfigSettings[name]; }
   void SetConfigSetting(string name, string value) { m_ConfigSettings[name] = value; }
-  void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay);
+  void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
+                          RENDERDOC_PreviewWindowCallback previewWindow);
 
   void SetCaptureOptions(const CaptureOptions &opts);
   const CaptureOptions &GetCaptureOptions() const { return m_Options; }

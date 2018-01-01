@@ -202,6 +202,120 @@ void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
 
 static Display *display = NULL;
 
+WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
+{
+  static WindowingData remoteServerPreview = {WindowingSystem::Unknown};
+
+// we only have the preview implemented for platforms that have xlib & xcb. It's unlikely
+// a meaningful platform exists with only one, and at the time of writing no other windowing
+// systems are supported on linux for the replay
+#if defined(RENDERDOC_WINDOWING_XLIB) && defined(RENDERDOC_WINDOWING_XCB)
+  if(active)
+  {
+    if(remoteServerPreview.system == WindowingSystem::Unknown)
+    {
+      // if we're first initialising, create the window
+      if(display == NULL)
+        return remoteServerPreview;
+
+      int scr = DefaultScreen(display);
+
+      xcb_connection_t *connection = XGetXCBConnection(display);
+
+      if(connection == NULL)
+      {
+        std::cerr << "Couldn't get XCB connection from Xlib Display" << std::endl;
+        return remoteServerPreview;
+      }
+
+      XSetEventQueueOwner(display, XCBOwnsEventQueue);
+
+      const xcb_setup_t *setup = xcb_get_setup(connection);
+      xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+      while(scr-- > 0)
+        xcb_screen_next(&iter);
+
+      xcb_screen_t *screen = iter.data;
+
+      uint32_t value_mask, value_list[32];
+
+      xcb_window_t window = xcb_generate_id(connection);
+
+      value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+      value_list[0] = screen->black_pixel;
+      value_list[1] =
+          XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+
+      xcb_create_window(connection, XCB_COPY_FROM_PARENT, window, screen->root, 0, 0, 1280, 720, 0,
+                        XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, value_mask, value_list);
+
+      /* Magic code that will send notification when window is destroyed */
+      xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS");
+      xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(connection, cookie, 0);
+
+      xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(connection, 0, 16, "WM_DELETE_WINDOW");
+      xcb_intern_atom_reply_t *atom_wm_delete_window = xcb_intern_atom_reply(connection, cookie2, 0);
+
+      xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, XCB_ATOM_WM_NAME,
+                          XCB_ATOM_STRING, 8, sizeof("Remote Server Preview") - 1,
+                          "Remote Server Preview");
+
+      xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, (*reply).atom, 4, 32, 1,
+                          &(*atom_wm_delete_window).atom);
+      free(reply);
+
+      xcb_map_window(connection, window);
+
+      bool xcb = false, xlib = false;
+
+      for(size_t i = 0; i < systems.size(); i++)
+      {
+        if(systems[i] == WindowingSystem::Xlib)
+          xlib = true;
+        if(systems[i] == WindowingSystem::XCB)
+          xcb = true;
+      }
+
+      // prefer xcb
+      if(xcb)
+        remoteServerPreview = CreateXCBWindowingData(connection, window);
+      else if(xlib)
+        remoteServerPreview = CreateXlibWindowingData(display, (Drawable)window);
+
+      xcb_flush(connection);
+    }
+    else
+    {
+      // otherwise, we can pump messages here, but we don't actually care to process any. Just clear
+      // the queue
+      xcb_generic_event_t *event = NULL;
+
+      xcb_connection_t *connection = remoteServerPreview.xcb.connection;
+
+      if(remoteServerPreview.system == WindowingSystem::Xlib)
+        connection = XGetXCBConnection(remoteServerPreview.xlib.display);
+
+      if(connection)
+      {
+        do
+        {
+          event = xcb_poll_for_event(connection);
+          if(event)
+            free(event);
+        } while(event);
+      }
+    }
+  }
+  else
+  {
+    // reset the windowing data to 'no window'
+    remoteServerPreview = {WindowingSystem::Unknown};
+  }
+#endif
+
+  return remoteServerPreview;
+}
+
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

@@ -111,19 +111,37 @@ class ReplayProxy : public IReplayDriver
 {
 public:
   ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IReplayDriver *proxy)
-      : m_Reader(reader), m_Writer(writer), m_Proxy(proxy), m_Remote(NULL), m_RemoteServer(false)
+      : m_Reader(reader),
+        m_Writer(writer),
+        m_Proxy(proxy),
+        m_Remote(NULL),
+        m_Replay(NULL),
+        m_RemoteServer(false)
   {
     GetAPIProperties();
     FetchStructuredFile();
   }
 
-  ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemoteDriver *remote)
-      : m_Reader(reader), m_Writer(writer), m_Proxy(NULL), m_Remote(remote), m_RemoteServer(true)
+  ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemoteDriver *remoteDriver,
+              IReplayDriver *replayDriver, RENDERDOC_PreviewWindowCallback previewWindow)
+      : m_Reader(reader),
+        m_Writer(writer),
+        m_Proxy(NULL),
+        m_Remote(remoteDriver),
+        m_Replay(replayDriver),
+        m_PreviewWindow(previewWindow),
+        m_RemoteServer(true)
   {
     RDCEraseEl(m_APIProps);
+
+    if(m_Replay)
+      InitPreviewWindow();
   }
 
   virtual ~ReplayProxy();
+
+  void InitPreviewWindow();
+  void ShutdownPreviewWindow();
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
   void Shutdown() { delete this; }
@@ -394,6 +412,8 @@ public:
     return ResourceId();
   }
 
+  void RefreshPreviewWindow();
+
   bool Tick(int type);
 
   const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11PipelineState; }
@@ -521,6 +541,9 @@ private:
   void EnsureBufCached(ResourceId bufid);
   IMPLEMENT_FUNCTION_PROXIED(bool, NeedRemapForFetch, const ResourceFormat &format);
 
+  const DrawcallDescription *FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
+                                      uint32_t eventId);
+
   struct TextureCacheEntry
   {
     ResourceId replayid;
@@ -587,14 +610,35 @@ private:
 
   std::map<ShaderReflKey, ShaderReflection *> m_ShaderReflectionCache;
 
+  // reader from the other side of the host <-> remote connection
   ReadSerialiser &m_Reader;
+  // writer to the other side of the host <-> remote connection
   WriteSerialiser &m_Writer;
+
+  // the local proxy replay driver when on the host side, NULL on the remote server
   IReplayDriver *m_Proxy;
+  // the remote driver on the remote server, NULL on the host side
   IRemoteDriver *m_Remote;
+  // an *optional* replay driver on the remote server, could be NULL if not supported by the system
+  // on the remote server. Always NULL on the host side.
+  // This allows us to do some extra things on the remote server such as displaying a preview window
+  IReplayDriver *m_Replay;
+
+  // true if we're the remote server, false if we're the host
   bool m_RemoteServer;
+
+  // The callback (if provided) that handles creating and ticking a preview window on the remote
+  // host.
+  RENDERDOC_PreviewWindowCallback m_PreviewWindow;
+  // the ID of the output window to use for previewing on the remote host. Only valid/useful if
+  // m_Replay is set
+  uint64_t m_PreviewOutput = 0;
+
+  uint32_t m_PreviewEvent = 0;
 
   bool m_IsErrored = false;
 
+  FrameRecord m_FrameRecord;
   APIProperties m_APIProps;
 
   SDFile m_StructuredFile;

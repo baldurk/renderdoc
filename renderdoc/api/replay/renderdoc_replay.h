@@ -488,6 +488,7 @@ DECLARE_REFLECTION_STRUCT(ResourceId);
 // here and document them immediately below. They can be linked to from anywhere by name.
 typedef std::function<bool()> RENDERDOC_KillCallback;
 typedef std::function<void(float)> RENDERDOC_ProgressCallback;
+typedef std::function<WindowingData(bool, const rdcarray<WindowingSystem> &)> RENDERDOC_PreviewWindowCallback;
 
 DOCUMENT(R"(A stateful output handle that contains the current configuration for one particular view
 of the capture. This allows multiple outputs to run independently without interfering with each
@@ -514,6 +515,19 @@ The different types are enumerated in :class:`ReplayOutputType`.
   that the process has completed
 
   :param float progress: The latest progress amount.
+
+.. function:: PreviewWindowCallback()
+
+  Not an actual member function - the signature for any ``PreviewWindowCallback`` callbacks.
+
+  Called when a preview window could optionally be opened to display some information. It will be
+  called repeatedly with :paramref:`active` set to ``True`` to allow any platform-specific message
+  pumping.
+
+  :param bool active: ``True`` if a preview window is active/opened, ``False`` if it has closed.
+  :return: The windowing data for a preview window, or empty/default values if no window should be
+    created.
+  :rtype: WindowingData
 
 .. data:: NoResult
 
@@ -1858,9 +1872,12 @@ This function will block until a remote connection tells the server to shut down
 :param int port: The port to listen on, or the default port if 0.
 :param KillCallback killReplay: A callback that returns a ``bool`` indicating if the server should
   be shut down or not.
+:param PreviewWindowCallback previewWindow: A callback that returns information for a preview window
+  when the server wants to display some preview of the ongoing replay.
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
-    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay);
+    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay,
+    RENDERDOC_PreviewWindowCallback previewWindow);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.
