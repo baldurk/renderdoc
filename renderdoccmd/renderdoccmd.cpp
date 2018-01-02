@@ -998,10 +998,14 @@ struct EmbeddedSectionCommand : public Command
 
       if(noclobber)
       {
+        bool exists = false;
         f = fopen(file.c_str(), "rb");
-        bool exists = (f != NULL);
-        fclose(f);
-        f = NULL;
+        if(f)
+        {
+          exists = true;
+          fclose(f);
+          f = NULL;
+        }
 
         if(exists)
         {
