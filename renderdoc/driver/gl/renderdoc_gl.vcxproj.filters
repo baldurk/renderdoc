@@ -233,5 +233,8 @@
     <ClCompile Include="gl_overlay.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="gl_outputwindow.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -99,6 +99,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d11_common.cpp" />
+    <ClCompile Include="d3d11_outputwindow.cpp" />
     <ClCompile Include="d3d11_overlay.cpp" />
     <ClCompile Include="d3d11_pixelhistory.cpp" />
     <ClCompile Include="d3d11_postvs.cpp" />

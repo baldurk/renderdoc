@@ -8,6 +8,7 @@ set(sources
     vk_debug.cpp
     vk_postvs.cpp
     vk_overlay.cpp
+    vk_outputwindow.cpp
     vk_dispatchtables.cpp
     vk_dispatchtables.h
     vk_hookset_defs.h

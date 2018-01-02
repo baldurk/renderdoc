@@ -122,5 +122,8 @@
     <ClCompile Include="d3d12_overlay.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_outputwindow.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
