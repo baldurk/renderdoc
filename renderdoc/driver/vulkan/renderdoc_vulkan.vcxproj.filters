@@ -109,6 +109,9 @@
     <ClCompile Include="vk_postvs.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="vk_overlay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">

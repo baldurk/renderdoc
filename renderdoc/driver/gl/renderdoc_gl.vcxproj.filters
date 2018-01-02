@@ -230,5 +230,8 @@
     <ClCompile Include="gl_postvs.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="gl_overlay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

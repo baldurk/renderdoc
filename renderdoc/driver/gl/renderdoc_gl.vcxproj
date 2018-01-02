@@ -150,6 +150,7 @@
     <ClCompile Include="gl_hooks_win32.cpp" />
     <ClCompile Include="gl_initstate.cpp" />
     <ClCompile Include="gl_manager.cpp" />
+    <ClCompile Include="gl_overlay.cpp" />
     <ClCompile Include="gl_postvs.cpp" />
     <ClCompile Include="gl_program_iterate.cpp" />
     <ClCompile Include="gl_renderstate.cpp" />
