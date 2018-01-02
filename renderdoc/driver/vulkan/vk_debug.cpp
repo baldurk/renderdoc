@@ -5430,7 +5430,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     {
       rs->lineWidth = 1.0f;
 
-      if(m_pDriver->GetDeviceFeatures().fillModeNonSolid)
+      if(mainDraw == NULL)
+      {
+        // do nothing
+      }
+      else if(m_pDriver->GetDeviceFeatures().fillModeNonSolid)
       {
         rs->polygonMode = VK_POLYGON_MODE_LINE;
       }
