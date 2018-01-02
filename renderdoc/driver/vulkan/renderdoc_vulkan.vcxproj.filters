@@ -118,6 +118,9 @@
     <ClCompile Include="vk_rendermesh.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="vk_msaa_array_conv.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">

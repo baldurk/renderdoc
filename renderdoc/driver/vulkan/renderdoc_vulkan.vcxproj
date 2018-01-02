@@ -104,6 +104,7 @@
     <ClCompile Include="vk_apple.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="vk_msaa_array_conv.cpp" />
     <ClCompile Include="vk_outputwindow.cpp" />
     <ClCompile Include="vk_overlay.cpp" />
     <ClCompile Include="vk_postvs.cpp" />

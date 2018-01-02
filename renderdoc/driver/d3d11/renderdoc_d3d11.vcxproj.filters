@@ -108,6 +108,9 @@
     <ClCompile Include="d3d11_rendermesh.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_msaa_array_conv.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">

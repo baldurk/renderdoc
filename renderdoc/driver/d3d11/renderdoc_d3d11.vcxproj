@@ -99,6 +99,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d11_common.cpp" />
+    <ClCompile Include="d3d11_msaa_array_conv.cpp" />
     <ClCompile Include="d3d11_outputwindow.cpp" />
     <ClCompile Include="d3d11_overlay.cpp" />
     <ClCompile Include="d3d11_pixelhistory.cpp" />
