@@ -1949,20 +1949,13 @@ void ReplayProxy::RefreshPreviewWindow()
         float xScale = float(winWidth) / float(texInfo.width);
         float yScale = float(winHeight) / float(texInfo.height);
 
-        if(xScale > yScale)
-        {
-          // use the y scale, calculate the x offset to centre horizontally
-          cfg.scale = yScale;
+        // use the smaller scale, and shrink a little so we don't display it fullscreen - makes it a
+        // little clearer that this is the replay, not the original application
+        cfg.scale = RDCMIN(xScale, yScale) * 0.9f;
 
-          cfg.xOffset = (float(winWidth) - float(texInfo.width) * cfg.scale) / 2.0f;
-        }
-        else
-        {
-          // use the x scale, calculate the y offset to centre vertically
-          cfg.scale = xScale;
-
-          cfg.yOffset = (float(winHeight) - float(texInfo.height) * cfg.scale) / 2.0f;
-        }
+        // centre the texture
+        cfg.xOffset = (float(winWidth) - float(texInfo.width) * cfg.scale) / 2.0f;
+        cfg.yOffset = (float(winHeight) - float(texInfo.height) * cfg.scale) / 2.0f;
 
         m_Replay->RenderTexture(cfg);
       }
