@@ -93,6 +93,9 @@
     <ClCompile Include="d3d11_serialise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_postvs.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">

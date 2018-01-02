@@ -116,5 +116,8 @@
     <ClCompile Include="d3d12_serialise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_postvs.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

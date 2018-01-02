@@ -3,6 +3,7 @@ set(sources
     gl_common.h
     gl_counters.cpp
     gl_debug.cpp
+    gl_postvs.cpp
     gl_driver.cpp
     gl_driver.h
     gl_enum.h

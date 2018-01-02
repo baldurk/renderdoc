@@ -4,8 +4,9 @@ set(sources
     vk_core.cpp
     vk_core.h
     vk_counters.cpp
-    vk_debug.cpp
     vk_debug.h
+    vk_debug.cpp
+    vk_postvs.cpp
     vk_dispatchtables.cpp
     vk_dispatchtables.h
     vk_hookset_defs.h

@@ -104,6 +104,7 @@
     <ClCompile Include="vk_apple.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="vk_postvs.cpp" />
     <ClCompile Include="vk_serialise.cpp" />
     <ClCompile Include="vk_sparse_initstate.cpp" />
     <ClCompile Include="vk_stringise.cpp" />
