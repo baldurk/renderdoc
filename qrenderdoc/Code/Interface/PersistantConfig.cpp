@@ -341,6 +341,12 @@ void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItem
   QDir dir(file);
   QString path = dir.canonicalPath();
 
+  if(path.isEmpty())
+  {
+    qWarning() << "Got empty path from " << ToQStr(file);
+    return;
+  }
+
   if(!recentList.contains(path))
   {
     recentList.push_back(path);
