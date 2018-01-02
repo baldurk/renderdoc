@@ -495,7 +495,7 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   });
 
   QObject::connect(scriptEditor, &ScintillaEdit::keyPressed, [this](QKeyEvent *ev) {
-    if(ev->key() == Qt::Key_Space && ev->modifiers() && Qt::ControlModifier)
+    if(ev->key() == Qt::Key_Space && (ev->modifiers() & Qt::ControlModifier))
     {
       startAutocomplete();
     }
