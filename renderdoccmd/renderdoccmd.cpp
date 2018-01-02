@@ -1067,11 +1067,20 @@ struct EmbeddedSectionCommand : public Command
       bytebuf blob;
 
       fseek(f, 0, SEEK_END);
-      size_t len = (size_t)ftell(f);
+      int len = ftell(f);
       fseek(f, 0, SEEK_SET);
 
-      blob.resize(len);
-      fread(blob.data(), 1, len, f);
+      if(len < 0)
+      {
+        len = 0;
+        std::cerr << "I/O error reading from '" << file << "'" << std::endl;
+      }
+
+      blob.resize((size_t)len);
+      size_t read = fread(blob.data(), 1, (size_t)len, f);
+
+      if(read != (size_t)len)
+        std::cerr << "I/O error reading from '" << file << "'" << std::endl;
 
       fclose(f);
 
