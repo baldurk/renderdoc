@@ -100,6 +100,10 @@ void DisplayGenericSplash()
   GPA_GET(glVertexAttribPointer);
   GPA_GET(glEnableVertexAttribArray);
   GPA_GET(glDrawArrays);
+  GPA_GET(glGetShaderiv);
+  GPA_GET(glGetShaderInfoLog);
+  GPA_GET(glGetProgramiv);
+  GPA_GET(glGetProgramInfoLog);
 
   eglBindAPI(EGL_OPENGL_ES_API);
 
@@ -193,13 +197,41 @@ void main()
           GLuint vs = glCreateShader(GL_VERTEX_SHADER);
           glShaderSource(vs, 1, &vertex, NULL);
           glCompileShader(vs);
+
+          GLint status = 0;
+          char buffer[1025] = {0};
+          glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
+          if(status == 0)
+          {
+            glGetShaderInfoLog(vs, 1024, NULL, buffer);
+            ANDROID_LOG("VS error: %s", buffer);
+          }
+
           GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
           glShaderSource(fs, 1, &fragment, NULL);
           glCompileShader(fs);
+
+          status = 0;
+          glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
+          if(status == 0)
+          {
+            glGetShaderInfoLog(fs, 1024, NULL, buffer);
+            ANDROID_LOG("FS error: %s", buffer);
+          }
+
           GLuint prog = glCreateProgram();
           glAttachShader(prog, vs);
           glAttachShader(prog, fs);
           glLinkProgram(prog);
+
+          status = 0;
+          glGetProgramiv(prog, GL_LINK_STATUS, &status);
+          if(status == 0)
+          {
+            glGetProgramInfoLog(prog, 1024, NULL, buffer);
+            ANDROID_LOG("Program Error: %s", buffer);
+          }
+
           glUseProgram(prog);
 
           // set the resolution
