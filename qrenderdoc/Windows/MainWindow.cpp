@@ -1463,6 +1463,8 @@ void MainWindow::messageCheck()
 
 void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 {
+  m_Ctx.Config().AddAndroidHosts();
+
   menu->clear();
 
   for(int i = 0; i < m_Ctx.Config().RemoteHosts.count(); i++)
