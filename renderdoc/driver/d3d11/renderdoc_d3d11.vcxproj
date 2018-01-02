@@ -103,6 +103,7 @@
     <ClCompile Include="d3d11_overlay.cpp" />
     <ClCompile Include="d3d11_pixelhistory.cpp" />
     <ClCompile Include="d3d11_postvs.cpp" />
+    <ClCompile Include="d3d11_rendermesh.cpp" />
     <ClCompile Include="d3d11_serialise.cpp" />
     <ClCompile Include="d3d11_context.cpp" />
     <ClCompile Include="d3d11_context1_wrap.cpp" />

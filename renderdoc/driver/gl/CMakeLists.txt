@@ -6,6 +6,7 @@ set(sources
     gl_postvs.cpp
     gl_overlay.cpp
     gl_outputwindow.cpp
+    gl_rendermesh.cpp
     gl_driver.cpp
     gl_driver.h
     gl_enum.h

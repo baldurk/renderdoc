@@ -112,6 +112,7 @@
     <ClCompile Include="d3d12_outputwindow.cpp" />
     <ClCompile Include="d3d12_overlay.cpp" />
     <ClCompile Include="d3d12_postvs.cpp" />
+    <ClCompile Include="d3d12_rendermesh.cpp" />
     <ClCompile Include="d3d12_replay.cpp" />
     <ClCompile Include="d3d12_resources.cpp" />
     <ClCompile Include="d3d12_serialise.cpp" />
