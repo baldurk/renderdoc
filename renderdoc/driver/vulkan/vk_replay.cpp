@@ -1502,6 +1502,15 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
     vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+
+    if(m_pDriver->GetDriverVersion().IsQualcomm())
+    {
+      uboOffs = 0;
+      vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1,
+                                UnwrapPtr(descset), 1, &uboOffs);
+    }
+
     vt->CmdEndRenderPass(Unwrap(cmd));
   }
 
@@ -1646,6 +1655,14 @@ void VulkanReplay::RenderCheckerboard()
     vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
     vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+
+    if(m_pDriver->GetDriverVersion().IsQualcomm())
+    {
+      uboOffs = 0;
+      vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1,
+                                UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 1, &uboOffs);
+    }
   }
   else
   {

@@ -132,12 +132,14 @@ extern const char *VulkanLibraryName;
 
 extern const uint32_t AMD_PCI_ID;
 extern const uint32_t NV_PCI_ID;
+extern const uint32_t QUALCOMM_PCI_ID;
 
 class VkDriverInfo
 {
 public:
   bool IsAMD() { return m_Vendor == AMD; }
   bool IsNV() { return m_Vendor == NV; }
+  bool IsQualcomm() { return m_Vendor == QUALCOMM; }
   uint32_t Major() { return m_Major; }
   uint32_t Minor() { return m_Minor; }
   uint32_t Patch() { return m_Patch; }
@@ -147,6 +149,8 @@ public:
       m_Vendor = AMD;
     else if(physProps.vendorID == NV_PCI_ID)
       m_Vendor = NV;
+    else if(physProps.vendorID == QUALCOMM_PCI_ID)
+      m_Vendor = QUALCOMM;
     else
       m_Vendor = UNKNOWN;
 
@@ -174,6 +178,7 @@ private:
   {
     AMD,
     NV,
+    QUALCOMM,
     UNKNOWN,
   } m_Vendor;
 

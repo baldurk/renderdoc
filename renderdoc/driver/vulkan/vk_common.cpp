@@ -29,6 +29,7 @@
 
 const uint32_t AMD_PCI_ID = 0x1002;
 const uint32_t NV_PCI_ID = 0x10DE;
+const uint32_t QUALCOMM_PCI_ID = 0x5143;
 
 // utility struct for firing one-shot command buffers to begin/end markers
 struct ScopedCommandBuffer
