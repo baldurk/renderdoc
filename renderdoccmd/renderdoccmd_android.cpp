@@ -317,18 +317,17 @@ vector<string> getRenderdoccmdArgs()
       (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("renderdoccmd"));
 
   vector<string> ret;
-  if(!jsParam1)
-    return ret;    // No arg value found
-
-  ret.push_back("renderdoccmd");
-
-  const char *param1 = env->GetStringUTFChars(jsParam1, 0);
-  istringstream iss(param1);
-  while(iss)
+  if(jsParam1)    // Check if arg value found
   {
-    string sub;
-    iss >> sub;
-    ret.push_back(sub);
+    ret.push_back("renderdoccmd");
+    const char *param1 = env->GetStringUTFChars(jsParam1, 0);
+    istringstream iss(param1);
+    while(iss)
+    {
+      string sub;
+      iss >> sub;
+      ret.push_back(sub);
+    }
   }
   android_state->activity->vm->DetachCurrentThread();
 
@@ -338,10 +337,8 @@ vector<string> getRenderdoccmdArgs()
 void *cmdthread(void *)
 {
   vector<string> args = getRenderdoccmdArgs();
-  if(!args.size())
-    return NULL;    // Nothing for APK to do.
-
-  renderdoccmd(GlobalEnvironment(), args);
+  if(args.size())
+    renderdoccmd(GlobalEnvironment(), args);
 
   // activity is done and should be closed
   ANativeActivity_finish(android_state->activity);
@@ -355,9 +352,11 @@ void handle_cmd(android_app *app, int32_t cmd)
   {
     case APP_CMD_INIT_WINDOW:
     {
-      if(cmdthread_handle == 0)
-        pthread_create(&cmdthread_handle, NULL, cmdthread, NULL);
+      if(cmdthread_handle != 0)
+        // If user resumes APK after server shutdown, restart the thread.
+        pthread_join(cmdthread_handle, NULL);
 
+      pthread_create(&cmdthread_handle, NULL, cmdthread, NULL);
       break;
     }
     case APP_CMD_WINDOW_REDRAW_NEEDED:
