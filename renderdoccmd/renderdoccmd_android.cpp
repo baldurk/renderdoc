@@ -145,6 +145,8 @@ void DisplayGenericSplash()
               "void main() { gl_Position = vec4(pos, 0.5, 1.0); }";
 
           const char *fragment = R"(
+precision highp float;
+
 float circle(in vec2 uv, in vec2 centre, in float radius)
 {
   return length(uv - centre) - radius;
