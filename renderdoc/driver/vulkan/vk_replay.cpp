@@ -1613,25 +1613,26 @@ void VulkanReplay::RenderCheckerboard()
 
   uint32_t uboOffs = 0;
 
-  Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(&uboOffs);
-  data[0] = RenderDoc::Inst().LightCheckerboardColor();
-  data[1] = RenderDoc::Inst().DarkCheckerboardColor();
-  GetDebugManager()->m_CheckerboardUBO.Unmap();
+  VkRenderPassBeginInfo rpbegin = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      NULL,
+      Unwrap(outw.rp),
+      Unwrap(outw.fb),
+      {{
+           0, 0,
+       },
+       {m_DebugWidth, m_DebugHeight}},
+      0,
+      NULL,
+  };
+  vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
+  if(GetDebugManager()->m_CheckerboardPipeline != VK_NULL_HANDLE)
   {
-    VkRenderPassBeginInfo rpbegin = {
-        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        NULL,
-        Unwrap(outw.rp),
-        Unwrap(outw.fb),
-        {{
-             0, 0,
-         },
-         {m_DebugWidth, m_DebugHeight}},
-        0,
-        NULL,
-    };
-    vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+    Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(&uboOffs);
+    data[0] = RenderDoc::Inst().LightCheckerboardColor();
+    data[1] = RenderDoc::Inst().DarkCheckerboardColor();
+    GetDebugManager()->m_CheckerboardUBO.Unmap();
 
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                         outw.dsimg == VK_NULL_HANDLE
@@ -1645,8 +1646,52 @@ void VulkanReplay::RenderCheckerboard()
     vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
     vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
-    vt->CmdEndRenderPass(Unwrap(cmd));
   }
+  else
+  {
+    // some mobile chips fail to create the checkerboard pipeline. Use an alternate approach with
+    // CmdClearAttachment and many rects.
+
+    Vec4f lightCol = RenderDoc::Inst().LightCheckerboardColor();
+    Vec4f darkCol = RenderDoc::Inst().DarkCheckerboardColor();
+
+    VkClearAttachment light = {
+        VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{lightCol.x, lightCol.y, lightCol.z, lightCol.w}}}};
+    VkClearAttachment dark = {
+        VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{darkCol.x, darkCol.y, darkCol.z, darkCol.w}}}};
+
+    VkClearRect fullRect = {{
+                                {0, 0}, {outw.width, outw.height},
+                            },
+                            0,
+                            1};
+
+    vt->CmdClearAttachments(Unwrap(cmd), 1, &light, 1, &fullRect);
+
+    std::vector<VkClearRect> squares;
+
+    for(int32_t y = 0; y < (int32_t)outw.height; y += 128)
+    {
+      for(int32_t x = 0; x < (int32_t)outw.width; x += 128)
+      {
+        VkClearRect square = {{
+                                  {x, y}, {64, 64},
+                              },
+                              0,
+                              1};
+
+        squares.push_back(square);
+
+        square.rect.offset.x += 64;
+        square.rect.offset.y += 64;
+        squares.push_back(square);
+      }
+    }
+
+    vt->CmdClearAttachments(Unwrap(cmd), 1, &dark, (uint32_t)squares.size(), squares.data());
+  }
+
+  vt->CmdEndRenderPass(Unwrap(cmd));
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
