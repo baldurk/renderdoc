@@ -98,7 +98,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="d3d11_analyse.cpp" />
     <ClCompile Include="d3d11_common.cpp" />
     <ClCompile Include="d3d11_overlay.cpp" />
     <ClCompile Include="d3d11_pixelhistory.cpp" />
