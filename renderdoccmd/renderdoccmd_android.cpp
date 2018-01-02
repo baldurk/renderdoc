@@ -301,7 +301,12 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
     }
   }
 
-  return CreateAndroidWindowingData(android_state->window);
+  WindowingData ret = {WindowingSystem::Unknown};
+
+  if(android_state->window)
+    ret = CreateAndroidWindowingData(android_state->window);
+
+  return ret;
 }
 
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
