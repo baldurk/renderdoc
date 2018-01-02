@@ -343,7 +343,7 @@ void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItem
 
   if(path.isEmpty())
   {
-    qWarning() << "Got empty path from " << ToQStr(file);
+    qWarning() << "Got empty path from " << QString(file);
     return;
   }
 
