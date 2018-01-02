@@ -109,6 +109,7 @@
     <ClCompile Include="vk_overlay.cpp" />
     <ClCompile Include="vk_postvs.cpp" />
     <ClCompile Include="vk_rendermesh.cpp" />
+    <ClCompile Include="vk_rendertexture.cpp" />
     <ClCompile Include="vk_serialise.cpp" />
     <ClCompile Include="vk_sparse_initstate.cpp" />
     <ClCompile Include="vk_stringise.cpp" />

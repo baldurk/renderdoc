@@ -11,6 +11,7 @@ set(sources
     vk_msaa_array_conv.cpp
     vk_outputwindow.cpp
     vk_rendermesh.cpp
+    vk_rendertexture.cpp
     vk_dispatchtables.cpp
     vk_dispatchtables.h
     vk_hookset_defs.h

@@ -157,6 +157,7 @@
     <ClCompile Include="gl_program_iterate.cpp" />
     <ClCompile Include="gl_rendermesh.cpp" />
     <ClCompile Include="gl_renderstate.cpp" />
+    <ClCompile Include="gl_rendertexture.cpp" />
     <ClCompile Include="gl_replay.cpp" />
     <ClCompile Include="gl_replay_egl.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>

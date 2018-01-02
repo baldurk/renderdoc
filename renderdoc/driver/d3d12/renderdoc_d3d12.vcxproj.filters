@@ -128,5 +128,8 @@
     <ClCompile Include="d3d12_rendermesh.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_rendertexture.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
