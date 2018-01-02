@@ -101,6 +101,7 @@
     <ClCompile Include="d3d11_analyse.cpp" />
     <ClCompile Include="d3d11_common.cpp" />
     <ClCompile Include="d3d11_overlay.cpp" />
+    <ClCompile Include="d3d11_pixelhistory.cpp" />
     <ClCompile Include="d3d11_postvs.cpp" />
     <ClCompile Include="d3d11_serialise.cpp" />
     <ClCompile Include="d3d11_context.cpp" />
@@ -121,6 +122,7 @@
     <ClCompile Include="d3d11_renderstate.cpp" />
     <ClCompile Include="d3d11_replay.cpp" />
     <ClCompile Include="d3d11_resources.cpp" />
+    <ClCompile Include="d3d11_shaderdebug.cpp" />
     <ClCompile Include="d3d11_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

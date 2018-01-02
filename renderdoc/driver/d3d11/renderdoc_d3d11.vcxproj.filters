@@ -99,6 +99,12 @@
     <ClCompile Include="d3d11_overlay.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_pixelhistory.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_shaderdebug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">
