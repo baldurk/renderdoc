@@ -24,6 +24,8 @@
 
 #include "../vk_core.h"
 #include "../vk_debug.h"
+#include "../vk_rendertext.h"
+#include "../vk_shader_cache.h"
 
 // vk_dispatchtables.cpp
 void InitDeviceTable(VkDevice dev, PFN_vkGetDeviceProcAddr gpa);
@@ -475,6 +477,7 @@ void WrappedVulkan::Shutdown()
 
   // destroy debug manager and any objects it created
   SAFE_DELETE(m_DebugManager);
+  SAFE_DELETE(m_ShaderCache);
 
   if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgMsgCallback != VK_NULL_HANDLE)
     ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgMsgCallback, NULL);
@@ -1206,6 +1209,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
+    m_ShaderCache = new VulkanShaderCache(this);
+
     m_DebugManager = new VulkanDebugManager(this, device);
 
     SAFE_DELETE_ARRAY(modQueues);
@@ -1504,6 +1509,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     m_PhysicalDeviceData.fakeMemProps = GetRecord(physicalDevice)->memProps;
 
+    m_ShaderCache = new VulkanShaderCache(this);
+
+    m_TextRenderer = new VulkanTextRenderer(this);
+
     m_DebugManager = new VulkanDebugManager(this, device);
   }
 
@@ -1527,6 +1536,8 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 
   // delete all debug manager objects
   SAFE_DELETE(m_DebugManager);
+  SAFE_DELETE(m_ShaderCache);
+  SAFE_DELETE(m_TextRenderer);
 
   // since we didn't create proper registered resources for our command buffers,
   // they won't be taken down properly with the pool. So we release them (just our

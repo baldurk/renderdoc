@@ -12,6 +12,10 @@ set(sources
     vk_outputwindow.cpp
     vk_rendermesh.cpp
     vk_rendertexture.cpp
+    vk_rendertext.h
+    vk_rendertext.cpp
+    vk_shader_cache.h
+    vk_shader_cache.cpp
     vk_dispatchtables.cpp
     vk_dispatchtables.h
     vk_hookset_defs.h

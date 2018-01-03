@@ -33,6 +33,7 @@
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
+#include "d3d11_shader_cache.h"
 
 // over this number of cycles and things get problematic
 #define SHADER_DEBUG_WARN_THRESHOLD 100000
@@ -1346,7 +1347,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
   }
   extractHlsl += "\n}";
 
-  ID3D11PixelShader *extract = MakePShader(extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
+  ID3D11PixelShader *extract = m_WrappedDevice->GetShaderCache()->MakePShader(
+      extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
 
   uint32_t structStride = sizeof(uint32_t)       // uint hit;
                           + sizeof(float) * 3    // float3 pos;

@@ -171,7 +171,7 @@ void SaveShaderCache(const char *filename, uint32_t magicNumber, uint32_t versio
   {
     uint32_t hash = it->first;
     uint32_t len = callbacks.GetSize(it->second);
-    byte *data = callbacks.GetData(it->second);
+    const byte *data = callbacks.GetData(it->second);
     FileIO::fwrite(&hash, 1, sizeof(hash), f);
     FileIO::fwrite(&len, 1, sizeof(len), f);
     FileIO::fwrite(data, 1, len, f);

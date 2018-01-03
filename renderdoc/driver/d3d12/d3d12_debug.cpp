@@ -31,55 +31,13 @@
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
-#include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
+#include "d3d12_shader_cache.h"
 
 #include "data/hlsl/debugcbuffers.h"
-
-typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
-
-struct D3D12BlobShaderCallbacks
-{
-  D3D12BlobShaderCallbacks()
-  {
-    HMODULE d3dcompiler = GetD3DCompiler();
-
-    if(d3dcompiler == NULL)
-      RDCFATAL("Can't get handle to d3dcompiler_??.dll");
-
-    m_BlobCreate = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
-
-    if(m_BlobCreate == NULL)
-      RDCFATAL("d3dcompiler.dll doesn't contain D3DCreateBlob");
-  }
-
-  bool Create(uint32_t size, byte *data, ID3DBlob **ret) const
-  {
-    RDCASSERT(ret);
-
-    *ret = NULL;
-    HRESULT hr = m_BlobCreate((SIZE_T)size, ret);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Couldn't create blob of size %u from shadercache: HRESULT: %s", size,
-             ToStr(hr).c_str());
-      return false;
-    }
-
-    memcpy((*ret)->GetBufferPointer(), data, size);
-
-    return true;
-  }
-
-  void Destroy(ID3DBlob *blob) const { blob->Release(); }
-  uint32_t GetSize(ID3DBlob *blob) const { return (uint32_t)blob->GetBufferSize(); }
-  byte *GetData(ID3DBlob *blob) const { return (byte *)blob->GetBufferPointer(); }
-  pD3DCreateBlob m_BlobCreate;
-} ShaderCache12Callbacks;
 
 extern "C" __declspec(dllexport) HRESULT
     __cdecl RENDERDOC_CreateWrappedDXGIFactory1(REFIID riid, void **ppFactory);
@@ -105,7 +63,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_TexResource = NULL;
 
   m_width = m_height = 1;
-  m_BBFmtIdx = BGRA8_BACKBUFFER;
 
   RDCEraseEl(m_TileMinMaxPipe);
   RDCEraseEl(m_HistogramPipe);
@@ -312,13 +269,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
-  bool success = LoadShaderCache("d3d12shaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
-                                 m_ShaderCache, ShaderCache12Callbacks);
+  D3D12ShaderCache *shaderCache = m_WrappedDevice->GetShaderCache();
 
-  // if we failed to load from the cache
-  m_ShaderCacheDirty = !success;
-
-  m_CacheShaders = true;
+  shaderCache->SetCaching(true);
 
   vector<D3D12_ROOT_PARAMETER1> rootSig;
 
@@ -354,7 +307,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  ID3DBlob *root = MakeRootSig(rootSig, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+  ID3DBlob *root = shaderCache->MakeRootSig(
+      rootSig, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   RDCASSERT(root);
 
@@ -397,7 +351,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // samplers
   rootSig.push_back(param);
 
-  root = MakeRootSig(rootSig);
+  root = shaderCache->MakeRootSig(rootSig);
 
   RDCASSERT(root);
 
@@ -446,7 +400,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  root = MakeRootSig(rootSig);
+  root = shaderCache->MakeRootSig(rootSig);
 
   RDCASSERT(root);
 
@@ -476,7 +430,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  root = MakeRootSig(rootSig);
+  root = shaderCache->MakeRootSig(rootSig);
 
   RDCASSERT(root);
 
@@ -515,7 +469,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  root = MakeRootSig(rootSig);
+  root = shaderCache->MakeRootSig(rootSig);
 
   RDCASSERT(root);
 
@@ -540,18 +494,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   ID3DBlob *OutlinePS = NULL;
   ID3DBlob *QOResolvePS = NULL;
 
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
-                &m_GenericVS);
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "vs_5_0", &FullscreenVS);
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "ps_5_0", &TexDisplayPS);
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "ps_5_0", &CheckerboardPS);
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_OutlinePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "ps_5_0", &OutlinePS);
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "ps_5_0", &QOResolvePS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &m_GenericVS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &FullscreenVS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexDisplayPS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &CheckerboardPS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_OutlinePS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &OutlinePS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QOResolvePS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QOResolvePS);
 
   RDCASSERT(m_GenericVS);
   RDCASSERT(FullscreenVS);
@@ -665,21 +619,21 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create m_OutlinePipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
-  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "ps_5_0", &m_QuadOverdrawWritePS);
+  shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_QuadOverdrawWritePS);
 
   string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
 
-  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
-                &m_MeshVS);
-  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshGS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "gs_5_0",
-                &m_MeshGS);
-  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0",
-                &m_MeshPS);
-  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "gs_5_0", &m_TriangleSizeGS);
-  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                "ps_5_0", &m_TriangleSizePS);
+  shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                             "vs_5_0", &m_MeshVS);
+  shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshGS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                             "gs_5_0", &m_MeshGS);
+  shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                             "ps_5_0", &m_MeshPS);
+  shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "gs_5_0", &m_TriangleSizeGS);
+  shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_TriangleSizePS);
 
   pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
 
@@ -712,8 +666,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   ID3DBlob *meshPickCS;
 
-  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0",
-                &meshPickCS);
+  shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPickCS",
+                             D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &meshPickCS);
 
   RDCASSERT(meshPickCS);
 
@@ -752,8 +706,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       hlsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
       hlsl += histogramhlsl;
 
-      GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                    "cs_5_0", &tile);
+      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS",
+                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &tile);
 
       compPipeDesc.CS.BytecodeLength = tile->GetBufferSize();
       compPipeDesc.CS.pShaderBytecode = tile->GetBufferPointer();
@@ -766,8 +720,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
         RDCERR("Couldn't create m_TileMinMaxPipe! HRESULT: %s", ToStr(hr).c_str());
       }
 
-      GetShaderBlob(hlsl.c_str(), "RENDERDOC_HistogramCS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0",
-                    &histogram);
+      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_HistogramCS",
+                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &histogram);
 
       compPipeDesc.CS.BytecodeLength = histogram->GetBufferSize();
       compPipeDesc.CS.pShaderBytecode = histogram->GetBufferPointer();
@@ -782,8 +736,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
       if(t == 1)
       {
-        GetShaderBlob(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                      "cs_5_0", &result);
+        shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS",
+                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &result);
 
         compPipeDesc.CS.BytecodeLength = result->GetBufferSize();
         compPipeDesc.CS.pShaderBytecode = result->GetBufferPointer();
@@ -986,300 +940,13 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxResultBuffer, NULL, &tileDesc, uav);
   }
 
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
-
-  // font rendering
-  {
-    D3D12_HEAP_PROPERTIES uploadHeap;
-    uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
-    uploadHeap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    uploadHeap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    uploadHeap.CreationNodeMask = 1;
-    uploadHeap.VisibleNodeMask = 1;
-
-    D3D12_HEAP_PROPERTIES defaultHeap = uploadHeap;
-    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-    const int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
-
-    D3D12_RESOURCE_DESC bufDesc;
-    bufDesc.Alignment = 0;
-    bufDesc.DepthOrArraySize = 1;
-    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
-    bufDesc.Height = 1;
-    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    bufDesc.MipLevels = 1;
-    bufDesc.SampleDesc.Count = 1;
-    bufDesc.SampleDesc.Quality = 0;
-    bufDesc.Width = width * height;
-
-    ID3D12Resource *uploadBuf = NULL;
-
-    hr = m_WrappedDevice->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &bufDesc,
-                                                  D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-                                                  __uuidof(ID3D12Resource), (void **)&uploadBuf);
-
-    if(FAILED(hr))
-      RDCERR("Failed to create uploadBuf HRESULT: %s", ToStr(hr).c_str());
-
-    D3D12_RESOURCE_DESC texDesc;
-    texDesc.Alignment = 0;
-    texDesc.DepthOrArraySize = 1;
-    texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    texDesc.Format = DXGI_FORMAT_R8_UNORM;
-    texDesc.Height = height;
-    texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    texDesc.MipLevels = 1;
-    texDesc.SampleDesc.Count = 1;
-    texDesc.SampleDesc.Quality = 0;
-    texDesc.Width = width;
-
-    hr = m_WrappedDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &texDesc,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-                                                  __uuidof(ID3D12Resource), (void **)&m_Font.Tex);
-
-    m_Font.Tex->SetName(L"m_Font.Tex");
-
-    if(FAILED(hr))
-      RDCERR("Failed to create m_Font.Tex HRESULT: %s", ToStr(hr).c_str());
-
-    string font = GetEmbeddedResource(sourcecodepro_ttf);
-    byte *ttfdata = (byte *)font.c_str();
-
-    const int firstChar = int(' ') + 1;
-    const int lastChar = 127;
-    const int numChars = lastChar - firstChar;
-
-    byte *buf = new byte[width * height];
-
-    const float pixelHeight = 20.0f;
-
-    stbtt_bakedchar chardata[numChars];
-    stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
-
-    m_Font.CharSize = pixelHeight;
-    m_Font.CharAspect = chardata->xadvance / pixelHeight;
-
-    stbtt_fontinfo f = {0};
-    stbtt_InitFont(&f, ttfdata, 0);
-
-    int ascent = 0;
-    stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
-
-    float maxheight = float(ascent) * stbtt_ScaleForPixelHeight(&f, pixelHeight);
-
-    FillBuffer(uploadBuf, 0, buf, width * height);
-
-    delete[] buf;
-
-    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
-
-    D3D12_TEXTURE_COPY_LOCATION dst, src;
-
-    dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    dst.pResource = m_Font.Tex;
-    dst.SubresourceIndex = 0;
-
-    src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    src.pResource = uploadBuf;
-    src.PlacedFootprint.Offset = 0;
-    src.PlacedFootprint.Footprint.Width = width;
-    src.PlacedFootprint.Footprint.Height = height;
-    src.PlacedFootprint.Footprint.Depth = 1;
-    src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8_UNORM;
-    src.PlacedFootprint.Footprint.RowPitch = width;
-
-    RDCCOMPILE_ASSERT(
-        (width / D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT == width,
-        "Width isn't aligned!");
-
-    list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Transition.pResource = m_Font.Tex;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-
-    list->ResourceBarrier(1, &barrier);
-
-    list->Close();
-
-    m_WrappedDevice->ExecuteLists();
-    m_WrappedDevice->FlushLists();
-
-    SAFE_RELEASE(uploadBuf);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE srv = GetCPUHandle(FONT_SRV);
-
-    m_WrappedDevice->CreateShaderResourceView(m_Font.Tex, NULL, srv);
-
-    Vec4f glyphData[2 * (numChars + 1)];
-
-    m_Font.GlyphData = MakeCBuffer(sizeof(glyphData));
-
-    for(int i = 0; i < numChars; i++)
-    {
-      stbtt_bakedchar *b = chardata + i;
-
-      float x = b->xoff;
-      float y = b->yoff + maxheight;
-
-      glyphData[(i + 1) * 2 + 0] =
-          Vec4f(x / b->xadvance, y / pixelHeight, b->xadvance / float(b->x1 - b->x0),
-                pixelHeight / float(b->y1 - b->y0));
-      glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
-    }
-
-    FillBuffer(m_Font.GlyphData, 0, &glyphData, sizeof(glyphData));
-
-    for(size_t i = 0; i < ARRAY_COUNT(m_Font.Constants); i++)
-      m_Font.Constants[i] = MakeCBuffer(sizeof(FontCBuffer));
-    m_Font.CharBuffer = MakeCBuffer(FONT_BUFFER_CHARS * sizeof(uint32_t) * 4);
-
-    m_Font.ConstRingIdx = 0;
-
-    rootSig.clear();
-
-    RDCEraseEl(param);
-
-    // m_Font.Constants
-    param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    param.Descriptor.ShaderRegister = 0;
-    param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
-
-    rootSig.push_back(param);
-
-    // m_Font.GlyphData
-    param.Descriptor.ShaderRegister = 1;
-    rootSig.push_back(param);
-
-    // CharBuffer
-    param.Descriptor.ShaderRegister = 2;
-    rootSig.push_back(param);
-
-    RDCEraseEl(srvrange);
-    srvrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    srvrange.BaseShaderRegister = 0;
-    srvrange.NumDescriptors = 1;
-    srvrange.OffsetInDescriptorsFromTableStart = FONT_SRV;
-
-    param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    param.DescriptorTable.NumDescriptorRanges = 1;
-    param.DescriptorTable.pDescriptorRanges = &srvrange;
-
-    // font SRV
-    rootSig.push_back(param);
-
-    RDCEraseEl(samplerrange);
-    samplerrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-    samplerrange.BaseShaderRegister = 0;
-    samplerrange.NumDescriptors = 2;
-    samplerrange.OffsetInDescriptorsFromTableStart = 0;
-
-    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    param.DescriptorTable.NumDescriptorRanges = 1;
-    param.DescriptorTable.pDescriptorRanges = &samplerrange;
-
-    // samplers
-    rootSig.push_back(param);
-
-    root = MakeRootSig(rootSig);
-
-    RDCASSERT(root);
-
-    hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                              __uuidof(ID3D12RootSignature),
-                                              (void **)&m_Font.RootSig);
-
-    SAFE_RELEASE(root);
-
-    string fullhlsl = "";
-    {
-      string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
-      string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
-
-      fullhlsl = debugShaderCBuf + textShaderHLSL;
-    }
-
-    ID3DBlob *TextVS = NULL;
-    ID3DBlob *TextPS = NULL;
-
-    GetShaderBlob(fullhlsl.c_str(), "RENDERDOC_TextVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
-                  &TextVS);
-    GetShaderBlob(fullhlsl.c_str(), "RENDERDOC_TextPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0",
-                  &TextPS);
-
-    RDCASSERT(TextVS);
-    RDCASSERT(TextPS);
-
-    pipeDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
-
-    pipeDesc.VS.BytecodeLength = TextVS->GetBufferSize();
-    pipeDesc.VS.pShaderBytecode = TextVS->GetBufferPointer();
-    pipeDesc.PS.BytecodeLength = TextPS->GetBufferSize();
-    pipeDesc.PS.pShaderBytecode = TextPS->GetBufferPointer();
-
-    pipeDesc.pRootSignature = m_Font.RootSig;
-
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
-
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&m_Font.Pipe[BGRA8_BACKBUFFER]);
-
-    if(FAILED(hr))
-      RDCERR("Couldn't create BGRA8 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
-
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&m_Font.Pipe[RGBA8_SRGB_BACKBUFFER]);
-
-    if(FAILED(hr))
-      RDCERR("Couldn't create BGRA8 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
-
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&m_Font.Pipe[RGBA8_BACKBUFFER]);
-
-    if(FAILED(hr))
-      RDCERR("Couldn't create RGBA8 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
-
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&m_Font.Pipe[RGBA16_BACKBUFFER]);
-
-    if(FAILED(hr))
-      RDCERR("Couldn't create RGBA16 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
-
-    SAFE_RELEASE(TextVS);
-    SAFE_RELEASE(TextPS);
-  }
-
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
-  m_CacheShaders = false;
+  shaderCache->SetCaching(false);
 }
 
 D3D12DebugManager::~D3D12DebugManager()
 {
-  if(m_ShaderCacheDirty)
-  {
-    SaveShaderCache("d3d12shaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache,
-                    ShaderCache12Callbacks);
-  }
-  else
-  {
-    for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
-      ShaderCache12Callbacks.Destroy(it->second);
-  }
-
   for(auto it = m_CachedMeshPipelines.begin(); it != m_CachedMeshPipelines.end(); ++it)
     for(size_t p = 0; p < MeshDisplayPipelines::ePipe_Count; p++)
       SAFE_RELEASE(it->second.pipes[p]);
@@ -1457,372 +1124,6 @@ void D3D12DebugManager::CreateSOBuffers()
                                              GetUAVClearHandle(STREAM_OUT_UAV));
 }
 
-string D3D12DebugManager::GetShaderBlob(const char *source, const char *entry,
-                                        const uint32_t compileFlags, const char *profile,
-                                        ID3DBlob **srcblob)
-{
-  uint32_t hash = strhash(source);
-  hash = strhash(entry, hash);
-  hash = strhash(profile, hash);
-  hash ^= compileFlags;
-
-  if(m_ShaderCache.find(hash) != m_ShaderCache.end())
-  {
-    *srcblob = m_ShaderCache[hash];
-    (*srcblob)->AddRef();
-    return "";
-  }
-
-  HRESULT hr = S_OK;
-
-  ID3DBlob *byteBlob = NULL;
-  ID3DBlob *errBlob = NULL;
-
-  HMODULE d3dcompiler = GetD3DCompiler();
-
-  if(d3dcompiler == NULL)
-  {
-    RDCFATAL("Can't get handle to d3dcompiler_??.dll");
-  }
-
-  pD3DCompile compileFunc = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
-
-  if(compileFunc == NULL)
-  {
-    RDCFATAL("Can't get D3DCompile from d3dcompiler_??.dll");
-  }
-
-  uint32_t flags = compileFlags & ~D3DCOMPILE_NO_PRESHADER;
-
-  hr = compileFunc(source, strlen(source), entry, NULL, NULL, entry, profile, flags, 0, &byteBlob,
-                   &errBlob);
-
-  string errors = "";
-
-  if(errBlob)
-  {
-    errors = (char *)errBlob->GetBufferPointer();
-
-    string logerror = errors;
-    if(logerror.length() > 1024)
-      logerror = logerror.substr(0, 1024) + "...";
-
-    RDCWARN("Shader compile error in '%s':\n%s", entry, logerror.c_str());
-
-    SAFE_RELEASE(errBlob);
-
-    if(FAILED(hr))
-    {
-      SAFE_RELEASE(byteBlob);
-      return errors;
-    }
-  }
-
-  if(m_CacheShaders)
-  {
-    m_ShaderCache[hash] = byteBlob;
-    byteBlob->AddRef();
-    m_ShaderCacheDirty = true;
-  }
-
-  SAFE_RELEASE(errBlob);
-
-  *srcblob = byteBlob;
-  return errors;
-}
-
-D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSize)
-{
-  PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER deserializeRootSig =
-      (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
-          GetModuleHandleA("d3d12.dll"), "D3D12CreateVersionedRootSignatureDeserializer");
-
-  PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER deserializeRootSigOld =
-      (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
-          GetModuleHandleA("d3d12.dll"), "D3D12CreateRootSignatureDeserializer");
-
-  if(deserializeRootSig == NULL)
-  {
-    RDCWARN("Can't get D3D12CreateVersionedRootSignatureDeserializer - old version of windows?");
-
-    if(deserializeRootSigOld == NULL)
-    {
-      RDCERR("Can't get D3D12CreateRootSignatureDeserializer!");
-      return D3D12RootSignature();
-    }
-
-    ID3D12RootSignatureDeserializer *deser = NULL;
-    HRESULT hr = deserializeRootSigOld(data, dataSize, __uuidof(ID3D12RootSignatureDeserializer),
-                                       (void **)&deser);
-
-    if(FAILED(hr))
-    {
-      SAFE_RELEASE(deser);
-      RDCERR("Can't get deserializer");
-      return D3D12RootSignature();
-    }
-
-    D3D12RootSignature ret;
-
-    const D3D12_ROOT_SIGNATURE_DESC *desc = deser->GetRootSignatureDesc();
-    if(FAILED(hr))
-    {
-      SAFE_RELEASE(deser);
-      RDCERR("Can't get descriptor");
-      return D3D12RootSignature();
-    }
-
-    ret.Flags = desc->Flags;
-
-    ret.params.resize(desc->NumParameters);
-
-    ret.dwordLength = 0;
-
-    for(size_t i = 0; i < ret.params.size(); i++)
-    {
-      ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
-
-      // Descriptor tables cost 1 DWORD each.
-      // Root constants cost 1 DWORD each, since they are 32-bit values.
-      // Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
-      if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-        ret.dwordLength++;
-      else if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
-        ret.dwordLength += desc->pParameters[i].Constants.Num32BitValues;
-      else
-        ret.dwordLength += 2;
-    }
-
-    if(desc->NumStaticSamplers > 0)
-    {
-      ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
-
-      for(size_t i = 0; i < ret.samplers.size(); i++)
-        ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
-    }
-
-    SAFE_RELEASE(deser);
-
-    return ret;
-  }
-
-  ID3D12VersionedRootSignatureDeserializer *deser = NULL;
-  HRESULT hr = deserializeRootSig(
-      data, dataSize, __uuidof(ID3D12VersionedRootSignatureDeserializer), (void **)&deser);
-
-  if(FAILED(hr))
-  {
-    SAFE_RELEASE(deser);
-    RDCERR("Can't get deserializer");
-    return D3D12RootSignature();
-  }
-
-  D3D12RootSignature ret;
-
-  const D3D12_VERSIONED_ROOT_SIGNATURE_DESC *verdesc = NULL;
-  hr = deser->GetRootSignatureDescAtVersion(D3D_ROOT_SIGNATURE_VERSION_1_1, &verdesc);
-  if(FAILED(hr))
-  {
-    SAFE_RELEASE(deser);
-    RDCERR("Can't get descriptor");
-    return D3D12RootSignature();
-  }
-
-  const D3D12_ROOT_SIGNATURE_DESC1 *desc = &verdesc->Desc_1_1;
-
-  ret.Flags = desc->Flags;
-
-  ret.params.resize(desc->NumParameters);
-
-  ret.dwordLength = 0;
-
-  for(size_t i = 0; i < ret.params.size(); i++)
-  {
-    ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
-
-    // Descriptor tables cost 1 DWORD each.
-    // Root constants cost 1 DWORD each, since they are 32-bit values.
-    // Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
-    if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-      ret.dwordLength++;
-    else if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
-      ret.dwordLength += desc->pParameters[i].Constants.Num32BitValues;
-    else
-      ret.dwordLength += 2;
-  }
-
-  if(desc->NumStaticSamplers > 0)
-  {
-    ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
-
-    for(size_t i = 0; i < ret.samplers.size(); i++)
-      ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
-  }
-
-  SAFE_RELEASE(deser);
-
-  return ret;
-}
-
-ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
-                                         D3D12_ROOT_SIGNATURE_FLAGS Flags, UINT NumStaticSamplers,
-                                         const D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
-{
-  PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE serializeRootSig =
-      (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
-          GetModuleHandleA("d3d12.dll"), "D3D12SerializeVersionedRootSignature");
-
-  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializeRootSigOld =
-      (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
-                                                         "D3D12SerializeRootSignature");
-
-  if(serializeRootSig == NULL)
-  {
-    RDCWARN("Can't get D3D12SerializeVersionedRootSignature - old version of windows?");
-
-    if(serializeRootSigOld == NULL)
-    {
-      RDCERR("Can't get D3D12SerializeRootSignature!");
-      return NULL;
-    }
-
-    D3D12_ROOT_SIGNATURE_DESC desc;
-    desc.Flags = Flags;
-    desc.NumStaticSamplers = NumStaticSamplers;
-    desc.pStaticSamplers = StaticSamplers;
-    desc.NumParameters = (UINT)params.size();
-
-    std::vector<D3D12_ROOT_PARAMETER> params_1_0;
-    params_1_0.resize(params.size());
-    for(size_t i = 0; i < params.size(); i++)
-    {
-      params_1_0[i].ShaderVisibility = params[i].ShaderVisibility;
-      params_1_0[i].ParameterType = params[i].ParameterType;
-
-      if(params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
-      {
-        params_1_0[i].Constants = params[i].Constants;
-      }
-      else if(params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-      {
-        params_1_0[i].DescriptorTable.NumDescriptorRanges =
-            params[i].DescriptorTable.NumDescriptorRanges;
-
-        D3D12_DESCRIPTOR_RANGE *dst =
-            new D3D12_DESCRIPTOR_RANGE[params[i].DescriptorTable.NumDescriptorRanges];
-        params_1_0[i].DescriptorTable.pDescriptorRanges = dst;
-
-        for(UINT r = 0; r < params[i].DescriptorTable.NumDescriptorRanges; r++)
-        {
-          dst[r].BaseShaderRegister =
-              params[i].DescriptorTable.pDescriptorRanges[r].BaseShaderRegister;
-          dst[r].NumDescriptors = params[i].DescriptorTable.pDescriptorRanges[r].NumDescriptors;
-          dst[r].OffsetInDescriptorsFromTableStart =
-              params[i].DescriptorTable.pDescriptorRanges[r].OffsetInDescriptorsFromTableStart;
-          dst[r].RangeType = params[i].DescriptorTable.pDescriptorRanges[r].RangeType;
-          dst[r].RegisterSpace = params[i].DescriptorTable.pDescriptorRanges[r].RegisterSpace;
-
-          if(params[i].DescriptorTable.pDescriptorRanges[r].Flags !=
-             (D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE |
-              D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE))
-            RDCWARN("Losing information when reducing down to 1.0 root signature");
-        }
-      }
-      else
-      {
-        params_1_0[i].Descriptor.RegisterSpace = params[i].Descriptor.RegisterSpace;
-        params_1_0[i].Descriptor.ShaderRegister = params[i].Descriptor.ShaderRegister;
-
-        if(params[i].Descriptor.Flags != D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE)
-          RDCWARN("Losing information when reducing down to 1.0 root signature");
-      }
-    }
-
-    desc.pParameters = &params_1_0[0];
-
-    ID3DBlob *ret = NULL;
-    ID3DBlob *errBlob = NULL;
-    HRESULT hr = serializeRootSigOld(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &ret, &errBlob);
-
-    for(size_t i = 0; i < params_1_0.size(); i++)
-      if(params_1_0[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-        delete[] params_1_0[i].DescriptorTable.pDescriptorRanges;
-
-    if(FAILED(hr))
-    {
-      string errors = (char *)errBlob->GetBufferPointer();
-
-      string logerror = errors;
-      if(logerror.length() > 1024)
-        logerror = logerror.substr(0, 1024) + "...";
-
-      RDCERR("Root signature serialize error:\n%s", logerror.c_str());
-
-      SAFE_RELEASE(errBlob);
-      SAFE_RELEASE(ret);
-      return NULL;
-    }
-
-    SAFE_RELEASE(errBlob);
-
-    return ret;
-  }
-
-  D3D12_VERSIONED_ROOT_SIGNATURE_DESC verdesc;
-  verdesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-
-  D3D12_ROOT_SIGNATURE_DESC1 &desc = verdesc.Desc_1_1;
-  desc.Flags = Flags;
-  desc.NumStaticSamplers = NumStaticSamplers;
-  desc.pStaticSamplers = StaticSamplers;
-  desc.NumParameters = (UINT)params.size();
-  desc.pParameters = &params[0];
-
-  ID3DBlob *ret = NULL;
-  ID3DBlob *errBlob = NULL;
-  HRESULT hr = serializeRootSig(&verdesc, &ret, &errBlob);
-
-  if(FAILED(hr))
-  {
-    string errors = (char *)errBlob->GetBufferPointer();
-
-    string logerror = errors;
-    if(logerror.length() > 1024)
-      logerror = logerror.substr(0, 1024) + "...";
-
-    RDCERR("Root signature serialize error:\n%s", logerror.c_str());
-
-    SAFE_RELEASE(errBlob);
-    SAFE_RELEASE(ret);
-    return NULL;
-  }
-
-  SAFE_RELEASE(errBlob);
-
-  return ret;
-}
-
-ID3DBlob *D3D12DebugManager::MakeRootSig(const D3D12RootSignature &rootsig)
-{
-  std::vector<D3D12_ROOT_PARAMETER1> params;
-  params.resize(rootsig.params.size());
-  for(size_t i = 0; i < params.size(); i++)
-    params[i] = rootsig.params[i];
-
-  return MakeRootSig(params, rootsig.Flags, (UINT)rootsig.samplers.size(),
-                     rootsig.samplers.empty() ? NULL : &rootsig.samplers[0]);
-}
-
-ID3DBlob *D3D12DebugManager::MakeFixedColShader(float overlayConsts[4])
-{
-  ID3DBlob *ret = NULL;
-  std::string hlsl =
-      StringFormat::Fmt("float4 main() : SV_Target0 { return float4(%f, %f, %f, %f); }\n",
-                        overlayConsts[0], overlayConsts[1], overlayConsts[2], overlayConsts[3]);
-  GetShaderBlob(hlsl.c_str(), "main", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &ret);
-  return ret;
-}
-
 ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)
 {
   ID3D12Resource *ret;
@@ -1967,7 +1268,7 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 {
   int oldW = GetWidth(), oldH = GetHeight();
 
-  SetOutputDimensions(1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT);
+  SetOutputDimensions(1, 1);
 
   {
     TextureDisplay texDisplay;
@@ -1989,7 +1290,7 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
     texDisplay.xOffset = -float(x);
     texDisplay.yOffset = -float(y);
 
-    RenderTextureInternal(m_PickPixelRTV, texDisplay, false);
+    RenderTextureInternal(m_PickPixelRTV, texDisplay, eTexDisplay_F32Render);
   }
 
   ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
@@ -2050,7 +1351,7 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
     pixel[3] = pix[3];
   }
 
-  SetOutputDimensions(oldW, oldH, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+  SetOutputDimensions(oldW, oldH);
 
   range.End = 0;
 
@@ -2780,55 +2081,6 @@ void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable>
     outvars.push_back(v[i]);
 }
 
-void D3D12DebugManager::BuildShader(string source, string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, string *errors)
-{
-  uint32_t flags = DXBC::DecodeFlags(compileFlags);
-
-  if(id == NULL || errors == NULL)
-  {
-    if(id)
-      *id = ResourceId();
-    return;
-  }
-
-  char *profile = NULL;
-
-  switch(type)
-  {
-    case ShaderStage::Vertex: profile = "vs_5_0"; break;
-    case ShaderStage::Hull: profile = "hs_5_0"; break;
-    case ShaderStage::Domain: profile = "ds_5_0"; break;
-    case ShaderStage::Geometry: profile = "gs_5_0"; break;
-    case ShaderStage::Pixel: profile = "ps_5_0"; break;
-    case ShaderStage::Compute: profile = "cs_5_0"; break;
-    default:
-      RDCERR("Unexpected type in BuildShader!");
-      *id = ResourceId();
-      return;
-  }
-
-  ID3DBlob *blob = NULL;
-  *errors = GetShaderBlob(source.c_str(), entry.c_str(), flags, profile, &blob);
-
-  if(blob == NULL)
-  {
-    *id = ResourceId();
-    return;
-  }
-
-  D3D12_SHADER_BYTECODE byteCode;
-  byteCode.BytecodeLength = blob->GetBufferSize();
-  byteCode.pShaderBytecode = blob->GetBufferPointer();
-
-  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_WrappedDevice, NULL);
-
-  SAFE_RELEASE(blob);
-
-  *id = sh->GetResourceID();
-}
-
 void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
                                       bytebuf &retData)
 {
@@ -3045,11 +2297,11 @@ void D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32
     RDCASSERTEQUAL(hr, S_OK);
 
     int oldW = m_width, oldH = m_height;
-    BackBufferFormat idx = m_BBFmtIdx;
 
     m_width = uint32_t(copyDesc.Width);
     m_height = copyDesc.Height;
-    m_BBFmtIdx = IsSRGBFormat(copyDesc.Format) ? RGBA8_SRGB_BACKBUFFER : RGBA8_BACKBUFFER;
+    TexDisplayFlags flags =
+        IsSRGBFormat(copyDesc.Format) ? eTexDisplay_None : eTexDisplay_LinearRender;
 
     m_WrappedDevice->CreateRenderTargetView(remapTexture, NULL, GetCPUHandle(GET_TEX_RTV));
 
@@ -3074,12 +2326,11 @@ void D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;
 
-      RenderTextureInternal(GetCPUHandle(GET_TEX_RTV), texDisplay, false);
+      RenderTextureInternal(GetCPUHandle(GET_TEX_RTV), texDisplay, flags);
     }
 
     m_width = oldW;
     m_height = oldH;
-    m_BBFmtIdx = idx;
 
     tmpTexture = srcTexture = remapTexture;
 
@@ -3533,118 +2784,6 @@ void D3D12DebugManager::RenderCheckerboard()
   }
 }
 
-void D3D12DebugManager::RenderText(ID3D12GraphicsCommandList *list, float x, float y,
-                                   const char *textfmt, ...)
-{
-  static char tmpBuf[4096];
-
-  va_list args;
-  va_start(args, textfmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
-  RenderTextInternal(list, x, y, tmpBuf);
-}
-
-void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y,
-                                           const char *text)
-{
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderTextInternal(list, x, y, text);
-    RenderTextInternal(list, x, y + 1.0f, t + 1);
-    *t = '\n';
-    return;
-  }
-
-  if(strlen(text) == 0)
-    return;
-
-  RDCASSERT(strlen(text) < FONT_MAX_CHARS);
-
-  FontCBuffer data;
-
-  data.TextPosition.x = x;
-  data.TextPosition.y = y;
-
-  data.FontScreenAspect.x = 1.0f / float(GetWidth());
-  data.FontScreenAspect.y = 1.0f / float(GetHeight());
-
-  data.TextSize = m_Font.CharSize;
-  data.FontScreenAspect.x *= m_Font.CharAspect;
-
-  data.CharacterSize.x = 1.0f / float(FONT_TEX_WIDTH);
-  data.CharacterSize.y = 1.0f / float(FONT_TEX_HEIGHT);
-
-  FillBuffer(m_Font.Constants[m_Font.ConstRingIdx], 0, &data, sizeof(FontCBuffer));
-
-  size_t chars = strlen(text);
-
-  size_t charOffset = m_Font.CharOffset;
-
-  if(m_Font.CharOffset + chars >= FONT_BUFFER_CHARS)
-    charOffset = 0;
-
-  m_Font.CharOffset = charOffset + chars;
-
-  // Is 256 byte alignment on buffer offsets is just fixed, or device-specific?
-  m_Font.CharOffset = AlignUp(m_Font.CharOffset, 256 / sizeof(Vec4f));
-
-  unsigned long *texs = NULL;
-  HRESULT hr = m_Font.CharBuffer->Map(0, NULL, (void **)&texs);
-
-  if(FAILED(hr) || texs == NULL)
-  {
-    RDCERR("Failed to map charbuffer HRESULT: %s", ToStr(hr).c_str());
-    return;
-  }
-
-  texs += charOffset * 4;
-
-  for(size_t i = 0; i < strlen(text); i++)
-    texs[i * 4] = (text[i] - ' ');
-
-  m_Font.CharBuffer->Unmap(0, NULL);
-
-  {
-    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-    D3D12_VIEWPORT view;
-    view.TopLeftX = 0;
-    view.TopLeftY = 0;
-    view.Width = (float)GetWidth();
-    view.Height = (float)GetHeight();
-    view.MinDepth = 0.0f;
-    view.MaxDepth = 1.0f;
-    list->RSSetViewports(1, &view);
-
-    D3D12_RECT scissor = {0, 0, GetWidth(), GetHeight()};
-    list->RSSetScissorRects(1, &scissor);
-
-    list->SetPipelineState(m_Font.Pipe[m_BBFmtIdx]);
-    list->SetGraphicsRootSignature(m_Font.RootSig);
-
-    // Set the descriptor heap containing the texture srv
-    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
-    list->SetDescriptorHeaps(2, heaps);
-
-    list->SetGraphicsRootConstantBufferView(
-        0, m_Font.Constants[m_Font.ConstRingIdx]->GetGPUVirtualAddress());
-    list->SetGraphicsRootConstantBufferView(1, m_Font.GlyphData->GetGPUVirtualAddress());
-    list->SetGraphicsRootConstantBufferView(
-        2, m_Font.CharBuffer->GetGPUVirtualAddress() + charOffset * sizeof(Vec4f));
-    list->SetGraphicsRootDescriptorTable(3, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
-    list->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
-
-    list->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
-  }
-
-  m_Font.ConstRingIdx++;
-  m_Font.ConstRingIdx %= ARRAY_COUNT(m_Font.Constants);
-}
-
 bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
                                   uint32_t sample, CompType typeHint, float *minval, float *maxval)
 {
@@ -4058,10 +3197,9 @@ ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.scale = 1.0f;
   disp.sliceFace = arrayIdx;
 
-  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> mip), RDCMAX(1U, resDesc.Height >> mip),
-                      resDesc.Format);
+  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> mip), RDCMAX(1U, resDesc.Height >> mip));
 
-  RenderTextureInternal(GetCPUHandle(CUSTOM_SHADER_RTV), disp, true);
+  RenderTextureInternal(GetCPUHandle(CUSTOM_SHADER_RTV), disp, eTexDisplay_BlendAlpha);
 
   return m_CustomShaderResourceId;
 }

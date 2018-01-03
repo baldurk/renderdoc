@@ -27,58 +27,14 @@
 #include "common/shader_cache.h"
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_resources.h"
-#include "driver/dx/official/d3dcompiler.h"
 #include "driver/ihv/amd/amd_counters.h"
-#include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
-#include "stb/stb_truetype.h"
-#include "strings/string_utils.h"
 #include "d3d11_context.h"
 #include "d3d11_manager.h"
 #include "d3d11_renderstate.h"
-
-typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
-
-struct D3DBlobShaderCallbacks
-{
-  D3DBlobShaderCallbacks()
-  {
-    HMODULE d3dcompiler = GetD3DCompiler();
-
-    if(d3dcompiler == NULL)
-      RDCFATAL("Can't get handle to d3dcompiler_??.dll");
-
-    m_BlobCreate = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
-
-    if(m_BlobCreate == NULL)
-      RDCFATAL("d3dcompiler.dll doesn't contain D3DCreateBlob");
-  }
-
-  bool Create(uint32_t size, byte *data, ID3DBlob **ret) const
-  {
-    RDCASSERT(ret);
-
-    *ret = NULL;
-    HRESULT hr = m_BlobCreate((SIZE_T)size, ret);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Couldn't create blob of size %u from shadercache: %s", size, ToStr(ret).c_str());
-      return false;
-    }
-
-    memcpy((*ret)->GetBufferPointer(), data, size);
-
-    return true;
-  }
-
-  void Destroy(ID3DBlob *blob) const { blob->Release(); }
-  uint32_t GetSize(ID3DBlob *blob) const { return (uint32_t)blob->GetBufferSize(); }
-  byte *GetData(ID3DBlob *blob) const { return (byte *)blob->GetBufferPointer(); }
-  pD3DCreateBlob m_BlobCreate;
-} ShaderCacheCallbacks;
+#include "d3d11_shader_cache.h"
 
 D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 {
@@ -94,18 +50,9 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 
   m_HighlightCache.driver = wrapper->GetReplay();
 
-  m_OutputWindowID = 1;
-
-  m_supersamplingX = 1.0f;
-  m_supersamplingY = 1.0f;
-
-  m_width = m_height = 1;
-
   wrapper->InternalRef();
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
-
-  m_pFactory = NULL;
 
   HRESULT hr = S_OK;
 
@@ -140,19 +87,12 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
     }
   }
 
-  bool success = LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
-                                 m_ShaderCache, ShaderCacheCallbacks);
-
-  // if we failed to load from the cache
-  m_ShaderCacheDirty = !success;
-
-  m_CacheShaders = true;
+  m_WrappedDevice->GetShaderCache()->SetCaching(true);
 
   InitStreamOut();
   InitDebugRendering();
-  InitFontRendering();
 
-  m_CacheShaders = false;
+  m_WrappedDevice->GetShaderCache()->SetCaching(false);
 
   PostDeviceInitCounters();
 
@@ -183,18 +123,6 @@ D3D11DebugManager::~D3D11DebugManager()
 
   PreDeviceShutdownCounters();
 
-  if(m_ShaderCacheDirty)
-  {
-    SaveShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache,
-                    ShaderCacheCallbacks);
-  }
-  else
-  {
-    for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
-      ShaderCacheCallbacks.Destroy(it->second);
-  }
-
-  ShutdownFontRendering();
   ShutdownStreamOut();
 
   if(m_OverlayResourceId != ResourceId())
@@ -224,341 +152,6 @@ D3D11DebugManager::~D3D11DebugManager()
 
 //////////////////////////////////////////////////////
 // debug/replay functions
-
-string D3D11DebugManager::GetShaderBlob(const char *source, const char *entry,
-                                        const uint32_t compileFlags, const char *profile,
-                                        ID3DBlob **srcblob)
-{
-  uint32_t hash = strhash(source);
-  hash = strhash(entry, hash);
-  hash = strhash(profile, hash);
-  hash ^= compileFlags;
-
-  if(m_ShaderCache.find(hash) != m_ShaderCache.end())
-  {
-    *srcblob = m_ShaderCache[hash];
-    (*srcblob)->AddRef();
-    return "";
-  }
-
-  HRESULT hr = S_OK;
-
-  ID3DBlob *byteBlob = NULL;
-  ID3DBlob *errBlob = NULL;
-
-  HMODULE d3dcompiler = GetD3DCompiler();
-
-  if(d3dcompiler == NULL)
-  {
-    RDCFATAL("Can't get handle to d3dcompiler_??.dll");
-  }
-
-  pD3DCompile compileFunc = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
-
-  if(compileFunc == NULL)
-  {
-    RDCFATAL("Can't get D3DCompile from d3dcompiler_??.dll");
-  }
-
-  uint32_t flags = compileFlags & ~D3DCOMPILE_NO_PRESHADER;
-
-  hr = compileFunc(source, strlen(source), entry, NULL, NULL, entry, profile, flags, 0, &byteBlob,
-                   &errBlob);
-
-  string errors = "";
-
-  if(errBlob)
-  {
-    errors = (char *)errBlob->GetBufferPointer();
-
-    string logerror = errors;
-    if(logerror.length() > 1024)
-      logerror = logerror.substr(0, 1024) + "...";
-
-    RDCWARN("Shader compile error in '%s':\n%s", entry, logerror.c_str());
-
-    SAFE_RELEASE(errBlob);
-
-    if(FAILED(hr))
-    {
-      SAFE_RELEASE(byteBlob);
-      return errors;
-    }
-  }
-
-  if(m_CacheShaders)
-  {
-    m_ShaderCache[hash] = byteBlob;
-    byteBlob->AddRef();
-    m_ShaderCacheDirty = true;
-  }
-
-  SAFE_RELEASE(errBlob);
-
-  *srcblob = byteBlob;
-  return errors;
-}
-
-ID3D11VertexShader *D3D11DebugManager::MakeVShader(const char *source, const char *entry,
-                                                   const char *profile, int numInputDescs,
-                                                   D3D11_INPUT_ELEMENT_DESC *inputs,
-                                                   ID3D11InputLayout **ret, vector<byte> *blob)
-{
-  ID3DBlob *byteBlob = NULL;
-
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
-  {
-    RDCERR("Couldn't get shader blob for %s", entry);
-    return NULL;
-  }
-
-  void *bytecode = byteBlob->GetBufferPointer();
-  size_t bytecodeLen = byteBlob->GetBufferSize();
-
-  ID3D11VertexShader *ps = NULL;
-
-  HRESULT hr = m_pDevice->CreateVertexShader(bytecode, bytecodeLen, NULL, &ps);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create vertex shader for %s %s", entry, ToStr(ret).c_str());
-
-    SAFE_RELEASE(byteBlob);
-
-    return NULL;
-  }
-
-  if(numInputDescs)
-  {
-    hr = m_pDevice->CreateInputLayout(inputs, numInputDescs, bytecode, bytecodeLen, ret);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Couldn't create input layout for %s %s", entry, ToStr(ret).c_str());
-    }
-  }
-
-  if(blob)
-  {
-    blob->resize(bytecodeLen);
-    memcpy(&(*blob)[0], bytecode, bytecodeLen);
-  }
-
-  SAFE_RELEASE(byteBlob);
-
-  return ps;
-}
-
-ID3D11GeometryShader *D3D11DebugManager::MakeGShader(const char *source, const char *entry,
-                                                     const char *profile)
-{
-  ID3DBlob *byteBlob = NULL;
-
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
-  {
-    return NULL;
-  }
-
-  void *bytecode = byteBlob->GetBufferPointer();
-  size_t bytecodeLen = byteBlob->GetBufferSize();
-
-  ID3D11GeometryShader *gs = NULL;
-
-  HRESULT hr = m_pDevice->CreateGeometryShader(bytecode, bytecodeLen, NULL, &gs);
-
-  SAFE_RELEASE(byteBlob);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create geometry shader for %s %s", entry, ToStr(hr).c_str());
-    return NULL;
-  }
-
-  return gs;
-}
-
-ID3D11PixelShader *D3D11DebugManager::MakePShader(const char *source, const char *entry,
-                                                  const char *profile)
-{
-  ID3DBlob *byteBlob = NULL;
-
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
-  {
-    return NULL;
-  }
-
-  void *bytecode = byteBlob->GetBufferPointer();
-  size_t bytecodeLen = byteBlob->GetBufferSize();
-
-  ID3D11PixelShader *ps = NULL;
-
-  HRESULT hr = m_pDevice->CreatePixelShader(bytecode, bytecodeLen, NULL, &ps);
-
-  SAFE_RELEASE(byteBlob);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create pixel shader for %s %s", entry, ToStr(hr).c_str());
-    return NULL;
-  }
-
-  return ps;
-}
-
-ID3D11ComputeShader *D3D11DebugManager::MakeCShader(const char *source, const char *entry,
-                                                    const char *profile)
-{
-  ID3DBlob *byteBlob = NULL;
-
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
-  {
-    return NULL;
-  }
-
-  void *bytecode = byteBlob->GetBufferPointer();
-  size_t bytecodeLen = byteBlob->GetBufferSize();
-
-  ID3D11ComputeShader *cs = NULL;
-
-  HRESULT hr = m_pDevice->CreateComputeShader(bytecode, bytecodeLen, NULL, &cs);
-
-  SAFE_RELEASE(byteBlob);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create compute shader for %s %s", entry, ToStr(hr).c_str());
-    return NULL;
-  }
-
-  return cs;
-}
-
-void D3D11DebugManager::BuildShader(string source, string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, string *errors)
-{
-  uint32_t flags = DXBC::DecodeFlags(compileFlags);
-
-  if(id == NULL || errors == NULL)
-  {
-    if(id)
-      *id = ResourceId();
-    return;
-  }
-
-  char *profile = NULL;
-
-  switch(type)
-  {
-    case ShaderStage::Vertex: profile = "vs_5_0"; break;
-    case ShaderStage::Hull: profile = "hs_5_0"; break;
-    case ShaderStage::Domain: profile = "ds_5_0"; break;
-    case ShaderStage::Geometry: profile = "gs_5_0"; break;
-    case ShaderStage::Pixel: profile = "ps_5_0"; break;
-    case ShaderStage::Compute: profile = "cs_5_0"; break;
-    default:
-      RDCERR("Unexpected type in BuildShader!");
-      *id = ResourceId();
-      return;
-  }
-
-  ID3DBlob *blob = NULL;
-  *errors = GetShaderBlob(source.c_str(), entry.c_str(), flags, profile, &blob);
-
-  if(blob == NULL)
-  {
-    *id = ResourceId();
-    return;
-  }
-
-  switch(type)
-  {
-    case ShaderStage::Vertex:
-    {
-      ID3D11VertexShader *sh = NULL;
-      m_pDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
-
-      if(sh != NULL)
-        *id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
-      else
-        *id = ResourceId();
-      return;
-    }
-    case ShaderStage::Hull:
-    {
-      ID3D11HullShader *sh = NULL;
-      m_pDevice->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
-
-      if(sh != NULL)
-        *id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
-      else
-        *id = ResourceId();
-      return;
-    }
-    case ShaderStage::Domain:
-    {
-      ID3D11DomainShader *sh = NULL;
-      m_pDevice->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
-
-      if(sh != NULL)
-        *id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
-      else
-        *id = ResourceId();
-      return;
-    }
-    case ShaderStage::Geometry:
-    {
-      ID3D11GeometryShader *sh = NULL;
-      m_pDevice->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
-
-      if(sh != NULL)
-        *id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
-      else
-        *id = ResourceId();
-      return;
-    }
-    case ShaderStage::Pixel:
-    {
-      ID3D11PixelShader *sh = NULL;
-      m_pDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
-
-      if(sh != NULL)
-        *id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
-      else
-        *id = ResourceId();
-      return;
-    }
-    case ShaderStage::Compute:
-    {
-      ID3D11ComputeShader *sh = NULL;
-      m_pDevice->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
-
-      if(sh != NULL)
-        *id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
-      else
-        *id = ResourceId();
-      return;
-    }
-    default: break;
-  }
-
-  SAFE_RELEASE(blob);
-
-  RDCERR("Unexpected type in BuildShader!");
-  *id = ResourceId();
-}
 
 ID3D11Buffer *D3D11DebugManager::MakeCBuffer(UINT size)
 {
@@ -617,6 +210,8 @@ ID3D11Buffer *D3D11DebugManager::MakeCBuffer(const void *data, size_t size)
 
 bool D3D11DebugManager::InitDebugRendering()
 {
+  D3D11ShaderCache *shaderCache = m_WrappedDevice->GetShaderCache();
+
   HRESULT hr = S_OK;
 
   m_CustomShaderTex = NULL;
@@ -638,17 +233,17 @@ bool D3D11DebugManager::InitDebugRendering()
   string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
   m_DebugRender.CopyMSToArrayPS =
-      MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
+      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
   m_DebugRender.CopyArrayToMSPS =
-      MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
+      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
   m_DebugRender.FloatCopyMSToArrayPS =
-      MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
+      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
   m_DebugRender.FloatCopyArrayToMSPS =
-      MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
+      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
   m_DebugRender.DepthCopyMSToArrayPS =
-      MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
+      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
   m_DebugRender.DepthCopyArrayToMSPS =
-      MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
+      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
 
   string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
   displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
@@ -656,7 +251,8 @@ bool D3D11DebugManager::InitDebugRendering()
 
   string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
 
-  m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+  m_DebugRender.FullscreenVS =
+      shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -680,41 +276,48 @@ bool D3D11DebugManager::InitDebugRendering()
 
     vector<byte> bytecode;
 
-    m_DebugRender.GenericVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
+    m_DebugRender.GenericVS =
+        shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
     m_DebugRender.TexDisplayPS =
-        MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
-    m_DebugRender.MeshVS = MakeVShader(meshhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 2,
-                                       inputDescSecondary, &m_DebugRender.GenericLayout, &bytecode);
-    m_DebugRender.MeshGS = MakeGShader(meshhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
-    m_DebugRender.MeshPS = MakePShader(meshhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
+    m_DebugRender.MeshVS =
+        shaderCache->MakeVShader(meshhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 2,
+                                 inputDescSecondary, &m_DebugRender.GenericLayout, &bytecode);
+    m_DebugRender.MeshGS = shaderCache->MakeGShader(meshhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
+    m_DebugRender.MeshPS = shaderCache->MakePShader(meshhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
 
     m_DebugRender.TriangleSizeGS =
-        MakeGShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", "gs_4_0");
+        shaderCache->MakeGShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", "gs_4_0");
     m_DebugRender.TriangleSizePS =
-        MakePShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS", "ps_4_0");
+        shaderCache->MakePShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS", "ps_4_0");
 
     m_DebugRender.MeshVSBytecode = new byte[bytecode.size()];
     m_DebugRender.MeshVSBytelen = (uint32_t)bytecode.size();
     memcpy(m_DebugRender.MeshVSBytecode, &bytecode[0], bytecode.size());
 
-    m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
-    m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
+    m_DebugRender.WireframePS =
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
+    m_DebugRender.OverlayPS =
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
     m_DebugRender.CheckerboardPS =
-        MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
-    m_DebugRender.OutlinePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OutlinePS", "ps_4_0");
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+    m_DebugRender.OutlinePS =
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_OutlinePS", "ps_4_0");
 
     m_DebugRender.QuadOverdrawPS =
-        MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
-    m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
+    m_DebugRender.QOResolvePS =
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
 
     m_DebugRender.PixelHistoryUnusedCS =
-        MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
+        shaderCache->MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
     m_DebugRender.PixelHistoryCopyCS =
-        MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
+        shaderCache->MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
     m_DebugRender.PrimitiveIDPS =
-        MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
+        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
 
-    m_DebugRender.MeshPickCS = MakeCShader(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", "cs_5_0");
+    m_DebugRender.MeshPickCS =
+        shaderCache->MakeCShader(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", "cs_5_0");
 
     string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
     histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
@@ -736,13 +339,13 @@ bool D3D11DebugManager::InitDebugRendering()
         hlsl += histogramhlsl;
 
         m_DebugRender.TileMinMaxCS[t][i] =
-            MakeCShader(hlsl.c_str(), "RENDERDOC_TileMinMaxCS", "cs_5_0");
+            shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_TileMinMaxCS", "cs_5_0");
         m_DebugRender.HistogramCS[t][i] =
-            MakeCShader(hlsl.c_str(), "RENDERDOC_HistogramCS", "cs_5_0");
+            shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_HistogramCS", "cs_5_0");
 
         if(t == 1)
           m_DebugRender.ResultMinMaxCS[i] =
-              MakeCShader(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", "cs_5_0");
+              shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", "cs_5_0");
 
         RenderDoc::Inst().SetProgress(
             LoadProgress::DebugManagerInit,
@@ -1176,10 +779,6 @@ bool D3D11DebugManager::InitDebugRendering()
   return true;
 }
 
-void D3D11DebugManager::ShutdownFontRendering()
-{
-}
-
 void D3D11DebugManager::ShutdownStreamOut()
 {
   SAFE_RELEASE(m_SOBuffer);
@@ -1373,126 +972,6 @@ void D3D11DebugManager::CreateSOBuffers()
   hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOStagingBuffer);
   if(FAILED(hr))
     RDCERR("Failed to create m_SOStagingBuffer HRESULT: %s", ToStr(hr).c_str());
-}
-
-bool D3D11DebugManager::InitFontRendering()
-{
-  HRESULT hr = S_OK;
-
-  D3D11_TEXTURE2D_DESC desc;
-  RDCEraseEl(desc);
-
-  int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
-
-  desc.ArraySize = 1;
-  desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-  desc.CPUAccessFlags = 0;
-  desc.Format = DXGI_FORMAT_R8_UNORM;
-  desc.Width = width;
-  desc.Height = height;
-  desc.MipLevels = 1;
-  desc.MiscFlags = 0;
-  desc.SampleDesc.Quality = 0;
-  desc.SampleDesc.Count = 1;
-  desc.Usage = D3D11_USAGE_DEFAULT;
-
-  D3D11_SUBRESOURCE_DATA initialData;
-
-  string font = GetEmbeddedResource(sourcecodepro_ttf);
-  byte *ttfdata = (byte *)font.c_str();
-
-  const int firstChar = int(' ') + 1;
-  const int lastChar = 127;
-  const int numChars = lastChar - firstChar;
-
-  byte *buf = new byte[width * height];
-
-  const float pixelHeight = 20.0f;
-
-  stbtt_bakedchar chardata[numChars];
-  stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
-
-  m_Font.CharSize = pixelHeight;
-  m_Font.CharAspect = chardata->xadvance / pixelHeight;
-
-  stbtt_fontinfo f = {0};
-  stbtt_InitFont(&f, ttfdata, 0);
-
-  int ascent = 0;
-  stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
-
-  float maxheight = float(ascent) * stbtt_ScaleForPixelHeight(&f, pixelHeight);
-
-  initialData.pSysMem = buf;
-  initialData.SysMemPitch = width;
-  initialData.SysMemSlicePitch = width * height;
-
-  ID3D11Texture2D *debugTex = NULL;
-
-  hr = m_pDevice->CreateTexture2D(&desc, &initialData, &debugTex);
-
-  if(FAILED(hr))
-    RDCERR("Failed to create debugTex HRESULT: %s", ToStr(hr).c_str());
-
-  delete[] buf;
-
-  hr = m_pDevice->CreateShaderResourceView(debugTex, NULL, &m_Font.Tex);
-
-  if(FAILED(hr))
-    RDCERR("Failed to create m_Font.Tex HRESULT: %s", ToStr(hr).c_str());
-
-  SAFE_RELEASE(debugTex);
-
-  Vec4f glyphData[2 * (numChars + 1)];
-
-  m_Font.GlyphData = MakeCBuffer(sizeof(glyphData));
-
-  for(int i = 0; i < numChars; i++)
-  {
-    stbtt_bakedchar *b = chardata + i;
-
-    float x = b->xoff;
-    float y = b->yoff + maxheight;
-
-    glyphData[(i + 1) * 2 + 0] =
-        Vec4f(x / b->xadvance, y / pixelHeight, b->xadvance / float(b->x1 - b->x0),
-              pixelHeight / float(b->y1 - b->y0));
-    glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
-  }
-
-  FillCBuffer(m_Font.GlyphData, &glyphData, sizeof(glyphData));
-
-  m_Font.CBuffer = MakeCBuffer(sizeof(FontCBuffer));
-  m_Font.CharBuffer = MakeCBuffer((2 + FONT_MAX_CHARS) * sizeof(uint32_t) * 4);
-
-  string fullhlsl = "";
-  {
-    string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
-    string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
-
-    fullhlsl = debugShaderCBuf + textShaderHLSL;
-  }
-
-  m_Font.VS = MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0");
-  m_Font.PS = MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
-
-  return true;
-}
-
-void D3D11DebugManager::SetOutputWindow(HWND w)
-{
-  RECT rect = {0, 0, 0, 0};
-  GetClientRect(w, &rect);
-  if(rect.right == rect.left || rect.bottom == rect.top)
-  {
-    m_supersamplingX = 1.0f;
-    m_supersamplingY = 1.0f;
-  }
-  else
-  {
-    m_supersamplingX = float(m_width) / float(rect.right - rect.left);
-    m_supersamplingY = float(m_height) / float(rect.bottom - rect.top);
-  }
 }
 
 uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
@@ -1834,109 +1313,6 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
 
     outOffs += chunkSize;
     len -= chunkSize;
-  }
-}
-
-void D3D11DebugManager::RenderText(float x, float y, const char *textfmt, ...)
-{
-  static char tmpBuf[4096];
-
-  va_list args;
-  va_start(args, textfmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
-  RenderTextInternal(x, y, tmpBuf);
-}
-
-void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
-{
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderTextInternal(x, y, text);
-    RenderTextInternal(x, y + 1.0f, t + 1);
-    *t = '\n';
-    return;
-  }
-
-  if(strlen(text) == 0)
-    return;
-
-  RDCASSERT(strlen(text) < FONT_MAX_CHARS);
-
-  FontCBuffer data;
-
-  data.TextPosition.x = x;
-  data.TextPosition.y = y;
-
-  data.FontScreenAspect.x = 1.0f / float(GetWidth());
-  data.FontScreenAspect.y = 1.0f / float(GetHeight());
-
-  data.TextSize = m_Font.CharSize;
-  data.FontScreenAspect.x *= m_Font.CharAspect;
-
-  data.FontScreenAspect.x *= m_supersamplingX;
-  data.FontScreenAspect.y *= m_supersamplingY;
-
-  data.CharacterSize.x = 1.0f / float(FONT_TEX_WIDTH);
-  data.CharacterSize.y = 1.0f / float(FONT_TEX_HEIGHT);
-
-  D3D11_MAPPED_SUBRESOURCE mapped;
-
-  FillCBuffer(m_Font.CBuffer, &data, sizeof(FontCBuffer));
-
-  HRESULT hr = m_pImmediateContext->Map(m_Font.CharBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Failed to map charbuffer HRESULT: %s", ToStr(hr).c_str());
-    return;
-  }
-
-  unsigned long *texs = (unsigned long *)mapped.pData;
-
-  for(size_t i = 0; i < strlen(text); i++)
-    texs[i * 4] = (text[i] - ' ');
-
-  m_pImmediateContext->Unmap(m_Font.CharBuffer, 0);
-
-  // can't just clear state because we need to keep things like render targets.
-  {
-    m_pImmediateContext->IASetInputLayout(NULL);
-    m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-    m_pImmediateContext->VSSetShader(m_Font.VS, NULL, 0);
-    m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_Font.CBuffer);
-    m_pImmediateContext->VSSetConstantBuffers(1, 1, &m_Font.GlyphData);
-    m_pImmediateContext->VSSetConstantBuffers(2, 1, &m_Font.CharBuffer);
-
-    m_pImmediateContext->HSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->DSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-
-    m_pImmediateContext->RSSetState(m_DebugRender.RastState);
-
-    D3D11_VIEWPORT view;
-    view.TopLeftX = 0;
-    view.TopLeftY = 0;
-    view.Width = (float)GetWidth();
-    view.Height = (float)GetHeight();
-    view.MinDepth = 0.0f;
-    view.MaxDepth = 1.0f;
-    m_pImmediateContext->RSSetViewports(1, &view);
-
-    m_pImmediateContext->PSSetShader(m_Font.PS, NULL, 0);
-    m_pImmediateContext->PSSetShaderResources(0, 1, &m_Font.Tex);
-
-    ID3D11SamplerState *samps[] = {m_DebugRender.PointSampState, m_DebugRender.LinearSampState};
-    m_pImmediateContext->PSSetSamplers(0, 2, samps);
-
-    float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
-
-    m_pImmediateContext->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
   }
 }
 

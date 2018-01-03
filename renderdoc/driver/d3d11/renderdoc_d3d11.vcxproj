@@ -105,6 +105,7 @@
     <ClCompile Include="d3d11_pixelhistory.cpp" />
     <ClCompile Include="d3d11_postvs.cpp" />
     <ClCompile Include="d3d11_rendermesh.cpp" />
+    <ClCompile Include="d3d11_rendertext.cpp" />
     <ClCompile Include="d3d11_rendertexture.cpp" />
     <ClCompile Include="d3d11_serialise.cpp" />
     <ClCompile Include="d3d11_context.cpp" />
@@ -125,6 +126,7 @@
     <ClCompile Include="d3d11_renderstate.cpp" />
     <ClCompile Include="d3d11_replay.cpp" />
     <ClCompile Include="d3d11_resources.cpp" />
+    <ClCompile Include="d3d11_shader_cache.cpp" />
     <ClCompile Include="d3d11_shaderdebug.cpp" />
     <ClCompile Include="d3d11_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">
@@ -138,6 +140,7 @@
     <ClInclude Include="d3d11_device.h" />
     <ClInclude Include="d3d11_manager.h" />
     <ClInclude Include="d3d11_renderstate.h" />
+    <ClInclude Include="d3d11_rendertext.h" />
     <ClInclude Include="d3d11_replay.h" />
     <ClInclude Include="d3d11_resources.h" />
     <ClInclude Include="..\dx\official\d3d11.h" />
@@ -148,6 +151,7 @@
     <ClInclude Include="..\dx\official\d3d11sdklayers.h" />
     <ClInclude Include="..\dx\official\d3dcommon.h" />
     <ClInclude Include="..\dx\official\d3dcompiler.h" />
+    <ClInclude Include="d3d11_shader_cache.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>
   <ItemGroup>

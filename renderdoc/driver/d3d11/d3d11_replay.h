@@ -174,6 +174,10 @@ private:
   bool m_WARP;
   bool m_Proxy;
 
+  // shared by BuildCustomShader and BuildTargetShader
+  void BuildShader(std::string source, std::string entry, const ShaderCompileFlags &compileFlags,
+                   ShaderStage type, ResourceId *id, std::string *errors);
+
   vector<ID3D11Resource *> m_ProxyResources;
 
   WrappedID3D11Device *m_pDevice;

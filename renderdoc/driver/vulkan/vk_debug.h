@@ -30,15 +30,6 @@
 #include "vk_common.h"
 #include "vk_core.h"
 
-struct TextPrintState
-{
-  VkCommandBuffer cmd;
-  VkRenderPass rp;
-  VkFramebuffer fb;
-  uint32_t w, h;
-  VkFormat fmt;
-};
-
 struct MeshDisplayPipelines
 {
   enum
@@ -108,10 +99,6 @@ public:
   VulkanDebugManager(WrappedVulkan *driver, VkDevice dev);
   ~VulkanDebugManager();
 
-  void BeginText(const TextPrintState &textstate);
-  void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
-  void EndText(const TextPrintState &textstate);
-
   ResourceId RenderOverlay(ResourceId texid, DebugOverlay overlay, uint32_t eventId,
                            const vector<uint32_t> &passEvents);
 
@@ -138,31 +125,30 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
-  VkDescriptorPool m_DescriptorPool;
-  VkSampler m_LinearSampler, m_PointSampler;
+  VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+  VkSampler m_LinearSampler = VK_NULL_HANDLE, m_PointSampler = VK_NULL_HANDLE;
 
-  VkDescriptorSetLayout m_CheckerboardDescSetLayout;
-  VkPipelineLayout m_CheckerboardPipeLayout;
-  VkDescriptorSet m_CheckerboardDescSet;
-  VkPipeline m_CheckerboardPipeline;
-  VkPipeline m_CheckerboardMSAAPipeline;
+  VkDescriptorSetLayout m_CheckerboardDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_CheckerboardPipeLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_CheckerboardDescSet = VK_NULL_HANDLE;
+  VkPipeline m_CheckerboardPipeline = VK_NULL_HANDLE;
+  VkPipeline m_CheckerboardMSAAPipeline = VK_NULL_HANDLE;
   GPUBuffer m_CheckerboardUBO;
 
-  VkDescriptorSetLayout m_TexDisplayDescSetLayout;
-  VkPipelineLayout m_TexDisplayPipeLayout;
-  VkDescriptorSet
-      m_TexDisplayDescSet[16];    // ring buffered to allow multiple texture renders between flushes
-  uint32_t m_TexDisplayNextSet;
-  VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline, m_TexDisplayF16Pipeline,
-      m_TexDisplayF32Pipeline;
+  VkDescriptorSetLayout m_TexDisplayDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_TexDisplayPipeLayout = VK_NULL_HANDLE;
+  // ring buffered to allow multiple texture renders between flushes
+  VkDescriptorSet m_TexDisplayDescSet[16] = {VK_NULL_HANDLE};
+  uint32_t m_TexDisplayNextSet = 0;
+  VkPipeline m_TexDisplayPipeline = VK_NULL_HANDLE, m_TexDisplayBlendPipeline = VK_NULL_HANDLE,
+             m_TexDisplayF16Pipeline = VK_NULL_HANDLE, m_TexDisplayF32Pipeline = VK_NULL_HANDLE;
   GPUBuffer m_TexDisplayUBO;
 
-  VkImage m_TexDisplayDummyImages[12];
-  VkImageView m_TexDisplayDummyImageViews[12];
-  VkWriteDescriptorSet m_TexDisplayDummyWrites[12];
-  VkDescriptorImageInfo m_TexDisplayDummyInfos[12];
-  VkDeviceMemory m_TexDisplayDummyMemory;
-  VkShaderModule m_BlitVSModule;
+  VkImage m_TexDisplayDummyImages[12] = {VK_NULL_HANDLE};
+  VkImageView m_TexDisplayDummyImageViews[12] = {VK_NULL_HANDLE};
+  VkWriteDescriptorSet m_TexDisplayDummyWrites[12] = {};
+  VkDescriptorImageInfo m_TexDisplayDummyInfos[12] = {};
+  VkDeviceMemory m_TexDisplayDummyMemory = VK_NULL_HANDLE;
 
   VkDescriptorSet GetTexDisplayDescSet()
   {
@@ -170,76 +156,57 @@ public:
     return m_TexDisplayDescSet[m_TexDisplayNextSet];
   }
 
-  uint32_t m_CustomTexWidth, m_CustomTexHeight;
-  VkDeviceSize m_CustomTexMemSize;
-  VkImage m_CustomTexImg;
-  VkImageView m_CustomTexImgView[16];
-  VkDeviceMemory m_CustomTexMem;
-  VkFramebuffer m_CustomTexFB;
-  VkRenderPass m_CustomTexRP;
+  uint32_t m_CustomTexWidth = 0, m_CustomTexHeight = 0;
+  VkDeviceSize m_CustomTexMemSize = 0;
+  VkImage m_CustomTexImg = VK_NULL_HANDLE;
+  VkImageView m_CustomTexImgView[16] = {VK_NULL_HANDLE};
+  VkDeviceMemory m_CustomTexMem = VK_NULL_HANDLE;
+  VkFramebuffer m_CustomTexFB = VK_NULL_HANDLE;
+  VkRenderPass m_CustomTexRP = VK_NULL_HANDLE;
   ResourceId m_CustomTexShader;
-  VkPipeline m_CustomTexPipeline;
+  VkPipeline m_CustomTexPipeline = VK_NULL_HANDLE;
 
-  VkDeviceMemory m_PickPixelImageMem;
-  VkImage m_PickPixelImage;
-  VkImageView m_PickPixelImageView;
+  VkDeviceMemory m_PickPixelImageMem = VK_NULL_HANDLE;
+  VkImage m_PickPixelImage = VK_NULL_HANDLE;
+  VkImageView m_PickPixelImageView = VK_NULL_HANDLE;
   GPUBuffer m_PickPixelReadbackBuffer;
-  VkFramebuffer m_PickPixelFB;
-  VkRenderPass m_PickPixelRP;
+  VkFramebuffer m_PickPixelFB = VK_NULL_HANDLE;
+  VkRenderPass m_PickPixelRP = VK_NULL_HANDLE;
 
-  VkDescriptorSetLayout m_ArrayMSDescSetLayout;
-  VkPipelineLayout m_ArrayMSPipeLayout;
-  VkDescriptorSet m_ArrayMSDescSet;
-  VkPipeline m_Array2MSPipe;
-  VkPipeline m_MS2ArrayPipe;
+  VkDescriptorSetLayout m_ArrayMSDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_ArrayMSPipeLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_ArrayMSDescSet = VK_NULL_HANDLE;
+  VkPipeline m_Array2MSPipe = VK_NULL_HANDLE;
+  VkPipeline m_MS2ArrayPipe = VK_NULL_HANDLE;
 
   // one per depth/stencil output format
-  VkPipeline m_DepthMS2ArrayPipe[6];
+  VkPipeline m_DepthMS2ArrayPipe[6] = {VK_NULL_HANDLE};
   // one per depth/stencil output format, per sample count
-  VkPipeline m_DepthArray2MSPipe[6][4];
+  VkPipeline m_DepthArray2MSPipe[6][4] = {{VK_NULL_HANDLE}};
 
-  VkDescriptorSetLayout m_TextDescSetLayout;
-  VkPipelineLayout m_TextPipeLayout;
-  VkDescriptorSet m_TextDescSet;
-
-  // 0 - RGBA8_SRGB, 1 - BGRA8, 2 - RGBA8_SRGB, 3 - BGRA8
-  VkPipeline m_TextPipeline[4];
-
-  GPUBuffer m_TextGeneralUBO;
-  GPUBuffer m_TextGlyphUBO;
-  GPUBuffer m_TextStringUBO;
-  VkImage m_TextAtlas;
-  VkDeviceMemory m_TextAtlasMem;
-  VkImageView m_TextAtlasView;
-  GPUBuffer m_TextAtlasUpload;
-
-  VkDeviceMemory m_OverlayImageMem;
-  VkImage m_OverlayImage;
-  VkImageView m_OverlayImageView;
-  VkFramebuffer m_OverlayNoDepthFB;
-  VkRenderPass m_OverlayNoDepthRP;
-  VkExtent2D m_OverlayDim;
-  VkDeviceSize m_OverlayMemSize;
+  VkDeviceMemory m_OverlayImageMem = VK_NULL_HANDLE;
+  VkImage m_OverlayImage = VK_NULL_HANDLE;
+  VkImageView m_OverlayImageView = VK_NULL_HANDLE;
+  VkFramebuffer m_OverlayNoDepthFB = VK_NULL_HANDLE;
+  VkRenderPass m_OverlayNoDepthRP = VK_NULL_HANDLE;
+  VkExtent2D m_OverlayDim = {0, 0};
+  VkDeviceSize m_OverlayMemSize = 0;
 
   GPUBuffer m_OverdrawRampUBO;
-  VkDescriptorSetLayout m_QuadDescSetLayout;
-  VkDescriptorSet m_QuadDescSet;
-  VkPipelineLayout m_QuadResolvePipeLayout;
-  VkPipeline m_QuadResolvePipeline[8];
-  vector<uint32_t> *m_QuadSPIRV;
+  VkDescriptorSetLayout m_QuadDescSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_QuadDescSet = VK_NULL_HANDLE;
+  VkPipelineLayout m_QuadResolvePipeLayout = VK_NULL_HANDLE;
+  VkPipeline m_QuadResolvePipeline[8] = {VK_NULL_HANDLE};
 
   GPUBuffer m_TriSizeUBO;
-  VkDescriptorSetLayout m_TriSizeDescSetLayout;
-  VkDescriptorSet m_TriSizeDescSet;
-  VkPipelineLayout m_TriSizePipeLayout;
-  VkShaderModule m_TriSizeGSModule;
-  VkShaderModule m_TriSizeFSModule;
+  VkDescriptorSetLayout m_TriSizeDescSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_TriSizeDescSet = VK_NULL_HANDLE;
+  VkPipelineLayout m_TriSizePipeLayout = VK_NULL_HANDLE;
 
-  VkDescriptorSetLayout m_MeshDescSetLayout;
-  VkPipelineLayout m_MeshPipeLayout;
-  VkDescriptorSet m_MeshDescSet;
+  VkDescriptorSetLayout m_MeshDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_MeshPipeLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_MeshDescSet = VK_NULL_HANDLE;
   GPUBuffer m_MeshUBO, m_MeshBBoxVB, m_MeshAxisFrustumVB;
-  VkShaderModule m_MeshModules[3];
 
   enum TextureType
   {
@@ -253,56 +220,45 @@ public:
   GPUBuffer m_MinMaxTileResult;                     // tile result buffer
   GPUBuffer m_MinMaxResult, m_MinMaxReadback;       // Vec4f[2] final result buffer
   GPUBuffer m_HistogramBuf, m_HistogramReadback;    // uint32_t * num buckets buffer
-  VkDescriptorSetLayout m_HistogramDescSetLayout;
-  VkPipelineLayout m_HistogramPipeLayout;
-  VkDescriptorSet m_HistogramDescSet[2];
+  VkDescriptorSetLayout m_HistogramDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_HistogramPipeLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_HistogramDescSet[2] = {VK_NULL_HANDLE};
   GPUBuffer m_HistogramUBO;
-  VkPipeline m_HistogramPipe[eTexType_Max][3];     // float, uint, sint
-  VkPipeline m_MinMaxTilePipe[eTexType_Max][3];    // float, uint, sint
-  VkPipeline m_MinMaxResultPipe[3];                // float, uint, sint
+  VkPipeline m_HistogramPipe[eTexType_Max][3] = {{VK_NULL_HANDLE}};     // float, uint, sint
+  VkPipeline m_MinMaxTilePipe[eTexType_Max][3] = {{VK_NULL_HANDLE}};    // float, uint, sint
+  VkPipeline m_MinMaxResultPipe[3] = {VK_NULL_HANDLE};                  // float, uint, sint
 
   static const int maxMeshPicks = 500;
 
   GPUBuffer m_MeshPickUBO;
   GPUBuffer m_MeshPickIB, m_MeshPickIBUpload;
   GPUBuffer m_MeshPickVB, m_MeshPickVBUpload;
-  uint32_t m_MeshPickIBSize, m_MeshPickVBSize;
+  uint32_t m_MeshPickIBSize = 0, m_MeshPickVBSize = 0;
   GPUBuffer m_MeshPickResult, m_MeshPickResultReadback;
-  VkDescriptorSetLayout m_MeshPickDescSetLayout;
-  VkDescriptorSet m_MeshPickDescSet;
-  VkPipelineLayout m_MeshPickLayout;
-  VkPipeline m_MeshPickPipeline;
+  VkDescriptorSetLayout m_MeshPickDescSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_MeshPickDescSet = VK_NULL_HANDLE;
+  VkPipelineLayout m_MeshPickLayout = VK_NULL_HANDLE;
+  VkPipeline m_MeshPickPipeline = VK_NULL_HANDLE;
 
-  VkDescriptorSetLayout m_OutlineDescSetLayout;
-  VkPipelineLayout m_OutlinePipeLayout;
-  VkDescriptorSet m_OutlineDescSet;
-  VkPipeline m_OutlinePipeline[8];
+  VkDescriptorSetLayout m_OutlineDescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout m_OutlinePipeLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_OutlineDescSet = VK_NULL_HANDLE;
+  VkPipeline m_OutlinePipeline[8] = {VK_NULL_HANDLE};
   GPUBuffer m_OutlineUBO;
 
   GPUBuffer m_ReadbackWindow;
 
-  VkDescriptorSetLayout m_MeshFetchDescSetLayout;
-  VkDescriptorSet m_MeshFetchDescSet;
+  VkDescriptorSetLayout m_MeshFetchDescSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_MeshFetchDescSet = VK_NULL_HANDLE;
 
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);
-  void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
-  void MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 
 private:
   void InitDebugData();
   void ShutdownDebugData();
 
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
-  static const uint32_t m_ShaderCacheMagic = 0xf00d00d5;
-  static const uint32_t m_ShaderCacheVersion = 1;
-
-  bool m_ShaderCacheDirty, m_CacheShaders;
-  map<uint32_t, vector<uint32_t> *> m_ShaderCache;
-
-  string GetSPIRVBlob(const SPIRVCompilationSettings &settings,
-                      const std::vector<std::string> &sources, vector<uint32_t> **outBlob);
-
   void CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
                                uint32_t samples, VkFormat fmt);
   void CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
@@ -312,24 +268,15 @@ private:
   void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
 
-  void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
-  static const uint32_t FONT_TEX_WIDTH = 256;
-  static const uint32_t FONT_TEX_HEIGHT = 128;
-
   CaptureState m_State;
 
-  float m_FontCharAspect;
-  float m_FontCharSize;
+  std::map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 
-  vector<uint32_t> *m_FixedColSPIRV;
+  std::map<uint32_t, VulkanPostVSData> m_PostVSData;
+  std::map<uint32_t, uint32_t> m_PostVSAlias;
 
-  map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+  WrappedVulkan *m_pDriver = NULL;
+  VulkanResourceManager *m_ResourceManager = NULL;
 
-  map<uint32_t, VulkanPostVSData> m_PostVSData;
-  map<uint32_t, uint32_t> m_PostVSAlias;
-
-  WrappedVulkan *m_pDriver;
-  VulkanResourceManager *m_ResourceManager;
-
-  VkDevice m_Device;
+  VkDevice m_Device = VK_NULL_HANDLE;
 };

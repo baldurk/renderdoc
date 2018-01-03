@@ -23,16 +23,18 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_device.h"
+#include "d3d11_device.h"
 #include "core/core.h"
-#include "driver/d3d11/d3d11_context.h"
-#include "driver/d3d11/d3d11_renderstate.h"
-#include "driver/d3d11/d3d11_resources.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
+#include "d3d11_context.h"
+#include "d3d11_renderstate.h"
+#include "d3d11_rendertext.h"
+#include "d3d11_resources.h"
+#include "d3d11_shader_cache.h"
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
 
@@ -85,8 +87,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_Replay.SetDevice(this);
 
-  m_DebugManager = NULL;
-
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
   m_SoftRefCounter.Release();
@@ -124,6 +124,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   }
 
   m_ResourceManager = new D3D11ResourceManager(this);
+
+  m_ShaderCache = new D3D11ShaderCache(this);
 
   m_ScratchSerialiser.SetUserData(GetResourceManager());
 
@@ -249,6 +251,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
     SAFE_RELEASE(it->second);
 
   SAFE_DELETE(m_DebugManager);
+  SAFE_DELETE(m_TextRenderer);
+  SAFE_DELETE(m_ShaderCache);
 
   if(m_DeviceRecord)
   {
@@ -1265,6 +1269,9 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
   LazyInit();
 
+  if(m_TextRenderer == NULL)
+    m_TextRenderer = new D3D11TextRenderer(this);
+
   // there shouldn't be a resource record for this texture as it wasn't created via
   // CreateTexture2D
   RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
@@ -1788,11 +1795,11 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
         m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
 
         DXGI_SWAP_CHAIN_DESC swapDesc = swap->GetDescWithHWND();
-        GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
-        GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
+        m_TextRenderer->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+        m_TextRenderer->SetOutputWindow(swapDesc.OutputWindow);
 
-        GetDebugManager()->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter,
-                                      reasonString);
+        m_TextRenderer->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter,
+                                   reasonString);
       }
 
       old.ApplyState(m_pImmediateContext);
@@ -2019,8 +2026,8 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
       DXGI_SWAP_CHAIN_DESC swapDesc = {0};
       swap->GetDesc(&swapDesc);
-      GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
-      GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
+      m_TextRenderer->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+      m_TextRenderer->SetOutputWindow(swapDesc.OutputWindow);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
@@ -2040,7 +2047,7 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       }
 
       if(!overlayText.empty())
-        GetDebugManager()->RenderText(0.0f, 0.0f, overlayText.c_str());
+        m_TextRenderer->RenderText(0.0f, 0.0f, overlayText.c_str());
 
       old.ApplyState(m_pImmediateContext);
     }

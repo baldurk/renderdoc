@@ -123,7 +123,6 @@ public:
     m_width = w;
     m_height = h;
   }
-  void SetOutputWindow(HWND w);
   int GetWidth() { return m_width; }
   int GetHeight() { return m_height; }
   void InitPostVSBuffers(uint32_t eventId);
@@ -162,22 +161,9 @@ public:
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
   vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 
-  void RenderText(float x, float y, const char *textfmt, ...);
   void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   ID3D11Buffer *MakeCBuffer(const void *data, size_t size);
-
-  string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
-  ID3D11VertexShader *MakeVShader(const char *source, const char *entry, const char *profile,
-                                  int numInputDescs = 0, D3D11_INPUT_ELEMENT_DESC *inputs = NULL,
-                                  ID3D11InputLayout **ret = NULL, vector<byte> *blob = NULL);
-  ID3D11GeometryShader *MakeGShader(const char *source, const char *entry, const char *profile);
-  ID3D11PixelShader *MakePShader(const char *source, const char *entry, const char *profile);
-  ID3D11ComputeShader *MakeCShader(const char *source, const char *entry, const char *profile);
-
-  void BuildShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                   ShaderStage type, ResourceId *id, string *errors);
 
   ID3D11Buffer *MakeCBuffer(UINT size);
 
@@ -295,18 +281,17 @@ private:
 
   CacheElem &GetCachedElem(ResourceId id, CompType typeHint, bool raw);
 
-  int m_width, m_height;
-  float m_supersamplingX, m_supersamplingY;
+  int m_width = 1, m_height = 1;
 
-  WrappedID3D11Device *m_WrappedDevice;
-  WrappedID3D11DeviceContext *m_WrappedContext;
+  WrappedID3D11Device *m_WrappedDevice = NULL;
+  WrappedID3D11DeviceContext *m_WrappedContext = NULL;
 
-  D3D11ResourceManager *m_ResourceManager;
+  D3D11ResourceManager *m_ResourceManager = NULL;
 
-  ID3D11Device *m_pDevice;
-  ID3D11DeviceContext *m_pImmediateContext;
+  ID3D11Device *m_pDevice = NULL;
+  ID3D11DeviceContext *m_pImmediateContext = NULL;
 
-  IDXGIFactory *m_pFactory;
+  IDXGIFactory *m_pFactory = NULL;
 
   struct OutputWindow
   {
@@ -323,7 +308,7 @@ private:
     int width, height;
   };
 
-  uint64_t m_OutputWindowID;
+  uint64_t m_OutputWindowID = 1;
   map<uint64_t, OutputWindow> m_OutputWindows;
 
   // used to track the real state so we can preserve it even
@@ -334,12 +319,6 @@ private:
     bool active;
     D3D11RenderState state;
   } m_RealState;
-
-  static const uint32_t m_ShaderCacheMagic = 0xf000baba;
-  static const uint32_t m_ShaderCacheVersion = 3;
-
-  bool m_ShaderCacheDirty, m_CacheShaders;
-  map<uint32_t, ID3DBlob *> m_ShaderCache;
 
   uint32_t m_SOBufferSize = 32 * 1024 * 1024;
   ID3D11Buffer *m_SOBuffer = NULL;
@@ -377,45 +356,11 @@ private:
   void CreateSOBuffers();
   void ShutdownStreamOut();
 
-  // font/text rendering
-  bool InitFontRendering();
-  void ShutdownFontRendering();
-
-  void RenderTextInternal(float x, float y, const char *text);
-
   void CreateCustomShaderTex(uint32_t w, uint32_t h);
 
   void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
-  static const int FONT_TEX_WIDTH = 256;
-  static const int FONT_TEX_HEIGHT = 128;
-  static const int FONT_MAX_CHARS = 256;
-
   static const uint32_t STAGE_BUFFER_BYTE_SIZE = 4 * 1024 * 1024;
-
-  struct FontData
-  {
-    FontData() { RDCEraseMem(this, sizeof(FontData)); }
-    ~FontData()
-    {
-      SAFE_RELEASE(Tex);
-      SAFE_RELEASE(CBuffer);
-      SAFE_RELEASE(GlyphData);
-      SAFE_RELEASE(CharBuffer);
-      SAFE_RELEASE(VS);
-      SAFE_RELEASE(PS);
-    }
-
-    ID3D11ShaderResourceView *Tex;
-    ID3D11Buffer *CBuffer;
-    ID3D11Buffer *GlyphData;
-    ID3D11Buffer *CharBuffer;
-    ID3D11VertexShader *VS;
-    ID3D11PixelShader *PS;
-
-    float CharAspect;
-    float CharSize;
-  } m_Font;
 
   struct DebugRenderData
   {

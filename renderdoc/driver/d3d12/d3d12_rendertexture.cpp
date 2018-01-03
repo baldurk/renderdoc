@@ -297,14 +297,17 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   }
 }
 
-bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
+bool D3D12DebugManager::RenderTexture(TextureDisplay cfg)
 {
-  return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg, blendAlpha);
+  return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg,
+                               eTexDisplay_BlendAlpha);
 }
 
 bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
-                                              bool blendAlpha)
+                                              TexDisplayFlags flags)
 {
+  const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
+
   ID3D12Resource *resource = WrappedID3D12Resource::GetList()[cfg.resourceId];
 
   if(resource == NULL)
@@ -612,9 +615,9 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     }
     else if(cfg.rawOutput || !blendAlpha || cfg.customShaderId != ResourceId())
     {
-      if(m_BBFmtIdx == RGBA32_BACKBUFFER)
+      if(flags & eTexDisplay_F32Render)
         list->SetPipelineState(m_TexDisplayF32Pipe);
-      else if(m_BBFmtIdx == RGBA8_BACKBUFFER)
+      else if(flags & eTexDisplay_LinearRender)
         list->SetPipelineState(m_TexDisplayLinearPipe);
       else
         list->SetPipelineState(m_TexDisplayPipe);

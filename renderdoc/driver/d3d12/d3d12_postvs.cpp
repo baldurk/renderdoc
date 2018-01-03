@@ -28,6 +28,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
+#include "d3d12_shader_cache.h"
 
 void D3D12DebugManager::ClearPostVSCache()
 {
@@ -119,7 +120,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     {
       rootsig.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
 
-      ID3DBlob *blob = MakeRootSig(rootsig);
+      ID3DBlob *blob = m_WrappedDevice->GetShaderCache()->MakeRootSig(rootsig);
 
       hr = m_WrappedDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
                                                 __uuidof(ID3D12RootSignature), (void **)&soSig);

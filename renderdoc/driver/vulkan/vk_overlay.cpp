@@ -32,6 +32,7 @@
 #include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
+#include "vk_shader_cache.h"
 
 #define VULKAN 1
 #include "data/glsl/debuguniforms.h"
@@ -103,7 +104,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
       SAFE_DELETE_ARRAY(descSetLayouts);
 
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
-      m_pDebug->MakeGraphicsPipelineInfo(pipeCreateInfo, pipestate.graphics.pipeline);
+      m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
+                                                            pipestate.graphics.pipeline);
 
       // repoint pipeline layout
       pipeCreateInfo.layout = pipeLayout;
@@ -136,7 +138,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
           (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
       rs->rasterizerDiscardEnable = false;
 
-      vector<uint32_t> spirv = *m_pDebug->m_QuadSPIRV;
+      std::vector<uint32_t> spirv =
+          *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::QuadWriteFS);
 
       // patch spirv, change descriptor set to descSet value
       size_t it = 5;
@@ -273,7 +276,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
     float *data;
   } alias;
 
-  vector<uint32_t> spv = *m_FixedColSPIRV;
+  std::vector<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::FixedColFS);
 
   alias.spirv = &spv[0];
   size_t spirvLength = spv.size();
@@ -384,6 +387,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 {
   const VkLayerDispatchTable *vt = ObjDisp(m_Device);
 
+  VulkanShaderCache *shaderCache = m_pDriver->GetShaderCache();
+
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -475,9 +480,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         imInfo.format,
         {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-        {
-            VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
-        },
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
     };
 
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_OverlayImageView);
@@ -670,7 +673,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
-    MakeGraphicsPipelineInfo(pipeCreateInfo, prevstate.graphics.pipeline);
+    m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
+                                                          prevstate.graphics.pipeline);
 
     // disable all tests possible
     VkPipelineDepthStencilStateCreateInfo *ds =
@@ -900,14 +904,16 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
       VkClearRect rect = {
-          {{
-               m_pDriver->m_RenderState.renderArea.offset.x,
-               m_pDriver->m_RenderState.renderArea.offset.y,
-           },
-           {
-               m_pDriver->m_RenderState.renderArea.extent.width,
-               m_pDriver->m_RenderState.renderArea.extent.height,
-           }},
+          {
+              {
+                  m_pDriver->m_RenderState.renderArea.offset.x,
+                  m_pDriver->m_RenderState.renderArea.offset.y,
+              },
+              {
+                  m_pDriver->m_RenderState.renderArea.extent.width,
+                  m_pDriver->m_RenderState.renderArea.extent.height,
+              },
+          },
           0,
           1,
       };
@@ -1019,7 +1025,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
-    MakeGraphicsPipelineInfo(pipeCreateInfo, prevstate.graphics.pipeline);
+    m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
+                                                          prevstate.graphics.pipeline);
 
     // disable all tests possible
     VkPipelineDepthStencilStateCreateInfo *ds =
@@ -1280,7 +1287,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
-    MakeGraphicsPipelineInfo(pipeCreateInfo, prevstate.graphics.pipeline);
+    m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
+                                                          prevstate.graphics.pipeline);
 
     // disable all tests possible
     VkPipelineDepthStencilStateCreateInfo *ds =
@@ -1526,11 +1534,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       }
 
       VkClearRect rect = {
-          {
-              {0, 0}, {fb.width, fb.height},
-          },
-          0,
-          1,
+          {{0, 0}, {fb.width, fb.height}}, 0, 1,
       };
 
       vt->CmdClearAttachments(Unwrap(cmd), (uint32_t)atts.size(), &atts[0], 1, &rect);
@@ -1962,33 +1966,30 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
-      MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
+      m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
 
       VkPipelineShaderStageCreateInfo stages[3] = {
           {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
-           m_MeshModules[0], "main", NULL},
-          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0,
-           VK_SHADER_STAGE_FRAGMENT_BIT, m_TriSizeFSModule, "main", NULL},
-          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0,
-           VK_SHADER_STAGE_GEOMETRY_BIT, m_TriSizeGSModule, "main", NULL},
+           shaderCache->GetBuiltinModule(BuiltinShader::MeshVS), "main", NULL},
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+           shaderCache->GetBuiltinModule(BuiltinShader::TrisizeFS), "main", NULL},
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_GEOMETRY_BIT,
+           shaderCache->GetBuiltinModule(BuiltinShader::TrisizeGS), "main", NULL},
       };
 
       VkPipelineInputAssemblyStateCreateInfo ia = {
           VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
       ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-      VkVertexInputBindingDescription binds[] = {// primary
-                                                 {0, 0, VK_VERTEX_INPUT_RATE_VERTEX},
-                                                 // secondary
-                                                 {1, 0, VK_VERTEX_INPUT_RATE_VERTEX}};
+      VkVertexInputBindingDescription binds[] = {
+          // primary
+          {0, 0, VK_VERTEX_INPUT_RATE_VERTEX},
+          // secondary
+          {1, 0, VK_VERTEX_INPUT_RATE_VERTEX},
+      };
 
       VkVertexInputAttributeDescription vertAttrs[] = {
-          {
-              0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0,
-          },
-          {
-              1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0,
-          },
+          {0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0}, {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
       };
 
       VkPipelineVertexInputStateCreateInfo vi = {
@@ -2020,7 +2021,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           VK_LOGIC_OP_NO_OP,
           1,
           &attState,
-          {1.0f, 1.0f, 1.0f, 1.0f}};
+          {1.0f, 1.0f, 1.0f, 1.0f},
+      };
 
       pipeCreateInfo.stageCount = 3;
       pipeCreateInfo.pStages = stages;
@@ -2049,10 +2051,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           NULL,
           Unwrap(RP),
           Unwrap(FB),
-          {{
-               0, 0,
-           },
-           m_OverlayDim},
+          {{0, 0}, m_OverlayDim},
           1,
           &clearval,
       };

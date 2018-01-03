@@ -33,7 +33,9 @@
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_rendertext.h"
 #include "d3d12_resources.h"
+#include "d3d12_shader_cache.h"
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
@@ -189,7 +191,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_State = CaptureState::BackgroundCapturing;
   }
 
-  m_DebugManager = NULL;
   m_ResourceManager = new D3D12ResourceManager(m_State, this);
 
   // create a temporary and grab its resource ID
@@ -1121,8 +1122,8 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       SwapPresentInfo &swapInfo = m_SwapChains[swap];
       D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapInfo.rtvs[swapInfo.lastPresentedBuffer];
 
-      GetDebugManager()->SetOutputDimensions(swapdesc.BufferDesc.Width, swapdesc.BufferDesc.Height,
-                                             swapdesc.BufferDesc.Format);
+      m_TextRenderer->SetOutputDimensions(swapdesc.BufferDesc.Width, swapdesc.BufferDesc.Height,
+                                          swapdesc.BufferDesc.Format);
 
       ID3D12GraphicsCommandList *list = GetNewList();
 
@@ -1142,7 +1143,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
 
       if(!overlayText.empty())
-        GetDebugManager()->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
+        m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
 
       // transition backbuffer back again
       std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
@@ -2087,10 +2088,16 @@ void WrappedID3D12Device::CreateInternalResources()
 
   m_GPUSyncCounter = 0;
 
+  if(m_ShaderCache == NULL)
+    m_ShaderCache = new D3D12ShaderCache();
+
   RDCASSERT(m_DebugManager == NULL);
 
   if(m_DebugManager == NULL)
     m_DebugManager = new D3D12DebugManager(this);
+
+  if(m_TextRenderer == NULL)
+    m_TextRenderer = new D3D12TextRenderer(this);
 
   WrappedID3D12Shader::InternalResources(false);
 }
@@ -2108,8 +2115,9 @@ void WrappedID3D12Device::DestroyInternalResources()
   for(size_t i = 0; i < m_InternalCmds.pendingcmds.size(); i++)
     SAFE_RELEASE(m_InternalCmds.pendingcmds[i]);
 
-  delete m_DebugManager;
-  m_DebugManager = NULL;
+  SAFE_DELETE(m_DebugManager);
+  SAFE_DELETE(m_TextRenderer);
+  SAFE_DELETE(m_ShaderCache);
 
   SAFE_RELEASE(m_DataUploadList);
   SAFE_RELEASE(m_DataUploadAlloc);

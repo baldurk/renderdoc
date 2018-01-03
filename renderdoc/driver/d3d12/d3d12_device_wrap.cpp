@@ -29,6 +29,7 @@
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"
+#include "d3d12_shader_cache.h"
 
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
@@ -767,7 +768,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
         WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
 
-        wrapped->sig = D3D12DebugManager::GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+        wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
 
         GetResourceManager()->AddLiveResource(pRootSignature, ret);
       }
@@ -822,13 +823,13 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
-      wrapped->sig = D3D12DebugManager::GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+      wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
 
       record->AddChunk(scope.Get());
     }
     else
     {
-      wrapped->sig = D3D12DebugManager::GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+      wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
 
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }

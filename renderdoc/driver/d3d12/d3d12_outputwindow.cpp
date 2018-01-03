@@ -329,7 +329,7 @@ void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
   if(outw.bb[0] == NULL)
     return;
 
-  SetOutputDimensions(outw.width, outw.height, DXGI_FORMAT_UNKNOWN);
+  SetOutputDimensions(outw.width, outw.height);
 }
 
 bool D3D12DebugManager::IsOutputWindowVisible(uint64_t id)

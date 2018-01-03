@@ -27,6 +27,7 @@
 #include "driver/shaders/spirv/spirv_common.h"
 #include "vk_core.h"
 #include "vk_debug.h"
+#include "vk_shader_cache.h"
 
 inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 {
@@ -903,7 +904,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventId)
   VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
   // get pipeline create info
-  MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
+  m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
 
   // set primitive topology to point list
   VkPipelineInputAssemblyStateCreateInfo *ia =

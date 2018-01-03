@@ -36,6 +36,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
+#include "d3d12_shader_cache.h"
 
 #include "data/hlsl/debugcbuffers.h"
 
@@ -123,7 +124,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       for(size_t i = 0; i < params.size(); i++)
         params[i] = modsig.params[i];
 
-      ID3DBlob *root = m_pDebug->MakeRootSig(modsig);
+      ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
 
       hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                           __uuidof(ID3D12RootSignature), (void **)&cache.sig);
@@ -462,7 +463,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
 
       float overlayConsts[4] = {0.8f, 0.1f, 0.8f, 1.0f};
-      ID3DBlob *ps = MakeFixedColShader(overlayConsts);
+      ID3DBlob *ps = m_WrappedDevice->GetShaderCache()->MakeFixedColShader(overlayConsts);
 
       psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
       psoDesc.PS.BytecodeLength = ps->GetBufferSize();
@@ -537,10 +538,10 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       D3D12_CULL_MODE origCull = psoDesc.RasterizerState.CullMode;
 
       float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-      ID3DBlob *red = MakeFixedColShader(redCol);
+      ID3DBlob *red = m_WrappedDevice->GetShaderCache()->MakeFixedColShader(redCol);
 
       float greenCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-      ID3DBlob *green = MakeFixedColShader(greenCol);
+      ID3DBlob *green = m_WrappedDevice->GetShaderCache()->MakeFixedColShader(greenCol);
 
       psoDesc.DepthStencilState.DepthEnable = FALSE;
       psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -633,7 +634,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
 
       float overlayConsts[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 1.0f};
-      ID3DBlob *ps = MakeFixedColShader(overlayConsts);
+      ID3DBlob *ps = m_WrappedDevice->GetShaderCache()->MakeFixedColShader(overlayConsts);
 
       psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
       psoDesc.PS.BytecodeLength = ps->GetBufferSize();
@@ -1130,10 +1131,10 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
 
       float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-      ID3DBlob *red = MakeFixedColShader(redCol);
+      ID3DBlob *red = m_WrappedDevice->GetShaderCache()->MakeFixedColShader(redCol);
 
       float greenCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-      ID3DBlob *green = MakeFixedColShader(greenCol);
+      ID3DBlob *green = m_WrappedDevice->GetShaderCache()->MakeFixedColShader(greenCol);
 
       // make sure that if a test is disabled, it shows all
       // pixels passing

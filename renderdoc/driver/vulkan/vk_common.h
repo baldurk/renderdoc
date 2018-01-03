@@ -191,36 +191,20 @@ public:
   uint32_t Major() { return m_Major; }
   uint32_t Minor() { return m_Minor; }
   uint32_t Patch() { return m_Patch; }
-  VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
-  {
-    if(physProps.vendorID == AMD_PCI_ID)
-      m_Vendor = AMD;
-    else if(physProps.vendorID == NV_PCI_ID)
-      m_Vendor = NV;
-    else if(physProps.vendorID == QUALCOMM_PCI_ID)
-      m_Vendor = QUALCOMM;
-    else
-      m_Vendor = UNKNOWN;
+  VkDriverInfo(const VkPhysicalDeviceProperties &physProps);
 
-    m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
-    m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
-    m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
-
-    // nvidia uses its own version packing:
-    //   10 |  8  |        8       |       6
-    // major|minor|secondary_branch|tertiary_branch
-    if(IsNV())
-    {
-      m_Major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
-      m_Minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;
-
-      uint32_t secondary = ((uint32_t)(physProps.driverVersion) >> 6) & 0x0ff;
-      uint32_t tertiary = physProps.driverVersion & 0x03f;
-
-      m_Patch = (secondary << 8) | tertiary;
-    }
-  }
-
+  // A workaround for a couple of bugs, removing texelFetch use from shaders.
+  // It means broken functionality but at least no instant crashes
+  bool TexelFetchBrokenDriver() { return texelFetchBrokenDriver; }
+  // another workaround, on some AMD driver versions creating an MSAA image with STORAGE_BIT
+  // causes graphical corruption trying to sample from it. We workaround it by preventing the
+  // MSAA <-> Array pipelines from creating, which removes the STORAGE_BIT and skips the copies.
+  // It means initial contents of MSAA images are missing but that's less important than being
+  // able to inspect MSAA images properly.
+  bool AMDStorageMSAABrokenDriver() { return amdStorageMSAABrokenDriver; }
+  // On Qualcomm it seems like binding a descriptor set with a dynamic offset will 'leak' and affect
+  // rendering on other descriptor sets that don't use offsets at all.
+  bool QualcommLeakingUBOOffsets() { return qualcommLeakingUBOOffsets; }
 private:
   enum
   {
@@ -231,6 +215,10 @@ private:
   } m_Vendor;
 
   uint32_t m_Major, m_Minor, m_Patch;
+
+  bool texelFetchBrokenDriver = false;
+  bool amdStorageMSAABrokenDriver = false;
+  bool qualcommLeakingUBOOffsets = false;
 };
 
 enum

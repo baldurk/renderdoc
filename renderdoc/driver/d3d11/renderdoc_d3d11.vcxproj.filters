@@ -114,6 +114,12 @@
     <ClCompile Include="d3d11_rendertexture.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_rendertext.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_shader_cache.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">
@@ -166,6 +172,12 @@
     </ClInclude>
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_rendertext.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_shader_cache.h">
+      <Filter>Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

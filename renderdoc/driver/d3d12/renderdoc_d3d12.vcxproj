@@ -113,10 +113,12 @@
     <ClCompile Include="d3d12_overlay.cpp" />
     <ClCompile Include="d3d12_postvs.cpp" />
     <ClCompile Include="d3d12_rendermesh.cpp" />
+    <ClCompile Include="d3d12_rendertext.cpp" />
     <ClCompile Include="d3d12_rendertexture.cpp" />
     <ClCompile Include="d3d12_replay.cpp" />
     <ClCompile Include="d3d12_resources.cpp" />
     <ClCompile Include="d3d12_serialise.cpp" />
+    <ClCompile Include="d3d12_shader_cache.cpp" />
     <ClCompile Include="d3d12_state.cpp" />
     <ClCompile Include="d3d12_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">
@@ -133,8 +135,10 @@
     <ClInclude Include="d3d12_manager.h" />
     <ClInclude Include="..\dx\official\d3d12.h" />
     <ClInclude Include="..\dx\official\d3d12sdklayers.h" />
+    <ClInclude Include="d3d12_rendertext.h" />
     <ClInclude Include="d3d12_replay.h" />
     <ClInclude Include="d3d12_resources.h" />
+    <ClInclude Include="d3d12_shader_cache.h" />
     <ClInclude Include="d3d12_state.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>

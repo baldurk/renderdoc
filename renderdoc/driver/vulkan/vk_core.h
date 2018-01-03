@@ -37,6 +37,9 @@
 using std::vector;
 using std::list;
 
+class VulkanShaderCache;
+class VulkanTextRenderer;
+
 struct VkInitParams
 {
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
@@ -180,6 +183,7 @@ class WrappedVulkan : public IFrameCapturer
 private:
   friend class VulkanReplay;
   friend class VulkanDebugManager;
+  friend class VulkanShaderCache;
 
   struct ScopedDebugMessageSink
   {
@@ -259,8 +263,10 @@ private:
   Threading::CriticalSection m_CmdBufferRecordsLock;
   vector<VkResourceRecord *> m_CmdBufferRecords;
 
-  VulkanResourceManager *m_ResourceManager;
-  VulkanDebugManager *m_DebugManager;
+  VulkanResourceManager *m_ResourceManager = NULL;
+  VulkanDebugManager *m_DebugManager = NULL;
+  VulkanShaderCache *m_ShaderCache = NULL;
+  VulkanTextRenderer *m_TextRenderer = NULL;
 
   Threading::CriticalSection m_CapTransitionLock;
 
@@ -735,6 +741,7 @@ public:
   static std::string GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
+  VulkanShaderCache *GetShaderCache() { return m_ShaderCache; }
   CaptureState GetState() { return m_State; }
   VulkanReplay *GetReplay() { return &m_Replay; }
   // replay interface

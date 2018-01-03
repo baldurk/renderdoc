@@ -28,6 +28,7 @@
 #include "maths/matrix.h"
 #include "vk_core.h"
 #include "vk_debug.h"
+#include "vk_shader_cache.h"
 
 #define VULKAN 1
 #include "data/glsl/debuguniforms.h"
@@ -265,9 +266,9 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   };
 
   // wireframe pipeline
-  stages[0].module = Unwrap(m_MeshModules[0]);
+  stages[0].module = Unwrap(m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::MeshVS));
   stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-  stages[1].module = Unwrap(m_MeshModules[2]);
+  stages[1].module = Unwrap(m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::MeshFS));
   stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
   rs.polygonMode = VK_POLYGON_MODE_LINE;
@@ -316,12 +317,8 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   vi.vertexBindingDescriptionCount = 1;
 
   // flat lit pipeline, needs geometry shader to calculate face normals
-  stages[0].module = Unwrap(m_MeshModules[0]);
-  stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-  stages[1].module = Unwrap(m_MeshModules[1]);
-  stages[1].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-  stages[2].module = Unwrap(m_MeshModules[2]);
-  stages[2].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  stages[2].module = Unwrap(m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::MeshGS));
+  stages[2].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
   pipeInfo.stageCount = 3;
 
   vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,

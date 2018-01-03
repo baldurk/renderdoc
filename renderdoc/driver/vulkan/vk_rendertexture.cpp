@@ -436,7 +436,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
     vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
-    if(m_pDriver->GetDriverVersion().IsQualcomm())
+    if(m_pDriver->GetDriverVersion().QualcommLeakingUBOOffsets())
     {
       uboOffs = 0;
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,

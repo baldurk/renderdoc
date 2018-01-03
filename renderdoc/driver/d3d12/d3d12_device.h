@@ -56,6 +56,9 @@ DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 class WrappedID3D12Device;
 class WrappedID3D12Resource;
 
+class D3D12TextRenderer;
+class D3D12ShaderCache;
+
 // give every impression of working but do nothing.
 // Just allow the user to call functions so that they don't
 // have to check for E_NOINTERFACE when they expect an infoqueue to be there
@@ -252,7 +255,9 @@ private:
   WrappedID3D12DebugDevice m_WrappedDebug;
 
   D3D12Replay m_Replay;
-  D3D12DebugManager *m_DebugManager;
+  D3D12DebugManager *m_DebugManager = NULL;
+  D3D12ShaderCache *m_ShaderCache = NULL;
+  D3D12TextRenderer *m_TextRenderer = NULL;
 
   set<ResourceId> m_UploadResourceIds;
   map<uint64_t, ID3D12Resource *> m_UploadBuffers;
@@ -375,6 +380,7 @@ public:
   static std::string GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
+  D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);

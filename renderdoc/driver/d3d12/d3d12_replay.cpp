@@ -29,6 +29,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
+#include "d3d12_shader_cache.h"
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
@@ -1197,7 +1198,7 @@ void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 
 bool D3D12Replay::RenderTexture(TextureDisplay cfg)
 {
-  return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
+  return m_pDevice->GetDebugManager()->RenderTexture(cfg);
 }
 
 void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
@@ -1544,14 +1545,64 @@ vector<DebugMessage> D3D12Replay::GetDebugMessages()
   return m_pDevice->GetDebugMessages();
 }
 
-void D3D12Replay::BuildTargetShader(string source, string entry,
+void D3D12Replay::BuildShader(std::string source, std::string entry,
+                              const ShaderCompileFlags &compileFlags, ShaderStage type,
+                              ResourceId *id, std::string *errors)
+{
+  uint32_t flags = DXBC::DecodeFlags(compileFlags);
+
+  if(id == NULL || errors == NULL)
+  {
+    if(id)
+      *id = ResourceId();
+    return;
+  }
+
+  char *profile = NULL;
+
+  switch(type)
+  {
+    case ShaderStage::Vertex: profile = "vs_5_0"; break;
+    case ShaderStage::Hull: profile = "hs_5_0"; break;
+    case ShaderStage::Domain: profile = "ds_5_0"; break;
+    case ShaderStage::Geometry: profile = "gs_5_0"; break;
+    case ShaderStage::Pixel: profile = "ps_5_0"; break;
+    case ShaderStage::Compute: profile = "cs_5_0"; break;
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      *id = ResourceId();
+      return;
+  }
+
+  ID3DBlob *blob = NULL;
+  *errors = m_pDevice->GetShaderCache()->GetShaderBlob(source.c_str(), entry.c_str(), flags,
+                                                       profile, &blob);
+
+  if(blob == NULL)
+  {
+    *id = ResourceId();
+    return;
+  }
+
+  D3D12_SHADER_BYTECODE byteCode;
+  byteCode.BytecodeLength = blob->GetBufferSize();
+  byteCode.pShaderBytecode = blob->GetBufferPointer();
+
+  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_pDevice, NULL);
+
+  SAFE_RELEASE(blob);
+
+  *id = sh->GetResourceID();
+}
+
+void D3D12Replay::BuildTargetShader(std::string source, std::string entry,
                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, string *errors)
+                                    ResourceId *id, std::string *errors)
 {
   ShaderCompileFlags debugCompileFlags =
       DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
 
-  m_pDevice->GetDebugManager()->BuildShader(source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(source, entry, debugCompileFlags, type, id, errors);
 }
 
 void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1666,11 +1717,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
 }
 
-void D3D12Replay::BuildCustomShader(string source, string entry,
+void D3D12Replay::BuildCustomShader(std::string source, std::string entry,
                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, string *errors)
+                                    ResourceId *id, std::string *errors)
 {
-  m_pDevice->GetDebugManager()->BuildShader(source, entry, compileFlags, type, id, errors);
+  BuildShader(source, entry, compileFlags, type, id, errors);
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,

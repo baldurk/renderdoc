@@ -30,6 +30,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "driver/d3d11/d3d11_device.h"
+#include "driver/d3d11/d3d11_shader_cache.h"
 #include "maths/formatpacking.h"
 #include "dxbc_inspect.h"
 
@@ -1730,7 +1731,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       csProgram += "}\n";
 
       ID3D11ComputeShader *cs =
-          device->GetDebugManager()->MakeCShader(csProgram.c_str(), "main", "cs_5_0");
+          device->GetShaderCache()->MakeCShader(csProgram.c_str(), "main", "cs_5_0");
 
       ID3D11DeviceContext *context = NULL;
 
@@ -4182,9 +4183,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       }
 
       ID3D11VertexShader *vs =
-          device->GetDebugManager()->MakeVShader(vsProgram.c_str(), "main", "vs_5_0");
+          device->GetShaderCache()->MakeVShader(vsProgram.c_str(), "main", "vs_5_0");
       ID3D11PixelShader *ps =
-          device->GetDebugManager()->MakePShader(sampleProgram.c_str(), "main", "ps_5_0");
+          device->GetShaderCache()->MakePShader(sampleProgram.c_str(), "main", "ps_5_0");
 
       ID3D11DeviceContext *context = NULL;
 

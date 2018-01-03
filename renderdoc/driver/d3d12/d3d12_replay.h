@@ -184,6 +184,9 @@ private:
                           D3D12_SHADER_VISIBILITY visibility);
   void FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc);
 
+  void BuildShader(std::string source, std::string entry, const ShaderCompileFlags &compileFlags,
+                   ShaderStage type, ResourceId *id, std::string *errors);
+
   bool m_Proxy;
 
   vector<ID3D12Resource *> m_ProxyResources;

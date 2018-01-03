@@ -51,28 +51,17 @@ public:
   bool IsOutputWindowVisible(uint64_t id);
   void FlipOutputWindow(uint64_t id);
 
-  void SetOutputDimensions(int w, int h, DXGI_FORMAT fmt)
+  void SetOutputDimensions(int w, int h)
   {
     m_width = w;
     m_height = h;
-
-    if(fmt == DXGI_FORMAT_B8G8R8A8_UNORM)
-      m_BBFmtIdx = BGRA8_BACKBUFFER;
-    else if(fmt == DXGI_FORMAT_R16G16B16A16_FLOAT)
-      m_BBFmtIdx = RGBA16_BACKBUFFER;
-    else if(fmt == DXGI_FORMAT_R32G32B32A32_FLOAT)
-      m_BBFmtIdx = RGBA32_BACKBUFFER;
-    else
-      m_BBFmtIdx = RGBA8_BACKBUFFER;
   }
   int GetWidth() { return m_width; }
   int GetHeight() { return m_height; }
-  void RenderText(ID3D12GraphicsCommandList *list, float x, float y, const char *textfmt, ...);
-
   void RenderHighlightBox(float w, float h, float scale);
 
   void RenderCheckerboard();
-  bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
+  bool RenderTexture(TextureDisplay cfg);
   void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
@@ -113,13 +102,6 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
-  static D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
-  static ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
-                               D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
-                               UINT NumStaticSamplers = 0,
-                               const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
-  static ID3DBlob *MakeRootSig(const D3D12RootSignature &rootsig);
-
   ID3DBlob *GetOverdrawWritePS() { return m_QuadOverdrawWritePS; }
 private:
   struct OutputWindow
@@ -146,19 +128,11 @@ private:
   void FillBuffer(ID3D12Resource *buf, size_t offset, const void *data, size_t size);
   D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
 
-  static const int FONT_TEX_WIDTH = 256;
-  static const int FONT_TEX_HEIGHT = 128;
-  static const int FONT_MAX_CHARS = 256;
-
-  // how much character space is in the ring buffer
-  static const int FONT_BUFFER_CHARS = 8192;
-
   // baked indices in descriptor heaps
   enum CBVUAVSRVSlot
   {
     FIRST_TEXDISPLAY_SRV = 0,
-    FONT_SRV = 128,
-    MINMAX_TILE_SRVS,
+    MINMAX_TILE_SRVS = 128,
 
     MINMAX_TILE_UAVS = MINMAX_TILE_SRVS + 3,
     MINMAX_RESULT_UAVS = MINMAX_TILE_UAVS + 3,
@@ -198,47 +172,6 @@ private:
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(DSVSlot slot);
 
   D3D12_CPU_DESCRIPTOR_HANDLE GetUAVClearHandle(CBVUAVSRVSlot slot);
-
-  // indices for the pipelines, for the three possible backbuffer formats
-  enum BackBufferFormat
-  {
-    BGRA8_BACKBUFFER = 0,
-    RGBA8_BACKBUFFER,
-    RGBA8_SRGB_BACKBUFFER,
-    RGBA16_BACKBUFFER,
-    RGBA32_BACKBUFFER,
-    FMTNUM_BACKBUFFER,
-  } m_BBFmtIdx;
-
-  struct FontData
-  {
-    FontData() { RDCEraseMem(this, sizeof(FontData)); }
-    ~FontData()
-    {
-      SAFE_RELEASE(Tex);
-      SAFE_RELEASE(RootSig);
-      SAFE_RELEASE(GlyphData);
-      SAFE_RELEASE(CharBuffer);
-
-      for(size_t i = 0; i < ARRAY_COUNT(Constants); i++)
-        SAFE_RELEASE(Constants[i]);
-      for(int i = 0; i < ARRAY_COUNT(Pipe); i++)
-        SAFE_RELEASE(Pipe[i]);
-    }
-
-    ID3D12Resource *Tex;
-    ID3D12PipelineState *Pipe[FMTNUM_BACKBUFFER];
-    ID3D12RootSignature *RootSig;
-    ID3D12Resource *Constants[20];
-    ID3D12Resource *GlyphData;
-    ID3D12Resource *CharBuffer;
-
-    size_t CharOffset;
-    size_t ConstRingIdx;
-
-    float CharAspect;
-    float CharSize;
-  } m_Font;
 
   ID3D12DescriptorHeap *cbvsrvuavHeap = NULL;
   ID3D12DescriptorHeap *uavClearHeap = NULL;
@@ -298,25 +231,23 @@ private:
 
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
 
-  static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;
-  static const uint32_t m_ShaderCacheVersion = 1;
-
-  bool m_ShaderCacheDirty = false, m_CacheShaders = false;
-  std::map<uint32_t, ID3DBlob *> m_ShaderCache;
-
   void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                             const vector<DXBC::CBufferVariable> &invars,
                             vector<ShaderVariable> &outvars, const bytebuf &data);
 
-  void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
-  bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg, bool blendAlpha);
+  enum TexDisplayFlags
+  {
+    eTexDisplay_None = 0,
+    eTexDisplay_LinearRender = 0x1,
+    eTexDisplay_F32Render = 0x2,
+    eTexDisplay_BlendAlpha = 0x4,
+  };
+
+  bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
+                             TexDisplayFlags flags);
 
   void PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint, int &resType,
                               vector<D3D12_RESOURCE_BARRIER> &barriers);
-
-  string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
-  ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
 
   void CreateSOBuffers();
 

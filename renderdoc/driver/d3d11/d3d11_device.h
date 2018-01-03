@@ -37,6 +37,9 @@
 #include "d3d11_manager.h"
 #include "d3d11_replay.h"
 
+class D3D11TextRenderer;
+class D3D11ShaderCache;
+
 #ifndef D3D11_1_UAV_SLOT_COUNT
 #define D3D11_1_UAV_SLOT_COUNT 64
 #endif
@@ -332,8 +335,10 @@ private:
 
   int32_t m_ChunkAtomic;
 
-  D3D11DebugManager *m_DebugManager;
-  D3D11ResourceManager *m_ResourceManager;
+  D3D11TextRenderer *m_TextRenderer = NULL;
+  D3D11ShaderCache *m_ShaderCache = NULL;
+  D3D11DebugManager *m_DebugManager = NULL;
+  D3D11ResourceManager *m_ResourceManager = NULL;
 
   vector<string> m_ShaderSearchPaths;
 
@@ -431,6 +436,7 @@ public:
   ID3D11Device *GetReal() { return m_pDevice; }
   static std::string GetChunkName(uint32_t idx);
   D3D11DebugManager *GetDebugManager() { return m_DebugManager; }
+  D3D11ShaderCache *GetShaderCache() { return m_ShaderCache; }
   D3D11ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D11Replay *GetReplay() { return &m_Replay; }
   Threading::CriticalSection &D3DLock() { return m_D3DLock; }

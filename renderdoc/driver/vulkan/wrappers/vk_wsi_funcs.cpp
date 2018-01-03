@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
-#include "../vk_debug.h"
+#include "../vk_rendertext.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // WSI extension
@@ -693,15 +693,15 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       DoPipelineBarrier(textstate.cmd, 1, &bbBarrier);
 
-      GetDebugManager()->BeginText(textstate);
+      m_TextRenderer->BeginText(textstate);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, m_FrameCounter, flags);
 
       if(!overlayText.empty())
-        GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, overlayText.c_str());
+        m_TextRenderer->RenderText(textstate, 0.0f, 0.0f, overlayText.c_str());
 
-      GetDebugManager()->EndText(textstate);
+      m_TextRenderer->EndText(textstate);
 
       std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
       bbBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;

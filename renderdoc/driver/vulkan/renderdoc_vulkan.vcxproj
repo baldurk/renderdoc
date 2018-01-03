@@ -109,8 +109,10 @@
     <ClCompile Include="vk_overlay.cpp" />
     <ClCompile Include="vk_postvs.cpp" />
     <ClCompile Include="vk_rendermesh.cpp" />
+    <ClCompile Include="vk_rendertext.cpp" />
     <ClCompile Include="vk_rendertexture.cpp" />
     <ClCompile Include="vk_serialise.cpp" />
+    <ClCompile Include="vk_shader_cache.cpp" />
     <ClCompile Include="vk_sparse_initstate.cpp" />
     <ClCompile Include="vk_stringise.cpp" />
     <ClCompile Include="vk_counters.cpp" />
@@ -164,8 +166,10 @@
     <ClInclude Include="vk_hookset_defs.h" />
     <ClInclude Include="vk_info.h" />
     <ClInclude Include="vk_manager.h" />
+    <ClInclude Include="vk_rendertext.h" />
     <ClInclude Include="vk_replay.h" />
     <ClInclude Include="vk_resources.h" />
+    <ClInclude Include="vk_shader_cache.h" />
     <ClInclude Include="vk_state.h" />
   </ItemGroup>
   <ItemGroup>

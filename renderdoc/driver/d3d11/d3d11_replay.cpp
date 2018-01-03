@@ -33,6 +33,7 @@
 #include "d3d11_device.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
+#include "d3d11_shader_cache.h"
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
@@ -1440,21 +1441,149 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   return m_pDevice->GetDebugManager()->RenderMesh(eventId, secondaryDraws, cfg);
 }
 
-void D3D11Replay::BuildTargetShader(string source, string entry,
+void D3D11Replay::BuildShader(std::string source, std::string entry,
+                              const ShaderCompileFlags &compileFlags, ShaderStage type,
+                              ResourceId *id, std::string *errors)
+{
+  uint32_t flags = DXBC::DecodeFlags(compileFlags);
+
+  if(id == NULL || errors == NULL)
+  {
+    if(id)
+      *id = ResourceId();
+    return;
+  }
+
+  char *profile = NULL;
+
+  switch(type)
+  {
+    case ShaderStage::Vertex: profile = "vs_5_0"; break;
+    case ShaderStage::Hull: profile = "hs_5_0"; break;
+    case ShaderStage::Domain: profile = "ds_5_0"; break;
+    case ShaderStage::Geometry: profile = "gs_5_0"; break;
+    case ShaderStage::Pixel: profile = "ps_5_0"; break;
+    case ShaderStage::Compute: profile = "cs_5_0"; break;
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      *id = ResourceId();
+      return;
+  }
+
+  ID3DBlob *blob = NULL;
+  *errors = m_pDevice->GetShaderCache()->GetShaderBlob(source.c_str(), entry.c_str(), flags,
+                                                       profile, &blob);
+
+  if(blob == NULL)
+  {
+    *id = ResourceId();
+    return;
+  }
+
+  switch(type)
+  {
+    case ShaderStage::Vertex:
+    {
+      ID3D11VertexShader *sh = NULL;
+      m_pDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+
+      SAFE_RELEASE(blob);
+
+      if(sh != NULL)
+        *id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
+      else
+        *id = ResourceId();
+      return;
+    }
+    case ShaderStage::Hull:
+    {
+      ID3D11HullShader *sh = NULL;
+      m_pDevice->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+
+      SAFE_RELEASE(blob);
+
+      if(sh != NULL)
+        *id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
+      else
+        *id = ResourceId();
+      return;
+    }
+    case ShaderStage::Domain:
+    {
+      ID3D11DomainShader *sh = NULL;
+      m_pDevice->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+
+      SAFE_RELEASE(blob);
+
+      if(sh != NULL)
+        *id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
+      else
+        *id = ResourceId();
+      return;
+    }
+    case ShaderStage::Geometry:
+    {
+      ID3D11GeometryShader *sh = NULL;
+      m_pDevice->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+
+      SAFE_RELEASE(blob);
+
+      if(sh != NULL)
+        *id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
+      else
+        *id = ResourceId();
+      return;
+    }
+    case ShaderStage::Pixel:
+    {
+      ID3D11PixelShader *sh = NULL;
+      m_pDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+
+      SAFE_RELEASE(blob);
+
+      if(sh != NULL)
+        *id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
+      else
+        *id = ResourceId();
+      return;
+    }
+    case ShaderStage::Compute:
+    {
+      ID3D11ComputeShader *sh = NULL;
+      m_pDevice->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+
+      SAFE_RELEASE(blob);
+
+      if(sh != NULL)
+        *id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
+      else
+        *id = ResourceId();
+      return;
+    }
+    default: break;
+  }
+
+  SAFE_RELEASE(blob);
+
+  RDCERR("Unexpected type in BuildShader!");
+  *id = ResourceId();
+}
+
+void D3D11Replay::BuildTargetShader(std::string source, std::string entry,
                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, string *errors)
+                                    ResourceId *id, std::string *errors)
 {
   ShaderCompileFlags debugCompileFlags =
       DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
 
-  m_pDevice->GetDebugManager()->BuildShader(source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(source, entry, debugCompileFlags, type, id, errors);
 }
 
-void D3D11Replay::BuildCustomShader(string source, string entry,
+void D3D11Replay::BuildCustomShader(std::string source, std::string entry,
                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, string *errors)
+                                    ResourceId *id, std::string *errors)
 {
-  m_pDevice->GetDebugManager()->BuildShader(source, entry, compileFlags, type, id, errors);
+  BuildShader(source, entry, compileFlags, type, id, errors);
 }
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)

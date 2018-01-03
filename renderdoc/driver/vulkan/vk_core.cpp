@@ -134,8 +134,6 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
 
   m_ResourceManager = new VulkanResourceManager(m_State, this);
 
-  m_DebugManager = NULL;
-
   m_Instance = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
   m_Device = VK_NULL_HANDLE;

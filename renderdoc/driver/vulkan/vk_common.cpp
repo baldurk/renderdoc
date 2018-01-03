@@ -1575,3 +1575,74 @@ void DoSerialise(SerialiserType &ser, VkInitParams &el)
 }
 
 INSTANTIATE_SERIALISE_TYPE(VkInitParams);
+
+VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
+{
+  if(physProps.vendorID == AMD_PCI_ID)
+    m_Vendor = AMD;
+  else if(physProps.vendorID == NV_PCI_ID)
+    m_Vendor = NV;
+  else if(physProps.vendorID == QUALCOMM_PCI_ID)
+    m_Vendor = QUALCOMM;
+  else
+    m_Vendor = UNKNOWN;
+
+  m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
+  m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
+  m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
+
+  // nvidia uses its own version packing:
+  //   10 |  8  |        8       |       6
+  // major|minor|secondary_branch|tertiary_branch
+  if(IsNV())
+  {
+    m_Major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
+    m_Minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;
+
+    uint32_t secondary = ((uint32_t)(physProps.driverVersion) >> 6) & 0x0ff;
+    uint32_t tertiary = physProps.driverVersion & 0x03f;
+
+    m_Patch = (secondary << 8) | tertiary;
+  }
+
+  if(IsNV())
+  {
+    // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
+    // and disabling texelFetch works as a workaround.
+
+    if(Major() < 372 || (Major() == 372 && Minor() < 54))
+      texelFetchBrokenDriver = true;
+  }
+
+// only check this on windows. This is a bit of a hack, as really we want to check if we're
+// using the AMD official driver, but there's not a great other way to distinguish it from
+// the RADV open source driver.
+#if ENABLED(RDOC_WIN32)
+  if(IsAMD())
+  {
+    // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
+    // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
+    // 0.9.0 as the version.
+
+    if(Major() < 1)
+      texelFetchBrokenDriver = true;
+  }
+#endif
+
+  if(texelFetchBrokenDriver)
+  {
+    RDCWARN("Detected an older driver, enabling workaround. Try updating to the latest drivers.");
+  }
+
+// same as above, only affects the AMD official driver
+#if ENABLED(RDOC_WIN32)
+  if(IsAMD())
+  {
+    // not fixed yet
+    amdStorageMSAABrokenDriver = true;
+  }
+#endif
+
+  // not fixed yet
+  qualcommLeakingUBOOffsets = IsQualcomm();
+}

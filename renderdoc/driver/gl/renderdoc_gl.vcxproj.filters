@@ -245,5 +245,8 @@
     <ClCompile Include="gl_rendertexture.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="gl_rendertext.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
