@@ -1282,6 +1282,9 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     RDCDEBUG("Attempting capture");
     m_FrameCaptureRecord->DeleteChunks();
 
+    // fetch and discard debug messages so we don't serialise any messages of our own.
+    (void)GetDebugMessages();
+
     {
       CACHE_THREAD_SERIALISER();
 
