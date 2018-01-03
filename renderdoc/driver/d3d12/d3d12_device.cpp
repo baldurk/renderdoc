@@ -1747,19 +1747,18 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
       msg.eventId = it->eventId;
     else
       RDCERR("Couldn't locate drawcall use for current chunk offset %llu", cmd.m_CurChunkOffset);
-  }
 
-  AddDebugMessage(msg);
+    AddDebugMessage(msg);
+  }
+  else
+  {
+    cmd.m_EventMessages.push_back(msg);
+  }
 }
 
 void WrappedID3D12Device::AddDebugMessage(const DebugMessage &msg)
 {
-  D3D12CommandData &cmd = *m_Queue->GetCommandData();
-
-  if(IsLoading(m_State))
-    cmd.m_EventMessages.push_back(msg);
-  else
-    m_DebugMessages.push_back(msg);
+  m_DebugMessages.push_back(msg);
 }
 
 std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
