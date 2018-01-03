@@ -32,9 +32,19 @@
 
 #define OS_DEBUG_BREAK() raise(SIGTRAP)
 
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
+struct EmbeddedResourceType
+{
+  EmbeddedResourceType(const unsigned char *b, int l) : base(b), len(l) {}
+  const unsigned char *base;
+  int len;
+  std::string Get() const { return std::string(base, base + len); }
+};
+
+#define EmbeddedResource(filename) \
+  EmbeddedResourceType(&CONCAT(data_, filename)[0], CONCAT(CONCAT(data_, filename), _len))
+
+#define GetEmbeddedResource(filename) EmbeddedResource(filename).Get()
+#define GetDynamicEmbeddedResource(resource) resource.Get()
 
 namespace OSUtility
 {

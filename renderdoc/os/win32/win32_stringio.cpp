@@ -41,7 +41,7 @@ using std::wstring;
 // gives us an address to identify this dll with
 static int dllLocator = 0;
 
-string GetEmbeddedResourceWin32(int resource)
+std::string GetDynamicEmbeddedResource(int resource)
 {
   HMODULE mod = NULL;
   GetModuleHandleExA(

@@ -36,8 +36,11 @@
 
 #define OS_DEBUG_BREAK() __debugbreak()
 
-#define GetEmbeddedResource(filename) GetEmbeddedResourceWin32(CONCAT(RESOURCE_, filename))
-string GetEmbeddedResourceWin32(int resource);
+#define EmbeddedResourceType int
+#define EmbeddedResource(filename) CONCAT(RESOURCE_, filename)
+
+#define GetEmbeddedResource(filename) GetDynamicEmbeddedResource(EmbeddedResource(filename))
+std::string GetDynamicEmbeddedResource(int resource);
 
 namespace StringFormat
 {
