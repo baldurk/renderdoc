@@ -441,6 +441,7 @@ void ImageViewer::RefreshFile()
   ResourceFormat rgba32_float = rgba8_unorm;
   rgba32_float.compByteWidth = 4;
   rgba32_float.compType = CompType::Float;
+  rgba32_float.srgbCorrected = false;
 
   texDetails.creationFlags = TextureCategory::SwapBuffer | TextureCategory::ColorTarget;
   texDetails.cubemap = false;
