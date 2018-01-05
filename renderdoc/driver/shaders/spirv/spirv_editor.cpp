@@ -191,6 +191,16 @@ std::vector<uint32_t> SPIRVEditor::GetWords()
   for(const LogicalSection &section : {typeVarSection, decorationSection, debugSection})
     ret.insert(ret.begin() + section.iter.offset, section.additions.begin(), section.additions.end());
 
+  // remove any Nops
+
+  for(size_t i = 5; i < ret.size();)
+  {
+    while(ret[i] == SPV_NOP)
+      ret.erase(ret.begin() + i);
+
+    i += ret[i] >> spv::WordCountShift;
+  }
+
   return ret;
 }
 

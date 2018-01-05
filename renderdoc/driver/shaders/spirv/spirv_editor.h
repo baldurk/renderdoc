@@ -33,6 +33,9 @@
 class SPIRVOperation;
 class SPIRVEditor;
 
+// length of 1 word in the top 16-bits, OpNop = 0 in the lower 16-bits
+#define SPV_NOP (0x00010000)
+
 class SPIRVIterator
 {
 public:
@@ -40,10 +43,20 @@ public:
   SPIRVIterator() = default;
   SPIRVIterator(std::vector<uint32_t> &w, size_t o) : words(&w), offset(o) {}
   // increment to the next op
-  SPIRVIterator &operator++(int) { return operator++(); }
-  SPIRVIterator &operator++()
+  SPIRVIterator operator++(int)
   {
-    offset += cur() >> spv::WordCountShift;
+    SPIRVIterator ret = *this;
+    operator++();
+    return ret;
+  }
+  SPIRVIterator operator++()
+  {
+    do
+    {
+      offset += cur() >> spv::WordCountShift;
+      // silently skip nops
+    } while(*this && opcode() == spv::OpNop);
+
     return *this;
   }
   // utility functions
@@ -93,15 +106,27 @@ public:
   uint32_t &operator[](size_t idx) { return iter.word(idx); }
   const uint32_t &operator[](size_t idx) const { return iter.word(idx); }
   size_t size() const { return iter.size(); }
-  void push_back(uint32_t word)
+  void nopRemove()
   {
-    spv::Op op = iter.opcode();
-    size_t count = iter.size();
-    iter.words->insert(iter.it() + count, word);
+    for(size_t i = 0, sz = size(); i < sz; i++)
+      iter.word(i) = SPV_NOP;
+  }
+  void nopRemove(size_t idx, size_t count = 0)
+  {
+    size_t oldSize = size();
 
-    // since the length is in the high-order bits, we have to extract/increment/insert instead of
-    // just incrementing. Boo!
-    *iter = MakeHeader(op, count + 1);
+    if(count == 0)
+      count = oldSize - idx;
+
+    // reduce the size of this op
+    *iter = MakeHeader(iter.opcode(), oldSize - count);
+
+    // move any words on the end into the middle, then nop them
+    for(size_t i = 0; i < count; i++)
+    {
+      iter.word(idx + i) = iter.word(idx + count + i);
+      iter.word(oldSize - i - 1) = SPV_NOP;
+    }
   }
 
 private:
