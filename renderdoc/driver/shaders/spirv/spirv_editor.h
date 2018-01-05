@@ -25,11 +25,13 @@
 #pragma once
 
 #include <stdint.h>
+#include <map>
 #include <string>
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 
 class SPIRVOperation;
+class SPIRVEditor;
 
 class SPIRVIterator
 {
@@ -45,7 +47,6 @@ public:
     return *this;
   }
   // utility functions
-  std::vector<uint32_t>::iterator it() { return words->begin() + offset; }
   operator bool() const { return words != NULL && offset < words->size(); }
   uint32_t &operator*() { return cur(); }
   const uint32_t &operator*() const { return cur(); }
@@ -56,11 +57,13 @@ public:
 private:
   inline uint32_t &cur() { return words->at(offset); }
   inline const uint32_t &cur() const { return words->at(offset); }
-  // we make this a friend so it can poke directly into words when it wants to edit
+  // we add some friend classes to poke directly into words when it wants to edit
   friend class SPIRVOperation;
-
-  std::vector<uint32_t> *words = NULL;
+  friend class SPIRVEditor;
+  std::vector<uint32_t>::iterator it() { return words->begin() + offset; }
+  std::vector<uint32_t>::const_iterator it() const { return words->cbegin() + offset; }
   size_t offset = 0;
+  std::vector<uint32_t> *words = NULL;
 };
 
 class SPIRVOperation
@@ -68,15 +71,17 @@ class SPIRVOperation
 public:
   // constructor of a synthetic operation, from an operation & subsequent words, calculates the
   // length then constructs the first word with opcode + length.
-  template <typename WordContainer>
-  SPIRVOperation(spv::Op op, const WordContainer &data)
+  SPIRVOperation(spv::Op op, std::initializer_list<uint32_t> data)
   {
-    auto a = std::begin(data);
-    auto b = std::end(data);
-    size_t count = 1 + (b - a);
-    words.resize(data.size());
-    words[0] = MakeHeader(op, data.size());
-    words.insert(words.begin() + 1, a, b);
+    words.push_back(MakeHeader(op, data.size() + 1));
+    words.insert(words.begin() + 1, data.begin(), data.end());
+
+    iter = SPIRVIterator(words, 0);
+  }
+  SPIRVOperation(spv::Op op, std::vector<uint32_t> data)
+  {
+    words.push_back(MakeHeader(op, data.size() + 1));
+    words.insert(words.begin() + 1, data.begin(), data.end());
 
     iter = SPIRVIterator(words, 0);
   }
@@ -100,6 +105,10 @@ public:
   }
 
 private:
+  friend class SPIRVEditor;
+
+  std::vector<uint32_t>::const_iterator begin() const { return iter.it(); }
+  std::vector<uint32_t>::const_iterator end() const { return iter.it() + size(); }
   inline uint32_t MakeHeader(spv::Op op, size_t WordCount)
   {
     return (uint32_t(op) & spv::OpCodeMask) | (uint16_t(WordCount) << spv::WordCountShift);
@@ -117,20 +126,150 @@ struct SPIRVEntry
 {
   uint32_t id;
   std::string name;
+  SPIRVIterator entryPoint;
+  SPIRVIterator function;
+  SPIRVIterator blocks;
+};
+
+struct SPIRVFunction
+{
+  uint32_t id;
   SPIRVIterator iter;
+};
+
+struct SPIRVScalar
+{
+  constexpr SPIRVScalar(spv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
+  SPIRVScalar(SPIRVIterator op);
+
+  spv::Op type;
+  uint32_t width;
+  bool signedness;
+
+  bool operator<(const SPIRVScalar &o) const
+  {
+    if(type != o.type)
+      return type < o.type;
+    if(signedness != o.signedness)
+      return signedness < o.signedness;
+    return width < o.width;
+  }
+
+  bool operator!=(const SPIRVScalar &o) const { return !operator==(o); }
+  bool operator==(const SPIRVScalar &o) const
+  {
+    return type == o.type && width == o.width && signedness == o.signedness;
+  }
+
+  inline SPIRVOperation decl() const
+  {
+    if(type == spv::Op::OpTypeBool)
+      return SPIRVOperation(type, {0});
+    else if(type == spv::Op::OpTypeFloat)
+      return SPIRVOperation(type, {0, width});
+    else if(type == spv::Op::OpTypeInt)
+      return SPIRVOperation(type, {0, width, signedness ? 1U : 0U});
+    else
+      return SPIRVOperation(spv::Op::OpNop, {0});
+  }
+};
+
+// helper to create SPIRVScalar objects for known types
+template <typename T>
+inline constexpr SPIRVScalar scalar();
+
+#define SCALAR_TYPE(ctype, op, width, sign)    \
+  template <>                                  \
+  inline constexpr SPIRVScalar scalar<ctype>() \
+  {                                            \
+    return SPIRVScalar(op, width, sign);       \
+  }
+
+SCALAR_TYPE(bool, spv::Op::OpTypeBool, 0, false);
+SCALAR_TYPE(uint16_t, spv::Op::OpTypeInt, 16, false);
+SCALAR_TYPE(uint32_t, spv::Op::OpTypeInt, 32, false);
+SCALAR_TYPE(int16_t, spv::Op::OpTypeInt, 16, true);
+SCALAR_TYPE(int32_t, spv::Op::OpTypeInt, 32, true);
+SCALAR_TYPE(float, spv::Op::OpTypeFloat, 32, false);
+SCALAR_TYPE(double, spv::Op::OpTypeFloat, 64, false);
+
+struct SPIRVVector
+{
+  SPIRVVector(const SPIRVScalar &s, uint32_t c) : scalar(s), count(c) {}
+  SPIRVScalar scalar;
+  uint32_t count;
+
+  bool operator<(const SPIRVVector &o) const
+  {
+    if(scalar != o.scalar)
+      return scalar < o.scalar;
+    return count < o.count;
+  }
+
+  bool operator!=(const SPIRVVector &o) const { return !operator==(o); }
+  bool operator==(const SPIRVVector &o) const { return scalar == o.scalar && count == o.count; }
+};
+
+struct SPIRVMatrix
+{
+  SPIRVMatrix(const SPIRVVector &v, uint32_t c) : vector(v), count(c) {}
+  SPIRVVector vector;
+  uint32_t count;
+
+  bool operator<(const SPIRVMatrix &o) const
+  {
+    if(vector != o.vector)
+      return vector < o.vector;
+    return count < o.count;
+  }
+
+  bool operator!=(const SPIRVMatrix &o) const { return !operator==(o); }
+  bool operator==(const SPIRVMatrix &o) const { return vector == o.vector && count == o.count; }
+};
+
+struct SPIRVPointer
+{
+  SPIRVPointer(uint32_t b, spv::StorageClass s) : baseId(b), storage(s) {}
+  uint32_t baseId;
+  spv::StorageClass storage;
+
+  bool operator<(const SPIRVPointer &o) const
+  {
+    if(baseId != o.baseId)
+      return baseId < o.baseId;
+    return storage < o.storage;
+  }
+
+  bool operator!=(const SPIRVPointer &o) const { return !operator==(o); }
+  bool operator==(const SPIRVPointer &o) const
+  {
+    return baseId == o.baseId && storage == o.storage;
+  }
 };
 
 class SPIRVEditor
 {
 public:
-  SPIRVEditor(std::vector<uint32_t> &spirvWords);
+  SPIRVEditor(const std::vector<uint32_t> &spirvWords);
 
-  std::vector<uint32_t> &GetWords() { return spirv; }
+  // gets the modified SPIR-V with any modifications applied.
+  // This doesn't happen "live" because inserting any new ops invalidates all subsequent iterators
+  std::vector<uint32_t> GetWords();
+
   uint32_t MakeId();
+
+  void SetName(uint32_t id, const char *name);
   void AddDecoration(const SPIRVOperation &op);
   void AddType(const SPIRVOperation &op);
   void AddVariable(const SPIRVOperation &op);
   void AddFunction(const SPIRVOperation *ops, size_t count);
+
+  // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
+  // will be declared and the new ID returned
+  uint32_t DeclareType(const SPIRVScalar &scalar);
+  uint32_t DeclareType(const SPIRVVector &vector);
+  uint32_t DeclareType(const SPIRVMatrix &matrix);
+  uint32_t DeclareType(const SPIRVPointer &pointer);
 
   // simple properties that are public.
   struct
@@ -142,18 +281,31 @@ public:
   spv::SourceLanguage sourceLang = spv::SourceLanguageUnknown;
   uint32_t sourceVer = 0;
 
+  // accessors to structs/vectors of data
   const std::vector<SPIRVEntry> &GetEntries() { return entries; }
+  const std::vector<SPIRVFunction> &GetFunctions() { return functions; }
 private:
   SPIRVIterator idBound;
 
-  struct
+  struct LogicalSection
   {
-    SPIRVIterator decoration;
-    SPIRVIterator typeVar;
-    SPIRVIterator function;
-  } globaliters;
+    SPIRVIterator iter;
+    std::vector<uint32_t> additions;
+  };
+
+  LogicalSection debugSection;
+  LogicalSection decorationSection;
+  LogicalSection typeVarSection;
+
+  std::vector<SPIRVIterator> ids;
 
   std::vector<SPIRVEntry> entries;
+  std::vector<SPIRVFunction> functions;
 
-  std::vector<uint32_t> &spirv;
+  std::map<SPIRVScalar, uint32_t> scalarTypes;
+  std::map<SPIRVVector, uint32_t> vectorTypes;
+  std::map<SPIRVMatrix, uint32_t> matrixTypes;
+  std::map<SPIRVPointer, uint32_t> pointerTypes;
+
+  std::vector<uint32_t> spirv;
 };
