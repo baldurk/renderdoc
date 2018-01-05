@@ -33,6 +33,17 @@
 class SPIRVOperation;
 class SPIRVEditor;
 
+struct SPIRVId
+{
+  constexpr inline SPIRVId() : id(0) {}
+  constexpr inline SPIRVId(uint32_t i) : id(i) {}
+  inline operator uint32_t() const { return id; }
+  constexpr inline bool operator==(SPIRVId o) const { return id == o.id; }
+  constexpr inline bool operator!=(SPIRVId o) const { return id != o.id; }
+  constexpr inline bool operator<(SPIRVId o) const { return id < o.id; }
+  uint32_t id;
+};
+
 // length of 1 word in the top 16-bits, OpNop = 0 in the lower 16-bits
 #define SPV_NOP (0x00010000)
 
@@ -149,17 +160,8 @@ private:
 
 struct SPIRVEntry
 {
-  uint32_t id;
+  SPIRVId id;
   std::string name;
-  SPIRVIterator entryPoint;
-  SPIRVIterator function;
-  SPIRVIterator blocks;
-};
-
-struct SPIRVFunction
-{
-  uint32_t id;
-  SPIRVIterator iter;
 };
 
 struct SPIRVScalar
@@ -254,8 +256,8 @@ struct SPIRVMatrix
 
 struct SPIRVPointer
 {
-  SPIRVPointer(uint32_t b, spv::StorageClass s) : baseId(b), storage(s) {}
-  uint32_t baseId;
+  SPIRVPointer(SPIRVId b, spv::StorageClass s) : baseId(b), storage(s) {}
+  SPIRVId baseId;
   spv::StorageClass storage;
 
   bool operator<(const SPIRVPointer &o) const
@@ -275,13 +277,11 @@ struct SPIRVPointer
 class SPIRVEditor
 {
 public:
-  SPIRVEditor(const std::vector<uint32_t> &spirvWords);
+  SPIRVEditor(std::vector<uint32_t> &spirvWords);
 
-  // gets the modified SPIR-V with any modifications applied.
-  // This doesn't happen "live" because inserting any new ops invalidates all subsequent iterators
-  std::vector<uint32_t> GetWords();
+  void StripNops();
 
-  uint32_t MakeId();
+  SPIRVId MakeId();
 
   void SetName(uint32_t id, const char *name);
   void AddDecoration(const SPIRVOperation &op);
@@ -289,12 +289,20 @@ public:
   void AddVariable(const SPIRVOperation &op);
   void AddFunction(const SPIRVOperation *ops, size_t count);
 
+  SPIRVIterator GetID(SPIRVId id);
+  // the entry point has 'two' opcodes, the entrypoint declaration and the function.
+  // This returns the first, GetID returns the second.
+  SPIRVIterator GetEntry(SPIRVId id);
+  SPIRVIterator GetDebugInstructions();
+  SPIRVIterator GetDecorationInstructions();
+  SPIRVIterator GetTypeInstructions();
+
   // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
   // will be declared and the new ID returned
-  uint32_t DeclareType(const SPIRVScalar &scalar);
-  uint32_t DeclareType(const SPIRVVector &vector);
-  uint32_t DeclareType(const SPIRVMatrix &matrix);
-  uint32_t DeclareType(const SPIRVPointer &pointer);
+  SPIRVId DeclareType(const SPIRVScalar &scalar);
+  SPIRVId DeclareType(const SPIRVVector &vector);
+  SPIRVId DeclareType(const SPIRVMatrix &matrix);
+  SPIRVId DeclareType(const SPIRVPointer &pointer);
 
   // simple properties that are public.
   struct
@@ -308,29 +316,31 @@ public:
 
   // accessors to structs/vectors of data
   const std::vector<SPIRVEntry> &GetEntries() { return entries; }
-  const std::vector<SPIRVFunction> &GetFunctions() { return functions; }
+  const std::vector<SPIRVId> &GetFunctions() { return functions; }
 private:
-  SPIRVIterator idBound;
+  inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
+  void addWords(size_t offs, int32_t num);
 
   struct LogicalSection
   {
-    SPIRVIterator iter;
-    std::vector<uint32_t> additions;
+    size_t startOffset = 0;
+    size_t endOffset = 0;
   };
 
+  LogicalSection entryPointSection;
   LogicalSection debugSection;
   LogicalSection decorationSection;
   LogicalSection typeVarSection;
 
-  std::vector<SPIRVIterator> ids;
+  std::vector<size_t> idOffsets;
 
   std::vector<SPIRVEntry> entries;
-  std::vector<SPIRVFunction> functions;
+  std::vector<SPIRVId> functions;
 
-  std::map<SPIRVScalar, uint32_t> scalarTypes;
-  std::map<SPIRVVector, uint32_t> vectorTypes;
-  std::map<SPIRVMatrix, uint32_t> matrixTypes;
-  std::map<SPIRVPointer, uint32_t> pointerTypes;
+  std::map<SPIRVScalar, SPIRVId> scalarTypes;
+  std::map<SPIRVVector, SPIRVId> vectorTypes;
+  std::map<SPIRVMatrix, SPIRVId> matrixTypes;
+  std::map<SPIRVPointer, SPIRVId> pointerTypes;
 
-  std::vector<uint32_t> spirv;
+  std::vector<uint32_t> &spirv;
 };

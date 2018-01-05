@@ -41,7 +41,7 @@ SPIRVScalar::SPIRVScalar(SPIRVIterator it)
     signedness = false;
 }
 
-SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
+SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
 {
   if(spirv.size() < 5 || spirv[0] != spv::MagicNumber)
   {
@@ -52,15 +52,10 @@ SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvW
   moduleVersion.major = uint8_t((spirv[1] & 0x00ff0000) >> 16);
   moduleVersion.minor = uint8_t((spirv[1] & 0x0000ff00) >> 8);
   generator = spirv[2];
-  idBound = SPIRVIterator(spirv, 3);
-  ids.resize(*idBound);
+  idOffsets.resize(spirv[3]);
 
   // [4] is reserved
   RDCASSERT(spirv[4] == 0);
-
-  bool decorations = false;
-
-  bool headerSections = false;
 
   for(SPIRVIterator it(spirv, 5); it; it++)
   {
@@ -70,69 +65,78 @@ SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvW
     if(opcode == spv::OpEntryPoint)
     {
       SPIRVEntry entry;
-      entry.entryPoint = it;
       entry.id = it.word(2);
       entry.name = (const char *)&it.word(3);
 
       entries.push_back(entry);
 
-      headerSections = true;
+      // first entry point marks the start of this section
+      if(entryPointSection.startOffset == 0)
+        entryPointSection.startOffset = it.offset;
     }
-
-    // identify functions
-    if(opcode == spv::OpFunction)
+    else
     {
-      // if we don't have the types/variables iter yet, this is the point to set it
-      if(!typeVarSection.iter)
-        typeVarSection.iter = it;
-
-      uint32_t id = it.word(2);
-      ids[id] = it;
-
-      // if this is an entry point function, point the iter
-      for(SPIRVEntry &entry : entries)
-      {
-        if(entry.id == id)
-        {
-          entry.function = it;
-          break;
-        }
-      }
-
-      SPIRVFunction func;
-      func.id = id;
-      func.iter = it;
-
-      functions.push_back(func);
+      // once we found the start of this section, the first non-entrypoint instruction marks the end
+      if(entryPointSection.startOffset && entryPointSection.endOffset == 0)
+        entryPointSection.endOffset = it.offset;
     }
+
+    // apart from OpExecutionMode, the first instruction after the entry points is the debug section
+    if(opcode != spv::OpExecutionMode && entryPointSection.endOffset && debugSection.startOffset == 0)
+      debugSection.startOffset = it.offset;
 
     if(opcode == spv::OpDecorate || opcode == spv::OpMemberDecorate ||
        opcode == spv::OpGroupDecorate || opcode == spv::OpGroupMemberDecorate ||
        opcode == spv::OpDecorationGroup)
     {
-      // when we hit the first decoration, this is the insert point for new debug instructions
-      if(!decorations)
+      // when we hit the first decoration, this is the end of the debug section and the start of the
+      // annotation section
+      if(decorationSection.startOffset == 0)
       {
-        debugSection.iter = it;
+        debugSection.endOffset = it.offset;
+        decorationSection.startOffset = it.offset;
       }
-
-      decorations = true;
     }
     else
     {
-      // when we stop seeing decoration instructions, this is the insert point for them
-      if(decorations)
+      // when we stop seeing decoration instructions, this is the end of that section and the start
+      // of the types section
+      if(decorationSection.startOffset && decorationSection.endOffset == 0)
       {
-        decorationSection.iter = it;
-        decorations = false;
+        decorationSection.endOffset = it.offset;
+        typeVarSection.startOffset = it.offset;
       }
+    }
+
+    // identify functions
+    if(opcode == spv::OpFunction)
+    {
+      // if we don't have the end of the types/variables section, this is it
+      if(typeVarSection.endOffset == 0)
+      {
+        typeVarSection.endOffset = it.offset;
+
+        // we must have started the debug section, but if there were no annotations at all, we won't
+        // have ended it. In that case, end the debug section (which might be empty) and mark the
+        // annotation section as empty.
+        if(debugSection.endOffset == 0)
+        {
+          debugSection.endOffset = it.offset;
+          decorationSection.startOffset = decorationSection.endOffset = it.offset;
+        }
+      }
+
+      SPIRVId id = it.word(2);
+      idOffsets[id] = it.offset;
+
+      functions.push_back(id);
     }
 
     // identify declared scalar/vector/matrix types
     if(opcode == spv::OpTypeBool || opcode == spv::OpTypeInt || opcode == spv::OpTypeFloat)
     {
       uint32_t id = it.word(1);
-      ids[id] = it;
+      idOffsets[id] = it.offset;
 
       SPIRVScalar scalar(it);
       scalarTypes[scalar] = id;
@@ -141,9 +145,9 @@ SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvW
     if(opcode == spv::OpTypeVector)
     {
       uint32_t id = it.word(1);
-      ids[id] = it;
+      idOffsets[id] = it.offset;
 
-      SPIRVIterator scalarIt = ids[it.word(2)];
+      SPIRVIterator scalarIt = GetID(it.word(2));
 
       if(!scalarIt)
       {
@@ -157,9 +161,9 @@ SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvW
     if(opcode == spv::OpTypeMatrix)
     {
       uint32_t id = it.word(1);
-      ids[id] = it;
+      idOffsets[id] = it.offset;
 
-      SPIRVIterator vectorIt = ids[it.word(2)];
+      SPIRVIterator vectorIt = GetID(it.word(2));
 
       if(!vectorIt)
       {
@@ -167,7 +171,7 @@ SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvW
         continue;
       }
 
-      SPIRVIterator scalarIt = ids[vectorIt.word(2)];
+      SPIRVIterator scalarIt = GetID(vectorIt.word(2));
       uint32_t vectorDim = vectorIt.word(3);
 
       matrixTypes[SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3))] = id;
@@ -176,42 +180,32 @@ SPIRVEditor::SPIRVEditor(const std::vector<uint32_t> &spirvWords) : spirv(spirvW
     if(opcode == spv::OpTypePointer)
     {
       uint32_t id = it.word(1);
-      ids[id] = it;
+      idOffsets[id] = it.offset;
 
       pointerTypes[SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2))] = id;
     }
   }
 }
 
-std::vector<uint32_t> SPIRVEditor::GetWords()
+void SPIRVEditor::StripNops()
 {
-  std::vector<uint32_t> ret(spirv);
-
-  // add sections in reverse order so that each one doesn't perturb the offset for the next
-  for(const LogicalSection &section : {typeVarSection, decorationSection, debugSection})
-    ret.insert(ret.begin() + section.iter.offset, section.additions.begin(), section.additions.end());
-
-  // remove any Nops
-
-  for(size_t i = 5; i < ret.size();)
+  for(size_t i = 5; i < spirv.size();)
   {
-    while(ret[i] == SPV_NOP)
-      ret.erase(ret.begin() + i);
+    while(spirv[i] == SPV_NOP)
+    {
+      spirv.erase(spirv.begin() + i);
+      addWords(i, -1);
+    }
 
-    i += ret[i] >> spv::WordCountShift;
+    i += spirv[i] >> spv::WordCountShift;
   }
-
-  return ret;
 }
 
-uint32_t SPIRVEditor::MakeId()
+SPIRVId SPIRVEditor::MakeId()
 {
-  if(!idBound)
-    return 0;
-
-  uint32_t ret = *idBound;
-  (*idBound)++;
-  ids.push_back(SPIRVIterator());
+  uint32_t ret = spirv[3];
+  spirv[3]++;
+  idOffsets.resize(spirv[3]);
   return ret;
 }
 
@@ -225,30 +219,33 @@ void SPIRVEditor::SetName(uint32_t id, const char *name)
 
   SPIRVOperation op(spv::OpName, uintName);
 
-  debugSection.additions.insert(debugSection.additions.end(), op.begin(), op.end());
+  spirv.insert(spirv.begin() + debugSection.endOffset, op.begin(), op.end());
+  addWords(debugSection.endOffset, op.size());
 }
 
 void SPIRVEditor::AddDecoration(const SPIRVOperation &op)
 {
-  decorationSection.additions.insert(decorationSection.additions.end(), op.begin(), op.end());
+  spirv.insert(spirv.begin() + decorationSection.endOffset, op.begin(), op.end());
+  addWords(decorationSection.endOffset, op.size());
 }
 
 void SPIRVEditor::AddType(const SPIRVOperation &op)
 {
-  ids[op[1]] = SPIRVIterator(typeVarSection.additions, typeVarSection.additions.size());
-  typeVarSection.additions.insert(typeVarSection.additions.end(), op.begin(), op.end());
+  idOffsets[op[1]] = typeVarSection.endOffset;
+  spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
+  addWords(typeVarSection.endOffset, op.size());
 }
 
 void SPIRVEditor::AddVariable(const SPIRVOperation &op)
 {
-  ids[op[2]] = SPIRVIterator(typeVarSection.additions, typeVarSection.additions.size());
-  typeVarSection.additions.insert(typeVarSection.additions.end(), op.begin(), op.end());
+  idOffsets[op[2]] = typeVarSection.endOffset;
+  spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
+  addWords(typeVarSection.endOffset, op.size());
 }
 
 void SPIRVEditor::AddFunction(const SPIRVOperation *ops, size_t count)
 {
-  // because this is added to the end, we can add this immediately
-  ids[ops[0][2]] = SPIRVIterator(spirv, spirv.size());
+  idOffsets[ops[0][2]] = spirv.size();
 
   auto insertIter = spirv.end();
   for(size_t i = 0; i < count; i++)
@@ -258,14 +255,53 @@ void SPIRVEditor::AddFunction(const SPIRVOperation *ops, size_t count)
   }
 }
 
-uint32_t SPIRVEditor::DeclareType(const SPIRVScalar &scalar)
+SPIRVIterator SPIRVEditor::GetID(SPIRVId id)
+{
+  size_t offs = idOffsets[id];
+
+  if(offs)
+    return SPIRVIterator(spirv, offs);
+
+  return SPIRVIterator();
+}
+
+SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
+{
+  SPIRVIterator it(spirv, entryPointSection.startOffset);
+
+  while(it)
+  {
+    if(it.word(2) == id)
+      return it;
+    it++;
+  }
+
+  return SPIRVIterator();
+}
+
+SPIRVIterator SPIRVEditor::GetDebugInstructions()
+{
+  return SPIRVIterator(spirv, debugSection.startOffset);
+}
+
+SPIRVIterator SPIRVEditor::GetDecorationInstructions()
+{
+  return SPIRVIterator(spirv, decorationSection.startOffset);
+}
+
+SPIRVIterator SPIRVEditor::GetTypeInstructions()
+{
+  return SPIRVIterator(spirv, typeVarSection.startOffset);
+}
+
+SPIRVId SPIRVEditor::DeclareType(const SPIRVScalar &scalar)
 {
   auto it = scalarTypes.lower_bound(scalar);
   if(it != scalarTypes.end() && it->first == scalar)
     return it->second;
 
   SPIRVOperation decl = scalar.decl();
-  uint32_t id = decl[1] = MakeId();
+  SPIRVId id = decl[1] = MakeId();
   AddType(decl);
 
   scalarTypes.insert(it, std::make_pair(scalar, id));
@@ -273,13 +309,13 @@ uint32_t SPIRVEditor::DeclareType(const SPIRVScalar &scalar)
   return id;
 }
 
-uint32_t SPIRVEditor::DeclareType(const SPIRVVector &vector)
+SPIRVId SPIRVEditor::DeclareType(const SPIRVVector &vector)
 {
   auto it = vectorTypes.lower_bound(vector);
   if(it != vectorTypes.end() && it->first == vector)
     return it->second;
 
-  uint32_t id = MakeId();
+  SPIRVId id = MakeId();
   SPIRVOperation decl(spv::OpTypeVector, {id, DeclareType(vector.scalar), vector.count});
   AddType(decl);
 
@@ -288,13 +324,13 @@ uint32_t SPIRVEditor::DeclareType(const SPIRVVector &vector)
   return id;
 }
 
-uint32_t SPIRVEditor::DeclareType(const SPIRVMatrix &matrix)
+SPIRVId SPIRVEditor::DeclareType(const SPIRVMatrix &matrix)
 {
   auto it = matrixTypes.lower_bound(matrix);
   if(it != matrixTypes.end() && it->first == matrix)
     return it->second;
 
-  uint32_t id = MakeId();
+  SPIRVId id = MakeId();
   SPIRVOperation decl(spv::OpTypeVector, {id, DeclareType(matrix.vector), matrix.count});
   AddType(decl);
 
@@ -303,17 +339,37 @@ uint32_t SPIRVEditor::DeclareType(const SPIRVMatrix &matrix)
   return id;
 }
 
-uint32_t SPIRVEditor::DeclareType(const SPIRVPointer &pointer)
+SPIRVId SPIRVEditor::DeclareType(const SPIRVPointer &pointer)
 {
   auto it = pointerTypes.lower_bound(pointer);
   if(it != pointerTypes.end() && it->first == pointer)
     return it->second;
 
-  uint32_t id = MakeId();
+  SPIRVId id = MakeId();
   SPIRVOperation decl(spv::OpTypePointer, {id, (uint32_t)pointer.storage, pointer.baseId});
   AddType(decl);
 
   pointerTypes.insert(it, std::make_pair(pointer, id));
 
   return id;
+}
+
+void SPIRVEditor::addWords(size_t offs, int32_t num)
+{
+  // look through every section, any that are >= this point, adjust the offsets
+  // note that if we're removing words then any offsets pointing directly to the removed words
+  // will go backwards - but they no longer have anywhere valid to point.
+  for(LogicalSection *section :
+      {&entryPointSection, &debugSection, &decorationSection, &typeVarSection})
+  {
+    if(section->startOffset >= offs)
+      section->startOffset += num;
+    if(section->endOffset >= offs)
+      section->endOffset += num;
+  }
+
+  // look through every id, and do the same
+  for(size_t &o : idOffsets)
+    if(o >= offs)
+      o += num;
 }
