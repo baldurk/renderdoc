@@ -60,7 +60,7 @@ public:
     return *this;
   }
   // utility functions
-  operator bool() const { return words != NULL && offset < words->size(); }
+  explicit operator bool() const { return words != NULL && offset < words->size(); }
   uint32_t &operator*() { return cur(); }
   const uint32_t &operator*() const { return cur(); }
   spv::Op opcode() { return spv::Op(cur() & spv::OpCodeMask); }
