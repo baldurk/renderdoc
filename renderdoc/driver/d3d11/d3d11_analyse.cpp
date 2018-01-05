@@ -748,7 +748,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 
             rowPitch = mapped.RowPitch;
             depthPitch = 0;
-            size_t datasize = rowPitch * desc.Height;
+            size_t datasize = rowPitch * RDCMAX(1U, desc.Height >> udesc.Texture2D.MipSlice);
 
             uint32_t numSlices = 1;
 
