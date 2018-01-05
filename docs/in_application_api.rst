@@ -270,13 +270,14 @@ The other way is a closer integration, where your code will explicitly load up R
 .. cpp:function:: uint32_t GetNumCaptures()
 
     This function returns the number of frame captures that have been made.
-    :return: Returns the number of frame captures that have been made
+
+    :return: the number of frame captures that have been made
 
 .. cpp:function:: uint32_t GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp)
 
     This function returns the details of a particular frame capture, as specified by an index from 0 to :cpp:func:`GetNumCaptures` - 1.
 
-    :param uint32_t idx: specifies which capture to return the details of. Must be less than the return value of:cpp:func:`GetNumCaptures`.
+    :param uint32_t idx: specifies which capture to return the details of. Must be less than the return value of :cpp:func:`GetNumCaptures`.
     :param char* logfile: is an optional parameter filled with the UTF-8 null-terminated path to the file. There must be enough space in the array to contain all characters including the null terminator. If set to NULL, nothing is written.
     :param uint32_t* pathlength: is an optional parameter filled with the byte length of the above `logfile` including the null-terminator. If set to NULL, nothing is written.
     :param uint64_t* timestamp: is an optional parameter filled with the 64-bit timestamp of the file - equivalent to the `time()` system call. If set to NULL, nothing is written.
