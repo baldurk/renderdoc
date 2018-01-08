@@ -255,25 +255,31 @@ void SPIRVEditor::AddDecoration(const SPIRVOperation &op)
   addWords(decorationSection.endOffset, op.size());
 }
 
-void SPIRVEditor::AddType(const SPIRVOperation &op)
+SPIRVId SPIRVEditor::AddType(const SPIRVOperation &op)
 {
-  idOffsets[op[1]] = typeVarSection.endOffset;
+  SPIRVId id = op[1];
+  idOffsets[id] = typeVarSection.endOffset;
   spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
   addWords(typeVarSection.endOffset, op.size());
+  return id;
 }
 
-void SPIRVEditor::AddVariable(const SPIRVOperation &op)
+SPIRVId SPIRVEditor::AddVariable(const SPIRVOperation &op)
 {
-  idOffsets[op[2]] = typeVarSection.endOffset;
+  SPIRVId id = op[2];
+  idOffsets[id] = typeVarSection.endOffset;
   spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
   addWords(typeVarSection.endOffset, op.size());
+  return id;
 }
 
-void SPIRVEditor::AddConstant(const SPIRVOperation &op)
+SPIRVId SPIRVEditor::AddConstant(const SPIRVOperation &op)
 {
-  idOffsets[op[2]] = typeVarSection.endOffset;
+  SPIRVId id = op[2];
+  idOffsets[id] = typeVarSection.endOffset;
   spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
   addWords(typeVarSection.endOffset, op.size());
+  return id;
 }
 
 void SPIRVEditor::AddFunction(const SPIRVOperation *ops, size_t count)
