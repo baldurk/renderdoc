@@ -312,19 +312,34 @@ SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
   return SPIRVIterator();
 }
 
-SPIRVIterator SPIRVEditor::GetDebugInstructions()
+SPIRVIterator SPIRVEditor::BeginDebug()
 {
   return SPIRVIterator(spirv, debugSection.startOffset);
 }
 
-SPIRVIterator SPIRVEditor::GetDecorationInstructions()
+SPIRVIterator SPIRVEditor::BeginDecorations()
 {
   return SPIRVIterator(spirv, decorationSection.startOffset);
 }
 
-SPIRVIterator SPIRVEditor::GetTypeInstructions()
+SPIRVIterator SPIRVEditor::BeginTypes()
 {
   return SPIRVIterator(spirv, typeVarSection.startOffset);
+}
+
+SPIRVIterator SPIRVEditor::EndDebug()
+{
+  return SPIRVIterator(spirv, debugSection.endOffset);
+}
+
+SPIRVIterator SPIRVEditor::EndDecorations()
+{
+  return SPIRVIterator(spirv, decorationSection.endOffset);
+}
+
+SPIRVIterator SPIRVEditor::EndTypes()
+{
+  return SPIRVIterator(spirv, typeVarSection.endOffset);
 }
 
 SPIRVId SPIRVEditor::DeclareType(const SPIRVVoid &)
