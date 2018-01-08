@@ -184,6 +184,25 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
 
       pointerTypes[SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2))] = id;
     }
+
+    if(opcode == spv::OpTypeFunction)
+    {
+      uint32_t id = it.word(1);
+      idOffsets[id] = it.offset;
+
+      std::vector<SPIRVId> args;
+
+      for(size_t i = 3; i < it.size(); i++)
+        args.push_back(it.word(i));
+
+      functionTypes[SPIRVFunction(it.word(2), args)] = id;
+    }
+
+    if(opcode == spv::OpTypeVoid)
+    {
+      voidType = it.word(1);
+      idOffsets[voidType] = it.offset;
+    }
   }
 }
 
@@ -294,6 +313,17 @@ SPIRVIterator SPIRVEditor::GetTypeInstructions()
   return SPIRVIterator(spirv, typeVarSection.startOffset);
 }
 
+SPIRVId SPIRVEditor::DeclareType(const SPIRVVoid &)
+{
+  if(voidType)
+    return voidType;
+
+  voidType = MakeId();
+  AddType(SPIRVOperation(spv::OpTypeVoid, {voidType}));
+
+  return voidType;
+}
+
 SPIRVId SPIRVEditor::DeclareType(const SPIRVScalar &scalar)
 {
   auto it = scalarTypes.lower_bound(scalar);
@@ -316,8 +346,7 @@ SPIRVId SPIRVEditor::DeclareType(const SPIRVVector &vector)
     return it->second;
 
   SPIRVId id = MakeId();
-  SPIRVOperation decl(spv::OpTypeVector, {id, DeclareType(vector.scalar), vector.count});
-  AddType(decl);
+  AddType(SPIRVOperation(spv::OpTypeVector, {id, DeclareType(vector.scalar), vector.count}));
 
   vectorTypes.insert(it, std::make_pair(vector, id));
 
@@ -331,8 +360,7 @@ SPIRVId SPIRVEditor::DeclareType(const SPIRVMatrix &matrix)
     return it->second;
 
   SPIRVId id = MakeId();
-  SPIRVOperation decl(spv::OpTypeVector, {id, DeclareType(matrix.vector), matrix.count});
-  AddType(decl);
+  AddType(SPIRVOperation(spv::OpTypeVector, {id, DeclareType(matrix.vector), matrix.count}));
 
   matrixTypes.insert(it, std::make_pair(matrix, id));
 
@@ -346,14 +374,42 @@ SPIRVId SPIRVEditor::DeclareType(const SPIRVPointer &pointer)
     return it->second;
 
   SPIRVId id = MakeId();
-  SPIRVOperation decl(spv::OpTypePointer, {id, (uint32_t)pointer.storage, pointer.baseId});
-  AddType(decl);
+  AddType(SPIRVOperation(spv::OpTypePointer, {id, (uint32_t)pointer.storage, pointer.baseId}));
 
   pointerTypes.insert(it, std::make_pair(pointer, id));
 
   return id;
 }
 
+SPIRVId SPIRVEditor::DeclareType(const SPIRVFunction &func)
+{
+  auto it = functionTypes.lower_bound(func);
+  if(it != functionTypes.end() && it->first == func)
+    return it->second;
+
+  SPIRVId id = MakeId();
+
+  std::vector<uint32_t> words;
+
+  words.push_back(id);
+  words.push_back(func.returnId);
+  for(SPIRVId id : func.argumentIds)
+    words.push_back(id);
+
+  AddType(SPIRVOperation(spv::OpTypeFunction, words));
+
+  functionTypes.insert(it, std::make_pair(func, id));
+
+  return id;
+}
+
+SPIRVId SPIRVEditor::DeclareStructType(std::vector<uint32_t> members)
+{
+  SPIRVId typeId = MakeId();
+  members.insert(members.begin(), typeId);
+  AddType(SPIRVOperation(spv::OpTypeStruct, members));
+  return typeId;
+}
 void SPIRVEditor::addWords(size_t offs, int32_t num)
 {
   // look through every section, any that are >= this point, adjust the offsets

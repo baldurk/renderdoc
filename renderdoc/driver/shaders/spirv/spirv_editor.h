@@ -164,6 +164,10 @@ struct SPIRVEntry
   std::string name;
 };
 
+struct SPIRVVoid
+{
+};
+
 struct SPIRVScalar
 {
   constexpr SPIRVScalar(spv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
@@ -274,6 +278,26 @@ struct SPIRVPointer
   }
 };
 
+struct SPIRVFunction
+{
+  SPIRVFunction(SPIRVId ret, const std::vector<SPIRVId> &args) : returnId(ret), argumentIds(args) {}
+  SPIRVId returnId;
+  std::vector<SPIRVId> argumentIds;
+
+  bool operator<(const SPIRVFunction &o) const
+  {
+    if(returnId != o.returnId)
+      return returnId < o.returnId;
+    return argumentIds < o.argumentIds;
+  }
+
+  bool operator!=(const SPIRVFunction &o) const { return !operator==(o); }
+  bool operator==(const SPIRVFunction &o) const
+  {
+    return returnId == o.returnId && argumentIds == o.argumentIds;
+  }
+};
+
 class SPIRVEditor
 {
 public:
@@ -299,10 +323,14 @@ public:
 
   // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
   // will be declared and the new ID returned
+  SPIRVId DeclareType(const SPIRVVoid &);
   SPIRVId DeclareType(const SPIRVScalar &scalar);
   SPIRVId DeclareType(const SPIRVVector &vector);
   SPIRVId DeclareType(const SPIRVMatrix &matrix);
   SPIRVId DeclareType(const SPIRVPointer &pointer);
+  SPIRVId DeclareType(const SPIRVFunction &func);
+
+  SPIRVId DeclareStructType(std::vector<uint32_t> members);
 
   // simple properties that are public.
   struct
@@ -341,6 +369,8 @@ private:
   std::map<SPIRVVector, SPIRVId> vectorTypes;
   std::map<SPIRVMatrix, SPIRVId> matrixTypes;
   std::map<SPIRVPointer, SPIRVId> pointerTypes;
+  std::map<SPIRVFunction, SPIRVId> functionTypes;
+  SPIRVId voidType;
 
   std::vector<uint32_t> &spirv;
 };
