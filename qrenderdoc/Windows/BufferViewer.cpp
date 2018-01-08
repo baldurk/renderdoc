@@ -1510,6 +1510,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         m_ModelVSIn->buffers.push_back(buf);
       }
 
+      updatePreviewColumns();
+
       INVOKE_MEMFN(RT_UpdateAndDisplay);
 
       m_ModelVSIn->endReset();
