@@ -439,6 +439,29 @@ SPIRVId SPIRVEditor::DeclareStructType(std::vector<uint32_t> members)
   AddType(SPIRVOperation(spv::OpTypeStruct, members));
   return typeId;
 }
+
+void SPIRVEditor::AddWord(SPIRVIterator entry, uint32_t word)
+{
+  if(!entry)
+    return;
+
+  // if it's just pointing at a SPIRVOperation, we can just push_back immediately
+  if(entry.words != &spirv)
+  {
+    entry.words->push_back(word);
+    return;
+  }
+
+  // add word
+  spirv.insert(spirv.begin() + entry.offset + entry.size(), word);
+
+  // fix up header
+  entry.word(0) = SPIRVOperation::MakeHeader(entry.opcode(), entry.size() + 1);
+
+  // update offsets
+  addWords(entry.offset + entry.size(), 1);
+}
+
 void SPIRVEditor::addWords(size_t offs, int32_t num)
 {
   // look through every section, any that are >= this point, adjust the offsets

@@ -153,7 +153,7 @@ private:
 
   std::vector<uint32_t>::const_iterator begin() const { return iter.it(); }
   std::vector<uint32_t>::const_iterator end() const { return iter.it() + size(); }
-  inline uint32_t MakeHeader(spv::Op op, size_t WordCount)
+  inline static uint32_t MakeHeader(spv::Op op, size_t WordCount)
   {
     return (uint32_t(op) & spv::OpCodeMask) | (uint16_t(WordCount) << spv::WordCountShift);
   }
@@ -314,6 +314,8 @@ public:
   void StripNops();
 
   SPIRVId MakeId();
+
+  void AddWord(SPIRVIterator entry, uint32_t word);
 
   void SetName(uint32_t id, const char *name);
   void AddDecoration(const SPIRVOperation &op);
