@@ -25,6 +25,13 @@
 #include "spirv_editor.h"
 #include <utility>
 #include "common/common.h"
+#include "serialise/serialiser.h"
+
+template <>
+std::string DoStringise(const SPIRVId &el)
+{
+  return StringFormat::Fmt("%u", el.id);
+}
 
 SPIRVScalar::SPIRVScalar(SPIRVIterator it)
 {

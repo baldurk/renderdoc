@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
+#include "api/replay/renderdoc_replay.h"
 
 class SPIRVOperation;
 class SPIRVEditor;
@@ -43,6 +44,8 @@ struct SPIRVId
   constexpr inline bool operator<(SPIRVId o) const { return id < o.id; }
   uint32_t id;
 };
+
+DECLARE_STRINGISE_TYPE(SPIRVId);
 
 // length of 1 word in the top 16-bits, OpNop = 0 in the lower 16-bits
 #define SPV_NOP (0x00010000)
@@ -70,6 +73,11 @@ public:
 
     return *this;
   }
+  bool operator==(const SPIRVIterator &it) const
+  {
+    return words == it.words && offset == it.offset;
+  }
+  bool operator!=(const SPIRVIterator &it) const { return !(*this == it); }
   // utility functions
   explicit operator bool() const { return words != NULL && offset < words->size(); }
   uint32_t &operator*() { return cur(); }
