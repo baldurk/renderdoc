@@ -95,17 +95,17 @@ class SPIRVOperation
 public:
   // constructor of a synthetic operation, from an operation & subsequent words, calculates the
   // length then constructs the first word with opcode + length.
-  SPIRVOperation(spv::Op op, std::initializer_list<uint32_t> data)
+  SPIRVOperation(spv::Op op, const std::vector<uint32_t> &data)
   {
     words.push_back(MakeHeader(op, data.size() + 1));
     words.insert(words.begin() + 1, data.begin(), data.end());
 
     iter = SPIRVIterator(words, 0);
   }
-  SPIRVOperation(spv::Op op, std::vector<uint32_t> data)
+
+  SPIRVOperation(const SPIRVOperation &op)
   {
-    words.push_back(MakeHeader(op, data.size() + 1));
-    words.insert(words.begin() + 1, data.begin(), data.end());
+    words = op.words;
 
     iter = SPIRVIterator(words, 0);
   }
