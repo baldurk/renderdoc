@@ -269,6 +269,13 @@ void SPIRVEditor::AddVariable(const SPIRVOperation &op)
   addWords(typeVarSection.endOffset, op.size());
 }
 
+void SPIRVEditor::AddConstant(const SPIRVOperation &op)
+{
+  idOffsets[op[2]] = typeVarSection.endOffset;
+  spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
+  addWords(typeVarSection.endOffset, op.size());
+}
+
 void SPIRVEditor::AddFunction(const SPIRVOperation *ops, size_t count)
 {
   idOffsets[ops[0][2]] = spirv.size();

@@ -319,6 +319,7 @@ public:
   void AddDecoration(const SPIRVOperation &op);
   void AddType(const SPIRVOperation &op);
   void AddVariable(const SPIRVOperation &op);
+  void AddConstant(const SPIRVOperation &op);
   void AddFunction(const SPIRVOperation *ops, size_t count);
 
   SPIRVIterator GetID(SPIRVId id);
@@ -339,6 +340,22 @@ public:
   SPIRVId DeclareType(const SPIRVFunction &func);
 
   SPIRVId DeclareStructType(std::vector<uint32_t> members);
+
+  // helper for AddConstant
+  template <typename T>
+  SPIRVId AddConstantImmediate(T t)
+  {
+    SPIRVId typeId = DeclareType(scalar<T>());
+    SPIRVId retId = MakeId();
+    std::vector<uint32_t> words = {typeId, retId};
+
+    words.insert(words.end(), sizeof(T) / 4, 0U);
+
+    memcpy(&words[2], &t, sizeof(T));
+
+    AddConstant(SPIRVOperation(spv::OpConstant, words));
+    return retId;
+  }
 
   // simple properties that are public.
   struct
