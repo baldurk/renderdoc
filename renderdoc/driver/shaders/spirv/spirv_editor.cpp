@@ -256,7 +256,15 @@ void SPIRVEditor::StripNops()
       addWords(i, -1);
     }
 
-    i += spirv[i] >> spv::WordCountShift;
+    uint32_t len = spirv[i] >> spv::WordCountShift;
+
+    if(len == 0)
+    {
+      RDCERR("Malformed SPIR-V");
+      break;
+    }
+
+    i += len;
   }
 }
 
@@ -319,12 +327,8 @@ void SPIRVEditor::AddFunction(const SPIRVOperation *ops, size_t count)
 {
   idOffsets[ops[0][2]] = spirv.size();
 
-  auto insertIter = spirv.end();
   for(size_t i = 0; i < count; i++)
-  {
-    spirv.insert(insertIter, ops[i].begin(), ops[i].end());
-    insertIter += ops[i].size();
-  }
+    spirv.insert(spirv.end(), ops[i].begin(), ops[i].end());
 }
 
 SPIRVIterator SPIRVEditor::GetID(SPIRVId id)
@@ -340,8 +344,9 @@ SPIRVIterator SPIRVEditor::GetID(SPIRVId id)
 SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
 {
   SPIRVIterator it(spirv, entryPointSection.startOffset);
+  SPIRVIterator end(spirv, entryPointSection.endOffset);
 
-  while(it)
+  while(it && it != end)
   {
     if(it.word(2) == id)
       return it;
@@ -349,6 +354,11 @@ SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
   }
 
   return SPIRVIterator();
+}
+
+SPIRVIterator SPIRVEditor::BeginEntries()
+{
+  return SPIRVIterator(spirv, entryPointSection.startOffset);
 }
 
 SPIRVIterator SPIRVEditor::BeginDebug()
@@ -364,6 +374,16 @@ SPIRVIterator SPIRVEditor::BeginDecorations()
 SPIRVIterator SPIRVEditor::BeginTypes()
 {
   return SPIRVIterator(spirv, typeVarSection.startOffset);
+}
+
+SPIRVIterator SPIRVEditor::BeginFunctions()
+{
+  return SPIRVIterator(spirv, typeVarSection.endOffset);
+}
+
+SPIRVIterator SPIRVEditor::EndEntries()
+{
+  return SPIRVIterator(spirv, entryPointSection.endOffset);
 }
 
 SPIRVIterator SPIRVEditor::EndDebug()
@@ -389,26 +409,26 @@ SPIRVId SPIRVEditor::DeclareStructType(std::vector<uint32_t> members)
   return typeId;
 }
 
-void SPIRVEditor::AddWord(SPIRVIterator entry, uint32_t word)
+void SPIRVEditor::AddWord(SPIRVIterator iter, uint32_t word)
 {
-  if(!entry)
+  if(!iter)
     return;
 
   // if it's just pointing at a SPIRVOperation, we can just push_back immediately
-  if(entry.words != &spirv)
+  if(iter.words != &spirv)
   {
-    entry.words->push_back(word);
+    iter.words->push_back(word);
     return;
   }
 
   // add word
-  spirv.insert(spirv.begin() + entry.offset + entry.size(), word);
+  spirv.insert(spirv.begin() + iter.offset + iter.size(), word);
 
   // fix up header
-  entry.word(0) = SPIRVOperation::MakeHeader(entry.opcode(), entry.size() + 1);
+  iter.word(0) = SPIRVOperation::MakeHeader(iter.opcode(), iter.size() + 1);
 
   // update offsets
-  addWords(entry.offset + entry.size(), 1);
+  addWords(iter.offset + iter.size(), 1);
 }
 
 void SPIRVEditor::addWords(size_t offs, int32_t num)

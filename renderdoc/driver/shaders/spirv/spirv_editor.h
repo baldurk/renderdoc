@@ -386,9 +386,12 @@ public:
   // the entry point has 'two' opcodes, the entrypoint declaration and the function.
   // This returns the first, GetID returns the second.
   SPIRVIterator GetEntry(SPIRVId id);
+  SPIRVIterator BeginEntries();
   SPIRVIterator BeginDebug();
   SPIRVIterator BeginDecorations();
   SPIRVIterator BeginTypes();
+  SPIRVIterator BeginFunctions();
+  SPIRVIterator EndEntries();
   SPIRVIterator EndDebug();
   SPIRVIterator EndDecorations();
   SPIRVIterator EndTypes();
