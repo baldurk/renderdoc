@@ -1380,6 +1380,8 @@ void MainWindow::remoteProbe()
 {
   if(!m_Ctx.IsCaptureLoaded() && !m_Ctx.IsCaptureLoading())
   {
+    GUIInvoke::call([this] { m_Ctx.Config().AddAndroidHosts(); });
+
     for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
     {
       // don't mess with a host we're connected to - this is handled anyway
@@ -1463,8 +1465,6 @@ void MainWindow::messageCheck()
 
 void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 {
-  m_Ctx.Config().AddAndroidHosts();
-
   menu->clear();
 
   for(int i = 0; i < m_Ctx.Config().RemoteHosts.count(); i++)
