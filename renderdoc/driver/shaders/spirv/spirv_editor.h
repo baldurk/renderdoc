@@ -128,28 +128,9 @@ public:
   uint32_t &operator[](size_t idx) { return iter.word(idx); }
   const uint32_t &operator[](size_t idx) const { return iter.word(idx); }
   size_t size() const { return iter.size(); }
-  void nopRemove()
-  {
-    for(size_t i = 0, sz = size(); i < sz; i++)
-      iter.word(i) = SPV_NOP;
-  }
-  void nopRemove(size_t idx, size_t count = 0)
-  {
-    size_t oldSize = size();
-
-    if(count == 0)
-      count = oldSize - idx;
-
-    // reduce the size of this op
-    *iter = MakeHeader(iter.opcode(), oldSize - count);
-
-    // move any words on the end into the middle, then nop them
-    for(size_t i = 0; i < count; i++)
-    {
-      iter.word(idx + i) = iter.word(idx + count + i);
-      iter.word(oldSize - i - 1) = SPV_NOP;
-    }
-  }
+  // replace part of this operation with NOPs and update the length. Cannot completely erase the
+  // operation
+  void nopRemove(size_t idx, size_t count = 0);
 
 private:
   friend class SPIRVEditor;
@@ -160,6 +141,7 @@ private:
   {
     return (uint32_t(op) & spv::OpCodeMask) | (uint16_t(WordCount) << spv::WordCountShift);
   }
+  void nopRemove();
 
   // everything is based around this iterator, which may point into our local storage or to external
   // storage.
@@ -373,7 +355,22 @@ public:
 
   SPIRVId MakeId();
 
-  void AddWord(SPIRVIterator entry, uint32_t word);
+  void AddWord(SPIRVIterator iter, uint32_t word);
+  void AddOperation(SPIRVIterator iter, const SPIRVOperation &op);
+
+  // callbacks to allow us to update our internal structures over changes
+
+  // called before any modifications are made. Removes the operation from internal structures.
+  void PreModify(SPIRVIterator iter) { UnregisterOp(iter); }
+  // called after any modifications, re-adds the operation to internal structures with its new
+  // properties
+  void PostModify(SPIRVIterator iter) { RegisterOp(iter); }
+  // removed an operation and replaces it with nops
+  void Remove(SPIRVIterator iter)
+  {
+    UnregisterOp(iter);
+    SPIRVOperation(iter).nopRemove();
+  }
 
   void SetName(uint32_t id, const char *name);
   void AddDecoration(const SPIRVOperation &op);
@@ -460,6 +457,9 @@ public:
 private:
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
   void addWords(size_t offs, int32_t num);
+
+  void RegisterOp(SPIRVIterator iter);
+  void UnregisterOp(SPIRVIterator iter);
 
   struct LogicalSection
   {

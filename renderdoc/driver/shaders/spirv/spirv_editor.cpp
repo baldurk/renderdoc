@@ -27,10 +27,47 @@
 #include "common/common.h"
 #include "serialise/serialiser.h"
 
+static const uint32_t FirstRealWord = 5;
+
 template <>
 std::string DoStringise(const SPIRVId &el)
 {
   return StringFormat::Fmt("%u", el.id);
+}
+
+void SPIRVOperation::nopRemove(size_t idx, size_t count)
+{
+  RDCASSERT(idx >= 1);
+  size_t oldSize = size();
+
+  if(count == 0)
+    count = oldSize - idx;
+
+  // reduce the size of this op
+  *iter = MakeHeader(iter.opcode(), oldSize - count);
+
+  if(idx + count < oldSize)
+  {
+    // move any words on the end into the middle, then nop them
+    for(size_t i = 0; i < count; i++)
+    {
+      iter.word(idx + i) = iter.word(idx + count + i);
+      iter.word(oldSize - i - 1) = SPV_NOP;
+    }
+  }
+  else
+  {
+    for(size_t i = 0; i < count; i++)
+    {
+      iter.word(idx + i) = SPV_NOP;
+    }
+  }
+}
+
+void SPIRVOperation::nopRemove()
+{
+  for(size_t i = 0, sz = size(); i < sz; i++)
+    iter.word(i) = SPV_NOP;
 }
 
 SPIRVScalar::SPIRVScalar(SPIRVIterator it)
@@ -88,7 +125,7 @@ SPIRVOperation SPIRVFunction::decl(SPIRVEditor &editor) const
 
 SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
 {
-  if(spirv.size() < 5 || spirv[0] != spv::MagicNumber)
+  if(spirv.size() < FirstRealWord || spirv[0] != spv::MagicNumber)
   {
     RDCERR("Empty or invalid SPIR-V module");
     return;
@@ -102,19 +139,12 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   // [4] is reserved
   RDCASSERT(spirv[4] == 0);
 
-  for(SPIRVIterator it(spirv, 5); it; it++)
+  for(SPIRVIterator it(spirv, FirstRealWord); it; it++)
   {
     spv::Op opcode = it.opcode();
 
-    // identify entry points
     if(opcode == spv::OpEntryPoint)
     {
-      SPIRVEntry entry;
-      entry.id = it.word(2);
-      entry.name = (const char *)&it.word(3);
-
-      entries.push_back(entry);
-
       // first entry point marks the start of this section
       if(entryPointSection.startOffset == 0)
         entryPointSection.startOffset = it.offset;
@@ -153,7 +183,6 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
       }
     }
 
-    // identify functions
     if(opcode == spv::OpFunction)
     {
       // if we don't have the end of the types/variables section, this is it
@@ -170,85 +199,15 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
           decorationSection.startOffset = decorationSection.endOffset = it.offset;
         }
       }
-
-      SPIRVId id = it.word(2);
-      idOffsets[id] = it.offset;
-
-      functions.push_back(id);
     }
 
-    // identify declared scalar/vector/matrix types
-    if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
-       opcode == spv::OpTypeFloat)
-    {
-      uint32_t id = it.word(1);
-      idOffsets[id] = it.offset;
-
-      SPIRVScalar scalar(it);
-      scalarTypes[scalar] = id;
-    }
-
-    if(opcode == spv::OpTypeVector)
-    {
-      uint32_t id = it.word(1);
-      idOffsets[id] = it.offset;
-
-      SPIRVIterator scalarIt = GetID(it.word(2));
-
-      if(!scalarIt)
-      {
-        RDCERR("Vector type declared with unknown scalar component type %u", it.word(2));
-        continue;
-      }
-
-      vectorTypes[SPIRVVector(scalarIt, it.word(3))] = id;
-    }
-
-    if(opcode == spv::OpTypeMatrix)
-    {
-      uint32_t id = it.word(1);
-      idOffsets[id] = it.offset;
-
-      SPIRVIterator vectorIt = GetID(it.word(2));
-
-      if(!vectorIt)
-      {
-        RDCERR("Matrix type declared with unknown vector component type %u", it.word(2));
-        continue;
-      }
-
-      SPIRVIterator scalarIt = GetID(vectorIt.word(2));
-      uint32_t vectorDim = vectorIt.word(3);
-
-      matrixTypes[SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3))] = id;
-    }
-
-    if(opcode == spv::OpTypePointer)
-    {
-      uint32_t id = it.word(1);
-      idOffsets[id] = it.offset;
-
-      pointerTypes[SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2))] = id;
-    }
-
-    if(opcode == spv::OpTypeFunction)
-    {
-      uint32_t id = it.word(1);
-      idOffsets[id] = it.offset;
-
-      std::vector<SPIRVId> args;
-
-      for(size_t i = 3; i < it.size(); i++)
-        args.push_back(it.word(i));
-
-      functionTypes[SPIRVFunction(it.word(2), args)] = id;
-    }
+    RegisterOp(it);
   }
 }
 
 void SPIRVEditor::StripNops()
 {
-  for(size_t i = 5; i < spirv.size();)
+  for(size_t i = FirstRealWord; i < spirv.size();)
   {
     while(spirv[i] == SPV_NOP)
     {
@@ -287,12 +246,14 @@ void SPIRVEditor::SetName(uint32_t id, const char *name)
   SPIRVOperation op(spv::OpName, uintName);
 
   spirv.insert(spirv.begin() + debugSection.endOffset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, debugSection.endOffset));
   addWords(debugSection.endOffset, op.size());
 }
 
 void SPIRVEditor::AddDecoration(const SPIRVOperation &op)
 {
   spirv.insert(spirv.begin() + decorationSection.endOffset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, decorationSection.endOffset));
   addWords(decorationSection.endOffset, op.size());
 }
 
@@ -301,6 +262,7 @@ SPIRVId SPIRVEditor::AddType(const SPIRVOperation &op)
   SPIRVId id = op[1];
   idOffsets[id] = typeVarSection.endOffset;
   spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, typeVarSection.endOffset));
   addWords(typeVarSection.endOffset, op.size());
   return id;
 }
@@ -310,6 +272,7 @@ SPIRVId SPIRVEditor::AddVariable(const SPIRVOperation &op)
   SPIRVId id = op[2];
   idOffsets[id] = typeVarSection.endOffset;
   spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, typeVarSection.endOffset));
   addWords(typeVarSection.endOffset, op.size());
   return id;
 }
@@ -319,6 +282,7 @@ SPIRVId SPIRVEditor::AddConstant(const SPIRVOperation &op)
   SPIRVId id = op[2];
   idOffsets[id] = typeVarSection.endOffset;
   spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, typeVarSection.endOffset));
   addWords(typeVarSection.endOffset, op.size());
   return id;
 }
@@ -329,6 +293,8 @@ void SPIRVEditor::AddFunction(const SPIRVOperation *ops, size_t count)
 
   for(size_t i = 0; i < count; i++)
     spirv.insert(spirv.end(), ops[i].begin(), ops[i].end());
+
+  RegisterOp(SPIRVIterator(spirv, idOffsets[ops[0][2]]));
 }
 
 SPIRVIterator SPIRVEditor::GetID(SPIRVId id)
@@ -429,6 +395,250 @@ void SPIRVEditor::AddWord(SPIRVIterator iter, uint32_t word)
 
   // update offsets
   addWords(iter.offset + iter.size(), 1);
+}
+
+void SPIRVEditor::AddOperation(SPIRVIterator iter, const SPIRVOperation &op)
+{
+  if(!iter)
+    return;
+
+  // if it's just pointing at a SPIRVOperation, this is invalid
+  if(iter.words != &spirv)
+    return;
+
+  // add op
+  spirv.insert(spirv.begin() + iter.offset, op.begin(), op.end());
+
+  // update offsets
+  addWords(iter.offset, op.size());
+}
+
+void SPIRVEditor::RegisterOp(SPIRVIterator it)
+{
+  spv::Op opcode = it.opcode();
+
+  if(opcode == spv::OpEntryPoint)
+  {
+    SPIRVEntry entry;
+    entry.id = it.word(2);
+    entry.name = (const char *)&it.word(3);
+
+    entries.push_back(entry);
+  }
+  else if(opcode == spv::OpFunction)
+  {
+    SPIRVId id = it.word(2);
+    idOffsets[id] = it.offset;
+
+    functions.push_back(id);
+  }
+  else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
+          opcode == spv::OpTypeFloat)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    SPIRVScalar scalar(it);
+    scalarTypes[scalar] = id;
+  }
+  else if(opcode == spv::OpTypeVector)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    SPIRVIterator scalarIt = GetID(it.word(2));
+
+    if(!scalarIt)
+    {
+      RDCERR("Vector type declared with unknown scalar component type %u", it.word(2));
+      return;
+    }
+
+    vectorTypes[SPIRVVector(scalarIt, it.word(3))] = id;
+  }
+  else if(opcode == spv::OpTypeMatrix)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    SPIRVIterator vectorIt = GetID(it.word(2));
+
+    if(!vectorIt)
+    {
+      RDCERR("Matrix type declared with unknown vector component type %u", it.word(2));
+      return;
+    }
+
+    SPIRVIterator scalarIt = GetID(vectorIt.word(2));
+    uint32_t vectorDim = vectorIt.word(3);
+
+    matrixTypes[SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3))] = id;
+  }
+  else if(opcode == spv::OpTypeImage)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    SPIRVIterator scalarIt = GetID(it.word(2));
+
+    if(!scalarIt)
+    {
+      RDCERR("Image type declared with unknown scalar component type %u", it.word(2));
+      return;
+    }
+
+    imageTypes[SPIRVImage(scalarIt, (spv::Dim)it.word(3), it.word(4), it.word(5), it.word(6),
+                          it.word(7), (spv::ImageFormat)it.word(8))] = id;
+  }
+  else if(opcode == spv::OpTypeSampledImage)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    SPIRVId base = it.word(2);
+
+    sampledImageTypes[SPIRVSampledImage(base)] = id;
+  }
+  else if(opcode == spv::OpTypePointer)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    pointerTypes[SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2))] = id;
+  }
+  else if(opcode == spv::OpTypeStruct)
+  {
+    idOffsets[it.word(1)] = it.offset;
+  }
+  else if(opcode == spv::OpTypeFunction)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    std::vector<SPIRVId> args;
+
+    for(size_t i = 3; i < it.size(); i++)
+      args.push_back(it.word(i));
+
+    functionTypes[SPIRVFunction(it.word(2), args)] = id;
+  }
+}
+
+void SPIRVEditor::UnregisterOp(SPIRVIterator it)
+{
+  spv::Op opcode = it.opcode();
+
+  SPIRVId id;
+
+  if(opcode == spv::OpEntryPoint)
+  {
+    for(auto entryIt = entries.begin(); entryIt != entries.end(); ++entryIt)
+    {
+      if(entryIt->id == it.word(2))
+      {
+        entries.erase(entryIt);
+        break;
+      }
+    }
+  }
+  else if(opcode == spv::OpFunction)
+  {
+    id = it.word(2);
+    for(auto funcIt = functions.begin(); funcIt != functions.end(); ++funcIt)
+    {
+      if(*funcIt == id)
+      {
+        functions.erase(funcIt);
+        break;
+      }
+    }
+  }
+  else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
+          opcode == spv::OpTypeFloat)
+  {
+    id = it.word(1);
+
+    SPIRVScalar scalar(it);
+    scalarTypes.erase(scalar);
+  }
+  else if(opcode == spv::OpTypeVector)
+  {
+    id = it.word(1);
+
+    SPIRVIterator scalarIt = GetID(it.word(2));
+
+    if(!scalarIt)
+    {
+      RDCERR("Vector type declared with unknown scalar component type %u", it.word(2));
+      return;
+    }
+
+    vectorTypes.erase(SPIRVVector(scalarIt, it.word(3)));
+  }
+  else if(opcode == spv::OpTypeMatrix)
+  {
+    id = it.word(1);
+
+    SPIRVIterator vectorIt = GetID(it.word(2));
+
+    if(!vectorIt)
+    {
+      RDCERR("Matrix type declared with unknown vector component type %u", it.word(2));
+      return;
+    }
+
+    SPIRVIterator scalarIt = GetID(vectorIt.word(2));
+    uint32_t vectorDim = vectorIt.word(3);
+
+    matrixTypes.erase(SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3)));
+  }
+  else if(opcode == spv::OpTypeImage)
+  {
+    id = it.word(1);
+
+    SPIRVIterator scalarIt = GetID(it.word(2));
+
+    if(!scalarIt)
+    {
+      RDCERR("Image type declared with unknown scalar component type %u", it.word(2));
+      return;
+    }
+
+    imageTypes.erase(SPIRVImage(scalarIt, (spv::Dim)it.word(3), it.word(4), it.word(5), it.word(6),
+                                it.word(7), (spv::ImageFormat)it.word(8)));
+  }
+  else if(opcode == spv::OpTypeSampledImage)
+  {
+    id = it.word(1);
+
+    SPIRVId base = it.word(2);
+
+    sampledImageTypes.erase(SPIRVSampledImage(base));
+  }
+  else if(opcode == spv::OpTypePointer)
+  {
+    id = it.word(1);
+
+    pointerTypes.erase(SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2)));
+  }
+  else if(opcode == spv::OpTypeStruct)
+  {
+    id = it.word(1);
+  }
+  else if(opcode == spv::OpTypeFunction)
+  {
+    id = it.word(1);
+
+    std::vector<SPIRVId> args;
+
+    for(size_t i = 3; i < it.size(); i++)
+      args.push_back(it.word(i));
+
+    functionTypes.erase(SPIRVFunction(it.word(2), args));
+  }
+
+  if(id)
+    idOffsets[id] = 0;
 }
 
 void SPIRVEditor::addWords(size_t offs, int32_t num)
