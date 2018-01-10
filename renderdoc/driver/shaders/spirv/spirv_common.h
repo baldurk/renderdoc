@@ -68,8 +68,11 @@ void ShutdownSPIRVCompiler();
 struct SPVInstruction;
 
 enum class ShaderStage : uint32_t;
+enum class ShaderBuiltin : uint32_t;
 struct ShaderReflection;
 struct ShaderBindpointMapping;
+
+ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el);
 
 // extra information that goes along with a ShaderReflection that has extra information for SPIR-V
 // patching
