@@ -1302,7 +1302,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
     {
       GetResourceManager()->AddLiveResource(id, *pView);
 
-      m_CreationInfo.m_BufferView[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
+      m_CreationInfo.m_BufferView[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
   }
 
