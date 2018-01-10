@@ -166,13 +166,13 @@ private:
   {
     uint32_t eventId;
     uint32_t inst;
-    int32_t baseVertex;
 
     struct StageData
     {
       QList<FormatElement> elements;
       uint32_t count;
       BufferData *indices = NULL;
+      int32_t baseVertex;
       QList<BufferData *> buffers;
     } input[3];
 

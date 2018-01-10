@@ -600,7 +600,7 @@ public:
           {
             // if we have separate displayIndices, fetch that for display instead
             if(displayIndices && displayIndices->data)
-              idx = CalcIndex(displayIndices, row, baseVertex);
+              idx = CalcIndex(displayIndices, row, displayBaseVertex);
 
             if(idx == ~0U)
               return outOfBounds();
@@ -667,6 +667,7 @@ public:
 
   RDTableView *view = NULL;
 
+  int32_t displayBaseVertex = 0;
   int32_t baseVertex = 0;
   uint32_t curInstance = 0;
   uint32_t numRows = 0;
@@ -1694,9 +1695,12 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   m_PostVS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::VSOut);
 
   m_ModelVSOut->numRows = m_PostVS.numIndices;
+  m_ModelVSOut->baseVertex = m_PostVS.baseVertex;
+  m_ModelVSOut->displayBaseVertex = m_ModelVSIn->baseVertex;
 
   if(draw && m_PostVS.indexResourceId != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(m_PostVS.indexResourceId, 0, draw->numIndices * draw->indexByteWidth);
+    idata = r->GetBufferData(m_PostVS.indexResourceId, m_PostVS.indexByteOffset,
+                             draw->numIndices * m_PostVS.indexByteStride);
 
   indices = NULL;
   if(m_ModelVSOut->indices)
@@ -1752,6 +1756,8 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   m_PostGS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::GSOut);
 
   m_ModelGSOut->numRows = m_PostGS.numIndices;
+  m_ModelGSOut->baseVertex = m_PostGS.baseVertex;
+  m_ModelVSOut->displayBaseVertex = m_ModelVSIn->baseVertex;
 
   indices = NULL;
   m_ModelGSOut->indices = NULL;
@@ -1797,7 +1803,6 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   BufferItemModel *models[] = {m_ModelVSIn, m_ModelVSOut, m_ModelGSOut};
 
   bbox->inst = m_ModelVSIn->curInstance;
-  bbox->baseVertex = draw->baseVertex;
   bbox->eventId = eventId;
 
   for(size_t i = 0; i < ARRAY_COUNT(bbox->input); i++)
@@ -1805,6 +1810,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     bbox->input[i].elements = models[i]->columns;
     bbox->input[i].buffers = models[i]->buffers;
     bbox->input[i].indices = models[i]->indices;
+    bbox->input[i].baseVertex = models[i]->baseVertex;
 
     bbox->input[i].count = models[i]->numRows;
 
@@ -1862,7 +1868,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
 
       if(s.indices && s.indices->data)
       {
-        idx = CalcIndex(s.indices, row, bbox.baseVertex);
+        idx = CalcIndex(s.indices, row, s.baseVertex);
 
         if(idx == ~0U)
           continue;
