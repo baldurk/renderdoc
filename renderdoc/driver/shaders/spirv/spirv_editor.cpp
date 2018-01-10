@@ -257,6 +257,19 @@ void SPIRVEditor::AddDecoration(const SPIRVOperation &op)
   addWords(decorationSection.endOffset, op.size());
 }
 
+void SPIRVEditor::AddCapability(spv::Capability cap)
+{
+  // don't add duplicate capabilities
+  if(capabilities.find(cap) != capabilities.end())
+    return;
+
+  // insert the operation at the very start
+  SPIRVOperation op(spv::OpCapability, {(uint32_t)cap});
+  spirv.insert(spirv.begin() + FirstRealWord, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, FirstRealWord));
+  addWords(FirstRealWord, op.size());
+}
+
 SPIRVId SPIRVEditor::AddType(const SPIRVOperation &op)
 {
   SPIRVId id = op[1];
@@ -425,6 +438,10 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
 
     entries.push_back(entry);
   }
+  else if(opcode == spv::OpCapability)
+  {
+    capabilities.insert((spv::Capability)it.word(1));
+  }
   else if(opcode == spv::OpFunction)
   {
     SPIRVId id = it.word(2);
@@ -552,6 +569,10 @@ void SPIRVEditor::UnregisterOp(SPIRVIterator it)
         break;
       }
     }
+  }
+  else if(opcode == spv::OpCapability)
+  {
+    capabilities.erase((spv::Capability)it.word(1));
   }
   else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
           opcode == spv::OpTypeFloat)
