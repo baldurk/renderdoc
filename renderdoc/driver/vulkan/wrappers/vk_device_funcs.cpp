@@ -100,7 +100,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   // PORTABILITY verify that layers/extensions are available
   StripUnwantedLayers(params.Layers);
 
-#if ENABLED(FORCE_VALIDATION_LAYERS)
+#if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
   params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 
   params.Extensions.push_back("VK_EXT_debug_report");
@@ -955,7 +955,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_AMD_shader_info");
     }
 
-#if ENABLED(FORCE_VALIDATION_LAYERS)
+#if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
     Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
