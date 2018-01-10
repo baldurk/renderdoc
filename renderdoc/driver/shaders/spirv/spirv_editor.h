@@ -39,9 +39,12 @@ struct SPIRVId
   constexpr inline SPIRVId() : id(0) {}
   constexpr inline SPIRVId(uint32_t i) : id(i) {}
   inline operator uint32_t() const { return id; }
-  constexpr inline bool operator==(SPIRVId o) const { return id == o.id; }
-  constexpr inline bool operator!=(SPIRVId o) const { return id != o.id; }
-  constexpr inline bool operator<(SPIRVId o) const { return id < o.id; }
+  constexpr inline bool operator==(const SPIRVId o) const { return id == o.id; }
+  constexpr inline bool operator!=(const SPIRVId o) const { return id != o.id; }
+  constexpr inline bool operator<(const SPIRVId o) const { return id < o.id; }
+  constexpr inline bool operator==(const uint32_t o) const { return id == o; }
+  constexpr inline bool operator!=(const uint32_t o) const { return id != o; }
+  constexpr inline bool operator<(const uint32_t o) const { return id < o; }
   uint32_t id;
 };
 
