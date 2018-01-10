@@ -1082,6 +1082,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     // we have a fallback for this case, so no warning
 
+    if(availFeatures.geometryShader)
+      enabledFeatures.geometryShader = true;
+    else
+      RDCWARN(
+          "geometryShader = false, lit mesh rendering will not be available if rendering on this "
+          "device.");
+
     if(availFeatures.robustBufferAccess)
       enabledFeatures.robustBufferAccess = true;
     else

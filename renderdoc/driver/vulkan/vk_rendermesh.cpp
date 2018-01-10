@@ -322,9 +322,12 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLay
   stages[2].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
   pipeInfo.stageCount = 3;
 
-  vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
-                                    &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  if(stages[2].module != VK_NULL_HANDLE)
+  {
+    vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                      &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
 
   for(uint32_t i = 0; i < MeshDisplayPipelines::ePipe_Count; i++)
     if(cache.pipes[i] != VK_NULL_HANDLE)
@@ -552,6 +555,10 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &second
       case SolidShade::Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
       case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
     }
+
+    // can't support lit rendering without the pipeline - maybe geometry shader wasn't supported.
+    if(solidShadeMode == SolidShade::Lit && pipe == VK_NULL_HANDLE)
+      pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth];
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);

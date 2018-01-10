@@ -147,6 +147,9 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
       }
     }
 
+    if(config.stage == SPIRVShaderStage::Geometry && !features.geometryShader)
+      continue;
+
     std::string defines = "";
     if(driverVersion.TexelFetchBrokenDriver())
       defines += "#define NO_TEXEL_FETCH\n";
