@@ -1214,8 +1214,8 @@ void GLPipelineStateViewer::setState()
                                                      draw ? draw->indexByteWidth : 0, 0, 0,
                                                      (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(
-          GLVBIBTag(state.vertexInput.indexBuffer, draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(
+          state.vertexInput.indexBuffer, draw ? draw->indexOffset * draw->indexByteWidth : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1233,8 +1233,8 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Element"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(
-          GLVBIBTag(state.vertexInput.indexBuffer, draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(
+          state.vertexInput.indexBuffer, draw ? draw->indexOffset * draw->indexByteWidth : 0)));
 
       setEmptyRow(node);
 

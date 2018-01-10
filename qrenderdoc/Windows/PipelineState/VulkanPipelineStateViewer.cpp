@@ -1563,8 +1563,9 @@ void VulkanPipelineStateViewer::setState()
            (qulonglong)state.inputAssembly.indexBuffer.byteOffset,
            draw != NULL ? draw->indexByteWidth : 0, (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                                     draw != NULL ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                        draw != NULL ? draw->indexOffset * draw->indexByteWidth : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1582,8 +1583,9 @@ void VulkanPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), ResourceId(), tr("Index"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                                     draw != NULL ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                        draw != NULL ? draw->indexOffset * draw->indexByteWidth : 0)));
 
       setEmptyRow(node);
 
