@@ -799,6 +799,63 @@ __attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWi
   return glhooks.glXDestroyWindow_real(dpy, window);
 }
 
+// because we intercept all dlopen calls to "libGL.so*" to ourselves, we can interfere with some
+// vulkan ICDs. For some reason they point the vulkan ICD to that file and so the vulkan loader
+// tries to get the bootstrap entry points from us. I think this is a distribution thing and is not
+// true in the official nvidia package, I'm not sure.
+// Unfortunately there's no perfect way to fix this, since if we declare a function the ICD doesn't
+// support we're screwed. We just have to hope the ICD exports all these functions that we can
+// forward on to.
+
+// declare minimal typedefs to get by
+typedef void *VkInstance;
+enum VkResult
+{
+  VK_ERROR_INCOMPATIBLE_DRIVER = -9
+};
+struct VkNegotiateLayerInterface;
+
+typedef void (*PFN_vkVoidFunction)(void);
+typedef PFN_vkVoidFunction (*PFN_vkGetInstanceProcAddr)(VkInstance instance, const char *pName);
+typedef PFN_vkVoidFunction (*PFN_GetPhysicalDeviceProcAddr)(VkInstance instance, const char *pName);
+typedef VkResult (*PFN_vkNegotiateLoaderLayerInterfaceVersion)(VkNegotiateLayerInterface *pVersionStruct);
+
+__attribute__((visibility("default"))) PFN_vkVoidFunction vk_icdGetInstanceProcAddr(
+    VkInstance instance, const char *pName)
+{
+  PFN_vkGetInstanceProcAddr real =
+      (PFN_vkGetInstanceProcAddr)dlsym(libGLdlsymHandle, "vk_icdGetInstanceProcAddr");
+
+  if(real)
+    return real(instance, pName);
+
+  return NULL;
+}
+
+__attribute__((visibility("default"))) PFN_vkVoidFunction vk_icdGetPhysicalDeviceProcAddr(
+    VkInstance instance, const char *pName)
+{
+  PFN_GetPhysicalDeviceProcAddr real =
+      (PFN_GetPhysicalDeviceProcAddr)dlsym(libGLdlsymHandle, "vk_icdGetPhysicalDeviceProcAddr");
+
+  if(real)
+    return real(instance, pName);
+
+  return NULL;
+}
+
+__attribute__((visibility("default"))) VkResult vk_icdNegotiateLoaderLayerInterfaceVersion(
+    VkNegotiateLayerInterface *pVersionStruct)
+{
+  PFN_vkNegotiateLoaderLayerInterfaceVersion real = (PFN_vkNegotiateLoaderLayerInterfaceVersion)dlsym(
+      libGLdlsymHandle, "vk_icdNegotiateLoaderLayerInterfaceVersion");
+
+  if(real)
+    return real(pVersionStruct);
+
+  return VK_ERROR_INCOMPATIBLE_DRIVER;
+}
+
 };    // extern "C"
 
 bool OpenGLHook::PopulateHooks()
