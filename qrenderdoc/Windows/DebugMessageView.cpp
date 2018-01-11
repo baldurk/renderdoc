@@ -29,6 +29,7 @@
 #include "ui_DebugMessageView.h"
 
 static const int EIDRole = Qt::UserRole + 1;
+static const int SortDataRole = Qt::UserRole + 2;
 
 class DebugMessageItemModel : public QAbstractItemModel
 {
@@ -87,8 +88,10 @@ public:
 
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
   {
-    if(index.isValid() && role == Qt::DisplayRole)
+    if(index.isValid() && (role == Qt::DisplayRole || role == SortDataRole))
     {
+      bool sort = (role == SortDataRole);
+
       int row = index.row();
       int col = index.column();
 
@@ -100,7 +103,7 @@ public:
         {
           case 0: return msg.eventId;
           case 1: return ToQStr(msg.source);
-          case 2: return ToQStr(msg.severity);
+          case 2: return sort ? QVariant((uint32_t)msg.severity) : QVariant(ToQStr(msg.severity));
           case 3: return ToQStr(msg.category);
           case 4: return msg.messageID;
           case 5: return msg.description;
@@ -184,25 +187,7 @@ protected:
 
   bool lessThan(const QModelIndex &left, const QModelIndex &right) const override
   {
-    const DebugMessage &leftMsg = m_Ctx.DebugMessages()[left.row()];
-    const DebugMessage &rightMsg = m_Ctx.DebugMessages()[right.row()];
-
-    if(leftMsg.eventId < rightMsg.eventId)
-      return true;
-
-    if(leftMsg.source < rightMsg.source)
-      return true;
-
-    if(leftMsg.severity < rightMsg.severity)
-      return true;
-
-    if(leftMsg.category < rightMsg.category)
-      return true;
-
-    if(leftMsg.messageID < rightMsg.messageID)
-      return true;
-
-    return strcmp(leftMsg.description.c_str(), rightMsg.description.c_str()) < 0;
+    return sourceModel()->data(left, SortDataRole) < sourceModel()->data(right, SortDataRole);
   }
 
 private:
@@ -219,6 +204,9 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
 
   m_FilterModel->setSourceModel(m_ItemModel);
   ui->messages->setModel(m_FilterModel);
+
+  ui->messages->setSortingEnabled(true);
+  ui->messages->sortByColumn(0, Qt::AscendingOrder);
 
   ui->messages->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->messages, &QWidget::customContextMenuRequested, this,
@@ -289,7 +277,7 @@ void DebugMessageView::RefreshMessageList()
 
 void DebugMessageView::on_messages_doubleClicked(const QModelIndex &index)
 {
-  QVariant var = m_ItemModel->data(index, EIDRole);
+  QVariant var = m_FilterModel->data(index, EIDRole);
 
   if(var.isValid())
   {
