@@ -70,6 +70,12 @@ version of RenderDoc that addes a new section type. They should be considered eq
   above any friendly names specified in the capture itself.
 
   The name for this section will be "renderdoc/ui/resrenames".
+
+.. data:: AMDRGPProfile
+
+  This section contains a .rgp profile from AMD's RGP tool, which can be extracted and loaded.
+
+  The name for this section will be "amd/rgp/profile".
 )");
 enum class SectionType : uint32_t
 {
@@ -80,6 +86,7 @@ enum class SectionType : uint32_t
   Bookmarks,
   Notes,
   ResourceRenames,
+  AMDRGPProfile,
   Count,
 };
 

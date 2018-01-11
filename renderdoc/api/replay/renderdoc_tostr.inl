@@ -803,6 +803,7 @@ std::string DoStringise(const SectionType &el)
     STRINGISE_ENUM_CLASS_NAMED(Bookmarks, "renderdoc/ui/bookmarks");
     STRINGISE_ENUM_CLASS_NAMED(Notes, "renderdoc/ui/notes");
     STRINGISE_ENUM_CLASS_NAMED(ResourceRenames, "renderdoc/ui/resrenames");
+    STRINGISE_ENUM_CLASS_NAMED(AMDRGPProfile, "amd/rgp/profile");
   }
   END_ENUM_STRINGISE();
 }
