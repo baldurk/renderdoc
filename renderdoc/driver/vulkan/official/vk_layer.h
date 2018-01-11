@@ -48,6 +48,8 @@
 #define CURRENT_LOADER_LAYER_INTERFACE_VERSION 2
 #define MIN_SUPPORTED_LOADER_LAYER_INTERFACE_VERSION 1
 
+#define VK_CURRENT_CHAIN_VERSION 1
+
 // Version negotiation values
 typedef enum VkNegotiateLayerStructType {
     LAYER_NEGOTIATE_UNINTIALIZED = 0,
@@ -137,6 +139,43 @@ extern "C" {
 #endif
 
 VKAPI_ATTR VkResult VKAPI_CALL vkNegotiateLoaderLayerInterfaceVersion(VkNegotiateLayerInterface *pVersionStruct);
+
+typedef enum VkChainType {
+    VK_CHAIN_TYPE_UNKNOWN = 0,
+    VK_CHAIN_TYPE_ENUMERATE_INSTANCE_EXTENSION_PROPERTIES = 1,
+    VK_CHAIN_TYPE_ENUMERATE_INSTANCE_LAYER_PROPERTIES = 2,
+} VkChainType;
+
+typedef struct VkChainHeader {
+    VkChainType type;
+    uint32_t version;
+    uint32_t size;
+} VkChainHeader;
+
+typedef struct VkEnumerateInstanceExtensionPropertiesChain {
+    VkChainHeader header;
+    VkResult(VKAPI_PTR *pfnNextLayer)(const struct VkEnumerateInstanceExtensionPropertiesChain *, const char *, uint32_t *,
+                                      VkExtensionProperties *);
+    const struct VkEnumerateInstanceExtensionPropertiesChain *pNextLink;
+
+#if defined(__cplusplus)
+    inline VkResult CallDown(const char *pLayerName, uint32_t *pPropertyCount, VkExtensionProperties *pProperties) const {
+        return pfnNextLayer(pNextLink, pLayerName, pPropertyCount, pProperties);
+    }
+#endif
+} VkEnumerateInstanceExtensionPropertiesChain;
+
+typedef struct VkEnumerateInstanceLayerPropertiesChain {
+    VkChainHeader header;
+    VkResult(VKAPI_PTR *pfnNextLayer)(const struct VkEnumerateInstanceLayerPropertiesChain *, uint32_t *, VkLayerProperties *);
+    const struct VkEnumerateInstanceLayerPropertiesChain *pNextLink;
+
+#if defined(__cplusplus)
+    inline VkResult CallDown(uint32_t *pPropertyCount, VkLayerProperties *pProperties) const {
+        return pfnNextLayer(pNextLink, pPropertyCount, pProperties);
+    }
+#endif
+} VkEnumerateInstanceLayerPropertiesChain;
 
 #ifdef __cplusplus
 }

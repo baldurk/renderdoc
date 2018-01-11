@@ -807,11 +807,18 @@ public:
 
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
-  bool IsSupportedExtension(const char *extName);
+  static bool IsSupportedExtension(const char *extName);
+  static void FilterToSupportedExtensions(std::vector<VkExtensionProperties> &exts,
+                                          std::vector<VkExtensionProperties> &filtered);
   VkResult FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount,
                                            VkExtensionProperties *pProperties);
-  static VkResult GetProvidedExtensionProperties(uint32_t *pPropertyCount,
-                                                 VkExtensionProperties *pProperties);
+  static VkResult FilterInstanceExtensionProperties(
+      const VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
+      uint32_t *pPropertyCount, VkExtensionProperties *pProperties);
+  static VkResult GetProvidedDeviceExtensionProperties(uint32_t *pPropertyCount,
+                                                       VkExtensionProperties *pProperties);
+  static VkResult GetProvidedInstanceExtensionProperties(uint32_t *pPropertyCount,
+                                                         VkExtensionProperties *pProperties);
 
   const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
   // Device initialization

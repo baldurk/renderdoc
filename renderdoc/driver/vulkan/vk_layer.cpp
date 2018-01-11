@@ -188,6 +188,9 @@ void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocation
     "/EXPORT:VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties=_VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties@16")
 #pragma comment( \
     linker,      \
+    "/EXPORT:VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties=_VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties@16")
+#pragma comment( \
+    linker,      \
     "/EXPORT:VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr=_VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr@8")
 #pragma comment( \
     linker,      \
@@ -239,7 +242,18 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExt
     return CoreDisp(physicalDevice)
         ->FilterDeviceExtensionProperties(physicalDevice, pPropertyCount, pProperties);
 
-  return WrappedVulkan::GetProvidedExtensionProperties(pPropertyCount, pProperties);
+  return WrappedVulkan::GetProvidedDeviceExtensionProperties(pPropertyCount, pProperties);
+}
+
+VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
+    const VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
+    uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
+{
+  if(pLayerName && !strcmp(pLayerName, RENDERDOC_LAYER_NAME))
+    return WrappedVulkan::GetProvidedInstanceExtensionProperties(pPropertyCount, pProperties);
+
+  return WrappedVulkan::FilterInstanceExtensionProperties(pChain, pLayerName, pPropertyCount,
+                                                          pProperties);
 }
 
 #undef HookInit
@@ -290,6 +304,8 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties;
   if(!strcmp("vkEnumerateDeviceExtensionProperties", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties;
+  if(!strcmp("vkEnumerateInstanceExtensionProperties", pName))
+    return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties;
   if(!strcmp("vkGetDeviceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
   if(!strcmp("vkCreateDevice", pName))

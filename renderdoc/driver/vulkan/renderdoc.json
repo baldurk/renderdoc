@@ -1,5 +1,5 @@
 {
-  "file_format_version" : "1.0.0",
+  "file_format_version" : "1.1.2",
   "layer" : {
     "name": "VK_LAYER_RENDERDOC_Capture",
     "type": "GLOBAL",
@@ -10,6 +10,9 @@
     "functions": {
       "vkGetInstanceProcAddr": "VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr",
       "vkGetDeviceProcAddr": "VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr"
+    },
+    "pre_instance_functions": {
+      "vkEnumerateInstanceExtensionProperties": "VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties"
     },
     "device_extensions": [
       {

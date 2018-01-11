@@ -487,7 +487,8 @@ static VkResult FillPropertyCountAndList(const VkExtensionProperties *src, uint3
     *dstCount = RDCMIN(numExts, dstSpace);
 
     // copy as much as there's space for, up to how many there are
-    memcpy(dstProps, src, sizeof(VkExtensionProperties) * RDCMIN(numExts, dstSpace));
+    if(src)
+      memcpy(dstProps, src, sizeof(VkExtensionProperties) * RDCMIN(numExts, dstSpace));
 
     // if there was enough space, return success, else incomplete
     if(dstSpace >= numExts)
@@ -681,7 +682,7 @@ static const VkExtensionProperties supportedExtensions[] = {
 };
 
 // this is the list of extensions we provide - regardless of whether the ICD supports them
-static const VkExtensionProperties renderdocProvidedExtensions[] = {
+static const VkExtensionProperties renderdocProvidedDeviceExtensions[] = {
     {VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION},
 };
 
@@ -694,34 +695,9 @@ bool WrappedVulkan::IsSupportedExtension(const char *extName)
   return false;
 }
 
-VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev,
-                                                        uint32_t *pPropertyCount,
-                                                        VkExtensionProperties *pProperties)
+void WrappedVulkan::FilterToSupportedExtensions(std::vector<VkExtensionProperties> &exts,
+                                                std::vector<VkExtensionProperties> &filtered)
 {
-  VkResult vkr;
-
-  // first fetch the list of extensions ourselves
-  uint32_t numExts;
-  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts, NULL);
-
-  if(vkr != VK_SUCCESS)
-    return vkr;
-
-  vector<VkExtensionProperties> exts(numExts);
-  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts,
-                                                             &exts[0]);
-
-  if(vkr != VK_SUCCESS)
-    return vkr;
-
-  // filter the list of extensions to only the ones we support.
-
-  // sort the reported extensions
-  std::sort(exts.begin(), exts.end());
-
-  std::vector<VkExtensionProperties> filtered;
-  filtered.reserve(exts.size());
-
   // now we can step through both lists with two pointers,
   // instead of doing an O(N*M) lookup searching through each
   // supported extension for each reported extension.
@@ -753,22 +729,92 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
       ++i;
     }
   }
+}
+
+VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev,
+                                                        uint32_t *pPropertyCount,
+                                                        VkExtensionProperties *pProperties)
+{
+  VkResult vkr;
+
+  // first fetch the list of extensions ourselves
+  uint32_t numExts;
+  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts, NULL);
+
+  if(vkr != VK_SUCCESS)
+    return vkr;
+
+  std::vector<VkExtensionProperties> exts(numExts);
+  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts,
+                                                             &exts[0]);
+
+  if(vkr != VK_SUCCESS)
+    return vkr;
+
+  // filter the list of extensions to only the ones we support.
+
+  // sort the reported extensions
+  std::sort(exts.begin(), exts.end());
+
+  std::vector<VkExtensionProperties> filtered;
+  filtered.reserve(exts.size());
+  FilterToSupportedExtensions(exts, filtered);
 
   // now we can add extensions that we provide ourselves (note this isn't sorted, but we
   // don't have to sort the results, the sorting was just so we could filter optimally).
-  filtered.insert(filtered.end(), &renderdocProvidedExtensions[0],
-                  &renderdocProvidedExtensions[0] + ARRAY_COUNT(renderdocProvidedExtensions));
+  filtered.insert(
+      filtered.end(), &renderdocProvidedDeviceExtensions[0],
+      &renderdocProvidedDeviceExtensions[0] + ARRAY_COUNT(renderdocProvidedDeviceExtensions));
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
                                   pProperties);
 }
 
-VkResult WrappedVulkan::GetProvidedExtensionProperties(uint32_t *pPropertyCount,
-                                                       VkExtensionProperties *pProperties)
+VkResult WrappedVulkan::FilterInstanceExtensionProperties(
+    const VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
+    uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
-  return FillPropertyCountAndList(renderdocProvidedExtensions,
-                                  (uint32_t)ARRAY_COUNT(renderdocProvidedExtensions),
+  VkResult vkr;
+
+  // first fetch the list of extensions ourselves
+  uint32_t numExts;
+  vkr = pChain->CallDown(pLayerName, &numExts, NULL);
+
+  if(vkr != VK_SUCCESS)
+    return vkr;
+
+  std::vector<VkExtensionProperties> exts(numExts);
+  vkr = pChain->CallDown(pLayerName, &numExts, &exts[0]);
+
+  if(vkr != VK_SUCCESS)
+    return vkr;
+
+  // filter the list of extensions to only the ones we support.
+
+  // sort the reported extensions
+  std::sort(exts.begin(), exts.end());
+
+  std::vector<VkExtensionProperties> filtered;
+  filtered.reserve(exts.size());
+
+  FilterToSupportedExtensions(exts, filtered);
+
+  return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
+                                  pProperties);
+}
+
+VkResult WrappedVulkan::GetProvidedDeviceExtensionProperties(uint32_t *pPropertyCount,
+                                                             VkExtensionProperties *pProperties)
+{
+  return FillPropertyCountAndList(renderdocProvidedDeviceExtensions,
+                                  (uint32_t)ARRAY_COUNT(renderdocProvidedDeviceExtensions),
                                   pPropertyCount, pProperties);
+}
+
+VkResult WrappedVulkan::GetProvidedInstanceExtensionProperties(uint32_t *pPropertyCount,
+                                                               VkExtensionProperties *pProperties)
+{
+  return FillPropertyCountAndList(NULL, 0, pPropertyCount, pProperties);
 }
 
 template <typename SerialiserType>
