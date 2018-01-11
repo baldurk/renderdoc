@@ -1279,6 +1279,31 @@ considered out of date
 )");
   virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) = 0;
 
+  DOCUMENT(R"(Creates a mapping from eventId to/from RGP linearId for the current capture.
+
+Does nothing if no capture is loaded.
+
+:param int version: The version of mapping to use, determining which events are counted.
+)");
+  virtual void CreateRGPMapping(uint32_t version) = 0;
+
+  DOCUMENT(R"(Get the RGP linearId from an :data:`eventId <renderdoc.APIEvent.eventId>`.
+
+:param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
+:return: The linearId, or ``0`` if no linearId corresponds to this event.
+:rtype: int
+)");
+  virtual uint32_t GetRGPIdFromEventId(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Get the :data:`eventId <renderdoc.APIEvent.eventId>` from an RGP linearId.
+
+:param int RGPId: The RGP linearId to query for.
+:return: The :data:`eventId <renderdoc.APIEvent.eventId>`, or ``0`` if no eventId can be found
+  corresponding to this linearId.
+:rtype: int
+)");
+  virtual uint32_t GetEventIdFromRGPId(uint32_t RGPId) = 0;
+
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.SDFile` for the currently open capture.
 
 :return: The structured file.
