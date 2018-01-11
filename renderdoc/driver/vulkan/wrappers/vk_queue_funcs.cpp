@@ -150,6 +150,16 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
     if(doWait)
       ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 
+    // add a drawcall use for this submission, to tally up with any debug messages that come from it
+    if(IsLoading(m_State))
+    {
+      DrawcallUse use(m_CurChunkOffset, m_RootEventID);
+
+      // insert in sorted location
+      auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+      m_DrawcallUses.insert(drawit, use);
+    }
+
     for(uint32_t sub = 0; sub < submitCount; sub++)
     {
       VkSubmitInfo submitInfo = pSubmits[sub];
@@ -382,11 +392,14 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
       m_Events.push_back(ev);
     }
 
-    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventId);
+    if(!n.draw.events.empty())
+    {
+      DrawcallUse use(n.draw.events.back().fileOffset, n.draw.eventId);
 
-    // insert in sorted location
-    auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-    m_DrawcallUses.insert(drawit, use);
+      // insert in sorted location
+      auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+      m_DrawcallUses.insert(drawit, use);
+    }
 
     RDCASSERT(n.children.empty());
 

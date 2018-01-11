@@ -63,18 +63,27 @@
 #include "serialise/serialiser.h"
 #include "vk_dispatchtables.h"
 
-// uncomment this to cause every internal QueueSubmit to immediately call
-// DeviceWaitIdle(), and to only submit one command buffer at once to narrow
-// down the cause of device lost errors
+// enable this to cause every internal QueueSubmit to immediately call DeviceWaitIdle(), and to only
+// submit one command buffer at once to narrow down the cause of device lost errors
 #define SINGLE_FLUSH_VALIDATE OPTION_OFF
 
-// uncomment this to get verbose debugging about when/where/why partial command
-// buffer replay is happening
+// enable this to get verbose debugging about when/where/why partial command buffer replay is
+// happening
 #define VERBOSE_PARTIAL_REPLAY OPTION_OFF
 
-// uncomment this to enable validation layers on replay, useful for debugging
+// enable this to enable validation layers on replay, useful for debugging
 // problems with new replay code
 #define FORCE_VALIDATION_LAYERS OPTION_OFF
+
+// enable this to send replay-time validation layer messages to the UI.
+// By default we only display saved validation layer messages from capture, and then any runtime
+// messages we generate ourselves. With this option, every time the catpure is replayed, any
+// messages will be bubbled up and added to the list in the UI - there is no deduplication so this
+// will be an ever-growing list.
+// This is independent of FORCE_VALIDATION_LAYERS above. We will listen to debug report if it's
+// available whether or not we enabled the validation layers, and output any messages. This allows
+// the ICD to generate messages for display
+#define DISPLAY_RUNTIME_DEBUG_MESSAGES OPTION_OFF
 
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);

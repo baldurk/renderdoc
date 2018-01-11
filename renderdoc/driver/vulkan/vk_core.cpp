@@ -1807,7 +1807,28 @@ bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 {
   m_AddedDrawcall = false;
 
-  bool success = ProcessChunk(ser, chunk);
+  bool success = false;
+
+#if ENABLED(DISPLAY_RUNTIME_DEBUG_MESSAGES)
+  // see the definition of DISPLAY_RUNTIME_DEBUG_MESSAGES for more information. During replay, add a
+  // debug sink to catch any replay-time messages
+  {
+    ScopedDebugMessageSink sink(this);
+
+    success = ProcessChunk(ser, chunk);
+
+    if(IsActiveReplaying(m_State))
+    {
+      std::vector<DebugMessage> DebugMessages;
+      DebugMessages.swap(sink.msgs);
+
+      for(const DebugMessage &msg : DebugMessages)
+        AddDebugMessage(msg);
+    }
+  }
+#else
+  success = ProcessChunk(ser, chunk);
+#endif
 
   if(!success)
     return false;
@@ -2465,7 +2486,6 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
   else if(!strcmp(pLayerPrefix, "PARAMCHECK") || !strcmp(pLayerPrefix, "ParameterValidation"))
     isPARAM = true;
 
-  if(IsCaptureMode(m_State))
   {
     ScopedDebugMessageSink *sink = GetDebugMessageSink();
 
@@ -2479,6 +2499,17 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
       msg.severity = MessageSeverity::Low;
       msg.messageID = messageCode;
       msg.source = MessageSource::API;
+
+      // during replay we can get an eventId to correspond to this message.
+      if(IsActiveReplaying(m_State))
+      {
+        // look up the EID this drawcall came from
+        DrawcallUse use(m_CurChunkOffset, 0);
+        auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+
+        if(it != m_DrawcallUses.end())
+          msg.eventId = it->eventId;
+      }
 
       if(flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
         msg.severity = MessageSeverity::Info;

@@ -102,8 +102,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
 #if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
   params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
-
-  params.Extensions.push_back("VK_EXT_debug_report");
 #endif
 
   // strip out any WSI/direct display extensions. We'll add the ones we want for creating windows
@@ -179,6 +177,13 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
       RDCERR("Log requires extension '%s' which is not supported", params.Extensions[i].c_str());
       return ReplayStatus::APIHardwareUnsupported;
     }
+  }
+
+  // we always want this extension if it's available
+  if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end())
+  {
+    RDCLOG("Enabling VK_EXT_debug_report");
+    params.Extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
   }
 
   const char **layerscstr = new const char *[params.Layers.size()];
@@ -954,10 +959,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       Extensions.push_back(VK_AMD_SHADER_INFO_EXTENSION_NAME);
       RDCLOG("Enabling VK_AMD_shader_info");
     }
-
-#if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
-    Layers.push_back("VK_LAYER_LUNARG_standard_validation");
-#endif
 
     createInfo.enabledLayerCount = (uint32_t)Layers.size();
 
