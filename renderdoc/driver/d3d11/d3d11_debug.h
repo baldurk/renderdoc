@@ -32,7 +32,6 @@
 #include "driver/dx/official/d3d11_4.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "replay/replay_driver.h"
-#include "d3d11_renderstate.h"
 
 using std::map;
 using std::pair;
@@ -43,215 +42,88 @@ class Vec3f;
 class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;
 
-class AMDCounters;
-
-struct D3D11CounterContext;
-
 class D3D11ResourceManager;
+
+struct CopyPixelParams;
 
 namespace ShaderDebug
 {
 struct GlobalState;
 }
 
-struct D3D11PostVSData
+struct TextureShaderDetails
 {
-  struct InstData
+  TextureShaderDetails()
   {
-    uint32_t numVerts = 0;
-    uint32_t bufOffset = 0;
-  };
+    texFmt = DXGI_FORMAT_UNKNOWN;
+    texWidth = 0;
+    texHeight = 0;
+    texDepth = 0;
+    texMips = 0;
+    texArraySize = 0;
 
-  struct StageData
-  {
-    ID3D11Buffer *buf = NULL;
-    D3D11_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    sampleCount = 1;
+    sampleQuality = 0;
 
-    uint32_t vertStride = 0;
+    texType = eTexType_2D;
 
-    // simple case - uniform
-    uint32_t numVerts = 0;
-    uint32_t instStride = 0;
+    srvResource = NULL;
+    previewCopy = NULL;
 
-    // complex case - expansion per instance
-    std::vector<InstData> instData;
-
-    bool useIndices = false;
-    ID3D11Buffer *idxBuf = NULL;
-    DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
-
-    bool hasPosOut = false;
-
-    float nearPlane = 0.0f;
-    float farPlane = 0.0f;
-  } vsin, vsout, gsout;
-
-  const StageData &GetStage(MeshDataStage type)
-  {
-    if(type == MeshDataStage::VSOut)
-      return vsout;
-    else if(type == MeshDataStage::GSOut)
-      return gsout;
-    else
-      RDCERR("Unexpected mesh data stage!");
-
-    return vsin;
+    RDCEraseEl(srv);
   }
+
+  DXGI_FORMAT texFmt;
+  UINT texWidth;
+  UINT texHeight;
+  UINT texDepth;
+  UINT texMips;
+  UINT texArraySize;
+
+  UINT sampleCount;
+  UINT sampleQuality;
+
+  D3D11TextureDetailsType texType;
+
+  ID3D11Resource *srvResource;
+  ID3D11Resource *previewCopy;
+
+  ID3D11ShaderResourceView *srv[eTexType_Max];
 };
 
-struct CopyPixelParams;
-struct GetTextureDataParams;
-
-class D3D11DebugManager
+struct D3D11DebugManager
 {
 public:
   D3D11DebugManager(WrappedID3D11Device *wrapper);
   ~D3D11DebugManager();
 
-  uint64_t MakeOutputWindow(WindowingData window, bool depth);
-  void DestroyOutputWindow(uint64_t id);
-  bool CheckResizeOutputWindow(uint64_t id);
-  void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);
-  void ClearOutputWindowColor(uint64_t id, FloatVector col);
-  void ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil);
-  void BindOutputWindow(uint64_t id, bool depth);
-  bool IsOutputWindowVisible(uint64_t id);
-  void FlipOutputWindow(uint64_t id);
-
-  void SetOutputDimensions(int w, int h)
-  {
-    m_width = w;
-    m_height = h;
-  }
-  int GetWidth() { return m_width; }
-  int GetHeight() { return m_height; }
-  void InitPostVSBuffers(uint32_t eventId);
-  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage);
-  void ClearPostVSCache();
-
   void RenderForPredicate();
 
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
-  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData);
   void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, bytebuf &retData);
-
-  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                      const GetTextureDataParams &params, bytebuf &data);
-
-  void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
-                            vector<ShaderVariable> &outvars, bool flattenVec4s, const bytebuf &data);
-
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeHint, float *minval, float *maxval);
-  bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeHint, float minval, float maxval, bool channels[4],
-                    vector<uint32_t> &histogram);
 
   void CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray);
   void CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Texture2D *srcMS);
 
-  // called before any device is created, to init any counters
-  static void PreDeviceInitCounters();
-
-  // called after any device is destroyed, to do corresponding shutdown of counters
-  static void PostDeviceShutdownCounters();
-
-  vector<GPUCounter> EnumerateCounters();
-  CounterDescription DescribeCounter(GPUCounter counterID);
-  vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
-  vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
-
-  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
-
   ID3D11Buffer *MakeCBuffer(const void *data, size_t size);
-
   ID3D11Buffer *MakeCBuffer(UINT size);
 
-  bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
-
-  void RenderCheckerboard();
-
-  void RenderHighlightBox(float w, float h, float scale);
-
-  vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
-                                         uint32_t y, uint32_t slice, uint32_t mip,
-                                         uint32_t sampleIdx, CompType typeHint);
-  ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
-                               uint32_t instOffset, uint32_t vertOffset);
-  ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                              uint32_t primitive);
-  ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                               const uint32_t threadid[3]);
-  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeHint, float pixel[4]);
-  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y);
-
-  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                           uint32_t eventId, const vector<uint32_t> &passEvents);
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeHint);
-
-  // don't need to differentiate arrays as we treat everything
-  // as an array (potentially with only one element).
-  enum TextureType
-  {
-    eTexType_1D = 1,
-    eTexType_2D,
-    eTexType_3D,
-    eTexType_Depth,
-    eTexType_Stencil,
-    eTexType_DepthMS,
-    eTexType_StencilMS,
-    eTexType_Unused,    // removed, kept just to keep slots the same
-    eTexType_2DMS,
-    eTexType_Max
-  };
-
-  struct TextureShaderDetails
-  {
-    TextureShaderDetails()
-    {
-      texFmt = DXGI_FORMAT_UNKNOWN;
-      texWidth = 0;
-      texHeight = 0;
-      texDepth = 0;
-      texMips = 0;
-      texArraySize = 0;
-
-      sampleCount = 1;
-      sampleQuality = 0;
-
-      texType = eTexType_2D;
-
-      srvResource = NULL;
-      previewCopy = NULL;
-
-      RDCEraseEl(srv);
-    }
-
-    DXGI_FORMAT texFmt;
-    UINT texWidth;
-    UINT texHeight;
-    UINT texDepth;
-    UINT texMips;
-    UINT texArraySize;
-
-    UINT sampleCount;
-    UINT sampleQuality;
-
-    TextureType texType;
-
-    ID3D11Resource *srvResource;
-    ID3D11Resource *previewCopy;
-
-    ID3D11ShaderResourceView *srv[eTexType_Max];
-  };
+  void FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size);
 
   TextureShaderDetails GetShaderDetails(ResourceId id, CompType typeHint, bool rawOutput);
 
-  AMDCounters *m_pAMDCounters;
+  void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
-private:
+  ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
+                                            DXBC::DXBCFile *dxbc, bytebuf *cbufData);
+  void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc,
+                               uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs,
+                               ID3D11ShaderResourceView **SRVs);
+
+  void FillCBufferVariables(const std::string &prefix, size_t &offset,
+                            const std::vector<DXBC::CBufferVariable> &invars,
+                            std::vector<ShaderVariable> &outvars, bool flatten, const bytebuf &data);
+
   struct CacheElem
   {
     CacheElem(ResourceId id_, CompType typeHint_, bool raw_)
@@ -275,264 +147,41 @@ private:
     ID3D11ShaderResourceView *srv[2];
   };
 
+  CacheElem &GetCachedElem(ResourceId id, CompType typeHint, bool raw);
+
+private:
+  void InitCommonResources();
+  void InitReplayResources();
+  void ShutdownResources();
+
   static const int NUM_CACHED_SRVS = 64;
+  static const uint32_t STAGE_BUFFER_BYTE_SIZE = 4 * 1024 * 1024;
 
   std::list<CacheElem> m_ShaderItemCache;
 
-  CacheElem &GetCachedElem(ResourceId id, CompType typeHint, bool raw);
+  WrappedID3D11Device *m_pDevice = NULL;
+  WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
 
-  int m_width = 1, m_height = 1;
+  // MakeCBuffer
+  int publicCBufIdx = 0;
+  ID3D11Buffer *PublicCBuffers[20] = {NULL};
 
-  WrappedID3D11Device *m_WrappedDevice = NULL;
-  WrappedID3D11DeviceContext *m_WrappedContext = NULL;
+  // GetBufferData
+  ID3D11Buffer *StageBuffer = NULL;
 
-  D3D11ResourceManager *m_ResourceManager = NULL;
+  // CopyArrayToTex2DMS & CopyTex2DMSToArray
+  ID3D11VertexShader *MSArrayCopyVS = NULL;
+  ID3D11PixelShader *CopyMSToArrayPS = NULL;
+  ID3D11PixelShader *CopyArrayToMSPS = NULL;
+  ID3D11PixelShader *FloatCopyMSToArrayPS = NULL;
+  ID3D11PixelShader *FloatCopyArrayToMSPS = NULL;
+  ID3D11PixelShader *DepthCopyMSToArrayPS = NULL;
+  ID3D11PixelShader *DepthCopyArrayToMSPS = NULL;
 
-  ID3D11Device *m_pDevice = NULL;
-  ID3D11DeviceContext *m_pImmediateContext = NULL;
+  // PixelHistoryCopyPixel
+  ID3D11ComputeShader *PixelHistoryUnusedCS = NULL;
+  ID3D11ComputeShader *PixelHistoryCopyCS = NULL;
 
-  IDXGIFactory *m_pFactory = NULL;
-
-  struct OutputWindow
-  {
-    HWND wnd;
-    IDXGISwapChain *swap;
-    ID3D11RenderTargetView *rtv;
-    ID3D11DepthStencilView *dsv;
-
-    WrappedID3D11Device *dev;
-
-    void MakeRTV();
-    void MakeDSV();
-
-    int width, height;
-  };
-
-  uint64_t m_OutputWindowID = 1;
-  map<uint64_t, OutputWindow> m_OutputWindows;
-
-  // used to track the real state so we can preserve it even
-  // across work done to the output windows
-  struct RealState
-  {
-    RealState() : state(D3D11RenderState::Empty) { active = false; }
-    bool active;
-    D3D11RenderState state;
-  } m_RealState;
-
-  uint32_t m_SOBufferSize = 32 * 1024 * 1024;
-  ID3D11Buffer *m_SOBuffer = NULL;
-  ID3D11Buffer *m_SOStagingBuffer = NULL;
-  std::vector<ID3D11Query *> m_SOStatsQueries;
-  // event -> data
-  map<uint32_t, D3D11PostVSData> m_PostVSData;
-
-  HighlightCache m_HighlightCache;
-
-  ID3D11Texture2D *m_OverlayRenderTex;
-  ResourceId m_OverlayResourceId;
-
-  ID3D11Texture2D *m_CustomShaderTex;
-  ID3D11RenderTargetView *m_CustomShaderRTV;
-  ResourceId m_CustomShaderResourceId;
-
-  ID3D11BlendState *m_WireframeHelpersBS;
-  ID3D11RasterizerState *m_WireframeHelpersRS, *m_WireframeHelpersCullCCWRS,
-      *m_WireframeHelpersCullCWRS;
-  ID3D11RasterizerState *m_SolidHelpersRS;
-
-  // these gets updated to pull the elements selected out of the buffers
-  ID3D11InputLayout *m_MeshDisplayLayout;
-
-  // whenever these change
-  ResourceFormat m_PrevMeshFmt;
-  ResourceFormat m_PrevMeshFmt2;
-
-  ID3D11Buffer *m_AxisHelper;
-  ID3D11Buffer *m_FrustumHelper;
-  ID3D11Buffer *m_TriHighlightHelper;
-
-  bool InitStreamOut();
-  void CreateSOBuffers();
-  void ShutdownStreamOut();
-
-  void CreateCustomShaderTex(uint32_t w, uint32_t h);
-
-  void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
-
-  static const uint32_t STAGE_BUFFER_BYTE_SIZE = 4 * 1024 * 1024;
-
-  struct DebugRenderData
-  {
-    DebugRenderData() { RDCEraseMem(this, sizeof(DebugRenderData)); }
-    ~DebugRenderData()
-    {
-      SAFE_RELEASE(StageBuffer);
-
-      SAFE_RELEASE(RastState);
-      SAFE_RELEASE(BlendState);
-      SAFE_RELEASE(NopBlendState);
-      SAFE_RELEASE(PointSampState);
-      SAFE_RELEASE(LinearSampState);
-      SAFE_RELEASE(NoDepthState);
-      SAFE_RELEASE(LEqualDepthState);
-      SAFE_RELEASE(NopDepthState);
-      SAFE_RELEASE(AllPassDepthState);
-      SAFE_RELEASE(AllPassIncrDepthState);
-      SAFE_RELEASE(StencIncrEqDepthState);
-
-      SAFE_RELEASE(GenericLayout);
-      SAFE_RELEASE(GenericVSCBuffer);
-      SAFE_RELEASE(GenericGSCBuffer);
-      SAFE_RELEASE(GenericPSCBuffer);
-      SAFE_RELEASE(GenericVS);
-      SAFE_RELEASE(TexDisplayPS);
-      SAFE_RELEASE(CheckerboardPS);
-      SAFE_RELEASE(OutlinePS);
-      SAFE_RELEASE(MeshVS);
-      SAFE_RELEASE(MeshGS);
-      SAFE_RELEASE(MeshPS);
-      SAFE_RELEASE(TriangleSizeGS);
-      SAFE_RELEASE(TriangleSizePS);
-      SAFE_RELEASE(FullscreenVS);
-      SAFE_RELEASE(WireframePS);
-      SAFE_RELEASE(OverlayPS);
-
-      SAFE_RELEASE(CopyMSToArrayPS);
-      SAFE_RELEASE(CopyArrayToMSPS);
-      SAFE_RELEASE(FloatCopyMSToArrayPS);
-      SAFE_RELEASE(FloatCopyArrayToMSPS);
-      SAFE_RELEASE(DepthCopyMSToArrayPS);
-      SAFE_RELEASE(DepthCopyArrayToMSPS);
-      SAFE_RELEASE(PixelHistoryUnusedCS);
-      SAFE_RELEASE(PixelHistoryCopyCS);
-      SAFE_RELEASE(PrimitiveIDPS);
-
-      SAFE_RELEASE(MeshPickCS);
-      SAFE_RELEASE(PickIBBuf);
-      SAFE_RELEASE(PickVBBuf);
-      SAFE_RELEASE(PickIBSRV);
-      SAFE_RELEASE(PickVBSRV);
-      SAFE_RELEASE(PickResultBuf);
-      SAFE_RELEASE(PickResultUAV);
-
-      SAFE_RELEASE(QuadOverdrawPS);
-      SAFE_RELEASE(QOResolvePS);
-
-      SAFE_RELEASE(tileResultBuff);
-      SAFE_RELEASE(resultBuff);
-      SAFE_RELEASE(resultStageBuff);
-
-      for(int i = 0; i < 3; i++)
-      {
-        SAFE_RELEASE(tileResultUAV[i]);
-        SAFE_RELEASE(resultUAV[i]);
-        SAFE_RELEASE(tileResultSRV[i]);
-      }
-
-      for(int i = 0; i < ARRAY_COUNT(TileMinMaxCS); i++)
-      {
-        for(int j = 0; j < 3; j++)
-        {
-          SAFE_RELEASE(TileMinMaxCS[i][j]);
-          SAFE_RELEASE(HistogramCS[i][j]);
-
-          if(i == 0)
-            SAFE_RELEASE(ResultMinMaxCS[j]);
-        }
-      }
-
-      SAFE_RELEASE(histogramBuff);
-      SAFE_RELEASE(histogramStageBuff);
-
-      SAFE_RELEASE(histogramUAV);
-
-      SAFE_DELETE_ARRAY(MeshVSBytecode);
-
-      SAFE_RELEASE(PickPixelRT);
-      SAFE_RELEASE(PickPixelStageTex);
-
-      for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
-      {
-        SAFE_RELEASE(PublicCBuffers[i]);
-      }
-    }
-
-    ID3D11Buffer *StageBuffer;
-
-    ID3D11RasterizerState *RastState;
-    ID3D11SamplerState *PointSampState, *LinearSampState;
-    ID3D11BlendState *BlendState, *NopBlendState;
-    ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState, *AllPassDepthState,
-        *AllPassIncrDepthState, *StencIncrEqDepthState;
-
-    ID3D11InputLayout *GenericLayout;
-    ID3D11Buffer *GenericVSCBuffer;
-    ID3D11Buffer *GenericGSCBuffer;
-    ID3D11Buffer *GenericPSCBuffer;
-    ID3D11Buffer *PublicCBuffers[20];
-    ID3D11VertexShader *GenericVS, *MeshVS, *FullscreenVS;
-    ID3D11GeometryShader *MeshGS, *TriangleSizeGS;
-    ID3D11PixelShader *TexDisplayPS, *OverlayPS, *WireframePS, *MeshPS, *CheckerboardPS,
-        *TriangleSizePS;
-    ID3D11PixelShader *OutlinePS;
-    ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
-    ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
-    ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;
-    ID3D11ComputeShader *PixelHistoryUnusedCS, *PixelHistoryCopyCS;
-    ID3D11PixelShader *PrimitiveIDPS;
-
-    static const uint32_t maxMeshPicks = 500;
-
-    ID3D11ComputeShader *MeshPickCS;
-    ID3D11Buffer *PickIBBuf, *PickVBBuf;
-    uint32_t PickIBSize, PickVBSize;
-    ID3D11ShaderResourceView *PickIBSRV, *PickVBSRV;
-    ID3D11Buffer *PickResultBuf;
-    ID3D11UnorderedAccessView *PickResultUAV;
-
-    ID3D11PixelShader *QuadOverdrawPS, *QOResolvePS;
-
-    ID3D11Buffer *tileResultBuff, *resultBuff, *resultStageBuff;
-    ID3D11UnorderedAccessView *tileResultUAV[3], *resultUAV[3];
-    ID3D11ShaderResourceView *tileResultSRV[3];
-    ID3D11ComputeShader *TileMinMaxCS[eTexType_Max][3];    // uint, sint, float
-    ID3D11ComputeShader *HistogramCS[eTexType_Max][3];     // uint, sint, float
-    ID3D11ComputeShader *ResultMinMaxCS[3];
-    ID3D11Buffer *histogramBuff, *histogramStageBuff;
-    ID3D11UnorderedAccessView *histogramUAV;
-
-    byte *MeshVSBytecode;
-    uint32_t MeshVSBytelen;
-
-    int publicCBufIdx;
-
-    ID3D11RenderTargetView *PickPixelRT;
-    ID3D11Texture2D *PickPixelStageTex;
-  } m_DebugRender;
-
-  bool InitDebugRendering();
-
-  ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                            DXBC::DXBCFile *dxbc, bytebuf *cbufData);
-  void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc,
-                               uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs,
-                               ID3D11ShaderResourceView **SRVs);
-  void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
-                            const vector<DXBC::CBufferVariable> &invars,
-                            vector<ShaderVariable> &outvars, const bytebuf &data);
-  friend struct ShaderDebugState;
-
-  // called after the device is created, to init any counters
-  void PostDeviceInitCounters();
-
-  // called before the device is shutdown, to shutdown any counters
-  void PreDeviceShutdownCounters();
-
-  void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
-
-  void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
-                     const DrawcallDescription &drawnode);
-
-  void FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size);
+  // RenderForPredicate
+  ID3D11DepthStencilView *PredicateDSV = NULL;
 };

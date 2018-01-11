@@ -29,13 +29,66 @@
 #include "core/core.h"
 #include "replay/replay_driver.h"
 #include "d3d11_common.h"
+#include "d3d11_renderstate.h"
+
+struct D3D11DebugManager;
 
 class WrappedID3D11Device;
+class WrappedID3D11DeviceContext;
+
+class AMDCounters;
+struct D3D11CounterContext;
+
+struct D3D11PostVSData
+{
+  struct InstData
+  {
+    uint32_t numVerts = 0;
+    uint32_t bufOffset = 0;
+  };
+
+  struct StageData
+  {
+    ID3D11Buffer *buf = NULL;
+    D3D11_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+    uint32_t vertStride = 0;
+
+    // simple case - uniform
+    uint32_t numVerts = 0;
+    uint32_t instStride = 0;
+
+    // complex case - expansion per instance
+    std::vector<InstData> instData;
+
+    bool useIndices = false;
+    ID3D11Buffer *idxBuf = NULL;
+    DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
+
+    bool hasPosOut = false;
+
+    float nearPlane = 0.0f;
+    float farPlane = 0.0f;
+  } vsin, vsout, gsout;
+
+  const StageData &GetStage(MeshDataStage type)
+  {
+    if(type == MeshDataStage::VSOut)
+      return vsout;
+    else if(type == MeshDataStage::GSOut)
+      return gsout;
+    else
+      RDCERR("Unexpected mesh data stage!");
+
+    return vsin;
+  }
+};
 
 class D3D11Replay : public IReplayDriver
 {
 public:
   D3D11Replay();
+  ~D3D11Replay();
 
   void SetProxy(bool p, bool warp)
   {
@@ -45,7 +98,10 @@ public:
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
 
-  void SetDevice(WrappedID3D11Device *d) { m_pDevice = d; }
+  void SetDevice(WrappedID3D11Device *d);
+  void CreateResources();
+  void DestroyResources();
+
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
@@ -157,7 +213,8 @@ public:
                                const uint32_t threadid[3]);
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, CompType typeHint, float pixel[4]);
-  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y);
+  uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
+                      uint32_t x, uint32_t y);
 
   ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                            uint32_t eventId, const vector<uint32_t> &passEvents);
@@ -174,13 +231,209 @@ private:
   bool m_WARP;
   bool m_Proxy;
 
+  D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
   void BuildShader(std::string source, std::string entry, const ShaderCompileFlags &compileFlags,
                    ShaderStage type, ResourceId *id, std::string *errors);
 
+  void ClearPostVSCache();
+
+  void InitStreamOut();
+  void CreateSOBuffers();
+  void ShutdownStreamOut();
+
+  std::vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
+  void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
+  void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
+                     const DrawcallDescription &drawnode);
+
+  bool RenderTextureInternal(TextureDisplay cfg, bool blendAlpha);
+
+  void CreateCustomShaderTex(uint32_t w, uint32_t h);
+
+  void SetOutputDimensions(int w, int h)
+  {
+    m_OutputWidth = float(w);
+    m_OutputHeight = float(h);
+  }
+
   vector<ID3D11Resource *> m_ProxyResources;
 
-  WrappedID3D11Device *m_pDevice;
+  struct OutputWindow
+  {
+    HWND wnd;
+    IDXGISwapChain *swap;
+    ID3D11RenderTargetView *rtv;
+    ID3D11DepthStencilView *dsv;
+
+    WrappedID3D11Device *dev;
+
+    void MakeRTV();
+    void MakeDSV();
+
+    int width, height;
+  };
+
+  float m_OutputWidth = 1.0f;
+  float m_OutputHeight = 1.0f;
+
+  uint64_t m_OutputWindowID = 1;
+  std::map<uint64_t, OutputWindow> m_OutputWindows;
+
+  IDXGIFactory *m_pFactory = NULL;
+
+  AMDCounters *m_pAMDCounters = NULL;
+
+  WrappedID3D11Device *m_pDevice = NULL;
+  WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
+
+  // used to track the real state so we can preserve it even across work done to the output windows
+  struct RealState
+  {
+    RealState() : state(D3D11RenderState::Empty) { active = false; }
+    bool active;
+    D3D11RenderState state;
+  } m_RealState;
+
+  // event -> data
+  std::map<uint32_t, D3D11PostVSData> m_PostVSData;
+
+  HighlightCache m_HighlightCache;
+
+  uint32_t m_SOBufferSize = 32 * 1024 * 1024;
+  ID3D11Buffer *m_SOBuffer = NULL;
+  ID3D11Buffer *m_SOStagingBuffer = NULL;
+  std::vector<ID3D11Query *> m_SOStatsQueries;
+
+  ID3D11Texture2D *m_CustomShaderTex = NULL;
+  ResourceId m_CustomShaderResourceId;
+
+  // General use/misc items that are used in many places
+  struct GeneralMisc
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11RasterizerState *RasterState = NULL;
+
+    ID3D11VertexShader *GenericVS = NULL;
+    ID3D11PixelShader *FixedColPS = NULL;
+    ID3D11PixelShader *CheckerboardPS = NULL;
+  } m_General;
+
+  struct TextureRendering
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11SamplerState *PointSampState = NULL;
+    ID3D11SamplerState *LinearSampState = NULL;
+    ID3D11BlendState *BlendState = NULL;
+    ID3D11PixelShader *TexDisplayPS = NULL;
+  } m_TexRender;
+
+  struct OverlayRendering
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11VertexShader *FullscreenVS = NULL;
+    ID3D11PixelShader *QuadOverdrawPS = NULL;
+    ID3D11PixelShader *QOResolvePS = NULL;
+    ID3D11PixelShader *OutlinePS = NULL;
+    ID3D11PixelShader *TriangleSizePS = NULL;
+    ID3D11GeometryShader *TriangleSizeGS = NULL;
+
+    ID3D11Texture2D *Texture = NULL;
+    ResourceId resourceId;
+  } m_Overlay;
+
+  struct MeshRendering
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11BlendState *WireframeHelpersBS = NULL;
+    ID3D11RasterizerState *WireframeRasterState = NULL;
+    ID3D11RasterizerState *SolidRasterState = NULL;
+    ID3D11DepthStencilState *LessEqualDepthState = NULL;
+    ID3D11DepthStencilState *NoDepthState = NULL;
+    ID3D11VertexShader *MeshVS = NULL;
+    ID3D11GeometryShader *MeshGS = NULL;
+    ID3D11PixelShader *WireframePS = NULL;
+    ID3D11PixelShader *MeshPS = NULL;
+    ID3D11Buffer *AxisHelper;
+    ID3D11Buffer *FrustumHelper;
+    ID3D11Buffer *TriHighlightHelper;
+    ID3D11InputLayout *GenericLayout = NULL;
+
+    byte *MeshVSBytecode = NULL;
+    uint32_t MeshVSBytelen = 0;
+
+    // these gets updated to pull the elements selected out of the buffers
+    ID3D11InputLayout *MeshLayout = NULL;
+
+    // whenever these change
+    ResourceFormat PrevPositionFormat;
+    ResourceFormat PrevSecondaryFormat;
+  } m_MeshRender;
+
+  struct VertexPicking
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    static const uint32_t MaxMeshPicks = 500;
+
+    ID3D11ComputeShader *MeshPickCS = NULL;
+    uint32_t PickIBSize = 0, PickVBSize = 0;
+    ID3D11Buffer *PickIBBuf = NULL;
+    ID3D11Buffer *PickVBBuf = NULL;
+    ID3D11ShaderResourceView *PickIBSRV = NULL;
+    ID3D11ShaderResourceView *PickVBSRV = NULL;
+    ID3D11Buffer *PickResultBuf = NULL;
+    ID3D11UnorderedAccessView *PickResultUAV = NULL;
+  } m_VertexPick;
+
+  struct PixelPicking
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11RenderTargetView *RTV = NULL;
+    ID3D11Texture2D *Texture = NULL;
+    ID3D11Texture2D *StageTexture = NULL;
+  } m_PixelPick;
+
+  struct HistogramMinMax
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11Buffer *TileResultBuff = NULL;
+    ID3D11Buffer *ResultBuff = NULL;
+    ID3D11Buffer *ResultStageBuff = NULL;
+    ID3D11UnorderedAccessView *TileResultUAV[3] = {NULL};
+    ID3D11UnorderedAccessView *ResultUAV[3] = {NULL};
+    ID3D11ShaderResourceView *TileResultSRV[3] = {NULL};
+    ID3D11ComputeShader *TileMinMaxCS[eTexType_Max][3] = {{NULL}};    // uint, sint, float
+    ID3D11ComputeShader *HistogramCS[eTexType_Max][3] = {{NULL}};     // uint, sint, float
+    ID3D11ComputeShader *ResultMinMaxCS[3] = {NULL};
+    ID3D11UnorderedAccessView *HistogramUAV = NULL;
+  } m_Histogram;
+
+  struct PixelHistory
+  {
+    void Init(WrappedID3D11Device *device);
+    void Release();
+
+    ID3D11BlendState *NopBlendState = NULL;
+    ID3D11DepthStencilState *NopDepthState = NULL;
+    ID3D11DepthStencilState *AllPassDepthState = NULL;
+    ID3D11DepthStencilState *AllPassIncrDepthState = NULL;
+    ID3D11DepthStencilState *StencIncrEqDepthState = NULL;
+    ID3D11PixelShader *PrimitiveIDPS = NULL;
+  } m_PixelHistory;
 
   std::vector<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;

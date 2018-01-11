@@ -26,22 +26,6 @@
 #include "d3d12_common.h"
 #include "d3d12_device.h"
 
-void D3D12Replay::PreDeviceInitCounters()
-{
-}
-
-void D3D12Replay::PostDeviceInitCounters()
-{
-}
-
-void D3D12Replay::PreDeviceShutdownCounters()
-{
-}
-
-void D3D12Replay::PostDeviceShutdownCounters()
-{
-}
-
 vector<GPUCounter> D3D12Replay::EnumerateCounters()
 {
   vector<GPUCounter> ret;

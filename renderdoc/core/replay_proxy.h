@@ -341,7 +341,8 @@ public:
     }
   }
 
-  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+  uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
+                      uint32_t x, uint32_t y)
   {
     if(m_Proxy && cfg.position.vertexResourceId != ResourceId())
     {
@@ -365,7 +366,7 @@ public:
         proxiedCfg.position.indexResourceId = m_ProxyBufferIds[proxiedCfg.position.indexResourceId];
       }
 
-      return m_Proxy->PickVertex(eventId, proxiedCfg, x, y);
+      return m_Proxy->PickVertex(eventId, width, height, proxiedCfg, x, y);
     }
 
     return ~0U;

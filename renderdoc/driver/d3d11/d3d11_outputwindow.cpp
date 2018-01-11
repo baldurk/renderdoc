@@ -26,7 +26,7 @@
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
 
-void D3D11DebugManager::OutputWindow::MakeRTV()
+void D3D11Replay::OutputWindow::MakeRTV()
 {
   ID3D11Texture2D *texture = NULL;
   HRESULT hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
@@ -50,7 +50,7 @@ void D3D11DebugManager::OutputWindow::MakeRTV()
   }
 }
 
-void D3D11DebugManager::OutputWindow::MakeDSV()
+void D3D11Replay::OutputWindow::MakeDSV()
 {
   ID3D11Texture2D *texture = NULL;
   HRESULT hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
@@ -93,13 +93,13 @@ void D3D11DebugManager::OutputWindow::MakeDSV()
   }
 }
 
-uint64_t D3D11DebugManager::MakeOutputWindow(WindowingData window, bool depth)
+uint64_t D3D11Replay::MakeOutputWindow(WindowingData window, bool depth)
 {
   RDCASSERT(window.system == WindowingSystem::Win32, window.system);
 
   OutputWindow outw;
   outw.wnd = window.win32.window;
-  outw.dev = m_WrappedDevice;
+  outw.dev = m_pDevice;
 
   DXGI_SWAP_CHAIN_DESC swapDesc;
   RDCEraseEl(swapDesc);
@@ -140,7 +140,7 @@ uint64_t D3D11DebugManager::MakeOutputWindow(WindowingData window, bool depth)
   return id;
 }
 
-void D3D11DebugManager::DestroyOutputWindow(uint64_t id)
+void D3D11Replay::DestroyOutputWindow(uint64_t id)
 {
   auto it = m_OutputWindows.find(id);
   if(id == 0 || it == m_OutputWindows.end())
@@ -155,7 +155,7 @@ void D3D11DebugManager::DestroyOutputWindow(uint64_t id)
   m_OutputWindows.erase(it);
 }
 
-bool D3D11DebugManager::CheckResizeOutputWindow(uint64_t id)
+bool D3D11Replay::CheckResizeOutputWindow(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
@@ -175,7 +175,7 @@ bool D3D11DebugManager::CheckResizeOutputWindow(uint64_t id)
     outw.width = w;
     outw.height = h;
 
-    D3D11RenderStateTracker tracker(m_WrappedContext);
+    D3D11RenderStateTracker tracker(m_pImmediateContext);
 
     m_pImmediateContext->OMSetRenderTargets(0, 0, 0);
 
@@ -206,7 +206,7 @@ bool D3D11DebugManager::CheckResizeOutputWindow(uint64_t id)
   return false;
 }
 
-void D3D11DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
+void D3D11Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -215,7 +215,7 @@ void D3D11DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32
   h = m_OutputWindows[id].height;
 }
 
-void D3D11DebugManager::ClearOutputWindowColor(uint64_t id, FloatVector col)
+void D3D11Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -223,7 +223,7 @@ void D3D11DebugManager::ClearOutputWindowColor(uint64_t id, FloatVector col)
   m_pImmediateContext->ClearRenderTargetView(m_OutputWindows[id].rtv, &col.x);
 }
 
-void D3D11DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
+void D3D11Replay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -233,7 +233,7 @@ void D3D11DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t
         m_OutputWindows[id].dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, depth, stencil);
 }
 
-void D3D11DebugManager::BindOutputWindow(uint64_t id, bool depth)
+void D3D11Replay::BindOutputWindow(uint64_t id, bool depth)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -242,7 +242,7 @@ void D3D11DebugManager::BindOutputWindow(uint64_t id, bool depth)
     RDCERR("Trashing RealState! Mismatched use of BindOutputWindow / FlipOutputWindow");
 
   m_RealState.active = true;
-  m_RealState.state.CopyState(*m_WrappedContext->GetCurrentPipelineState());
+  m_RealState.state.CopyState(*m_pImmediateContext->GetCurrentPipelineState());
 
   m_pImmediateContext->OMSetRenderTargets(
       1, &m_OutputWindows[id].rtv, depth && m_OutputWindows[id].dsv ? m_OutputWindows[id].dsv : NULL);
@@ -254,7 +254,7 @@ void D3D11DebugManager::BindOutputWindow(uint64_t id, bool depth)
   SetOutputDimensions(m_OutputWindows[id].width, m_OutputWindows[id].height);
 }
 
-bool D3D11DebugManager::IsOutputWindowVisible(uint64_t id)
+bool D3D11Replay::IsOutputWindowVisible(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
@@ -262,7 +262,7 @@ bool D3D11DebugManager::IsOutputWindowVisible(uint64_t id)
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-void D3D11DebugManager::FlipOutputWindow(uint64_t id)
+void D3D11Replay::FlipOutputWindow(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -273,7 +273,7 @@ void D3D11DebugManager::FlipOutputWindow(uint64_t id)
   if(m_RealState.active)
   {
     m_RealState.active = false;
-    m_RealState.state.ApplyState(m_WrappedContext);
+    m_RealState.state.ApplyState(m_pImmediateContext);
     m_RealState.state.Clear();
   }
   else

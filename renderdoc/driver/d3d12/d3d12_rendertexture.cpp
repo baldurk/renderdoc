@@ -33,7 +33,8 @@
 #include "data/hlsl/debugcbuffers.h"
 
 void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint,
-                                               int &resType, vector<D3D12_RESOURCE_BARRIER> &barriers)
+                                               int &resType,
+                                               std::vector<D3D12_RESOURCE_BARRIER> &barriers)
 {
   int srvOffset = 0;
 
@@ -147,15 +148,14 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   {
     D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
     formatInfo.Format = srvDesc.Format;
-    m_WrappedDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+    m_pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
 
     if(formatInfo.PlaneCount > 1 && stencilSRVDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
       stencilSRVDesc.Texture2DArray.PlaneSlice = 1;
   }
 
   // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-  const vector<D3D12_RESOURCE_STATES> &states =
-      m_WrappedDevice->GetSubresourceStates(GetResID(resource));
+  const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(GetResID(resource));
 
   barriers.reserve(states.size());
   for(size_t i = 0; i < states.size(); i++)
@@ -221,7 +221,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
     // create resource if we need it
     if(!m_TexResource)
     {
-      HRESULT hr = m_WrappedDevice->CreateCommittedResource(
+      HRESULT hr = m_pDevice->CreateCommittedResource(
           &heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
           D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
           NULL, __uuidof(ID3D12Resource), (void **)&m_TexResource);
@@ -230,7 +230,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
       m_TexResource->SetName(L"m_TexResource");
     }
 
-    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
     // prepare real resource for copying
     if(!barriers.empty())
@@ -282,29 +282,29 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
 
   for(size_t i = 0; i < 32; i++)
   {
-    m_WrappedDevice->CreateShaderResourceView(NULL, &emptyDesc, srv);
+    m_pDevice->CreateShaderResourceView(NULL, &emptyDesc, srv);
     srv.ptr += sizeof(D3D12Descriptor);
   }
 
   srv = GetCPUHandle(FIRST_TEXDISPLAY_SRV);
   srv.ptr += srvOffset * sizeof(D3D12Descriptor);
 
-  m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
+  m_pDevice->CreateShaderResourceView(resource, &srvDesc, srv);
   if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
   {
     srv.ptr += sizeof(D3D12Descriptor);
-    m_WrappedDevice->CreateShaderResourceView(resource, &stencilSRVDesc, srv);
+    m_pDevice->CreateShaderResourceView(resource, &stencilSRVDesc, srv);
   }
 }
 
-bool D3D12DebugManager::RenderTexture(TextureDisplay cfg)
+bool D3D12Replay::RenderTexture(TextureDisplay cfg)
 {
   return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg,
                                eTexDisplay_BlendAlpha);
 }
 
-bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
-                                              TexDisplayFlags flags)
+bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
+                                        TexDisplayFlags flags)
 {
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
 
@@ -321,10 +321,10 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   float x = cfg.xOffset;
   float y = cfg.yOffset;
 
-  vertexData.Position.x = x * (2.0f / float(GetWidth()));
-  vertexData.Position.y = -y * (2.0f / float(GetHeight()));
+  vertexData.Position.x = x * (2.0f / m_OutputWidth);
+  vertexData.Position.y = -y * (2.0f / m_OutputHeight);
 
-  vertexData.ScreenAspect.x = float(GetHeight()) / float(GetWidth());
+  vertexData.ScreenAspect.x = m_OutputHeight / m_OutputWidth;
   vertexData.ScreenAspect.y = 1.0f;
 
   vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
@@ -375,8 +375,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   float tex_y =
       float(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D ? 100 : resourceDesc.Height);
 
-  vertexData.TextureResolution.x *= tex_x / float(GetWidth());
-  vertexData.TextureResolution.y *= tex_y / float(GetHeight());
+  vertexData.TextureResolution.x *= tex_x / m_OutputWidth;
+  vertexData.TextureResolution.y *= tex_y / m_OutputHeight;
 
   pixelData.TextureResolutionPS.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> cfg.mip)));
   pixelData.TextureResolutionPS.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> cfg.mip)));
@@ -391,20 +391,20 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
   if(cfg.scale <= 0.0f)
   {
-    float xscale = float(GetWidth()) / tex_x;
-    float yscale = float(GetHeight()) / tex_y;
+    float xscale = m_OutputWidth / tex_x;
+    float yscale = m_OutputHeight / tex_y;
 
     vertexData.Scale = RDCMIN(xscale, yscale);
 
     if(yscale > xscale)
     {
       vertexData.Position.x = 0;
-      vertexData.Position.y = tex_y * vertexData.Scale / float(GetHeight()) - 1.0f;
+      vertexData.Position.y = tex_y * vertexData.Scale / m_OutputHeight - 1.0f;
     }
     else
     {
       vertexData.Position.y = 0;
-      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / float(GetWidth());
+      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / m_OutputWidth;
     }
   }
 
@@ -417,9 +417,9 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     pixelData.Slice = float(cfg.sliceFace >> cfg.mip);
 
-  vector<D3D12_RESOURCE_BARRIER> barriers;
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
-  PrepareTextureSampling(resource, cfg.typeHint, resType, barriers);
+  GetDebugManager()->PrepareTextureSampling(resource, cfg.typeHint, resType, barriers);
 
   pixelData.OutputDisplayFormat = resType;
 
@@ -444,15 +444,15 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   if(cfg.customShaderId != ResourceId())
   {
     WrappedID3D12Shader *shader =
-        m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(cfg.customShaderId);
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(cfg.customShaderId);
 
     if(shader == NULL)
       return false;
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
-    pipeDesc.pRootSignature = m_TexDisplayRootSig;
-    pipeDesc.VS.BytecodeLength = m_GenericVS->GetBufferSize();
-    pipeDesc.VS.pShaderBytecode = m_GenericVS->GetBufferPointer();
+    pipeDesc.pRootSignature = m_TexRender.RootSig;
+    pipeDesc.VS.BytecodeLength = m_TexRender.VS->GetBufferSize();
+    pipeDesc.VS.pShaderBytecode = m_TexRender.VS->GetBufferPointer();
     pipeDesc.PS = shader->GetDesc();
     pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
     pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
@@ -472,8 +472,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
     pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-    HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
-        &pipeDesc, __uuidof(ID3D12PipelineState), (void **)&customPSO);
+    HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                        (void **)&customPSO);
     if(FAILED(hr))
       return false;
 
@@ -582,7 +582,7 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
           }
         }
 
-        psCBuf = UploadConstants(cbufData, cbuf.descriptor.byteSize);
+        psCBuf = GetDebugManager()->UploadConstants(cbufData, cbuf.descriptor.byteSize);
 
         SAFE_DELETE_ARRAY(cbufData);
       }
@@ -590,21 +590,21 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   }
   else
   {
-    psCBuf = UploadConstants(&pixelData, sizeof(pixelData));
+    psCBuf = GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData));
   }
 
   {
-    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
     if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
-    D3D12_VIEWPORT viewport = {0, 0, (float)m_width, (float)m_height, 0.0f, 1.0f};
+    D3D12_VIEWPORT viewport = {0, 0, (float)m_OutputWidth, (float)m_OutputHeight, 0.0f, 1.0f};
     list->RSSetViewports(1, &viewport);
 
-    D3D12_RECT scissor = {0, 0, m_width, m_height};
+    D3D12_RECT scissor = {0, 0, (LONG)viewport.Width, (LONG)viewport.Height};
     list->RSSetScissorRects(1, &scissor);
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -616,27 +616,26 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     else if(cfg.rawOutput || !blendAlpha || cfg.customShaderId != ResourceId())
     {
       if(flags & eTexDisplay_F32Render)
-        list->SetPipelineState(m_TexDisplayF32Pipe);
+        list->SetPipelineState(m_TexRender.F32Pipe);
       else if(flags & eTexDisplay_LinearRender)
-        list->SetPipelineState(m_TexDisplayLinearPipe);
+        list->SetPipelineState(m_TexRender.LinearPipe);
       else
-        list->SetPipelineState(m_TexDisplayPipe);
+        list->SetPipelineState(m_TexRender.SRGBPipe);
     }
     else
     {
-      list->SetPipelineState(m_TexDisplayBlendPipe);
+      list->SetPipelineState(m_TexRender.BlendPipe);
     }
 
-    list->SetGraphicsRootSignature(m_TexDisplayRootSig);
+    list->SetGraphicsRootSignature(m_TexRender.RootSig);
 
-    // Set the descriptor heap containing the texture srv
-    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
-    list->SetDescriptorHeaps(2, heaps);
+    GetDebugManager()->SetDescriptorHeaps(list, true, true);
 
-    list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+    list->SetGraphicsRootConstantBufferView(
+        0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
     list->SetGraphicsRootConstantBufferView(1, psCBuf);
-    list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
-    list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetGraphicsRootDescriptorTable(2, GetDebugManager()->GetGPUHandle(FIRST_TEXDISPLAY_SRV));
+    list->SetGraphicsRootDescriptorTable(3, GetDebugManager()->GetGPUHandle(FIRST_SAMP));
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     list->OMSetBlendFactor(factor);
@@ -652,8 +651,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
     list->Close();
 
-    m_WrappedDevice->ExecuteLists();
-    m_WrappedDevice->FlushLists();
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
 
     SAFE_RELEASE(customPSO);
   }

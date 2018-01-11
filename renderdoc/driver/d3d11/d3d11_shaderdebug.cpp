@@ -63,7 +63,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
   using namespace DXBC;
   using namespace ShaderDebug;
 
-  State initialState = State(quadIdx, &trace, dxbc, m_WrappedDevice);
+  State initialState = State(quadIdx, &trace, dxbc, m_pDevice);
 
   // use pixel shader here to get inputs
 
@@ -203,7 +203,8 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
     std::vector<ShaderVariable> vars;
 
-    FillCBufferVariables(dxbc->m_CBuffers[i].variables, vars, true,
+    size_t dummy = 0;
+    FillCBufferVariables("", dummy, dxbc->m_CBuffers[i].variables, vars, true,
                          cbufData[dxbc->m_CBuffers[i].reg]);
 
     trace.constantBlocks[i].members = vars;
@@ -587,9 +588,8 @@ struct DebugHit
   uint32_t rawdata;    // arbitrary, depending on shader
 };
 
-ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                                uint32_t idx, uint32_t instOffset,
-                                                uint32_t vertOffset)
+ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                          uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -599,9 +599,9 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventId, uint32_t verti
 
   ShaderDebugTrace empty;
 
-  const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(eventId);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   ID3D11VertexShader *stateVS = NULL;
   m_pImmediateContext->VSGetShader(&stateVS, NULL, NULL);
@@ -620,9 +620,9 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventId, uint32_t verti
 
   dxbc->GetDisassembly();
 
-  D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
+  D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_WrappedDevice->GetLayoutDesc(rs->IA.Layout);
+  vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
   set<UINT> vertexbuffers;
   uint32_t trackingOffs[32] = {0};
@@ -664,18 +664,20 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventId, uint32_t verti
     UINT i = *it;
     if(rs->IA.VBs[i])
     {
-      GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (vertOffset + idx),
-                    rs->IA.Strides[i], vertData[i]);
+      GetDebugManager()->GetBufferData(rs->IA.VBs[i],
+                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * (vertOffset + idx),
+                                       rs->IA.Strides[i], vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
-        GetBufferData(rs->IA.VBs[i],
-                      rs->IA.Offsets[i] + rs->IA.Strides[i] * (instOffset + (instid / isr)),
-                      rs->IA.Strides[i], instData[i * MaxStepRate + isr - 1]);
+        GetDebugManager()->GetBufferData(
+            rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (instOffset + (instid / isr)),
+            rs->IA.Strides[i], instData[i * MaxStepRate + isr - 1]);
       }
 
-      GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * instOffset,
-                    rs->IA.Strides[i], staticData[i]);
+      GetDebugManager()->GetBufferData(rs->IA.VBs[i],
+                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * instOffset,
+                                       rs->IA.Strides[i], staticData[i]);
     }
   }
 
@@ -683,13 +685,14 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventId, uint32_t verti
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     if(rs->VS.ConstantBuffers[i])
-      GetBufferData(rs->VS.ConstantBuffers[i], rs->VS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
+      GetDebugManager()->GetBufferData(rs->VS.ConstantBuffers[i],
+                                       rs->VS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
 
   ShaderDebugTrace ret;
 
   GlobalState global;
-  CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
-  State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
+  GetDebugManager()->CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
+  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, cbufData);
 
   for(size_t i = 0; i < ret.inputs.size(); i++)
   {
@@ -962,8 +965,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventId, uint32_t verti
   return ret;
 }
 
-ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
-                                               uint32_t sample, uint32_t primitive)
+ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                         uint32_t primitive)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -973,7 +976,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
 
   ShaderDebugTrace empty;
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   ID3D11PixelShader *statePS = NULL;
   m_pImmediateContext->PSGetShader(&statePS, NULL, NULL);
@@ -1007,7 +1010,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
   if(!ps)
     return empty;
 
-  D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
+  D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
   DXBCFile *dxbc = ps->GetDXBC();
 
@@ -1347,8 +1350,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
   }
   extractHlsl += "\n}";
 
-  ID3D11PixelShader *extract = m_WrappedDevice->GetShaderCache()->MakePShader(
-      extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
+  ID3D11PixelShader *extract =
+      m_pDevice->GetShaderCache()->MakePShader(extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
 
   uint32_t structStride = sizeof(uint32_t)       // uint hit;
                           + sizeof(float) * 3    // float3 pos;
@@ -1424,7 +1427,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
   {
     D3D11MarkerRegion initState("Replaying event for initial states");
 
-    m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     m_pImmediateContext->CopyResource(stageBuf, initialBuf);
   }
@@ -1481,7 +1484,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     if(rs->PS.ConstantBuffers[i])
-      GetBufferData(rs->PS.ConstantBuffers[i], rs->PS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
+      GetDebugManager()->GetBufferData(rs->PS.ConstantBuffers[i],
+                                       rs->PS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
 
   D3D11_COMPARISON_FUNC depthFunc = D3D11_COMPARISON_LESS;
 
@@ -1543,12 +1547,14 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
   ShaderDebugTrace traces[4];
 
   GlobalState global;
-  CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
+  GetDebugManager()->CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs,
+                                             rs->PS.SRVs);
 
   {
     DebugHit *hit = winner;
 
-    State initialState = CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
+    State initialState =
+        GetDebugManager()->CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
 
     rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
@@ -1915,8 +1921,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventId, uint32_t x, uin
   return traces[destIdx];
 }
 
-ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                                const uint32_t threadid[3])
+ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                          const uint32_t threadid[3])
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -1927,7 +1933,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventId, const uint32_t
 
   ShaderDebugTrace empty;
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   ID3D11ComputeShader *stateCS = NULL;
   m_pImmediateContext->CSGetShader(&stateCS, NULL, NULL);
@@ -1946,19 +1952,20 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventId, const uint32_t
 
   dxbc->GetDisassembly();
 
-  D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
+  D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
   bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     if(rs->CS.ConstantBuffers[i])
-      GetBufferData(rs->CS.ConstantBuffers[i], rs->CS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
+      GetDebugManager()->GetBufferData(rs->CS.ConstantBuffers[i],
+                                       rs->CS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
 
   ShaderDebugTrace ret;
 
   GlobalState global;
-  CreateShaderGlobalState(global, dxbc, 0, rs->CSUAVs, rs->CS.SRVs);
-  State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
+  GetDebugManager()->CreateShaderGlobalState(global, dxbc, 0, rs->CSUAVs, rs->CS.SRVs);
+  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, cbufData);
 
   for(int i = 0; i < 3; i++)
   {

@@ -34,7 +34,6 @@
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
-#include "d3d12_debug.h"
 #include "d3d12_manager.h"
 #include "d3d12_replay.h"
 
@@ -238,11 +237,18 @@ private:
   // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;
 
-  ID3D12CommandAllocator *m_Alloc, *m_DataUploadAlloc;
-  ID3D12GraphicsCommandList *m_List, *m_DataUploadList;
+  ID3D12CommandAllocator *m_Alloc = NULL, *m_DataUploadAlloc = NULL;
+  ID3D12GraphicsCommandList *m_List = NULL, *m_DataUploadList = NULL;
+  ID3D12DescriptorHeap *m_RTVHeap = NULL;
   ID3D12Fence *m_GPUSyncFence;
   HANDLE m_GPUSyncHandle;
   UINT64 m_GPUSyncCounter;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
+  void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+
+  std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_FreeRTVs;
+  std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_UsedRTVs;
 
   void CreateInternalResources();
   void DestroyInternalResources();
@@ -255,7 +261,6 @@ private:
   WrappedID3D12DebugDevice m_WrappedDebug;
 
   D3D12Replay m_Replay;
-  D3D12DebugManager *m_DebugManager = NULL;
   D3D12ShaderCache *m_ShaderCache = NULL;
   D3D12TextRenderer *m_TextRenderer = NULL;
 
@@ -379,7 +384,6 @@ public:
   ID3D12Device *GetReal() { return m_pDevice; }
   static std::string GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
-  D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
   D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }

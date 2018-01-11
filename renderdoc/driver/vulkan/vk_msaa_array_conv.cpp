@@ -101,12 +101,11 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
   VkDescriptorImageInfo srcdesc = {0};
   srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc.imageView = srcView;
-  srcdesc.sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc.sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
 
   VkDescriptorImageInfo destdesc = {0};
   destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   destdesc.imageView = destView;
-  destdesc.sampler = Unwrap(m_LinearSampler);    // not used
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
@@ -228,10 +227,10 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
   VkDescriptorImageInfo srcdesc[2];
   srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[0].imageView = srcDepthView;
-  srcdesc[0].sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc[0].sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
   srcdesc[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[1].imageView = srcStencilView;
-  srcdesc[1].sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc[1].sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
@@ -444,12 +443,11 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
   VkDescriptorImageInfo srcdesc = {0};
   srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc.imageView = srcView;
-  srcdesc.sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc.sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
 
   VkDescriptorImageInfo destdesc = {0};
   destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   destdesc.imageView = destView;
-  destdesc.sampler = Unwrap(m_LinearSampler);    // not used
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
@@ -580,10 +578,10 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
   VkDescriptorImageInfo srcdesc[2];
   srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[0].imageView = srcDepthView;
-  srcdesc[0].sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc[0].sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
   srcdesc[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[1].imageView = srcStencilView;
-  srcdesc[1].sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc[1].sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,

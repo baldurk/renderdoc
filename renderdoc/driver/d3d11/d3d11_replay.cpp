@@ -25,7 +25,10 @@
 
 #include "d3d11_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
+#include "driver/ihv/amd/amd_counters.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
+#include "maths/camera.h"
+#include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "d3d11_context.h"
@@ -35,13 +38,26 @@
 #include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
 
+#include "data/hlsl/debugcbuffers.h"
+
 static const char *DXBCDisassemblyTarget = "DXBC";
 
 D3D11Replay::D3D11Replay()
 {
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D11Replay));
+
   m_pDevice = NULL;
   m_Proxy = false;
   m_WARP = false;
+
+  m_HighlightCache.driver = this;
+}
+
+D3D11Replay::~D3D11Replay()
+{
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
 
 void D3D11Replay::Shutdown()
@@ -51,8 +67,120 @@ void D3D11Replay::Shutdown()
   m_ProxyResources.clear();
 
   m_pDevice->Release();
+}
 
-  D3D11DebugManager::PostDeviceShutdownCounters();
+void D3D11Replay::SetDevice(WrappedID3D11Device *d)
+{
+  m_pDevice = d;
+  m_pImmediateContext = d->GetImmediateContext();
+}
+
+void D3D11Replay::CreateResources()
+{
+  HRESULT hr = S_OK;
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
+
+  IDXGIDevice *pDXGIDevice;
+  hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't get DXGI device from D3D device");
+  }
+  else
+  {
+    IDXGIAdapter *pDXGIAdapter;
+    hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't get DXGI adapter from DXGI device");
+      SAFE_RELEASE(pDXGIDevice);
+    }
+    else
+    {
+      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&m_pFactory);
+
+      SAFE_RELEASE(pDXGIDevice);
+      SAFE_RELEASE(pDXGIAdapter);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't get DXGI factory from DXGI adapter");
+      }
+    }
+  }
+
+  InitStreamOut();
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.1f);
+
+  m_General.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
+
+  m_TexRender.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.3f);
+
+  m_Overlay.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
+
+  m_MeshRender.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.5f);
+
+  m_VertexPick.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
+
+  m_PixelPick.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.7f);
+
+  m_Histogram.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
+
+  m_PixelHistory.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
+
+  AMDCounters *counters = new AMDCounters();
+  if(counters->Init((void *)m_pDevice))
+  {
+    m_pAMDCounters = counters;
+  }
+  else
+  {
+    delete counters;
+    m_pAMDCounters = NULL;
+  }
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
+}
+
+void D3D11Replay::DestroyResources()
+{
+  SAFE_RELEASE(m_CustomShaderTex);
+
+  m_General.Release();
+  m_TexRender.Release();
+  m_Overlay.Release();
+  m_MeshRender.Release();
+  m_VertexPick.Release();
+  m_PixelPick.Release();
+  m_Histogram.Release();
+  m_PixelHistory.Release();
+
+  SAFE_DELETE(m_pAMDCounters);
+
+  ShutdownStreamOut();
+  ClearPostVSCache();
+
+  SAFE_RELEASE(m_pFactory);
 }
 
 TextureDescription D3D11Replay::GetTexture(ResourceId id)
@@ -693,7 +821,7 @@ void D3D11Replay::SavePipelineState()
           if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
              (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
           {
-            view.bufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
+            view.bufferStructCount = GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
           }
 
           view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
@@ -976,7 +1104,7 @@ void D3D11Replay::SavePipelineState()
 
         if(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER))
         {
-          view.bufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->OM.UAVs[s]);
+          view.bufferStructCount = GetDebugManager()->GetStructCount(rs->OM.UAVs[s]);
         }
 
         view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
@@ -1298,78 +1426,6 @@ vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
   return passEvents;
 }
 
-uint64_t D3D11Replay::MakeOutputWindow(WindowingData window, bool depth)
-{
-  return m_pDevice->GetDebugManager()->MakeOutputWindow(window, depth);
-}
-
-void D3D11Replay::DestroyOutputWindow(uint64_t id)
-{
-  m_pDevice->GetDebugManager()->DestroyOutputWindow(id);
-}
-
-bool D3D11Replay::CheckResizeOutputWindow(uint64_t id)
-{
-  return m_pDevice->GetDebugManager()->CheckResizeOutputWindow(id);
-}
-
-void D3D11Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
-{
-  m_pDevice->GetDebugManager()->GetOutputWindowDimensions(id, w, h);
-}
-
-void D3D11Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
-{
-  m_pDevice->GetDebugManager()->ClearOutputWindowColor(id, col);
-}
-
-void D3D11Replay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
-{
-  m_pDevice->GetDebugManager()->ClearOutputWindowDepth(id, depth, stencil);
-}
-
-void D3D11Replay::BindOutputWindow(uint64_t id, bool depth)
-{
-  m_pDevice->GetDebugManager()->BindOutputWindow(id, depth);
-}
-
-bool D3D11Replay::IsOutputWindowVisible(uint64_t id)
-{
-  return m_pDevice->GetDebugManager()->IsOutputWindowVisible(id);
-}
-
-void D3D11Replay::FlipOutputWindow(uint64_t id)
-{
-  m_pDevice->GetDebugManager()->FlipOutputWindow(id);
-}
-
-void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
-{
-  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventId);
-}
-
-void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
-{
-  uint32_t prev = 0;
-
-  // since we can always replay between drawcalls, just loop through all the events
-  // doing partial replays and calling InitPostVSBuffers for each
-  for(size_t i = 0; i < passEvents.size(); i++)
-  {
-    if(prev != passEvents[i])
-    {
-      m_pDevice->ReplayLog(prev, passEvents[i], eReplay_WithoutDraw);
-
-      prev = passEvents[i];
-    }
-
-    const DrawcallDescription *d = m_pDevice->GetDrawcall(passEvents[i]);
-
-    if(d)
-      m_pDevice->GetDebugManager()->InitPostVSBuffers(passEvents[i]);
-  }
-}
-
 ResourceId D3D11Replay::GetLiveID(ResourceId id)
 {
   if(!m_pDevice->GetResourceManager()->HasLiveResource(id))
@@ -1377,68 +1433,726 @@ ResourceId D3D11Replay::GetLiveID(ResourceId id)
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
-bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeHint, float *minval, float *maxval)
-{
-  return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, typeHint, minval,
-                                                 maxval);
-}
-
 bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                                CompType typeHint, float minval, float maxval, bool channels[4],
                                vector<uint32_t> &histogram)
 {
-  return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, typeHint, minval,
-                                                    maxval, channels, histogram);
+  if(minval >= maxval)
+    return false;
+
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, true);
+
+  if(details.texFmt == DXGI_FORMAT_UNKNOWN)
+    return false;
+
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> mip, 1U);
+  cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> mip, 1U);
+  cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> mip, 1U);
+  cdata.HistogramSlice = (float)sliceFace;
+  cdata.HistogramMip = mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount - 1);
+  if(sample == ~0U)
+    cdata.HistogramSample = -int(details.sampleCount);
+  cdata.HistogramMin = minval;
+
+  // The calculation in the shader normalises each value between min and max, then multiplies by the
+  // number of buckets.
+  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
+  cdata.HistogramMax = maxval + maxval * 1e-6f;
+
+  cdata.HistogramChannels = 0;
+  if(channels[0])
+    cdata.HistogramChannels |= 0x1;
+  if(channels[1])
+    cdata.HistogramChannels |= 0x2;
+  if(channels[2])
+    cdata.HistogramChannels |= 0x4;
+  if(channels[3])
+    cdata.HistogramChannels |= 0x8;
+  cdata.HistogramFlags = 0;
+
+  int srvOffset = 0;
+  int intIdx = 0;
+
+  if(IsUIntFormat(details.texFmt))
+  {
+    cdata.HistogramFlags |= TEXDISPLAY_UINT_TEX;
+    srvOffset = 10;
+    intIdx = 1;
+  }
+  if(IsIntFormat(details.texFmt))
+  {
+    cdata.HistogramFlags |= TEXDISPLAY_SINT_TEX;
+    srvOffset = 20;
+    intIdx = 2;
+  }
+
+  if(details.texType == eTexType_3D)
+    cdata.HistogramSlice = float(sliceFace);
+
+  ID3D11Buffer *cbuf = GetDebugManager()->MakeCBuffer(&cdata, sizeof(cdata));
+
+  UINT zeroes[] = {0, 0, 0, 0};
+  m_pImmediateContext->ClearUnorderedAccessViewUint(m_Histogram.HistogramUAV, zeroes);
+
+  m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
+
+  ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {0};
+  UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
+  memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
+
+  const UINT numUAVs =
+      m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+  uavs[0] = m_Histogram.HistogramUAV;
+  m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, UAV_keepcounts);
+
+  m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
+
+  m_pImmediateContext->CSSetShaderResources(srvOffset, eTexType_Max, details.srv);
+
+  m_pImmediateContext->CSSetShader(m_Histogram.HistogramCS[details.texType][intIdx], NULL, 0);
+
+  int tilesX = (int)ceil(cdata.HistogramTextureResolution.x /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  m_pImmediateContext->Dispatch(tilesX, tilesY, 1);
+
+  m_pImmediateContext->CopyResource(m_Histogram.ResultStageBuff, m_Histogram.ResultBuff);
+
+  D3D11_MAPPED_SUBRESOURCE mapped;
+
+  HRESULT hr = m_pImmediateContext->Map(m_Histogram.ResultStageBuff, 0, D3D11_MAP_READ, 0, &mapped);
+
+  histogram.clear();
+  histogram.resize(HGRAM_NUM_BUCKETS);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Can't map histogram stage buff HRESULT: %s", ToStr(hr).c_str());
+  }
+  else
+  {
+    memcpy(&histogram[0], mapped.pData, sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
+
+    m_pImmediateContext->Unmap(m_Histogram.ResultStageBuff, 0);
+  }
+
+  return true;
 }
 
-MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                            CompType typeHint, float *minval, float *maxval)
 {
-  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventId, instID, stage);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, true);
+
+  if(details.texFmt == DXGI_FORMAT_UNKNOWN)
+    return false;
+
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> mip, 1U);
+  cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> mip, 1U);
+  cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> mip, 1U);
+  cdata.HistogramSlice = (float)sliceFace;
+  cdata.HistogramMip = mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount - 1);
+  if(sample == ~0U)
+    cdata.HistogramSample = -int(details.sampleCount);
+  cdata.HistogramMin = 0.0f;
+  cdata.HistogramMax = 1.0f;
+  cdata.HistogramChannels = 0xf;
+  cdata.HistogramFlags = 0;
+
+  int srvOffset = 0;
+  int intIdx = 0;
+
+  DXGI_FORMAT fmt = GetTypedFormat(details.texFmt);
+
+  if(IsUIntFormat(fmt))
+  {
+    cdata.HistogramFlags |= TEXDISPLAY_UINT_TEX;
+    srvOffset = 10;
+    intIdx = 1;
+  }
+  if(IsIntFormat(fmt))
+  {
+    cdata.HistogramFlags |= TEXDISPLAY_SINT_TEX;
+    srvOffset = 20;
+    intIdx = 2;
+  }
+
+  if(details.texType == eTexType_3D)
+    cdata.HistogramSlice = float(sliceFace);
+
+  ID3D11Buffer *cbuf = GetDebugManager()->MakeCBuffer(&cdata, sizeof(cdata));
+
+  m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
+
+  m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
+
+  ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {NULL};
+  const UINT numUAVs =
+      m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+  uavs[intIdx] = m_Histogram.TileResultUAV[intIdx];
+  m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, NULL);
+
+  m_pImmediateContext->CSSetShaderResources(srvOffset, eTexType_Max, details.srv);
+
+  m_pImmediateContext->CSSetShader(m_Histogram.TileMinMaxCS[details.texType][intIdx], NULL, 0);
+
+  int blocksX = (int)ceil(cdata.HistogramTextureResolution.x /
+                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int blocksY = (int)ceil(cdata.HistogramTextureResolution.y /
+                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  m_pImmediateContext->Dispatch(blocksX, blocksY, 1);
+
+  m_pImmediateContext->CSSetUnorderedAccessViews(intIdx, 1, &m_Histogram.ResultUAV[intIdx], NULL);
+  m_pImmediateContext->CSSetShaderResources(intIdx, 1, &m_Histogram.TileResultSRV[intIdx]);
+
+  m_pImmediateContext->CSSetShader(m_Histogram.ResultMinMaxCS[intIdx], NULL, 0);
+
+  m_pImmediateContext->Dispatch(1, 1, 1);
+
+  m_pImmediateContext->CopyResource(m_Histogram.ResultStageBuff, m_Histogram.ResultBuff);
+
+  D3D11_MAPPED_SUBRESOURCE mapped;
+
+  HRESULT hr = m_pImmediateContext->Map(m_Histogram.ResultStageBuff, 0, D3D11_MAP_READ, 0, &mapped);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map minmax results buffer HRESULT: %s", ToStr(hr).c_str());
+  }
+  else
+  {
+    Vec4f *minmax = (Vec4f *)mapped.pData;
+
+    minval[0] = minmax[0].x;
+    minval[1] = minmax[0].y;
+    minval[2] = minmax[0].z;
+    minval[3] = minmax[0].w;
+
+    maxval[0] = minmax[1].x;
+    maxval[1] = minmax[1].y;
+    maxval[2] = minmax[1].z;
+    maxval[3] = minmax[1].w;
+
+    m_pImmediateContext->Unmap(m_Histogram.ResultStageBuff, 0);
+  }
+
+  return true;
 }
 
-void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
+void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
 {
-  m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
+  auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
+
+  if(it == WrappedID3D11Buffer::m_BufferList.end())
+  {
+    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    return;
+  }
+
+  ID3D11Buffer *buffer = it->second.m_Buffer;
+
+  RDCASSERT(buffer);
+
+  GetDebugManager()->GetBufferData(buffer, offset, length, retData);
 }
 
 void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                                  const GetTextureDataParams &params, bytebuf &data)
 {
-  m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  ID3D11Resource *dummyTex = NULL;
+
+  uint32_t subresource = 0;
+  uint32_t mips = 0;
+
+  size_t bytesize = 0;
+
+  if(WrappedID3D11Texture1D::m_TextureList.find(tex) != WrappedID3D11Texture1D::m_TextureList.end())
+  {
+    WrappedID3D11Texture1D *wrapTex =
+        (WrappedID3D11Texture1D *)WrappedID3D11Texture1D::m_TextureList[tex].m_Texture;
+
+    D3D11_TEXTURE1D_DESC desc = {0};
+    wrapTex->GetDesc(&desc);
+
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    desc.Usage = D3D11_USAGE_STAGING;
+
+    ID3D11Texture1D *d = NULL;
+
+    mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
+
+    if(mip >= mips || arrayIdx >= desc.ArraySize)
+      return;
+
+    if(params.remap != RemapTexture::NoRemap)
+    {
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+      desc.Format =
+          IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+      desc.ArraySize = 1;
+    }
+
+    subresource = arrayIdx * mips + mip;
+
+    HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &d);
+
+    dummyTex = d;
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+
+    bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+
+    if(params.remap != RemapTexture::NoRemap)
+    {
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+      subresource = mip;
+
+      desc.CPUAccessFlags = 0;
+      desc.Usage = D3D11_USAGE_DEFAULT;
+      desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+
+      ID3D11Texture1D *rtTex = NULL;
+
+      hr = m_pDevice->CreateTexture1D(&desc, NULL, &rtTex);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(d);
+        return;
+      }
+
+      D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+      rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
+      rtvDesc.Format = desc.Format;
+      rtvDesc.Texture1D.MipSlice = mip;
+
+      ID3D11RenderTargetView *wrappedrtv = NULL;
+      hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(d);
+        SAFE_RELEASE(rtTex);
+        return;
+      }
+
+      ID3D11RenderTargetView *rtv = wrappedrtv;
+
+      m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+      float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+      m_pImmediateContext->ClearRenderTargetView(rtv, color);
+
+      D3D11_VIEWPORT viewport = {0, 0, (float)(desc.Width >> mip), 1.0f, 0.0f, 1.0f};
+
+      SetOutputDimensions(desc.Width, 1);
+      m_pImmediateContext->RSSetViewports(1, &viewport);
+
+      {
+        TextureDisplay texDisplay;
+
+        texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+        texDisplay.hdrMultiplier = -1.0f;
+        texDisplay.linearDisplayAsGamma = false;
+        texDisplay.overlay = DebugOverlay::NoOverlay;
+        texDisplay.flipY = false;
+        texDisplay.mip = mip;
+        texDisplay.sampleIdx = 0;
+        texDisplay.customShaderId = ResourceId();
+        texDisplay.sliceFace = arrayIdx;
+        texDisplay.rangeMin = params.blackPoint;
+        texDisplay.rangeMax = params.whitePoint;
+        texDisplay.scale = 1.0f;
+        texDisplay.resourceId = tex;
+        texDisplay.typeHint = params.typeHint;
+        texDisplay.rawOutput = false;
+        texDisplay.xOffset = 0;
+        texDisplay.yOffset = 0;
+
+        RenderTextureInternal(texDisplay, false);
+      }
+
+      m_pImmediateContext->CopyResource(d, rtTex);
+      SAFE_RELEASE(rtTex);
+
+      SAFE_RELEASE(wrappedrtv);
+    }
+    else
+    {
+      m_pImmediateContext->CopyResource(d, wrapTex);
+    }
+  }
+  else if(WrappedID3D11Texture2D1::m_TextureList.find(tex) !=
+          WrappedID3D11Texture2D1::m_TextureList.end())
+  {
+    WrappedID3D11Texture2D1 *wrapTex =
+        (WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[tex].m_Texture;
+
+    D3D11_TEXTURE2D_DESC desc = {0};
+    wrapTex->GetDesc(&desc);
+
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    desc.Usage = D3D11_USAGE_STAGING;
+
+    bool wasms = false;
+
+    if(desc.SampleDesc.Count > 1)
+    {
+      desc.ArraySize *= desc.SampleDesc.Count;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+
+      wasms = true;
+    }
+
+    ID3D11Texture2D *d = NULL;
+
+    mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
+
+    if(mip >= mips || arrayIdx >= desc.ArraySize)
+      return;
+
+    if(params.remap != RemapTexture::NoRemap)
+    {
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+      desc.Format = (IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor)
+                        ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                        : DXGI_FORMAT_R8G8B8A8_UNORM;
+      desc.ArraySize = 1;
+    }
+
+    subresource = arrayIdx * mips + mip;
+
+    HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &d);
+
+    dummyTex = d;
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+
+    bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+
+    if(params.remap != RemapTexture::NoRemap)
+    {
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+      subresource = mip;
+
+      desc.CPUAccessFlags = 0;
+      desc.Usage = D3D11_USAGE_DEFAULT;
+      desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+
+      ID3D11Texture2D *rtTex = NULL;
+
+      hr = m_pDevice->CreateTexture2D(&desc, NULL, &rtTex);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(d);
+        return;
+      }
+
+      D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+      rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+      rtvDesc.Format = desc.Format;
+      rtvDesc.Texture2D.MipSlice = mip;
+
+      ID3D11RenderTargetView *wrappedrtv = NULL;
+      hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(d);
+        SAFE_RELEASE(rtTex);
+        return;
+      }
+
+      ID3D11RenderTargetView *rtv = wrappedrtv;
+
+      m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+      float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+      m_pImmediateContext->ClearRenderTargetView(rtv, color);
+
+      D3D11_VIEWPORT viewport = {0,    0,   (float)(desc.Width >> mip), (float)(desc.Height >> mip),
+                                 0.0f, 1.0f};
+
+      SetOutputDimensions(desc.Width, desc.Height);
+      m_pImmediateContext->RSSetViewports(1, &viewport);
+
+      {
+        TextureDisplay texDisplay;
+
+        texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+        texDisplay.hdrMultiplier = -1.0f;
+        texDisplay.linearDisplayAsGamma = false;
+        texDisplay.overlay = DebugOverlay::NoOverlay;
+        texDisplay.flipY = false;
+        texDisplay.mip = mip;
+        texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
+        texDisplay.customShaderId = ResourceId();
+        texDisplay.sliceFace = arrayIdx;
+        texDisplay.rangeMin = params.blackPoint;
+        texDisplay.rangeMax = params.whitePoint;
+        texDisplay.scale = 1.0f;
+        texDisplay.resourceId = tex;
+        texDisplay.typeHint = params.typeHint;
+        texDisplay.rawOutput = false;
+        texDisplay.xOffset = 0;
+        texDisplay.yOffset = 0;
+
+        RenderTextureInternal(texDisplay, false);
+      }
+
+      m_pImmediateContext->CopyResource(d, rtTex);
+      SAFE_RELEASE(rtTex);
+
+      SAFE_RELEASE(wrappedrtv);
+    }
+    else if(wasms && params.resolve)
+    {
+      desc.Usage = D3D11_USAGE_DEFAULT;
+      desc.CPUAccessFlags = 0;
+
+      ID3D11Texture2D *resolveTex = NULL;
+
+      hr = m_pDevice->CreateTexture2D(&desc, NULL, &resolveTex);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create target texture to resolve texture. HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(d);
+        return;
+      }
+
+      m_pImmediateContext->ResolveSubresource(resolveTex, arrayIdx, wrapTex, arrayIdx, desc.Format);
+      m_pImmediateContext->CopyResource(d, resolveTex);
+
+      SAFE_RELEASE(resolveTex);
+    }
+    else if(wasms)
+    {
+      GetDebugManager()->CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D1, d), wrapTex->GetReal());
+    }
+    else
+    {
+      m_pImmediateContext->CopyResource(d, wrapTex);
+    }
+  }
+  else if(WrappedID3D11Texture3D1::m_TextureList.find(tex) !=
+          WrappedID3D11Texture3D1::m_TextureList.end())
+  {
+    WrappedID3D11Texture3D1 *wrapTex =
+        (WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[tex].m_Texture;
+
+    D3D11_TEXTURE3D_DESC desc = {0};
+    wrapTex->GetDesc(&desc);
+
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    desc.Usage = D3D11_USAGE_STAGING;
+
+    ID3D11Texture3D *d = NULL;
+
+    mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
+
+    if(mip >= mips)
+      return;
+
+    if(params.remap != RemapTexture::NoRemap)
+    {
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+      desc.Format =
+          IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+    }
+
+    subresource = mip;
+
+    HRESULT hr = m_pDevice->CreateTexture3D(&desc, NULL, &d);
+
+    dummyTex = d;
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
+      return;
+    }
+
+    bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip);
+
+    if(params.remap != RemapTexture::NoRemap)
+    {
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+      subresource = mip;
+
+      desc.CPUAccessFlags = 0;
+      desc.Usage = D3D11_USAGE_DEFAULT;
+      desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+
+      ID3D11Texture3D *rtTex = NULL;
+
+      hr = m_pDevice->CreateTexture3D(&desc, NULL, &rtTex);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(d);
+        return;
+      }
+
+      D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+      rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+      rtvDesc.Format = desc.Format;
+      rtvDesc.Texture3D.MipSlice = mip;
+      rtvDesc.Texture3D.FirstWSlice = 0;
+      rtvDesc.Texture3D.WSize = 1;
+      ID3D11RenderTargetView *wrappedrtv = NULL;
+      ID3D11RenderTargetView *rtv = NULL;
+
+      D3D11_VIEWPORT viewport = {0,    0,   (float)(desc.Width >> mip), (float)(desc.Height >> mip),
+                                 0.0f, 1.0f};
+
+      for(UINT i = 0; i < (desc.Depth >> mip); i++)
+      {
+        rtvDesc.Texture3D.FirstWSlice = i;
+        hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
+          SAFE_RELEASE(d);
+          SAFE_RELEASE(rtTex);
+          return;
+        }
+
+        rtv = wrappedrtv;
+
+        m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+        float color[4] = {0.0f, 0.5f, 0.0f, 0.0f};
+        m_pImmediateContext->ClearRenderTargetView(rtv, color);
+
+        SetOutputDimensions(desc.Width, desc.Height);
+        m_pImmediateContext->RSSetViewports(1, &viewport);
+
+        TextureDisplay texDisplay;
+
+        texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+        texDisplay.hdrMultiplier = -1.0f;
+        texDisplay.linearDisplayAsGamma = false;
+        texDisplay.overlay = DebugOverlay::NoOverlay;
+        texDisplay.flipY = false;
+        texDisplay.mip = mip;
+        texDisplay.sampleIdx = 0;
+        texDisplay.customShaderId = ResourceId();
+        texDisplay.sliceFace = i << mip;
+        texDisplay.rangeMin = params.blackPoint;
+        texDisplay.rangeMax = params.whitePoint;
+        texDisplay.scale = 1.0f;
+        texDisplay.resourceId = tex;
+        texDisplay.typeHint = params.typeHint;
+        texDisplay.rawOutput = false;
+        texDisplay.xOffset = 0;
+        texDisplay.yOffset = 0;
+
+        RenderTextureInternal(texDisplay, false);
+
+        SAFE_RELEASE(wrappedrtv);
+      }
+
+      m_pImmediateContext->CopyResource(d, rtTex);
+      SAFE_RELEASE(rtTex);
+    }
+    else
+    {
+      m_pImmediateContext->CopyResource(d, wrapTex);
+    }
+  }
+  else
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    return;
+  }
+
+  MapIntercept intercept;
+
+  D3D11_MAPPED_SUBRESOURCE mapped = {0};
+  HRESULT hr = m_pImmediateContext->Map(dummyTex, subresource, D3D11_MAP_READ, 0, &mapped);
+
+  if(SUCCEEDED(hr))
+  {
+    data.resize(bytesize);
+    intercept.InitWrappedResource(dummyTex, subresource, data.data());
+    intercept.SetD3D(mapped);
+    intercept.CopyFromD3D();
+
+    // for 3D textures if we wanted a particular slice (arrayIdx > 0)
+    // copy it into the beginning.
+    if(intercept.numSlices > 1 && arrayIdx > 0 && (int)arrayIdx < intercept.numSlices)
+    {
+      byte *dst = data.data();
+      byte *src = data.data() + intercept.app.DepthPitch * arrayIdx;
+
+      for(int row = 0; row < intercept.numRows; row++)
+      {
+        memcpy(dst, src, intercept.app.RowPitch);
+
+        src += intercept.app.RowPitch;
+        dst += intercept.app.RowPitch;
+      }
+    }
+  }
+  else
+  {
+    RDCERR("Couldn't map staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  SAFE_RELEASE(dummyTex);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
 {
   m_pDevice->GetResourceManager()->ReplaceResource(from, to);
-  m_pDevice->GetDebugManager()->ClearPostVSCache();
+  ClearPostVSCache();
 }
 
 void D3D11Replay::RemoveReplacement(ResourceId id)
 {
   m_pDevice->GetResourceManager()->RemoveReplacement(id);
-  m_pDevice->GetDebugManager()->ClearPostVSCache();
+  ClearPostVSCache();
 }
 
-vector<GPUCounter> D3D11Replay::EnumerateCounters()
+D3D11DebugManager *D3D11Replay::GetDebugManager()
 {
-  return m_pDevice->GetDebugManager()->EnumerateCounters();
-}
-
-CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
-{
-  return m_pDevice->GetDebugManager()->DescribeCounter(counterID);
-}
-
-vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &counters)
-{
-  return m_pDevice->GetDebugManager()->FetchCounters(counters);
-}
-
-void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
-                             const MeshDisplay &cfg)
-{
-  return m_pDevice->GetDebugManager()->RenderMesh(eventId, secondaryDraws, cfg);
+  return m_pDevice->GetDebugManager();
 }
 
 void D3D11Replay::BuildShader(std::string source, std::string entry,
@@ -1588,17 +2302,124 @@ void D3D11Replay::BuildCustomShader(std::string source, std::string entry,
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)
 {
-  return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
+  return RenderTextureInternal(cfg, true);
 }
 
 void D3D11Replay::RenderCheckerboard()
 {
-  m_pDevice->GetDebugManager()->RenderCheckerboard();
+  DebugVertexCBuffer vertexData;
+
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  vertexData.Scale = 2.0f;
+  vertexData.Position.x = vertexData.Position.y = 0;
+
+  vertexData.ScreenAspect.x = 1.0f;
+  vertexData.ScreenAspect.y = 1.0f;
+
+  vertexData.TextureResolution.x = 1.0f;
+  vertexData.TextureResolution.y = 1.0f;
+
+  vertexData.LineStrip = 0;
+
+  ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
+
+  DebugPixelCBufferData pixelData;
+
+  pixelData.AlwaysZero = 0.0f;
+
+  pixelData.Channels = RenderDoc::Inst().LightCheckerboardColor();
+  pixelData.WireframeColour = RenderDoc::Inst().DarkCheckerboardColor();
+
+  ID3D11Buffer *psBuf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+
+  // can't just clear state because we need to keep things like render targets.
+  {
+    m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    m_pImmediateContext->IASetInputLayout(NULL);
+
+    m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
+    m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsBuf);
+
+    m_pImmediateContext->HSSetShader(NULL, NULL, 0);
+    m_pImmediateContext->DSSetShader(NULL, NULL, 0);
+    m_pImmediateContext->GSSetShader(NULL, NULL, 0);
+
+    m_pImmediateContext->RSSetState(m_General.RasterState);
+
+    m_pImmediateContext->PSSetShader(m_General.CheckerboardPS, NULL, 0);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &psBuf);
+
+    float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
+    m_pImmediateContext->OMSetDepthStencilState(NULL, 0);
+
+    m_pImmediateContext->Draw(4, 0);
+  }
 }
 
 void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
 {
-  m_pDevice->GetDebugManager()->RenderHighlightBox(w, h, scale);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  float overlayConsts[] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+  ID3D11Buffer *vconst = NULL;
+  ID3D11Buffer *pconst = NULL;
+
+  pconst = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+  const float xpixdim = 2.0f / w;
+  const float ypixdim = 2.0f / h;
+
+  const float xdim = scale * xpixdim;
+  const float ydim = scale * ypixdim;
+
+  DebugVertexCBuffer vertCBuffer;
+  RDCEraseEl(vertCBuffer);
+  vertCBuffer.Scale = 1.0f;
+  vertCBuffer.ScreenAspect.x = vertCBuffer.ScreenAspect.y = 1.0f;
+
+  vertCBuffer.Position.x = 1.0f;
+  vertCBuffer.Position.y = -1.0f;
+  vertCBuffer.TextureResolution.x = xdim;
+  vertCBuffer.TextureResolution.y = ydim;
+
+  vertCBuffer.LineStrip = 1;
+
+  vconst = GetDebugManager()->MakeCBuffer(&vertCBuffer, sizeof(vertCBuffer));
+
+  m_pImmediateContext->HSSetShader(NULL, NULL, 0);
+  m_pImmediateContext->DSSetShader(NULL, NULL, 0);
+  m_pImmediateContext->GSSetShader(NULL, NULL, 0);
+
+  m_pImmediateContext->RSSetState(m_General.RasterState);
+
+  m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+  m_pImmediateContext->IASetInputLayout(NULL);
+
+  m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
+  m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
+  m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+
+  m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
+  m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
+
+  m_pImmediateContext->Draw(5, 0);
+
+  vertCBuffer.Position.x = 1.0f - xpixdim;
+  vertCBuffer.Position.y = -1.0f + ypixdim;
+  vertCBuffer.TextureResolution.x = xdim + xpixdim * 2;
+  vertCBuffer.TextureResolution.y = ydim + ypixdim * 2;
+
+  overlayConsts[0] = overlayConsts[1] = overlayConsts[2] = 0.0f;
+
+  vconst = GetDebugManager()->MakeCBuffer(&vertCBuffer, sizeof(vertCBuffer));
+  pconst = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+  m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
+  m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
+  m_pImmediateContext->Draw(5, 0);
 }
 
 void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
@@ -1614,61 +2435,609 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
   RDCASSERT(dxbc);
 
   if(cbufSlot < dxbc->m_CBuffers.size())
-    m_pDevice->GetDebugManager()->FillCBufferVariables(dxbc->m_CBuffers[cbufSlot].variables,
-                                                       outvars, false, data);
-  return;
+  {
+    size_t dummy = 0;
+    GetDebugManager()->FillCBufferVariables("", dummy, dxbc->m_CBuffers[cbufSlot].variables,
+                                            outvars, false, data);
+  }
 }
 
-vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                    uint32_t x, uint32_t y, uint32_t slice,
-                                                    uint32_t mip, uint32_t sampleIdx,
-                                                    CompType typeHint)
+uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
+                                 const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
-  return m_pDevice->GetDebugManager()->PixelHistory(events, target, x, y, slice, mip, sampleIdx,
-                                                    typeHint);
-}
+  if(cfg.position.numIndices == 0)
+    return ~0U;
 
-ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                          uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
-{
-  return m_pDevice->GetDebugManager()->DebugVertex(eventId, vertid, instid, idx, instOffset,
-                                                   vertOffset);
-}
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
-{
-  return m_pDevice->GetDebugManager()->DebugPixel(eventId, x, y, sample, primitive);
-}
+  struct MeshPickData
+  {
+    Vec3f RayPos;
+    uint32_t PickIdx;
 
-ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                          const uint32_t threadid[3])
-{
-  return m_pDevice->GetDebugManager()->DebugThread(eventId, groupid, threadid);
-}
+    Vec3f RayDir;
+    uint32_t PickNumVerts;
 
-uint32_t D3D11Replay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
-{
-  return m_pDevice->GetDebugManager()->PickVertex(eventId, cfg, x, y);
+    Vec2f PickCoords;
+    Vec2f PickViewport;
+
+    uint32_t MeshMode;
+    uint32_t PickUnproject;
+    Vec2f Padding;
+
+    Matrix4f PickMVP;
+
+  } cbuf;
+
+  cbuf.PickCoords = Vec2f((float)x, (float)y);
+  cbuf.PickViewport = Vec2f((float)width, (float)height);
+  cbuf.PickIdx = cfg.position.indexByteStride ? 1 : 0;
+  cbuf.PickNumVerts = cfg.position.numIndices;
+  cbuf.PickUnproject = cfg.position.unproject ? 1 : 0;
+
+  Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(width) / float(height));
+
+  Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
+
+  Matrix4f pickMVP = projMat.Mul(camMat);
+
+  Matrix4f pickMVPProj;
+  if(cfg.position.unproject)
+  {
+    // the derivation of the projection matrix might not be right (hell, it could be an
+    // orthographic projection). But it'll be close enough likely.
+    Matrix4f guessProj =
+        cfg.position.farPlane != FLT_MAX
+            ? Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect)
+            : Matrix4f::ReversePerspective(cfg.fov, cfg.position.nearPlane, cfg.aspect);
+
+    if(cfg.ortho)
+      guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+
+    pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+  }
+
+  Vec3f rayPos;
+  Vec3f rayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f inversePickMVP = pickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)width);
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)height);
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    Vec3f cameraToWorldNearPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+    Vec3f cameraToWorldFarPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+    Vec3f testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
+    testDir.Normalise();
+
+    // Calculate the ray direction first in the regular way (above), so we can use the
+    // the output for testing if the ray we are picking is negative or not. This is similar
+    // to checking against the forward direction of the camera, but more robust
+    if(cfg.position.unproject)
+    {
+      Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
+
+      Vec3f nearPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+      Vec3f farPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+      rayDir = (farPosProj - nearPosProj);
+      rayDir.Normalise();
+
+      if(testDir.z < 0)
+      {
+        rayDir = -rayDir;
+      }
+      rayPos = nearPosProj;
+    }
+    else
+    {
+      rayDir = testDir;
+      rayPos = cameraToWorldNearPosition;
+    }
+  }
+
+  cbuf.RayPos = rayPos;
+  cbuf.RayDir = rayDir;
+
+  cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
+
+  bool isTriangleMesh = true;
+  switch(cfg.position.topology)
+  {
+    case Topology::TriangleList:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      break;
+    }
+    case Topology::TriangleStrip:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      break;
+    }
+    case Topology::TriangleList_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    }
+    case Topology::TriangleStrip_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    }
+    default:    // points, lines, patchlists, unknown
+    {
+      cbuf.MeshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    }
+  }
+
+  ID3D11Buffer *vb = NULL, *ib = NULL;
+  DXGI_FORMAT ifmt = cfg.position.indexByteStride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+
+  {
+    auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.vertexResourceId);
+
+    if(it != WrappedID3D11Buffer::m_BufferList.end())
+      vb = it->second.m_Buffer;
+
+    it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.indexResourceId);
+
+    if(it != WrappedID3D11Buffer::m_BufferList.end())
+      ib = it->second.m_Buffer;
+  }
+
+  HRESULT hr = S_OK;
+
+  // most IB/VBs will not be available as SRVs. So, we copy into our own buffers.
+  // In the case of VB we also tightly pack and unpack the data. IB can just be
+  // read as R16 or R32 via the SRV so it is just a straight copy
+
+  if(cfg.position.indexByteStride)
+  {
+    // resize up on demand
+    if(m_VertexPick.PickIBBuf == NULL ||
+       m_VertexPick.PickIBSize < cfg.position.numIndices * cfg.position.indexByteStride)
+    {
+      SAFE_RELEASE(m_VertexPick.PickIBBuf);
+      SAFE_RELEASE(m_VertexPick.PickIBSRV);
+
+      D3D11_BUFFER_DESC desc = {cfg.position.numIndices * cfg.position.indexByteStride,
+                                D3D11_USAGE_DEFAULT,
+                                D3D11_BIND_SHADER_RESOURCE,
+                                0,
+                                0,
+                                0};
+
+      m_VertexPick.PickIBSize = cfg.position.numIndices * cfg.position.indexByteStride;
+
+      hr = m_pDevice->CreateBuffer(&desc, NULL, &m_VertexPick.PickIBBuf);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create PickIBBuf HRESULT: %s", ToStr(hr).c_str());
+        return ~0U;
+      }
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
+      sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+      sdesc.Format = ifmt;
+      sdesc.Buffer.FirstElement = 0;
+      sdesc.Buffer.NumElements = cfg.position.numIndices;
+
+      hr = m_pDevice->CreateShaderResourceView(m_VertexPick.PickIBBuf, &sdesc,
+                                               &m_VertexPick.PickIBSRV);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(m_VertexPick.PickIBBuf);
+        RDCERR("Failed to create PickIBSRV HRESULT: %s", ToStr(hr).c_str());
+        return ~0U;
+      }
+    }
+
+    // copy index data as-is, the view format will take care of the rest
+
+    RDCASSERT(cfg.position.indexByteOffset < 0xffffffff);
+
+    if(ib)
+    {
+      D3D11_BUFFER_DESC ibdesc;
+      ib->GetDesc(&ibdesc);
+
+      D3D11_BOX box;
+      box.front = 0;
+      box.back = 1;
+      box.left = (uint32_t)cfg.position.indexByteOffset;
+      box.right = (uint32_t)cfg.position.indexByteOffset +
+                  cfg.position.numIndices * cfg.position.indexByteStride;
+      box.top = 0;
+      box.bottom = 1;
+
+      box.right = RDCMIN(box.right, ibdesc.ByteWidth - (uint32_t)cfg.position.indexByteOffset);
+
+      m_pImmediateContext->CopySubresourceRegion(m_VertexPick.PickIBBuf, 0, 0, 0, 0, ib, 0, &box);
+    }
+  }
+
+  if(m_VertexPick.PickVBBuf == NULL ||
+     m_VertexPick.PickVBSize < cfg.position.numIndices * sizeof(Vec4f))
+  {
+    SAFE_RELEASE(m_VertexPick.PickVBBuf);
+    SAFE_RELEASE(m_VertexPick.PickVBSRV);
+
+    D3D11_BUFFER_DESC desc = {cfg.position.numIndices * sizeof(Vec4f),
+                              D3D11_USAGE_DEFAULT,
+                              D3D11_BIND_SHADER_RESOURCE,
+                              0,
+                              0,
+                              0};
+
+    m_VertexPick.PickVBSize = cfg.position.numIndices * sizeof(Vec4f);
+
+    hr = m_pDevice->CreateBuffer(&desc, NULL, &m_VertexPick.PickVBBuf);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PickVBBuf HRESULT: %s", ToStr(hr).c_str());
+      return ~0U;
+    }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
+    sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    sdesc.Buffer.FirstElement = 0;
+    sdesc.Buffer.NumElements = cfg.position.numIndices;
+
+    hr = m_pDevice->CreateShaderResourceView(m_VertexPick.PickVBBuf, &sdesc, &m_VertexPick.PickVBSRV);
+
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(m_VertexPick.PickVBBuf);
+      RDCERR("Failed to create PickVBSRV HRESULT: %s", ToStr(hr).c_str());
+      return ~0U;
+    }
+  }
+
+  // unpack and linearise the data
+  if(vb)
+  {
+    FloatVector *vbData = new FloatVector[cfg.position.numIndices];
+
+    bytebuf oldData;
+    GetDebugManager()->GetBufferData(vb, cfg.position.vertexByteOffset, 0, oldData);
+
+    byte *data = &oldData[0];
+    byte *dataEnd = data + oldData.size();
+
+    bool valid;
+
+    uint32_t idxclamp = 0;
+    if(cfg.position.baseVertex < 0)
+      idxclamp = uint32_t(-cfg.position.baseVertex);
+
+    for(uint32_t i = 0; i < cfg.position.numIndices; i++)
+    {
+      uint32_t idx = i;
+
+      // apply baseVertex but clamp to 0 (don't allow index to become negative)
+      if(idx < idxclamp)
+        idx = 0;
+      else if(cfg.position.baseVertex < 0)
+        idx -= idxclamp;
+      else if(cfg.position.baseVertex > 0)
+        idx += cfg.position.baseVertex;
+
+      vbData[i] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
+    }
+
+    D3D11_BOX box;
+    box.top = 0;
+    box.bottom = 1;
+    box.front = 0;
+    box.back = 1;
+    box.left = 0;
+    box.right = cfg.position.numIndices * sizeof(Vec4f);
+
+    m_pImmediateContext->UpdateSubresource(m_VertexPick.PickVBBuf, 0, &box, vbData, sizeof(Vec4f),
+                                           sizeof(Vec4f));
+
+    delete[] vbData;
+  }
+
+  ID3D11ShaderResourceView *srvs[2] = {m_VertexPick.PickIBSRV, m_VertexPick.PickVBSRV};
+
+  ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&cbuf, sizeof(cbuf));
+
+  m_pImmediateContext->CSSetConstantBuffers(0, 1, &buf);
+
+  m_pImmediateContext->CSSetShaderResources(0, 2, srvs);
+
+  UINT reset = 0;
+  m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &m_VertexPick.PickResultUAV, &reset);
+
+  m_pImmediateContext->CSSetShader(m_VertexPick.MeshPickCS, NULL, 0);
+
+  m_pImmediateContext->Dispatch(cfg.position.numIndices / 1024 + 1, 1, 1);
+
+  uint32_t numResults = GetDebugManager()->GetStructCount(m_VertexPick.PickResultUAV);
+
+  if(numResults > 0)
+  {
+    bytebuf results;
+
+    if(isTriangleMesh)
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        Vec3f intersectionPoint;
+      };
+
+      GetDebugManager()->GetBufferData(m_VertexPick.PickResultBuf, 0, 0, results);
+
+      PickResult *pickResults = (PickResult *)&results[0];
+
+      PickResult *closest = pickResults;
+
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)VertexPicking::MaxMeshPicks, numResults); i++)
+      {
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
+      }
+
+      return closest->vertid;
+    }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
+
+      GetDebugManager()->GetBufferData(m_VertexPick.PickResultBuf, 0, 0, results);
+
+      PickResult *pickResults = (PickResult *)&results[0];
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)VertexPicking::MaxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+
+      return closest->vertid;
+    }
+  }
+
+  return ~0U;
 }
 
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
                             uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
 {
-  m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  D3D11MarkerRegion marker("PickPixel");
+
+  m_pImmediateContext->OMSetRenderTargets(1, &m_PixelPick.RTV, NULL);
+
+  float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+  m_pImmediateContext->ClearRenderTargetView(m_PixelPick.RTV, color);
+
+  D3D11_VIEWPORT viewport;
+  RDCEraseEl(viewport);
+
+  SetOutputDimensions(100, 100);
+
+  viewport.TopLeftX = 0;
+  viewport.TopLeftY = 0;
+  viewport.Width = 100;
+  viewport.Height = 100;
+
+  m_pImmediateContext->RSSetViewports(1, &viewport);
+
+  {
+    TextureDisplay texDisplay;
+
+    texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+    texDisplay.hdrMultiplier = -1.0f;
+    texDisplay.linearDisplayAsGamma = true;
+    texDisplay.flipY = false;
+    texDisplay.mip = mip;
+    texDisplay.sampleIdx = sample;
+    texDisplay.customShaderId = ResourceId();
+    texDisplay.sliceFace = sliceFace;
+    texDisplay.rangeMin = 0.0f;
+    texDisplay.rangeMax = 1.0f;
+    texDisplay.scale = 1.0f;
+    texDisplay.resourceId = texture;
+    texDisplay.typeHint = typeHint;
+    texDisplay.rawOutput = true;
+    texDisplay.xOffset = -float(x);
+    texDisplay.yOffset = -float(y);
+
+    RenderTextureInternal(texDisplay, false);
+  }
+
+  D3D11_BOX box;
+  box.front = 0;
+  box.back = 1;
+  box.left = 0;
+  box.right = 1;
+  box.top = 0;
+  box.bottom = 1;
+
+  m_pImmediateContext->CopySubresourceRegion(m_PixelPick.StageTexture, 0, 0, 0, 0,
+                                             m_PixelPick.Texture, 0, &box);
+
+  D3D11_MAPPED_SUBRESOURCE mapped;
+  mapped.pData = NULL;
+  HRESULT hr = m_pImmediateContext->Map(m_PixelPick.StageTexture, 0, D3D11_MAP_READ, 0, &mapped);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  float *pix = (float *)mapped.pData;
+
+  if(pix == NULL)
+  {
+    RDCERR("Failed to map pick-pixel staging texture.");
+  }
+  else
+  {
+    pixel[0] = pix[0];
+    pixel[1] = pix[1];
+    pixel[2] = pix[2];
+    pixel[3] = pix[3];
+  }
+
+  m_pImmediateContext->Unmap(m_PixelPick.StageTexture, 0);
 }
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventId, const vector<uint32_t> &passEvents)
+void D3D11Replay::CreateCustomShaderTex(uint32_t w, uint32_t h)
 {
-  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventId, passEvents);
+  D3D11_TEXTURE2D_DESC texdesc;
+
+  texdesc.ArraySize = 1;
+  texdesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+  texdesc.CPUAccessFlags = 0;
+  texdesc.MipLevels = CalcNumMips((int)w, (int)h, 1);
+  texdesc.MiscFlags = 0;
+  texdesc.SampleDesc.Count = 1;
+  texdesc.SampleDesc.Quality = 0;
+  texdesc.Usage = D3D11_USAGE_DEFAULT;
+  texdesc.Width = w;
+  texdesc.Height = h;
+  texdesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+  if(m_CustomShaderTex)
+  {
+    D3D11_TEXTURE2D_DESC customTexDesc;
+    m_CustomShaderTex->GetDesc(&customTexDesc);
+
+    if(customTexDesc.Width == w && customTexDesc.Height == h)
+      return;
+
+    SAFE_RELEASE(m_CustomShaderTex);
+  }
+
+  HRESULT hr = m_pDevice->CreateTexture2D(&texdesc, NULL, &m_CustomShaderTex);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create custom shader tex HRESULT: %s", ToStr(hr).c_str());
+  }
+  else
+  {
+    m_CustomShaderResourceId = GetIDForResource(m_CustomShaderTex);
+  }
 }
 
 ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
 {
-  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx,
-                                                         typeHint);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
+
+  CreateCustomShaderTex(details.texWidth, details.texHeight);
+
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  ID3D11RenderTargetView *customRTV = NULL;
+
+  {
+    D3D11_RENDER_TARGET_VIEW_DESC desc;
+
+    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    desc.Texture2D.MipSlice = mip;
+
+    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_CustomShaderTex;
+    HRESULT hr = m_pDevice->CreateRenderTargetView(wrapped, &desc, &customRTV);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create custom shader rtv HRESULT: %s", ToStr(hr).c_str());
+      return m_CustomShaderResourceId;
+    }
+  }
+
+  m_pImmediateContext->OMSetRenderTargets(1, &customRTV, NULL);
+
+  float clr[] = {0.0f, 0.0f, 0.0f, 0.0f};
+  m_pImmediateContext->ClearRenderTargetView(customRTV, clr);
+
+  SAFE_RELEASE(customRTV);
+
+  D3D11_VIEWPORT viewport;
+  RDCEraseEl(viewport);
+
+  viewport.TopLeftX = 0;
+  viewport.TopLeftY = 0;
+  viewport.Width = (float)RDCMAX(1U, details.texWidth >> mip);
+  viewport.Height = (float)RDCMAX(1U, details.texHeight >> mip);
+
+  m_pImmediateContext->RSSetViewports(1, &viewport);
+
+  TextureDisplay disp;
+  disp.red = disp.green = disp.blue = disp.alpha = true;
+  disp.flipY = false;
+  disp.xOffset = 0.0f;
+  disp.yOffset = 0.0f;
+  disp.customShaderId = shader;
+  disp.resourceId = texid;
+  disp.typeHint = typeHint;
+  disp.backgroundColor = FloatVector(0, 0, 0, 1.0);
+  disp.hdrMultiplier = -1.0f;
+  disp.linearDisplayAsGamma = false;
+  disp.mip = mip;
+  disp.sampleIdx = sampleIdx;
+  disp.overlay = DebugOverlay::NoOverlay;
+  disp.rangeMin = 0.0f;
+  disp.rangeMax = 1.0f;
+  disp.rawOutput = false;
+  disp.scale = 1.0f;
+  disp.sliceFace = arrayIdx;
+
+  SetOutputDimensions(RDCMAX(1U, details.texWidth >> mip), RDCMAX(1U, details.texHeight >> mip));
+
+  RenderTextureInternal(disp, true);
+
+  return m_CustomShaderResourceId;
 }
 
 bool D3D11Replay::IsRenderOutput(ResourceId id)
@@ -2133,8 +3502,6 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     warpFallback = true;
   }
 
-  D3D11DebugManager::PreDeviceInitCounters();
-
   hr = E_FAIL;
   for(;;)
   {
@@ -2153,6 +3520,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       D3D11Replay *replay = wrappedDev->GetReplay();
 
       replay->SetProxy(rdc == NULL, warpFallback);
+      replay->CreateResources();
       if(warpFallback)
       {
         wrappedDev->AddDebugMessage(
@@ -2192,8 +3560,6 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       numFeatureLevels = numFeatureLevels11_0;
     }
   }
-
-  D3D11DebugManager::PostDeviceShutdownCounters();
 
   RDCERR("Couldn't create any compatible d3d11 device :(.");
 

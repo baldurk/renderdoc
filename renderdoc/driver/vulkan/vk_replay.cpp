@@ -31,6 +31,7 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_resources.h"
+#include "vk_shader_cache.h"
 
 #define VULKAN 1
 #include "data/glsl/debuguniforms.h"
@@ -64,12 +65,8 @@ VulkanResourceManager *VulkanReplay::GetResourceManager()
 
 void VulkanReplay::Shutdown()
 {
-  PreDeviceShutdownCounters();
-
   m_pDriver->Shutdown();
   delete m_pDriver;
-
-  VulkanReplay::PostDeviceShutdownCounters();
 }
 
 APIProperties VulkanReplay::GetAPIProperties()
@@ -450,8 +447,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       VkRenderPassBeginInfo rpbegin = {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           NULL,
-          Unwrap(GetDebugManager()->m_PickPixelRP),
-          Unwrap(GetDebugManager()->m_PickPixelFB),
+          Unwrap(m_PixelPick.RP),
+          Unwrap(m_PixelPick.FB),
           {{
                0, 0,
            },
@@ -478,7 +475,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
                                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                             VK_QUEUE_FAMILY_IGNORED,
                                             VK_QUEUE_FAMILY_IGNORED,
-                                            Unwrap(GetDebugManager()->m_PickPixelImage),
+                                            Unwrap(m_PixelPick.Image),
                                             {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
       // update image layout from color attachment to transfer source, with proper memory barriers
@@ -499,9 +496,9 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       VkBufferImageCopy region = {
           0, 128, 1, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0}, {1, 1, 1},
       };
-      vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage),
+      vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_PixelPick.Image),
                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
+                               Unwrap(m_PixelPick.ReadbackBuffer.buf), 1, &region);
 
       // update image layout back to color attachment
       pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -516,8 +513,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
     m_pDriver->FlushQ();
 
     float *pData = NULL;
-    vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0,
-                  VK_WHOLE_SIZE, 0, (void **)&pData);
+    vt->MapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0,
+                  (void **)&pData);
 
     RDCASSERT(pData != NULL);
 
@@ -541,16 +538,11 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       }
     }
 
-    vt->UnmapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem));
+    vt->UnmapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem));
   }
 
   m_DebugWidth = oldW;
   m_DebugHeight = oldH;
-}
-
-uint32_t VulkanReplay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
-{
-  return GetDebugManager()->PickVertex(eventId, cfg, x, y, m_DebugWidth, m_DebugHeight);
 }
 
 void VulkanReplay::RenderCheckerboard()
@@ -592,20 +584,19 @@ void VulkanReplay::RenderCheckerboard()
   };
   vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-  if(GetDebugManager()->m_CheckerboardPipeline != VK_NULL_HANDLE)
+  if(m_Checkerboard.Pipeline != VK_NULL_HANDLE)
   {
-    Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(&uboOffs);
+    Vec4f *data = (Vec4f *)m_Checkerboard.UBO.Map(&uboOffs);
     data[0] = RenderDoc::Inst().LightCheckerboardColor();
     data[1] = RenderDoc::Inst().DarkCheckerboardColor();
-    GetDebugManager()->m_CheckerboardUBO.Unmap();
+    m_Checkerboard.UBO.Unmap();
 
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        outw.dsimg == VK_NULL_HANDLE
-                            ? Unwrap(GetDebugManager()->m_CheckerboardPipeline)
-                            : Unwrap(GetDebugManager()->m_CheckerboardMSAAPipeline));
+                        outw.dsimg == VK_NULL_HANDLE ? Unwrap(m_Checkerboard.Pipeline)
+                                                     : Unwrap(m_Checkerboard.MSAAPipeline));
     vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1,
-                              UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 1, &uboOffs);
+                              Unwrap(m_Checkerboard.PipeLayout), 0, 1,
+                              UnwrapPtr(m_Checkerboard.DescSet), 1, &uboOffs);
 
     VkViewport viewport = {0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f};
     vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
@@ -616,8 +607,8 @@ void VulkanReplay::RenderCheckerboard()
     {
       uboOffs = 0;
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1,
-                                UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 1, &uboOffs);
+                                Unwrap(m_Checkerboard.PipeLayout), 0, 1,
+                                UnwrapPtr(m_Checkerboard.DescSet), 1, &uboOffs);
     }
   }
   else
@@ -772,12 +763,6 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
-}
-
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                       uint32_t eventId, const vector<uint32_t> &passEvents)
-{
-  return GetDebugManager()->RenderOverlay(texid, overlay, eventId, passEvents);
 }
 
 void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
@@ -1705,7 +1690,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   VkDescriptorImageInfo imdesc = {0};
   imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imdesc.imageView = Unwrap(liveImView);
-  imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+  imdesc.sampler = Unwrap(m_General.PointSampler);
 
   uint32_t descSetBinding = 0;
   uint32_t intTypeIndex = 0;
@@ -1740,7 +1725,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   descSetBinding += textype;
 
-  if(GetDebugManager()->m_MinMaxTilePipe[textype][intTypeIndex] == VK_NULL_HANDLE)
+  if(m_Histogram.m_MinMaxTilePipe[textype][intTypeIndex] == VK_NULL_HANDLE)
   {
     *minval = 0.0f;
     *maxval = 1.0f;
@@ -1749,46 +1734,46 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   VkDescriptorBufferInfo bufdescs[3];
   RDCEraseEl(bufdescs);
-  GetDebugManager()->m_MinMaxTileResult.FillDescriptor(bufdescs[0]);
-  GetDebugManager()->m_MinMaxResult.FillDescriptor(bufdescs[1]);
-  GetDebugManager()->m_HistogramUBO.FillDescriptor(bufdescs[2]);
+  m_Histogram.m_MinMaxTileResult.FillDescriptor(bufdescs[0]);
+  m_Histogram.m_MinMaxResult.FillDescriptor(bufdescs[1]);
+  m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[2]);
 
   VkWriteDescriptorSet writeSet[] = {
 
       // first pass on tiles
       {
-          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-          Unwrap(GetDebugManager()->m_HistogramDescSet[0]), 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          NULL, &bufdescs[0], NULL    // destination = tile result
+          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
+          0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[0],
+          NULL    // destination = tile result
       },
       {
-          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-          Unwrap(GetDebugManager()->m_HistogramDescSet[0]), 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          NULL, &bufdescs[0], NULL    // source = unused, bind tile result
+          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
+          1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[0],
+          NULL    // source = unused, bind tile result
       },
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-       2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 2,
+       0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
 
       // second pass from tiles to result
       {
-          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-          Unwrap(GetDebugManager()->m_HistogramDescSet[1]), 0, 0, 1,
-          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[1], NULL    // destination = result
+          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[1]),
+          0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[1],
+          NULL    // destination = result
       },
       {
-          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-          Unwrap(GetDebugManager()->m_HistogramDescSet[1]), 1, 0, 1,
-          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[0], NULL    // source = tile result
+          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[1]),
+          1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[0],
+          NULL    // source = tile result
       },
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
-       2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[1]), 2,
+       0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
   };
 
   vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 
-  HistogramUBOData *data = (HistogramUBOData *)GetDebugManager()->m_HistogramUBO.Map(NULL);
+  HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
 
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
@@ -1806,7 +1791,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   data->HistogramMax = 1.0f;
   data->HistogramChannels = 0xf;
 
-  GetDebugManager()->m_HistogramUBO.Unmap();
+  m_Histogram.m_HistogramUBO.Unmap();
 
   VkImageMemoryBarrier srcimBarrier = {
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1848,10 +1833,10 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
       (int)ceil(iminfo.extent.height / float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
 
   vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                      Unwrap(GetDebugManager()->m_MinMaxTilePipe[textype][intTypeIndex]));
+                      Unwrap(m_Histogram.m_MinMaxTilePipe[textype][intTypeIndex]));
   vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                            Unwrap(GetDebugManager()->m_HistogramPipeLayout), 0, 1,
-                            UnwrapPtr(GetDebugManager()->m_HistogramDescSet[0]), 0, NULL);
+                            Unwrap(m_Histogram.m_HistogramPipeLayout), 0, 1,
+                            UnwrapPtr(m_Histogram.m_HistogramDescSet[0]), 0, NULL);
 
   vt->CmdDispatch(Unwrap(cmd), blocksX, blocksY, 1);
 
@@ -1871,42 +1856,42 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
       VK_ACCESS_SHADER_READ_BIT,
       VK_QUEUE_FAMILY_IGNORED,
       VK_QUEUE_FAMILY_IGNORED,
-      Unwrap(GetDebugManager()->m_MinMaxTileResult.buf),
+      Unwrap(m_Histogram.m_MinMaxTileResult.buf),
       0,
-      GetDebugManager()->m_MinMaxTileResult.totalsize,
+      m_Histogram.m_MinMaxTileResult.totalsize,
   };
 
   // ensure shader writes complete before coalescing the tiles
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
   vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                      Unwrap(GetDebugManager()->m_MinMaxResultPipe[intTypeIndex]));
+                      Unwrap(m_Histogram.m_MinMaxResultPipe[intTypeIndex]));
   vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                            Unwrap(GetDebugManager()->m_HistogramPipeLayout), 0, 1,
-                            UnwrapPtr(GetDebugManager()->m_HistogramDescSet[1]), 0, NULL);
+                            Unwrap(m_Histogram.m_HistogramPipeLayout), 0, 1,
+                            UnwrapPtr(m_Histogram.m_HistogramDescSet[1]), 0, NULL);
 
   vt->CmdDispatch(Unwrap(cmd), 1, 1, 1);
 
   // ensure shader writes complete before copying back to readback buffer
   tilebarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
   tilebarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-  tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxResult.buf);
-  tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
+  tilebarrier.buffer = Unwrap(m_Histogram.m_MinMaxResult.buf);
+  tilebarrier.size = m_Histogram.m_MinMaxResult.totalsize;
 
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
   VkBufferCopy bufcopy = {
-      0, 0, GetDebugManager()->m_MinMaxResult.totalsize,
+      0, 0, m_Histogram.m_MinMaxResult.totalsize,
   };
 
-  vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_MinMaxResult.buf),
-                    Unwrap(GetDebugManager()->m_MinMaxReadback.buf), 1, &bufcopy);
+  vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_Histogram.m_MinMaxResult.buf),
+                    Unwrap(m_Histogram.m_MinMaxReadback.buf), 1, &bufcopy);
 
   // wait for copy to complete before mapping
   tilebarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   tilebarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-  tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxReadback.buf);
-  tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
+  tilebarrier.buffer = Unwrap(m_Histogram.m_MinMaxReadback.buf);
+  tilebarrier.size = m_Histogram.m_MinMaxResult.totalsize;
 
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
@@ -1916,7 +1901,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
-  Vec4f *minmax = (Vec4f *)GetDebugManager()->m_MinMaxReadback.Map(NULL);
+  Vec4f *minmax = (Vec4f *)m_Histogram.m_MinMaxReadback.Map(NULL);
 
   minval[0] = minmax[0].x;
   minval[1] = minmax[0].y;
@@ -1928,7 +1913,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   maxval[2] = minmax[1].z;
   maxval[3] = minmax[1].w;
 
-  GetDebugManager()->m_MinMaxReadback.Unmap();
+  m_Histogram.m_MinMaxReadback.Unmap();
 
   return true;
 }
@@ -1989,7 +1974,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   descSetBinding += textype;
 
-  if(GetDebugManager()->m_HistogramPipe[textype][intTypeIndex] == VK_NULL_HANDLE)
+  if(m_Histogram.m_HistogramPipe[textype][intTypeIndex] == VK_NULL_HANDLE)
   {
     histogram.resize(HGRAM_NUM_BUCKETS);
     for(size_t i = 0; i < HGRAM_NUM_BUCKETS; i++)
@@ -2005,35 +1990,35 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   VkDescriptorImageInfo imdesc = {0};
   imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   imdesc.imageView = Unwrap(liveImView);
-  imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+  imdesc.sampler = Unwrap(m_General.PointSampler);
 
   VkDescriptorBufferInfo bufdescs[2];
   RDCEraseEl(bufdescs);
-  GetDebugManager()->m_HistogramBuf.FillDescriptor(bufdescs[0]);
-  GetDebugManager()->m_HistogramUBO.FillDescriptor(bufdescs[1]);
+  m_Histogram.m_HistogramBuf.FillDescriptor(bufdescs[0]);
+  m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[1]);
 
   VkWriteDescriptorSet writeSet[] = {
 
       // histogram pass
       {
-          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-          Unwrap(GetDebugManager()->m_HistogramDescSet[0]), 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          NULL, &bufdescs[0], NULL    // destination = histogram result
+          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
+          0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[0],
+          NULL    // destination = histogram result
       },
       {
-          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-          Unwrap(GetDebugManager()->m_HistogramDescSet[0]), 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          NULL, &bufdescs[0], NULL    // source = unused, bind histogram result
+          VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
+          1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufdescs[0],
+          NULL    // source = unused, bind histogram result
       },
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-       2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[1], NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 2,
+       0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[1], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
   };
 
   vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 
-  HistogramUBOData *data = (HistogramUBOData *)GetDebugManager()->m_HistogramUBO.Map(NULL);
+  HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
 
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
@@ -2067,7 +2052,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   data->HistogramChannels = chans;
   data->HistogramFlags = 0;
 
-  GetDebugManager()->m_HistogramUBO.Unmap();
+  m_Histogram.m_HistogramUBO.Unmap();
 
   VkImageMemoryBarrier srcimBarrier = {
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -2108,14 +2093,14 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   int blocksY =
       (int)ceil(iminfo.extent.height / float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
 
-  vt->CmdFillBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_HistogramBuf.buf), 0,
-                    GetDebugManager()->m_HistogramBuf.totalsize, 0);
+  vt->CmdFillBuffer(Unwrap(cmd), Unwrap(m_Histogram.m_HistogramBuf.buf), 0,
+                    m_Histogram.m_HistogramBuf.totalsize, 0);
 
   vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                      Unwrap(GetDebugManager()->m_HistogramPipe[textype][intTypeIndex]));
+                      Unwrap(m_Histogram.m_HistogramPipe[textype][intTypeIndex]));
   vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                            Unwrap(GetDebugManager()->m_HistogramPipeLayout), 0, 1,
-                            UnwrapPtr(GetDebugManager()->m_HistogramDescSet[0]), 0, NULL);
+                            Unwrap(m_Histogram.m_HistogramPipeLayout), 0, 1,
+                            UnwrapPtr(m_Histogram.m_HistogramDescSet[0]), 0, NULL);
 
   vt->CmdDispatch(Unwrap(cmd), blocksX, blocksY, 1);
 
@@ -2135,26 +2120,26 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
       VK_ACCESS_TRANSFER_READ_BIT,
       VK_QUEUE_FAMILY_IGNORED,
       VK_QUEUE_FAMILY_IGNORED,
-      Unwrap(GetDebugManager()->m_HistogramBuf.buf),
+      Unwrap(m_Histogram.m_HistogramBuf.buf),
       0,
-      GetDebugManager()->m_HistogramBuf.totalsize,
+      m_Histogram.m_HistogramBuf.totalsize,
   };
 
   // ensure shader writes complete before copying to readback buf
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
   VkBufferCopy bufcopy = {
-      0, 0, GetDebugManager()->m_HistogramBuf.totalsize,
+      0, 0, m_Histogram.m_HistogramBuf.totalsize,
   };
 
-  vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_HistogramBuf.buf),
-                    Unwrap(GetDebugManager()->m_HistogramReadback.buf), 1, &bufcopy);
+  vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_Histogram.m_HistogramBuf.buf),
+                    Unwrap(m_Histogram.m_HistogramReadback.buf), 1, &bufcopy);
 
   // wait for copy to complete before mapping
   tilebarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   tilebarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-  tilebarrier.buffer = Unwrap(GetDebugManager()->m_HistogramReadback.buf);
-  tilebarrier.size = GetDebugManager()->m_HistogramReadback.totalsize;
+  tilebarrier.buffer = Unwrap(m_Histogram.m_HistogramReadback.buf);
+  tilebarrier.size = m_Histogram.m_HistogramReadback.totalsize;
 
   DoPipelineBarrier(cmd, 1, &tilebarrier);
 
@@ -2164,79 +2149,20 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
-  uint32_t *buckets = (uint32_t *)GetDebugManager()->m_HistogramReadback.Map(NULL);
+  uint32_t *buckets = (uint32_t *)m_Histogram.m_HistogramReadback.Map(NULL);
 
   histogram.resize(HGRAM_NUM_BUCKETS);
   for(size_t i = 0; i < HGRAM_NUM_BUCKETS; i++)
     histogram[i] = buckets[i * 4];
 
-  GetDebugManager()->m_HistogramReadback.Unmap();
+  m_Histogram.m_HistogramReadback.Unmap();
 
   return true;
-}
-
-void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
-{
-  GetDebugManager()->InitPostVSBuffers(eventId);
-}
-
-struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
-{
-  VulkanInitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
-      : m_pDriver(vk), m_Events(events)
-  {
-    m_pDriver->SetDrawcallCB(this);
-  }
-  ~VulkanInitPostVSCallback() { m_pDriver->SetDrawcallCB(NULL); }
-  void PreDraw(uint32_t eid, VkCommandBuffer cmd)
-  {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
-      m_pDriver->GetDebugManager()->InitPostVSBuffers(eid);
-  }
-
-  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }
-  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) {}
-  // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
-  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  // Ditto copy/etc
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  void AliasEvent(uint32_t primary, uint32_t alias)
-  {
-    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
-      m_pDriver->GetDebugManager()->AliasPostVSBuffers(primary, alias);
-  }
-
-  WrappedVulkan *m_pDriver;
-  const vector<uint32_t> &m_Events;
-};
-
-void VulkanReplay::InitPostVSBuffers(const vector<uint32_t> &events)
-{
-  // first we must replay up to the first event without replaying it. This ensures any
-  // non-command buffer calls like memory unmaps etc all happen correctly before this
-  // command buffer
-  m_pDriver->ReplayLog(0, events.front(), eReplay_WithoutDraw);
-
-  VulkanInitPostVSCallback cb(m_pDriver, events);
-
-  // now we replay the events, which are guaranteed (because we generated them in
-  // GetPassEvents above) to come from the same command buffer, so the event IDs are
-  // still locally continuous, even if we jump into replaying.
-  m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 }
 
 vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 {
   return m_pDriver->GetUsage(id);
-}
-
-MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
-{
-  return GetDebugManager()->GetPostVSBuffers(eventId, instID, stage);
 }
 
 void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
@@ -2437,7 +2363,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     // if 3d texture, render each slice separately, otherwise render once
     for(uint32_t i = 0; i < numFBs; i++)
     {
-      if(numFBs > 1 && (i % GetDebugManager()->m_TexDisplayUBO.GetRingCount()) == 0)
+      if(numFBs > 1 && (i % m_TexRender.UBO.GetRingCount()) == 0)
       {
         m_pDriver->SubmitCmds();
         m_pDriver->FlushQ();
@@ -3143,8 +3069,8 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
-      Unwrap(GetDebugManager()->m_CustomTexRP),
-      Unwrap(GetDebugManager()->m_CustomTexFB),
+      Unwrap(GetDebugManager()->GetCustomRenderpass()),
+      Unwrap(GetDebugManager()->GetCustomFramebuffer()),
       {{
            0, 0,
        },
@@ -3158,7 +3084,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   m_DebugWidth = oldW;
   m_DebugHeight = oldH;
 
-  return GetResID(GetDebugManager()->m_CustomTexImg);
+  return GetResID(GetDebugManager()->GetCustomTexture());
 }
 
 void VulkanReplay::BuildTargetShader(string source, string entry,
@@ -3211,24 +3137,137 @@ void VulkanReplay::BuildTargetShader(string source, string entry,
   *id = GetResID(module);
 }
 
-void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
-{
-  GetDebugManager()->ReplaceResource(from, to);
-  GetDebugManager()->ClearPostVSCache();
-}
-
-void VulkanReplay::RemoveReplacement(ResourceId id)
-{
-  GetDebugManager()->RemoveReplacement(id);
-  GetDebugManager()->ClearPostVSCache();
-}
-
 void VulkanReplay::FreeTargetResource(ResourceId id)
 {
   if(id == ResourceId())
     return;
 
   m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
+}
+
+void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
+{
+  VkDevice dev = m_pDriver->GetDev();
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  // we're passed in the original ID but we want the live ID for comparison
+  ResourceId liveid = rm->GetLiveID(from);
+
+  VkShaderModule srcShaderModule = rm->GetCurrentHandle<VkShaderModule>(liveid);
+  VkShaderModule dstShaderModule = rm->GetCurrentHandle<VkShaderModule>(to);
+
+  // remake and replace any pipelines that referenced this shader
+  for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();
+      it != m_pDriver->m_CreationInfo.m_Pipeline.end(); ++it)
+  {
+    bool refdShader = false;
+    for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
+    {
+      if(it->second.shaders[i].module == liveid)
+      {
+        refdShader = true;
+        break;
+      }
+    }
+
+    if(refdShader)
+    {
+      VkPipeline pipe = VK_NULL_HANDLE;
+      const VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[it->first];
+      if(pipeInfo.renderpass != ResourceId())    // check if this is a graphics or compute pipeline
+      {
+        VkGraphicsPipelineCreateInfo pipeCreateInfo;
+        m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
+
+        // replace the relevant module
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+        {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+
+          if(sh.module == srcShaderModule)
+            sh.module = dstShaderModule;
+        }
+
+        // create the new graphics pipeline
+        VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                            NULL, &pipe);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+      else
+      {
+        VkComputePipelineCreateInfo pipeCreateInfo;
+        m_pDriver->GetShaderCache()->MakeComputePipelineInfo(pipeCreateInfo, it->first);
+
+        // replace the relevant module
+        VkPipelineShaderStageCreateInfo &sh = pipeCreateInfo.stage;
+        RDCASSERT(sh.module == srcShaderModule);
+        sh.module = dstShaderModule;
+
+        // create the new compute pipeline
+        VkResult vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                           NULL, &pipe);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+
+      // remove the replacements
+      rm->ReplaceResource(it->first, GetResID(pipe));
+      rm->ReplaceResource(rm->GetOriginalID(it->first), GetResID(pipe));
+    }
+  }
+
+  // make the actual shader module replacements
+  rm->ReplaceResource(from, to);
+  rm->ReplaceResource(liveid, to);
+
+  ClearPostVSCache();
+}
+
+void VulkanReplay::RemoveReplacement(ResourceId id)
+{
+  VkDevice dev = m_pDriver->GetDev();
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  // we're passed in the original ID but we want the live ID for comparison
+  ResourceId liveid = rm->GetLiveID(id);
+
+  if(!rm->HasReplacement(id))
+    return;
+
+  // remove the actual shader module replacements
+  rm->RemoveReplacement(id);
+  rm->RemoveReplacement(liveid);
+
+  // remove any replacements on pipelines that referenced this shader
+  for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();
+      it != m_pDriver->m_CreationInfo.m_Pipeline.end(); ++it)
+  {
+    bool refdShader = false;
+    for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
+    {
+      if(it->second.shaders[i].module == liveid)
+      {
+        refdShader = true;
+        break;
+      }
+    }
+
+    if(refdShader)
+    {
+      VkPipeline pipe = rm->GetCurrentHandle<VkPipeline>(it->first);
+
+      // delete the replacement pipeline
+      m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
+
+      // remove both live and original replacements, since we will have made these above
+      rm->RemoveReplacement(it->first);
+      rm->RemoveReplacement(rm->GetOriginalID(it->first));
+    }
+  }
+
+  ClearPostVSCache();
 }
 
 vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
@@ -3360,8 +3399,6 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   }
 
   InitReplayTables(module);
-
-  VulkanReplay::PreDeviceInitCounters();
 
   WrappedVulkan *vk = new WrappedVulkan();
   ReplayStatus status = vk->Initialise(initParams, ver);

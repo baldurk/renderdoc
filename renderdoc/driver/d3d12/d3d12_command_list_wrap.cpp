@@ -26,6 +26,7 @@
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_debug.h"
 
 ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetCrackedList()
 {
@@ -3450,7 +3451,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   if(exec.countBuf)
   {
     bytebuf data;
-    m_pDevice->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
+    m_pDevice->GetReplay()->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
     count = RDCMIN(count, *(uint32_t *)&data[0]);
   }
 
@@ -3966,8 +3967,8 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
   }
 
   bytebuf data;
-  m_pDevice->GetDebugManager()->GetBufferData(exec.argBuf, exec.argOffs,
-                                              count * comSig->sig.ByteStride, data);
+  m_pDevice->GetReplay()->GetDebugManager()->GetBufferData(exec.argBuf, exec.argOffs,
+                                                           count * comSig->sig.ByteStride, data);
 
   byte *dataPtr = &data[0];
 

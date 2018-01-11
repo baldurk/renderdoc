@@ -31,6 +31,7 @@
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "d3d11_context.h"
+#include "d3d11_debug.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_rendertext.h"
 #include "d3d11_resources.h"
@@ -84,8 +85,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D11Device3), (void **)&m_pDevice3);
     m_pDevice->QueryInterface(__uuidof(ID3D11Device4), (void **)&m_pDevice4);
   }
-
-  m_Replay.SetDevice(this);
 
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
@@ -198,8 +197,12 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     RDCDEBUG("Couldn't get ID3D11InfoQueue.");
   }
 
+  m_Replay.SetDevice(this);
+
   if(params)
     m_InitParams = *params;
+
+  m_DebugManager = new D3D11DebugManager(this);
 
   // ATI workaround - these dlls can get unloaded and cause a crash.
 
@@ -249,6 +252,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     SAFE_RELEASE(it->second);
+
+  m_Replay.DestroyResources();
 
   SAFE_DELETE(m_DebugManager);
   SAFE_DELETE(m_TextRenderer);
@@ -622,12 +627,6 @@ std::string WrappedID3D11Device::GetChunkName(uint32_t idx)
     return ToStr((SystemChunk)idx);
 
   return ToStr((D3D11Chunk)idx);
-}
-
-void WrappedID3D11Device::LazyInit()
-{
-  if(m_DebugManager == NULL)
-    m_DebugManager = new D3D11DebugManager(this);
 }
 
 void WrappedID3D11Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
@@ -1267,8 +1266,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
   ResourceId id = pTex->GetResourceID();
 
-  LazyInit();
-
+  // init the text renderer
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D11TextRenderer(this);
 

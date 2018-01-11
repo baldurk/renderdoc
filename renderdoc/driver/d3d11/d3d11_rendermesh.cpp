@@ -25,26 +25,26 @@
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
+#include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
 #include "d3d11_resources.h"
 
 #include "data/hlsl/debugcbuffers.h"
 
-void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
-                                   const MeshDisplay &cfg)
+void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
+                             const MeshDisplay &cfg)
 {
   if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
     return;
 
   DebugVertexCBuffer vertexData;
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   vertexData.LineStrip = 0;
 
-  Matrix4f projMat =
-      Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth()) / float(GetHeight()));
+  Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, m_OutputWidth / m_OutputHeight);
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
   Matrix4f guessProjInv;
@@ -58,27 +58,27 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
   pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
   pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
-  FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+  ID3D11Buffer *psCBuf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
-  m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
-  m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
+  m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
+  m_pImmediateContext->PSSetShader(m_MeshRender.WireframePS, NULL, 0);
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
   m_pImmediateContext->DSSetShader(NULL, NULL, 0);
   m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 
   m_pImmediateContext->OMSetDepthStencilState(NULL, 0);
-  m_pImmediateContext->OMSetBlendState(m_WireframeHelpersBS, NULL, 0xffffffff);
+  m_pImmediateContext->OMSetBlendState(m_MeshRender.WireframeHelpersBS, NULL, 0xffffffff);
 
   // don't cull in wireframe mesh display
-  m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
+  m_pImmediateContext->RSSetState(m_MeshRender.WireframeRasterState);
 
   const ResourceFormat &resFmt = cfg.position.format;
   const ResourceFormat &resFmt2 = cfg.second.format;
 
-  if(m_PrevMeshFmt != resFmt || m_PrevMeshFmt2 != resFmt2)
+  if(m_MeshRender.PrevPositionFormat != resFmt || m_MeshRender.PrevSecondaryFormat != resFmt2)
   {
-    SAFE_RELEASE(m_MeshDisplayLayout);
+    SAFE_RELEASE(m_MeshRender.MeshLayout);
 
     D3D11_INPUT_ELEMENT_DESC layoutdesc[2];
 
@@ -102,18 +102,18 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layoutdesc[1].InstanceDataStepRate = 0;
 
-    HRESULT hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshVSBytecode,
-                                              m_DebugRender.MeshVSBytelen, &m_MeshDisplayLayout);
+    HRESULT hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_MeshRender.MeshVSBytecode,
+                                              m_MeshRender.MeshVSBytelen, &m_MeshRender.MeshLayout);
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create m_MeshDisplayLayout HRESULT: %s", ToStr(hr).c_str());
-      m_MeshDisplayLayout = NULL;
+      RDCERR("Failed to create m_MeshRender.m_MeshDisplayLayout HRESULT: %s", ToStr(hr).c_str());
+      m_MeshRender.MeshLayout = NULL;
     }
   }
 
-  m_PrevMeshFmt = resFmt;
-  m_PrevMeshFmt2 = resFmt2;
+  m_MeshRender.PrevPositionFormat = resFmt;
+  m_MeshRender.PrevSecondaryFormat = resFmt2;
 
   RDCASSERT(cfg.position.indexByteOffset < 0xffffffff);
 
@@ -122,6 +122,8 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
   UINT ioffs = (UINT)cfg.position.indexByteOffset;
 
   D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(cfg.position.topology);
+
+  ID3D11Buffer *vsCBuf = NULL;
 
   // render the mesh itself (solid, then wireframe)
   {
@@ -145,26 +147,26 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
       vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
     }
 
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+    vsCBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
 
-    m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+    m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuf);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
     Vec4f meshColour;
 
-    ID3D11Buffer *meshColourBuf = MakeCBuffer(&meshColour, sizeof(Vec4f));
+    ID3D11Buffer *meshColourBuf = GetDebugManager()->MakeCBuffer(&meshColour, sizeof(Vec4f));
 
-    m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
-    m_pImmediateContext->PSSetShader(m_DebugRender.MeshPS, NULL, 0);
+    m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_MeshRender.MeshPS, NULL, 0);
 
     // secondary draws - this is the "draw since last clear" feature. We don't have
     // full flexibility, it only draws wireframe, and only the final rasterized position.
     if(secondaryDraws.size() > 0)
     {
-      m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+      m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       for(size_t i = 0; i < secondaryDraws.size(); i++)
       {
@@ -173,7 +175,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
         if(fmt.vertexResourceId != ResourceId())
         {
           meshColour = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, 1.0f);
-          FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
+          GetDebugManager()->FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
           m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
           m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topology));
@@ -203,7 +205,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
       }
     }
 
-    ID3D11InputLayout *layout = m_MeshDisplayLayout;
+    ID3D11InputLayout *layout = m_MeshRender.MeshLayout;
 
     if(layout == NULL)
     {
@@ -248,20 +250,20 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     // draw solid shaded mode
     if(cfg.solidShadeMode != SolidShade::NoSolid && cfg.position.topology < Topology::PatchList_1CPs)
     {
-      m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+      m_pImmediateContext->RSSetState(m_General.RasterState);
 
       m_pImmediateContext->IASetPrimitiveTopology(topo);
 
       pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
       if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
         pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       meshColour = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
-      FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
+      GetDebugManager()->FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
       m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
       if(cfg.solidShadeMode == SolidShade::Lit)
       {
@@ -269,10 +271,11 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
         geomData.InvProj = projMat.Inverse();
 
-        FillCBuffer(m_DebugRender.GenericGSCBuffer, &geomData, sizeof(DebugGeometryCBuffer));
-        m_pImmediateContext->GSSetConstantBuffers(0, 1, &m_DebugRender.GenericGSCBuffer);
+        ID3D11Buffer *gsBuf = GetDebugManager()->MakeCBuffer(&geomData, sizeof(DebugGeometryCBuffer));
 
-        m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
+        m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsBuf);
+
+        m_pImmediateContext->GSSetShader(m_MeshRender.MeshGS, NULL, 0);
       }
 
       if(cfg.position.indexByteStride)
@@ -288,19 +291,19 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
        cfg.position.topology >= Topology::PatchList_1CPs)
     {
-      m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
+      m_pImmediateContext->RSSetState(m_MeshRender.WireframeRasterState);
 
-      m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
+      m_pImmediateContext->OMSetDepthStencilState(m_MeshRender.LessEqualDepthState, 0);
 
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       meshColour =
           Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
-      FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
+      GetDebugManager()->FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
       m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
       if(cfg.position.topology >= Topology::PatchList_1CPs)
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -314,45 +317,45 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     }
   }
 
-  m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
+  m_pImmediateContext->RSSetState(m_MeshRender.WireframeRasterState);
 
   // set up state for drawing helpers
   {
     vertexData.ModelViewProj = projMat.Mul(camMat);
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
 
-    m_pImmediateContext->RSSetState(m_SolidHelpersRS);
+    m_pImmediateContext->RSSetState(m_MeshRender.SolidRasterState);
 
-    m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
+    m_pImmediateContext->OMSetDepthStencilState(m_MeshRender.NoDepthState, 0);
 
-    m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-    m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
-    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
-    m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
+    m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuf);
+    m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
+    m_pImmediateContext->PSSetShader(m_MeshRender.WireframePS, NULL, 0);
   }
 
   // axis markers
   if(!cfg.position.unproject)
   {
-    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
     UINT strides[] = {sizeof(Vec4f)};
     UINT offsets[] = {0};
 
-    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_AxisHelper, strides, offsets);
+    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.AxisHelper, strides, offsets);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+    m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
     pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
     m_pImmediateContext->Draw(2, 0);
 
     pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
     m_pImmediateContext->Draw(2, 2);
 
     pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
     m_pImmediateContext->Draw(2, 4);
   }
 
@@ -407,16 +410,16 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
       else
         vertexData.ModelViewProj = projMat.Mul(camMat);
 
-      m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+      m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
-      FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+      GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
 
       D3D11_MAPPED_SUBRESOURCE mapped;
       HRESULT hr = S_OK;
       UINT strides[] = {sizeof(Vec4f)};
       UINT offsets[] = {0};
-      m_pImmediateContext->IASetVertexBuffers(0, 1, &m_TriHighlightHelper, (UINT *)&strides,
-                                              (UINT *)&offsets);
+      m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.TriHighlightHelper,
+                                              (UINT *)&strides, (UINT *)&offsets);
 
       ////////////////////////////////////////////////////////////////
       // render primitives
@@ -425,55 +428,57 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
       // Draw active primitive (red)
       pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       if(activePrim.size() >= primSize)
       {
-        hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD,
+                                      0, &mapped);
 
         if(FAILED(hr))
         {
-          RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
+          RDCERR("Failde to map m_MeshRender.m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
           return;
         }
 
         memcpy(mapped.pData, &activePrim[0], sizeof(Vec4f) * primSize);
-        m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+        m_pImmediateContext->Unmap(m_MeshRender.TriHighlightHelper, 0);
 
         m_pImmediateContext->Draw(primSize, 0);
       }
 
       // Draw adjacent primitives (green)
       pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
-        hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD,
+                                      0, &mapped);
 
         if(FAILED(hr))
         {
-          RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
+          RDCERR("Failde to map m_MeshRender.m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
           return;
         }
 
         memcpy(mapped.pData, &adjacentPrimVertices[0], sizeof(Vec4f) * adjacentPrimVertices.size());
-        m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+        m_pImmediateContext->Unmap(m_MeshRender.TriHighlightHelper, 0);
 
         m_pImmediateContext->Draw((UINT)adjacentPrimVertices.size(), 0);
       }
 
       ////////////////////////////////////////////////////////////////
       // prepare to render dots (set new VS params and topology)
-      float scale = 800.0f / float(GetHeight());
-      float asp = float(GetWidth()) / float(GetHeight());
+      float scale = 800.0f / m_OutputHeight;
+      float asp = m_OutputWidth / m_OutputHeight;
 
       vertexData.SpriteSize = Vec2f(scale / asp, scale);
-      FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+      GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
 
       // Draw active vertex (blue)
       pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -481,44 +486,46 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
           activeVertex, activeVertex, activeVertex, activeVertex,
       };
 
-      hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+      hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0,
+                                    &mapped);
 
       if(FAILED(hr))
       {
-        RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
+        RDCERR("Failde to map m_MeshRender.m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
         return;
       }
 
       memcpy(mapped.pData, vertSprite, sizeof(vertSprite));
-      m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+      m_pImmediateContext->Unmap(m_MeshRender.TriHighlightHelper, 0);
 
       m_pImmediateContext->Draw(4, 0);
 
       // Draw inactive vertices (green)
       pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
       for(size_t i = 0; i < inactiveVertices.size(); i++)
       {
         vertSprite[0] = vertSprite[1] = vertSprite[2] = vertSprite[3] = inactiveVertices[i];
 
-        hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD,
+                                      0, &mapped);
 
         if(FAILED(hr))
         {
-          RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
+          RDCERR("Failde to map m_MeshRender.m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
           return;
         }
 
         memcpy(mapped.pData, vertSprite, sizeof(vertSprite));
-        m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+        m_pImmediateContext->Unmap(m_MeshRender.TriHighlightHelper, 0);
 
         m_pImmediateContext->Draw(4, 0);
       }
     }
 
     if(cfg.position.unproject)
-      m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
+      m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
   }
 
   // bounding box
@@ -530,10 +537,10 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
     vertexData.SpriteSize = Vec2f();
     vertexData.ModelViewProj = projMat.Mul(camMat);
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
 
-    HRESULT hr =
-        m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    HRESULT hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0,
+                                          D3D11_MAP_WRITE_DISCARD, 0, &mapped);
     RDCASSERTEQUAL(hr, S_OK);
 
     Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
@@ -560,22 +567,22 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
     memcpy(mapped.pData, bbox, sizeof(bbox));
 
-    m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+    m_pImmediateContext->Unmap(m_MeshRender.TriHighlightHelper, 0);
 
     // we want this to clip
-    m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
+    m_pImmediateContext->OMSetDepthStencilState(m_MeshRender.LessEqualDepthState, 0);
 
-    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_TriHighlightHelper, (UINT *)&strides,
-                                            (UINT *)&offsets);
+    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.TriHighlightHelper,
+                                            (UINT *)&strides, (UINT *)&offsets);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+    m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
     pixelData.WireframeColour = Vec3f(0.2f, 0.2f, 1.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
     m_pImmediateContext->Draw(24, 0);
 
-    m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
+    m_pImmediateContext->OMSetDepthStencilState(m_MeshRender.NoDepthState, 0);
   }
 
   // 'fake' helper frustum
@@ -586,15 +593,15 @@ void D3D11DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
     vertexData.SpriteSize = Vec2f();
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
 
-    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_FrustumHelper, (UINT *)&strides,
+    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.FrustumHelper, (UINT *)&strides,
                                             (UINT *)&offsets);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+    m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
     pixelData.WireframeColour = Vec3f(1.0f, 1.0f, 1.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
 
     m_pImmediateContext->Draw(24, 0);
   }

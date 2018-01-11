@@ -34,8 +34,8 @@
 
 #include "data/hlsl/debugcbuffers.h"
 
-D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(
-    const MeshFormat &primary, const MeshFormat &secondary)
+MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshFormat &primary,
+                                                                  const MeshFormat &secondary)
 {
   // generate a key to look up the map
   uint64_t key = 0;
@@ -135,7 +135,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
 
   HRESULT hr = S_OK;
 
-  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+  hr = m_pDevice->CreateGraphicsPipelineState(
       &pipeDesc, __uuidof(ID3D12PipelineState),
       (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
   RDCASSERTEQUAL(hr, S_OK);
@@ -144,7 +144,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
   pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 
-  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+  hr = m_pDevice->CreateGraphicsPipelineState(
       &pipeDesc, __uuidof(ID3D12PipelineState),
       (void **)&cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
   RDCASSERTEQUAL(hr, S_OK);
@@ -154,7 +154,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   pipeDesc.DepthStencilState.DepthEnable = FALSE;
   pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
-  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+  hr = m_pDevice->CreateGraphicsPipelineState(
       &pipeDesc, __uuidof(ID3D12PipelineState),
       (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
   RDCASSERTEQUAL(hr, S_OK);
@@ -163,7 +163,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
   pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 
-  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+  hr = m_pDevice->CreateGraphicsPipelineState(
       &pipeDesc, __uuidof(ID3D12PipelineState),
       (void **)&cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]);
   RDCASSERTEQUAL(hr, S_OK);
@@ -174,7 +174,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
     ia[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
     RDCASSERT(secondaryFmt != DXGI_FORMAT_UNKNOWN);
 
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(
+    hr = m_pDevice->CreateGraphicsPipelineState(
         &pipeDesc, __uuidof(ID3D12PipelineState),
         (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Secondary]);
     RDCASSERTEQUAL(hr, S_OK);
@@ -188,7 +188,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
     pipeDesc.GS.BytecodeLength = m_MeshGS->GetBufferSize();
     pipeDesc.GS.pShaderBytecode = m_MeshGS->GetBufferPointer();
 
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(
+    hr = m_pDevice->CreateGraphicsPipelineState(
         &pipeDesc, __uuidof(ID3D12PipelineState),
         (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
     RDCASSERTEQUAL(hr, S_OK);
@@ -197,8 +197,8 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   return cache;
 }
 
-void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
-                                   const MeshDisplay &cfg)
+void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
+                             const MeshDisplay &cfg)
 {
   if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
     return;
@@ -209,7 +209,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
   OutputWindow &outw = it->second;
 
-  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
   list->OMSetRenderTargets(1, &outw.rtv, TRUE, &outw.dsv);
 
@@ -259,14 +259,16 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
   }
 
-  D3D12_GPU_VIRTUAL_ADDRESS vsCB = UploadConstants(&vertexData, sizeof(vertexData));
+  D3D12_GPU_VIRTUAL_ADDRESS vsCB =
+      GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData));
 
   if(!secondaryDraws.empty())
   {
-    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
-    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+    list->SetGraphicsRootConstantBufferView(
+        1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
     list->SetGraphicsRootConstantBufferView(2, vsCB);
 
     for(size_t i = 0; i < secondaryDraws.size(); i++)
@@ -280,12 +282,12 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
         list->SetGraphicsRoot32BitConstants(3, 4, &fmt.meshColor.x, 0);
 
         MeshDisplayPipelines secondaryCache =
-            CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
+            GetDebugManager()->CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
 
         list->SetPipelineState(secondaryCache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 
         ID3D12Resource *vb =
-            m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.vertexResourceId);
+            m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.vertexResourceId);
 
         UINT64 offs = fmt.vertexByteOffset;
         D3D12_VERTEX_BUFFER_VIEW view;
@@ -306,8 +308,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
         {
           if(fmt.indexResourceId != ResourceId())
           {
-            ID3D12Resource *ib = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
-                fmt.indexResourceId);
+            ID3D12Resource *ib =
+                m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.indexResourceId);
 
             D3D12_INDEX_BUFFER_VIEW iview;
             iview.BufferLocation = ib->GetGPUVirtualAddress() + fmt.indexByteOffset;
@@ -326,12 +328,12 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     }
   }
 
-  MeshDisplayPipelines cache = CacheMeshDisplayPipelines(cfg.position, cfg.second);
+  MeshDisplayPipelines cache = GetDebugManager()->CacheMeshDisplayPipelines(cfg.position, cfg.second);
 
   if(cfg.position.vertexResourceId != ResourceId())
   {
-    ID3D12Resource *vb = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
-        cfg.position.vertexResourceId);
+    ID3D12Resource *vb =
+        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
     UINT64 offs = cfg.position.vertexByteOffset;
     D3D12_VERTEX_BUFFER_VIEW view;
@@ -357,8 +359,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
   if(solidShadeMode == SolidShade::Secondary)
   {
-    ID3D12Resource *vb = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
-        cfg.position.vertexResourceId);
+    ID3D12Resource *vb =
+        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
     UINT64 offs = cfg.second.vertexByteOffset;
     D3D12_VERTEX_BUFFER_VIEW view;
@@ -386,17 +388,19 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
 
     list->SetPipelineState(pipe);
-    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
-    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+    list->SetGraphicsRootConstantBufferView(
+        1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
 
     if(solidShadeMode == SolidShade::Lit)
     {
       DebugGeometryCBuffer geomData;
       geomData.InvProj = projMat.Inverse();
 
-      list->SetGraphicsRootConstantBufferView(2, UploadConstants(&geomData, sizeof(geomData)));
+      list->SetGraphicsRootConstantBufferView(
+          2, GetDebugManager()->UploadConstants(&geomData, sizeof(geomData)));
     }
     else
     {
@@ -410,7 +414,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     {
       if(cfg.position.indexResourceId != ResourceId())
       {
-        ID3D12Resource *ib = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
+        ID3D12Resource *ib = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
             cfg.position.indexResourceId);
 
         D3D12_INDEX_BUFFER_VIEW view;
@@ -438,18 +442,19 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
-    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
-    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+    list->SetGraphicsRootConstantBufferView(
+        1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
     list->SetGraphicsRootConstantBufferView(2, vsCB);
 
     list->SetGraphicsRoot32BitConstants(3, 4, &cfg.position.meshColor.x, 0);
 
     if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
     {
-      ID3D12Resource *ib = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(
-          cfg.position.indexResourceId);
+      ID3D12Resource *ib =
+          m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
 
       D3D12_INDEX_BUFFER_VIEW view;
       view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.indexByteOffset;
@@ -478,10 +483,11 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
   pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
 
-  list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+  list->SetGraphicsRootConstantBufferView(
+      1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
 
   // cache pipelines for use in drawing wireframe helpers
-  cache = CacheMeshDisplayPipelines(helper, helper);
+  cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
 
   if(cfg.showBBox)
   {
@@ -508,7 +514,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     };
 
     D3D12_VERTEX_BUFFER_VIEW view;
-    view.BufferLocation = UploadConstants(bbox, sizeof(bbox));
+    view.BufferLocation = GetDebugManager()->UploadConstants(bbox, sizeof(bbox));
     view.SizeInBytes = sizeof(bbox);
     view.StrideInBytes = sizeof(Vec4f);
 
@@ -533,7 +539,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     };
 
     D3D12_VERTEX_BUFFER_VIEW view;
-    view.BufferLocation = UploadConstants(axismarker, sizeof(axismarker));
+    view.BufferLocation = GetDebugManager()->UploadConstants(axismarker, sizeof(axismarker));
     view.SizeInBytes = sizeof(axismarker);
     view.StrideInBytes = sizeof(Vec4f);
 
@@ -579,7 +585,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     };
 
     D3D12_VERTEX_BUFFER_VIEW view;
-    view.BufferLocation = UploadConstants(bbox, sizeof(bbox));
+    view.BufferLocation = GetDebugManager()->UploadConstants(bbox, sizeof(bbox));
     view.SizeInBytes = sizeof(bbox);
     view.StrideInBytes = sizeof(Vec4f);
 
@@ -633,7 +639,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
     {
       // update the cache, as it's currently linelist
       helper.topology = Topology::TriangleList;
-      cache = CacheMeshDisplayPipelines(helper, helper);
+      cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
     }
 
     bool valid = m_HighlightCache.FetchHighlightPositions(cfg, activeVertex, activePrim,
@@ -655,7 +661,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
       if(PatchList_Count(helper.topology) > 0)
         list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-      list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+      list->SetGraphicsRootConstantBufferView(
+          0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
 
       list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
 
@@ -671,7 +678,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
       if(activePrim.size() >= primSize)
       {
-        view.BufferLocation = UploadConstants(&activePrim[0], sizeof(Vec4f) * primSize);
+        view.BufferLocation =
+            GetDebugManager()->UploadConstants(&activePrim[0], sizeof(Vec4f) * primSize);
         view.SizeInBytes = sizeof(Vec4f) * primSize;
 
         list->IASetVertexBuffers(0, 1, &view);
@@ -685,8 +693,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
-        view.BufferLocation =
-            UploadConstants(&activePrim[0], sizeof(Vec4f) * adjacentPrimVertices.size());
+        view.BufferLocation = GetDebugManager()->UploadConstants(
+            &activePrim[0], sizeof(Vec4f) * adjacentPrimVertices.size());
         view.SizeInBytes = UINT(sizeof(Vec4f) * adjacentPrimVertices.size());
 
         list->IASetVertexBuffers(0, 1, &view);
@@ -702,7 +710,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
       vertexData.SpriteSize = Vec2f(scale / asp, scale);
 
-      list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+      list->SetGraphicsRootConstantBufferView(
+          0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
 
       // Draw active vertex (blue)
       colour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
@@ -710,7 +719,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
 
       // vertices are drawn with tri strips
       helper.topology = Topology::TriangleStrip;
-      cache = CacheMeshDisplayPipelines(helper, helper);
+      cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
 
       FloatVector vertSprite[4] = {
           activeVertex, activeVertex, activeVertex, activeVertex,
@@ -724,7 +733,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
       list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
 
       {
-        view.BufferLocation = UploadConstants(&vertSprite[0], sizeof(vertSprite));
+        view.BufferLocation = GetDebugManager()->UploadConstants(&vertSprite[0], sizeof(vertSprite));
         view.SizeInBytes = sizeof(vertSprite);
 
         list->IASetVertexBuffers(0, 1, &view);
@@ -749,8 +758,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
           inactiveVB.push_back(inactiveVertices[i]);
         }
 
-        view.BufferLocation =
-            UploadConstants(&inactiveVB[0], sizeof(vertSprite) * inactiveVertices.size());
+        view.BufferLocation = GetDebugManager()->UploadConstants(
+            &inactiveVB[0], sizeof(vertSprite) * inactiveVertices.size());
         view.SizeInBytes = UINT(sizeof(vertSprite) * inactiveVertices.size());
 
         for(size_t i = 0; i < inactiveVertices.size(); i++)
@@ -768,7 +777,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventId, const vector<MeshFormat> &s
   list->Close();
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_WrappedDevice->ExecuteLists();
-  m_WrappedDevice->FlushLists();
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists();
 #endif
 }

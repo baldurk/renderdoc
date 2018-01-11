@@ -147,6 +147,22 @@ private:
   UINT stencilReadOnly : 1;
 };
 
+// don't need to differentiate arrays as we treat everything
+// as an array (potentially with only one element).
+enum D3D11TextureDetailsType
+{
+  eTexType_1D = 1,
+  eTexType_2D,
+  eTexType_3D,
+  eTexType_Depth,
+  eTexType_Stencil,
+  eTexType_DepthMS,
+  eTexType_StencilMS,
+  eTexType_Unused,    // removed, kept just to keep slots the same
+  eTexType_2DMS,
+  eTexType_Max
+};
+
 template <typename T>
 inline const ResourceRange &GetResourceRange(T *);
 

@@ -26,7 +26,7 @@
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
 
-void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
+void D3D12Replay::OutputWindow::MakeRTV(bool multisampled)
 {
   SAFE_RELEASE(col);
   SAFE_RELEASE(colResolve);
@@ -93,7 +93,7 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
   }
 }
 
-void D3D12DebugManager::OutputWindow::MakeDSV()
+void D3D12Replay::OutputWindow::MakeDSV()
 {
   SAFE_RELEASE(depth);
 
@@ -138,13 +138,13 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
   }
 }
 
-uint64_t D3D12DebugManager::MakeOutputWindow(WindowingData window, bool depth)
+uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
 {
   RDCASSERT(window.system == WindowingSystem::Win32, window.system);
 
   OutputWindow outw;
   outw.wnd = window.win32.window;
-  outw.dev = m_WrappedDevice;
+  outw.dev = m_pDevice;
 
   DXGI_SWAP_CHAIN_DESC swapDesc;
   RDCEraseEl(swapDesc);
@@ -166,7 +166,7 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingData window, bool depth)
 
   HRESULT hr = S_OK;
 
-  hr = m_pFactory->CreateSwapChain(m_WrappedDevice->GetQueue(), &swapDesc, &outw.swap);
+  hr = m_pFactory->CreateSwapChain(m_pDevice->GetQueue(), &swapDesc, &outw.swap);
 
   if(FAILED(hr))
   {
@@ -179,16 +179,16 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingData window, bool depth)
 
   outw.bbIdx = 0;
 
-  outw.rtv = GetCPUHandle(FIRST_WIN_RTV);
+  outw.rtv = GetDebugManager()->GetCPUHandle(FIRST_WIN_RTV);
   outw.rtv.ptr += SIZE_T(m_OutputWindowID) * sizeof(D3D12Descriptor);
 
-  outw.dsv = GetCPUHandle(FIRST_WIN_DSV);
+  outw.dsv = GetDebugManager()->GetCPUHandle(FIRST_WIN_DSV);
   outw.dsv.ptr += SIZE_T(m_DSVID) * sizeof(D3D12Descriptor);
 
   outw.col = NULL;
   outw.colResolve = NULL;
   outw.MakeRTV(depth);
-  m_WrappedDevice->CreateRenderTargetView(outw.col, NULL, outw.rtv);
+  m_pDevice->CreateRenderTargetView(outw.col, NULL, outw.rtv);
 
   outw.depth = NULL;
   if(depth)
@@ -202,7 +202,7 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingData window, bool depth)
   return id;
 }
 
-void D3D12DebugManager::DestroyOutputWindow(uint64_t id)
+void D3D12Replay::DestroyOutputWindow(uint64_t id)
 {
   auto it = m_OutputWindows.find(id);
   if(id == 0 || it == m_OutputWindows.end())
@@ -220,7 +220,7 @@ void D3D12DebugManager::DestroyOutputWindow(uint64_t id)
   m_OutputWindows.erase(it);
 }
 
-bool D3D12DebugManager::CheckResizeOutputWindow(uint64_t id)
+bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
@@ -240,8 +240,8 @@ bool D3D12DebugManager::CheckResizeOutputWindow(uint64_t id)
     outw.width = w;
     outw.height = h;
 
-    m_WrappedDevice->ExecuteLists();
-    m_WrappedDevice->FlushLists(true);
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists(true);
 
     if(outw.width > 0 && outw.height > 0)
     {
@@ -282,7 +282,7 @@ bool D3D12DebugManager::CheckResizeOutputWindow(uint64_t id)
   return false;
 }
 
-void D3D12DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
+void D3D12Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -291,24 +291,24 @@ void D3D12DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32
   h = m_OutputWindows[id].height;
 }
 
-void D3D12DebugManager::ClearOutputWindowColor(uint64_t id, FloatVector col)
+void D3D12Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
-  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
   list->ClearRenderTargetView(m_OutputWindows[id].rtv, &col.x, 0, NULL);
 
   list->Close();
 }
 
-void D3D12DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
+void D3D12Replay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
-  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
   list->ClearDepthStencilView(m_OutputWindows[id].dsv,
                               D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0,
@@ -317,7 +317,7 @@ void D3D12DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t
   list->Close();
 }
 
-void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
+void D3D12Replay::BindOutputWindow(uint64_t id, bool depth)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -332,7 +332,7 @@ void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
   SetOutputDimensions(outw.width, outw.height);
 }
 
-bool D3D12DebugManager::IsOutputWindowVisible(uint64_t id)
+bool D3D12Replay::IsOutputWindowVisible(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
@@ -340,7 +340,7 @@ bool D3D12DebugManager::IsOutputWindowVisible(uint64_t id)
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-void D3D12DebugManager::FlipOutputWindow(uint64_t id)
+void D3D12Replay::FlipOutputWindow(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -366,7 +366,7 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   barriers[2].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
   barriers[2].Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
 
-  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
   // resolve or copy from colour to backbuffer
   if(outw.depth)
@@ -401,8 +401,8 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
 
   list->Close();
 
-  m_WrappedDevice->ExecuteLists();
-  m_WrappedDevice->FlushLists();
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists();
 
   outw.swap->Present(0, 0);
 

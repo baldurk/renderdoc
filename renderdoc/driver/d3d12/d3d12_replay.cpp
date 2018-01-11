@@ -25,11 +25,24 @@
 #include "d3d12_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
+#include "maths/camera.h"
+#include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_debug.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
+
+#include "data/hlsl/debugcbuffers.h"
+
+extern "C" __declspec(dllexport) HRESULT
+    __cdecl RENDERDOC_CreateWrappedDXGIFactory1(REFIID riid, void **ppFactory);
+extern "C" __declspec(dllexport) HRESULT
+    __cdecl RENDERDOC_CreateWrappedD3D12Device(IUnknown *pAdapter,
+                                               D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                                               void **ppDevice);
+ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
@@ -46,6 +59,8 @@ D3D12Replay::D3D12Replay()
 {
   m_pDevice = NULL;
   m_Proxy = false;
+
+  m_HighlightCache.driver = this;
 }
 
 void D3D12Replay::Shutdown()
@@ -54,11 +69,52 @@ void D3D12Replay::Shutdown()
     m_ProxyResources[i]->Release();
   m_ProxyResources.clear();
 
-  PreDeviceShutdownCounters();
-
   m_pDevice->Release();
+}
 
-  D3D12Replay::PostDeviceShutdownCounters();
+void D3D12Replay::CreateResources()
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    HRESULT hr = RENDERDOC_CreateWrappedDXGIFactory1(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
+    }
+
+    CreateSOBuffers();
+
+    m_DebugManager = new D3D12DebugManager(m_pDevice);
+
+    m_General.Init(m_pDevice, m_DebugManager);
+    m_TexRender.Init(m_pDevice, m_DebugManager);
+    m_Overlay.Init(m_pDevice, m_DebugManager);
+    m_VertexPick.Init(m_pDevice, m_DebugManager);
+    m_PixelPick.Init(m_pDevice, m_DebugManager);
+    m_Histogram.Init(m_pDevice, m_DebugManager);
+  }
+}
+
+void D3D12Replay::DestroyResources()
+{
+  ClearPostVSCache();
+
+  m_General.Release();
+  m_TexRender.Release();
+  m_Overlay.Release();
+  m_VertexPick.Release();
+  m_PixelPick.Release();
+  m_Histogram.Release();
+
+  SAFE_RELEASE(m_SOBuffer);
+  SAFE_RELEASE(m_SOStagingBuffer);
+
+  SAFE_RELEASE(m_pFactory);
+
+  SAFE_RELEASE(m_CustomShaderTex);
+
+  SAFE_DELETE(m_DebugManager);
 }
 
 ReplayStatus D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
@@ -521,8 +577,8 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         if(view.counterResourceId != ResourceId())
         {
           bytebuf counterVal;
-          m_pDevice->GetDebugManager()->GetBufferData(desc->nonsamp.uav.counterResource,
-                                                      view.counterByteOffset, 4, counterVal);
+          GetDebugManager()->GetBufferData(desc->nonsamp.uav.counterResource,
+                                           view.counterByteOffset, 4, counterVal);
           uint32_t *val = (uint32_t *)&counterVal[0];
           view.bufferStructCount = *val;
         }
@@ -1186,46 +1242,908 @@ void D3D12Replay::SavePipelineState()
   m_PipelineState = state;
 }
 
-void D3D12Replay::RenderCheckerboard()
-{
-  m_pDevice->GetDebugManager()->RenderCheckerboard();
-}
-
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 {
-  m_pDevice->GetDebugManager()->RenderHighlightBox(w, h, scale);
+  OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
+
+  {
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+    float black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    float white[] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    // size of box
+    LONG sz = LONG(scale);
+
+    // top left, x and y
+    LONG tlx = LONG(w / 2.0f + 0.5f);
+    LONG tly = LONG(h / 2.0f + 0.5f);
+
+    D3D12_RECT rect[4] = {
+        {tlx, tly, tlx + 1, tly + sz},
+
+        {tlx + sz, tly, tlx + sz + 1, tly + sz + 1},
+
+        {tlx, tly, tlx + sz, tly + 1},
+
+        {tlx, tly + sz, tlx + sz, tly + sz + 1},
+    };
+
+    // inner
+    list->ClearRenderTargetView(outw.rtv, white, 4, rect);
+
+    // shift both sides to just translate the rect without changing its size
+    rect[0].left--;
+    rect[0].right--;
+    rect[1].left++;
+    rect[1].right++;
+    rect[2].left--;
+    rect[2].right--;
+    rect[3].left--;
+    rect[3].right--;
+
+    rect[0].top--;
+    rect[0].bottom--;
+    rect[1].top--;
+    rect[1].bottom--;
+    rect[2].top--;
+    rect[2].bottom--;
+    rect[3].top++;
+    rect[3].bottom++;
+
+    // now increase the 'size' of the rects
+    rect[0].bottom += 2;
+    rect[1].bottom += 2;
+    rect[2].right += 2;
+    rect[3].right += 2;
+
+    // outer
+    list->ClearRenderTargetView(outw.rtv, black, 4, rect);
+
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
 }
 
-bool D3D12Replay::RenderTexture(TextureDisplay cfg)
+void D3D12Replay::RenderCheckerboard()
 {
-  return m_pDevice->GetDebugManager()->RenderTexture(cfg);
+  DebugVertexCBuffer vertexData;
+
+  vertexData.Scale = 2.0f;
+  vertexData.Position.x = vertexData.Position.y = 0;
+
+  vertexData.ScreenAspect.x = 1.0f;
+  vertexData.ScreenAspect.y = 1.0f;
+
+  vertexData.TextureResolution.x = 1.0f;
+  vertexData.TextureResolution.y = 1.0f;
+
+  vertexData.LineStrip = 0;
+
+  DebugPixelCBufferData pixelData;
+
+  pixelData.AlwaysZero = 0.0f;
+
+  pixelData.Channels = RenderDoc::Inst().LightCheckerboardColor();
+  pixelData.WireframeColour = RenderDoc::Inst().DarkCheckerboardColor();
+
+  D3D12_GPU_VIRTUAL_ADDRESS vs =
+      GetDebugManager()->UploadConstants(&vertexData, sizeof(DebugVertexCBuffer));
+  D3D12_GPU_VIRTUAL_ADDRESS ps = GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData));
+
+  OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
+
+  {
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+    list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
+
+    D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
+    list->RSSetViewports(1, &viewport);
+
+    D3D12_RECT scissor = {0, 0, outw.width, outw.height};
+    list->RSSetScissorRects(1, &scissor);
+
+    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+    list->SetPipelineState(outw.depth ? m_General.CheckerboardMSAAPipe : m_General.CheckerboardPipe);
+
+    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
+
+    list->SetGraphicsRootConstantBufferView(0, vs);
+    list->SetGraphicsRootConstantBufferView(1, ps);
+    list->SetGraphicsRootConstantBufferView(2, vs);
+
+    Vec4f dummy;
+    list->SetGraphicsRoot32BitConstants(3, 4, &dummy.x, 0);
+
+    float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    list->OMSetBlendFactor(factor);
+
+    list->DrawInstanced(3, 1, 0, 0);
+
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
 }
 
-void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
-                             const MeshDisplay &cfg)
+void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
+                            uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
 {
-  return m_pDevice->GetDebugManager()->RenderMesh(eventId, secondaryDraws, cfg);
+  SetOutputDimensions(1, 1);
+
+  {
+    TextureDisplay texDisplay;
+
+    texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+    texDisplay.hdrMultiplier = -1.0f;
+    texDisplay.linearDisplayAsGamma = true;
+    texDisplay.flipY = false;
+    texDisplay.mip = mip;
+    texDisplay.sampleIdx = sample;
+    texDisplay.customShaderId = ResourceId();
+    texDisplay.sliceFace = sliceFace;
+    texDisplay.rangeMin = 0.0f;
+    texDisplay.rangeMax = 1.0f;
+    texDisplay.scale = 1.0f;
+    texDisplay.resourceId = texture;
+    texDisplay.typeHint = typeHint;
+    texDisplay.rawOutput = true;
+    texDisplay.xOffset = -float(x);
+    texDisplay.yOffset = -float(y);
+
+    RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,
+                          eTexDisplay_F32Render);
+  }
+
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+
+  barrier.Transition.pResource = m_PixelPick.Texture;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+  list->ResourceBarrier(1, &barrier);
+
+  D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
+
+  src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  src.pResource = m_PixelPick.Texture;
+  src.SubresourceIndex = 0;
+
+  dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  dst.pResource = m_General.ResultReadbackBuffer;
+  dst.PlacedFootprint.Offset = 0;
+  dst.PlacedFootprint.Footprint.Width = sizeof(Vec4f);
+  dst.PlacedFootprint.Footprint.Height = 1;
+  dst.PlacedFootprint.Footprint.Depth = 1;
+  dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  dst.PlacedFootprint.Footprint.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+  list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+  list->ResourceBarrier(1, &barrier);
+
+  list->Close();
+
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists();
+
+  D3D12_RANGE range = {0, sizeof(Vec4f)};
+
+  float *pix = NULL;
+  HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, (void **)&pix);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map picking stage tex HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  if(pix == NULL)
+  {
+    RDCERR("Failed to map pick-pixel staging texture.");
+  }
+  else
+  {
+    pixel[0] = pix[0];
+    pixel[1] = pix[1];
+    pixel[2] = pix[2];
+    pixel[3] = pix[3];
+  }
+
+  range.End = 0;
+
+  if(SUCCEEDED(hr))
+    m_General.ResultReadbackBuffer->Unmap(0, &range);
+}
+
+uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
+                                 const MeshDisplay &cfg, uint32_t x, uint32_t y)
+{
+  if(cfg.position.numIndices == 0)
+    return ~0U;
+
+  struct MeshPickData
+  {
+    Vec3f RayPos;
+    uint32_t PickIdx;
+
+    Vec3f RayDir;
+    uint32_t PickNumVerts;
+
+    Vec2f PickCoords;
+    Vec2f PickViewport;
+
+    uint32_t MeshMode;
+    uint32_t PickUnproject;
+    Vec2f Padding;
+
+    Matrix4f PickMVP;
+
+  } cbuf;
+
+  cbuf.PickCoords = Vec2f((float)x, (float)y);
+  cbuf.PickViewport = Vec2f((float)width, (float)height);
+  cbuf.PickIdx = cfg.position.indexByteStride ? 1 : 0;
+  cbuf.PickNumVerts = cfg.position.numIndices;
+  cbuf.PickUnproject = cfg.position.unproject ? 1 : 0;
+
+  Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(width) / float(height));
+
+  Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
+
+  Matrix4f pickMVP = projMat.Mul(camMat);
+
+  Matrix4f pickMVPProj;
+  if(cfg.position.unproject)
+  {
+    // the derivation of the projection matrix might not be right (hell, it could be an
+    // orthographic projection). But it'll be close enough likely.
+    Matrix4f guessProj =
+        cfg.position.farPlane != FLT_MAX
+            ? Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect)
+            : Matrix4f::ReversePerspective(cfg.fov, cfg.position.nearPlane, cfg.aspect);
+
+    if(cfg.ortho)
+      guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+
+    pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+  }
+
+  Vec3f rayPos;
+  Vec3f rayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f inversePickMVP = pickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)width);
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)height);
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    Vec3f cameraToWorldNearPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+    Vec3f cameraToWorldFarPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+    Vec3f testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
+    testDir.Normalise();
+
+    // Calculate the ray direction first in the regular way (above), so we can use the
+    // the output for testing if the ray we are picking is negative or not. This is similar
+    // to checking against the forward direction of the camera, but more robust
+    if(cfg.position.unproject)
+    {
+      Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
+
+      Vec3f nearPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+      Vec3f farPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+      rayDir = (farPosProj - nearPosProj);
+      rayDir.Normalise();
+
+      if(testDir.z < 0)
+      {
+        rayDir = -rayDir;
+      }
+      rayPos = nearPosProj;
+    }
+    else
+    {
+      rayDir = testDir;
+      rayPos = cameraToWorldNearPosition;
+    }
+  }
+
+  cbuf.RayPos = rayPos;
+  cbuf.RayDir = rayDir;
+
+  cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
+
+  bool isTriangleMesh = true;
+  switch(cfg.position.topology)
+  {
+    case Topology::TriangleList:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      break;
+    }
+    case Topology::TriangleStrip:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      break;
+    }
+    case Topology::TriangleList_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    }
+    case Topology::TriangleStrip_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    }
+    default:    // points, lines, patchlists, unknown
+    {
+      cbuf.MeshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    }
+  }
+
+  ID3D12Resource *vb = NULL, *ib = NULL;
+  DXGI_FORMAT ifmt = cfg.position.indexByteStride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+
+  if(cfg.position.vertexResourceId != ResourceId())
+    vb = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
+
+  if(cfg.position.indexResourceId != ResourceId())
+    ib = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
+
+  HRESULT hr = S_OK;
+
+  // most IB/VBs will not be available as SRVs. So, we copy into our own buffers.
+  // In the case of VB we also tightly pack and unpack the data. IB can just be
+  // read as R16 or R32 via the SRV so it is just a straight copy
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC sdesc = {};
+  sdesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+  sdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  sdesc.Format = ifmt;
+
+  if(cfg.position.indexByteStride && ib)
+  {
+    sdesc.Buffer.FirstElement = cfg.position.indexByteOffset / (cfg.position.indexByteStride);
+    sdesc.Buffer.NumElements = cfg.position.numIndices;
+    m_pDevice->CreateShaderResourceView(ib, &sdesc, GetDebugManager()->GetCPUHandle(PICK_IB_SRV));
+  }
+  else
+  {
+    sdesc.Buffer.NumElements = 4;
+    m_pDevice->CreateShaderResourceView(NULL, &sdesc, GetDebugManager()->GetCPUHandle(PICK_IB_SRV));
+  }
+
+  sdesc.Buffer.FirstElement = 0;
+  sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+  if(vb)
+  {
+    if(m_VertexPick.VB == NULL || m_VertexPick.VBSize < cfg.position.numIndices)
+    {
+      SAFE_RELEASE(m_VertexPick.VB);
+
+      m_VertexPick.VBSize = cfg.position.numIndices;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      D3D12_RESOURCE_DESC vbDesc;
+      vbDesc.Alignment = 0;
+      vbDesc.DepthOrArraySize = 1;
+      vbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      vbDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      vbDesc.Format = DXGI_FORMAT_UNKNOWN;
+      vbDesc.Height = 1;
+      vbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      vbDesc.MipLevels = 1;
+      vbDesc.SampleDesc.Count = 1;
+      vbDesc.SampleDesc.Quality = 0;
+      vbDesc.Width = sizeof(Vec4f) * cfg.position.numIndices;
+
+      hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vbDesc,
+                                              D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                              __uuidof(ID3D12Resource), (void **)&m_VertexPick.VB);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create pick vertex buffer: HRESULT: %s", ToStr(hr).c_str());
+        return ~0U;
+      }
+
+      m_VertexPick.VB->SetName(L"m_PickVB");
+
+      sdesc.Buffer.NumElements = cfg.position.numIndices;
+      m_pDevice->CreateShaderResourceView(m_VertexPick.VB, &sdesc,
+                                          GetDebugManager()->GetCPUHandle(PICK_VB_SRV));
+    }
+  }
+  else
+  {
+    sdesc.Buffer.NumElements = 4;
+    m_pDevice->CreateShaderResourceView(NULL, &sdesc, GetDebugManager()->GetCPUHandle(PICK_VB_SRV));
+  }
+
+  // unpack and linearise the data
+  {
+    FloatVector *vbData = new FloatVector[cfg.position.numIndices];
+
+    bytebuf oldData;
+    GetDebugManager()->GetBufferData(vb, cfg.position.vertexByteOffset, 0, oldData);
+
+    byte *data = &oldData[0];
+    byte *dataEnd = data + oldData.size();
+
+    bool valid = true;
+
+    uint32_t idxclamp = 0;
+    if(cfg.position.baseVertex < 0)
+      idxclamp = uint32_t(-cfg.position.baseVertex);
+
+    for(uint32_t i = 0; i < cfg.position.numIndices; i++)
+    {
+      uint32_t idx = i;
+
+      // apply baseVertex but clamp to 0 (don't allow index to become negative)
+      if(idx < idxclamp)
+        idx = 0;
+      else if(cfg.position.baseVertex < 0)
+        idx -= idxclamp;
+      else if(cfg.position.baseVertex > 0)
+        idx += cfg.position.baseVertex;
+
+      vbData[i] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
+    }
+
+    GetDebugManager()->FillBuffer(m_VertexPick.VB, 0, vbData,
+                                  sizeof(Vec4f) * cfg.position.numIndices);
+
+    delete[] vbData;
+  }
+
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+  list->SetPipelineState(m_VertexPick.Pipe);
+
+  list->SetComputeRootSignature(m_VertexPick.RootSig);
+
+  GetDebugManager()->SetDescriptorHeaps(list, true, false);
+
+  list->SetComputeRootConstantBufferView(0, GetDebugManager()->UploadConstants(&cbuf, sizeof(cbuf)));
+  list->SetComputeRootDescriptorTable(1, GetDebugManager()->GetGPUHandle(PICK_IB_SRV));
+  list->SetComputeRootDescriptorTable(2, GetDebugManager()->GetGPUHandle(PICK_RESULT_UAV));
+
+  list->Dispatch(cfg.position.numIndices / 1024 + 1, 1, 1);
+
+  list->Close();
+  m_pDevice->ExecuteLists();
+
+  bytebuf results;
+  GetDebugManager()->GetBufferData(m_VertexPick.ResultBuf, 0, 0, results);
+
+  list = m_pDevice->GetNewList();
+
+  UINT zeroes[4] = {0, 0, 0, 0};
+  list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(PICK_RESULT_CLEAR_UAV),
+                                     GetDebugManager()->GetUAVClearHandle(PICK_RESULT_CLEAR_UAV),
+                                     m_VertexPick.ResultBuf, zeroes, 0, NULL);
+
+  list->Close();
+
+  byte *data = &results[0];
+
+  uint32_t numResults = *(uint32_t *)data;
+
+  if(numResults > 0)
+  {
+    if(isTriangleMesh)
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        Vec3f intersectionPoint;
+      };
+
+      PickResult *pickResults = (PickResult *)(data + 64);
+
+      PickResult *closest = pickResults;
+
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN(VertexPicking::MaxMeshPicks, numResults); i++)
+      {
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
+      }
+
+      return closest->vertid;
+    }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
+
+      PickResult *pickResults = (PickResult *)(data + 64);
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN(VertexPicking::MaxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+
+      return closest->vertid;
+    }
+  }
+
+  return ~0U;
 }
 
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                             CompType typeHint, float *minval, float *maxval)
 {
-  return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, typeHint, minval,
-                                                 maxval);
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return false;
+
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> mip)));
+  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> mip)));
+  cdata.HistogramTextureResolution.z =
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> mip)));
+
+  if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramSlice = float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+
+  if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramSlice = float(sliceFace) / float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramMip = mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
+  if(sample == ~0U)
+    cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
+  cdata.HistogramMin = 0.0f;
+  cdata.HistogramMax = 1.0f;
+  cdata.HistogramChannels = 0xf;
+  cdata.HistogramFlags = 0;
+
+  int intIdx = 0;
+
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
+
+  if(IsUIntFormat(fmt))
+    intIdx = 1;
+  else if(IsIntFormat(fmt))
+    intIdx = 2;
+
+  int blocksX = (int)ceil(cdata.HistogramTextureResolution.x /
+                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int blocksY = (int)ceil(cdata.HistogramTextureResolution.y /
+                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  int resType = 0;
+  GetDebugManager()->PrepareTextureSampling(resource, typeHint, resType, barriers);
+
+  {
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->SetPipelineState(m_Histogram.TileMinMaxPipe[resType][intIdx]);
+
+    list->SetComputeRootSignature(m_Histogram.HistogramRootSig);
+
+    GetDebugManager()->SetDescriptorHeaps(list, true, true);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE uav = GetDebugManager()->GetGPUHandle(MINMAX_TILE_UAVS);
+    D3D12_GPU_DESCRIPTOR_HANDLE srv = GetDebugManager()->GetGPUHandle(FIRST_TEXDISPLAY_SRV);
+
+    list->SetComputeRootConstantBufferView(
+        0, GetDebugManager()->UploadConstants(&cdata, sizeof(cdata)));
+    list->SetComputeRootDescriptorTable(1, srv);
+    list->SetComputeRootDescriptorTable(2, GetDebugManager()->GetGPUHandle(FIRST_SAMP));
+    list->SetComputeRootDescriptorTable(3, uav);
+
+    // discard the whole resource as we will overwrite it
+    D3D12_DISCARD_REGION region = {};
+    region.NumSubresources = 1;
+    list->DiscardResource(m_Histogram.MinMaxTileBuffer, &region);
+
+    list->Dispatch(blocksX, blocksY, 1);
+
+    D3D12_RESOURCE_BARRIER tileBarriers[2] = {};
+
+    // ensure UAV work is done. Transition to SRV
+    tileBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    tileBarriers[0].UAV.pResource = m_Histogram.MinMaxTileBuffer;
+    tileBarriers[1].Transition.pResource = m_Histogram.MinMaxTileBuffer;
+    tileBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    tileBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+    list->ResourceBarrier(2, tileBarriers);
+
+    // set up second dispatch
+    srv = GetDebugManager()->GetGPUHandle(MINMAX_TILE_SRVS);
+    uav = GetDebugManager()->GetGPUHandle(MINMAX_RESULT_UAVS);
+
+    list->SetComputeRootDescriptorTable(1, srv);
+    list->SetComputeRootDescriptorTable(3, uav);
+
+    list->SetPipelineState(m_Histogram.ResultMinMaxPipe[intIdx]);
+
+    list->Dispatch(1, 1, 1);
+
+    // transition back to UAV for next time
+    std::swap(tileBarriers[1].Transition.StateBefore, tileBarriers[1].Transition.StateAfter);
+
+    list->ResourceBarrier(1, &tileBarriers[1]);
+
+    // finish the UAV work, and transition to copy.
+    tileBarriers[0].UAV.pResource = m_Histogram.MinMaxResultBuffer;
+    tileBarriers[1].Transition.pResource = m_Histogram.MinMaxResultBuffer;
+    tileBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    tileBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+    list->ResourceBarrier(2, tileBarriers);
+
+    // copy to readback
+    list->CopyBufferRegion(m_General.ResultReadbackBuffer, 0, m_Histogram.MinMaxResultBuffer, 0,
+                           sizeof(Vec4f) * 2);
+
+    // transition back to UAV for next time
+    std::swap(tileBarriers[1].Transition.StateBefore, tileBarriers[1].Transition.StateAfter);
+
+    list->ResourceBarrier(1, &tileBarriers[1]);
+
+    // transition image back to where it was
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
+
+  D3D12_RANGE range = {0, sizeof(Vec4f) * 2};
+
+  void *data = NULL;
+  HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, &data);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map bufferdata buffer HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+  else
+  {
+    Vec4f *minmax = (Vec4f *)data;
+
+    minval[0] = minmax[0].x;
+    minval[1] = minmax[0].y;
+    minval[2] = minmax[0].z;
+    minval[3] = minmax[0].w;
+
+    maxval[0] = minmax[1].x;
+    maxval[1] = minmax[1].y;
+    maxval[2] = minmax[1].z;
+    maxval[3] = minmax[1].w;
+
+    range.End = 0;
+
+    m_General.ResultReadbackBuffer->Unmap(0, &range);
+  }
+
+  return true;
 }
 
 bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                                CompType typeHint, float minval, float maxval, bool channels[4],
                                vector<uint32_t> &histogram)
 {
-  return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, typeHint, minval,
-                                                    maxval, channels, histogram);
-}
+  if(minval >= maxval)
+    return false;
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventId, const vector<uint32_t> &passEvents)
-{
-  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventId, passEvents);
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return false;
+
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> mip)));
+  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> mip)));
+  cdata.HistogramTextureResolution.z =
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> mip)));
+
+  if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramSlice = float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+
+  if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramSlice = float(sliceFace) / float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramMip = mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
+  if(sample == ~0U)
+    cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
+  cdata.HistogramMin = minval;
+  cdata.HistogramFlags = 0;
+
+  // The calculation in the shader normalises each value between min and max, then multiplies by the
+  // number of buckets.
+  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
+  cdata.HistogramMax = maxval + maxval * 1e-6f;
+
+  cdata.HistogramChannels = 0;
+  if(channels[0])
+    cdata.HistogramChannels |= 0x1;
+  if(channels[1])
+    cdata.HistogramChannels |= 0x2;
+  if(channels[2])
+    cdata.HistogramChannels |= 0x4;
+  if(channels[3])
+    cdata.HistogramChannels |= 0x8;
+  cdata.HistogramFlags = 0;
+
+  int intIdx = 0;
+
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
+
+  if(IsUIntFormat(fmt))
+    intIdx = 1;
+  else if(IsIntFormat(fmt))
+    intIdx = 2;
+
+  int tilesX = (int)ceil(cdata.HistogramTextureResolution.x /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  int resType = 0;
+  GetDebugManager()->PrepareTextureSampling(resource, typeHint, resType, barriers);
+
+  {
+    ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->SetPipelineState(m_Histogram.HistogramPipe[resType][intIdx]);
+
+    list->SetComputeRootSignature(m_Histogram.HistogramRootSig);
+
+    GetDebugManager()->SetDescriptorHeaps(list, true, true);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE uav = GetDebugManager()->GetGPUHandle(HISTOGRAM_UAV);
+    D3D12_GPU_DESCRIPTOR_HANDLE srv = GetDebugManager()->GetGPUHandle(FIRST_TEXDISPLAY_SRV);
+    D3D12_CPU_DESCRIPTOR_HANDLE uavcpu = GetDebugManager()->GetUAVClearHandle(HISTOGRAM_UAV);
+
+    UINT zeroes[] = {0, 0, 0, 0};
+    list->ClearUnorderedAccessViewUint(uav, uavcpu, m_Histogram.MinMaxTileBuffer, zeroes, 0, NULL);
+
+    list->SetComputeRootConstantBufferView(
+        0, GetDebugManager()->UploadConstants(&cdata, sizeof(cdata)));
+    list->SetComputeRootDescriptorTable(1, srv);
+    list->SetComputeRootDescriptorTable(2, GetDebugManager()->GetGPUHandle(FIRST_SAMP));
+    list->SetComputeRootDescriptorTable(3, uav);
+
+    list->Dispatch(tilesX, tilesY, 1);
+
+    D3D12_RESOURCE_BARRIER tileBarriers[2] = {};
+
+    // finish the UAV work, and transition to copy.
+    tileBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    tileBarriers[0].UAV.pResource = m_Histogram.MinMaxTileBuffer;
+    tileBarriers[1].Transition.pResource = m_Histogram.MinMaxTileBuffer;
+    tileBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    tileBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+    list->ResourceBarrier(2, tileBarriers);
+
+    // copy to readback
+    list->CopyBufferRegion(m_General.ResultReadbackBuffer, 0, m_Histogram.MinMaxTileBuffer, 0,
+                           sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
+
+    // transition back to UAV for next time
+    std::swap(tileBarriers[1].Transition.StateBefore, tileBarriers[1].Transition.StateAfter);
+
+    list->ResourceBarrier(1, &tileBarriers[1]);
+
+    // transition image back to where it was
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->Close();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
+
+  D3D12_RANGE range = {0, sizeof(uint32_t) * HGRAM_NUM_BUCKETS};
+
+  void *data = NULL;
+  HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, &data);
+
+  histogram.clear();
+  histogram.resize(HGRAM_NUM_BUCKETS);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map bufferdata buffer HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+  else
+  {
+    memcpy(&histogram[0], data, sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
+
+    range.End = 0;
+
+    m_General.ResultReadbackBuffer->Unmap(0, &range);
+  }
+
+  return true;
 }
 
 bool D3D12Replay::IsRenderOutput(ResourceId id)
@@ -1332,15 +2250,21 @@ bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
   return false;
 }
 
-void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
+void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
 {
-  m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
-}
+  auto it = WrappedID3D12Resource::GetList().find(buff);
 
-void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
-{
-  m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
+  if(it == WrappedID3D12Resource::GetList().end())
+  {
+    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    return;
+  }
+
+  WrappedID3D12Resource *buffer = it->second;
+
+  RDCASSERT(buffer);
+
+  GetDebugManager()->GetBufferData(buffer, offset, length, retData);
 }
 
 void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
@@ -1430,114 +2354,10 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
       }
     }
 
-    m_pDevice->GetDebugManager()->FillCBufferVariables(cb->variables, outvars, false,
-                                                       rootData.empty() ? data : rootData);
+    size_t zero = 0;
+    GetDebugManager()->FillCBufferVariables("", zero, false, cb->variables, outvars,
+                                            rootData.empty() ? data : rootData);
   }
-}
-
-void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
-{
-  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventId);
-}
-
-struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
-{
-  D3D12InitPostVSCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events)
-      : m_pDevice(dev), m_Events(events)
-  {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
-  }
-  ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
-  {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
-      m_pDevice->GetDebugManager()->InitPostVSBuffers(eid);
-  }
-
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
-  // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
-  void AliasEvent(uint32_t primary, uint32_t alias)
-  {
-    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
-      m_pDevice->GetDebugManager()->AliasPostVSBuffers(primary, alias);
-  }
-
-  WrappedID3D12Device *m_pDevice;
-  const vector<uint32_t> &m_Events;
-};
-
-void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
-{
-  // first we must replay up to the first event without replaying it. This ensures any
-  // non-command buffer calls like memory unmaps etc all happen correctly before this
-  // command buffer
-  m_pDevice->ReplayLog(0, events.front(), eReplay_WithoutDraw);
-
-  D3D12InitPostVSCallback cb(m_pDevice, events);
-
-  // now we replay the events, which are guaranteed (because we generated them in
-  // GetPassEvents above) to come from the same command buffer, so the event IDs are
-  // still locally continuous, even if we jump into replaying.
-  m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
-}
-
-MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
-{
-  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventId, instID, stage);
-}
-
-uint32_t D3D12Replay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
-{
-  return m_pDevice->GetDebugManager()->PickVertex(eventId, cfg, x, y);
-}
-
-uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
-{
-  return m_pDevice->GetDebugManager()->MakeOutputWindow(window, depth);
-}
-
-void D3D12Replay::DestroyOutputWindow(uint64_t id)
-{
-  m_pDevice->GetDebugManager()->DestroyOutputWindow(id);
-}
-
-bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
-{
-  return m_pDevice->GetDebugManager()->CheckResizeOutputWindow(id);
-}
-
-void D3D12Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
-{
-  m_pDevice->GetDebugManager()->GetOutputWindowDimensions(id, w, h);
-}
-
-void D3D12Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
-{
-  m_pDevice->GetDebugManager()->ClearOutputWindowColor(id, col);
-}
-
-void D3D12Replay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
-{
-  m_pDevice->GetDebugManager()->ClearOutputWindowDepth(id, depth, stencil);
-}
-
-void D3D12Replay::BindOutputWindow(uint64_t id, bool depth)
-{
-  m_pDevice->GetDebugManager()->BindOutputWindow(id, depth);
-}
-
-bool D3D12Replay::IsOutputWindowVisible(uint64_t id)
-{
-  return m_pDevice->GetDebugManager()->IsOutputWindowVisible(id);
-}
-
-void D3D12Replay::FlipOutputWindow(uint64_t id)
-{
-  m_pDevice->GetDebugManager()->FlipOutputWindow(id);
 }
 
 vector<DebugMessage> D3D12Replay::GetDebugMessages()
@@ -1672,7 +2492,7 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
     rm->ReplaceResource(from, to);
   }
 
-  m_pDevice->GetDebugManager()->ClearPostVSCache();
+  ClearPostVSCache();
 }
 
 void D3D12Replay::RemoveReplacement(ResourceId id)
@@ -1708,13 +2528,433 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
     }
   }
 
-  m_pDevice->GetDebugManager()->ClearPostVSCache();
+  ClearPostVSCache();
 }
 
 void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                                  const GetTextureDataParams &params, bytebuf &data)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
+  bool wasms = false;
+
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[tex];
+
+  if(resource == NULL)
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    return;
+  }
+
+  HRESULT hr = S_OK;
+
+  D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
+
+  D3D12_RESOURCE_DESC copyDesc = resDesc;
+  copyDesc.Alignment = 0;
+  copyDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  copyDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+  D3D12_HEAP_PROPERTIES defaultHeap;
+  defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+  defaultHeap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  defaultHeap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  defaultHeap.CreationNodeMask = 1;
+  defaultHeap.VisibleNodeMask = 1;
+
+  bool isDepth = IsDepthFormat(resDesc.Format);
+  bool isStencil = IsDepthAndStencilFormat(resDesc.Format);
+
+  if(copyDesc.SampleDesc.Count > 1)
+  {
+    // make image n-array instead of n-samples
+    copyDesc.DepthOrArraySize *= (UINT16)copyDesc.SampleDesc.Count;
+    copyDesc.SampleDesc.Count = 1;
+    copyDesc.SampleDesc.Quality = 0;
+
+    wasms = true;
+  }
+
+  ID3D12Resource *srcTexture = resource;
+  ID3D12Resource *tmpTexture = NULL;
+
+  ID3D12GraphicsCommandList *list = NULL;
+
+  if(params.remap != RemapTexture::NoRemap)
+  {
+    RDCASSERT(params.remap == RemapTexture::RGBA8);
+
+    // force readback texture to RGBA8 unorm
+    copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                                                    : DXGI_FORMAT_R8G8B8A8_UNORM;
+    // force to 1 array slice, 1 mip
+    copyDesc.DepthOrArraySize = 1;
+    copyDesc.MipLevels = 1;
+    // force to 2D
+    copyDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    copyDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
+    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
+
+    ID3D12Resource *remapTexture;
+    hr = m_pDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
+                                            D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&remapTexture);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    SetOutputDimensions(uint32_t(copyDesc.Width), copyDesc.Height);
+
+    TexDisplayFlags flags =
+        IsSRGBFormat(copyDesc.Format) ? eTexDisplay_None : eTexDisplay_LinearRender;
+
+    m_pDevice->CreateRenderTargetView(remapTexture, NULL,
+                                      GetDebugManager()->GetCPUHandle(GET_TEX_RTV));
+
+    {
+      TextureDisplay texDisplay;
+
+      texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+      texDisplay.hdrMultiplier = -1.0f;
+      texDisplay.linearDisplayAsGamma = false;
+      texDisplay.overlay = DebugOverlay::NoOverlay;
+      texDisplay.flipY = false;
+      texDisplay.mip = mip;
+      texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
+      texDisplay.customShaderId = ResourceId();
+      texDisplay.sliceFace = arrayIdx;
+      texDisplay.rangeMin = params.blackPoint;
+      texDisplay.rangeMax = params.whitePoint;
+      texDisplay.scale = 1.0f;
+      texDisplay.resourceId = tex;
+      texDisplay.typeHint = CompType::Typeless;
+      texDisplay.rawOutput = false;
+      texDisplay.xOffset = 0;
+      texDisplay.yOffset = 0;
+
+      RenderTextureInternal(GetDebugManager()->GetCPUHandle(GET_TEX_RTV), texDisplay, flags);
+    }
+
+    tmpTexture = srcTexture = remapTexture;
+
+    list = m_pDevice->GetNewList();
+
+    D3D12_RESOURCE_BARRIER b = {};
+    b.Transition.pResource = remapTexture;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->ResourceBarrier(1, &b);
+
+    // these have already been selected, don't need to fetch that subresource
+    // when copying back to readback buffer
+    arrayIdx = 0;
+    mip = 0;
+
+    // no longer depth, if it was
+    isDepth = false;
+    isStencil = false;
+  }
+  else if(wasms && params.resolve)
+  {
+    // force to 1 array slice, 1 mip
+    copyDesc.DepthOrArraySize = 1;
+    copyDesc.MipLevels = 1;
+
+    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
+    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
+
+    ID3D12Resource *resolveTexture;
+    hr = m_pDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
+                                            D3D12_RESOURCE_STATE_RESOLVE_DEST, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&resolveTexture);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    RDCASSERT(!isDepth && !isStencil);
+
+    list = m_pDevice->GetNewList();
+
+    // put source texture into resolve source state
+    const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+
+    std::vector<D3D12_RESOURCE_BARRIER> barriers;
+    barriers.reserve(states.size());
+    for(size_t i = 0; i < states.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      // skip unneeded barriers
+      if(states[i] & D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = resource;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateBefore = states[i];
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+
+      barriers.push_back(b);
+    }
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->ResolveSubresource(resolveTexture, 0, srcTexture,
+                             arrayIdx * resDesc.DepthOrArraySize + mip, resDesc.Format);
+
+    // real resource back to normal
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    D3D12_RESOURCE_BARRIER b = {};
+    b.Transition.pResource = resolveTexture;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->ResourceBarrier(1, &b);
+
+    tmpTexture = srcTexture = resolveTexture;
+
+    // these have already been selected, don't need to fetch that subresource
+    // when copying back to readback buffer
+    arrayIdx = 0;
+    mip = 0;
+  }
+  else if(wasms)
+  {
+    // copy/expand multisampled live texture to array readback texture
+    RDCUNIMPLEMENTED("CopyTex2DMSToArray on D3D12");
+  }
+
+  if(list == NULL)
+    list = m_pDevice->GetNewList();
+
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+
+  // if we have no tmpImage, we're copying directly from the real image
+  if(tmpTexture == NULL)
+  {
+    const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    barriers.reserve(states.size());
+    for(size_t i = 0; i < states.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      // skip unneeded barriers
+      if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = resource;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateBefore = states[i];
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      barriers.push_back(b);
+    }
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+  }
+
+  D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+  formatInfo.Format = copyDesc.Format;
+  m_pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+  UINT planes = RDCMAX((UINT8)1, formatInfo.PlaneCount);
+
+  UINT numSubresources = copyDesc.MipLevels;
+  if(copyDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    numSubresources *= copyDesc.DepthOrArraySize;
+
+  numSubresources *= planes;
+
+  D3D12_RESOURCE_DESC readbackDesc;
+  readbackDesc.Alignment = 0;
+  readbackDesc.DepthOrArraySize = 1;
+  readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  readbackDesc.Format = DXGI_FORMAT_UNKNOWN;
+  readbackDesc.Height = 1;
+  readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  readbackDesc.MipLevels = 1;
+  readbackDesc.SampleDesc.Count = 1;
+  readbackDesc.SampleDesc.Quality = 0;
+  readbackDesc.Width = 0;
+
+  // we only actually want to copy the specified array index/mip.
+  // But we do need to copy all planes
+  D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts = new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[planes];
+  UINT *rowcounts = new UINT[planes];
+
+  UINT arrayStride = copyDesc.MipLevels;
+  UINT planeStride = copyDesc.DepthOrArraySize * copyDesc.MipLevels;
+
+  for(UINT i = 0; i < planes; i++)
+  {
+    readbackDesc.Width = AlignUp(readbackDesc.Width, 512ULL);
+
+    UINT sub = mip + arrayIdx * arrayStride + i * planeStride;
+
+    UINT64 subSize = 0;
+    m_pDevice->GetCopyableFootprints(&copyDesc, sub, 1, readbackDesc.Width, layouts + i,
+                                     rowcounts + i, NULL, &subSize);
+    readbackDesc.Width += subSize;
+  }
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  ID3D12Resource *readbackBuf = NULL;
+  hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc,
+                                          D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                          __uuidof(ID3D12Resource), (void **)&readbackBuf);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  for(UINT i = 0; i < planes; i++)
+  {
+    D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    src.pResource = srcTexture;
+    src.SubresourceIndex = mip + arrayIdx * arrayStride + i * planeStride;
+
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    dst.pResource = readbackBuf;
+    dst.PlacedFootprint = layouts[i];
+
+    list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+  }
+
+  // if we have no tmpImage, we're copying directly from the real image
+  if(tmpTexture == NULL)
+  {
+    // real resource back to normal
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+  }
+
+  list->Close();
+
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists();
+
+  // map the buffer and copy to return buffer
+  byte *pData = NULL;
+  hr = readbackBuf->Map(0, NULL, (void **)&pData);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  RDCASSERT(pData != NULL);
+
+  data.resize(GetByteSize(layouts[0].Footprint.Width, layouts[0].Footprint.Height,
+                          layouts[0].Footprint.Depth, copyDesc.Format, 0));
+
+  // for depth-stencil need to merge the planes pixel-wise
+  if(isDepth && isStencil)
+  {
+    UINT dstRowPitch = GetByteSize(layouts[0].Footprint.Width, 1, 1, copyDesc.Format, 0);
+
+    if(copyDesc.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT ||
+       copyDesc.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
+       copyDesc.Format == DXGI_FORMAT_R32G8X24_TYPELESS)
+    {
+      for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+      {
+        for(UINT r = 0; r < layouts[0].Footprint.Height; r++)
+        {
+          UINT row = r + s * layouts[0].Footprint.Height;
+
+          uint32_t *dSrc = (uint32_t *)(pData + layouts[0].Footprint.RowPitch * row);
+          uint8_t *sSrc =
+              (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
+
+          uint32_t *dDst = (uint32_t *)(data.data() + dstRowPitch * row);
+          uint32_t *sDst = dDst + 1;    // interleaved, next pixel
+
+          for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
+          {
+            *dDst = *dSrc;
+            *sDst = *sSrc;
+
+            // increment source pointers by 1 since they're separate, and dest pointers by 2 since
+            // they're interleaved
+            dDst += 2;
+            sDst += 2;
+
+            sSrc++;
+            dSrc++;
+          }
+        }
+      }
+    }
+    else    // D24_S8
+    {
+      for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+      {
+        for(UINT r = 0; r < rowcounts[0]; r++)
+        {
+          UINT row = r + s * rowcounts[0];
+
+          // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are
+          // garbage
+          // and we overwrite them with stencil
+          uint32_t *dSrc = (uint32_t *)(pData + layouts[0].Footprint.RowPitch * row);
+          uint8_t *sSrc =
+              (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
+
+          uint32_t *dst = (uint32_t *)(data.data() + dstRowPitch * row);
+
+          for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
+          {
+            // pack the data together again, stencil in top bits
+            *dst = (*dSrc & 0x00ffffff) | (uint32_t(*sSrc) << 24);
+
+            dst++;
+            sSrc++;
+            dSrc++;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    UINT dstRowPitch = GetByteSize(layouts[0].Footprint.Width, 1, 1, copyDesc.Format, 0);
+
+    // copy row by row
+    for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+    {
+      for(UINT r = 0; r < rowcounts[0]; r++)
+      {
+        UINT row = r + s * rowcounts[0];
+
+        byte *src = pData + layouts[0].Footprint.RowPitch * row;
+        byte *dst = data.data() + dstRowPitch * row;
+
+        memcpy(dst, src, dstRowPitch);
+      }
+    }
+  }
+
+  SAFE_DELETE_ARRAY(layouts);
+  SAFE_DELETE_ARRAY(rowcounts);
+
+  D3D12_RANGE range = {0, 0};
+  readbackBuf->Unmap(0, &range);
+
+  // clean up temporary objects
+  SAFE_RELEASE(readbackBuf);
+  SAFE_RELEASE(tmpTexture);
 }
 
 void D3D12Replay::BuildCustomShader(std::string source, std::string entry,
@@ -1727,8 +2967,98 @@ void D3D12Replay::BuildCustomShader(std::string source, std::string entry,
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
 {
-  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx,
-                                                         typeHint);
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return ResourceId();
+
+  D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
+
+  resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  resDesc.Alignment = 0;
+  resDesc.DepthOrArraySize = 1;
+  resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  resDesc.MipLevels = (UINT16)CalcNumMips((int)resDesc.Width, (int)resDesc.Height, 1);
+  resDesc.SampleDesc.Count = 1;
+  resDesc.SampleDesc.Quality = 0;
+  resDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+  D3D12_RESOURCE_DESC customTexDesc = {};
+
+  if(m_CustomShaderTex)
+    customTexDesc = m_CustomShaderTex->GetDesc();
+
+  if(customTexDesc.Width != resDesc.Width || customTexDesc.Height != resDesc.Height)
+  {
+    SAFE_RELEASE(m_CustomShaderTex);
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    HRESULT hr = m_pDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_CustomShaderTex);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    if(m_CustomShaderTex)
+    {
+      m_CustomShaderTex->SetName(L"m_CustomShaderTex");
+      m_CustomShaderResourceId = GetResID(m_CustomShaderTex);
+    }
+    else
+    {
+      m_CustomShaderResourceId = ResourceId();
+    }
+  }
+
+  if(m_CustomShaderResourceId == ResourceId())
+    return m_CustomShaderResourceId;
+
+  D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+  rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+  rtvDesc.Texture2D.MipSlice = mip;
+
+  m_pDevice->CreateRenderTargetView(m_CustomShaderTex, &rtvDesc,
+                                    GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV));
+
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+  float clr[] = {0.0f, 0.0f, 0.0f, 0.0f};
+  list->ClearRenderTargetView(GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV), clr, 0, NULL);
+
+  list->Close();
+
+  TextureDisplay disp;
+  disp.red = disp.green = disp.blue = disp.alpha = true;
+  disp.flipY = false;
+  disp.xOffset = 0.0f;
+  disp.yOffset = 0.0f;
+  disp.customShaderId = shader;
+  disp.resourceId = texid;
+  disp.typeHint = typeHint;
+  disp.hdrMultiplier = -1.0f;
+  disp.linearDisplayAsGamma = false;
+  disp.mip = mip;
+  disp.sampleIdx = sampleIdx;
+  disp.overlay = DebugOverlay::NoOverlay;
+  disp.rangeMin = 0.0f;
+  disp.rangeMax = 1.0f;
+  disp.rawOutput = false;
+  disp.scale = 1.0f;
+  disp.sliceFace = arrayIdx;
+
+  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> mip), RDCMAX(1U, resDesc.Height >> mip));
+
+  RenderTextureInternal(GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV), disp,
+                        eTexDisplay_BlendAlpha);
+
+  return m_CustomShaderResourceId;
 }
 
 #pragma region not yet implemented
@@ -1779,12 +3109,6 @@ void D3D12Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 }
 
 #pragma endregion
-
-extern "C" __declspec(dllexport) HRESULT
-    __cdecl RENDERDOC_CreateWrappedD3D12Device(IUnknown *pAdapter,
-                                               D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
-                                               void **ppDevice);
-ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
 ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
@@ -1857,8 +3181,6 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-
-  D3D12Replay::PreDeviceInitCounters();
 
   ID3D12Device *dev = NULL;
   HRESULT hr = RENDERDOC_CreateWrappedD3D12Device(NULL, initParams.MinimumFeatureLevel,

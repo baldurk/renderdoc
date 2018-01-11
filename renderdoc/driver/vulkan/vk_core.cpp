@@ -1551,8 +1551,13 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     uint64_t offsetEnd = reader->GetOffset();
 
-    RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
-                                  float(offsetEnd) / float(reader->GetSize()));
+    // only set progress after we've initialised the debug manager, to prevent progress jumping
+    // backwards.
+    if(m_DebugManager)
+    {
+      RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
+                                    float(offsetEnd) / float(reader->GetSize()));
+    }
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {

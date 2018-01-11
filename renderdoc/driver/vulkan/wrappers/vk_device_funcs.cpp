@@ -475,6 +475,8 @@ void WrappedVulkan::Shutdown()
   for(size_t i = 0; i < m_ReplayPhysicalDevices.size(); i++)
     GetResourceManager()->ReleaseWrappedResource(m_ReplayPhysicalDevices[i]);
 
+  m_Replay.DestroyResources();
+
   // destroy debug manager and any objects it created
   SAFE_DELETE(m_DebugManager);
   SAFE_DELETE(m_ShaderCache);
@@ -1211,7 +1213,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     m_ShaderCache = new VulkanShaderCache(this);
 
-    m_DebugManager = new VulkanDebugManager(this, device);
+    m_DebugManager = new VulkanDebugManager(this);
+
+    m_Replay.CreateResources();
 
     SAFE_DELETE_ARRAY(modQueues);
     SAFE_DELETE_ARRAY(layerArray);
@@ -1513,7 +1517,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     m_TextRenderer = new VulkanTextRenderer(this);
 
-    m_DebugManager = new VulkanDebugManager(this, device);
+    m_DebugManager = new VulkanDebugManager(this);
   }
 
   SAFE_DELETE_ARRAY(modQueues);

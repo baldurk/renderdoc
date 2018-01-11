@@ -173,7 +173,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   // unlike CopyTex2DMSToArray we can use the wrapped context here, but for consistency
   // we accept unwrapped parameters.
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   // copy to textures with right bind flags for operation
   D3D11_TEXTURE2D_DESC descArr;
@@ -221,19 +221,19 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     return;
   }
 
-  m_WrappedContext->GetReal()->CopyResource(UNWRAP(WrappedID3D11Texture2D1, srvResource), srcArray);
+  m_pImmediateContext->GetReal()->CopyResource(UNWRAP(WrappedID3D11Texture2D1, srvResource),
+                                               srcArray);
 
   ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {NULL};
   const UINT numUAVs =
-      m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+      m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
   UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
   memset(&uavCounts[0], 0xff, sizeof(uavCounts));
 
   m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 
-  m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
-  m_pImmediateContext->PSSetShader(
-      depth ? m_DebugRender.DepthCopyArrayToMSPS : m_DebugRender.CopyArrayToMSPS, NULL, 0);
+  m_pImmediateContext->VSSetShader(MSArrayCopyVS, NULL, 0);
+  m_pImmediateContext->PSSetShader(depth ? DepthCopyArrayToMSPS : CopyArrayToMSPS, NULL, 0);
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
   m_pImmediateContext->DSSetShader(NULL, NULL, 0);
@@ -241,7 +241,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
   D3D11_VIEWPORT view = {0.0f, 0.0f, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f};
 
-  m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+  m_pImmediateContext->RSSetState(NULL);
   m_pImmediateContext->RSSetViewports(1, &view);
 
   m_pImmediateContext->IASetInputLayout(NULL);
@@ -249,7 +249,6 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   float blendFactor[] = {1.0f, 1.0f, 1.0f, 1.0f};
   m_pImmediateContext->OMSetBlendState(NULL, blendFactor, ~0U);
 
-  if(depth)
   {
     D3D11_DEPTH_STENCIL_DESC dsDesc;
     ID3D11DepthStencilState *dsState = NULL;
@@ -258,7 +257,10 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     dsDesc.DepthEnable = TRUE;
     dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
     dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    dsDesc.StencilEnable = FALSE;
+    if(depth)
+      dsDesc.StencilEnable = FALSE;
+    else
+      dsDesc.StencilEnable = TRUE;
 
     dsDesc.BackFace.StencilFailOp = dsDesc.BackFace.StencilPassOp =
         dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
@@ -271,10 +273,6 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     m_pDevice->CreateDepthStencilState(&dsDesc, &dsState);
     m_pImmediateContext->OMSetDepthStencilState(dsState, 0);
     SAFE_RELEASE(dsState);
-  }
-  else
-  {
-    m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
   }
 
   ID3D11DepthStencilView *dsvMS = NULL;
@@ -463,7 +461,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     SAFE_RELEASE(dsState);
   }
 
-  m_WrappedContext->GetReal()->CopyResource(destMS, UNWRAP(WrappedID3D11Texture2D1, rtvResource));
+  m_pImmediateContext->GetReal()->CopyResource(destMS, UNWRAP(WrappedID3D11Texture2D1, rtvResource));
 
   SAFE_RELEASE(rtvResource);
   SAFE_RELEASE(srvResource);
@@ -477,10 +475,10 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
   // use the wrapped context's state tracked to avoid needing our own tracking, just restore it to
   // the unwrapped context
-  Tex2DMSToArrayStateTracker tracker(m_WrappedContext);
+  Tex2DMSToArrayStateTracker tracker(m_pImmediateContext);
 
-  ID3D11Device *dev = m_WrappedDevice->GetReal();
-  ID3D11DeviceContext *ctx = m_WrappedContext->GetReal();
+  ID3D11Device *dev = m_pDevice->GetReal();
+  ID3D11DeviceContext *ctx = m_pImmediateContext->GetReal();
 
   // copy to textures with right bind flags for operation
   D3D11_TEXTURE2D_DESC descMS;
@@ -534,27 +532,24 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
   memset(&uavCounts[0], 0xff, sizeof(uavCounts));
   const UINT numUAVs =
-      m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+      m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
   ctx->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 
-  ctx->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, m_DebugRender.FullscreenVS),
+  ctx->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, MSArrayCopyVS), NULL, 0);
+  ctx->PSSetShader(depth ? UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, DepthCopyMSToArrayPS)
+                         : UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, CopyMSToArrayPS),
                    NULL, 0);
-  ctx->PSSetShader(
-      depth ? UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, m_DebugRender.DepthCopyMSToArrayPS)
-            : UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, m_DebugRender.CopyMSToArrayPS),
-      NULL, 0);
 
   D3D11_VIEWPORT view = {0.0f, 0.0f, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f};
 
-  ctx->RSSetState(UNWRAP(WrappedID3D11RasterizerState2, m_DebugRender.RastState));
+  ctx->RSSetState(NULL);
   ctx->RSSetViewports(1, &view);
 
   ctx->IASetInputLayout(NULL);
   float blendFactor[] = {1.0f, 1.0f, 1.0f, 1.0f};
   ctx->OMSetBlendState(NULL, blendFactor, ~0U);
 
-  if(depth)
   {
     D3D11_DEPTH_STENCIL_DESC dsDesc;
     ID3D11DepthStencilState *dsState = NULL;
@@ -563,7 +558,10 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     dsDesc.DepthEnable = TRUE;
     dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
     dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    dsDesc.StencilEnable = FALSE;
+    if(depth)
+      dsDesc.StencilEnable = FALSE;
+    else
+      dsDesc.StencilEnable = TRUE;
 
     dsDesc.BackFace.StencilFailOp = dsDesc.BackFace.StencilPassOp =
         dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
@@ -576,11 +574,6 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     dev->CreateDepthStencilState(&dsDesc, &dsState);
     ctx->OMSetDepthStencilState(dsState, 0);
     SAFE_RELEASE(dsState);
-  }
-  else
-  {
-    ctx->OMSetDepthStencilState(
-        UNWRAP(WrappedID3D11DepthStencilState, m_DebugRender.AllPassDepthState), 0);
   }
 
   ID3D11RenderTargetView *rtvArray = NULL;

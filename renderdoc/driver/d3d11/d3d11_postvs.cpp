@@ -31,7 +31,54 @@
 #include "d3d11_manager.h"
 #include "d3d11_renderstate.h"
 
-void D3D11DebugManager::ClearPostVSCache()
+void D3D11Replay::InitStreamOut()
+{
+  CreateSOBuffers();
+
+  HRESULT hr = S_OK;
+
+  D3D11_QUERY_DESC qdesc;
+  qdesc.MiscFlags = 0;
+  qdesc.Query = D3D11_QUERY_SO_STATISTICS;
+
+  m_SOStatsQueries.push_back(NULL);
+  hr = m_pDevice->CreateQuery(&qdesc, &m_SOStatsQueries[0]);
+  if(FAILED(hr))
+    RDCERR("Failed to create m_SOStatsQuery HRESULT: %s", ToStr(hr).c_str());
+}
+
+void D3D11Replay::ShutdownStreamOut()
+{
+  SAFE_RELEASE(m_SOBuffer);
+  for(ID3D11Query *q : m_SOStatsQueries)
+    SAFE_RELEASE(q);
+  SAFE_RELEASE(m_SOStagingBuffer);
+}
+
+void D3D11Replay::CreateSOBuffers()
+{
+  HRESULT hr = S_OK;
+
+  SAFE_RELEASE(m_SOBuffer);
+  SAFE_RELEASE(m_SOStagingBuffer);
+
+  D3D11_BUFFER_DESC bufferDesc = {
+      m_SOBufferSize, D3D11_USAGE_DEFAULT, D3D11_BIND_STREAM_OUTPUT, 0, 0, 0};
+
+  hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOBuffer);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create m_SOBuffer HRESULT: %s", ToStr(hr).c_str());
+
+  bufferDesc.Usage = D3D11_USAGE_STAGING;
+  bufferDesc.BindFlags = 0;
+  bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOStagingBuffer);
+  if(FAILED(hr))
+    RDCERR("Failed to create m_SOStagingBuffer HRESULT: %s", ToStr(hr).c_str());
+}
+
+void D3D11Replay::ClearPostVSCache()
 {
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {
@@ -44,7 +91,7 @@ void D3D11DebugManager::ClearPostVSCache()
   m_PostVSData.clear();
 }
 
-MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
   D3D11PostVSData postvs;
   RDCEraseEl(postvs);
@@ -98,12 +145,12 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventId, uint32_t instID
   return ret;
 }
 
-void D3D11DebugManager::InitPostVSBuffers(uint32_t eventId)
+void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 {
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   ID3D11VertexShader *vs = NULL;
   m_pImmediateContext->VSGetShader(&vs, NULL, NULL);
@@ -140,7 +187,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventId)
     return;
   }
 
-  const DrawcallDescription *drawcall = m_WrappedDevice->GetDrawcall(eventId);
+  const DrawcallDescription *drawcall = m_pDevice->GetDrawcall(eventId);
 
   if(drawcall->numIndices == 0)
     return;
@@ -290,8 +337,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventId)
       UINT bytesize = index16 ? 2 : 4;
 
       bytebuf idxdata;
-      GetBufferData(idxBuf, idxOffs + drawcall->indexOffset * bytesize,
-                    drawcall->numIndices * bytesize, idxdata);
+      GetDebugManager()->GetBufferData(idxBuf, idxOffs + drawcall->indexOffset * bytesize,
+                                       drawcall->numIndices * bytesize, idxdata);
 
       SAFE_RELEASE(idxBuf);
 
@@ -995,5 +1042,27 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventId)
       m_PostVSData[eventId].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
 
     m_PostVSData[eventId].gsout.instData = instData;
+  }
+}
+
+void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
+{
+  uint32_t prev = 0;
+
+  // since we can always replay between drawcalls, just loop through all the events
+  // doing partial replays and calling InitPostVSBuffers for each
+  for(size_t i = 0; i < passEvents.size(); i++)
+  {
+    if(prev != passEvents[i])
+    {
+      m_pDevice->ReplayLog(prev, passEvents[i], eReplay_WithoutDraw);
+
+      prev = passEvents[i];
+    }
+
+    const DrawcallDescription *d = m_pDevice->GetDrawcall(passEvents[i]);
+
+    if(d)
+      InitPostVSBuffers(passEvents[i]);
   }
 }

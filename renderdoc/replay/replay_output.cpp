@@ -461,7 +461,7 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t 
       if(fmt.vertexResourceId != ResourceId())
         cfg.position.vertexByteOffset = fmt.vertexByteOffset + elemOffset;
 
-      uint32_t vert = m_pDevice->PickVertex(m_EventID, cfg, x, y);
+      uint32_t vert = m_pDevice->PickVertex(m_EventID, m_Width, m_Height, cfg, x, y);
       if(vert != ~0U)
       {
         return make_rdcpair(vert, inst);
@@ -472,7 +472,7 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t 
   }
   else
   {
-    return make_rdcpair(m_pDevice->PickVertex(m_EventID, cfg, x, y), 0U);
+    return make_rdcpair(m_pDevice->PickVertex(m_EventID, m_Width, m_Height, cfg, x, y), 0U);
   }
 }
 

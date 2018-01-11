@@ -122,9 +122,10 @@ public:
   {
     m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, typeHint, pixel);
   }
-  uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+  uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
+                      uint32_t x, uint32_t y)
   {
-    return m_Proxy->PickVertex(eventId, cfg, x, y);
+    return m_Proxy->PickVertex(eventId, width, height, cfg, x, y);
   }
   void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                          ShaderStage type, ResourceId *id, string *errors)

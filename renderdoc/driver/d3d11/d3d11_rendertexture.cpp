@@ -52,9 +52,8 @@ D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, Co
   return m_ShaderItemCache.front();
 }
 
-D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id,
-                                                                            CompType typeHint,
-                                                                            bool rawOutput)
+TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType typeHint,
+                                                         bool rawOutput)
 {
   TextureShaderDetails details;
   HRESULT hr = S_OK;
@@ -418,7 +417,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
   return details;
 }
 
-bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
+bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 {
   DebugVertexCBuffer vertexData;
   DebugPixelCBufferData pixelData;
@@ -428,11 +427,11 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   float x = cfg.xOffset;
   float y = cfg.yOffset;
 
-  vertexData.Position.x = x * (2.0f / float(GetWidth()));
-  vertexData.Position.y = -y * (2.0f / float(GetHeight()));
+  vertexData.Position.x = x * (2.0f / m_OutputWidth);
+  vertexData.Position.y = -y * (2.0f / m_OutputHeight);
 
   vertexData.ScreenAspect.x =
-      (float(GetHeight()) / float(GetWidth()));    // 0.5 = character width / character height
+      (m_OutputHeight / m_OutputWidth);    // 0.5 = character width / character height
   vertexData.ScreenAspect.y = 1.0f;
 
   vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
@@ -462,8 +461,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   pixelData.FlipY = cfg.flipY ? 1 : 0;
 
-  TextureShaderDetails details =
-      GetShaderDetails(cfg.resourceId, cfg.typeHint, cfg.rawOutput ? true : false);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(cfg.resourceId, cfg.typeHint,
+                                                                     cfg.rawOutput ? true : false);
 
   int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
 
@@ -476,7 +475,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return false;
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   if(details.texFmt == DXGI_FORMAT_A8_UNORM && cfg.scale <= 0.0f)
   {
@@ -487,8 +486,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   float tex_x = float(details.texWidth);
   float tex_y = float(details.texType == eTexType_1D ? 100 : details.texHeight);
 
-  vertexData.TextureResolution.x *= tex_x / float(GetWidth());
-  vertexData.TextureResolution.y *= tex_y / float(GetHeight());
+  vertexData.TextureResolution.x *= tex_x / m_OutputWidth;
+  vertexData.TextureResolution.y *= tex_y / m_OutputHeight;
 
   pixelData.TextureResolutionPS.x = float(RDCMAX(1U, details.texWidth >> cfg.mip));
   pixelData.TextureResolutionPS.y = float(RDCMAX(1U, details.texHeight >> cfg.mip));
@@ -502,20 +501,20 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   if(cfg.scale <= 0.0f)
   {
-    float xscale = float(GetWidth()) / tex_x;
-    float yscale = float(GetHeight()) / tex_y;
+    float xscale = m_OutputWidth / tex_x;
+    float yscale = m_OutputHeight / tex_y;
 
     vertexData.Scale = RDCMIN(xscale, yscale);
 
     if(yscale > xscale)
     {
       vertexData.Position.x = 0;
-      vertexData.Position.y = tex_y * vertexData.Scale / float(GetHeight()) - 1.0f;
+      vertexData.Position.y = tex_y * vertexData.Scale / m_OutputHeight - 1.0f;
     }
     else
     {
       vertexData.Position.y = 0;
-      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / float(GetWidth());
+      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / m_OutputWidth;
     }
   }
 
@@ -533,11 +532,11 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
       RDCASSERT(dxbc);
       RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);
 
-      if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.customShaderId))
+      if(m_pDevice->GetResourceManager()->HasLiveResource(cfg.customShaderId))
       {
         WrappedID3D11Shader<ID3D11PixelShader> *wrapped =
-            (WrappedID3D11Shader<ID3D11PixelShader> *)m_WrappedDevice->GetResourceManager()
-                ->GetLiveResource(cfg.customShaderId);
+            (WrappedID3D11Shader<ID3D11PixelShader> *)m_pDevice->GetResourceManager()->GetLiveResource(
+                cfg.customShaderId);
 
         customPS = wrapped;
 
@@ -562,8 +561,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
                   d[0] = details.texWidth;
                   d[1] = details.texHeight;
-                  d[2] = details.texType == D3D11DebugManager::eTexType_3D ? details.texDepth
-                                                                           : details.texArraySize;
+                  d[2] = details.texType == eTexType_3D ? details.texDepth : details.texArraySize;
                   d[3] = details.texMips;
                 }
                 else
@@ -638,7 +636,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
               }
             }
 
-            customBuff = MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
+            customBuff = GetDebugManager()->MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
 
             SAFE_DELETE_ARRAY(cbufData);
           }
@@ -712,26 +710,26 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
   }
 
-  FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
-  FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+  ID3D11Buffer *vsCBuffer = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
+  ID3D11Buffer *psCBuffer = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
   // can't just clear state because we need to keep things like render targets.
   {
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    m_pImmediateContext->VSSetShader(m_DebugRender.GenericVS, NULL, 0);
-    m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
+    m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
+    m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuffer);
 
     m_pImmediateContext->HSSetShader(NULL, NULL, 0);
     m_pImmediateContext->DSSetShader(NULL, NULL, 0);
     m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 
-    m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+    m_pImmediateContext->RSSetState(m_General.RasterState);
 
     if(customPS == NULL)
     {
-      m_pImmediateContext->PSSetShader(m_DebugRender.TexDisplayPS, NULL, 0);
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+      m_pImmediateContext->PSSetShader(m_TexRender.TexDisplayPS, NULL, 0);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuffer);
     }
     else
     {
@@ -743,20 +741,20 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
     memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
     const UINT numUAVs =
-        m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+        m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
     m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, NullUAVs, UAV_keepcounts);
 
     m_pImmediateContext->PSSetShaderResources(srvOffset, eTexType_Max, details.srv);
 
-    ID3D11SamplerState *samps[] = {m_DebugRender.PointSampState, m_DebugRender.LinearSampState};
+    ID3D11SamplerState *samps[] = {m_TexRender.PointSampState, m_TexRender.LinearSampState};
     m_pImmediateContext->PSSetSamplers(0, 2, samps);
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     if(cfg.rawOutput || !blendAlpha || cfg.customShaderId != ResourceId())
       m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
     else
-      m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
+      m_pImmediateContext->OMSetBlendState(m_TexRender.BlendState, factor, 0xffffffff);
 
     m_pImmediateContext->Draw(4, 0);
   }

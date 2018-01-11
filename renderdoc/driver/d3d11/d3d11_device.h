@@ -33,7 +33,6 @@
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "d3d11_common.h"
-#include "d3d11_debug.h"
 #include "d3d11_manager.h"
 #include "d3d11_replay.h"
 
@@ -72,6 +71,7 @@ struct D3D11InitParams
 DECLARE_REFLECTION_STRUCT(D3D11InitParams);
 
 class WrappedID3D11Device;
+class WrappedID3D11DeviceContext;
 class WrappedShader;
 
 // declare this here as we don't want to pull in the whole D3D10 headers
@@ -307,10 +307,6 @@ enum CaptureFailReason;
 class WrappedID3D11Device : public IFrameCapturer, public ID3DDevice, public ID3D11Device4
 {
 private:
-  // since enumeration creates a lot of devices, save
-  // large-scale init until some point that we know we're the real device
-  void LazyInit();
-
   enum
   {
     eInitialContents_Copy = 0,
@@ -335,9 +331,9 @@ private:
 
   int32_t m_ChunkAtomic;
 
+  D3D11DebugManager *m_DebugManager = NULL;
   D3D11TextRenderer *m_TextRenderer = NULL;
   D3D11ShaderCache *m_ShaderCache = NULL;
-  D3D11DebugManager *m_DebugManager = NULL;
   D3D11ResourceManager *m_ResourceManager = NULL;
 
   vector<string> m_ShaderSearchPaths;
@@ -416,7 +412,6 @@ public:
   WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams *params);
   void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion)
   {
-    LazyInit();
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
   }
@@ -435,9 +430,9 @@ public:
 
   ID3D11Device *GetReal() { return m_pDevice; }
   static std::string GetChunkName(uint32_t idx);
-  D3D11DebugManager *GetDebugManager() { return m_DebugManager; }
   D3D11ShaderCache *GetShaderCache() { return m_ShaderCache; }
   D3D11ResourceManager *GetResourceManager() { return m_ResourceManager; }
+  D3D11DebugManager *GetDebugManager() { return m_DebugManager; }
   D3D11Replay *GetReplay() { return &m_Replay; }
   Threading::CriticalSection &D3DLock() { return m_D3DLock; }
   WrappedID3D11DeviceContext *GetImmediateContext() { return m_pImmediateContext; }

@@ -39,8 +39,13 @@
 
 struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
-  VulkanQuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
-      : m_pDriver(vk), m_pDebug(vk->GetDebugManager()), m_Events(events), m_PrevState(vk, NULL)
+  VulkanQuadOverdrawCallback(WrappedVulkan *vk, VkDescriptorSetLayout descSetLayout,
+                             VkDescriptorSet descSet, const vector<uint32_t> &events)
+      : m_pDriver(vk),
+        m_DescSetLayout(descSetLayout),
+        m_DescSet(descSet),
+        m_Events(events),
+        m_PrevState(vk, NULL)
   {
     m_pDriver->SetDrawcallCB(this);
   }
@@ -81,7 +86,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
             c.m_PipelineLayout[p.layout].descSetLayouts[i]);
 
       // this layout has storage image and
-      descSetLayouts[descSet] = m_pDebug->m_QuadDescSetLayout;
+      descSetLayouts[descSet] = m_DescSetLayout;
 
       const vector<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
 
@@ -221,7 +226,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     pipestate.graphics.pipeline = GetResID(pipe.second);
     RDCASSERT(pipestate.graphics.descSets.size() >= pipe.first);
     pipestate.graphics.descSets.resize(pipe.first + 1);
-    pipestate.graphics.descSets[pipe.first].descSet = GetResID(m_pDebug->m_QuadDescSet);
+    pipestate.graphics.descSets[pipe.first].descSet = GetResID(m_DescSet);
 
     if(cmd)
       pipestate.BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
@@ -260,7 +265,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   }
 
   WrappedVulkan *m_pDriver;
-  VulkanDebugManager *m_pDebug;
+  VkDescriptorSetLayout m_DescSetLayout;
+  VkDescriptorSet m_DescSet;
   const vector<uint32_t> &m_Events;
 
   // cache modified pipelines
@@ -382,8 +388,8 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   indexCount = (uint32_t)patchedIndices.size();
 }
 
-ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay overlay,
-                                             uint32_t eventId, const vector<uint32_t> &passEvents)
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                       uint32_t eventId, const std::vector<uint32_t> &passEvents)
 {
   const VkLayerDispatchTable *vt = ObjDisp(m_Device);
 
@@ -400,28 +406,28 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   // if the overlay image is the wrong size, free it
-  if(m_OverlayImage != VK_NULL_HANDLE &&
-     (iminfo.extent.width != m_OverlayDim.width || iminfo.extent.height != m_OverlayDim.height))
+  if(m_Overlay.Image != VK_NULL_HANDLE && (iminfo.extent.width != m_Overlay.ImageDim.width ||
+                                           iminfo.extent.height != m_Overlay.ImageDim.height))
   {
-    m_pDriver->vkDestroyRenderPass(m_Device, m_OverlayNoDepthRP, NULL);
-    m_pDriver->vkDestroyFramebuffer(m_Device, m_OverlayNoDepthFB, NULL);
-    m_pDriver->vkDestroyImageView(m_Device, m_OverlayImageView, NULL);
-    m_pDriver->vkDestroyImage(m_Device, m_OverlayImage, NULL);
+    m_pDriver->vkDestroyRenderPass(m_Device, m_Overlay.NoDepthRP, NULL);
+    m_pDriver->vkDestroyFramebuffer(m_Device, m_Overlay.NoDepthFB, NULL);
+    m_pDriver->vkDestroyImageView(m_Device, m_Overlay.ImageView, NULL);
+    m_pDriver->vkDestroyImage(m_Device, m_Overlay.Image, NULL);
 
-    m_OverlayImage = VK_NULL_HANDLE;
-    m_OverlayImageView = VK_NULL_HANDLE;
-    m_OverlayNoDepthRP = VK_NULL_HANDLE;
-    m_OverlayNoDepthFB = VK_NULL_HANDLE;
+    m_Overlay.Image = VK_NULL_HANDLE;
+    m_Overlay.ImageView = VK_NULL_HANDLE;
+    m_Overlay.NoDepthRP = VK_NULL_HANDLE;
+    m_Overlay.NoDepthFB = VK_NULL_HANDLE;
   }
 
   // create the overlay image if we don't have one already
   // we go through the driver's creation functions so creation info
   // is saved and the resources are registered as live resources for
   // their IDs.
-  if(m_OverlayImage == VK_NULL_HANDLE)
+  if(m_Overlay.Image == VK_NULL_HANDLE)
   {
-    m_OverlayDim.width = iminfo.extent.width;
-    m_OverlayDim.height = iminfo.extent.height;
+    m_Overlay.ImageDim.width = iminfo.extent.width;
+    m_Overlay.ImageDim.height = iminfo.extent.height;
 
     VkImageCreateInfo imInfo = {
         VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -429,7 +435,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         0,
         VK_IMAGE_TYPE_2D,
         VK_FORMAT_R16G16B16A16_SFLOAT,
-        {m_OverlayDim.width, m_OverlayDim.height, 1},
+        {m_Overlay.ImageDim.width, m_Overlay.ImageDim.height, 1},
         1,
         1,
         iminfo.samples,
@@ -442,19 +448,19 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
-    vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_OverlayImage);
+    vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_Overlay.Image);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     VkMemoryRequirements mrq = {0};
-    m_pDriver->vkGetImageMemoryRequirements(m_Device, m_OverlayImage, &mrq);
+    m_pDriver->vkGetImageMemoryRequirements(m_Device, m_Overlay.Image, &mrq);
 
     // if no memory is allocated, or it's not enough,
     // then allocate
-    if(m_OverlayImageMem == VK_NULL_HANDLE || mrq.size > m_OverlayMemSize)
+    if(m_Overlay.ImageMem == VK_NULL_HANDLE || mrq.size > m_Overlay.ImageMemSize)
     {
-      if(m_OverlayImageMem != VK_NULL_HANDLE)
+      if(m_Overlay.ImageMem != VK_NULL_HANDLE)
       {
-        m_pDriver->vkFreeMemory(m_Device, m_OverlayImageMem, NULL);
+        m_pDriver->vkFreeMemory(m_Device, m_Overlay.ImageMem, NULL);
       }
 
       VkMemoryAllocateInfo allocInfo = {
@@ -462,20 +468,20 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 
-      vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &m_OverlayImageMem);
+      vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &m_Overlay.ImageMem);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      m_OverlayMemSize = mrq.size;
+      m_Overlay.ImageMemSize = mrq.size;
     }
 
-    vkr = m_pDriver->vkBindImageMemory(m_Device, m_OverlayImage, m_OverlayImageMem, 0);
+    vkr = m_pDriver->vkBindImageMemory(m_Device, m_Overlay.Image, m_Overlay.ImageMem, 0);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     VkImageViewCreateInfo viewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         NULL,
         0,
-        m_OverlayImage,
+        m_Overlay.Image,
         VK_IMAGE_VIEW_TYPE_2D,
         imInfo.format,
         {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -483,7 +489,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
     };
 
-    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_OverlayImageView);
+    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Overlay.ImageView);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // need to update image layout into valid state
@@ -497,10 +503,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         0,
         0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
-        Unwrap(m_OverlayImage),
+        Unwrap(m_Overlay.Image),
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
-    m_pDriver->m_ImageLayouts[GetResID(m_OverlayImage)].subresourceStates[0].newLayout =
+    m_pDriver->m_ImageLayouts[GetResID(m_Overlay.Image)].subresourceStates[0].newLayout =
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     DoPipelineBarrier(cmd, 1, &barrier);
@@ -538,7 +544,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         NULL,    // dependencies
     };
 
-    vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &m_OverlayNoDepthRP);
+    vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &m_Overlay.NoDepthRP);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // Create framebuffer rendering just to overlay image, no depth
@@ -546,15 +552,15 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         NULL,
         0,
-        m_OverlayNoDepthRP,
+        m_Overlay.NoDepthRP,
         1,
-        &m_OverlayImageView,
-        (uint32_t)m_OverlayDim.width,
-        (uint32_t)m_OverlayDim.height,
+        &m_Overlay.ImageView,
+        (uint32_t)m_Overlay.ImageDim.width,
+        (uint32_t)m_Overlay.ImageDim.height,
         1,
     };
 
-    vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_OverlayNoDepthFB);
+    vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_Overlay.NoDepthFB);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // can't create a framebuffer or renderpass for overlay image + depth as that
@@ -580,12 +586,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)black, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -606,12 +612,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)black, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -645,12 +651,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)clearCol, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -668,7 +674,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     // make patched shader
     VkShaderModule mod = VK_NULL_HANDLE;
 
-    PatchFixedColShader(mod, highlightCol);
+    GetDebugManager()->PatchFixedColShader(mod, highlightCol);
 
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -731,7 +737,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         // three lines, instead we have a single restart index after each triangle.
         ia->primitiveRestartEnable = true;
 
-        PatchLineStripIndexBuffer(mainDraw, patchedIB, patchedIndexCount);
+        GetDebugManager()->PatchLineStripIndexBuffer(mainDraw, patchedIB, patchedIndexCount);
       }
       else
       {
@@ -763,7 +769,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     }
 
     // set our renderpass and shader
-    pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+    pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
     pipeCreateInfo.subpass = 0;
 
     bool found = false;
@@ -802,9 +808,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // modify state
-    m_pDriver->m_RenderState.renderPass = GetResID(m_OverlayNoDepthRP);
+    m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.framebuffer = GetResID(m_OverlayNoDepthFB);
+    m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe);
 
@@ -874,12 +880,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)black, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -895,8 +901,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       VkRenderPassBeginInfo rpbegin = {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           NULL,
-          Unwrap(m_OverlayNoDepthRP),
-          Unwrap(m_OverlayNoDepthFB),
+          Unwrap(m_Overlay.NoDepthRP),
+          Unwrap(m_Overlay.NoDepthFB),
           m_pDriver->m_RenderState.renderArea,
           1,
           &clearval,
@@ -925,7 +931,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
       uint32_t uboOffs = 0;
 
-      OutlineUBOData *ubo = (OutlineUBOData *)m_OutlineUBO.Map(&uboOffs);
+      OutlineUBOData *ubo = (OutlineUBOData *)m_Overlay.m_OutlineUBO.Map(&uboOffs);
 
       ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
       ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
@@ -935,13 +941,13 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport])
         ubo->ViewRect.w = fabs(viewport.height);
 
-      m_OutlineUBO.Unmap();
+      m_Overlay.m_OutlineUBO.Unmap();
 
       vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          Unwrap(m_OutlinePipeline[SampleIndex(iminfo.samples)]));
+                          Unwrap(m_Overlay.m_OutlinePipeline[SampleIndex(iminfo.samples)]));
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                Unwrap(m_OutlinePipeLayout), 0, 1, UnwrapPtr(m_OutlineDescSet), 1,
-                                &uboOffs);
+                                Unwrap(m_Overlay.m_OutlinePipeLayout), 0, 1,
+                                UnwrapPtr(m_Overlay.m_OutlineDescSet), 1, &uboOffs);
 
       vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
@@ -952,14 +958,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                       (float)m_pDriver->m_RenderState.scissors[0].extent.width,
                       (float)m_pDriver->m_RenderState.scissors[0].extent.height);
 
-        ubo = (OutlineUBOData *)m_OutlineUBO.Map(&uboOffs);
+        ubo = (OutlineUBOData *)m_Overlay.m_OutlineUBO.Map(&uboOffs);
 
         ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
         ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
         ubo->Scissor = 1;
         ubo->ViewRect = scissor;
 
-        m_OutlineUBO.Unmap();
+        m_Overlay.m_OutlineUBO.Unmap();
 
         viewport.x = scissor.x;
         viewport.y = scissor.y;
@@ -968,8 +974,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
         vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
         vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  Unwrap(m_OutlinePipeLayout), 0, 1, UnwrapPtr(m_OutlineDescSet), 1,
-                                  &uboOffs);
+                                  Unwrap(m_Overlay.m_OutlinePipeLayout), 0, 1,
+                                  UnwrapPtr(m_Overlay.m_OutlineDescSet), 1, &uboOffs);
 
         vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
       }
@@ -989,12 +995,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)highlightCol, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -1014,13 +1020,13 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     VkPipeline pipe[2] = {0};
 
     // first shader, no culling, writes red
-    PatchFixedColShader(mod[0], highlightCol);
+    GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
 
     highlightCol[0] = 0.0f;
     highlightCol[1] = 1.0f;
 
     // second shader, normal culling, writes green
-    PatchFixedColShader(mod[1], highlightCol);
+    GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
 
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -1068,7 +1074,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     }
 
     // set our renderpass and shader
-    pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+    pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
     pipeCreateInfo.subpass = 0;
 
     VkPipelineShaderStageCreateInfo *fragShader = NULL;
@@ -1118,9 +1124,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // modify state
-    m_pDriver->m_RenderState.renderPass = GetResID(m_OverlayNoDepthRP);
+    m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.framebuffer = GetResID(m_OverlayNoDepthFB);
+    m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
 
@@ -1169,12 +1175,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)highlightCol, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -1242,7 +1248,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       VkImageView views[] = {
-          m_OverlayImageView, GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
+          m_Overlay.ImageView,
+          m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
       };
 
       // Create framebuffer rendering just to overlay image, no depth
@@ -1253,8 +1260,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           depthRP,
           2,
           views,
-          (uint32_t)m_OverlayDim.width,
-          (uint32_t)m_OverlayDim.height,
+          (uint32_t)m_Overlay.ImageDim.width,
+          (uint32_t)m_Overlay.ImageDim.height,
           1,
       };
 
@@ -1276,13 +1283,13 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     VkPipeline pipe[2] = {0};
 
     // first shader, no depth testing, writes red
-    PatchFixedColShader(mod[0], highlightCol);
+    GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
 
     highlightCol[0] = 0.0f;
     highlightCol[1] = 1.0f;
 
     // second shader, enabled depth testing, writes green
-    PatchFixedColShader(mod[1], highlightCol);
+    GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
 
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -1331,7 +1338,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     }
 
     // set our renderpass and shader
-    pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+    pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
     pipeCreateInfo.subpass = 0;
 
     VkPipelineShaderStageCreateInfo *fragShader = NULL;
@@ -1389,9 +1396,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // modify state
-    m_pDriver->m_RenderState.renderPass = GetResID(m_OverlayNoDepthRP);
+    m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.framebuffer = GetResID(m_OverlayNoDepthFB);
+    m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
 
@@ -1452,12 +1459,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
-                                    Unwrap(m_OverlayImage),
+                                    Unwrap(m_Overlay.Image),
                                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            (VkClearColorValue *)black, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
@@ -1575,12 +1582,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                       VK_QUEUE_FAMILY_IGNORED,
                                       VK_QUEUE_FAMILY_IGNORED,
-                                      Unwrap(m_OverlayImage),
+                                      Unwrap(m_Overlay.Image),
                                       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
       DoPipelineBarrier(cmd, 1, &barrier);
 
-      vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage),
+      vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image),
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1,
                              &subresourceRange);
 
@@ -1607,7 +1614,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           0,
           VK_IMAGE_TYPE_2D,
           VK_FORMAT_R32_UINT,
-          {RDCMAX(1U, m_OverlayDim.width >> 1), RDCMAX(1U, m_OverlayDim.height >> 1), 1},
+          {RDCMAX(1U, m_Overlay.ImageDim.width >> 1), RDCMAX(1U, m_Overlay.ImageDim.height >> 1), 1},
           1,
           4,
           VK_SAMPLE_COUNT_1_BIT,
@@ -1660,7 +1667,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
       VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                     NULL,
-                                    Unwrap(m_QuadDescSet),
+                                    Unwrap(m_Overlay.m_QuadDescSet),
                                     0,
                                     0,
                                     1,
@@ -1712,7 +1719,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
       // declare callback struct here
-      VulkanQuadOverdrawCallback cb(m_pDriver, events);
+      VulkanQuadOverdrawCallback cb(m_pDriver, m_Overlay.m_QuadDescSetLayout,
+                                    m_Overlay.m_QuadDescSet, events);
 
       m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 
@@ -1735,8 +1743,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         VkRenderPassBeginInfo rpbegin = {
             VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             NULL,
-            Unwrap(m_OverlayNoDepthRP),
-            Unwrap(m_OverlayNoDepthFB),
+            Unwrap(m_Overlay.NoDepthRP),
+            Unwrap(m_Overlay.NoDepthFB),
             m_pDriver->m_RenderState.renderArea,
             1,
             &clearval,
@@ -1744,13 +1752,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
         vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            Unwrap(m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
+                            Unwrap(m_Overlay.m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
         vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  Unwrap(m_QuadResolvePipeLayout), 0, 1, UnwrapPtr(m_QuadDescSet),
-                                  0, NULL);
+                                  Unwrap(m_Overlay.m_QuadResolvePipeLayout), 0, 1,
+                                  UnwrapPtr(m_Overlay.m_QuadDescSet), 0, NULL);
 
-        VkViewport viewport = {0.0f, 0.0f, (float)m_OverlayDim.width, (float)m_OverlayDim.height,
-                               0.0f, 1.0f};
+        VkViewport viewport = {
+            0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
+            0.0f, 1.0f};
         vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
         vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
@@ -1798,12 +1807,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                       VK_QUEUE_FAMILY_IGNORED,
                                       VK_QUEUE_FAMILY_IGNORED,
-                                      Unwrap(m_OverlayImage),
+                                      Unwrap(m_Overlay.Image),
                                       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
       DoPipelineBarrier(cmd, 1, &barrier);
 
-      vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage),
+      vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image),
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1,
                              &subresourceRange);
 
@@ -1844,7 +1853,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       VulkanRenderState &state = m_pDriver->GetRenderState();
 
       uint32_t meshOffs = 0;
-      MeshUBOData *data = (MeshUBOData *)m_MeshUBO.Map(&meshOffs);
+      MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&meshOffs);
 
       data->mvp = Matrix4f::Identity();
       data->invProj = Matrix4f::Identity();
@@ -1854,21 +1863,21 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       data->displayFormat = 0;
       data->rawoutput = 1;
       data->padding = Vec3f();
-      m_MeshUBO.Unmap();
+      m_MeshRender.UBO.Unmap();
 
       uint32_t viewOffs = 0;
-      Vec4f *ubo = (Vec4f *)m_TriSizeUBO.Map(&viewOffs);
+      Vec4f *ubo = (Vec4f *)m_Overlay.m_TriSizeUBO.Map(&viewOffs);
       *ubo = Vec4f(state.views[0].width, state.views[0].height);
-      m_TriSizeUBO.Unmap();
+      m_Overlay.m_TriSizeUBO.Unmap();
 
       uint32_t offsets[2] = {meshOffs, viewOffs};
 
       VkDescriptorBufferInfo bufdesc;
-      m_MeshUBO.FillDescriptor(bufdesc);
+      m_MeshRender.UBO.FillDescriptor(bufdesc);
 
       VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                     NULL,
-                                    Unwrap(m_TriSizeDescSet),
+                                    Unwrap(m_Overlay.m_TriSizeDescSet),
                                     0,
                                     0,
                                     1,
@@ -1878,12 +1887,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
                                     NULL};
       vt->UpdateDescriptorSets(Unwrap(m_Device), 1, &write, 0, NULL);
 
-      m_TriSizeUBO.FillDescriptor(bufdesc);
+      m_Overlay.m_TriSizeUBO.FillDescriptor(bufdesc);
       write.dstBinding = 2;
       vt->UpdateDescriptorSets(Unwrap(m_Device), 1, &write, 0, NULL);
 
-      VkRenderPass RP = m_OverlayNoDepthRP;
-      VkFramebuffer FB = m_OverlayNoDepthFB;
+      VkRenderPass RP = m_Overlay.NoDepthRP;
+      VkFramebuffer FB = m_Overlay.NoDepthFB;
 
       VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
 
@@ -1944,7 +1953,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         VkImageView views[] = {
-            m_OverlayImageView, GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
+            m_Overlay.ImageView,
+            m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
         };
 
         // Create framebuffer rendering just to overlay image, no depth
@@ -1955,8 +1965,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
             RP,
             2,
             views,
-            (uint32_t)m_OverlayDim.width,
-            (uint32_t)m_OverlayDim.height,
+            (uint32_t)m_Overlay.ImageDim.width,
+            (uint32_t)m_Overlay.ImageDim.height,
             1,
         };
 
@@ -2029,7 +2039,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       pipeCreateInfo.pTessellationState = NULL;
       pipeCreateInfo.renderPass = RP;
       pipeCreateInfo.subpass = 0;
-      pipeCreateInfo.layout = m_TriSizePipeLayout;
+      pipeCreateInfo.layout = m_Overlay.m_TriSizePipeLayout;
       pipeCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
       pipeCreateInfo.basePipelineIndex = 0;
       pipeCreateInfo.pInputAssemblyState = &ia;
@@ -2051,14 +2061,15 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
           NULL,
           Unwrap(RP),
           Unwrap(FB),
-          {{0, 0}, m_OverlayDim},
+          {{0, 0}, m_Overlay.ImageDim},
           1,
           &clearval,
       };
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-      VkViewport viewport = {0.0f, 0.0f, (float)m_OverlayDim.width, (float)m_OverlayDim.height,
-                             0.0f, 1.0f};
+      VkViewport viewport = {
+          0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
+          0.0f, 1.0f};
       vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
       for(size_t i = 0; i < events.size(); i++)
@@ -2096,8 +2107,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
             pipes[key] = pipe;
 
             vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                      Unwrap(m_TriSizePipeLayout), 0, 1,
-                                      UnwrapPtr(m_TriSizeDescSet), 2, offsets);
+                                      Unwrap(m_Overlay.m_TriSizePipeLayout), 0, 1,
+                                      UnwrapPtr(m_Overlay.m_TriSizeDescSet), 2, offsets);
 
             vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
@@ -2210,5 +2221,5 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
   m_pDriver->SubmitCmds();
 #endif
 
-  return GetResID(m_OverlayImage);
+  return GetResID(m_Overlay.Image);
 }

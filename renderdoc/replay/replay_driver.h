@@ -214,7 +214,8 @@ public:
 
   virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
                          uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4]) = 0;
-  virtual uint32_t PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
+  virtual uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height,
+                              const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };
 
 // utility functions useful in any driver implementation

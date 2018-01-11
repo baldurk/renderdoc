@@ -306,6 +306,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
     SAFE_RELEASE(it->second);
   }
 
+  m_Replay.DestroyResources();
+
   DestroyInternalResources();
 
   if(m_DeviceRecord)
@@ -630,7 +632,7 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
   if(it != m_SwapChains.end())
   {
     for(int i = 0; i < swap->GetNumBackbuffers(); i++)
-      GetDebugManager()->FreeRTV(it->second.rtvs[i]);
+      FreeRTV(it->second.rtvs[i]);
 
     m_SwapChains.erase(it);
   }
@@ -766,17 +768,16 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
   if(IsCaptureMode(m_State))
   {
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
-
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
     rtvDesc.Format = GetSRGBFormat(swapDesc->BufferDesc.Format);
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     rtvDesc.Texture2D.MipSlice = 0;
     rtvDesc.Texture2D.PlaneSlice = 0;
 
-    rtv = GetDebugManager()->AllocRTV();
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv = AllocRTV();
 
-    CreateRenderTargetView(pRes, NULL, rtv);
+    if(rtv.ptr != 0)
+      CreateRenderTargetView(pRes, NULL, rtv);
 
     m_SwapChains[swap].rtvs[buffer] = rtv;
 
@@ -1122,37 +1123,41 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       SwapPresentInfo &swapInfo = m_SwapChains[swap];
       D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapInfo.rtvs[swapInfo.lastPresentedBuffer];
 
-      m_TextRenderer->SetOutputDimensions(swapdesc.BufferDesc.Width, swapdesc.BufferDesc.Height,
-                                          swapdesc.BufferDesc.Format);
+      if(rtv.ptr)
+      {
+        m_TextRenderer->SetOutputDimensions(swapdesc.BufferDesc.Width, swapdesc.BufferDesc.Height,
+                                            swapdesc.BufferDesc.Format);
 
-      ID3D12GraphicsCommandList *list = GetNewList();
+        ID3D12GraphicsCommandList *list = GetNewList();
 
-      // buffer will be in common for presentation, transition to render target
-      D3D12_RESOURCE_BARRIER barrier = {};
-      barrier.Transition.pResource =
-          (ID3D12Resource *)swap->GetBackbuffers()[swapInfo.lastPresentedBuffer];
-      barrier.Transition.Subresource = 0;
-      barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-      barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        // buffer will be in common for presentation, transition to render target
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Transition.pResource =
+            (ID3D12Resource *)swap->GetBackbuffers()[swapInfo.lastPresentedBuffer];
+        barrier.Transition.Subresource = 0;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-      list->ResourceBarrier(1, &barrier);
+        list->ResourceBarrier(1, &barrier);
 
-      list->OMSetRenderTargets(1, &rtv, FALSE, NULL);
+        list->OMSetRenderTargets(1, &rtv, FALSE, NULL);
 
-      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
+        int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
+        string overlayText =
+            RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
 
-      if(!overlayText.empty())
-        m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
+        if(!overlayText.empty())
+          m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
 
-      // transition backbuffer back again
-      std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-      list->ResourceBarrier(1, &barrier);
+        // transition backbuffer back again
+        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+        list->ResourceBarrier(1, &barrier);
 
-      list->Close();
+        list->Close();
 
-      ExecuteLists(swapInfo.queue);
-      FlushLists(false, swapInfo.queue);
+        ExecuteLists(swapInfo.queue);
+        FlushLists(false, swapInfo.queue);
+      }
     }
   }
 
@@ -2051,6 +2056,40 @@ WriteSerialiser &WrappedID3D12Device::GetThreadSerialiser()
   return *ser;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE WrappedID3D12Device::AllocRTV()
+{
+  if(m_FreeRTVs.empty())
+  {
+    RDCERR("Not enough free RTVs for swapchain overlays!");
+    return D3D12_CPU_DESCRIPTOR_HANDLE();
+  }
+
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = m_FreeRTVs.back();
+  m_FreeRTVs.pop_back();
+
+  return ret;
+}
+
+void WrappedID3D12Device::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+  if(handle.ptr == 0)
+    return;
+
+  auto it =
+      std::find_if(m_UsedRTVs.begin(), m_UsedRTVs.end(),
+                   [handle](const D3D12_CPU_DESCRIPTOR_HANDLE a) { return a.ptr == handle.ptr; });
+
+  if(it != m_UsedRTVs.end())
+  {
+    m_UsedRTVs.erase(it);
+    m_FreeRTVs.push_back(handle);
+  }
+  else
+  {
+    RDCERR("Unknown RTV %llu being freed", handle.ptr);
+  }
+}
+
 void WrappedID3D12Device::CreateInternalResources()
 {
   // Initialise AMD extension, if possible
@@ -2084,6 +2123,34 @@ void WrappedID3D12Device::CreateInternalResources()
   CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DataUploadAlloc, NULL,
                     __uuidof(ID3D12GraphicsCommandList), (void **)&m_DataUploadList);
 
+  D3D12_DESCRIPTOR_HEAP_DESC desc;
+  desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  desc.NodeMask = 1;
+  desc.NumDescriptors = 1024;
+  desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+
+  CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_RTVHeap);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE handle;
+
+  if(m_RTVHeap)
+  {
+    handle = m_RTVHeap->GetCPUDescriptorHandleForHeapStart();
+
+    UINT step = GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    for(size_t i = 0; i < 1024; i++)
+    {
+      m_FreeRTVs.push_back(handle);
+
+      handle.ptr += step;
+    }
+  }
+  else
+  {
+    RDCERR("Failed to create RTV heap");
+  }
+
   m_DataUploadList->Close();
 
   m_GPUSyncCounter = 0;
@@ -2091,13 +2158,11 @@ void WrappedID3D12Device::CreateInternalResources()
   if(m_ShaderCache == NULL)
     m_ShaderCache = new D3D12ShaderCache();
 
-  RDCASSERT(m_DebugManager == NULL);
-
-  if(m_DebugManager == NULL)
-    m_DebugManager = new D3D12DebugManager(this);
-
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);
+
+  if(IsReplayMode(m_State))
+    m_Replay.CreateResources();
 
   WrappedID3D12Shader::InternalResources(false);
 }
@@ -2115,7 +2180,6 @@ void WrappedID3D12Device::DestroyInternalResources()
   for(size_t i = 0; i < m_InternalCmds.pendingcmds.size(); i++)
     SAFE_RELEASE(m_InternalCmds.pendingcmds[i]);
 
-  SAFE_DELETE(m_DebugManager);
   SAFE_DELETE(m_TextRenderer);
   SAFE_DELETE(m_ShaderCache);
 

@@ -30,7 +30,107 @@
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
-void D3D12DebugManager::ClearPostVSCache()
+void D3D12Replay::CreateSOBuffers()
+{
+  HRESULT hr = S_OK;
+
+  SAFE_RELEASE(m_SOBuffer);
+  SAFE_RELEASE(m_SOStagingBuffer);
+  SAFE_RELEASE(m_SOPatchedIndexBuffer);
+  SAFE_RELEASE(m_SOQueryHeap);
+
+  D3D12_RESOURCE_DESC soBufDesc;
+  soBufDesc.Alignment = 0;
+  soBufDesc.DepthOrArraySize = 1;
+  soBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  // need to allow UAV access to reset the counter each time
+  soBufDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  soBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+  soBufDesc.Height = 1;
+  soBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  soBufDesc.MipLevels = 1;
+  soBufDesc.SampleDesc.Count = 1;
+  soBufDesc.SampleDesc.Quality = 0;
+  // add 64 bytes for the counter at the start
+  soBufDesc.Width = m_SOBufferSize + 64;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc,
+                                          D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
+                                          __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
+
+  m_SOBuffer->SetName(L"m_SOBuffer");
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create SO output buffer, HRESULT: %s", ToStr(hr).c_str());
+    return;
+  }
+
+  soBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+
+  hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc,
+                                          D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                          __uuidof(ID3D12Resource), (void **)&m_SOStagingBuffer);
+
+  m_SOStagingBuffer->SetName(L"m_SOStagingBuffer");
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create readback buffer, HRESULT: %s", ToStr(hr).c_str());
+    return;
+  }
+
+  // this is a buffer of unique indices, so it allows for
+  // the worst case - float4 per vertex, all unique indices.
+  soBufDesc.Width = m_SOBufferSize / sizeof(Vec4f);
+  heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+  hr = m_pDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+      __uuidof(ID3D12Resource), (void **)&m_SOPatchedIndexBuffer);
+
+  m_SOPatchedIndexBuffer->SetName(L"m_SOPatchedIndexBuffer");
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create SO index buffer, HRESULT: %s", ToStr(hr).c_str());
+    return;
+  }
+
+  D3D12_QUERY_HEAP_DESC queryDesc;
+  queryDesc.Count = 16;
+  queryDesc.NodeMask = 1;
+  queryDesc.Type = D3D12_QUERY_HEAP_TYPE_SO_STATISTICS;
+  hr = m_pDevice->CreateQueryHeap(&queryDesc, __uuidof(m_SOQueryHeap), (void **)&m_SOQueryHeap);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create SO query heap, HRESULT: %s", ToStr(hr).c_str());
+    return;
+  }
+
+  D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
+  counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+  counterDesc.Format = DXGI_FORMAT_R32_UINT;
+  counterDesc.Buffer.FirstElement = 0;
+  counterDesc.Buffer.NumElements = 4;
+
+  m_pDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
+                                       GetDebugManager()->GetCPUHandle(STREAM_OUT_UAV));
+
+  m_pDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
+                                       GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV));
+}
+
+void D3D12Replay::ClearPostVSCache()
 {
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {
@@ -43,7 +143,7 @@ void D3D12DebugManager::ClearPostVSCache()
   m_PostVSData.clear();
 }
 
-void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
+void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 {
   // go through any aliasing
   if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())
@@ -52,14 +152,14 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
-  D3D12CommandData *cmd = m_WrappedDevice->GetQueue()->GetCommandData();
+  D3D12CommandData *cmd = m_pDevice->GetQueue()->GetCommandData();
   const D3D12RenderState &rs = cmd->m_RenderState;
 
   if(rs.pipe == ResourceId())
     return;
 
   WrappedID3D12PipelineState *origPSO =
-      m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
   if(!origPSO->IsGraphics())
     return;
@@ -73,7 +173,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
 
   D3D_PRIMITIVE_TOPOLOGY topo = rs.topo;
 
-  const DrawcallDescription *drawcall = m_WrappedDevice->GetDrawcall(eventId);
+  const DrawcallDescription *drawcall = m_pDevice->GetDrawcall(eventId);
 
   if(drawcall->numIndices == 0)
     return;
@@ -110,8 +210,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
 
   {
     WrappedID3D12RootSignature *sig =
-        m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-            rs.graphics.rootsig);
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
 
     D3D12RootSignature rootsig = sig->sig;
 
@@ -120,10 +219,10 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     {
       rootsig.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
 
-      ID3DBlob *blob = m_WrappedDevice->GetShaderCache()->MakeRootSig(rootsig);
+      ID3DBlob *blob = m_pDevice->GetShaderCache()->MakeRootSig(rootsig);
 
-      hr = m_WrappedDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
-                                                __uuidof(ID3D12RootSignature), (void **)&soSig);
+      hr = m_pDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
+                                          __uuidof(ID3D12RootSignature), (void **)&soSig);
       if(FAILED(hr))
       {
         RDCERR("Couldn't enable stream-out in root signature: HRESULT: %s", ToStr(hr).c_str());
@@ -213,8 +312,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
     ID3D12PipelineState *pipe = NULL;
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&pipe);
+    hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                                (void **)&pipe);
     if(FAILED(hr))
     {
       RDCERR("Couldn't create patched graphics pipeline: HRESULT: %s", ToStr(hr).c_str());
@@ -237,36 +336,38 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       recreate = true;
     }
 
+    ID3D12GraphicsCommandList *list = NULL;
+
     if(!(drawcall->flags & DrawFlags::UseIBuffer))
     {
       if(recreate)
       {
-        m_WrappedDevice->GPUSync();
+        m_pDevice->GPUSync();
 
         CreateSOBuffers();
       }
 
-      m_DebugList->Reset(m_DebugAlloc, NULL);
+      list = GetDebugManager()->ResetDebugList();
 
-      rs.ApplyState(m_DebugList);
+      rs.ApplyState(list);
 
-      m_DebugList->SetPipelineState(pipe);
+      list->SetPipelineState(pipe);
 
       if(soSig)
       {
-        m_DebugList->SetGraphicsRootSignature(soSig);
-        rs.ApplyGraphicsRootElements(m_DebugList);
+        list->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(list);
       }
 
       D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
       view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
       view.SizeInBytes = m_SOBufferSize;
-      m_DebugList->SOSetTargets(0, 1, &view);
+      list->SOSetTargets(0, 1, &view);
 
-      m_DebugList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-      m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
-                                 drawcall->vertexOffset, drawcall->instanceOffset);
+      list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+      list->DrawInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset,
+                          drawcall->instanceOffset);
     }
     else    // drawcall is indexed
     {
@@ -344,12 +445,13 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
 
       if(recreate)
       {
-        m_WrappedDevice->GPUSync();
+        m_pDevice->GPUSync();
 
         CreateSOBuffers();
       }
 
-      FillBuffer(m_SOPatchedIndexBuffer, 0, &indices[0], indices.size() * sizeof(uint32_t));
+      GetDebugManager()->FillBuffer(m_SOPatchedIndexBuffer, 0, &indices[0],
+                                    indices.size() * sizeof(uint32_t));
 
       D3D12_INDEX_BUFFER_VIEW patchedIB;
 
@@ -357,30 +459,30 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       patchedIB.Format = DXGI_FORMAT_R32_UINT;
       patchedIB.SizeInBytes = UINT(indices.size() * sizeof(uint32_t));
 
-      m_DebugList->Reset(m_DebugAlloc, NULL);
+      list = GetDebugManager()->ResetDebugList();
 
-      rs.ApplyState(m_DebugList);
+      rs.ApplyState(list);
 
-      m_DebugList->SetPipelineState(pipe);
+      list->SetPipelineState(pipe);
 
-      m_DebugList->IASetIndexBuffer(&patchedIB);
+      list->IASetIndexBuffer(&patchedIB);
 
       if(soSig)
       {
-        m_DebugList->SetGraphicsRootSignature(soSig);
-        rs.ApplyGraphicsRootElements(m_DebugList);
+        list->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(list);
       }
 
       D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
       view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
       view.SizeInBytes = m_SOBufferSize;
-      m_DebugList->SOSetTargets(0, 1, &view);
+      list->SOSetTargets(0, 1, &view);
 
-      m_DebugList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+      list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-      m_DebugList->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, 0,
-                                        drawcall->instanceOffset);
+      list->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, 0,
+                                 drawcall->instanceOffset);
 
       uint32_t stripCutValue = 0;
       if(psoDesc.IBStripCutValue == D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF)
@@ -436,14 +538,14 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
         heapProps.CreationNodeMask = 1;
         heapProps.VisibleNodeMask = 1;
 
-        hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &idxBufDesc,
-                                                      D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-                                                      __uuidof(ID3D12Resource), (void **)&idxBuf);
+        hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &idxBufDesc,
+                                                D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                __uuidof(ID3D12Resource), (void **)&idxBuf);
         RDCASSERTEQUAL(hr, S_OK);
 
         SetObjName(idxBuf, StringFormat::Fmt("PostVS idxBuf for %u", eventId));
 
-        FillBuffer(idxBuf, 0, &idxdata[0], idxdata.size());
+        GetDebugManager()->FillBuffer(idxBuf, 0, &idxdata[0], idxdata.size());
       }
     }
 
@@ -452,27 +554,29 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_STREAM_OUT;
     sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-    m_DebugList->ResourceBarrier(1, &sobarr);
+    list->ResourceBarrier(1, &sobarr);
 
-    m_DebugList->CopyResource(m_SOStagingBuffer, m_SOBuffer);
+    list->CopyResource(m_SOStagingBuffer, m_SOBuffer);
 
     // we're done with this after the copy, so we can discard it and reset
     // the counter for the next stream-out
     sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
     sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    m_DebugList->DiscardResource(m_SOBuffer, NULL);
-    m_DebugList->ResourceBarrier(1, &sobarr);
+    list->DiscardResource(m_SOBuffer, NULL);
+    list->ResourceBarrier(1, &sobarr);
 
     UINT zeroes[4] = {0, 0, 0, 0};
-    m_DebugList->ClearUnorderedAccessViewUint(
-        GetGPUHandle(STREAM_OUT_UAV), GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
+    list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
+                                       GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV),
+                                       m_SOBuffer, zeroes, 0, NULL);
 
-    m_DebugList->Close();
+    list->Close();
 
-    ID3D12CommandList *l = m_DebugList;
-    m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
-    m_WrappedDevice->GPUSync();
-    m_DebugAlloc->Reset();
+    ID3D12CommandList *l = list;
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+
+    GetDebugManager()->ResetDebugAlloc();
 
     SAFE_RELEASE(pipe);
 
@@ -527,15 +631,15 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       heapProps.CreationNodeMask = 1;
       heapProps.VisibleNodeMask = 1;
 
-      hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertBufDesc,
-                                                    D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-                                                    __uuidof(ID3D12Resource), (void **)&vsoutBuffer);
+      hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertBufDesc,
+                                              D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                              __uuidof(ID3D12Resource), (void **)&vsoutBuffer);
       RDCASSERTEQUAL(hr, S_OK);
 
       if(vsoutBuffer)
       {
         SetObjName(vsoutBuffer, StringFormat::Fmt("PostVS vsoutBuffer for %u", eventId));
-        FillBuffer(vsoutBuffer, 0, byteData, (size_t)numBytesWritten);
+        GetDebugManager()->FillBuffer(vsoutBuffer, 0, byteData, (size_t)numBytesWritten);
       }
     }
 
@@ -705,8 +809,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     psoDesc.PrimitiveTopologyType = origPSO->graphics->PrimitiveTopologyType;
 
     ID3D12PipelineState *pipe = NULL;
-    hr = m_WrappedDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&pipe);
+    hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                                (void **)&pipe);
     if(FAILED(hr))
     {
       RDCERR("Couldn't create patched graphics pipeline: HRESULT: %s", ToStr(hr).c_str());
@@ -716,6 +820,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
 
     D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
 
+    ID3D12GraphicsCommandList *list = NULL;
+
     view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
     view.SizeInBytes = m_SOBufferSize;
@@ -723,16 +829,16 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     // primitives from each drawcall, as due to expansion this can vary per-instance.
     if(drawcall->numInstances > 1)
     {
-      m_DebugList->Reset(m_DebugAlloc, NULL);
+      list = GetDebugManager()->ResetDebugList();
 
-      rs.ApplyState(m_DebugList);
+      rs.ApplyState(list);
 
-      m_DebugList->SetPipelineState(pipe);
+      list->SetPipelineState(pipe);
 
       if(soSig)
       {
-        m_DebugList->SetGraphicsRootSignature(soSig);
-        rs.ApplyGraphicsRootElements(m_DebugList);
+        list->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(list);
       }
 
       view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
@@ -740,33 +846,33 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       view.SizeInBytes = m_SOBufferSize;
 
       // do a dummy draw to make sure we have enough space in the output buffer
-      m_DebugList->SOSetTargets(0, 1, &view);
+      list->SOSetTargets(0, 1, &view);
 
-      m_DebugList->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+      list->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
       // because the result is expanded we don't have to remap index buffers or anything
       if(drawcall->flags & DrawFlags::UseIBuffer)
       {
-        m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
-                                          drawcall->indexOffset, drawcall->baseVertex,
-                                          drawcall->instanceOffset);
+        list->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
+                                   drawcall->indexOffset, drawcall->baseVertex,
+                                   drawcall->instanceOffset);
       }
       else
       {
-        m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->vertexOffset, drawcall->instanceOffset);
+        list->DrawInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset,
+                            drawcall->instanceOffset);
       }
 
-      m_DebugList->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+      list->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
-      m_DebugList->ResolveQueryData(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0, 1,
-                                    m_SOStagingBuffer, 0);
+      list->ResolveQueryData(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0, 1,
+                             m_SOStagingBuffer, 0);
 
-      m_DebugList->Close();
+      list->Close();
 
-      ID3D12CommandList *l = m_DebugList;
-      m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
-      m_WrappedDevice->GPUSync();
+      ID3D12CommandList *l = list;
+      m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+      m_pDevice->GPUSync();
 
       // check that things are OK, and resize up if needed
       D3D12_RANGE range;
@@ -794,10 +900,10 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
       view.SizeInBytes = m_SOBufferSize;
 
-      m_DebugAlloc->Reset();
+      GetDebugManager()->ResetDebugAlloc();
 
       // now do the actual stream out
-      m_DebugList->Reset(m_DebugAlloc, NULL);
+      list = GetDebugManager()->ResetDebugList();
 
       // first need to reset the counter byte values which may have either been written to above, or
       // are newly created
@@ -807,7 +913,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
         sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_STREAM_OUT;
         sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 
-        m_DebugList->ResourceBarrier(1, &sobarr);
+        list->ResourceBarrier(1, &sobarr);
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
         counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -816,22 +922,22 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
         counterDesc.Buffer.NumElements = 4;
 
         UINT zeroes[4] = {0, 0, 0, 0};
-        m_DebugList->ClearUnorderedAccessViewUint(GetGPUHandle(STREAM_OUT_UAV),
-                                                  GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer,
-                                                  zeroes, 0, NULL);
+        list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
+                                           GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV),
+                                           m_SOBuffer, zeroes, 0, NULL);
 
         std::swap(sobarr.Transition.StateBefore, sobarr.Transition.StateAfter);
-        m_DebugList->ResourceBarrier(1, &sobarr);
+        list->ResourceBarrier(1, &sobarr);
       }
 
-      rs.ApplyState(m_DebugList);
+      rs.ApplyState(list);
 
-      m_DebugList->SetPipelineState(pipe);
+      list->SetPipelineState(pipe);
 
       if(soSig)
       {
-        m_DebugList->SetGraphicsRootSignature(soSig);
-        rs.ApplyGraphicsRootElements(m_DebugList);
+        list->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(list);
       }
 
       // reserve space for enough 'buffer filled size' locations
@@ -848,25 +954,27 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
         {
           view.BufferFilledSizeLocation =
               m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
-          m_DebugList->SOSetTargets(0, 1, &view);
-          m_DebugList->DrawIndexedInstanced(drawcall->numIndices, inst, drawcall->indexOffset,
-                                            drawcall->baseVertex, drawcall->instanceOffset);
+          list->SOSetTargets(0, 1, &view);
+          list->DrawIndexedInstanced(drawcall->numIndices, inst, drawcall->indexOffset,
+                                     drawcall->baseVertex, drawcall->instanceOffset);
         }
         else
         {
           view.BufferFilledSizeLocation =
               m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
-          m_DebugList->SOSetTargets(0, 1, &view);
-          m_DebugList->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
-                                     drawcall->instanceOffset);
+          list->SOSetTargets(0, 1, &view);
+          list->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
+                              drawcall->instanceOffset);
         }
       }
 
-      m_DebugList->Close();
+      list->Close();
 
-      l = m_DebugList;
-      m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
-      m_WrappedDevice->GPUSync();
+      l = list;
+      m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+      m_pDevice->GPUSync();
+
+      GetDebugManager()->ResetDebugAlloc();
 
       // the last draw will have written the actual data we want into the buffer
     }
@@ -875,49 +983,49 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       // this only loops if we find from a query that we need to resize up
       while(true)
       {
-        m_DebugList->Reset(m_DebugAlloc, NULL);
+        list = GetDebugManager()->ResetDebugList();
 
-        rs.ApplyState(m_DebugList);
+        rs.ApplyState(list);
 
-        m_DebugList->SetPipelineState(pipe);
+        list->SetPipelineState(pipe);
 
         if(soSig)
         {
-          m_DebugList->SetGraphicsRootSignature(soSig);
-          rs.ApplyGraphicsRootElements(m_DebugList);
+          list->SetGraphicsRootSignature(soSig);
+          rs.ApplyGraphicsRootElements(list);
         }
 
         view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
         view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
         view.SizeInBytes = m_SOBufferSize;
 
-        m_DebugList->SOSetTargets(0, 1, &view);
+        list->SOSetTargets(0, 1, &view);
 
-        m_DebugList->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+        list->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
         // because the result is expanded we don't have to remap index buffers or anything
         if(drawcall->flags & DrawFlags::UseIBuffer)
         {
-          m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
-                                            drawcall->indexOffset, drawcall->baseVertex,
-                                            drawcall->instanceOffset);
+          list->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
+                                     drawcall->indexOffset, drawcall->baseVertex,
+                                     drawcall->instanceOffset);
         }
         else
         {
-          m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
-                                     drawcall->vertexOffset, drawcall->instanceOffset);
+          list->DrawInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset,
+                              drawcall->instanceOffset);
         }
 
-        m_DebugList->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+        list->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
-        m_DebugList->ResolveQueryData(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0, 1,
-                                      m_SOStagingBuffer, 0);
+        list->ResolveQueryData(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0, 1,
+                               m_SOStagingBuffer, 0);
 
-        m_DebugList->Close();
+        list->Close();
 
-        ID3D12CommandList *l = m_DebugList;
-        m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
-        m_WrappedDevice->GPUSync();
+        ID3D12CommandList *l = list;
+        m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+        m_pDevice->GPUSync();
 
         // check that things are OK, and resize up if needed
         D3D12_RANGE range;
@@ -941,29 +1049,29 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
         range.End = 0;
         m_SOStagingBuffer->Unmap(0, &range);
 
-        m_DebugAlloc->Reset();
+        GetDebugManager()->ResetDebugAlloc();
 
         break;
       }
     }
 
-    m_DebugList->Reset(m_DebugAlloc, NULL);
+    list = GetDebugManager()->ResetDebugList();
 
     D3D12_RESOURCE_BARRIER sobarr = {};
     sobarr.Transition.pResource = m_SOBuffer;
     sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_STREAM_OUT;
     sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-    m_DebugList->ResourceBarrier(1, &sobarr);
+    list->ResourceBarrier(1, &sobarr);
 
-    m_DebugList->CopyResource(m_SOStagingBuffer, m_SOBuffer);
+    list->CopyResource(m_SOStagingBuffer, m_SOBuffer);
 
     // we're done with this after the copy, so we can discard it and reset
     // the counter for the next stream-out
     sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
     sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    m_DebugList->DiscardResource(m_SOBuffer, NULL);
-    m_DebugList->ResourceBarrier(1, &sobarr);
+    list->DiscardResource(m_SOBuffer, NULL);
+    list->ResourceBarrier(1, &sobarr);
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
     counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -972,15 +1080,17 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
     counterDesc.Buffer.NumElements = 4;
 
     UINT zeroes[4] = {0, 0, 0, 0};
-    m_DebugList->ClearUnorderedAccessViewUint(
-        GetGPUHandle(STREAM_OUT_UAV), GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
+    list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
+                                       GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV),
+                                       m_SOBuffer, zeroes, 0, NULL);
 
-    m_DebugList->Close();
+    list->Close();
 
-    ID3D12CommandList *l = m_DebugList;
-    m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
-    m_WrappedDevice->GPUSync();
-    m_DebugAlloc->Reset();
+    ID3D12CommandList *l = list;
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+
+    GetDebugManager()->ResetDebugAlloc();
 
     SAFE_RELEASE(pipe);
 
@@ -1057,15 +1167,15 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
       heapProps.CreationNodeMask = 1;
       heapProps.VisibleNodeMask = 1;
 
-      hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertBufDesc,
-                                                    D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-                                                    __uuidof(ID3D12Resource), (void **)&gsoutBuffer);
+      hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertBufDesc,
+                                              D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                              __uuidof(ID3D12Resource), (void **)&gsoutBuffer);
       RDCASSERTEQUAL(hr, S_OK);
 
       if(gsoutBuffer)
       {
         SetObjName(gsoutBuffer, StringFormat::Fmt("PostVS gsoutBuffer for %u", eventId));
-        FillBuffer(gsoutBuffer, 0, byteData, (size_t)numBytesWritten);
+        GetDebugManager()->FillBuffer(gsoutBuffer, 0, byteData, (size_t)numBytesWritten);
       }
     }
 
@@ -1196,7 +1306,54 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventId)
   SAFE_RELEASE(soSig);
 }
 
-MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
+{
+  D3D12InitPostVSCallback(WrappedID3D12Device *dev, D3D12Replay *replay,
+                          const vector<uint32_t> &events)
+      : m_pDevice(dev), m_Replay(replay), m_Events(events)
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+  }
+  ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
+      m_Replay->InitPostVSBuffers(eid);
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  // Dispatches don't rasterize, so do nothing
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  void AliasEvent(uint32_t primary, uint32_t alias)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
+      m_Replay->AliasPostVSBuffers(primary, alias);
+  }
+
+  WrappedID3D12Device *m_pDevice;
+  D3D12Replay *m_Replay;
+  const vector<uint32_t> &m_Events;
+};
+
+void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
+{
+  // first we must replay up to the first event without replaying it. This ensures any
+  // non-command buffer calls like memory unmaps etc all happen correctly before this
+  // command buffer
+  m_pDevice->ReplayLog(0, events.front(), eReplay_WithoutDraw);
+
+  D3D12InitPostVSCallback cb(m_pDevice, this, events);
+
+  // now we replay the events, which are guaranteed (because we generated them in
+  // GetPassEvents above) to come from the same command buffer, so the event IDs are
+  // still locally continuous, even if we jump into replaying.
+  m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
+}
+
+MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
   // go through any aliasing
   if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())

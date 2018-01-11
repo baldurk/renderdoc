@@ -23,12 +23,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_context.h"
+#include "d3d11_context.h"
 #include "3rdparty/tinyfiledialogs/tinyfiledialogs.h"
-#include "driver/d3d11/d3d11_renderstate.h"
-#include "driver/d3d11/d3d11_resources.h"
 #include "driver/dx/official/dxgi1_3.h"
 #include "strings/string_utils.h"
+#include "d3d11_debug.h"
+#include "d3d11_renderstate.h"
+#include "d3d11_resources.h"
 
 #ifndef DXGI_ERROR_INVALID_CALL
 #define DXGI_ERROR_INVALID_CALL MAKE_DXGI_HRESULT(1)

@@ -1166,7 +1166,8 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   return true;
 }
 
-uint32_t GLReplay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
+                              const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -1177,8 +1178,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t
 
   gl.glUseProgram(DebugData.meshPickProgram);
 
-  Matrix4f projMat =
-      Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, DebugData.outWidth / DebugData.outHeight);
+  Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(width) / float(height));
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
   Matrix4f pickMVP = projMat.Mul(camMat);
@@ -1205,10 +1205,10 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t
   {
     Matrix4f inversePickMVP = pickMVP.Inverse();
 
-    float pickX = ((float)x) / ((float)DebugData.outWidth);
+    float pickX = ((float)x) / ((float)width);
     float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
 
-    float pickY = ((float)y) / ((float)DebugData.outHeight);
+    float pickY = ((float)y) / ((float)height);
     // flip the Y axis
     float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
 
@@ -1296,7 +1296,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, const MeshDisplay &cfg, uint32_t
   cdata->unproject = cfg.position.unproject;
   cdata->mvp = cfg.position.unproject ? pickMVPProj : pickMVP;
   cdata->coords = Vec2f((float)x, (float)y);
-  cdata->viewport = Vec2f(DebugData.outWidth, DebugData.outHeight);
+  cdata->viewport = Vec2f((float)width, (float)height);
 
   gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

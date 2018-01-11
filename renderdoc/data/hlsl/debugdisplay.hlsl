@@ -246,7 +246,7 @@ cbuffer overlayconsts : register(b0)
 	float4 overlaycol;
 };
 
-MultipleOutput RENDERDOC_OverlayPS(float4 IN : SV_Position)
+MultipleOutput RENDERDOC_FixedColPS(float4 IN : SV_Position)
 {
 	MultipleOutput OUT = (MultipleOutput)0;
 

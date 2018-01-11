@@ -39,10 +39,10 @@
 
 #include "data/hlsl/debugcbuffers.h"
 
-ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                            uint32_t eventId, const vector<uint32_t> &passEvents)
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                      uint32_t eventId, const vector<uint32_t> &passEvents)
 {
-  TextureShaderDetails details = GetShaderDetails(texid, typeHint, false);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
 
   ResourceId id = texid;
 
@@ -65,14 +65,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     realTexDesc.SampleDesc.Quality = details.sampleQuality;
   }
 
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   D3D11_TEXTURE2D_DESC customTexDesc;
   RDCEraseEl(customTexDesc);
-  if(m_OverlayRenderTex)
-    m_OverlayRenderTex->GetDesc(&customTexDesc);
+  if(m_Overlay.Texture)
+    m_Overlay.Texture->GetDesc(&customTexDesc);
 
-  WrappedID3D11Texture2D1 *wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)m_OverlayRenderTex;
+  WrappedID3D11Texture2D1 *wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)m_Overlay.Texture;
 
   // need to recreate backing custom render tex
   if(realTexDesc.Width != customTexDesc.Width || realTexDesc.Height != customTexDesc.Height ||
@@ -80,8 +80,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
      realTexDesc.SampleDesc.Count != customTexDesc.SampleDesc.Count ||
      realTexDesc.SampleDesc.Quality != customTexDesc.SampleDesc.Quality)
   {
-    SAFE_RELEASE(m_OverlayRenderTex);
-    m_OverlayResourceId = ResourceId();
+    SAFE_RELEASE(m_Overlay.Texture);
+    m_Overlay.resourceId = ResourceId();
 
     ID3D11Texture2D *customRenderTex = NULL;
     HRESULT hr = m_pDevice->CreateTexture2D(&realTexDesc, NULL, &customRenderTex);
@@ -92,8 +92,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     }
     wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)customRenderTex;
 
-    m_OverlayRenderTex = wrappedCustomRenderTex;
-    m_OverlayResourceId = wrappedCustomRenderTex->GetResourceID();
+    m_Overlay.Texture = wrappedCustomRenderTex;
+    m_Overlay.resourceId = wrappedCustomRenderTex->GetResourceID();
   }
 
   ID3D11Texture2D *preDrawDepth = NULL;
@@ -126,14 +126,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     {
       RDCERR("Failed to create preDrawDepth HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(realDepth);
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
     hr = m_pDevice->CreateTexture2D(&desc, NULL, &renderDepth);
     if(FAILED(hr))
     {
       RDCERR("Failed to create renderDepth HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(realDepth);
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
 
     m_pImmediateContext->CopyResource(preDrawDepth, realDepth);
@@ -156,7 +156,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
   if(FAILED(hr))
   {
     RDCERR("Failed to create custom render tex RTV HRESULT: %s", ToStr(hr).c_str());
-    return m_OverlayResourceId;
+    return m_Overlay.resourceId;
   }
 
   FLOAT black[] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -170,7 +170,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(FAILED(hr))
     {
       RDCERR("Failed to create renderDepth DSV HRESULT: %s", ToStr(hr).c_str());
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
   }
 
@@ -198,7 +198,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
   }
   else if(overlay == DebugOverlay::Drawcall)
   {
-    m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
     dsDesc.DepthEnable = FALSE;
     dsDesc.StencilEnable = FALSE;
@@ -208,7 +208,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(FAILED(hr))
     {
       RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
 
     m_pImmediateContext->OMSetDepthStencilState(os, 0);
@@ -234,7 +234,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
     }
 
@@ -242,20 +242,20 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
     float overlayConsts[] = {0.8f, 0.1f, 0.8f, 1.0f};
-    ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rs);
 
-    m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     SAFE_RELEASE(os);
     SAFE_RELEASE(rs);
   }
   else if(overlay == DebugOverlay::BackfaceCull)
   {
-    m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
     dsDesc.DepthEnable = FALSE;
     dsDesc.StencilEnable = FALSE;
@@ -265,7 +265,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(FAILED(hr))
     {
       RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
 
     m_pImmediateContext->OMSetDepthStencilState(os, 0);
@@ -305,7 +305,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
 
       rdesc.CullMode = origdesc.CullMode;
@@ -314,7 +314,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
     }
 
@@ -322,24 +322,24 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
     float overlayConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};
-    ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rs);
 
-    m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     overlayConsts[0] = 0.0f;
     overlayConsts[1] = 1.0f;
 
-    buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+    buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rsCull);
 
-    m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     SAFE_RELEASE(os);
     SAFE_RELEASE(rs);
@@ -347,11 +347,11 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
   }
   else if(overlay == DebugOverlay::ViewportScissor)
   {
-    m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+    m_pImmediateContext->VSSetShader(m_Overlay.FullscreenVS, NULL, 0);
     m_pImmediateContext->HSSetShader(NULL, NULL, 0);
     m_pImmediateContext->DSSetShader(NULL, NULL, 0);
     m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->PSSetShader(m_DebugRender.OutlinePS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_Overlay.OutlinePS, NULL, 0);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     m_pImmediateContext->IASetInputLayout(NULL);
 
@@ -378,7 +378,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(FAILED(hr))
     {
       RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
 
     m_pImmediateContext->OMSetDepthStencilState(os, 0);
@@ -422,7 +422,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
     }
 
@@ -446,7 +446,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     pixelData.InverseRangeSize = views[0].TopLeftY;
     pixelData.TextureResolutionPS = Vec3f(views[0].Width, views[0].Height, 0.0f);
 
-    ID3D11Buffer *buf = MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
@@ -473,7 +473,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       pixelData.InverseRangeSize = scissorview.TopLeftY;
       pixelData.TextureResolutionPS = Vec3f(scissorview.Width, scissorview.Height, 0.0f);
 
-      buf = MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+      buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
@@ -486,7 +486,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
   }
   else if(overlay == DebugOverlay::Wireframe)
   {
-    m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
     dsDesc.DepthEnable = FALSE;
 
@@ -495,7 +495,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(FAILED(hr))
     {
       RDCERR("Failed to create wireframe depth state HRESULT: %s", ToStr(hr).c_str());
-      return m_OverlayResourceId;
+      return m_Overlay.resourceId;
     }
 
     m_pImmediateContext->OMSetDepthStencilState(os, 0);
@@ -535,7 +535,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create wireframe rast state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
     }
 
@@ -543,13 +543,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
 
     overlayConsts[3] = 1.0f;
-    ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rs);
 
-    m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     SAFE_RELEASE(os);
     SAFE_RELEASE(rs);
@@ -566,7 +566,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(!events.empty())
     {
       if(overlay == DebugOverlay::ClearBeforePass)
-        m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+        m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
       const D3D11RenderState &state = tracker.State();
 
@@ -576,14 +576,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       for(size_t i = 0; i < events.size(); i++)
       {
-        m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+        m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
         if(overlay == DebugOverlay::ClearBeforePass)
         {
-          m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+          m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
           if(i + 1 < events.size())
-            m_WrappedDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+            m_pDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
         }
       }
     }
@@ -593,8 +593,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     SCOPED_TIMER("Triangle size");
 
     // ensure it will be recreated on next use
-    SAFE_RELEASE(m_MeshDisplayLayout);
-    m_PrevMeshFmt = ResourceFormat();
+    SAFE_RELEASE(m_MeshRender.MeshLayout);
+    m_MeshRender.PrevPositionFormat = ResourceFormat();
 
     D3D11_INPUT_ELEMENT_DESC layoutdesc[2] = {};
 
@@ -607,25 +607,25 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     layoutdesc[1].InputSlot = 1;
     layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
 
-    hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshVSBytecode,
-                                      m_DebugRender.MeshVSBytelen, &m_MeshDisplayLayout);
+    hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_MeshRender.MeshVSBytecode,
+                                      m_MeshRender.MeshVSBytelen, &m_MeshRender.MeshLayout);
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create m_MeshDisplayLayout HRESULT: %s", ToStr(hr).c_str());
-      m_MeshDisplayLayout = NULL;
+      RDCERR("Failed to create m_MeshRender.m_MeshDisplayLayout HRESULT: %s", ToStr(hr).c_str());
+      m_MeshRender.MeshLayout = NULL;
     }
 
     DebugVertexCBuffer vertexData = {};
     vertexData.LineStrip = 0;
     vertexData.ModelViewProj = Matrix4f::Identity();
     vertexData.SpriteSize = Vec2f();
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+    ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
 
-    ID3D11Buffer *psbuf = MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
+    ID3D11Buffer *psbuf = GetDebugManager()->MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
 
     Vec4f viewport = Vec4f((float)details.texWidth, (float)details.texHeight);
-    ID3D11Buffer *gsbuf = MakeCBuffer(&viewport.x, sizeof(viewport));
+    ID3D11Buffer *gsbuf = GetDebugManager()->MakeCBuffer(&viewport.x, sizeof(viewport));
 
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
@@ -638,13 +638,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     events.push_back(eventId);
 
     if(overlay == DebugOverlay::TriangleSizePass)
-      m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+      m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
     events.push_back(eventId);
 
     for(size_t i = 0; i < events.size(); i++)
     {
-      D3D11RenderState oldstate = *m_WrappedContext->GetCurrentPipelineState();
+      D3D11RenderState oldstate = *m_pImmediateContext->GetCurrentPipelineState();
 
       D3D11_DEPTH_STENCIL_DESC dsdesc = {
           /*DepthEnable =*/TRUE,
@@ -672,7 +672,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       SAFE_RELEASE(ds);
 
-      const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(events[i]);
+      const DrawcallDescription *draw = m_pDevice->GetDrawcall(events[i]);
 
       for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
       {
@@ -715,13 +715,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
           m_pImmediateContext->IASetPrimitiveTopology(topo);
 
-          m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
-          m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
+          m_pImmediateContext->IASetInputLayout(m_MeshRender.MeshLayout);
+          m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsBuf);
           m_pImmediateContext->PSSetConstantBuffers(0, 1, &psbuf);
           m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsbuf);
-          m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
-          m_pImmediateContext->GSSetShader(m_DebugRender.TriangleSizeGS, NULL, 0);
-          m_pImmediateContext->PSSetShader(m_DebugRender.TriangleSizePS, NULL, 0);
+          m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
+          m_pImmediateContext->GSSetShader(m_Overlay.TriangleSizeGS, NULL, 0);
+          m_pImmediateContext->PSSetShader(m_Overlay.TriangleSizePS, NULL, 0);
           m_pImmediateContext->HSSetShader(NULL, NULL, 0);
           m_pImmediateContext->DSSetShader(NULL, NULL, 0);
           m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
@@ -734,19 +734,19 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
         }
       }
 
-      oldstate.ApplyState(m_WrappedContext);
+      oldstate.ApplyState(m_pImmediateContext);
 
       if(overlay == DebugOverlay::TriangleSizePass)
       {
-        m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+        m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
         if(i + 1 < events.size())
-          m_WrappedDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+          m_pDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
       }
     }
 
     if(overlay == DebugOverlay::TriangleSizePass)
-      m_WrappedDevice->ReplayLog(0, eventId, eReplay_WithoutDraw);
+      m_pDevice->ReplayLog(0, eventId, eReplay_WithoutDraw);
   }
   else if(overlay == DebugOverlay::QuadOverdrawPass || overlay == DebugOverlay::QuadOverdrawDraw)
   {
@@ -762,9 +762,9 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     if(!events.empty())
     {
       if(overlay == DebugOverlay::QuadOverdrawPass)
-        m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+        m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
-      D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
+      D3D11RenderState *state = m_pImmediateContext->GetCurrentPipelineState();
 
       uint32_t width = 1920 >> 1;
       uint32_t height = 1080 >> 1;
@@ -786,7 +786,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
         else
         {
           RDCERR("Couldn't get size of existing targets");
-          return m_OverlayResourceId;
+          return m_Overlay.resourceId;
         }
 
         D3D11_RESOURCE_DIMENSION dim;
@@ -818,7 +818,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
         else
         {
           RDCERR("Trying to show quad overdraw on invalid view");
-          return m_OverlayResourceId;
+          return m_Overlay.resourceId;
         }
 
         SAFE_RELEASE(res);
@@ -873,7 +873,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       for(size_t i = 0; i < events.size(); i++)
       {
-        D3D11RenderState oldstate = *m_WrappedContext->GetCurrentPipelineState();
+        D3D11RenderState oldstate = *m_pImmediateContext->GetCurrentPipelineState();
 
         D3D11_DEPTH_STENCIL_DESC dsdesc = {
             /*DepthEnable =*/TRUE,
@@ -906,18 +906,18 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
             0, NULL, depthOverride ? depthOverride : oldstate.OM.DepthView, 0, 1, &overdrawUAV,
             &UAVcount);
 
-        m_pImmediateContext->PSSetShader(m_DebugRender.QuadOverdrawPS, NULL, 0);
+        m_pImmediateContext->PSSetShader(m_Overlay.QuadOverdrawPS, NULL, 0);
 
-        m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+        m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
-        oldstate.ApplyState(m_WrappedContext);
+        oldstate.ApplyState(m_pImmediateContext);
 
         if(overlay == DebugOverlay::QuadOverdrawPass)
         {
-          m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+          m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
           if(i + 1 < events.size())
-            m_WrappedDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+            m_pDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
         }
       }
 
@@ -925,23 +925,23 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       // resolve pass
       {
-        m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+        m_pImmediateContext->VSSetShader(m_Overlay.FullscreenVS, NULL, 0);
         m_pImmediateContext->HSSetShader(NULL, NULL, 0);
         m_pImmediateContext->DSSetShader(NULL, NULL, 0);
         m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-        m_pImmediateContext->PSSetShader(m_DebugRender.QOResolvePS, NULL, 0);
+        m_pImmediateContext->PSSetShader(m_Overlay.QOResolvePS, NULL, 0);
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_pImmediateContext->IASetInputLayout(NULL);
 
-        ID3D11Buffer *buf = MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
+        ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
 
         m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
         m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
 
-        m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
+        m_pImmediateContext->OMSetDepthStencilState(NULL, 0);
         m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
-        m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+        m_pImmediateContext->RSSetState(m_General.RasterState);
 
         float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
         m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
@@ -956,7 +956,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       SAFE_RELEASE(overdrawUAV);
 
       if(overlay == DebugOverlay::QuadOverdrawPass)
-        m_WrappedDevice->ReplayLog(0, eventId, eReplay_WithoutDraw);
+        m_pDevice->ReplayLog(0, eventId, eReplay_WithoutDraw);
     }
   }
   else if(preDrawDepth)
@@ -1088,7 +1088,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create depth/stencil overlay depth state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
 
       m_pImmediateContext->OMSetDepthStencilState(os, stencilRef);
@@ -1097,13 +1097,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       float redConsts[] = {255.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f};
 
-      ID3D11Buffer *buf = MakeCBuffer(redConsts, sizeof(redConsts));
+      ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(redConsts, sizeof(redConsts));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
-      m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+      m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
-      m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+      m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       SAFE_RELEASE(os);
 
@@ -1125,20 +1125,20 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create depth/stencil overlay depth state 2 HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
 
       m_pImmediateContext->OMSetDepthStencilState(os, stencilRef);
 
       float greenConsts[] = {0.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f};
 
-      buf = MakeCBuffer(greenConsts, sizeof(greenConsts));
+      buf = GetDebugManager()->MakeCBuffer(greenConsts, sizeof(greenConsts));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
-      m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+      m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
-      m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+      m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       SAFE_RELEASE(os);
     }
@@ -1148,7 +1148,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     // no depth? trivial pass for depth or stencil tests
     if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
     {
-      m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+      m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
       dsDesc.DepthEnable = FALSE;
       dsDesc.StencilEnable = FALSE;
@@ -1158,7 +1158,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(FAILED(hr))
       {
         RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
-        return m_OverlayResourceId;
+        return m_Overlay.resourceId;
       }
 
       m_pImmediateContext->OMSetDepthStencilState(os, 0);
@@ -1184,7 +1184,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
         if(FAILED(hr))
         {
           RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
-          return m_OverlayResourceId;
+          return m_Overlay.resourceId;
         }
       }
 
@@ -1192,13 +1192,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
       float overlayConsts[] = {0.0f, 1.0f, 0.0f, 1.0f};
-      ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+      ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pImmediateContext->RSSetState(rs);
 
-      m_WrappedDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+      m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       SAFE_RELEASE(os);
       SAFE_RELEASE(rs);
@@ -1214,5 +1214,5 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
   SAFE_RELEASE(renderDepth);
   SAFE_RELEASE(preDrawDepth);
 
-  return m_OverlayResourceId;
+  return m_Overlay.resourceId;
 }

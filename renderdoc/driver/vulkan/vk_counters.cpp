@@ -26,22 +26,6 @@
 #include "vk_replay.h"
 #include "vk_resources.h"
 
-void VulkanReplay::PreDeviceInitCounters()
-{
-}
-
-void VulkanReplay::PostDeviceInitCounters()
-{
-}
-
-void VulkanReplay::PreDeviceShutdownCounters()
-{
-}
-
-void VulkanReplay::PostDeviceShutdownCounters()
-{
-}
-
 vector<GPUCounter> VulkanReplay::EnumerateCounters()
 {
   vector<GPUCounter> ret;

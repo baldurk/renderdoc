@@ -818,7 +818,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
   spirv[3] = idBound;
 }
 
-void VulkanDebugManager::ClearPostVSCache()
+void VulkanReplay::ClearPostVSCache()
 {
   VkDevice dev = m_Device;
 
@@ -833,7 +833,7 @@ void VulkanDebugManager::ClearPostVSCache()
   m_PostVSData.clear();
 }
 
-void VulkanDebugManager::InitPostVSBuffers(uint32_t eventId)
+void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 {
   // go through any aliasing
   if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())
@@ -1113,7 +1113,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventId)
     descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
 
     for(uint32_t i = 0; i < descSet; i++)
-      descSetLayouts[i] = GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
+      descSetLayouts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
           creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts[i]);
 
     // this layout just says it has one storage buffer
@@ -1602,8 +1602,56 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventId)
   // delete shader/shader module
   m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
+struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
+{
+  VulkanInitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
+      : m_pDriver(vk), m_Events(events)
+  {
+    m_pDriver->SetDrawcallCB(this);
+  }
+  ~VulkanInitPostVSCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  void PreDraw(uint32_t eid, VkCommandBuffer cmd)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
+      m_pDriver->GetReplay()->InitPostVSBuffers(eid);
+  }
 
-MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }
+  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) {}
+  // Dispatches don't rasterize, so do nothing
+  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) {}
+  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
+  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
+  // Ditto copy/etc
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void AliasEvent(uint32_t primary, uint32_t alias)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
+      m_pDriver->GetReplay()->AliasPostVSBuffers(primary, alias);
+  }
+
+  WrappedVulkan *m_pDriver;
+  const std::vector<uint32_t> &m_Events;
+};
+
+void VulkanReplay::InitPostVSBuffers(const vector<uint32_t> &events)
+{
+  // first we must replay up to the first event without replaying it. This ensures any
+  // non-command buffer calls like memory unmaps etc all happen correctly before this
+  // command buffer
+  m_pDriver->ReplayLog(0, events.front(), eReplay_WithoutDraw);
+
+  VulkanInitPostVSCallback cb(m_pDriver, events);
+
+  // now we replay the events, which are guaranteed (because we generated them in
+  // GetPassEvents above) to come from the same command buffer, so the event IDs are
+  // still locally continuous, even if we jump into replaying.
+  m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
+}
+
+MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
 {
   // go through any aliasing
   if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())

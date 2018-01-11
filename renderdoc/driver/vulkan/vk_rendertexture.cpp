@@ -192,7 +192,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   uint32_t uboOffs = 0;
 
-  TexDisplayUBOData *data = (TexDisplayUBOData *)GetDebugManager()->m_TexDisplayUBO.Map(&uboOffs);
+  TexDisplayUBOData *data = (TexDisplayUBOData *)m_TexRender.UBO.Map(&uboOffs);
 
   data->Padding = 0;
 
@@ -325,19 +325,19 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     customData->texType = (uint32_t)textype;
   }
 
-  GetDebugManager()->m_TexDisplayUBO.Unmap();
+  m_TexRender.UBO.Unmap();
 
   VkDescriptorImageInfo imdesc = {0};
   imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imdesc.imageView = Unwrap(liveImView);
-  imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+  imdesc.sampler = Unwrap(m_General.PointSampler);
   if(cfg.mip == 0 && cfg.scale < 1.0f)
-    imdesc.sampler = Unwrap(GetDebugManager()->m_LinearSampler);
+    imdesc.sampler = Unwrap(m_TexRender.LinearSampler);
 
-  VkDescriptorSet descset = GetDebugManager()->GetTexDisplayDescSet();
+  VkDescriptorSet descset = m_TexRender.GetDescSet();
 
   VkDescriptorBufferInfo ubodesc = {0};
-  GetDebugManager()->m_TexDisplayUBO.FillDescriptor(ubodesc);
+  m_TexRender.UBO.FillDescriptor(ubodesc);
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), descSetBinding, 0, 1,
@@ -350,9 +350,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
     writeSets.push_back(writeSet[i]);
 
-  for(size_t i = 0; i < ARRAY_COUNT(GetDebugManager()->m_TexDisplayDummyWrites); i++)
+  for(size_t i = 0; i < ARRAY_COUNT(m_TexRender.DummyWrites); i++)
   {
-    VkWriteDescriptorSet &write = GetDebugManager()->m_TexDisplayDummyWrites[i];
+    VkWriteDescriptorSet &write = m_TexRender.DummyWrites[i];
 
     // don't write dummy data in the actual slot
     if(write.dstBinding == descSetBinding)
@@ -401,30 +401,29 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   {
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-    VkPipeline pipe = GetDebugManager()->m_TexDisplayPipeline;
+    VkPipeline pipe = m_TexRender.Pipeline;
 
     if(cfg.customShaderId != ResourceId())
     {
-      GetDebugManager()->CreateCustomShaderPipeline(cfg.customShaderId);
-      pipe = GetDebugManager()->m_CustomTexPipeline;
+      GetDebugManager()->CreateCustomShaderPipeline(cfg.customShaderId, m_TexRender.PipeLayout);
+      pipe = GetDebugManager()->GetCustomPipeline();
     }
     else if(f16render)
     {
-      pipe = GetDebugManager()->m_TexDisplayF16Pipeline;
+      pipe = m_TexRender.F16Pipeline;
     }
     else if(f32render)
     {
-      pipe = GetDebugManager()->m_TexDisplayF32Pipeline;
+      pipe = m_TexRender.F32Pipeline;
     }
     else if(!cfg.rawOutput && blendAlpha && cfg.customShaderId == ResourceId())
     {
-      pipe = GetDebugManager()->m_TexDisplayBlendPipeline;
+      pipe = m_TexRender.BlendPipeline;
     }
 
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
     vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1,
-                              UnwrapPtr(descset), 1, &uboOffs);
+                              Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 1, &uboOffs);
 
     VkViewport viewport = {(float)rpbegin.renderArea.offset.x,
                            (float)rpbegin.renderArea.offset.y,
@@ -440,8 +439,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     {
       uboOffs = 0;
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1,
-                                UnwrapPtr(descset), 1, &uboOffs);
+                                Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 1,
+                                &uboOffs);
     }
 
     vt->CmdEndRenderPass(Unwrap(cmd));

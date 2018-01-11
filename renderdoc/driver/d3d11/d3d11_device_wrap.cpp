@@ -23,9 +23,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_device.h"
-#include "driver/d3d11/d3d11_context.h"
-#include "driver/d3d11/d3d11_resources.h"
+#include "d3d11_device.h"
+#include "d3d11_context.h"
+#include "d3d11_debug.h"
+#include "d3d11_resources.h"
 
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D11_BUFFER_DESC *pDesc,
@@ -2668,7 +2669,7 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
     // prime the predicate with a true result, so that if we end up referencing a predicate that was
     // filled in a previous frame that we don't have the data for, we default to passing.
     m_pImmediateContext->Begin(ret);
-    GetDebugManager()->RenderForPredicate();
+    m_DebugManager->RenderForPredicate();
     m_pImmediateContext->End(ret);
   }
 
