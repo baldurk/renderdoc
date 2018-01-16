@@ -138,56 +138,6 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
-  struct GPUBuffer
-  {
-    enum CreateFlags
-    {
-      eGPUBufferReadback = 0x1,
-      eGPUBufferVBuffer = 0x2,
-      eGPUBufferIBuffer = 0x4,
-      eGPUBufferSSBO = 0x8,
-      eGPUBufferGPULocal = 0x10,
-    };
-    GPUBuffer()
-        : sz(0),
-          buf(VK_NULL_HANDLE),
-          mem(VK_NULL_HANDLE),
-          align(0),
-          totalsize(0),
-          curoffset(0),
-          ringCount(0),
-          m_pDriver(NULL),
-          device(VK_NULL_HANDLE)
-    {
-    }
-    void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,
-                uint32_t flags);
-    void Destroy();
-
-    void FillDescriptor(VkDescriptorBufferInfo &desc);
-
-    size_t GetRingCount() { return size_t(ringCount); }
-    void *Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
-    void *Map(uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
-    void Unmap();
-
-    VkDeviceSize sz;
-    VkBuffer buf;
-    VkDeviceMemory mem;
-
-    // uniform buffer alignment requirement
-    VkDeviceSize align;
-
-    // for handling ring allocations
-    VkDeviceSize totalsize;
-    VkDeviceSize curoffset;
-
-    uint32_t ringCount;
-
-    WrappedVulkan *m_pDriver;
-    VkDevice device;
-  };
-
   VkDescriptorPool m_DescriptorPool;
   VkSampler m_LinearSampler, m_PointSampler;
 

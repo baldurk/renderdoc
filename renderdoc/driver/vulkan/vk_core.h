@@ -397,16 +397,10 @@ private:
   vector<VkEvent> m_CleanupEvents;
   vector<VkEvent> m_PersistentEvents;
 
-  const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
-  VkDriverInfo GetDriverVersion() { return VkDriverInfo(m_PhysicalDeviceData.props); }
   const VkFormatProperties &GetFormatProperties(VkFormat f)
   {
     return m_PhysicalDeviceData.fmtprops[f];
   }
-
-  uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
-  uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
-  uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
 
   struct BakedCmdBufferInfo
   {
@@ -776,6 +770,10 @@ public:
     return m_DescriptorSetState[descSet].layout;
   }
 
+  uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
+  uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
+  uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
+
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   // return the pre-selected device and queue
   VkDevice GetDev()
@@ -821,6 +819,8 @@ public:
                                                          VkExtensionProperties *pProperties);
 
   const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
+  const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
+  VkDriverInfo GetDriverVersion() { return VkDriverInfo(m_PhysicalDeviceData.props); }
   // Device initialization
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance, const VkInstanceCreateInfo *pCreateInfo,

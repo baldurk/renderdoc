@@ -136,6 +136,45 @@ struct VkMarkerRegion
   static WrappedVulkan *vk;
 };
 
+struct GPUBuffer
+{
+  enum CreateFlags
+  {
+    eGPUBufferReadback = 0x1,
+    eGPUBufferVBuffer = 0x2,
+    eGPUBufferIBuffer = 0x4,
+    eGPUBufferSSBO = 0x8,
+    eGPUBufferGPULocal = 0x10,
+  };
+
+  void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,
+              uint32_t flags);
+  void Destroy();
+
+  void FillDescriptor(VkDescriptorBufferInfo &desc);
+
+  size_t GetRingCount() { return size_t(ringCount); }
+  void *Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
+  void *Map(uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
+  void Unmap();
+
+  VkDeviceSize sz = 0;
+  VkBuffer buf = VK_NULL_HANDLE;
+  VkDeviceMemory mem = VK_NULL_HANDLE;
+
+  // uniform buffer alignment requirement
+  VkDeviceSize align = 0;
+
+  // for handling ring allocations
+  VkDeviceSize totalsize = 0;
+  VkDeviceSize curoffset = 0;
+
+  uint32_t ringCount = 0;
+
+  WrappedVulkan *m_pDriver = NULL;
+  VkDevice device = VK_NULL_HANDLE;
+};
+
 // in vk_<platform>.cpp
 extern const char *VulkanLibraryName;
 

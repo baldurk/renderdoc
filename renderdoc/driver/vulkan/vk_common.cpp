@@ -126,6 +126,116 @@ void VkMarkerRegion::End(VkCommandBuffer cmd)
   ObjDisp(scope.cmd)->CmdDebugMarkerEndEXT(Unwrap(scope.cmd));
 }
 
+void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,
+                       uint32_t flags)
+{
+  m_pDriver = driver;
+  device = dev;
+
+  align = (VkDeviceSize)driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment;
+
+  sz = size;
+  // offset must be aligned, so ensure we have at least ringSize
+  // copies accounting for that
+  totalsize = ringSize == 1 ? size : AlignUp(size, align) * ringSize;
+  curoffset = 0;
+
+  ringCount = ringSize;
+
+  VkBufferCreateInfo bufInfo = {
+      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0, totalsize, 0,
+  };
+
+  bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  bufInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+  if(flags & eGPUBufferVBuffer)
+    bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+  if(flags & eGPUBufferIBuffer)
+    bufInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+  if(flags & eGPUBufferSSBO)
+    bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+  VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkMemoryRequirements mrq = {};
+  driver->vkGetBufferMemoryRequirements(dev, buf, &mrq);
+
+  VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size, 0};
+
+  if(flags & eGPUBufferReadback)
+    allocInfo.memoryTypeIndex = driver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
+  else if(flags & eGPUBufferGPULocal)
+    allocInfo.memoryTypeIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
+  else
+    allocInfo.memoryTypeIndex = driver->GetUploadMemoryIndex(mrq.memoryTypeBits);
+
+  vkr = driver->vkAllocateMemory(dev, &allocInfo, NULL, &mem);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  vkr = driver->vkBindBufferMemory(dev, buf, mem, 0);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+}
+
+void GPUBuffer::FillDescriptor(VkDescriptorBufferInfo &desc)
+{
+  desc.buffer = Unwrap(buf);
+  desc.offset = 0;
+  desc.range = sz;
+}
+
+void GPUBuffer::Destroy()
+{
+  if(device != VK_NULL_HANDLE)
+  {
+    m_pDriver->vkDestroyBuffer(device, buf, NULL);
+    m_pDriver->vkFreeMemory(device, mem, NULL);
+  }
+}
+
+void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
+{
+  VkDeviceSize offset = bindoffset ? curoffset : 0;
+  VkDeviceSize size = usedsize > 0 ? usedsize : sz;
+
+  // wrap around the ring, assuming the ring is large enough
+  // that this memory is now free
+  if(offset + sz > totalsize)
+    offset = 0;
+  RDCASSERT(offset + sz <= totalsize);
+
+  // offset must be aligned
+  curoffset = AlignUp(offset + size, align);
+
+  if(bindoffset)
+    *bindoffset = (uint32_t)offset;
+
+  void *ptr = NULL;
+  VkResult vkr = m_pDriver->vkMapMemory(device, mem, offset, size, 0, (void **)&ptr);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  return ptr;
+}
+
+void *GPUBuffer::Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize)
+{
+  uint32_t offs = 0;
+
+  void *ret = Map(&offs, usedsize);
+
+  bindoffset = offs;
+
+  return ret;
+}
+
+void GPUBuffer::Unmap()
+{
+  m_pDriver->vkUnmapMemory(device, mem);
+}
+
 bool VkInitParams::IsSupportedVersion(uint64_t ver)
 {
   if(ver == CurrentVersion)
