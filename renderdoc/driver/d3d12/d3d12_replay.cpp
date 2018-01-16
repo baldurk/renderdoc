@@ -83,9 +83,9 @@ void D3D12Replay::CreateResources()
       RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
     }
 
-    CreateSOBuffers();
-
     m_DebugManager = new D3D12DebugManager(m_pDevice);
+
+    CreateSOBuffers();
 
     m_General.Init(m_pDevice, m_DebugManager);
     m_TexRender.Init(m_pDevice, m_DebugManager);

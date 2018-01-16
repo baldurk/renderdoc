@@ -350,7 +350,6 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
                                                 ID3D12PipelineState *pInitialState)
 {
   HRESULT ret = S_OK;
-  ;
 
   if(IsCaptureMode(m_State))
   {

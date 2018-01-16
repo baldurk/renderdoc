@@ -1324,8 +1324,8 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
   {
     ID3DBlob *root = shaderCache->MakeRootSig({
         cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 2),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 2),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1),
     });
 
     RDCASSERT(root);
@@ -1493,11 +1493,11 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
     ID3DBlob *root = shaderCache->MakeRootSig({
         cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
         // texture SRVs
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
         // samplers
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 0, 2),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 0, 2),
         // UAVs
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 3),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 3),
     });
 
     RDCASSERT(root);
