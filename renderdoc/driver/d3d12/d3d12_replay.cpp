@@ -294,11 +294,12 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
 
 rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
 {
-  WrappedID3D12Shader *sh =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(shader);
+  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
 
-  if(!sh)
+  if(!res || !WrappedID3D12Shader::IsAlloc(res))
     return {};
+
+  WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
 
   ShaderReflection &ret = sh->GetDetails();
 
