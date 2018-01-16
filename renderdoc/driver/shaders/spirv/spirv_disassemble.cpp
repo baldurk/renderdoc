@@ -3665,10 +3665,9 @@ ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el)
     case spv::BuiltInSampleId: return ShaderBuiltin::MSAASampleIndex;
     case spv::BuiltInSamplePosition: return ShaderBuiltin::MSAASamplePosition;
     case spv::BuiltInSampleMask: return ShaderBuiltin::MSAACoverage;
-    case spv::BuiltInFragDepth:
-      return ShaderBuiltin::DepthOutput;
-    // case spv::BuiltInVertexIndex:                      return ShaderBuiltin::Vertex0Index;
-    // case spv::BuiltInInstanceIndex:                    return ShaderBuiltin::Instance0Index;
+    case spv::BuiltInFragDepth: return ShaderBuiltin::DepthOutput;
+    case spv::BuiltInVertexIndex: return ShaderBuiltin::VertexIndex;
+    case spv::BuiltInInstanceIndex: return ShaderBuiltin::InstanceIndex;
     default: break;
   }
 
