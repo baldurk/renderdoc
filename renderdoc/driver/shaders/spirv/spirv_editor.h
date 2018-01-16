@@ -172,10 +172,6 @@ struct SPIRVEntry
   std::string name;
 };
 
-struct SPIRVVoid
-{
-};
-
 struct SPIRVScalar
 {
   constexpr SPIRVScalar(spv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
@@ -200,16 +196,18 @@ struct SPIRVScalar
     return type == o.type && width == o.width && signedness == o.signedness;
   }
 
-  inline SPIRVOperation decl() const
+  SPIRVOperation decl(SPIRVEditor &editor) const
   {
-    if(type == spv::Op::OpTypeBool)
+    if(type == spv::OpTypeVoid)
       return SPIRVOperation(type, {0});
-    else if(type == spv::Op::OpTypeFloat)
+    else if(type == spv::OpTypeBool)
+      return SPIRVOperation(type, {0});
+    else if(type == spv::OpTypeFloat)
       return SPIRVOperation(type, {0, width});
-    else if(type == spv::Op::OpTypeInt)
+    else if(type == spv::OpTypeInt)
       return SPIRVOperation(type, {0, width, signedness ? 1U : 0U});
     else
-      return SPIRVOperation(spv::Op::OpNop, {0});
+      return SPIRVOperation(spv::OpNop, {0});
   }
 };
 
@@ -224,13 +222,14 @@ inline constexpr SPIRVScalar scalar();
     return SPIRVScalar(op, width, sign);       \
   }
 
-SCALAR_TYPE(bool, spv::Op::OpTypeBool, 0, false);
-SCALAR_TYPE(uint16_t, spv::Op::OpTypeInt, 16, false);
-SCALAR_TYPE(uint32_t, spv::Op::OpTypeInt, 32, false);
-SCALAR_TYPE(int16_t, spv::Op::OpTypeInt, 16, true);
-SCALAR_TYPE(int32_t, spv::Op::OpTypeInt, 32, true);
-SCALAR_TYPE(float, spv::Op::OpTypeFloat, 32, false);
-SCALAR_TYPE(double, spv::Op::OpTypeFloat, 64, false);
+SCALAR_TYPE(void, spv::OpTypeVoid, 0, false);
+SCALAR_TYPE(bool, spv::OpTypeBool, 0, false);
+SCALAR_TYPE(uint16_t, spv::OpTypeInt, 16, false);
+SCALAR_TYPE(uint32_t, spv::OpTypeInt, 32, false);
+SCALAR_TYPE(int16_t, spv::OpTypeInt, 16, true);
+SCALAR_TYPE(int32_t, spv::OpTypeInt, 32, true);
+SCALAR_TYPE(float, spv::OpTypeFloat, 32, false);
+SCALAR_TYPE(double, spv::OpTypeFloat, 64, false);
 
 struct SPIRVVector
 {
@@ -247,6 +246,7 @@ struct SPIRVVector
 
   bool operator!=(const SPIRVVector &o) const { return !operator==(o); }
   bool operator==(const SPIRVVector &o) const { return scalar == o.scalar && count == o.count; }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVMatrix
@@ -264,6 +264,7 @@ struct SPIRVMatrix
 
   bool operator!=(const SPIRVMatrix &o) const { return !operator==(o); }
   bool operator==(const SPIRVMatrix &o) const { return vector == o.vector && count == o.count; }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVPointer
@@ -284,6 +285,59 @@ struct SPIRVPointer
   {
     return baseId == o.baseId && storage == o.storage;
   }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
+};
+
+struct SPIRVImage
+{
+  SPIRVImage(SPIRVScalar ret, spv::Dim d, uint32_t dp, uint32_t ar, uint32_t m, uint32_t samp,
+             spv::ImageFormat f)
+      : retType(ret), dim(d), depth(dp), arrayed(ar), ms(m), sampled(samp), format(f)
+  {
+  }
+
+  SPIRVScalar retType;
+  spv::Dim dim;
+  uint32_t depth;
+  uint32_t arrayed;
+  uint32_t ms;
+  uint32_t sampled;
+  spv::ImageFormat format;
+
+  bool operator<(const SPIRVImage &o) const
+  {
+    if(retType != o.retType)
+      return retType < o.retType;
+    if(dim != o.dim)
+      return dim < o.dim;
+    if(depth != o.depth)
+      return depth < o.depth;
+    if(arrayed != o.arrayed)
+      return arrayed < o.arrayed;
+    if(ms != o.ms)
+      return ms < o.ms;
+    if(sampled != o.sampled)
+      return sampled < o.sampled;
+    return format < o.format;
+  }
+  bool operator!=(const SPIRVImage &o) const { return !operator==(o); }
+  bool operator==(const SPIRVImage &o) const
+  {
+    return retType == o.retType && dim == o.dim && depth == o.depth && arrayed == o.arrayed &&
+           ms == o.ms && sampled == o.sampled && format == o.format;
+  }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
+};
+
+struct SPIRVSampledImage
+{
+  SPIRVSampledImage(SPIRVId b) : baseId(b) {}
+  SPIRVId baseId;
+
+  bool operator<(const SPIRVSampledImage &o) const { return baseId < o.baseId; }
+  bool operator!=(const SPIRVSampledImage &o) const { return !operator==(o); }
+  bool operator==(const SPIRVSampledImage &o) const { return baseId == o.baseId; }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVFunction
@@ -304,6 +358,7 @@ struct SPIRVFunction
   {
     return returnId == o.returnId && argumentIds == o.argumentIds;
   }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
 };
 
 class SPIRVEditor
@@ -337,12 +392,35 @@ public:
 
   // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
   // will be declared and the new ID returned
-  SPIRVId DeclareType(const SPIRVVoid &);
-  SPIRVId DeclareType(const SPIRVScalar &scalar);
-  SPIRVId DeclareType(const SPIRVVector &vector);
-  SPIRVId DeclareType(const SPIRVMatrix &matrix);
-  SPIRVId DeclareType(const SPIRVPointer &pointer);
-  SPIRVId DeclareType(const SPIRVFunction &func);
+  template <typename SPIRVType>
+  SPIRVId DeclareType(const SPIRVType &t)
+  {
+    std::map<SPIRVType, SPIRVId> &table = GetTable<SPIRVType>();
+
+    auto it = table.lower_bound(t);
+    if(it != table.end() && it->first == t)
+      return it->second;
+
+    SPIRVOperation decl = t.decl(*this);
+    SPIRVId id = decl[1] = MakeId();
+    AddType(decl);
+
+    table.insert(it, std::make_pair(t, id));
+
+    return id;
+  }
+
+  template <typename SPIRVType>
+  SPIRVId GetType(const SPIRVType &t)
+  {
+    std::map<SPIRVType, SPIRVId> &table = GetTable<SPIRVType>();
+
+    auto it = table.find(t);
+    if(it != table.end())
+      return it->second;
+
+    return SPIRVId();
+  }
 
   SPIRVId DeclareStructType(std::vector<uint32_t> members);
 
@@ -397,8 +475,12 @@ private:
   std::map<SPIRVVector, SPIRVId> vectorTypes;
   std::map<SPIRVMatrix, SPIRVId> matrixTypes;
   std::map<SPIRVPointer, SPIRVId> pointerTypes;
+  std::map<SPIRVImage, SPIRVId> imageTypes;
+  std::map<SPIRVSampledImage, SPIRVId> sampledImageTypes;
   std::map<SPIRVFunction, SPIRVId> functionTypes;
-  SPIRVId voidType;
+
+  template <typename SPIRVType>
+  std::map<SPIRVType, SPIRVId> &GetTable();
 
   std::vector<uint32_t> &spirv;
 };

@@ -37,7 +37,7 @@ SPIRVScalar::SPIRVScalar(SPIRVIterator it)
 {
   type = it.opcode();
 
-  if(type != spv::OpTypeBool)
+  if(type == spv::OpTypeInt || type == spv::OpTypeFloat)
     width = it.word(2);
   else
     width = 0;
@@ -46,6 +46,44 @@ SPIRVScalar::SPIRVScalar(SPIRVIterator it)
     signedness = it.word(3) == 1;
   else
     signedness = false;
+}
+
+SPIRVOperation SPIRVVector::decl(SPIRVEditor &editor) const
+{
+  return SPIRVOperation(spv::OpTypeVector, {0U, editor.DeclareType(scalar), count});
+}
+
+SPIRVOperation SPIRVMatrix::decl(SPIRVEditor &editor) const
+{
+  return SPIRVOperation(spv::OpTypeMatrix, {0U, editor.DeclareType(vector), count});
+}
+
+SPIRVOperation SPIRVPointer::decl(SPIRVEditor &editor) const
+{
+  return SPIRVOperation(spv::OpTypePointer, {0U, (uint32_t)storage, baseId});
+}
+
+SPIRVOperation SPIRVImage::decl(SPIRVEditor &editor) const
+{
+  return SPIRVOperation(spv::OpTypeImage, {0U, editor.DeclareType(retType), (uint32_t)dim, depth,
+                                           arrayed, ms, sampled, (uint32_t)format});
+}
+
+SPIRVOperation SPIRVSampledImage::decl(SPIRVEditor &editor) const
+{
+  return SPIRVOperation(spv::OpTypeSampledImage, {0U, baseId});
+}
+
+SPIRVOperation SPIRVFunction::decl(SPIRVEditor &editor) const
+{
+  std::vector<uint32_t> words;
+
+  words.push_back(0U);
+  words.push_back(returnId);
+  for(SPIRVId id : argumentIds)
+    words.push_back(id);
+
+  return SPIRVOperation(spv::OpTypeFunction, words);
 }
 
 SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
@@ -140,7 +178,8 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
     }
 
     // identify declared scalar/vector/matrix types
-    if(opcode == spv::OpTypeBool || opcode == spv::OpTypeInt || opcode == spv::OpTypeFloat)
+    if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
+       opcode == spv::OpTypeFloat)
     {
       uint32_t id = it.word(1);
       idOffsets[id] = it.offset;
@@ -203,12 +242,6 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
         args.push_back(it.word(i));
 
       functionTypes[SPIRVFunction(it.word(2), args)] = id;
-    }
-
-    if(opcode == spv::OpTypeVoid)
-    {
-      voidType = it.word(1);
-      idOffsets[voidType] = it.offset;
     }
   }
 }
@@ -348,96 +381,6 @@ SPIRVIterator SPIRVEditor::EndTypes()
   return SPIRVIterator(spirv, typeVarSection.endOffset);
 }
 
-SPIRVId SPIRVEditor::DeclareType(const SPIRVVoid &)
-{
-  if(voidType)
-    return voidType;
-
-  voidType = MakeId();
-  AddType(SPIRVOperation(spv::OpTypeVoid, {voidType}));
-
-  return voidType;
-}
-
-SPIRVId SPIRVEditor::DeclareType(const SPIRVScalar &scalar)
-{
-  auto it = scalarTypes.lower_bound(scalar);
-  if(it != scalarTypes.end() && it->first == scalar)
-    return it->second;
-
-  SPIRVOperation decl = scalar.decl();
-  SPIRVId id = decl[1] = MakeId();
-  AddType(decl);
-
-  scalarTypes.insert(it, std::make_pair(scalar, id));
-
-  return id;
-}
-
-SPIRVId SPIRVEditor::DeclareType(const SPIRVVector &vector)
-{
-  auto it = vectorTypes.lower_bound(vector);
-  if(it != vectorTypes.end() && it->first == vector)
-    return it->second;
-
-  SPIRVId id = MakeId();
-  AddType(SPIRVOperation(spv::OpTypeVector, {id, DeclareType(vector.scalar), vector.count}));
-
-  vectorTypes.insert(it, std::make_pair(vector, id));
-
-  return id;
-}
-
-SPIRVId SPIRVEditor::DeclareType(const SPIRVMatrix &matrix)
-{
-  auto it = matrixTypes.lower_bound(matrix);
-  if(it != matrixTypes.end() && it->first == matrix)
-    return it->second;
-
-  SPIRVId id = MakeId();
-  AddType(SPIRVOperation(spv::OpTypeVector, {id, DeclareType(matrix.vector), matrix.count}));
-
-  matrixTypes.insert(it, std::make_pair(matrix, id));
-
-  return id;
-}
-
-SPIRVId SPIRVEditor::DeclareType(const SPIRVPointer &pointer)
-{
-  auto it = pointerTypes.lower_bound(pointer);
-  if(it != pointerTypes.end() && it->first == pointer)
-    return it->second;
-
-  SPIRVId id = MakeId();
-  AddType(SPIRVOperation(spv::OpTypePointer, {id, (uint32_t)pointer.storage, pointer.baseId}));
-
-  pointerTypes.insert(it, std::make_pair(pointer, id));
-
-  return id;
-}
-
-SPIRVId SPIRVEditor::DeclareType(const SPIRVFunction &func)
-{
-  auto it = functionTypes.lower_bound(func);
-  if(it != functionTypes.end() && it->first == func)
-    return it->second;
-
-  SPIRVId id = MakeId();
-
-  std::vector<uint32_t> words;
-
-  words.push_back(id);
-  words.push_back(func.returnId);
-  for(SPIRVId id : func.argumentIds)
-    words.push_back(id);
-
-  AddType(SPIRVOperation(spv::OpTypeFunction, words));
-
-  functionTypes.insert(it, std::make_pair(func, id));
-
-  return id;
-}
-
 SPIRVId SPIRVEditor::DeclareStructType(std::vector<uint32_t> members)
 {
   SPIRVId typeId = MakeId();
@@ -486,4 +429,46 @@ void SPIRVEditor::addWords(size_t offs, int32_t num)
   for(size_t &o : idOffsets)
     if(o >= offs)
       o += num;
+}
+
+template <>
+std::map<SPIRVScalar, SPIRVId> &SPIRVEditor::GetTable<SPIRVScalar>()
+{
+  return scalarTypes;
+}
+
+template <>
+std::map<SPIRVVector, SPIRVId> &SPIRVEditor::GetTable<SPIRVVector>()
+{
+  return vectorTypes;
+}
+
+template <>
+std::map<SPIRVMatrix, SPIRVId> &SPIRVEditor::GetTable<SPIRVMatrix>()
+{
+  return matrixTypes;
+}
+
+template <>
+std::map<SPIRVPointer, SPIRVId> &SPIRVEditor::GetTable<SPIRVPointer>()
+{
+  return pointerTypes;
+}
+
+template <>
+std::map<SPIRVImage, SPIRVId> &SPIRVEditor::GetTable<SPIRVImage>()
+{
+  return imageTypes;
+}
+
+template <>
+std::map<SPIRVSampledImage, SPIRVId> &SPIRVEditor::GetTable<SPIRVSampledImage>()
+{
+  return sampledImageTypes;
+}
+
+template <>
+std::map<SPIRVFunction, SPIRVId> &SPIRVEditor::GetTable<SPIRVFunction>()
+{
+  return functionTypes;
 }

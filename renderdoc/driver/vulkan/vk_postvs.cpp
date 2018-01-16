@@ -242,7 +242,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
   {
     std::vector<SPIRVOperation> ops;
 
-    SPIRVId voidType = editor.DeclareType(SPIRVVoid());
+    SPIRVId voidType = editor.DeclareType(scalar<void>());
     SPIRVId funcType = editor.DeclareType(SPIRVFunction(voidType, {}));
 
     ops.push_back(SPIRVOperation(spv::OpFunction,
