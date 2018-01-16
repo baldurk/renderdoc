@@ -3701,7 +3701,7 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
+void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_t &regIndex,
                            std::vector<uint32_t> accessChain, string varName, SPVTypeData *type,
                            const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray,
                            SPIRVPatchData &patchData)
@@ -3716,7 +3716,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
 
   bool rowmajor = true;
 
-  sig.regIndex = 0;
+  sig.regIndex = regIndex;
   for(size_t d = 0; d < decorations.size(); d++)
   {
     if(decorations[d].decoration == spv::DecorationLocation)
@@ -3793,7 +3793,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
 
         string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
 
-        AddSignatureParameter(isInput, stage, id, patch.accessChain,
+        AddSignatureParameter(isInput, stage, id, regIndex, patch.accessChain,
                               baseName + "." + type->children[c].second, type->children[c].first,
                               type->childDecorations[c], sigarray, patchData);
 
@@ -3841,6 +3841,8 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
     {
       sigarray.push_back(sig);
 
+      regIndex++;
+
       if(!isInput)
         patchData.outputs.push_back(patch);
     }
@@ -3862,6 +3864,8 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
 
         if(!isInput)
           patchData.outputs.push_back(patch);
+
+        regIndex++;
 
         patch.accessChain.back()++;
       }
@@ -3960,8 +3964,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
       else
         nm = StringFormat::Fmt("sig%u", inst->id);
 
-      AddSignatureParameter(isInput, stage, inst->id, std::vector<uint32_t>(), nm, inst->var->type,
-                            inst->decorations, *sigarray, patchData);
+      uint32_t dummy = 0;
+      AddSignatureParameter(isInput, stage, inst->id, dummy, std::vector<uint32_t>(), nm,
+                            inst->var->type, inst->decorations, *sigarray, patchData);
 
       // eliminate any members of gl_PerVertex that are actually unused and just came along
       // for the ride (usually with gl_Position, but maybe declared globally and still unused)
