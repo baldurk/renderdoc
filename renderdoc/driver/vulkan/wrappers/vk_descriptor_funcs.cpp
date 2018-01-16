@@ -244,6 +244,17 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
   {
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 
+    VkDescriptorSetLayoutBinding *bindings = (VkDescriptorSetLayoutBinding *)CreateInfo.pBindings;
+
+    // ensure any bindings available to the vertex shader are also available to compute. This is
+    // valid and changes nothing, but means we don't have to create a duplicate parallel 'computer
+    // friendly' descriptor set layout and pipeline layout.
+    for(uint32_t i = 0; i < CreateInfo.bindingCount; i++)
+    {
+      if(bindings[i].stageFlags & VK_SHADER_STAGE_VERTEX_BIT)
+        bindings[i].stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;
+    }
+
     VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(&CreateInfo);
     VkResult ret =
         ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrapped, NULL, &layout);

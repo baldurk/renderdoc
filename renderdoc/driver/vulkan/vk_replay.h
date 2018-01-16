@@ -132,13 +132,15 @@ struct VulkanPostVSData
     VkDeviceMemory bufmem;
     VkPrimitiveTopology topo;
 
+    int32_t baseVertex;
+
     uint32_t numVerts;
     uint32_t vertStride;
     uint32_t instStride;
 
     bool useIndices;
-    VkBuffer idxBuf;
-    VkDeviceMemory idxBufMem;
+    ResourceId idxBuf;
+    VkDeviceSize idxOffset;
     VkIndexType idxFmt;
 
     bool hasPosOut;

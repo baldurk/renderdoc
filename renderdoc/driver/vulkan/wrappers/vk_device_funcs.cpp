@@ -1096,11 +1096,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "robustBufferAccess = false, out of bounds access due to bugs in application or "
           "RenderDoc may cause crashes");
 
-    if(availFeatures.vertexPipelineStoresAndAtomics)
-      enabledFeatures.vertexPipelineStoresAndAtomics = true;
-    else
-      RDCWARN("vertexPipelineStoresAndAtomics = false, output mesh data will not be available");
-
     if(availFeatures.shaderStorageImageWriteWithoutFormat)
       enabledFeatures.shaderStorageImageWriteWithoutFormat = true;
     else
