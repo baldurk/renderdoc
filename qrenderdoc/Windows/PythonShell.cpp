@@ -462,10 +462,10 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   scriptEditor->styleSetFont(
       STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
 
-  scriptEditor->setMarginLeft(4);
-  scriptEditor->setMarginWidthN(0, 32);
+  scriptEditor->setMarginLeft(4.0 * devicePixelRatioF());
+  scriptEditor->setMarginWidthN(0, 32.0 * devicePixelRatioF());
   scriptEditor->setMarginWidthN(1, 0);
-  scriptEditor->setMarginWidthN(2, 16);
+  scriptEditor->setMarginWidthN(2, 16.0 * devicePixelRatioF());
   scriptEditor->setObjectName(lit("scriptEditor"));
 
   scriptEditor->markerSetBack(CURRENT_MARKER, SCINTILLA_COLOUR(240, 128, 128));

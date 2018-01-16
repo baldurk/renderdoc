@@ -446,7 +446,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->setToolWindowProperties(
         ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-    m_DisassemblyView->setMarginWidthN(1, 20);
+    m_DisassemblyView->setMarginWidthN(1, 20.0 * devicePixelRatioF());
 
     // display current line in margin 2, distinct from breakpoint in margin 1
     sptr_t markMask = (1 << CURRENT_MARKER) | (1 << FINISHED_MARKER);
@@ -678,10 +678,12 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   if(numlines > 10000)
     margin0width += 6;
 
-  ret->setMarginLeft(4);
+  margin0width = int(margin0width * devicePixelRatioF());
+
+  ret->setMarginLeft(4.0 * devicePixelRatioF());
   ret->setMarginWidthN(0, margin0width);
   ret->setMarginWidthN(1, 0);
-  ret->setMarginWidthN(2, 16);
+  ret->setMarginWidthN(2, 16.0 * devicePixelRatioF());
   ret->setObjectName(name);
 
   ret->styleSetFont(STYLE_DEFAULT,
