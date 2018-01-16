@@ -91,6 +91,9 @@ win32 {
 	# Link against the core library
 	LIBS += $$DESTDIR/renderdoc.lib
 
+	# Link against the version library
+	LIBS += $$DESTDIR/version.lib
+
 	QMAKE_CXXFLAGS_WARN_ON -= -w34100 
 	DEFINES += RENDERDOC_PLATFORM_WIN32
 
@@ -118,6 +121,8 @@ win32 {
 	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc.py.c
 	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc_python.cxx
 	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc.py.c
+
+	SOURCES += $$_PRO_FILE_PWD_/../renderdoc/api/replay/version.cpp
 
 	CONFIG += warn_off
 	CONFIG += c++14

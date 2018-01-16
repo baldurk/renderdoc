@@ -28,6 +28,13 @@
 #include "core/core.h"
 #include "strings/string_utils.h"
 
+// we use GIT_COMMIT_HASH here instead of GitVersionHash since the value is actually only used on
+// android - where GIT_COMMIT_HASH is available globally. We need to have it available in a static
+// initializer at compile time, which wouldn't be possible with GitVersionHash.
+#if !defined(GIT_COMMIT_HASH)
+#define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED_AT_BUILD_TIME"
+#endif
+
 extern "C" RENDERDOC_API const char RENDERDOC_Version_Tag_String[] =
     "RenderDoc_build_version: " FULL_VERSION_STRING " from git commit " GIT_COMMIT_HASH;
 
@@ -762,7 +769,7 @@ bool CheckLayerVersion(const string &deviceID, const string &layerName, const st
   string version = vec[1];
   string hash = vec[5];
 
-  if(version == FULL_VERSION_STRING && hash == GIT_COMMIT_HASH)
+  if(version == FULL_VERSION_STRING && hash == GitVersionHash)
   {
     RDCLOG("RenderDoc layer version (%s) and git hash (%s) match.", version.c_str(), hash.c_str());
     match = true;
@@ -772,7 +779,7 @@ bool CheckLayerVersion(const string &deviceID, const string &layerName, const st
     RDCLOG(
         "RenderDoc layer version (%s) and git hash (%s) do NOT match the host version (%s) or git "
         "hash (%s).",
-        version.c_str(), hash.c_str(), FULL_VERSION_STRING, GIT_COMMIT_HASH);
+        version.c_str(), hash.c_str(), FULL_VERSION_STRING, GitVersionHash);
   }
 
   return match;
@@ -993,7 +1000,7 @@ bool CheckAndroidServerVersion(const string &deviceID)
   // Compare the server's versionCode and versionName with the host's for compatibility
   string hostVersionCode =
       string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + string(STRINGIZE(RENDERDOC_VERSION_MINOR));
-  string hostVersionName = RENDERDOC_STABLE_BUILD ? MAJOR_MINOR_VERSION_STRING : GIT_COMMIT_HASH;
+  string hostVersionName = RENDERDOC_STABLE_BUILD ? MAJOR_MINOR_VERSION_STRING : GitVersionHash;
 
   // False positives will hurt us, so check for explicit matches
   if((hostVersionCode == versionCode) && (hostVersionName == versionName))

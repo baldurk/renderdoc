@@ -1,13 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Development|Win32">
+      <Configuration>Development</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64">
+      <Configuration>Development</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{257FD75C-4D17-4A23-A754-23BFD85887A0}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>version</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>version</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <!-- Thanks to https://stackoverflow.com/a/43815817/4070143 -->
-
   <!-- fetch the path of the assembly, and unescape it so MSBuild doesn't choke on brackets in "Program Files (x86)" -->
   <PropertyGroup>
     <LibGit2SharpPath>$([MSBuild]::Unescape("$(DevEnvDir)\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\LibGit2Sharp.dll"))</LibGit2SharpPath>
     <LibGit2SharpPath Condition="!exists('$(LibGit2SharpPath)')">$([MSBuild]::Unescape("$(VSInstallDir)\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\LibGit2Sharp.dll"))</LibGit2SharpPath>
   </PropertyGroup>
-
   <!-- Declare the task with some inline code -->
   <UsingTask TaskName="GetGitCommit" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
@@ -25,7 +69,7 @@ using System.Runtime.CompilerServices;
 namespace GitIntrospection {
   public class GetGitCommit : Microsoft.Build.Utilities.Task {
     public override bool Execute() {
-      System.AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => {
+      System.AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =&gt; {
         if (args.Name.Contains("LibGit2Sharp")) {
           return System.Reflection.Assembly.LoadFrom(LibGit2SharpAssemblyPath);
         }
@@ -49,18 +93,19 @@ namespace GitIntrospection {
       </Code>
     </Task>
   </UsingTask>
-
   <!-- Only actually run the task if we located the assembly for LibGit2Sharp. Otherwise silently skip this step. -->
   <Target Name="RunTask" BeforeTargets="PrepareForBuild" Condition="exists('$(LibGit2SharpPath)')">
     <GetGitCommit Repository="$(SolutionDir)" LibGit2SharpAssemblyPath="$(LibGit2SharpPath)" ContinueOnError="WarnAndContinue">
       <Output TaskParameter="Sha1" PropertyName="CommitId" />
     </GetGitCommit>
     <Message Text="Building from Git commit $(CommitId)" />
-
-    <ItemGroup Condition="$(CommitId.Length) > 0">
+    <ItemGroup Condition="$(CommitId.Length) &gt; 0">
       <ClCompile>
         <PreprocessorDefinitions>GIT_COMMIT_HASH="$(CommitId)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       </ClCompile>
     </ItemGroup>
   </Target>
+  <ItemGroup>
+    <ClCompile Include="api\replay\version.cpp" />
+  </ItemGroup>
 </Project>

@@ -115,7 +115,7 @@ public:
     breakpadCustomInfo[0].set_value(wideStr.c_str());
     wideStr = StringFormat::UTF82Wide(string(RDCGETLOGFILE()));
     breakpadCustomInfo[1].set_value(wideStr.c_str());
-    wideStr = StringFormat::UTF82Wide(string(GIT_COMMIT_HASH));
+    wideStr = StringFormat::UTF82Wide(string(GitVersionHash));
     breakpadCustomInfo[2].set_value(wideStr.c_str());
 
     google_breakpad::CustomClientInfo custom = {&breakpadCustomInfo[0],

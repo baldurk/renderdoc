@@ -40,17 +40,13 @@
 // set, then just update the version numbers in the build process).
 //
 
-// This should be set to the last upstream git commit where the build comes from. If any later
-// commits are cherry-picked or local patches are applied, this should still point to the hash of
-// the tree that the build was based on.
-//
-// Windows users using VS2015 and above should get this defined as part of the build process as
-// long as they are running from within a git clone. If not, it can be manually defined here.
-// On other platforms git will be invoked directly if possible, but if the build isn't running
-// from within a clone you should set BUILD_VERSION_HASH in the cmake build command.
-#if !defined(GIT_COMMIT_HASH)
-#define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED"
-#endif
+// To prevent a project rebuild cascading when the git commit changes, we declare a char array
+// that's implemented in version.inl, which can be included in each module that uses the version.
+// It's 41 characters to allow 40 characters of commit hash plus trailing NULL.
+// Then the .cpp that includes version.inl is the only one that actually needs to have the hash
+// defined properly.
+// This replaces the previous GIT_COMMIT_HASH define here.
+extern "C" const char GitVersionHash[41];
 
 // If this variable is set to 1, then this build is considered a stable version - based on a tagged
 // version number upstream, possibly with some patches applied as necessary.

@@ -1717,6 +1717,9 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <ProjectReference Include="..\renderdoc\renderdoc.vcxproj">
       <Project>{e2b46d67-90e2-40b6-9597-72930e7845e5}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\renderdoc\renderdoc_version.vcxproj">
+      <Project>{257fd75c-4d17-4a23-a754-23bfd85887a0}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\qrenderdoc.rc">
@@ -1839,5 +1842,4 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
-  <Import Project="$(SolutionDir)\renderdoc\renderdoc.props" />
 </Project>

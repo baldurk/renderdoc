@@ -70,6 +70,7 @@ set(sources
     api/replay/vk_pipestate.h
     api/replay/version.h
     api/replay/renderdoc_tostr.inl
+    api/replay/version.cpp
     common/common.cpp
     common/common.h
     common/custom_assert.h

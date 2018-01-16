@@ -72,6 +72,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pyrenderdoc_module", "qrend
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qrenderdoc_module", "qrenderdoc\Code\pyrenderdoc\qrenderdoc_module.vcxproj", "{61157930-78C3-4355-8B49-4CC91B98F17B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "version", "renderdoc\renderdoc_version.vcxproj", "{257FD75C-4D17-4A23-A754-23BFD85887A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Development|x64 = Development|x64
@@ -232,6 +234,14 @@ Global
 		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x64.Build.0 = Release|x64
 		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x86.ActiveCfg = Release|Win32
 		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x86.Build.0 = Release|Win32
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Development|x64.ActiveCfg = Development|x64
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Development|x64.Build.0 = Development|x64
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Development|x86.ActiveCfg = Development|Win32
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Development|x86.Build.0 = Development|Win32
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x64.ActiveCfg = Release|x64
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x64.Build.0 = Release|x64
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x86.ActiveCfg = Release|Win32
+		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -262,5 +272,6 @@ Global
 		{A0E6051E-4374-42E0-9F3C-28DFC64A1029} = {89059266-9C4E-4637-AB1D-BFF1DC15096B}
 		{A8998B2D-652A-47F8-955B-5654B222B4EB} = {A0E6051E-4374-42E0-9F3C-28DFC64A1029}
 		{61157930-78C3-4355-8B49-4CC91B98F17B} = {A0E6051E-4374-42E0-9F3C-28DFC64A1029}
+		{257FD75C-4D17-4A23-A754-23BFD85887A0} = {B5A783D9-AEB9-420D-8E77-D4D930F8D88C}
 	EndGlobalSection
 EndGlobal

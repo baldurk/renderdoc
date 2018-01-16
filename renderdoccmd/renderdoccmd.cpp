@@ -184,7 +184,7 @@ struct VersionCommand : public Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
     std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86")
-              << " v" MAJOR_MINOR_VERSION_STRING << " built from " << GIT_COMMIT_HASH << std::endl;
+              << " v" MAJOR_MINOR_VERSION_STRING << " built from " << GitVersionHash << std::endl;
 
 #if defined(DISTRIBUTION_VERSION)
     std::cout << "Packaged for " << DISTRIBUTION_NAME << " (" << DISTRIBUTION_VERSION << ") - "

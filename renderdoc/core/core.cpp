@@ -294,7 +294,7 @@ void RenderDoc::Initialise()
 
   RDCLOG("RenderDoc v%s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING,
          sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86",
-         ENABLED(RDOC_RELEASE) ? "Release" : "Development", GIT_COMMIT_HASH,
+         ENABLED(RDOC_RELEASE) ? "Release" : "Development", GitVersionHash,
          IsReplayApp() ? "loaded in replay application" : "capturing application");
 
 #if defined(DISTRIBUTION_VERSION)
