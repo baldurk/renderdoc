@@ -163,6 +163,7 @@
       <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
+    <ClCompile Include="spirv_editor.cpp" />
     <ClCompile Include="spirv_stringise.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -218,6 +219,7 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spvIR.h" />
     <ClInclude Include="precompiled.h" />
     <ClInclude Include="spirv_common.h" />
+    <ClInclude Include="spirv_editor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
