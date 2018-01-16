@@ -175,6 +175,7 @@ VkResult WrappedVulkan::vkGetFenceStatus(VkDevice device, VkFence fence)
     Serialise_vkGetFenceStatus(ser, device, fence);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
   }
 
   return ret;
@@ -220,6 +221,8 @@ VkResult WrappedVulkan::vkResetFences(VkDevice device, uint32_t fenceCount, cons
     Serialise_vkResetFences(ser, device, fenceCount, pFences);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < fenceCount; i++)
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pFences[i]), eFrameRef_Read);
   }
 
   return ret;
@@ -265,6 +268,8 @@ VkResult WrappedVulkan::vkWaitForFences(VkDevice device, uint32_t fenceCount,
     Serialise_vkWaitForFences(ser, device, fenceCount, pFences, waitAll, timeout);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < fenceCount; i++)
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pFences[i]), eFrameRef_Read);
   }
 
   return ret;
