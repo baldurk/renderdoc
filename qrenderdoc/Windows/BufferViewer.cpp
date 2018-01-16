@@ -2245,6 +2245,7 @@ void BufferViewer::configureMeshColumns()
   rdcarray<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState().GetVertexInputs();
 
   m_ModelVSIn->columns.reserve(vinputs.count());
+  m_ModelVSIn->columns.clear();
   m_ModelVSIn->genericsEnabled.resize(vinputs.count());
   m_ModelVSIn->generics.resize(vinputs.count());
 
