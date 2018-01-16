@@ -38,4 +38,8 @@
 // Note the hash should be precisely 40 characters, as comes from git rev-parse.
 extern "C" const char GitVersionHash[41] = GIT_COMMIT_HASH;
 
+#if defined(WIN64)
 #pragma comment(linker, "/include:GitVersionHash")
+#elif defined(WIN32)
+#pragma comment(linker, "/include:_GitVersionHash")
+#endif
