@@ -91,6 +91,33 @@ int main(int argc, char *argv[])
 
   QApplication::setApplicationVersion(lit(FULL_VERSION_STRING));
 
+// shortcut here so we can run this with a non-GUI application
+#if !defined(RELEASE)
+  if(QString::fromUtf8(argv[1]) == lit("--unittest"))
+  {
+    QCoreApplication application(argc, argv);
+    PythonContext::GlobalInit();
+
+    bool errors = false;
+
+    qInfo() << "Checking python binding consistency.";
+
+    {
+      PythonContextHandle py;
+      errors = py.ctx().CheckInterfaces();
+    }
+
+    if(errors)
+    {
+      qCritical() << "Found errors in python bindings. Please fix!";
+      return 1;
+    }
+
+    qInfo() << "Python bindings are consistent.";
+    return 0;
+  }
+#endif
+
   QApplication application(argc, argv);
 
   QCommandLineParser parser;
@@ -129,11 +156,6 @@ int main(int argc, char *argv[])
   hideOption(crashReport);
   parser.addOption(crashReport);
 
-#if !defined(RELEASE)
-  QCommandLineOption unittests(lit("unittest"), tr("Run unit tests"));
-  parser.addOption(unittests);
-#endif
-
   parser.addPositionalArgument(lit("filename"), tr("The file to open."));
 
   bool parsedCommands = parser.parse(application.arguments());
@@ -159,31 +181,6 @@ int main(int argc, char *argv[])
 #endif
     return 0;
   }
-
-#if !defined(RELEASE)
-  if(parser.isSet(unittests))
-  {
-    PythonContext::GlobalInit();
-
-    bool errors = false;
-
-    qInfo() << "Checking python binding consistency.";
-
-    {
-      PythonContextHandle py;
-      errors = py.ctx().CheckInterfaces();
-    }
-
-    if(errors)
-    {
-      qCritical() << "Found errors in python bindings. Please fix!";
-      return 1;
-    }
-
-    qInfo() << "Python bindings are consistent.";
-    return 0;
-  }
-#endif
 
   if(parser.isSet(installLayer))
   {
