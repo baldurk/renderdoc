@@ -399,7 +399,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     }
 
     if(trace || sel == NULL)
-      sel = m_DisassemblyView;
+      sel = m_DisassemblyFrame;
 
     if(shader->debugInfo.files.size() > 2)
       addFileList();
