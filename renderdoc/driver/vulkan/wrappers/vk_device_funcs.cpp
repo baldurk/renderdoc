@@ -181,8 +181,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     }
   }
 
-  // we always want this extension if it's available
-  if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end())
+  // we always want this extension if it's available, and not already enabled
+  if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end() &&
+     std::find(params.Extensions.begin(), params.Extensions.end(),
+               VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == params.Extensions.end())
   {
     RDCLOG("Enabling VK_EXT_debug_report");
     params.Extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -356,11 +358,39 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   const char **addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 1];
 
-  for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
-    addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
+  bool hasDebugReport = false;
 
-  if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
-    addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+  for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
+  {
+    addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
+    if(!strcmp(addedExts[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+      hasDebugReport = true;
+  }
+
+  // enumerate what instance extensions are available
+  void *module = Process::LoadModule(VulkanLibraryName);
+  PFN_vkEnumerateInstanceExtensionProperties enumInstExts =
+      (PFN_vkEnumerateInstanceExtensionProperties)Process::GetFunctionAddress(
+          module, "vkEnumerateInstanceExtensionProperties");
+
+  uint32_t numSupportedExts = 0;
+  enumInstExts(NULL, &numSupportedExts, NULL);
+
+  std::vector<VkExtensionProperties> supportedExts(numSupportedExts);
+  enumInstExts(NULL, &numSupportedExts, &supportedExts[0]);
+
+  // always enable debug report, if it's available
+  if(!hasDebugReport)
+  {
+    for(const VkExtensionProperties &ext : supportedExts)
+    {
+      if(!strcmp(ext.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+      {
+        addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+        break;
+      }
+    }
+  }
 
   modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
 
@@ -407,8 +437,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   m_Queue = VK_NULL_HANDLE;
   m_InternalCmds.Reset();
 
-  if(RenderDoc::Inst().GetCaptureOptions().apiValidation &&
-     ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
+  if(ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
   {
     VkDebugReportCallbackCreateInfoEXT debugInfo = {};
     debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
