@@ -3413,6 +3413,13 @@ void TextureViewer::on_debugPixelContext_clicked()
   int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
 
+  TextureDescription *texptr = GetCurrentTexture();
+
+  uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.mip);
+
+  if(m_TexDisplay.flipY)
+    y = (int)(mipHeight - 1) - y;
+
   m_Ctx.Replay().AsyncInvoke([this, x, y](IReplayController *r) {
     ShaderDebugTrace *trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
 
@@ -3454,6 +3461,11 @@ void TextureViewer::on_pixelHistory_clicked()
 
   int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+
+  uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.mip);
+
+  if(m_TexDisplay.flipY)
+    y = (int)(mipHeight - 1) - y;
 
   IPixelHistoryView *hist = m_Ctx.ViewPixelHistory(texptr->resourceId, x, y, m_TexDisplay);
 
