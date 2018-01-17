@@ -28,18 +28,55 @@
 #include "QRDInterface.h"
 #include "RemoteHost.h"
 
+DOCUMENT(R"(Identifies a particular known SPIR-V tool used for disassembly.
+
+.. data:: Unknown
+
+  Corresponds to no known tool.
+
+.. data:: SPIRV_Cross
+
+  `SPIRV-Cross <https://github.com/KhronosGroup/SPIRV-Cross>`_.
+
+.. data:: spirv_dis
+
+  `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+)");
+enum class KnownSPIRVTool : uint32_t
+{
+  Unknown,
+  First = Unknown,
+  SPIRV_Cross,
+  spirv_dis,
+  Count,
+};
+
+ITERABLE_OPERATORS(KnownSPIRVTool);
+
+inline rdcstr ToolExecutable(KnownSPIRVTool tool)
+{
+  if(tool == KnownSPIRVTool::SPIRV_Cross)
+    return "spirv-cross";
+  else if(tool == KnownSPIRVTool::spirv_dis)
+    return "spirv-dis";
+
+  return "";
+}
+
 DOCUMENT("Describes an external program that can be used to disassemble SPIR-V.");
 struct SPIRVDisassembler
 {
   DOCUMENT("");
-  SPIRVDisassembler() {}
+  SPIRVDisassembler() = default;
   VARIANT_CAST(SPIRVDisassembler);
   bool operator==(const SPIRVDisassembler &o) const
   {
-    return name == o.name && executable == o.executable && args == o.args;
+    return tool == o.tool && name == o.name && executable == o.executable && args == o.args;
   }
   bool operator<(const SPIRVDisassembler &o) const
   {
+    if(tool != o.tool)
+      return tool < o.tool;
     if(name != o.name)
       return name < o.name;
     if(executable != o.executable)
@@ -48,6 +85,8 @@ struct SPIRVDisassembler
       return args < o.args;
     return false;
   }
+  DOCUMENT("The :class:`KnownSPIRVTool` identifying which known tool this disassembler is.");
+  KnownSPIRVTool tool = KnownSPIRVTool::Unknown;
   DOCUMENT("The human-readable name of the program.");
   rdcstr name;
   DOCUMENT("The path to the executable to run for this program.");

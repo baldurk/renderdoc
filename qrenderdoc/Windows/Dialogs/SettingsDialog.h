@@ -70,9 +70,12 @@ private slots:
   // shader viewer
   void on_ShaderViewer_FriendlyNaming_toggled(bool checked);
 
-  void on_browseExtDisasemble_clicked();
-  void on_externalDisassemblePath_textEdited(const QString &path);
-  void on_externalDisassemblerArgs_textEdited(const QString &args);
+  void on_addDisasm_clicked();
+  void on_deleteDisasm_clicked();
+  void on_disassemblers_itemSelectionChanged();
+  void on_disassemblers_cellChanged(int row, int column);
+  void on_disassemblers_keyPress(QKeyEvent *event);
+  void disassemblers_rowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex);
 
   // event browser
   void on_EventBrowser_TimeUnit_currentIndexChanged(int index);
@@ -100,6 +103,9 @@ private slots:
 private:
   Ui::SettingsDialog *ui;
 
+  void addDisassembler(const SPIRVDisassembler &disasm);
+
   ICaptureContext &m_Ctx;
   bool m_Init = false;
+  bool m_AddingDisassembler = false;
 };

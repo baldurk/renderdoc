@@ -638,62 +638,17 @@ This option overrides that and will always replay locally if the local context i
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Vulkan Shaders</string>
+          <string>Vulkan Disassemblers</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_4">
-          <item row="1" column="1">
-           <widget class="QPushButton" name="browseExtDisasemble">
-            <property name="toolTip">
-             <string>Choose the executable file to invoke every time a shader needs to be disassembled</string>
-            </property>
-            <property name="text">
-             <string>Browse</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_16">
             <property name="text">
-             <string>External Disassembler executable</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Available SPIR-V Disassemblers. Click items to edit, drag row header to change priority.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLineEdit" name="externalDisassemblePath">
-            <property name="toolTip">
-             <string>Choose the executable file to invoke every time a shader needs to be disassembled</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_17">
-            <property name="text">
-             <string>External Disassembler command line arguments</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLineEdit" name="externalDisassemblerArgs">
-            <property name="toolTip">
-             <string>The command line arguments to the executable.
-
-The {spv_bin} and {spv_disas} tags indicate the (temporary) path to the SPIR-V binary file, and the expected SPIR-V disassembled file to create.
-
-If {spv_disas} is not used, the tool is expected to output the disassembly on stdout.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_18">
-            <property name="text">
-             <string>NOTE: Use the {spv_bin} and {spv_disas} tags to indicate to the external disassembler the input SPIR-V binary and the output SPIR-V disassembly respectively.</string>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0">
+          <item row="3" column="0" colspan="2">
            <spacer name="verticalSpacer_4">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -705,6 +660,65 @@ If {spv_disas} is not used, the tool is expected to output the disassembly on st
              </size>
             </property>
            </spacer>
+          </item>
+          <item row="1" column="0" colspan="2">
+           <widget class="RDTableWidget" name="disassemblers">
+            <property name="editTriggers">
+             <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+            </property>
+            <property name="alternatingRowColors">
+             <bool>true</bool>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
+            </property>
+            <property name="textElideMode">
+             <enum>Qt::ElideMiddle</enum>
+            </property>
+            <property name="cornerButtonEnabled">
+             <bool>false</bool>
+            </property>
+            <attribute name="horizontalHeaderHighlightSections">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderHighlightSections">
+             <bool>false</bool>
+            </attribute>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="addDisasm">
+              <property name="text">
+               <string>Add</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="deleteDisasm">
+              <property name="text">
+               <string>Delete</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -1082,6 +1096,13 @@ This can enable debugging of Vulkan apps that don't already contain the layer.</
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RDTableWidget</class>
+   <extends>QTableWidget</extends>
+   <header>Widgets/Extended/RDTableWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

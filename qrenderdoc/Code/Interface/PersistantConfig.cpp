@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QDir>
+#include <QStandardPaths>
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
 #include "QRDInterface.h"
@@ -308,6 +309,66 @@ bool PersistantConfig::Load(const rdcstr &filename)
     RemoteHosts.insert(0, host);
   }
 
+  bool tools[arraydim<KnownSPIRVTool>()] = {};
+
+  // see which known tools are registered
+  for(const SPIRVDisassembler &dis : SPIRVDisassemblers)
+  {
+    // if it's declared
+    if(dis.tool != KnownSPIRVTool::Unknown)
+      tools[(size_t)dis.tool] = true;
+
+    for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
+    {
+      if(QString(dis.executable).contains(ToolExecutable(tool)))
+        tools[(size_t)tool] = true;
+    }
+  }
+
+  for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
+  {
+    if(tool == KnownSPIRVTool::Unknown || tools[(size_t)tool])
+      continue;
+
+    QString exe = ToolExecutable(tool);
+
+    if(exe.isEmpty())
+      continue;
+
+    // try to find the tool in PATH
+    QString path = QStandardPaths::findExecutable(exe);
+
+    if(!path.isEmpty())
+    {
+      SPIRVDisassembler dis;
+      dis.name = ToQStr(tool);
+      // we store just the base name, so when we launch the process it will always find it in PATH,
+      // rather than baking in the current PATH result.
+      dis.executable = exe;
+      dis.tool = tool;
+
+      SPIRVDisassemblers.push_back(dis);
+
+      continue;
+    }
+
+    // try to find it in our plugins folder
+    path = QStandardPaths::findExecutable(
+        exe, {QDir(QApplication::applicationDirPath()).absoluteFilePath(lit("plugins/spirv/"))});
+
+    if(!path.isEmpty())
+    {
+      SPIRVDisassembler dis;
+      dis.name = ToQStr(tool);
+      dis.executable = path;
+      dis.tool = tool;
+
+      SPIRVDisassemblers.push_back(dis);
+
+      continue;
+    }
+  }
+
   return ret;
 }
 
@@ -393,6 +454,8 @@ rdcstr PersistantConfig::GetConfigSetting(const rdcstr &name)
 SPIRVDisassembler::SPIRVDisassembler(const QVariant &var)
 {
   QVariantMap map = var.toMap();
+  if(map.contains(lit("tool")))
+    tool = (KnownSPIRVTool)map[lit("tool")].toUInt();
   if(map.contains(lit("name")))
     name = map[lit("name")].toString();
   if(map.contains(lit("executable")))
@@ -405,6 +468,7 @@ SPIRVDisassembler::operator QVariant() const
 {
   QVariantMap map;
 
+  map[lit("tool")] = (uint32_t)tool;
   map[lit("name")] = name;
   map[lit("executable")] = executable;
   map[lit("args")] = args;

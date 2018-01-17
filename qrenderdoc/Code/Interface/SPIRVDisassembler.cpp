@@ -1,4 +1,4 @@
-#/******************************************************************************
+/******************************************************************************
  * The MIT License (MIT)
  *
  * Copyright (c) 2016-2018 Baldur Karlsson
@@ -27,6 +27,18 @@
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
+template <>
+std::string DoStringise(const KnownSPIRVTool &el)
+{
+  BEGIN_ENUM_STRINGISE(KnownSPIRVTool);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "Custom Tool");
+    STRINGISE_ENUM_CLASS_NAMED(SPIRV_Cross, "SPIRV-Cross");
+    STRINGISE_ENUM_CLASS_NAMED(spirv_dis, "spirv-dis");
+  }
+  END_ENUM_STRINGISE();
+}
+
 rdcstr SPIRVDisassembler::DisassembleShader(QWidget *window, const ShaderReflection *shaderDetails) const
 {
   if(executable.isEmpty())
@@ -50,7 +62,20 @@ rdcstr SPIRVDisassembler::DisassembleShader(QWidget *window, const ShaderReflect
     return "";
   }
 
-  if(!QString(args).contains(lit("{spv_bin}")))
+  QString programArguments = args;
+
+  switch(tool)
+  {
+    case KnownSPIRVTool::SPIRV_Cross:
+      programArguments = lit("--output {spv_disas} {spv_bin} --vulkan-semantics");
+      break;
+    case KnownSPIRVTool::spirv_dis:
+      programArguments = lit("--no-color -o {spv_disas} {spv_bin}");
+      break;
+    default: break;
+  }
+
+  if(!programArguments.contains(lit("{spv_bin}")))
   {
     RDDialog::critical(
         window, QApplication::translate("SPIRVDisassembler", "Wrongly configured disassembler"),
@@ -62,10 +87,10 @@ rdcstr SPIRVDisassembler::DisassembleShader(QWidget *window, const ShaderReflect
 
   QString glsl;
 
-  LambdaThread *thread = new LambdaThread([this, window, &glsl, spv_bin_file]() {
+  LambdaThread *thread = new LambdaThread([this, window, &glsl, programArguments, spv_bin_file]() {
     QString spv_disas_file = QDir(QDir::tempPath()).absoluteFilePath(lit("spv_disas.txt"));
 
-    QString expandedargs = args;
+    QString expandedargs = programArguments;
 
     bool writesToFile = expandedargs.contains(lit("{spv_disas}"));
 

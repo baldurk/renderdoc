@@ -30,6 +30,61 @@
 #include "CaptureDialog.h"
 #include "ui_SettingsDialog.h"
 
+class KnownSPIRVToolDelegate : public QStyledItemDelegate
+{
+public:
+  explicit KnownSPIRVToolDelegate(QWidget *parent = NULL) : QStyledItemDelegate(parent) {}
+  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                        const QModelIndex &index) const override
+  {
+    QComboBox *editor = new QComboBox(parent);
+
+    editor->setEditable(true);
+    editor->setInsertPolicy(QComboBox::NoInsert);
+
+    QStringList items;
+    for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
+      items << ToQStr(tool);
+    editor->addItems(items);
+
+    return editor;
+  }
+
+  void setEditorData(QWidget *editor, const QModelIndex &index) const override
+  {
+    QComboBox *comboEditor = qobject_cast<QComboBox *>(editor);
+    if(comboEditor)
+    {
+      QString editData = index.data(Qt::EditRole).toString();
+
+      int idx = comboEditor->findText(editData);
+
+      if(idx >= 0)
+        comboEditor->setCurrentIndex(idx);
+      else
+        comboEditor->setCurrentText(index.data(Qt::EditRole).toString());
+
+      return;
+    }
+
+    QStyledItemDelegate::setEditorData(editor, index);
+  }
+
+  void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
+  {
+    QComboBox *comboEditor = qobject_cast<QComboBox *>(editor);
+    if(comboEditor)
+    {
+      model->setData(index, comboEditor->currentText(), Qt::EditRole);
+      return;
+    }
+
+    QStyledItemDelegate::setModelData(editor, model, index);
+  }
+
+private slots:
+};
+
 SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     : QDialog(parent), ui(new Ui::SettingsDialog), m_Ctx(ctx)
 {
@@ -79,11 +134,26 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->saveDirectory->setText(m_Ctx.Config().DefaultCaptureSaveDirectory);
   ui->tempDirectory->setText(m_Ctx.Config().TemporaryCaptureDirectory);
 
-  if(!m_Ctx.Config().SPIRVDisassemblers.isEmpty())
-  {
-    ui->externalDisassemblerArgs->setText(m_Ctx.Config().SPIRVDisassemblers[0].args);
-    ui->externalDisassemblePath->setText(m_Ctx.Config().SPIRVDisassemblers[0].executable);
-  }
+  ui->disassemblers->setColumnCount(3);
+  ui->disassemblers->setHorizontalHeaderLabels(QStringList() << tr("Tool") << tr("Executable")
+                                                             << tr("Arguments"));
+
+  ui->disassemblers->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+  ui->disassemblers->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+  ui->disassemblers->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+
+  for(const SPIRVDisassembler &disasm : m_Ctx.Config().SPIRVDisassemblers)
+    addDisassembler(disasm);
+
+  ui->disassemblers->horizontalHeader()->resizeSection(0, 100);
+
+  ui->disassemblers->verticalHeader()->setSectionsMovable(true);
+  ui->disassemblers->verticalHeader()->setMinimumWidth(20);
+
+  ui->disassemblers->setItemDelegateForColumn(0, new KnownSPIRVToolDelegate(this));
+
+  ui->deleteDisasm->setEnabled(false);
+
   ui->Android_SDKPath->setText(m_Ctx.Config().Android_SDKPath);
   ui->Android_JDKPath->setText(m_Ctx.Config().Android_JDKPath);
   ui->Android_MaxConnectTimeout->setValue(m_Ctx.Config().Android_MaxConnectTimeout);
@@ -127,6 +197,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   m_Init = false;
 
+  QObject::connect(ui->disassemblers->verticalHeader(), &QHeaderView::sectionMoved, this,
+                   &SettingsDialog::disassemblers_rowMoved);
   QObject::connect(ui->Formatter_MinFigures, OverloadedSlot<int>::of(&QSpinBox::valueChanged), this,
                    &SettingsDialog::formatter_valueChanged);
   QObject::connect(ui->Formatter_MaxFigures, OverloadedSlot<int>::of(&QSpinBox::valueChanged), this,
@@ -302,39 +374,144 @@ void SettingsDialog::on_ShaderViewer_FriendlyNaming_toggled(bool checked)
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_browseExtDisasemble_clicked()
+void SettingsDialog::addDisassembler(const SPIRVDisassembler &disasm)
 {
-  QString filePath = RDDialog::getExecutableFileName(this, tr("Locate SPIR-V disassembler"));
+  // prevent calling cellChanged
+  m_AddingDisassembler = true;
 
-  if(!filePath.isEmpty())
+  int row = ui->disassemblers->rowCount();
+  ui->disassemblers->insertRow(row);
+
+  ui->disassemblers->setVerticalHeaderItem(row, new QTableWidgetItem(QString()));
+
+  ui->disassemblers->setItem(row, 0, new QTableWidgetItem(disasm.name));
+  ui->disassemblers->setItem(row, 1, new QTableWidgetItem(disasm.executable));
+
+  QTableWidgetItem *item =
+      new QTableWidgetItem(disasm.tool == KnownSPIRVTool::Unknown ? disasm.args : tr("Automatic"));
+  ui->disassemblers->setItem(row, 2, item);
+
+  // make arguments non-editable for built-in tools
+  if(disasm.tool != KnownSPIRVTool::Unknown)
   {
-    ui->externalDisassemblePath->setText(filePath);
-    on_externalDisassemblePath_textEdited(filePath);
+    Qt::ItemFlags flags = item->flags() & ~Qt::ItemIsEditable;
+    item->setFlags(flags);
   }
+
+  m_AddingDisassembler = false;
 }
 
-void SettingsDialog::on_externalDisassemblePath_textEdited(const QString &path)
+void SettingsDialog::on_addDisasm_clicked()
 {
-  if(m_Ctx.Config().SPIRVDisassemblers.isEmpty())
-  {
-    m_Ctx.Config().SPIRVDisassemblers.push_back(SPIRVDisassembler());
-    m_Ctx.Config().SPIRVDisassemblers.back().name = lit("Unknown");
-  }
+  SPIRVDisassembler disasm;
+  disasm.name = tr("Custom Tool");
+  disasm.executable = lit("path/to/executable");
+  disasm.args = lit("--input {spv_bin} --output {spv_disasm}");
+  m_Ctx.Config().SPIRVDisassemblers.push_back(disasm);
 
-  m_Ctx.Config().SPIRVDisassemblers.back().executable = path;
+  addDisassembler(disasm);
 
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_externalDisassemblerArgs_textEdited(const QString &args)
+void SettingsDialog::on_deleteDisasm_clicked()
 {
-  if(m_Ctx.Config().SPIRVDisassemblers.isEmpty())
+  int row = -1;
+
+  QModelIndexList selected = ui->disassemblers->selectionModel()->selectedRows();
+
+  if(!selected.isEmpty())
+    row = selected[0].row();
+
+  if(row < 0 || row >= m_Ctx.Config().SPIRVDisassemblers.count())
+    return;
+
+  const SPIRVDisassembler &disasm = m_Ctx.Config().SPIRVDisassemblers[row];
+
+  QMessageBox::StandardButton res = RDDialog::question(
+      this, tr("Are you sure?"), tr("Are you sure you want to delete '%1'?").arg(disasm.name),
+      QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+  if(res == QMessageBox::Yes)
   {
-    m_Ctx.Config().SPIRVDisassemblers.push_back(SPIRVDisassembler());
-    m_Ctx.Config().SPIRVDisassemblers.back().name = lit("Unknown");
+    ui->disassemblers->removeRow(row);
+    m_Ctx.Config().SPIRVDisassemblers.erase(row);
+
+    m_Ctx.Config().Save();
+  }
+}
+
+void SettingsDialog::on_disassemblers_itemSelectionChanged()
+{
+  ui->deleteDisasm->setEnabled(!ui->disassemblers->selectionModel()->selectedIndexes().empty());
+}
+
+void SettingsDialog::on_disassemblers_cellChanged(int row, int column)
+{
+  if(m_AddingDisassembler || row < 0 || row >= m_Ctx.Config().SPIRVDisassemblers.count())
+    return;
+
+  SPIRVDisassembler &disasm = m_Ctx.Config().SPIRVDisassemblers[row];
+
+  QString cellData = ui->disassemblers->item(row, column)->text();
+
+  if(column == 0)
+  {
+    bool found = false;
+
+    for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
+    {
+      if(ToQStr(tool) == cellData)
+      {
+        disasm.tool = tool;
+        disasm.name = cellData;
+        found = true;
+
+        // make arguments non-editable
+        Qt::ItemFlags flags = ui->disassemblers->item(row, 2)->flags() & ~Qt::ItemIsEditable;
+        ui->disassemblers->item(row, 2)->setFlags(flags);
+      }
+    }
+
+    if(!found)
+    {
+      disasm.tool = KnownSPIRVTool::Unknown;
+      disasm.name = cellData;
+
+      // make arguments editable
+      Qt::ItemFlags flags = ui->disassemblers->item(row, 2)->flags() | Qt::ItemIsEditable;
+      ui->disassemblers->item(row, 2)->setFlags(flags);
+    }
+  }
+  else if(column == 1)
+  {
+    disasm.executable = cellData;
+  }
+  else if(column == 2)
+  {
+    disasm.args = cellData;
   }
 
-  m_Ctx.Config().SPIRVDisassemblers.back().args = args;
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_disassemblers_keyPress(QKeyEvent *event)
+{
+  if(event->key() == Qt::Key_Delete)
+  {
+    ui->deleteDisasm->click();
+  }
+}
+
+void SettingsDialog::disassemblers_rowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex)
+{
+  if(oldVisualIndex < 0 || oldVisualIndex >= m_Ctx.Config().SPIRVDisassemblers.count() ||
+     newVisualIndex < 0 || newVisualIndex >= m_Ctx.Config().SPIRVDisassemblers.count())
+    return;
+
+  SPIRVDisassembler disasm = m_Ctx.Config().SPIRVDisassemblers.at(oldVisualIndex);
+  m_Ctx.Config().SPIRVDisassemblers.erase(oldVisualIndex);
+  m_Ctx.Config().SPIRVDisassemblers.insert(newVisualIndex, disasm);
 
   m_Ctx.Config().Save();
 }
