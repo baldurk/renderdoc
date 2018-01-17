@@ -32,6 +32,7 @@ class SettingsDialog;
 }
 
 class QListWidgetItem;
+struct SPIRVDisassembler;
 
 struct ICaptureContext;
 

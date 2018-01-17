@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "SettingsDialog.h"
+#include <QKeyEvent>
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
@@ -387,8 +388,8 @@ void SettingsDialog::addDisassembler(const SPIRVDisassembler &disasm)
   ui->disassemblers->setItem(row, 0, new QTableWidgetItem(disasm.name));
   ui->disassemblers->setItem(row, 1, new QTableWidgetItem(disasm.executable));
 
-  QTableWidgetItem *item =
-      new QTableWidgetItem(disasm.tool == KnownSPIRVTool::Unknown ? disasm.args : tr("Automatic"));
+  QTableWidgetItem *item = new QTableWidgetItem(
+      disasm.tool == KnownSPIRVTool::Unknown ? QString(disasm.args) : tr("Automatic"));
   ui->disassemblers->setItem(row, 2, item);
 
   // make arguments non-editable for built-in tools
