@@ -2718,7 +2718,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &ser, GLenum mode,
-                                                                GLintptr indirect,
+                                                                const void *indirect,
                                                                 GLintptr drawcountPtr,
                                                                 GLsizei maxdrawcount, GLsizei stride)
 {
@@ -2743,7 +2743,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
 
     if(IsLoading(m_State))
     {
-      m_Real.glMultiDrawArraysIndirectCountARB(mode, (GLintptr)offset, (GLintptr)drawcount,
+      m_Real.glMultiDrawArraysIndirectCountARB(mode, (const void *)offset, (GLintptr)drawcount,
                                                maxdrawcount, stride);
 
       DrawcallDescription draw;
@@ -2884,7 +2884,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
   return true;
 }
 
-void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indirect,
+void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, const void *indirect,
                                                       GLintptr drawcount, GLsizei maxdrawcount,
                                                       GLsizei stride)
 {
@@ -2916,7 +2916,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indi
 
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType &ser, GLenum mode,
-                                                                  GLenum type, GLintptr indirect,
+                                                                  GLenum type, const void *indirect,
                                                                   GLintptr drawcountPtr,
                                                                   GLsizei maxdrawcount,
                                                                   GLsizei stride)
@@ -2945,8 +2945,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
 
     if(IsLoading(m_State))
     {
-      m_Real.glMultiDrawElementsIndirectCountARB(mode, type, (GLintptr)offset, (GLintptr)drawcount,
-                                                 maxdrawcount, stride);
+      m_Real.glMultiDrawElementsIndirectCountARB(mode, type, (const void *)offset,
+                                                 (GLintptr)drawcount, maxdrawcount, stride);
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
@@ -3092,9 +3092,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
   return true;
 }
 
-void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type, GLintptr indirect,
-                                                        GLintptr drawcount, GLsizei maxdrawcount,
-                                                        GLsizei stride)
+void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type,
+                                                        const void *indirect, GLintptr drawcount,
+                                                        GLsizei maxdrawcount, GLsizei stride)
 {
   CoherentMapImplicitBarrier();
 
@@ -3503,10 +3503,12 @@ void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLui
 
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLuint framebufferHandle,
-                                                        GLenum buffer, GLfloat depth, GLint stencil)
+                                                        GLenum buffer, GLint drawbuffer,
+                                                        GLfloat depth, GLint stencil)
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(drawbuffer);
   SERIALISE_ELEMENT(depth);
   SERIALISE_ELEMENT(stencil);
 
@@ -3523,7 +3525,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
     // and we need to support this case.
-    m_Real.glClearNamedFramebufferfi(framebuffer.name, buffer, depth, stencil);
+    m_Real.glClearNamedFramebufferfi(framebuffer.name, buffer, drawbuffer, depth, stencil);
 
     if(IsLoading(m_State))
     {
@@ -3581,12 +3583,13 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
   return true;
 }
 
-void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, GLfloat depth,
-                                              GLint stencil)
+void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, GLint drawbuffer,
+                                              GLfloat depth, GLint stencil)
 {
   CoherentMapImplicitBarrier();
 
-  SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil));
+  SERIALISE_TIME_CALL(
+      m_Real.glClearNamedFramebufferfi(framebuffer, buffer, drawbuffer, depth, stencil));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3594,7 +3597,7 @@ void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
 
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glClearNamedFramebufferfi(ser, framebuffer, buffer, depth, stencil);
+    Serialise_glClearNamedFramebufferfi(ser, framebuffer, buffer, drawbuffer, depth, stencil);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -3612,12 +3615,11 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
     if(GetCtxData().m_DrawFramebufferRecord)
       framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
 
-    // drawbuffer is ignored, as it must be 0 anyway
     USE_SCRATCH_SERIALISER();
 
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glClearNamedFramebufferfi(ser, framebuffer, buffer, depth, stencil);
+    Serialise_glClearNamedFramebufferfi(ser, framebuffer, buffer, drawbuffer, depth, stencil);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -4346,10 +4348,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirect, GLenum mode, co
 INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect, GLenum mode, GLenum type,
                                 const void *indirect, GLsizei drawcount, GLsizei stride);
 INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCountARB, GLenum mode,
-                                GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount,
+                                const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
 INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCountARB, GLenum mode, GLenum type,
-                                GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount,
+                                const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
 INSTANTIATE_FUNCTION_SERIALISED(void, glClearNamedFramebufferfv, GLuint framebufferHandle,
                                 GLenum buffer, GLint drawbuffer, const GLfloat *valuePtr);
@@ -4358,7 +4360,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glClearNamedFramebufferiv, GLuint framebuf
 INSTANTIATE_FUNCTION_SERIALISED(void, glClearNamedFramebufferuiv, GLuint framebuffer, GLenum buffer,
                                 GLint drawbuffer, const GLuint *value);
 INSTANTIATE_FUNCTION_SERIALISED(void, glClearNamedFramebufferfi, GLuint framebuffer, GLenum buffer,
-                                GLfloat depth, GLint stencil);
+                                GLint drawbuffer, GLfloat depth, GLint stencil);
 INSTANTIATE_FUNCTION_SERIALISED(void, glClearNamedBufferDataEXT, GLuint bufferHandle,
                                 GLenum internalformat, GLenum format, GLenum type,
                                 const void *dataPtr);

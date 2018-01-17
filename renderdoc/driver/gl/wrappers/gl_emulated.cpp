@@ -158,11 +158,11 @@ void APIENTRY _glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLin
   hookset->glClearBufferfv(buffer, drawbuffer, value);
 }
 
-void APIENTRY _glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, const GLfloat depth,
-                                         GLint stencil)
+void APIENTRY _glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, int drawbuffer,
+                                         const GLfloat depth, GLint stencil)
 {
   PushPopFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer);
-  hookset->glClearBufferfi(buffer, 0, depth, stencil);
+  hookset->glClearBufferfi(buffer, drawbuffer, depth, stencil);
 }
 
 void APIENTRY _glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0,
@@ -220,6 +220,11 @@ void EmulateUnsupportedFunctions(GLHookSet *hooks)
   //
   // NOTE: Vendor Checks aren't initialised by this point, so we have to do this unconditionally
   // We include it just for searching: VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs]
+  //
+  // Update 2018-Jan - this might be the problem with the registry having the wrong signature for
+  // glClearNamedFramebufferfi - if the arguments were mismatched it would explain both invalid
+  // argument errors and ABI problems. For now though (and since as mentioned above it's cheap to
+  // emulate) we leave it on. See issue #842
   hooks->glClearNamedFramebufferfi = &_glClearNamedFramebufferfi;
 
   // workaround for AMD bug or weird behaviour. glVertexArrayElementBuffer doesn't update the

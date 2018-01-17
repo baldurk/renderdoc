@@ -2890,7 +2890,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       return Serialise_glClearNamedFramebufferuiv(ser, 0, eGL_NONE, 0, 0);
     case GLChunk::glClearBufferfi:
     case GLChunk::glClearNamedFramebufferfi:
-      return Serialise_glClearNamedFramebufferfi(ser, 0, eGL_NONE, 0, 0);
+      return Serialise_glClearNamedFramebufferfi(ser, 0, eGL_NONE, 0, 0, 0);
     case GLChunk::glClearBufferData:
     case GLChunk::glClearNamedBufferData:
     case GLChunk::glClearNamedBufferDataEXT:

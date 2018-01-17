@@ -53,7 +53,7 @@ struct GLInitParams
   uint32_t height;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x18;
+  static const uint64_t CurrentVersion = 0x19;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -1651,10 +1651,10 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect, GLenum mode, GLenum type,
                                 const void *indirect, GLsizei drawcount, GLsizei stride);
   IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCountARB, GLenum mode,
-                                GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount,
+                                const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
   IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCountARB, GLenum mode, GLenum type,
-                                GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount,
+                                const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysIndirect, GLenum mode, const void *indirect);
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsIndirect, GLenum mode, GLenum type,
@@ -2102,7 +2102,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedFramebufferfv, GLuint framebuffer, GLenum buffer,
                                 GLint drawbuffer, const GLfloat *value);
   IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedFramebufferfi, GLuint framebuffer, GLenum buffer,
-                                const GLfloat depth, GLint stencil);
+                                GLint drawbuffer, const GLfloat depth, GLint stencil);
   IMPLEMENT_FUNCTION_SERIALISED(void, glBlitNamedFramebuffer, GLuint readFramebuffer,
                                 GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1,
                                 GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,

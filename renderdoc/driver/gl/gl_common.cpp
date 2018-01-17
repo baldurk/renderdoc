@@ -711,6 +711,11 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   // NOTE: Vendor Checks are initialised after the function pointers will be set up
   // so we have to do this unconditionally, this value isn't checked anywhere.
   // Search for where this is applied in gl_emulated.cpp
+  //
+  // Update 2018-Jan - this might be the problem with the registry having the wrong signature for
+  // glClearNamedFramebufferfi - if the arguments were mismatched it would explain both invalid
+  // argument errors and ABI problems. For now though (and since as mentioned above it's cheap to
+  // emulate) we leave it on. See issue #842
   VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs] = true;
 
   // glVertexArrayElementBuffer doesn't update the GL_ELEMENT_ARRAY_BUFFER_BINDING global query,
