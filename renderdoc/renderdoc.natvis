@@ -3,6 +3,7 @@
   <Type Name="rdcstr">
     <DisplayString Condition="elems == 0">""</DisplayString>
     <DisplayString>{elems,s}</DisplayString>
+    <StringView>elems,s</StringView>
     <Expand>
      <Item Name="[size]" ExcludeView="simple">usedCount</Item>
      <Item Name="[capacity]" ExcludeView="simple">allocatedCount</Item>
