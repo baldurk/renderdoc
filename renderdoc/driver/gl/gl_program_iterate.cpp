@@ -653,10 +653,44 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
           case eGL_DOUBLE: gl.glProgramUniform1dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC2: gl.glProgramUniform2dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC3: gl.glProgramUniform3dv(progDst, dstLocation, 1, dv); break;
-          case eGL_DOUBLE_VEC4:
-            gl.glProgramUniform4dv(progDst, dstLocation, 1, dv);
-            break;
+          case eGL_DOUBLE_VEC4: gl.glProgramUniform4dv(progDst, dstLocation, 1, dv); break;
 
+          case eGL_IMAGE_1D:
+          case eGL_IMAGE_2D:
+          case eGL_IMAGE_3D:
+          case eGL_IMAGE_2D_RECT:
+          case eGL_IMAGE_CUBE:
+          case eGL_IMAGE_BUFFER:
+          case eGL_IMAGE_1D_ARRAY:
+          case eGL_IMAGE_2D_ARRAY:
+          case eGL_IMAGE_CUBE_MAP_ARRAY:
+          case eGL_IMAGE_2D_MULTISAMPLE:
+          case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
+          case eGL_INT_IMAGE_1D:
+          case eGL_INT_IMAGE_2D:
+          case eGL_INT_IMAGE_3D:
+          case eGL_INT_IMAGE_2D_RECT:
+          case eGL_INT_IMAGE_CUBE:
+          case eGL_INT_IMAGE_BUFFER:
+          case eGL_INT_IMAGE_1D_ARRAY:
+          case eGL_INT_IMAGE_2D_ARRAY:
+          case eGL_INT_IMAGE_2D_MULTISAMPLE:
+          case eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+          case eGL_UNSIGNED_INT_IMAGE_1D:
+          case eGL_UNSIGNED_INT_IMAGE_2D:
+          case eGL_UNSIGNED_INT_IMAGE_3D:
+          case eGL_UNSIGNED_INT_IMAGE_2D_RECT:
+          case eGL_UNSIGNED_INT_IMAGE_CUBE:
+          case eGL_UNSIGNED_INT_IMAGE_BUFFER:
+          case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+          case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+          case eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
+          case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+          case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+          case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
+            if(IsGLES)
+              // Image uniforms cannot be re-assigned in GLES.
+              break;
           // treat all samplers as just an int (since they just store their binding value)
           case eGL_SAMPLER_1D:
           case eGL_SAMPLER_2D:
@@ -697,39 +731,6 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
           case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_BUFFER:
           case eGL_UNSIGNED_INT_SAMPLER_2D_RECT:
-          case eGL_IMAGE_1D:
-          case eGL_IMAGE_2D:
-          case eGL_IMAGE_3D:
-          case eGL_IMAGE_2D_RECT:
-          case eGL_IMAGE_CUBE:
-          case eGL_IMAGE_BUFFER:
-          case eGL_IMAGE_1D_ARRAY:
-          case eGL_IMAGE_2D_ARRAY:
-          case eGL_IMAGE_CUBE_MAP_ARRAY:
-          case eGL_IMAGE_2D_MULTISAMPLE:
-          case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
-          case eGL_INT_IMAGE_1D:
-          case eGL_INT_IMAGE_2D:
-          case eGL_INT_IMAGE_3D:
-          case eGL_INT_IMAGE_2D_RECT:
-          case eGL_INT_IMAGE_CUBE:
-          case eGL_INT_IMAGE_BUFFER:
-          case eGL_INT_IMAGE_1D_ARRAY:
-          case eGL_INT_IMAGE_2D_ARRAY:
-          case eGL_INT_IMAGE_2D_MULTISAMPLE:
-          case eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
-          case eGL_UNSIGNED_INT_IMAGE_1D:
-          case eGL_UNSIGNED_INT_IMAGE_2D:
-          case eGL_UNSIGNED_INT_IMAGE_3D:
-          case eGL_UNSIGNED_INT_IMAGE_2D_RECT:
-          case eGL_UNSIGNED_INT_IMAGE_CUBE:
-          case eGL_UNSIGNED_INT_IMAGE_BUFFER:
-          case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
-          case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-          case eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-          case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
-          case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
-          case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
           case eGL_INT: gl.glProgramUniform1iv(progDst, dstLocation, 1, iv); break;
           case eGL_INT_VEC2: gl.glProgramUniform2iv(progDst, dstLocation, 1, iv); break;
           case eGL_INT_VEC3: gl.glProgramUniform3iv(progDst, dstLocation, 1, iv); break;
