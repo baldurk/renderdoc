@@ -293,7 +293,7 @@ void RenderDoc::Initialise()
   }
 
   RDCLOG("RenderDoc v%s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING,
-         sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86",
+         sizeof(uintptr_t) == sizeof(uint64_t) ? "64-bit" : "32-bit",
          ENABLED(RDOC_RELEASE) ? "Release" : "Development", GitVersionHash,
          IsReplayApp() ? "loaded in replay application" : "capturing application");
 

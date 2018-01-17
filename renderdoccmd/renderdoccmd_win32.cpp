@@ -248,7 +248,7 @@ struct UpgradeCommand : public Command
     ZeroMemory(&zip, sizeof(zip));
 
     bool successful = false;
-    wstring failReason;
+    wstring failReason = L"\"Unknown error\"";
 
     mz_bool b = mz_zip_reader_init_file(&zip, "./update.zip", 0);
 
