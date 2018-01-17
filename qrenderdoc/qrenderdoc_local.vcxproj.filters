@@ -357,8 +357,8 @@
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp">
-      <Filter>Windows\Dialogs</Filter>
+    <ClCompile Include="Widgets\OrderedListEditor.cpp">
+      <Filter>Widgets</Filter>
     </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp">
       <Filter>Widgets\Extended</Filter>
@@ -947,9 +947,6 @@
     <ClInclude Include="$(IntDir)generated\ui_MainWindow.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(IntDir)generated\ui_OrderedListEditor.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_PipelineStateViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1145,9 +1142,6 @@
     <CustomBuild Include="Widgets\ThumbnailStrip.ui">
       <Filter>Widgets</Filter>
     </CustomBuild>
-    <CustomBuild Include="Windows\Dialogs\OrderedListEditor.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\SettingsDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
@@ -1253,8 +1247,8 @@
     <CustomBuild Include="Windows\Dialogs\LiveCapture.h">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
-    <CustomBuild Include="Windows\Dialogs\OrderedListEditor.h">
-      <Filter>Windows\Dialogs</Filter>
+    <CustomBuild Include="Widgets\OrderedListEditor.h">
+      <Filter>Widgets</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\PipelineState\PipelineStateViewer.h">
       <Filter>Windows\PipelineState</Filter>

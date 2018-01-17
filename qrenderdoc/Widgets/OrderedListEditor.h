@@ -22,14 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <QDialog>
+#pragma once
 
-namespace Ui
-{
-class OrderedListEditor;
-}
+#include "Widgets/Extended/RDTableWidget.h"
 
-class RDTreeWidgetItem;
 class QToolButton;
 
 enum class BrowseMode
@@ -39,28 +35,24 @@ enum class BrowseMode
   File,
 };
 
-class OrderedListEditor : public QDialog
+class OrderedListEditor : public RDTableWidget
 {
   Q_OBJECT
 
 public:
-  explicit OrderedListEditor(const QString &windowName, const QString &itemName, BrowseMode browse,
-                             QWidget *parent = 0);
+  explicit OrderedListEditor(const QString &itemName, BrowseMode browse, QWidget *parent = 0);
   ~OrderedListEditor();
 
   void setItems(const QStringList &strings);
   QStringList getItems();
 
 private slots:
-  // automatic slots
-  void on_list_cellChanged(int row, int column);
-
   // manual slots
-  void browse_clicked();
-  void list_keyPress(QKeyEvent *event);
+  void cellChanged(int row, int column);
+  void browse();
 
 private:
-  Ui::OrderedListEditor *ui;
+  void keyPressEvent(QKeyEvent *e) override;
 
   BrowseMode m_BrowseMode;
 

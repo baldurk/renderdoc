@@ -26,7 +26,7 @@
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
-#include "Windows/Dialogs/OrderedListEditor.h"
+#include "Widgets/OrderedListEditor.h"
 #include "CaptureDialog.h"
 #include "ui_SettingsDialog.h"
 
@@ -250,18 +250,33 @@ void SettingsDialog::on_AlwaysReplayLocally_toggled(bool checked)
 // core
 void SettingsDialog::on_chooseSearchPaths_clicked()
 {
-  OrderedListEditor listEd(tr("Shader debug info search paths"), tr("Search Path"),
-                           BrowseMode::Folder, this);
+  QDialog listEditor;
+
+  listEditor.setWindowTitle(tr("Shader debug info search paths"));
+  listEditor.setWindowFlags(listEditor.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  OrderedListEditor list(tr("Search Path"), BrowseMode::Folder);
+
+  QVBoxLayout layout;
+  QDialogButtonBox okCancel;
+  okCancel.setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+  layout.addWidget(&list);
+  layout.addWidget(&okCancel);
+
+  QObject::connect(&okCancel, &QDialogButtonBox::accepted, &listEditor, &QDialog::accept);
+  QObject::connect(&okCancel, &QDialogButtonBox::rejected, &listEditor, &QDialog::reject);
+
+  listEditor.setLayout(&layout);
 
   QString setting = m_Ctx.Config().GetConfigSetting("shader.debug.searchPaths");
 
-  listEd.setItems(setting.split(QLatin1Char(';'), QString::SkipEmptyParts));
+  list.setItems(setting.split(QLatin1Char(';'), QString::SkipEmptyParts));
 
-  int res = RDDialog::show(&listEd);
+  int res = RDDialog::show(&listEditor);
 
   if(res)
     m_Ctx.Config().SetConfigSetting(lit("shader.debug.searchPaths"),
-                                    listEd.getItems().join(QLatin1Char(';')));
+                                    list.getItems().join(QLatin1Char(';')));
 }
 
 // texture viewer

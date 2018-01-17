@@ -211,7 +211,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/StatisticsViewer.cpp \
     Windows/TimelineBar.cpp \
     Windows/Dialogs/SettingsDialog.cpp \
-    Windows/Dialogs/OrderedListEditor.cpp \
+    Widgets/OrderedListEditor.cpp \
     Widgets/Extended/RDTableWidget.cpp \
     Windows/Dialogs/SuggestRemoteDialog.cpp \
     Windows/Dialogs/VirtualFileDialog.cpp \
@@ -284,7 +284,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/StatisticsViewer.h \
     Windows/TimelineBar.h \
     Windows/Dialogs/SettingsDialog.h \
-    Windows/Dialogs/OrderedListEditor.h \
+    Widgets/OrderedListEditor.h \
     Widgets/Extended/RDTableWidget.h \
     Windows/Dialogs/SuggestRemoteDialog.h \
     Windows/Dialogs/VirtualFileDialog.h \
@@ -326,7 +326,6 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/CommentView.ui \
     Windows/StatisticsViewer.ui \
     Windows/Dialogs/SettingsDialog.ui \
-    Windows/Dialogs/OrderedListEditor.ui \
     Windows/Dialogs/SuggestRemoteDialog.ui \
     Windows/Dialogs/VirtualFileDialog.ui \
     Windows/Dialogs/RemoteManager.ui \
