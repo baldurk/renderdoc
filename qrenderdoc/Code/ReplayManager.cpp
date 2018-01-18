@@ -57,6 +57,7 @@ void ReplayManager::OpenCapture(const QString &capturefile, RENDERDOC_ProgressCa
 
   while(m_Thread->isRunning() && !m_Running)
   {
+    QThread::msleep(50);
   }
 }
 
