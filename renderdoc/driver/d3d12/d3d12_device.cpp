@@ -2493,6 +2493,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     // signalled or waited. So instead we just signal a dummy fence each new 'frame'
     for(size_t i = 0; i < m_Queues.size(); i++)
       m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter);
+
+    FlushLists(true);
   }
 
   D3D12ChunkType header = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
