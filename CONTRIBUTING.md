@@ -152,7 +152,31 @@ sudo emerge --ask x11-libs/libX11 x11-libs/libxcb x11-libs/xcb-util-keysyms dev-
 
 Checking that at least Qt 5.6 installs.
 
+On CentOS 7 (as of 2018.01.18), you'll need to install from several repos:
+
+```
+# Dependencies in default repo
+yum install libX11-devel libxcb-devel mesa-libGL-devel xcb-util-keysyms-devel cmake qt5-qtbase-devel qt5-qtsvg-devel qt5-qtx11extras-devel bison autoconf automake pcre-devel
+
+# python3 via EPEL
+yum install epel-release
+yum install python34-devel
+
+# Newer GCC via SCL's devtoolset-7
+yum install centos-release-scl
+yum install devtoolset-7
+```
+
+Then when building, you must first set up the devtoolset-7 from SCL:
+```
+scl enable devtoolset-7 bash
+```
+
+And build within the resulting bash shell, which has the tools first in PATH.
+
 On any distribution if you find qmake isn't available under its default name, or if `qmake -v` lists a Qt4 version, make sure you have qtchooser installed in your package manager and use it to select Qt5. This might be done by exporting `QT_SELECT=qt5`, but check with your distribution for details.
+
+For some distributions such as CentOS, the Qt5 qmake command is `qmake-qt5`. To select this explicitly, pass `-DQMAKE_QT5_COMMAND=qmake-qt5` when invoking `cmake`.
 
 If you know the required packages for another distribution, please share (or pull request this file!)
 
