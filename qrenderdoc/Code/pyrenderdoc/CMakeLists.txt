@@ -1,6 +1,6 @@
 # Build as C++14 for the python bindings template-fu
 if (CMAKE_VERSION VERSION_LESS "3.1")
-    set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++14")
 else ()
     set (CMAKE_CXX_STANDARD 14)
 endif ()
