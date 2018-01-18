@@ -353,8 +353,21 @@ bool PersistantConfig::Load(const rdcstr &filename)
     }
 
     // try to find it in our plugins folder
-    path = QStandardPaths::findExecutable(
-        exe, {QDir(QApplication::applicationDirPath()).absoluteFilePath(lit("plugins/spirv/"))});
+    QDir appDir(QApplication::applicationDirPath());
+
+    QStringList searchPaths = {appDir.absoluteFilePath(lit("plugins/spirv/"))};
+
+#if defined(Q_OS_WIN64)
+    searchPaths << appDir.absoluteFilePath(lit("../../plugins-win64/spirv/"));
+#elif defined(Q_OS_WIN64)
+    searchPaths << appDir.absoluteFilePath(lit("../../plugins-win32/spirv/"));
+#elif defined(Q_OS_LINUX)
+    searchPaths << appDir.absoluteFilePath(lit("../../plugins-linux64/spirv/"));
+#endif
+
+    searchPaths << appDir.absoluteFilePath(lit("../../plugins/"));
+
+    path = QStandardPaths::findExecutable(exe, searchPaths);
 
     if(!path.isEmpty())
     {
