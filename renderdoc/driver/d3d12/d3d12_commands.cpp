@@ -1115,6 +1115,8 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   if(!(d.flags & DrawMask))
     return;
 
+  static bool hugeRangeWarned = false;
+
   const D3D12RenderState::RootSignature *rootdata = NULL;
 
   if((d.flags & DrawFlags::Dispatch) && state.compute.rootsig != ResourceId())
@@ -1243,14 +1245,23 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
           {
             EventUsage usage(e, cb);
 
-            for(UINT i = 0; i < num; i++)
+            if(num > 1000)
             {
-              ResourceId id =
-                  WrappedID3D12Resource::GetResIDFromAddr(desc->nonsamp.cbv.BufferLocation);
+              if(!hugeRangeWarned)
+                RDCWARN("Skipping large, most likely 'bindless', descriptor range");
+              hugeRangeWarned = true;
+            }
+            else
+            {
+              for(UINT i = 0; i < num; i++)
+              {
+                ResourceId id =
+                    WrappedID3D12Resource::GetResIDFromAddr(desc->nonsamp.cbv.BufferLocation);
 
-              AddUsage(drawNode, id, e, cb);
+                AddUsage(drawNode, id, e, cb);
 
-              desc++;
+                desc++;
+              }
             }
           }
           else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ||
@@ -1258,11 +1269,20 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
           {
             ResourceUsage usage = range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ? ro : rw;
 
-            for(UINT i = 0; i < num; i++)
+            if(num > 1000)
             {
-              AddUsage(drawNode, GetResID(desc->nonsamp.resource), e, usage);
+              if(!hugeRangeWarned)
+                RDCWARN("Skipping large, most likely 'bindless', descriptor range");
+              hugeRangeWarned = true;
+            }
+            else
+            {
+              for(UINT i = 0; i < num; i++)
+              {
+                AddUsage(drawNode, GetResID(desc->nonsamp.resource), e, usage);
 
-              desc++;
+                desc++;
+              }
             }
           }
         }
