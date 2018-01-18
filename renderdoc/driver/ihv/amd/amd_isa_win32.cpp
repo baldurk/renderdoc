@@ -163,7 +163,7 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
       dxbc++;
       in.pShaderByteCode = dxbc;
 
-      if(dxbc + in.byteCodeLength >= end)
+      if(dxbc + (in.byteCodeLength / 4) > end)
         return dxbcParseError;
 
       break;
