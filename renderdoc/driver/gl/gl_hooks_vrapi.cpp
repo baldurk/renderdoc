@@ -189,8 +189,6 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
     vrapi_hooks.SetupHooks();
   }
 
-  gl_CurChunk = GLChunk::vrapi_CreateTextureSwapChain2;
-
   ovrTextureSwapChain *texture_swapchain = vrapi_hooks.vrapi_CreateTextureSwapChain2_real(
       type, format, width, height, levels, bufferCount);
 
@@ -206,6 +204,7 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
       GLenum internalformat = GetInternalFormat(format);
       GLenum textureType = GetTextureType(type);
 
+      gl_CurChunk = GLChunk::vrapi_CreateTextureSwapChain2;
       m_GLDriver->CreateVRAPITextureSwapChain(tex, textureType, internalformat, width, height,
                                               levels);
     }
@@ -224,8 +223,6 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
     vrapi_hooks.SetupHooks();
   }
 
-  gl_CurChunk = GLChunk::vrapi_CreateTextureSwapChain;
-
   ovrTextureSwapChain *texture_swapchain =
       vrapi_hooks.vrapi_CreateTextureSwapChain_real(type, format, width, height, levels, buffered);
 
@@ -241,6 +238,7 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
       GLenum internalformat = GetInternalFormat(format);
       GLenum textureType = GetTextureType(type);
 
+      gl_CurChunk = GLChunk::vrapi_CreateTextureSwapChain;
       m_GLDriver->CreateVRAPITextureSwapChain(tex, textureType, internalformat, width, height,
                                               levels);
     }
