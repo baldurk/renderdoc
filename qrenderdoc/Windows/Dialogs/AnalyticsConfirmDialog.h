@@ -39,6 +39,10 @@ public:
   explicit AnalyticsConfirmDialog(QString report, QWidget *parent = 0);
   ~AnalyticsConfirmDialog();
 
+private slots:
+  // automatic slots
+  void on_label_linkActivated(const QString &link);
+
 private:
   Ui::AnalyticsConfirmDialog *ui;
 };

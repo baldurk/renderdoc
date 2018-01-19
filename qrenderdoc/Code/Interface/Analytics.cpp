@@ -23,14 +23,50 @@
  ******************************************************************************/
 
 #include <QBuffer>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QTextEdit>
 #include <QUrlQuery>
+#include <QVBoxLayout>
+#include "Code/QRDUtils.h"
 #include "Windows/Dialogs/AnalyticsConfirmDialog.h"
 #include "Windows/Dialogs/AnalyticsPromptDialog.h"
 #include "QRDInterface.h"
 
 #if RENDERDOC_ANALYTICS_ENABLE
+
+template <>
+inline const char *TypeName<QString>()
+{
+  return "string";
+}
+
+template <>
+inline const char *TypeName<QStringList>()
+{
+  return "string array";
+}
+
+template <>
+inline const char *TypeName<bool>()
+{
+  return "bool";
+}
+
+template <>
+inline const char *TypeName<AnalyticsAverage>()
+{
+  return "Average";
+}
+
+template <>
+inline const char *TypeName<bool[32]>()
+{
+  // DaysUsed
+  return "int";
+}
 
 namespace
 {
@@ -46,6 +82,7 @@ enum class AnalyticsSerialiseType
   Loading,
   Saving,
   Reporting,
+  Documenting,
 };
 
 static AnalyticsState analyticsState = AnalyticsState::Nothing;
@@ -139,16 +176,138 @@ void saveTo(QVariantMap &parent, const QString &name, const T &el, bool reportin
   parent[name] = analyticsToVar<T>(el, reporting);
 }
 
-// add a macro to either load or save, depending on our state.
-#define ANALYTIC_SERIALISE(varname)                                   \
-  if(type == AnalyticsSerialiseType::Loading)                         \
-  {                                                                   \
-    loadFrom(values, lit(#varname), Analytics::db->varname);          \
-  }                                                                   \
-  else                                                                \
-  {                                                                   \
-    saveTo(values, lit(#varname), Analytics::db->varname, reporting); \
+// add a macro to either document, load, or save, depending on our state.
+#define ANALYTIC_SERIALISE(varname)                                                  \
+  if(type == AnalyticsSerialiseType::Documenting)                                    \
+  {                                                                                  \
+    QString var = lit(#varname);                                                     \
+    int idx = var.indexOf(QLatin1Char('.'));                                         \
+    if(idx >= 0)                                                                     \
+      var = var.mid(idx + 1);                                                        \
+    doc += lit("<b>%1 (%2)</b>: %3<br>")                                             \
+               .arg(var)                                                             \
+               .arg(QString::fromUtf8(TypeName<decltype(Analytics::db->varname)>())) \
+               .arg(docs.varname);                                                   \
+  }                                                                                  \
+  else if(type == AnalyticsSerialiseType::Loading)                                   \
+  {                                                                                  \
+    loadFrom(values, lit(#varname), Analytics::db->varname);                         \
+  }                                                                                  \
+  else                                                                               \
+  {                                                                                  \
+    saveTo(values, lit(#varname), Analytics::db->varname, reporting);                \
   }
+
+// only used during documenting
+#define ANALYTIC_SECTION(section)                          \
+  if(type == AnalyticsSerialiseType::Documenting)          \
+  {                                                        \
+    doc += lit("<h2>%1</h2>").arg(docs.section_##section); \
+  }
+
+// macros for documenting the analytic values
+#define DOCUMENT_ANALYTIC(name, docs) QString name = lit(docs);
+
+#define DOCUMENT_ANALYTIC_SECTION(name, docs) \
+  name;                                       \
+  QString section_##name = lit(docs);
+
+// must match the properties in Analytics
+static struct AnalyticsDocumentation
+{
+  struct
+  {
+    DOCUMENT_ANALYTIC(Year, "The year this data was recorded in.");
+    DOCUMENT_ANALYTIC(Month, "The month this data was recorded in.");
+  } DOCUMENT_ANALYTIC_SECTION(Date, "Date range");
+
+  DOCUMENT_ANALYTIC(Version, "The version number of the analytics data.");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(RenderDocVersion, "The RenderDoc build version used to submit the report.");
+    DOCUMENT_ANALYTIC(DistributionVersion, "The distribution version, if this is a linux build.");
+    DOCUMENT_ANALYTIC(OSVersion, "OS version as reported by Qt.");
+    DOCUMENT_ANALYTIC(Bitness, "Whether the build is 64-bit or 32-bit.");
+    DOCUMENT_ANALYTIC(DevelBuildRun,
+                      "Has a local or nightly or otherwise unofficial build been run?");
+    DOCUMENT_ANALYTIC(OfficialBuildRun, "Has an officially produced binary build been run?");
+    DOCUMENT_ANALYTIC(DaysUsed, "How many unique days in this month was the program run?");
+  } DOCUMENT_ANALYTIC_SECTION(Metadata, "Metadata");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(LoadTime, "How long (on average) did captures take to load?");
+  } DOCUMENT_ANALYTIC_SECTION(Performance, "Performance");
+
+  DOCUMENT_ANALYTIC(APIs, "A list of the distinct APIs that were replayed.");
+
+  DOCUMENT_ANALYTIC(GPUVendors, "A list of the distinct GPU vendors used for replay.");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(Bookmarks, "Did the user set any event bookmarks?");
+    DOCUMENT_ANALYTIC(ResourceInspect, "Did the user use the resource inspector?");
+    DOCUMENT_ANALYTIC(ShaderEditing, "Did the user edit a shader (any API)?");
+    DOCUMENT_ANALYTIC(CallstackResolve, "Did the user capture and resolve CPU callstacks?");
+    DOCUMENT_ANALYTIC(PixelHistory, "Did the user run a pixel history?");
+    DOCUMENT_ANALYTIC(DrawcallTimes, "Did the user fetch drawcall timings/durations?");
+    DOCUMENT_ANALYTIC(PerformanceCounters, "Did the user fetch advanced performance counters?");
+    DOCUMENT_ANALYTIC(PythonInterop, "Did the user run any python scripts or commands?");
+    DOCUMENT_ANALYTIC(CustomTextureVisualise,
+                      "Did the user use a custom texture visualisation shader?");
+    DOCUMENT_ANALYTIC(ImageViewer,
+                      "Did the user employ RenderDoc as an image (DDS/PNG/HDR) viewer?");
+    DOCUMENT_ANALYTIC(CaptureComments,
+                      "Did the user make and save any comments in a capture file?");
+    DOCUMENT_ANALYTIC(AndroidRemoteReplay, "Did the user use Android remote replay functionality?");
+    DOCUMENT_ANALYTIC(NonAndroidRemoteReplay, "Did the user use remote replay on non-Android?");
+  } DOCUMENT_ANALYTIC_SECTION(UIFeatures, "UI Features");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(EventBrowser, "Did the user ever export drawcalls from the event browser?");
+    DOCUMENT_ANALYTIC(PipelineState, "Did the user ever export the pipeline state (any API)?");
+    DOCUMENT_ANALYTIC(MeshOutput, "Did the user ever export mesh data (inputs or outputs)?");
+    DOCUMENT_ANALYTIC(RawBuffer, "Did the user ever export raw buffer data?");
+    DOCUMENT_ANALYTIC(Texture, "Did the user ever export a texture?");
+    DOCUMENT_ANALYTIC(Shader, "Did the user ever export a shader?");
+  } DOCUMENT_ANALYTIC_SECTION(Export, "Data Export");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(Vertex, "Did the user ever debug a vertex shader?");
+    DOCUMENT_ANALYTIC(Pixel, "Did the user ever debug a pixel shader?");
+    DOCUMENT_ANALYTIC(Compute, "Did the user ever debug a compute shader?");
+  } DOCUMENT_ANALYTIC_SECTION(ShaderDebug, "Shader Debugging");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(Drawcall, "Did the user use the Drawcall overlay?");
+    DOCUMENT_ANALYTIC(Wireframe, "Did the user use the Wireframe overlay?");
+    DOCUMENT_ANALYTIC(Depth, "Did the user use the Depth Test overlay?");
+    DOCUMENT_ANALYTIC(Stencil, "Did the user use the Stencil Test overlay?");
+    DOCUMENT_ANALYTIC(BackfaceCull, "Did the user use the Backface Culling overlay?");
+    DOCUMENT_ANALYTIC(ViewportScissor, "Did the user use the Viewport/Scissor overlay?");
+    DOCUMENT_ANALYTIC(NaN, "Did the user use the NaN/Inf/-ve overlay?");
+    DOCUMENT_ANALYTIC(Clipping, "Did the user use the Histogram Clipping overlay?");
+    DOCUMENT_ANALYTIC(ClearBeforePass, "Did the user use the Clear Before Pass overlay?");
+    DOCUMENT_ANALYTIC(ClearBeforeDraw, "Did the user use the Clear Before Draw overlay?");
+    DOCUMENT_ANALYTIC(QuadOverdrawPass, "Did the user use the Quad Overdraw (Pass) overlay?");
+    DOCUMENT_ANALYTIC(QuadOverdrawDraw, "Did the user use the Quad Overdraw (Draw) overlay?");
+    DOCUMENT_ANALYTIC(TriangleSizePass, "Did the user use the Triangle Size (Pass) overlay?");
+    DOCUMENT_ANALYTIC(TriangleSizeDraw, "Did the user use the Triangle Size (Draw) overlay?");
+  } DOCUMENT_ANALYTIC_SECTION(TextureOverlays, "Texture Overlays");
+
+  struct
+  {
+    DOCUMENT_ANALYTIC(ShaderLinkage, "Did any capture use 'shader linkage' functionality?");
+    DOCUMENT_ANALYTIC(YUVTextures, "Did any capture use YUV/composite textures?");
+    DOCUMENT_ANALYTIC(SparseResources, "Did any capture use sparse aka tiled resources?");
+    DOCUMENT_ANALYTIC(MultiGPU, "Did any capture make use of multiple GPUs?");
+    DOCUMENT_ANALYTIC(D3D12Bundle, "Did any D3D12 capture use bundles?");
+  } DOCUMENT_ANALYTIC_SECTION(CaptureFeatures, "Capture API Usage");
+} docs;
 
 void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
 {
@@ -159,14 +318,19 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
 
   static_assert(sizeof(Analytics) == 147, "Sizeof Analytics has changed - update serialisation.");
 
-  // Date
+  QString doc;
+
+  doc += lit("<h1>Report Explained</h1>");
+
+  ANALYTIC_SERIALISE(Version);
+
+  ANALYTIC_SECTION(Date);
   {
     ANALYTIC_SERIALISE(Date.Year);
     ANALYTIC_SERIALISE(Date.Month);
   }
-  ANALYTIC_SERIALISE(Version);
 
-  // Metadata
+  ANALYTIC_SECTION(Metadata);
   {
     ANALYTIC_SERIALISE(Metadata.RenderDocVersion);
     ANALYTIC_SERIALISE(Metadata.DistributionVersion);
@@ -190,15 +354,17 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     }
   }
 
-  // Performance
+  ANALYTIC_SECTION(Performance);
   {
     ANALYTIC_SERIALISE(Performance.LoadTime);
   }
 
+  doc += lit("<h2>API/GPU Usage</h2>");
+
   ANALYTIC_SERIALISE(APIs);
   ANALYTIC_SERIALISE(GPUVendors);
 
-  // UIFeatures
+  ANALYTIC_SECTION(UIFeatures);
   {
     ANALYTIC_SERIALISE(UIFeatures.Bookmarks);
     ANALYTIC_SERIALISE(UIFeatures.ResourceInspect);
@@ -215,7 +381,7 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(UIFeatures.NonAndroidRemoteReplay);
   }
 
-  // Export
+  ANALYTIC_SECTION(Export);
   {
     ANALYTIC_SERIALISE(Export.EventBrowser);
     ANALYTIC_SERIALISE(Export.PipelineState);
@@ -225,14 +391,14 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(Export.Shader);
   }
 
-  // ShaderDebug
+  ANALYTIC_SECTION(ShaderDebug);
   {
     ANALYTIC_SERIALISE(ShaderDebug.Vertex);
     ANALYTIC_SERIALISE(ShaderDebug.Pixel);
     ANALYTIC_SERIALISE(ShaderDebug.Compute);
   }
 
-  // TextureOverlays
+  ANALYTIC_SECTION(TextureOverlays);
   {
     ANALYTIC_SERIALISE(TextureOverlays.Drawcall);
     ANALYTIC_SERIALISE(TextureOverlays.Wireframe);
@@ -250,7 +416,7 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(TextureOverlays.TriangleSizeDraw);
   }
 
-  // CaptureFeatures
+  ANALYTIC_SECTION(CaptureFeatures);
   {
     ANALYTIC_SERIALISE(CaptureFeatures.ShaderLinkage);
     ANALYTIC_SERIALISE(CaptureFeatures.YUVTextures);
@@ -258,6 +424,8 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(CaptureFeatures.MultiGPU);
     ANALYTIC_SERIALISE(CaptureFeatures.D3D12Bundle);
   }
+
+  values[lit("doc")] = doc;
 }
 
 };    // anonymous namespace
@@ -318,6 +486,38 @@ void Analytics::Load()
   {
     // if the analytics is not from this month, submit the report.
     analyticsState = AnalyticsState::SubmitReport;
+  }
+}
+
+void Analytics::DocumentReport()
+{
+  QVariantMap dummy;
+  AnalyticsSerialise(dummy, AnalyticsSerialiseType::Documenting);
+  QString reportText = dummy[lit("doc")].toString();
+
+  {
+    QDialog dialog;
+    dialog.setWindowTitle(lit("Sample Analytics Report"));
+    dialog.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    dialog.setFixedSize(600, 500);
+
+    QDialogButtonBox buttons;
+    buttons.addButton(QDialogButtonBox::Ok);
+    QObject::connect(&buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+
+    QTextEdit report;
+    report.setReadOnly(true);
+    report.setAcceptRichText(true);
+    report.setText(reportText);
+
+    QVBoxLayout layout;
+
+    layout.addWidget(&report);
+    layout.addWidget(&buttons);
+
+    dialog.setLayout(&layout);
+
+    RDDialog::show(&dialog);
   }
 }
 
@@ -387,6 +587,10 @@ void Load()
 }
 
 void Prompt(ICaptureContext &ctx, PersistantConfig &config)
+{
+}
+
+void DocumentReport()
 {
 }
 };

@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "AnalyticsPromptDialog.h"
+#include <QDesktopServices>
 #include "Code/Interface/QRDInterface.h"
 #include "ui_AnalyticsPromptDialog.h"
 
@@ -61,5 +62,17 @@ void AnalyticsPromptDialog::on_optOut_toggled(bool checked)
   {
     m_Config.Analytics_ManualCheck = false;
     m_Config.Analytics_TotalOptOut = true;
+  }
+}
+
+void AnalyticsPromptDialog::on_label_linkActivated(const QString &link)
+{
+  if(link == lit("#documentreport"))
+  {
+    Analytics::DocumentReport();
+  }
+  else
+  {
+    QDesktopServices::openUrl(QUrl(link));
   }
 }

@@ -46,6 +46,7 @@ private slots:
   void on_autoSubmit_toggled(bool checked);
   void on_manualCheck_toggled(bool checked);
   void on_optOut_toggled(bool checked);
+  void on_label_linkActivated(const QString &link);
 
 private:
   Ui::AnalyticsPromptDialog *ui;

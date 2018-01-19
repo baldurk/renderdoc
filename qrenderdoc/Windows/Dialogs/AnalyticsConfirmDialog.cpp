@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "AnalyticsConfirmDialog.h"
+#include <QDesktopServices>
 #include <QFontDatabase>
 #include <QPushButton>
 #include "ui_AnalyticsConfirmDialog.h"
@@ -42,4 +43,16 @@ AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
 AnalyticsConfirmDialog::~AnalyticsConfirmDialog()
 {
   delete ui;
+}
+
+void AnalyticsConfirmDialog::on_label_linkActivated(const QString &link)
+{
+  if(link == lit("#documentreport"))
+  {
+    Analytics::DocumentReport();
+  }
+  else
+  {
+    QDesktopServices::openUrl(QUrl(link));
+  }
 }

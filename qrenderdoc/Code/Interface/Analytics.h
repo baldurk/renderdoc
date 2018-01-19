@@ -81,7 +81,11 @@ struct AnalyticsAverage
   QVariant toVariant(bool reporting) const
   {
     if(reporting)
+    {
+      if(Count == 0)
+        return 0.0;
       return Total / double(Count);
+    }
 
     QVariantMap ret;
     ret[lit("Total")] = Total;
@@ -102,7 +106,8 @@ struct ICaptureContext;
 #endif
 
 // we declare the analystics data struct here, this contains the information we're storing
-// If you add anything to this struct, make sure to update AnalyticsSerialise.
+// If you add anything to this struct, make sure to update AnalyticsSerialise, and
+// AnalyticsDocumentation.
 struct Analytics
 {
   // utility function - loads the analytics from disk and initialise the Analytics::db member.
@@ -113,6 +118,9 @@ struct Analytics
   // the singleton instance of analytics. May be NULL if analytics aren't initialised or have been
   // opted-out from.
   static Analytics *db;
+
+  // utility function - displays an annotated report documenting what each member means
+  static void DocumentReport();
 
   // Function to save the analytics to disk, if it's been initialised. Every set macro below will
   // call this after the data is set to flush it to disk.
@@ -301,6 +309,7 @@ namespace Analytics
 {
 void Load();
 void Prompt(ICaptureContext &ctx, PersistantConfig &config);
+void DocumentReport();
 };
 
 #endif
