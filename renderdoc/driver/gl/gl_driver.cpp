@@ -1472,7 +1472,7 @@ void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, 
     }
 
     gl_CurChunk = GLChunk::glTexParameteri;
-    Common_glTextureParameteriEXT(record, textureType, eGL_TEXTURE_MAX_LEVEL, levels);
+    Common_glTextureParameteriEXT(record, textureType, eGL_TEXTURE_MAX_LEVEL, levels - 1);
   }
   else
   {
