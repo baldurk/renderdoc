@@ -24,6 +24,7 @@
 
 #include "AnalyticsConfirmDialog.h"
 #include <QFontDatabase>
+#include <QPushButton>
 #include "ui_AnalyticsConfirmDialog.h"
 
 AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
@@ -33,6 +34,9 @@ AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
 
   ui->analyticsReport->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->analyticsReport->setText(report);
+
+  QObject::connect(ui->buttonBox->button(QDialogButtonBox::Discard), &QPushButton::clicked, this,
+                   &AnalyticsConfirmDialog::reject);
 }
 
 AnalyticsConfirmDialog::~AnalyticsConfirmDialog()
