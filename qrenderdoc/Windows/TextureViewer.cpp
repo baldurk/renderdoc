@@ -2840,7 +2840,7 @@ void TextureViewer::on_overlay_currentIndexChanged(int index)
     m_TexDisplay.overlay = (DebugOverlay)ui->overlay->currentIndex();
 
 #define ANALYTICS_OVERLAY(name) \
-  case DebugOverlay::name: ANALYTIC_SET(UIFeatures.TextureDebugOverlays.name, true); break;
+  case DebugOverlay::name: ANALYTIC_SET(TextureOverlays.name, true); break;
 
   switch(m_TexDisplay.overlay)
   {
@@ -3387,7 +3387,7 @@ void TextureViewer::on_saveTex_clicked()
 
   if(res)
   {
-    ANALYTIC_SET(UIFeatures.Export.TextureSave, true);
+    ANALYTIC_SET(Export.Texture, true);
 
     bool ret = false;
     QString fn = saveDialog.filename();

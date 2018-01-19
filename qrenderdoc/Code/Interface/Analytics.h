@@ -142,9 +142,6 @@ struct Analytics
     // A human readable name of the operating system.
     QString OSVersion;
 
-    // A list of which GPU vendors have been used for replay
-    QStringList GPUVendors;
-
     // Either 32 or 64 indicating which bit-depth the UI is running as
     int Bitness = 0;
 
@@ -154,16 +151,22 @@ struct Analytics
     // whether an official build has been run - whether distributed from the RenderDoc website or
     // through a linux distribution
     bool OfficialBuildRun = false;
-  } Environment;
 
-  // Counts which unique days in the last month the program was run
-  bool DaysUsed[32] = {0};
+    // Counts which unique days in the last month the program was run
+    bool DaysUsed[32] = {0};
+  } Metadata;
 
-  // how long do captures take to load, on average
-  AnalyticsAverage LoadTime;
+  struct
+  {
+    // how long do captures take to load, on average
+    AnalyticsAverage LoadTime;
+  } Performance;
 
   // which APIs have been used
-  QStringList APIsUsed;
+  QStringList APIs;
+
+  // A list of which GPU vendors have been used for replay
+  QStringList GPUVendors;
 
   // which UI features have been used, as a simple yes/no
   struct
@@ -179,48 +182,44 @@ struct Analytics
     bool CustomTextureVisualise = false;
     bool ImageViewer = false;
     bool CaptureComments = false;
-
-    struct
-    {
-      bool EventBrowser = false;
-      bool PipelineState = false;
-      bool MeshOutput = false;
-      bool RawBuffer = false;
-      bool TextureSave = false;
-      bool ShaderSave = false;
-    } Export;
-
-    struct
-    {
-      bool Vertex = false;
-      bool Pixel = false;
-      bool Compute = false;
-    } ShaderDebug;
-
-    struct
-    {
-      bool Drawcall = false;
-      bool Wireframe = false;
-      bool Depth = false;
-      bool Stencil = false;
-      bool BackfaceCull = false;
-      bool ViewportScissor = false;
-      bool NaN = false;
-      bool Clipping = false;
-      bool ClearBeforePass = false;
-      bool ClearBeforeDraw = false;
-      bool QuadOverdrawPass = false;
-      bool QuadOverdrawDraw = false;
-      bool TriangleSizePass = false;
-      bool TriangleSizeDraw = false;
-    } TextureDebugOverlays;
-
-    struct
-    {
-      bool Android = false;
-      bool NonAndroid = false;
-    } RemoteReplay;
+    bool AndroidRemoteReplay = false;
+    bool NonAndroidRemoteReplay = false;
   } UIFeatures;
+
+  struct
+  {
+    bool EventBrowser = false;
+    bool PipelineState = false;
+    bool MeshOutput = false;
+    bool RawBuffer = false;
+    bool Texture = false;
+    bool Shader = false;
+  } Export;
+
+  struct
+  {
+    bool Vertex = false;
+    bool Pixel = false;
+    bool Compute = false;
+  } ShaderDebug;
+
+  struct
+  {
+    bool Drawcall = false;
+    bool Wireframe = false;
+    bool Depth = false;
+    bool Stencil = false;
+    bool BackfaceCull = false;
+    bool ViewportScissor = false;
+    bool NaN = false;
+    bool Clipping = false;
+    bool ClearBeforePass = false;
+    bool ClearBeforeDraw = false;
+    bool QuadOverdrawPass = false;
+    bool QuadOverdrawDraw = false;
+    bool TriangleSizePass = false;
+    bool TriangleSizeDraw = false;
+  } TextureOverlays;
 
   // If some particular API specific features are seen in a capture, as a simple yes/no. See
   // APIProperties

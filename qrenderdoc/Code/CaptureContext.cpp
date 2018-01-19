@@ -155,7 +155,7 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
 
-  ANALYTIC_ADDAVG(LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
+  ANALYTIC_ADDAVG(Performance.LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
 
   ANALYTIC_SET(CaptureFeatures.ShaderLinkage, m_APIProps.ShaderLinkage);
   ANALYTIC_SET(CaptureFeatures.YUVTextures, m_APIProps.YUVTextures);

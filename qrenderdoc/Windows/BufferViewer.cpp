@@ -3073,11 +3073,11 @@ void BufferViewer::exportData(const BufferExport &params)
 
   if(m_MeshView)
   {
-    ANALYTIC_SET(UIFeatures.Export.MeshOutput, true);
+    ANALYTIC_SET(Export.MeshOutput, true);
   }
   else
   {
-    ANALYTIC_SET(UIFeatures.Export.RawBuffer, true);
+    ANALYTIC_SET(Export.RawBuffer, true);
   }
 
   BufferItemModel *model = (BufferItemModel *)m_CurView->model();

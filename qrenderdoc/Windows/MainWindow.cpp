@@ -679,7 +679,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
       }
       else
       {
-        ANALYTIC_ADDUNIQ(APIsUsed, driver);
+        ANALYTIC_ADDUNIQ(APIs, driver);
       }
 
       m_Ctx.LoadCapture(fileToLoad, origFilename, temporary, local);

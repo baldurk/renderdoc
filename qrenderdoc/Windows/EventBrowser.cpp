@@ -565,7 +565,7 @@ void EventBrowser::on_exportDraws_clicked()
 
   if(!filename.isEmpty())
   {
-    ANALYTIC_SET(UIFeatures.Export.EventBrowser, true);
+    ANALYTIC_SET(Export.EventBrowser, true);
 
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())

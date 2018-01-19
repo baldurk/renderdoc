@@ -348,15 +348,15 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   {
     if(m_Stage == ShaderStage::Vertex)
     {
-      ANALYTIC_SET(UIFeatures.ShaderDebug.Vertex, true);
+      ANALYTIC_SET(ShaderDebug.Vertex, true);
     }
     else if(m_Stage == ShaderStage::Pixel)
     {
-      ANALYTIC_SET(UIFeatures.ShaderDebug.Pixel, true);
+      ANALYTIC_SET(ShaderDebug.Pixel, true);
     }
     else if(m_Stage == ShaderStage::Compute)
     {
-      ANALYTIC_SET(UIFeatures.ShaderDebug.Compute, true);
+      ANALYTIC_SET(ShaderDebug.Compute, true);
     }
 
     m_DisassemblyView->usePopUp(SC_POPUP_NEVER);

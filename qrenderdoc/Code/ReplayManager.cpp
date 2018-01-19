@@ -305,11 +305,11 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 
   if(host->IsADB())
   {
-    ANALYTIC_SET(UIFeatures.RemoteReplay.Android, true);
+    ANALYTIC_SET(UIFeatures.AndroidRemoteReplay, true);
   }
   else
   {
-    ANALYTIC_SET(UIFeatures.RemoteReplay.NonAndroid, true);
+    ANALYTIC_SET(UIFeatures.NonAndroidRemoteReplay, true);
   }
 
   m_RemoteHost = host;

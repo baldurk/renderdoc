@@ -166,33 +166,37 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
   }
   ANALYTIC_SERIALISE(Version);
 
-  // Environment
+  // Metadata
   {
-    ANALYTIC_SERIALISE(Environment.RenderDocVersion);
-    ANALYTIC_SERIALISE(Environment.DistributionVersion);
-    ANALYTIC_SERIALISE(Environment.OSVersion);
-    ANALYTIC_SERIALISE(Environment.GPUVendors);
-    ANALYTIC_SERIALISE(Environment.Bitness);
-    ANALYTIC_SERIALISE(Environment.DevelBuildRun);
-    ANALYTIC_SERIALISE(Environment.OfficialBuildRun);
+    ANALYTIC_SERIALISE(Metadata.RenderDocVersion);
+    ANALYTIC_SERIALISE(Metadata.DistributionVersion);
+    ANALYTIC_SERIALISE(Metadata.OSVersion);
+    ANALYTIC_SERIALISE(Metadata.Bitness);
+    ANALYTIC_SERIALISE(Metadata.DevelBuildRun);
+    ANALYTIC_SERIALISE(Metadata.OfficialBuildRun);
+
+    // special handling for reporting DaysUsed, to flatten into a number
+    if(reporting)
+    {
+      int sum = 0;
+      for(bool day : Analytics::db->Metadata.DaysUsed)
+        sum += day ? 1 : 0;
+
+      saveTo(values, lit("Metadata.DaysUsed"), sum, reporting);
+    }
+    else
+    {
+      ANALYTIC_SERIALISE(Metadata.DaysUsed);
+    }
   }
 
-  // special handling for reporting DaysUsed, to flatten into a number
-  if(reporting)
+  // Performance
   {
-    int sum = 0;
-    for(bool day : Analytics::db->DaysUsed)
-      sum += day ? 1 : 0;
-
-    saveTo(values, lit("DaysUsed"), sum, reporting);
-  }
-  else
-  {
-    ANALYTIC_SERIALISE(DaysUsed);
+    ANALYTIC_SERIALISE(Performance.LoadTime);
   }
 
-  ANALYTIC_SERIALISE(LoadTime);
-  ANALYTIC_SERIALISE(APIsUsed);
+  ANALYTIC_SERIALISE(APIs);
+  ANALYTIC_SERIALISE(GPUVendors);
 
   // UIFeatures
   {
@@ -207,47 +211,43 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(UIFeatures.CustomTextureVisualise);
     ANALYTIC_SERIALISE(UIFeatures.ImageViewer);
     ANALYTIC_SERIALISE(UIFeatures.CaptureComments);
+    ANALYTIC_SERIALISE(UIFeatures.AndroidRemoteReplay);
+    ANALYTIC_SERIALISE(UIFeatures.NonAndroidRemoteReplay);
+  }
 
-    // Export
-    {
-      ANALYTIC_SERIALISE(UIFeatures.Export.EventBrowser);
-      ANALYTIC_SERIALISE(UIFeatures.Export.PipelineState);
-      ANALYTIC_SERIALISE(UIFeatures.Export.MeshOutput);
-      ANALYTIC_SERIALISE(UIFeatures.Export.RawBuffer);
-      ANALYTIC_SERIALISE(UIFeatures.Export.TextureSave);
-      ANALYTIC_SERIALISE(UIFeatures.Export.ShaderSave);
-    }
+  // Export
+  {
+    ANALYTIC_SERIALISE(Export.EventBrowser);
+    ANALYTIC_SERIALISE(Export.PipelineState);
+    ANALYTIC_SERIALISE(Export.MeshOutput);
+    ANALYTIC_SERIALISE(Export.RawBuffer);
+    ANALYTIC_SERIALISE(Export.Texture);
+    ANALYTIC_SERIALISE(Export.Shader);
+  }
 
-    // ShaderDebug
-    {
-      ANALYTIC_SERIALISE(UIFeatures.ShaderDebug.Vertex);
-      ANALYTIC_SERIALISE(UIFeatures.ShaderDebug.Pixel);
-      ANALYTIC_SERIALISE(UIFeatures.ShaderDebug.Compute);
-    }
+  // ShaderDebug
+  {
+    ANALYTIC_SERIALISE(ShaderDebug.Vertex);
+    ANALYTIC_SERIALISE(ShaderDebug.Pixel);
+    ANALYTIC_SERIALISE(ShaderDebug.Compute);
+  }
 
-    // TextureDebugOverlays
-    {
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.Drawcall);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.Wireframe);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.Depth);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.Stencil);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.BackfaceCull);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.ViewportScissor);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.NaN);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.Clipping);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.ClearBeforePass);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.ClearBeforeDraw);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.QuadOverdrawPass);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.QuadOverdrawDraw);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.TriangleSizePass);
-      ANALYTIC_SERIALISE(UIFeatures.TextureDebugOverlays.TriangleSizeDraw);
-    }
-
-    // RemoteReplay
-    {
-      ANALYTIC_SERIALISE(UIFeatures.RemoteReplay.Android);
-      ANALYTIC_SERIALISE(UIFeatures.RemoteReplay.NonAndroid);
-    }
+  // TextureOverlays
+  {
+    ANALYTIC_SERIALISE(TextureOverlays.Drawcall);
+    ANALYTIC_SERIALISE(TextureOverlays.Wireframe);
+    ANALYTIC_SERIALISE(TextureOverlays.Depth);
+    ANALYTIC_SERIALISE(TextureOverlays.Stencil);
+    ANALYTIC_SERIALISE(TextureOverlays.BackfaceCull);
+    ANALYTIC_SERIALISE(TextureOverlays.ViewportScissor);
+    ANALYTIC_SERIALISE(TextureOverlays.NaN);
+    ANALYTIC_SERIALISE(TextureOverlays.Clipping);
+    ANALYTIC_SERIALISE(TextureOverlays.ClearBeforePass);
+    ANALYTIC_SERIALISE(TextureOverlays.ClearBeforeDraw);
+    ANALYTIC_SERIALISE(TextureOverlays.QuadOverdrawPass);
+    ANALYTIC_SERIALISE(TextureOverlays.QuadOverdrawDraw);
+    ANALYTIC_SERIALISE(TextureOverlays.TriangleSizePass);
+    ANALYTIC_SERIALISE(TextureOverlays.TriangleSizeDraw);
   }
 
   // CaptureFeatures

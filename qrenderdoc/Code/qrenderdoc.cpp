@@ -348,20 +348,20 @@ int main(int argc, char *argv[])
 
       Analytics::Prompt(ctx, config);
 
-      ANALYTIC_SET(Environment.RenderDocVersion, lit(FULL_VERSION_STRING));
+      ANALYTIC_SET(Metadata.RenderDocVersion, lit(FULL_VERSION_STRING));
 #if defined(DISTRIBUTION_VERSION)
-      ANALYTIC_SET(Environment.DistributionVersion, lit(DISTRIBUTION_NAME));
+      ANALYTIC_SET(Metadata.DistributionVersion, lit(DISTRIBUTION_NAME));
 #endif
-      ANALYTIC_SET(Environment.Bitness, ((sizeof(void *) == sizeof(uint64_t)) ? 64 : 32));
-      ANALYTIC_SET(Environment.OSVersion, QSysInfo::prettyProductName());
+      ANALYTIC_SET(Metadata.Bitness, ((sizeof(void *) == sizeof(uint64_t)) ? 64 : 32));
+      ANALYTIC_SET(Metadata.OSVersion, QSysInfo::prettyProductName());
 
 #if RENDERDOC_STABLE_BUILD
-      ANALYTIC_SET(Environment.OfficialBuildRun, true);
+      ANALYTIC_SET(Metadata.OfficialBuildRun, true);
 #else
-      ANALYTIC_SET(Environment.DevelBuildRun, true);
+      ANALYTIC_SET(Metadata.DevelBuildRun, true);
 #endif
 
-      ANALYTIC_SET(DaysUsed[QDateTime::currentDateTime().date().day()], true);
+      ANALYTIC_SET(Metadata.DaysUsed[QDateTime::currentDateTime().date().day()], true);
 
       if(!pyscripts.isEmpty())
       {
