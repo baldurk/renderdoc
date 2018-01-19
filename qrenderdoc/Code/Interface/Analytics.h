@@ -53,7 +53,7 @@
 #define RENDERDOC_ANALYTICS_ENABLE 0
 
 // we don't want any of this to be accessible to script, only code.
-#if !defined(SWIG)
+#if !defined(SWIG) && !defined(SWIG_GENERATED)
 
 // We also compile out all of the code if analytics are disabled so there's not even a code
 // reference to where the data is collected.

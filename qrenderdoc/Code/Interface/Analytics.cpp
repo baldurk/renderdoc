@@ -157,7 +157,7 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
   if(!Analytics::db)
     return;
 
-  static_assert(sizeof(Analytics) == 140, "Sizeof Analytics has changed - update serialisation.");
+  static_assert(sizeof(Analytics) == 147, "Sizeof Analytics has changed - update serialisation.");
 
   // Date
   {
@@ -176,9 +176,6 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(Environment.DevelBuildRun);
     ANALYTIC_SERIALISE(Environment.OfficialBuildRun);
   }
-
-  // A flag for each dat counting which unique days in the last month the program was run.
-  ANALYTIC_SERIALISE(Version);
 
   // special handling for reporting DaysUsed, to flatten into a number
   if(reporting)
@@ -204,7 +201,6 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(UIFeatures.ShaderEditing);
     ANALYTIC_SERIALISE(UIFeatures.CallstackResolve);
     ANALYTIC_SERIALISE(UIFeatures.PixelHistory);
-
     ANALYTIC_SERIALISE(UIFeatures.DrawcallTimes);
     ANALYTIC_SERIALISE(UIFeatures.PerformanceCounters);
     ANALYTIC_SERIALISE(UIFeatures.PythonInterop);
@@ -217,6 +213,7 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
       ANALYTIC_SERIALISE(UIFeatures.Export.EventBrowser);
       ANALYTIC_SERIALISE(UIFeatures.Export.PipelineState);
       ANALYTIC_SERIALISE(UIFeatures.Export.MeshOutput);
+      ANALYTIC_SERIALISE(UIFeatures.Export.RawBuffer);
       ANALYTIC_SERIALISE(UIFeatures.Export.TextureSave);
       ANALYTIC_SERIALISE(UIFeatures.Export.ShaderSave);
     }
