@@ -24,6 +24,7 @@
 
 #include "AnalyticsPromptDialog.h"
 #include <QDesktopServices>
+#include <QUrl>
 #include "Code/Interface/QRDInterface.h"
 #include "ui_AnalyticsPromptDialog.h"
 

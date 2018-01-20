@@ -26,6 +26,8 @@
 #include <QDesktopServices>
 #include <QFontDatabase>
 #include <QPushButton>
+#include <QUrl>
+#include "Code/Interface/QRDInterface.h"
 #include "ui_AnalyticsConfirmDialog.h"
 
 AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
