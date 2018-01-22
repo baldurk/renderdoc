@@ -1205,7 +1205,15 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       {
         unsigned char found = BitScanReverse((DWORD *)&ret.value.uv[i], srcOpers[0].value.uv[i]);
         if(found == 0)
+        {
           ret.value.uv[i] = ~0U;
+        }
+        else
+        {
+          // firstbit_hi counts index 0 as the MSB, BitScanReverse counts index 0 as the LSB. So we
+          // need to invert
+          ret.value.uv[i] = 31 - ret.value.uv[i];
+        }
       }
 
       s.SetDst(op.operands[0], op, ret);
@@ -1238,7 +1246,15 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         unsigned char found = BitScanReverse((DWORD *)&ret.value.uv[i], u);
 
         if(found == 0)
+        {
           ret.value.uv[i] = ~0U;
+        }
+        else
+        {
+          // firstbit_shi counts index 0 as the MSB, BitScanReverse counts index 0 as the LSB. So we
+          // need to invert
+          ret.value.uv[i] = 31 - ret.value.uv[i];
+        }
       }
 
       s.SetDst(op.operands[0], op, ret);
