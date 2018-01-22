@@ -322,6 +322,9 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
                          firstChar, numChars, chardata);
 
     CharSize = charPixelHeight;
+#if ENABLED(RDOC_ANDROID)
+    CharSize *= 2.0f;
+#endif
     CharAspect = chardata->xadvance / charPixelHeight;
 
     stbtt_fontinfo f = {0};
@@ -721,6 +724,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     {
       y += 1.0f;
       y *= charPixelHeight;
+
+#if ENABLED(RDOC_ANDROID)
+      y *= 2.0f;
+#endif
 
       float startx = x;
       float starty = y;

@@ -304,6 +304,10 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
     stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
 
     m_FontCharSize = pixelHeight;
+#if ENABLED(RDOC_ANDROID)
+    m_FontCharSize *= 2.0f;
+#endif
+
     m_FontCharAspect = chardata->xadvance / pixelHeight;
 
     stbtt_fontinfo f = {0};
