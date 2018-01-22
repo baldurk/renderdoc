@@ -452,16 +452,17 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
               remoteDriver->Shutdown();
               remoteDriver = NULL;
             }
-            else
-            {
-              RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
+          }
 
-              kill = true;
-              Threading::JoinThread(ticker);
-              Threading::CloseThread(ticker);
+          RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 
-              proxy = new ReplayProxy(reader, writer, remoteDriver, replayDriver, previewWindow);
-            }
+          kill = true;
+          Threading::JoinThread(ticker);
+          Threading::CloseThread(ticker);
+
+          if(status == ReplayStatus::Succeeded && remoteDriver)
+          {
+            proxy = new ReplayProxy(reader, writer, remoteDriver, replayDriver, previewWindow);
           }
         }
         else
