@@ -731,6 +731,8 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixel
 
   ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), thumb);
 
+  FileIO::CreateParentDirectory(m_CurrentLogFile);
+
   ret->Create(m_CurrentLogFile.c_str());
 
   if(ret->ErrorCode() != ContainerError::NoError)
