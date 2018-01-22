@@ -108,6 +108,9 @@
     <ClInclude Include="official\khrplatform.h">
       <Filter>ARB Headers</Filter>
     </ClInclude>
+    <ClInclude Include="gl_library_egl.h">
+      <Filter>OS\EGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">
@@ -247,6 +250,9 @@
     </ClCompile>
     <ClCompile Include="gl_rendertext.cpp">
       <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_library_egl.cpp">
+      <Filter>OS\EGL</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
