@@ -177,27 +177,7 @@
          <string>Tools</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="1" column="2" colspan="3">
-          <widget class="QDoubleSpinBox" name="captureFrame">
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-           <property name="decimals">
-            <number>0</number>
-           </property>
-           <property name="maximum">
-            <double>10000.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="5">
-          <widget class="QPushButton" name="queueCap">
-           <property name="text">
-            <string>Queue Capture</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
+         <item row="1" column="1">
           <widget class="QDoubleSpinBox" name="captureDelay">
            <property name="baseSize">
             <size>
@@ -219,13 +199,46 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="4">
+         <item row="4" column="1">
+          <widget class="QDoubleSpinBox" name="captureFrame">
+           <property name="prefix">
+            <string>Frame </string>
+           </property>
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="maximum">
+            <double>10000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="triggerCapture">
+           <property name="text">
+            <string>Trigger After Delay</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QPushButton" name="queueCap">
+           <property name="text">
+            <string>Queue Specific Frame</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="2">
           <widget class="QDoubleSpinBox" name="numFrames">
            <property name="minimumSize">
             <size>
              <width>45</width>
              <height>0</height>
             </size>
+           </property>
+           <property name="prefix">
+            <string>Capture </string>
+           </property>
+           <property name="suffix">
+            <string> Sequential Frame(s)</string>
            </property>
            <property name="decimals">
             <number>0</number>
@@ -236,43 +249,12 @@
            <property name="maximum">
             <double>4.000000000000000</double>
            </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="capDelayLabel">
-           <property name="text">
-            <string>Capture Delay</string>
+           <property name="value">
+            <double>1.000000000000000</double>
            </property>
           </widget>
          </item>
-         <item row="0" column="3">
-          <widget class="QLabel" name="numFramesLabel">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string># Frames:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="5">
-          <widget class="QPushButton" name="triggerCapture">
-           <property name="text">
-            <string>Trigger Capture</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="capFrameLabel">
-           <property name="text">
-            <string>Capture Frame #</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="2">
+         <item row="5" column="0">
           <spacer name="verticalSpacer">
            <property name="orientation">
             <enum>Qt::Vertical</enum>

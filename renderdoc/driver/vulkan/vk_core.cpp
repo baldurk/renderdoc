@@ -927,10 +927,10 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   m_SubmitCounter = 0;
 
-  m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter + 1;
+  frame.frameNumber = m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
@@ -1335,8 +1335,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     }
   }
 
-  RDCFile *rdc =
-      RenderDoc::Inst().CreateRDC(RDCDriver::Vulkan, m_FrameCounter, jpgbuf, len, thwidth, thheight);
+  RDCFile *rdc = RenderDoc::Inst().CreateRDC(RDCDriver::Vulkan, m_CapturedFrames.back().frameNumber,
+                                             jpgbuf, len, thwidth, thheight);
 
   SAFE_DELETE_ARRAY(jpgbuf);
   SAFE_DELETE_ARRAY(thpixels);
@@ -1429,7 +1429,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     }
   }
 
-  RenderDoc::Inst().FinishCaptureWriting(rdc, m_FrameCounter);
+  RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
   SAFE_DELETE(m_HeaderChunk);
 

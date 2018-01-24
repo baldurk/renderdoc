@@ -588,6 +588,38 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="numFramesLabel">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string># Frames:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="numFrames">
+        <property name="minimumSize">
+         <size>
+          <width>45</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="minimum">
+         <double>1.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>4.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="ActionsSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

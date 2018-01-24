@@ -682,7 +682,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
     {
       // discard, this frame is past.
     }
-    else if((*it) - 1 == frameNumber)
+    else if((*it) == frameNumber)
     {
       // we want to capture the next frame
       ret = true;

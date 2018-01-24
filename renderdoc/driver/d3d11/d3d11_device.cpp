@@ -1356,10 +1356,10 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
   m_FailedFrame = 0;
   m_FailedReason = CaptureSucceeded;
 
-  m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter + 1;
+  frame.frameNumber = m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   m_CapturedFrames.push_back(frame);
 
@@ -1650,8 +1650,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    RDCFile *rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D11, m_FrameCounter, jpgbuf, len,
-                                               thwidth, thheight);
+    RDCFile *rdc = RenderDoc::Inst().CreateRDC(
+        RDCDriver::D3D11, m_CapturedFrames.back().frameNumber, jpgbuf, len, thwidth, thheight);
 
     SAFE_DELETE_ARRAY(jpgbuf);
     SAFE_DELETE_ARRAY(thpixels);
@@ -1744,7 +1744,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       UnlockForChunkFlushing();
     }
 
-    RenderDoc::Inst().FinishCaptureWriting(rdc, m_FrameCounter);
+    RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
     m_State = CaptureState::BackgroundCapturing;
 
@@ -1803,7 +1803,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       old.ApplyState(m_pImmediateContext);
     }
 
-    m_CapturedFrames.back().frameNumber = m_FrameCounter + 1;
+    m_CapturedFrames.back().frameNumber = m_FrameCounter;
 
     m_pImmediateContext->CleanupCapture();
 

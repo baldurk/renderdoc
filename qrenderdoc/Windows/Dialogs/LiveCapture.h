@@ -57,7 +57,7 @@ public:
 
   ~LiveCapture();
 
-  void QueueCapture(int frameNumber);
+  void QueueCapture(int frameNumber, int numFrames);
   const QString &hostname() { return m_Hostname; }
   void cleanItems();
 
@@ -161,7 +161,7 @@ private:
   bool m_TriggerCapture = false;
   bool m_QueueCapture = false;
   int m_CaptureNumFrames = 1;
-  int m_CaptureFrameNum = 0;
+  int m_QueueCaptureFrameNum = 0;
   int m_CaptureCounter = 0;
   QSemaphore m_Disconnect;
   ITargetControl *m_Connection = NULL;

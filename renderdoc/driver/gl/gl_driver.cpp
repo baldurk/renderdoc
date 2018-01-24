@@ -1560,10 +1560,10 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   GLWindowingData switchctx = prevctx;
   MakeValidContextCurrent(switchctx, wnd);
 
-  m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter + 1;
+  frame.frameNumber = m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
@@ -1641,8 +1641,9 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     if(bbim == NULL)
       bbim = SaveBackbufferImage();
 
-    RDCFile *rdc = RenderDoc::Inst().CreateRDC(GetDriverType(), m_FrameCounter, bbim->jpgbuf,
-                                               bbim->len, bbim->thwidth, bbim->thheight);
+    RDCFile *rdc =
+        RenderDoc::Inst().CreateRDC(GetDriverType(), m_CapturedFrames.back().frameNumber,
+                                    bbim->jpgbuf, bbim->len, bbim->thwidth, bbim->thheight);
 
     SAFE_DELETE(bbim);
 
@@ -1730,7 +1731,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    RenderDoc::Inst().FinishCaptureWriting(rdc, m_FrameCounter);
+    RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
     m_State = CaptureState::BackgroundCapturing;
 
@@ -1773,7 +1774,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
         ClearGLErrors(m_Real);
     }
 
-    m_CapturedFrames.back().frameNumber = m_FrameCounter + 1;
+    m_CapturedFrames.back().frameNumber = m_FrameCounter;
 
     CleanupCapture();
 

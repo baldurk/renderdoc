@@ -1247,10 +1247,10 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
   m_SubmitCounter = 0;
 
-  m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter + 1;
+  frame.frameNumber = m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
@@ -1580,8 +1580,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       if((*it)->GetResourceRecord()->ContainsExecuteIndirect)
         WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
-    rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_FrameCounter, jpgbuf, len, thwidth,
-                                      thheight);
+    rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_CapturedFrames.back().frameNumber, jpgbuf,
+                                      len, thwidth, thheight);
 
     SAFE_DELETE_ARRAY(jpgbuf);
     SAFE_DELETE_ARRAY(thpixels);
@@ -1684,7 +1684,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     RDCDEBUG("Done");
   }
 
-  RenderDoc::Inst().FinishCaptureWriting(rdc, m_FrameCounter);
+  RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
   SAFE_DELETE(m_HeaderChunk);
 

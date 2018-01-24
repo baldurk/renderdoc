@@ -1170,9 +1170,14 @@ next after that.
   DOCUMENT(R"(Queue up a capture to happen on a particular frame number. When this frame is about to
 begin a capture is begun, and it ends when this frame number ends.
 
+.. note:: Frame 0 is defined as starting when the device is created, up to the first swapchain
+  present defined frame boundary.
+
 :param int frameNumber: The number of the frame to capture on.
+:param int numFrames: How many frames to capture. These will be captured sequentially and
+  independently to separate files.
 )");
-  virtual void QueueCapture(uint32_t frameNumber) = 0;
+  virtual void QueueCapture(uint32_t frameNumber, uint32_t numFrames) = 0;
 
   DOCUMENT(R"(Begin copying a given capture stored on a remote machine to the local machine over the
 target control connection.

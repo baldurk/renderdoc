@@ -185,9 +185,10 @@ LiveCapture::~LiveCapture()
   delete ui;
 }
 
-void LiveCapture::QueueCapture(int frameNumber)
+void LiveCapture::QueueCapture(int frameNumber, int numFrames)
 {
-  m_CaptureFrameNum = frameNumber;
+  m_QueueCaptureFrameNum = frameNumber;
+  m_CaptureNumFrames = numFrames;
   m_QueueCapture = true;
 }
 
@@ -275,13 +276,13 @@ void LiveCapture::on_childProcesses_itemActivated(QListWidgetItem *item)
 
 void LiveCapture::on_queueCap_clicked()
 {
-  m_CaptureFrameNum = (int)ui->captureFrame->value();
+  m_CaptureNumFrames = (int)ui->numFrames->value();
+  m_QueueCaptureFrameNum = (int)ui->captureFrame->value();
   m_QueueCapture = true;
 }
 
 void LiveCapture::on_triggerCapture_clicked()
 {
-  m_CaptureNumFrames = (int)ui->numFrames->value();
   if(ui->captureDelay->value() == 0.0)
   {
     m_TriggerCapture = true;
@@ -482,8 +483,9 @@ void LiveCapture::captureCountdownTick()
   if(m_CaptureCounter == 0)
   {
     m_TriggerCapture = true;
+    m_CaptureNumFrames = (int)ui->numFrames->value();
     ui->triggerCapture->setEnabled(true);
-    ui->triggerCapture->setText(tr("Trigger Capture"));
+    ui->triggerCapture->setText(tr("Trigger After Delay"));
   }
   else
   {
@@ -699,12 +701,6 @@ bool LiveCapture::checkAllowClose()
         m_IgnoreThreadClosed = false;
         return false;
       }
-    }
-
-    if(res == QMessageBox::No)
-    {
-      // treat this capture as saved now, so we don't prompt about it again.
-      cap->saved = true;
     }
   }
 
@@ -1097,13 +1093,15 @@ void LiveCapture::connectionThreadEntry()
     {
       m_Connection->TriggerCapture((uint)m_CaptureNumFrames);
       m_TriggerCapture = false;
+      m_CaptureNumFrames = 1;
     }
 
     if(m_QueueCapture)
     {
-      m_Connection->QueueCapture((uint)m_CaptureFrameNum);
+      m_Connection->QueueCapture((uint32_t)m_QueueCaptureFrameNum, (uint32_t)m_CaptureNumFrames);
       m_QueueCapture = false;
-      m_CaptureFrameNum = 0;
+      m_QueueCaptureFrameNum = 0;
+      m_CaptureNumFrames = 1;
     }
 
     if(!m_CopyCaptureLocalPath.isEmpty())
