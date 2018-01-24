@@ -2543,7 +2543,11 @@ void BufferViewer::render_mouseMove(QMouseEvent *e)
   if(e->buttons() & Qt::RightButton)
     render_clicked(e);
 
-  INVOKE_MEMFN(RT_UpdateAndDisplay);
+  // display if any mouse buttons are held while moving.
+  if(e->buttons() != Qt::NoButton)
+  {
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  }
 }
 
 void BufferViewer::render_clicked(QMouseEvent *e)
