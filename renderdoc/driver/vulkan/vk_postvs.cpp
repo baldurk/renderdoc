@@ -288,6 +288,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         editor.Remove(it);
     }
 
+    // remove all invariant decoreations
+    if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationInvariant)
+    {
+      editor.Remove(it);
+    }
+
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationLocation)
     {
       SPIRVId id = it.word(1);
