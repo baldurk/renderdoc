@@ -51,6 +51,33 @@
   obj:*libvulkan.so*
 }
 
+# Python
+{
+  PythonLeak
+  Memcheck:Leak
+	match-leak-kinds: all
+  ...
+  obj:*libpython3.6m.so*
+}
+{
+  PythonRead
+  Memcheck:Addr4
+  ...
+  obj:*libpython3.6m.so*
+}
+{
+  PythonRead
+  Memcheck:Value8
+  ...
+  obj:*libpython3.6m.so*
+}
+{
+  PythonRead
+  Memcheck:Cond
+  ...
+  obj:*libpython3.6m.so*
+}
+
 # Unknown cause but not important leak
 {
 	UnknownLeak1
