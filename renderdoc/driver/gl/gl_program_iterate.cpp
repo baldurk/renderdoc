@@ -691,6 +691,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
             if(IsGLES)
               // Image uniforms cannot be re-assigned in GLES.
               break;
+          // deliberate fall-through
           // treat all samplers as just an int (since they just store their binding value)
           case eGL_SAMPLER_1D:
           case eGL_SAMPLER_2D:
