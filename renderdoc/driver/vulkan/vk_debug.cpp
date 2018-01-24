@@ -762,6 +762,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
 
+  VkMarkerRegion::Begin(StringFormat::Fmt("VulkanReplay::PickVertex(%u, %u)", x, y));
+
   Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(w) / float(h));
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
@@ -1169,6 +1171,10 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
   }
 
   m_VertexPick.ResultReadback.Unmap();
+
+  VkMarkerRegion::Set(StringFormat::Fmt("Result is %u", ret));
+
+  VkMarkerRegion::End();
 
   return ret;
 }
