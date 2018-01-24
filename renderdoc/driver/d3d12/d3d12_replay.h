@@ -346,7 +346,9 @@ private:
 
     static const uint32_t MaxMeshPicks = 500;
     ID3D12Resource *VB = NULL;
+    ID3D12Resource *IB = NULL;
     uint32_t VBSize = 0;
+    uint32_t IBSize = 0;
     ID3D12Resource *ResultBuf = NULL;
     ID3D12RootSignature *RootSig = NULL;
     ID3D12PipelineState *Pipe = NULL;

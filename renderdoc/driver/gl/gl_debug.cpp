@@ -1302,11 +1302,18 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
   GLuint ib = 0;
 
+  uint32_t minIndex = 0;
+  uint32_t maxIndex = cfg.position.numIndices;
+
+  uint32_t idxclamp = 0;
+  if(cfg.position.baseVertex < 0)
+    idxclamp = uint32_t(-cfg.position.baseVertex);
+
   if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
     ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
 
-  // We copy into our own buffers to promote to the target type (uint32) that the
-  // shader expects. Most IBs will be 16-bit indices, most VBs will not be float4.
+  // We copy into our own buffers to promote to the target type (uint32) that the shader expects.
+  // Most IBs will be 16-bit indices, most VBs will not be float4. We also apply baseVertex here
 
   if(ib)
   {
@@ -1325,10 +1332,9 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
     byte *idxs = new byte[cfg.position.numIndices * cfg.position.indexByteStride];
     memset(idxs, 0, cfg.position.numIndices * cfg.position.indexByteStride);
-    uint32_t *outidxs = NULL;
 
-    if(cfg.position.indexByteStride < 4)
-      outidxs = new uint32_t[cfg.position.numIndices];
+    std::vector<uint32_t> outidxs;
+    outidxs.resize(cfg.position.numIndices);
 
     gl.glBindBuffer(eGL_COPY_READ_BUFFER, ib);
 
@@ -1340,83 +1346,138 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
                                  cfg.position.numIndices * cfg.position.indexByteStride),
                           idxs);
 
+    uint8_t *idxs8 = (uint8_t *)idxs;
     uint16_t *idxs16 = (uint16_t *)idxs;
 
     if(cfg.position.indexByteStride == 1)
     {
       for(uint32_t i = 0; i < cfg.position.numIndices; i++)
-        outidxs[i] = idxs[i];
+      {
+        uint32_t idx = idxs8[i];
+
+        if(idx < idxclamp)
+          idx = 0;
+        else if(cfg.position.baseVertex < 0)
+          idx -= idxclamp;
+        else if(cfg.position.baseVertex > 0)
+          idx += cfg.position.baseVertex;
+
+        if(i == 0)
+        {
+          minIndex = maxIndex = idx;
+        }
+        else
+        {
+          minIndex = RDCMIN(idx, minIndex);
+          maxIndex = RDCMAX(idx, maxIndex);
+        }
+
+        outidxs[i] = idx;
+      }
 
       gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
       gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(uint32_t),
-                         outidxs);
+                         outidxs.data());
     }
     else if(cfg.position.indexByteStride == 2)
     {
       for(uint32_t i = 0; i < cfg.position.numIndices; i++)
-        outidxs[i] = idxs16[i];
+      {
+        uint32_t idx = idxs16[i];
+
+        if(idx < idxclamp)
+          idx = 0;
+        else if(cfg.position.baseVertex < 0)
+          idx -= idxclamp;
+        else if(cfg.position.baseVertex > 0)
+          idx += cfg.position.baseVertex;
+
+        if(i == 0)
+        {
+          minIndex = maxIndex = idx;
+        }
+        else
+        {
+          minIndex = RDCMIN(idx, minIndex);
+          maxIndex = RDCMAX(idx, maxIndex);
+        }
+
+        outidxs[i] = idx;
+      }
 
       gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
       gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(uint32_t),
-                         outidxs);
+                         outidxs.data());
     }
     else
     {
+      for(uint32_t i = 0; i < cfg.position.numIndices; i++)
+      {
+        uint32_t idx = idxs[i];
+
+        if(idx < idxclamp)
+          idx = 0;
+        else if(cfg.position.baseVertex < 0)
+          idx -= idxclamp;
+        else if(cfg.position.baseVertex > 0)
+          idx += cfg.position.baseVertex;
+
+        if(i == 0)
+        {
+          minIndex = maxIndex = idx;
+        }
+        else
+        {
+          minIndex = RDCMIN(idx, minIndex);
+          maxIndex = RDCMAX(idx, maxIndex);
+        }
+
+        outidxs[i] = idx;
+      }
+
       gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
       gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(uint32_t),
-                         idxs);
+                         outidxs.data());
     }
-
-    SAFE_DELETE_ARRAY(outidxs);
-  }
-
-  if(DebugData.pickVBBuf == 0 || DebugData.pickVBSize < cfg.position.numIndices * sizeof(Vec4f))
-  {
-    gl.glDeleteBuffers(1, &DebugData.pickVBBuf);
-
-    gl.glGenBuffers(1, &DebugData.pickVBBuf);
-    gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickVBBuf);
-    gl.glNamedBufferDataEXT(DebugData.pickVBBuf, cfg.position.numIndices * sizeof(Vec4f), NULL,
-                            eGL_DYNAMIC_DRAW);
-
-    DebugData.pickVBSize = cfg.position.numIndices * sizeof(Vec4f);
   }
 
   // unpack and linearise the data
   {
-    FloatVector *vbData = new FloatVector[cfg.position.numIndices];
-
     bytebuf oldData;
     GetBufferData(cfg.position.vertexResourceId, cfg.position.vertexByteOffset, 0, oldData);
+
+    // clamp maxIndex to upper bound in case we got invalid indices or primitive restart indices
+    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / cfg.position.vertexByteStride));
+
+    if(DebugData.pickVBBuf == 0 || DebugData.pickVBSize < (maxIndex + 1) * sizeof(Vec4f))
+    {
+      gl.glDeleteBuffers(1, &DebugData.pickVBBuf);
+
+      gl.glGenBuffers(1, &DebugData.pickVBBuf);
+      gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickVBBuf);
+      gl.glNamedBufferDataEXT(DebugData.pickVBBuf, (maxIndex + 1) * sizeof(Vec4f), NULL,
+                              eGL_DYNAMIC_DRAW);
+
+      DebugData.pickVBSize = (maxIndex + 1) * sizeof(Vec4f);
+    }
+
+    std::vector<FloatVector> vbData;
+    vbData.resize(maxIndex + 1);
 
     byte *data = &oldData[0];
     byte *dataEnd = data + oldData.size();
 
     bool valid;
 
-    uint32_t idxclamp = 0;
-    if(cfg.position.baseVertex < 0)
-      idxclamp = uint32_t(-cfg.position.baseVertex);
-
-    for(uint32_t i = 0; i < cfg.position.numIndices; i++)
-    {
-      uint32_t idx = i;
-
-      // apply baseVertex but clamp to 0 (don't allow index to become negative)
-      if(idx < idxclamp)
-        idx = 0;
-      else if(cfg.position.baseVertex < 0)
-        idx -= idxclamp;
-      else if(cfg.position.baseVertex > 0)
-        idx += cfg.position.baseVertex;
-
-      vbData[i] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
-    }
+    // the index buffer may refer to vertices past the start of the vertex buffer, so we can't just
+    // conver the first N vertices we'll need.
+    // Instead we grab min and max above, and convert every vertex in that range. This might
+    // slightly over-estimate but not as bad as 0-max or the whole buffer.
+    for(uint32_t idx = minIndex; idx <= maxIndex; idx++)
+      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
 
     gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickVBBuf);
-    gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(Vec4f), vbData);
-
-    delete[] vbData;
+    gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, (maxIndex + 1) * sizeof(Vec4f), vbData.data());
   }
 
   uint32_t reset[4] = {};

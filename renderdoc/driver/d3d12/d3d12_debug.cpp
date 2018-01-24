@@ -1427,6 +1427,7 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
 
 void D3D12Replay::VertexPicking::Release()
 {
+  SAFE_RELEASE(IB);
   SAFE_RELEASE(VB);
   SAFE_RELEASE(ResultBuf);
   SAFE_RELEASE(RootSig);

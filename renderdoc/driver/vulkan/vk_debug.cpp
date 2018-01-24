@@ -887,11 +887,18 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 
   bytebuf idxs;
 
+  uint32_t minIndex = 0;
+  uint32_t maxIndex = cfg.position.numIndices;
+
   if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
     GetBufferData(cfg.position.indexResourceId, cfg.position.indexByteOffset, 0, idxs);
 
-  // We copy into our own buffers to promote to the target type (uint32) that the
-  // shader expects. Most IBs will be 16-bit indices, most VBs will not be float4.
+  uint32_t idxclamp = 0;
+  if(cfg.position.baseVertex < 0)
+    idxclamp = uint32_t(-cfg.position.baseVertex);
+
+  // We copy into our own buffers to promote to the target type (uint32) that the shader expects.
+  // Most IBs will be 16-bit indices, most VBs will not be float4. We also apply baseVertex here
 
   if(!idxs.empty())
   {
@@ -918,44 +925,83 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
     uint16_t *idxs16 = (uint16_t *)&idxs[0];
     uint32_t *idxs32 = (uint32_t *)&idxs[0];
 
-    // if indices are 16-bit, manually upcast them so the shader only
-    // has to deal with one type
     if(cfg.position.indexByteStride == 2)
     {
       size_t bufsize = idxs.size() / 2;
 
       for(uint32_t i = 0; i < bufsize && i < cfg.position.numIndices; i++)
-        outidxs[i] = idxs16[i];
+      {
+        uint32_t idx = idxs16[i];
+
+        if(idx < idxclamp)
+          idx = 0;
+        else if(cfg.position.baseVertex < 0)
+          idx -= idxclamp;
+        else if(cfg.position.baseVertex > 0)
+          idx += cfg.position.baseVertex;
+
+        if(i == 0)
+        {
+          minIndex = maxIndex = idx;
+        }
+        else
+        {
+          minIndex = RDCMIN(idx, minIndex);
+          maxIndex = RDCMAX(idx, maxIndex);
+        }
+
+        outidxs[i] = idx;
+      }
     }
     else
     {
-      size_t bufsize = idxs.size() / 4;
+      uint32_t bufsize = uint32_t(idxs.size() / 4);
 
-      memcpy(outidxs, idxs32, RDCMIN(bufsize, cfg.position.numIndices * sizeof(uint32_t)));
+      minIndex = maxIndex = idxs32[0];
+
+      for(uint32_t i = 0; i < RDCMIN(bufsize, cfg.position.numIndices); i++)
+      {
+        uint32_t idx = idxs32[i];
+
+        if(idx < idxclamp)
+          idx = 0;
+        else if(cfg.position.baseVertex < 0)
+          idx -= idxclamp;
+        else if(cfg.position.baseVertex > 0)
+          idx += cfg.position.baseVertex;
+
+        minIndex = RDCMIN(idx, minIndex);
+        maxIndex = RDCMAX(idx, maxIndex);
+
+        outidxs[i] = idx;
+      }
     }
 
     m_VertexPick.IBUpload.Unmap();
-  }
-
-  if(m_VertexPick.VBSize < cfg.position.numIndices * sizeof(FloatVector))
-  {
-    if(m_VertexPick.VBSize > 0)
-    {
-      m_VertexPick.VB.Destroy();
-      m_VertexPick.VBUpload.Destroy();
-    }
-
-    m_VertexPick.VBSize = cfg.position.numIndices * sizeof(FloatVector);
-
-    m_VertexPick.VB.Create(m_pDriver, dev, m_VertexPick.VBSize, 1,
-                           GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
-    m_VertexPick.VBUpload.Create(m_pDriver, dev, m_VertexPick.VBSize, 1, 0);
   }
 
   // unpack and linearise the data
   {
     bytebuf oldData;
     GetBufferData(cfg.position.vertexResourceId, cfg.position.vertexByteOffset, 0, oldData);
+
+    // clamp maxIndex to upper bound in case we got invalid indices or primitive restart indices
+    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / cfg.position.vertexByteStride));
+
+    if(m_VertexPick.VBSize < (maxIndex + 1) * sizeof(FloatVector))
+    {
+      if(m_VertexPick.VBSize > 0)
+      {
+        m_VertexPick.VB.Destroy();
+        m_VertexPick.VBUpload.Destroy();
+      }
+
+      m_VertexPick.VBSize = (maxIndex + 1) * sizeof(FloatVector);
+
+      m_VertexPick.VB.Create(m_pDriver, dev, m_VertexPick.VBSize, 1,
+                             GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+      m_VertexPick.VBUpload.Create(m_pDriver, dev, m_VertexPick.VBSize, 1, 0);
+    }
 
     byte *data = &oldData[0];
     byte *dataEnd = data + oldData.size();
@@ -964,24 +1010,12 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 
     FloatVector *vbData = (FloatVector *)m_VertexPick.VBUpload.Map();
 
-    uint32_t idxclamp = 0;
-    if(cfg.position.baseVertex < 0)
-      idxclamp = uint32_t(-cfg.position.baseVertex);
-
-    for(uint32_t i = 0; i < cfg.position.numIndices; i++)
-    {
-      uint32_t idx = i;
-
-      // apply baseVertex but clamp to 0 (don't allow index to become negative)
-      if(idx < idxclamp)
-        idx = 0;
-      else if(cfg.position.baseVertex < 0)
-        idx -= idxclamp;
-      else if(cfg.position.baseVertex > 0)
-        idx += cfg.position.baseVertex;
-
-      vbData[i] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
-    }
+    // the index buffer may refer to vertices past the start of the vertex buffer, so we can't just
+    // conver the first N vertices we'll need.
+    // Instead we grab min and max above, and convert every vertex in that range. This might
+    // slightly over-estimate but not as bad as 0-max or the whole buffer.
+    for(uint32_t idx = minIndex; idx <= maxIndex; idx++)
+      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
 
     m_VertexPick.VBUpload.Unmap();
   }

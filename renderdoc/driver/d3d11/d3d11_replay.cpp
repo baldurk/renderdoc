@@ -2582,7 +2582,6 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   }
 
   ID3D11Buffer *vb = NULL, *ib = NULL;
-  DXGI_FORMAT ifmt = cfg.position.indexByteStride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
   {
     auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.vertexResourceId);
@@ -2598,27 +2597,34 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 
   HRESULT hr = S_OK;
 
-  // most IB/VBs will not be available as SRVs. So, we copy into our own buffers.
-  // In the case of VB we also tightly pack and unpack the data. IB can just be
-  // read as R16 or R32 via the SRV so it is just a straight copy
+  // most IB/VBs will not be available as SRVs. So, we copy into our own buffers. In the case of VB
+  // we also tightly pack and unpack the data. IB is upcast to R32 so it we can apply baseVertex
+  // without risking overflow.
+
+  uint32_t minIndex = 0;
+  uint32_t maxIndex = cfg.position.numIndices;
+
+  uint32_t idxclamp = 0;
+  if(cfg.position.baseVertex < 0)
+    idxclamp = uint32_t(-cfg.position.baseVertex);
 
   if(cfg.position.indexByteStride)
   {
     // resize up on demand
     if(m_VertexPick.PickIBBuf == NULL ||
-       m_VertexPick.PickIBSize < cfg.position.numIndices * cfg.position.indexByteStride)
+       m_VertexPick.PickIBSize < cfg.position.numIndices * sizeof(uint32_t))
     {
       SAFE_RELEASE(m_VertexPick.PickIBBuf);
       SAFE_RELEASE(m_VertexPick.PickIBSRV);
 
-      D3D11_BUFFER_DESC desc = {cfg.position.numIndices * cfg.position.indexByteStride,
+      D3D11_BUFFER_DESC desc = {cfg.position.numIndices * sizeof(uint32_t),
                                 D3D11_USAGE_DEFAULT,
                                 D3D11_BIND_SHADER_RESOURCE,
                                 0,
                                 0,
                                 0};
 
-      m_VertexPick.PickIBSize = cfg.position.numIndices * cfg.position.indexByteStride;
+      m_VertexPick.PickIBSize = cfg.position.numIndices * sizeof(uint32_t);
 
       hr = m_pDevice->CreateBuffer(&desc, NULL, &m_VertexPick.PickIBBuf);
 
@@ -2630,7 +2636,7 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 
       D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
       sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      sdesc.Format = ifmt;
+      sdesc.Format = DXGI_FORMAT_R32_UINT;
       sdesc.Buffer.FirstElement = 0;
       sdesc.Buffer.NumElements = cfg.position.numIndices;
 
@@ -2645,100 +2651,141 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
       }
     }
 
-    // copy index data as-is, the view format will take care of the rest
-
     RDCASSERT(cfg.position.indexByteOffset < 0xffffffff);
 
     if(ib)
     {
-      D3D11_BUFFER_DESC ibdesc;
-      ib->GetDesc(&ibdesc);
+      bytebuf idxs;
+      GetBufferData(cfg.position.indexResourceId, cfg.position.indexByteOffset, 0, idxs);
+
+      std::vector<uint32_t> outidxs;
+      outidxs.resize(cfg.position.numIndices);
+
+      uint16_t *idxs16 = (uint16_t *)&idxs[0];
+      uint32_t *idxs32 = (uint32_t *)&idxs[0];
+
+      if(cfg.position.indexByteStride == 2)
+      {
+        size_t bufsize = idxs.size() / 2;
+
+        for(uint32_t i = 0; i < bufsize && i < cfg.position.numIndices; i++)
+        {
+          uint32_t idx = idxs16[i];
+
+          if(idx < idxclamp)
+            idx = 0;
+          else if(cfg.position.baseVertex < 0)
+            idx -= idxclamp;
+          else if(cfg.position.baseVertex > 0)
+            idx += cfg.position.baseVertex;
+
+          if(i == 0)
+          {
+            minIndex = maxIndex = idx;
+          }
+          else
+          {
+            minIndex = RDCMIN(idx, minIndex);
+            maxIndex = RDCMAX(idx, maxIndex);
+          }
+
+          outidxs[i] = idx;
+        }
+      }
+      else
+      {
+        uint32_t bufsize = uint32_t(idxs.size() / 4);
+
+        minIndex = maxIndex = idxs32[0];
+
+        for(uint32_t i = 0; i < RDCMIN(bufsize, cfg.position.numIndices); i++)
+        {
+          uint32_t idx = idxs32[i];
+
+          if(idx < idxclamp)
+            idx = 0;
+          else if(cfg.position.baseVertex < 0)
+            idx -= idxclamp;
+          else if(cfg.position.baseVertex > 0)
+            idx += cfg.position.baseVertex;
+
+          minIndex = RDCMIN(idx, minIndex);
+          maxIndex = RDCMAX(idx, maxIndex);
+
+          outidxs[i] = idx;
+        }
+      }
 
       D3D11_BOX box;
-      box.front = 0;
-      box.back = 1;
-      box.left = (uint32_t)cfg.position.indexByteOffset;
-      box.right = (uint32_t)cfg.position.indexByteOffset +
-                  cfg.position.numIndices * cfg.position.indexByteStride;
       box.top = 0;
       box.bottom = 1;
+      box.front = 0;
+      box.back = 1;
+      box.left = 0;
+      box.right = UINT(outidxs.size() * sizeof(uint32_t));
 
-      box.right = RDCMIN(box.right, ibdesc.ByteWidth - (uint32_t)cfg.position.indexByteOffset);
-
-      m_pImmediateContext->CopySubresourceRegion(m_VertexPick.PickIBBuf, 0, 0, 0, 0, ib, 0, &box);
-    }
-  }
-
-  if(m_VertexPick.PickVBBuf == NULL ||
-     m_VertexPick.PickVBSize < cfg.position.numIndices * sizeof(Vec4f))
-  {
-    SAFE_RELEASE(m_VertexPick.PickVBBuf);
-    SAFE_RELEASE(m_VertexPick.PickVBSRV);
-
-    D3D11_BUFFER_DESC desc = {cfg.position.numIndices * sizeof(Vec4f),
-                              D3D11_USAGE_DEFAULT,
-                              D3D11_BIND_SHADER_RESOURCE,
-                              0,
-                              0,
-                              0};
-
-    m_VertexPick.PickVBSize = cfg.position.numIndices * sizeof(Vec4f);
-
-    hr = m_pDevice->CreateBuffer(&desc, NULL, &m_VertexPick.PickVBBuf);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed to create PickVBBuf HRESULT: %s", ToStr(hr).c_str());
-      return ~0U;
-    }
-
-    D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
-    sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    sdesc.Buffer.FirstElement = 0;
-    sdesc.Buffer.NumElements = cfg.position.numIndices;
-
-    hr = m_pDevice->CreateShaderResourceView(m_VertexPick.PickVBBuf, &sdesc, &m_VertexPick.PickVBSRV);
-
-    if(FAILED(hr))
-    {
-      SAFE_RELEASE(m_VertexPick.PickVBBuf);
-      RDCERR("Failed to create PickVBSRV HRESULT: %s", ToStr(hr).c_str());
-      return ~0U;
+      m_pImmediateContext->UpdateSubresource(m_VertexPick.PickIBBuf, 0, &box, outidxs.data(), 0, 0);
     }
   }
 
   // unpack and linearise the data
   if(vb)
   {
-    FloatVector *vbData = new FloatVector[cfg.position.numIndices];
-
     bytebuf oldData;
     GetDebugManager()->GetBufferData(vb, cfg.position.vertexByteOffset, 0, oldData);
+
+    // clamp maxIndex to upper bound in case we got invalid indices or primitive restart indices
+    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / cfg.position.vertexByteStride));
+
+    if(m_VertexPick.PickVBBuf == NULL || m_VertexPick.PickVBSize < (maxIndex + 1) * sizeof(Vec4f))
+    {
+      SAFE_RELEASE(m_VertexPick.PickVBBuf);
+      SAFE_RELEASE(m_VertexPick.PickVBSRV);
+
+      D3D11_BUFFER_DESC desc = {
+          (maxIndex + 1) * sizeof(Vec4f), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, 0};
+
+      m_VertexPick.PickVBSize = (maxIndex + 1) * sizeof(Vec4f);
+
+      hr = m_pDevice->CreateBuffer(&desc, NULL, &m_VertexPick.PickVBBuf);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create PickVBBuf HRESULT: %s", ToStr(hr).c_str());
+        return ~0U;
+      }
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
+      sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+      sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      sdesc.Buffer.FirstElement = 0;
+      sdesc.Buffer.NumElements = (maxIndex + 1);
+
+      hr = m_pDevice->CreateShaderResourceView(m_VertexPick.PickVBBuf, &sdesc,
+                                               &m_VertexPick.PickVBSRV);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(m_VertexPick.PickVBBuf);
+        RDCERR("Failed to create PickVBSRV HRESULT: %s", ToStr(hr).c_str());
+        return ~0U;
+      }
+    }
+
+    std::vector<FloatVector> vbData;
+    vbData.resize(maxIndex + 1);
 
     byte *data = &oldData[0];
     byte *dataEnd = data + oldData.size();
 
     bool valid;
 
-    uint32_t idxclamp = 0;
-    if(cfg.position.baseVertex < 0)
-      idxclamp = uint32_t(-cfg.position.baseVertex);
-
-    for(uint32_t i = 0; i < cfg.position.numIndices; i++)
-    {
-      uint32_t idx = i;
-
-      // apply baseVertex but clamp to 0 (don't allow index to become negative)
-      if(idx < idxclamp)
-        idx = 0;
-      else if(cfg.position.baseVertex < 0)
-        idx -= idxclamp;
-      else if(cfg.position.baseVertex > 0)
-        idx += cfg.position.baseVertex;
-
-      vbData[i] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
-    }
+    // the index buffer may refer to vertices past the start of the vertex buffer, so we can't just
+    // conver the first N vertices we'll need.
+    // Instead we grab min and max above, and convert every vertex in that range. This might
+    // slightly over-estimate but not as bad as 0-max or the whole buffer.
+    for(uint32_t idx = minIndex; idx <= maxIndex; idx++)
+      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
 
     D3D11_BOX box;
     box.top = 0;
@@ -2746,12 +2793,10 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
     box.front = 0;
     box.back = 1;
     box.left = 0;
-    box.right = cfg.position.numIndices * sizeof(Vec4f);
+    box.right = (maxIndex + 1) * sizeof(Vec4f);
 
-    m_pImmediateContext->UpdateSubresource(m_VertexPick.PickVBBuf, 0, &box, vbData, sizeof(Vec4f),
-                                           sizeof(Vec4f));
-
-    delete[] vbData;
+    m_pImmediateContext->UpdateSubresource(m_VertexPick.PickVBBuf, 0, &box, vbData.data(),
+                                           sizeof(Vec4f), sizeof(Vec4f));
   }
 
   ID3D11ShaderResourceView *srvs[2] = {m_VertexPick.PickIBSRV, m_VertexPick.PickVBSRV};
