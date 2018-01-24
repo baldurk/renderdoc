@@ -1222,7 +1222,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   };
 
   std::vector<bool> attrIsInstanced;
-  std::vector<CompactedAttrBuffer> vbuffers;
+  CompactedAttrBuffer vbuffers[64] = {};
 
   {
     VkWriteDescriptorSet descWrites[64];
@@ -1260,11 +1260,17 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
       GetBufferData(state.vbuffers[vb].buf, offs, len, origVBs[vb]);
     }
 
-    vbuffers.resize(vi->vertexAttributeDescriptionCount);
     for(uint32_t i = 0; i < vi->vertexAttributeDescriptionCount; i++)
     {
       const VkVertexInputAttributeDescription &attrDesc = vi->pVertexAttributeDescriptions[i];
       uint32_t attr = attrDesc.location;
+
+      RDCASSERT(attr < 64);
+      if(attr >= ARRAY_COUNT(vbuffers))
+      {
+        RDCERR("Attribute index too high! Resize array.");
+        continue;
+      }
 
       bool isInstanced = false;
       size_t stride = 1;
