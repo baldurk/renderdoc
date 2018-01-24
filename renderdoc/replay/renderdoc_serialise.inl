@@ -706,11 +706,13 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(showAlpha);
   SERIALISE_MEMBER(topology);
   SERIALISE_MEMBER(numIndices);
+  SERIALISE_MEMBER(instStepRate);
   SERIALISE_MEMBER(unproject);
+  SERIALISE_MEMBER(instanced);
   SERIALISE_MEMBER(nearPlane);
   SERIALISE_MEMBER(farPlane);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(96);
 }
 
 template <typename SerialiserType>

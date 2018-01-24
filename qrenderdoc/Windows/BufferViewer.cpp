@@ -2129,6 +2129,9 @@ void BufferViewer::updatePreviewColumns()
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
 
+        m_VSInPosition.instanced = el.perinstance;
+        m_VSInPosition.instStepRate = el.instancerate;
+
         if(el.buffer < vbs.count())
         {
           m_VSInPosition.vertexResourceId = vbs[el.buffer].resourceId;
@@ -2151,6 +2154,9 @@ void BufferViewer::updatePreviewColumns()
       if(elIdx >= 0 && elIdx < m_ModelVSIn->columns.count())
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
+
+        m_VSInSecondary.instanced = el.perinstance;
+        m_VSInSecondary.instStepRate = el.instancerate;
 
         if(el.buffer < vbs.count())
         {

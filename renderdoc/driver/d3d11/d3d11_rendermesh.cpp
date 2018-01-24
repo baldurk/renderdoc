@@ -89,7 +89,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       layoutdesc[0].Format = MakeDXGIFormat(resFmt);
     layoutdesc[0].AlignedByteOffset = 0;    // offset will be handled by vertex buffer offset
     layoutdesc[0].InputSlot = 0;
-    layoutdesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layoutdesc[0].InputSlotClass =
+        cfg.position.instanced ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
     layoutdesc[0].InstanceDataStepRate = 0;
 
     layoutdesc[1].SemanticName = "sec";
@@ -99,7 +100,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       layoutdesc[1].Format = MakeDXGIFormat(resFmt2);
     layoutdesc[1].AlignedByteOffset = 0;
     layoutdesc[1].InputSlot = 1;
-    layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layoutdesc[1].InputSlotClass =
+        cfg.second.instanced ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
     layoutdesc[1].InstanceDataStepRate = 0;
 
     HRESULT hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_MeshRender.MeshVSBytecode,
@@ -220,6 +222,14 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     ID3D11Buffer *vbs[2] = {NULL, NULL};
     UINT str[] = {cfg.position.vertexByteStride, cfg.second.vertexByteStride};
     UINT offs[] = {(UINT)cfg.position.vertexByteOffset, (UINT)cfg.second.vertexByteOffset};
+
+    // we source all data from the first instanced value in the instanced case, so make sure we
+    // offset correctly here.
+    if(cfg.position.instanced)
+      offs[0] += cfg.position.vertexByteStride * (cfg.curInstance / cfg.position.instStepRate);
+
+    if(cfg.second.instanced)
+      offs[1] += cfg.second.vertexByteStride * (cfg.curInstance / cfg.second.instStepRate);
 
     {
       auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.vertexResourceId);

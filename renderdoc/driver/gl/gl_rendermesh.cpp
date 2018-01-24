@@ -235,10 +235,19 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       gl.glVertexAttribLFormat(i, meshData[i]->format.compCount, eGL_DOUBLE, 0);
     }
 
+    GLintptr offs = (GLintptr)meshData[i]->vertexByteOffset;
+
+    if(meshData[i]->instanced)
+      offs += meshData[i]->vertexByteStride * (cfg.curInstance / meshData[i]->instStepRate);
+
     GLuint vb =
         m_pDriver->GetResourceManager()->GetCurrentResource(meshData[i]->vertexResourceId).name;
-    gl.glBindVertexBuffer(i, vb, (GLintptr)meshData[i]->vertexByteOffset,
-                          meshData[i]->vertexByteStride);
+    gl.glBindVertexBuffer(i, vb, offs, meshData[i]->vertexByteStride);
+
+    if(meshData[i]->instanced)
+      gl.glVertexAttribDivisor(i, 1);
+    else
+      gl.glVertexAttribDivisor(i, 0);
   }
 
   // enable position attribute

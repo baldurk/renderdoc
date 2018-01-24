@@ -72,6 +72,17 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   }
   bit += 16;
 
+  if(primary.instanced)
+    key |= 1ULL << bit;
+  bit++;
+
+  if(secondary.instanced)
+    key |= 1ULL << bit;
+  bit++;
+
+  // only 64 bits, make sure they all fit
+  RDCASSERT(bit < 64);
+
   MeshDisplayPipelines &cache = m_CachedMeshPipelines[key];
 
   if(cache.pipes[(uint32_t)SolidShade::NoSolid] != NULL)
@@ -113,6 +124,8 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   D3D12_INPUT_ELEMENT_DESC ia[2] = {};
   ia[0].SemanticName = "pos";
   ia[0].Format = primaryFmt;
+  ia[0].InputSlotClass = primary.instanced ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA
+                                           : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
   ia[1].SemanticName = "sec";
   ia[1].InputSlot = 1;
   ia[1].Format = secondaryFmt == DXGI_FORMAT_UNKNOWN ? primaryFmt : secondaryFmt;
@@ -171,7 +184,8 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   if(secondary.vertexResourceId != ResourceId())
   {
     // pull secondary information from second vertex buffer
-    ia[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+    ia[1].InputSlotClass = secondary.instanced ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA
+                                               : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
     RDCASSERT(secondaryFmt != DXGI_FORMAT_UNKNOWN);
 
     hr = m_pDevice->CreateGraphicsPipelineState(
@@ -336,6 +350,12 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
         m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
     UINT64 offs = cfg.position.vertexByteOffset;
+
+    // we source all data from the first instanced value in the instanced case, so make sure we
+    // offset correctly here.
+    if(cfg.position.instanced)
+      offs += cfg.position.vertexByteStride * (cfg.curInstance / cfg.position.instStepRate);
+
     D3D12_VERTEX_BUFFER_VIEW view;
     view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
     view.StrideInBytes = cfg.position.vertexByteStride;
@@ -363,10 +383,17 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
         m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
     UINT64 offs = cfg.second.vertexByteOffset;
+
+    // we source all data from the first instanced value in the instanced case, so make sure we
+    // offset correctly here.
+    if(cfg.second.instanced)
+      offs += cfg.second.vertexByteStride * (cfg.curInstance / cfg.second.instStepRate);
+
     D3D12_VERTEX_BUFFER_VIEW view;
     view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
     view.StrideInBytes = cfg.second.vertexByteStride;
     view.SizeInBytes = UINT(vb->GetDesc().Width - offs);
+
     list->IASetVertexBuffers(1, 1, &view);
   }
 

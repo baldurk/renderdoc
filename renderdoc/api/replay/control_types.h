@@ -40,10 +40,12 @@ struct MeshFormat
     baseVertex = 0;
     vertexByteOffset = 0;
     vertexByteStride = 0;
+    instStepRate = 1;
     showAlpha = false;
     topology = Topology::Unknown;
     numIndices = 0;
     unproject = false;
+    instanced = false;
     nearPlane = farPlane = 0.0f;
   }
 
@@ -75,6 +77,8 @@ struct MeshFormat
   Topology topology;
   DOCUMENT("The number of vertices in the mesh.");
   uint32_t numIndices;
+  DOCUMENT("The number of instances to render with the same value. See :data:`instanced`.");
+  uint32_t instStepRate;
 
   DOCUMENT("The near plane for the projection matrix.");
   float nearPlane;
@@ -82,6 +86,9 @@ struct MeshFormat
   float farPlane;
   DOCUMENT("``True`` if this mesh element contains post-projection positional data.");
   bool unproject;
+
+  DOCUMENT("``True`` if this mesh element comes from instanced data. See :data:`instStepRate`.");
+  bool instanced;
 
   DOCUMENT("``True`` if the alpha component of this element should be used.");
   bool showAlpha;
