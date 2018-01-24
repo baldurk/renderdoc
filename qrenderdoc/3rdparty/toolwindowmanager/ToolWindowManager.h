@@ -228,8 +228,7 @@ public:
    * \brief Removes \a toolWindow from the manager. \a toolWindow becomes a hidden
    * top level widget. The ownership of \a toolWindow is returned to the caller.
    */
-  void removeToolWindow(QWidget *toolWindow);
-
+  void removeToolWindow(QWidget *toolWindow) { removeToolWindow(toolWindow, false); }
   /*!
   * Returns if \a toolWindow is floating instead of being docked.
   */
@@ -308,6 +307,8 @@ private:
   void drawHotspotPixmaps();
 
   bool allowClose(QWidget *toolWindow);
+
+  void removeToolWindow(QWidget *toolWindow, bool allowCloseAlreadyChecked);
 
   // last widget used for adding tool windows, or 0 if there isn't one
   // (warning: may contain pointer to deleted object)

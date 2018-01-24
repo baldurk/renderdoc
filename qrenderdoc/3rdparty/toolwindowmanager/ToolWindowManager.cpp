@@ -452,7 +452,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
   }
 }
 
-void ToolWindowManager::removeToolWindow(QWidget *toolWindow)
+void ToolWindowManager::removeToolWindow(QWidget *toolWindow, bool allowCloseAlreadyChecked)
 {
   if(!m_toolWindows.contains(toolWindow))
   {
@@ -469,8 +469,11 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow)
     return;
   }
 
-  if(!manager->allowClose(toolWindow))
-    return;
+  if(!allowCloseAlreadyChecked)
+  {
+    if(!manager->allowClose(toolWindow))
+      return;
+  }
 
   moveToolWindow(toolWindow, NoArea);
   m_toolWindows.removeOne(toolWindow);
@@ -1429,7 +1432,7 @@ void ToolWindowManager::tabCloseRequested(int index)
   if(toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
     hideToolWindow(toolWindow);
   else
-    removeToolWindow(toolWindow);
+    removeToolWindow(toolWindow, true);
 }
 
 void ToolWindowManager::windowTitleChanged(const QString &)
