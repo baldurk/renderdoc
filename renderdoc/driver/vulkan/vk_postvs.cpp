@@ -623,9 +623,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   // make a new entry point that will call the old function, then when it returns extract & write
   // the outputs.
   SPIRVId wrapperEntry = editor.MakeId();
-  // we set a debug name, but we don't rename the actual entry point since the API needs to hook up
-  // to it the same way.
-  editor.SetName(wrapperEntry, "RenderDoc_MeshFetch_Wrapper_Entrypoint");
+  // don't set a debug name, as some drivers get confused when this doesn't match the entry point
+  // name :(.
+  // editor.SetName(wrapperEntry, "RenderDoc_MeshFetch_Wrapper_Entrypoint");
 
   // we remove all entry points and just create one of our own.
   SPIRVIterator it = editor.BeginEntries();
