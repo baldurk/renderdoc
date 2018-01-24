@@ -860,8 +860,30 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             ops.push_back(SPIRVOperation(spv::OpVectorShuffle, words));
           }
 
-          // *global = value
-          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, result}));
+          // not a composite type, we can store directly
+          if(patchData.inputs[i].accessChain.empty())
+          {
+            // *global = value
+            ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, result}));
+          }
+          else
+          {
+            // for composite types we need to access chain first
+            uint32_t subElement = editor.MakeId();
+            std::vector<uint32_t> words = {ins[i].privatePtrID, subElement, patchData.inputs[i].ID};
+
+            for(uint32_t accessIdx : patchData.inputs[i].accessChain)
+            {
+              if(idxs[accessIdx] == 0)
+                idxs[accessIdx] = editor.AddConstantImmediate<uint32_t>((uint32_t)accessIdx);
+
+              words.push_back(idxs[accessIdx]);
+            }
+
+            ops.push_back(SPIRVOperation(spv::OpAccessChain, words));
+
+            ops.push_back(SPIRVOperation(spv::OpStore, {subElement, result}));
+          }
         }
       }
 

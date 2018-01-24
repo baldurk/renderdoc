@@ -3710,7 +3710,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
   sig.needSemanticIndex = false;
 
-  SPIRVPatchData::OutputAccess patch;
+  SPIRVPatchData::InterfaceAccess patch;
   patch.accessChain = accessChain;
   patch.ID = id;
 
@@ -3843,7 +3843,9 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
       regIndex++;
 
-      if(!isInput)
+      if(isInput)
+        patchData.inputs.push_back(patch);
+      else
         patchData.outputs.push_back(patch);
     }
     else
@@ -3862,7 +3864,9 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
         sigarray.push_back(s);
 
-        if(!isInput)
+        if(isInput)
+          patchData.inputs.push_back(patch);
+        else
           patchData.outputs.push_back(patch);
 
         regIndex++;
@@ -4012,8 +4016,16 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           {
             sigarray->pop_back();
 
-            if(patchData.outputs.size() > sigarray->size())
-              patchData.outputs.pop_back();
+            if(isInput)
+            {
+              if(patchData.inputs.size() > sigarray->size())
+                patchData.inputs.pop_back();
+            }
+            else
+            {
+              if(patchData.outputs.size() > sigarray->size())
+                patchData.outputs.pop_back();
+            }
           }
         }
 
@@ -4086,7 +4098,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
                   if((*sigarray)[s].systemValue == attr)
                   {
                     sigarray->erase(sigarray->begin() + s);
-                    if(!isInput)
+                    if(isInput)
+                      patchData.inputs.erase(patchData.inputs.begin() + s);
+                    else
                       patchData.outputs.erase(patchData.outputs.begin() + s);
                     break;
                   }
@@ -4435,6 +4449,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     reflection.inputSignature.reserve(inputs.size());
     for(size_t i = 0; i < inputs.size(); i++)
       reflection.inputSignature.push_back(inputs[indices[i]]);
+
+    std::vector<SPIRVPatchData::InterfaceAccess> inPatch = patchData.inputs;
+    for(size_t i = 0; i < inputs.size(); i++)
+      patchData.inputs[i] = inPatch[indices[i]];
   }
 
   {
@@ -4448,7 +4466,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     for(size_t i = 0; i < outputs.size(); i++)
       reflection.outputSignature.push_back(outputs[indices[i]]);
 
-    std::vector<SPIRVPatchData::OutputAccess> outPatch = patchData.outputs;
+    std::vector<SPIRVPatchData::InterfaceAccess> outPatch = patchData.outputs;
     for(size_t i = 0; i < outputs.size(); i++)
       patchData.outputs[i] = outPatch[indices[i]];
   }
