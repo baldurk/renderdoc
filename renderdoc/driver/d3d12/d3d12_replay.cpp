@@ -3155,7 +3155,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     if(!D3D12InitParams::IsSupportedVersion(ver))
     {
-      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      RDCERR("Incompatible D3D12 serialise version %llu", ver);
       return ReplayStatus::APIIncompatibleVersion;
     }
 

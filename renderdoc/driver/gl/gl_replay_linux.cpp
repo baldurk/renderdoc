@@ -107,7 +107,7 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     if(!GLInitParams::IsSupportedVersion(ver))
     {
-      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      RDCERR("Incompatible OpenGL serialise version %llu", ver);
       return ReplayStatus::APIIncompatibleVersion;
     }
 
