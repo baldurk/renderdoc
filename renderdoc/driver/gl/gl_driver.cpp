@@ -919,7 +919,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       fetch.res.Context = winData.ctx;
       size_t before = m_QueuedInitialFetches.size();
       auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
-      for(; it->res.Context == winData.ctx && it != m_QueuedInitialFetches.end();)
+      for(; it != m_QueuedInitialFetches.end() && it->res.Context == winData.ctx;)
       {
         GetResourceManager()->ContextPrepare_InitialState(it->res);
         it = m_QueuedInitialFetches.erase(it);
