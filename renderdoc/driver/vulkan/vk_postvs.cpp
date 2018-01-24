@@ -1365,11 +1365,6 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
                              pipeInfo.shaders[0].entryPoint.c_str(), attrIsInstanced, descSet,
                              drawcall, baseVertex, numFetchVerts, numVerts, modSpirv, bufStride);
 
-  if(bufStride == 0)
-    bufStride = 80;
-
-  FileIO::dump("T:/tmp/test.spv", modSpirv.data(), modSpirv.size() * 4);
-
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 
   {
