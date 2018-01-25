@@ -330,7 +330,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   if(!m_MarkedActive)
   {
     m_MarkedActive = true;
-    RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, false);
+    RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D12, false);
   }
 
   if(IsActiveCapturing(m_State))
