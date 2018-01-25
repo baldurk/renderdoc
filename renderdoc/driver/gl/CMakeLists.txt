@@ -15,6 +15,7 @@ set(sources
     gl_enum.h
     gl_hookset_defs.h
     gl_hookset.h
+    gl_initstate.h
     gl_initstate.cpp
     gl_manager.cpp
     gl_manager.h

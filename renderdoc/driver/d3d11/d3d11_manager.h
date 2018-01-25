@@ -29,8 +29,40 @@
 #include "common/wrapped_pool.h"
 #include "core/core.h"
 #include "core/resource_manager.h"
-#include "driver/d3d11/d3d11_common.h"
 #include "serialise/serialiser.h"
+#include "d3d11_common.h"
+
+enum D3D11ResourceType
+{
+  Resource_Unknown = 0,
+  Resource_InputLayout,
+  Resource_Buffer,
+  Resource_Texture1D,
+  Resource_Texture2D,
+  Resource_Texture3D,
+  Resource_RasterizerState,
+  Unused1,    // Resource_RasterizerState1
+  Resource_BlendState,
+  Unused2,    // Resource_BlendState
+  Resource_DepthStencilState,
+  Resource_SamplerState,
+  Resource_RenderTargetView,
+  Resource_ShaderResourceView,
+  Resource_DepthStencilView,
+  Resource_UnorderedAccessView,
+  Resource_Shader,
+  Resource_Counter,
+  Resource_Query,
+  Resource_Predicate,
+  Resource_ClassInstance,
+  Resource_ClassLinkage,
+
+  Resource_DeviceContext,
+  Resource_CommandList,
+  Resource_DeviceState,
+};
+
+DECLARE_REFLECTION_ENUM(D3D11ResourceType);
 
 struct D3D11ResourceRecord : public ResourceRecord
 {
@@ -166,11 +198,50 @@ private:
   bool contexts[32];
 };
 
+struct D3D11InitialContents
+{
+  enum Tag
+  {
+    Copy,
+    ClearRTV,
+    ClearDSV,
+    UAVCount,
+  };
+  D3D11InitialContents(D3D11ResourceType t, ID3D11DeviceChild *r)
+      : resourceType(t), tag(Copy), resource(r), uavCount(0)
+  {
+  }
+  D3D11InitialContents(D3D11ResourceType t, ID3D11RenderTargetView *r)
+      : resourceType(t), tag(ClearRTV), resource(r), uavCount(0)
+  {
+  }
+  D3D11InitialContents(D3D11ResourceType t, ID3D11DepthStencilView *r)
+      : resourceType(t), tag(ClearDSV), resource(r), uavCount(0)
+  {
+  }
+  D3D11InitialContents(D3D11ResourceType t, uint32_t c)
+      : resourceType(t), tag(UAVCount), resource(NULL), uavCount(c)
+  {
+  }
+  D3D11InitialContents() : resourceType(Resource_Unknown), tag(Copy), resource(NULL), uavCount(0) {}
+  template <typename Configuration>
+  void Free(ResourceManager<Configuration> *rm)
+  {
+    SAFE_RELEASE(resource);
+  }
+
+  D3D11ResourceType resourceType;
+  Tag tag;
+  ID3D11DeviceChild *resource;
+  uint32_t uavCount;
+};
+
 struct D3D11ResourceManagerConfiguration
 {
   typedef ID3D11DeviceChild *WrappedResourceType;
   typedef ID3D11DeviceChild *RealResourceType;
   typedef D3D11ResourceRecord RecordType;
+  typedef D3D11InitialContents InitialContentData;
 };
 
 class D3D11ResourceManager : public ResourceManager<D3D11ResourceManagerConfiguration>
@@ -195,7 +266,7 @@ private:
   uint32_t GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res);
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, ID3D11DeviceChild *res);
   void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
-  void Apply_InitialState(ID3D11DeviceChild *live, InitialContentData data);
+  void Apply_InitialState(ID3D11DeviceChild *live, D3D11InitialContents data);
 
   WrappedID3D11Device *m_Device;
 };

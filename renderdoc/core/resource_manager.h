@@ -302,27 +302,12 @@ public:
   typedef typename Configuration::WrappedResourceType WrappedResourceType;
   typedef typename Configuration::RealResourceType RealResourceType;
   typedef typename Configuration::RecordType RecordType;
+  typedef typename Configuration::InitialContentData InitialContentData;
 
   ResourceManager();
   virtual ~ResourceManager();
 
   void Shutdown();
-
-  struct InitialContentData
-  {
-    InitialContentData(uint32_t t, WrappedResourceType r, uint32_t n, byte *b)
-        : resourceType(t), resource(r), num(n), blob(b)
-    {
-    }
-    InitialContentData()
-        : resourceType(0), resource((WrappedResourceType)RecordType::NullResource), num(0), blob(NULL)
-    {
-    }
-    uint32_t resourceType;
-    WrappedResourceType resource;
-    uint32_t num;
-    byte *blob;
-  };
 
   ///////////////////////////////////////////
   // Capture-side methods
@@ -427,6 +412,7 @@ public:
   void RemoveWrapper(RealResourceType real);
 
 protected:
+  friend typename InitialContentData;
   // 'interface' to implement by derived classes
   virtual bool SerialisableResource(ResourceId id, RecordType *record) = 0;
   virtual ResourceId GetID(WrappedResourceType res) = 0;
@@ -623,8 +609,8 @@ void ResourceManager<Configuration>::SetInitialContents(ResourceId id, InitialCo
 
   if(it != m_InitialContents.end())
   {
-    ResourceTypeRelease(it->second.resource);
-    FreeAlignedBuffer(it->second.blob);
+    // free previous contents
+    it->second.Free(this);
     m_InitialContents.erase(it);
   }
 
@@ -653,8 +639,8 @@ void ResourceManager<Configuration>::SetInitialChunk(ResourceId id, Chunk *chunk
 }
 
 template <typename Configuration>
-typename ResourceManager<Configuration>::InitialContentData ResourceManager<
-    Configuration>::GetInitialContents(ResourceId id)
+typename Configuration::InitialContentData ResourceManager<Configuration>::GetInitialContents(
+    ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -734,8 +720,7 @@ void ResourceManager<Configuration>::FreeInitialContents()
   while(!m_InitialContents.empty())
   {
     auto it = m_InitialContents.begin();
-    ResourceTypeRelease(it->second.resource);
-    FreeAlignedBuffer(it->second.blob);
+    it->second.Free(this);
     if(!m_InitialContents.empty())
       m_InitialContents.erase(m_InitialContents.begin());
   }
@@ -767,8 +752,7 @@ void ResourceManager<Configuration>::CreateInitialContents(ReadSerialiser &ser)
 
     if(neededInitials.find(id) == neededInitials.end())
     {
-      ResourceTypeRelease(it->second.resource);
-      FreeAlignedBuffer(it->second.blob);
+      it->second.Free(this);
       ++it;
       m_InitialContents.erase(id);
     }

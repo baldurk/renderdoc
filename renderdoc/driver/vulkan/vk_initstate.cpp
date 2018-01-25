@@ -53,21 +53,25 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     RDCASSERT(record->descInfo && record->descInfo->layout);
     const DescSetLayout &layout = *record->descInfo->layout;
 
-    uint32_t numElems = 0;
-    for(size_t i = 0; i < layout.bindings.size(); i++)
-      numElems += layout.bindings[i].descriptorCount;
+    VkInitialContents initialContents(type, VK_NULL_HANDLE, 0);
 
-    DescriptorSetSlot *info =
-        (DescriptorSetSlot *)AllocAlignedBuffer(sizeof(DescriptorSetSlot) * numElems);
-    RDCEraseMem(info, sizeof(DescriptorSetSlot) * numElems);
+    for(size_t i = 0; i < layout.bindings.size(); i++)
+      initialContents.numDescriptors += layout.bindings[i].descriptorCount;
+
+    initialContents.descriptorSlots = new DescriptorSetSlot[initialContents.numDescriptors];
+    RDCEraseMem(initialContents.descriptorSlots,
+                sizeof(DescriptorSetSlot) * initialContents.numDescriptors);
 
     uint32_t e = 0;
     for(size_t i = 0; i < layout.bindings.size(); i++)
+    {
       for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
-        info[e++] = record->descInfo->descBindings[i][b];
+      {
+        initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+      }
+    }
 
-    GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(type, NULL, 0, (byte *)info));
+    GetResourceManager()->SetInitialContents(id, initialContents);
     return true;
   }
   else if(type == eResBuffer)
@@ -372,9 +376,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       ObjDisp(d)->FreeMemory(Unwrap(d), arrayMem, NULL);
     }
 
-    GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(type, GetWrapped(readbackmem),
-                                                      (uint32_t)mrq.size, NULL));
+    GetResourceManager()->SetInitialContents(id, VkInitialContents(type, readbackmem, mrq.size));
 
     return true;
   }
@@ -460,9 +462,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     ObjDisp(d)->DestroyBuffer(Unwrap(d), srcBuf, NULL);
     ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf, NULL);
 
-    GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(type, GetWrapped(readbackmem),
-                                                      (uint32_t)datasize, NULL));
+    GetResourceManager()->SetInitialContents(id, VkInitialContents(type, readbackmem, datasize));
 
     return true;
   }
@@ -478,8 +478,7 @@ uint32_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
 {
   VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
   VkResourceType type = IdentifyTypeByPtr(record->Resource);
-  VulkanResourceManager::InitialContentData initContents =
-      GetResourceManager()->GetInitialContents(id);
+  VkInitialContents initContents = GetResourceManager()->GetInitialContents(id);
 
   if(type == eResDescriptorSet)
   {
@@ -500,13 +499,11 @@ uint32_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
   }
   else if(type == eResImage || type == eResDeviceMemory)
   {
-    bool IsSparse = (initContents.blob != NULL);
-
-    if(IsSparse)
+    if(initContents.tag == VkInitialContents::Sparse)
       return GetSize_SparseInitialState(id, res);
 
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
-    return uint32_t(128 + initContents.num + WriteSerialiser::GetChunkAlignment());
+    return uint32_t(128 + initContents.size + WriteSerialiser::GetChunkAlignment());
   }
 
   RDCERR("Unhandled resource type %s", ToStr(type).c_str());
@@ -546,13 +543,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     // while writing, fetching binding information from prepared initial contents
     if(ser.IsWriting())
     {
-      VulkanResourceManager::InitialContentData initContents =
-          GetResourceManager()->GetInitialContents(id);
+      VkInitialContents initContents = GetResourceManager()->GetInitialContents(id);
 
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
 
-      Bindings = (DescriptorSetSlot *)initContents.blob;
+      Bindings = (DescriptorSetSlot *)initContents.descriptorSlots;
 
       for(size_t i = 0; i < layout.bindings.size(); i++)
         NumBindings += layout.bindings[i].descriptorCount;
@@ -571,26 +567,25 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
       const DescSetLayout &layout =
           m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[liveid].layout];
 
-      uint32_t numBinds = (uint32_t)layout.bindings.size();
+      VkInitialContents initialContents(type, VK_NULL_HANDLE, 0);
 
-      // allocate memory to keep the element structures around, as well as a WriteDescriptorSet
-      // array
-      byte *blob = AllocAlignedBuffer(sizeof(VkDescriptorBufferInfo) * NumBindings +
-                                      sizeof(VkWriteDescriptorSet) * numBinds);
+      initialContents.numDescriptors = (uint32_t)layout.bindings.size();
+      initialContents.descriptorInfo = new VkDescriptorBufferInfo[NumBindings];
+      initialContents.descriptorWrites = new VkWriteDescriptorSet[initialContents.numDescriptors];
 
       RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
                         "Descriptor structs sizes are unexpected, ensure largest size is used");
 
-      VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)blob;
-      VkDescriptorBufferInfo *dstData = (VkDescriptorBufferInfo *)(writes + numBinds);
+      VkWriteDescriptorSet *writes = initialContents.descriptorWrites;
+      VkDescriptorBufferInfo *dstData = initialContents.descriptorInfo;
       DescriptorSetSlot *srcData = Bindings;
 
-      uint32_t validBinds = numBinds;
+      uint32_t validBinds = initialContents.numDescriptors;
 
       // i is the writedescriptor that we're updating, could be
       // lower than j if a writedescriptor ended up being no-op and
       // was skipped. j is the actual index.
-      for(uint32_t i = 0, j = 0; j < numBinds; j++)
+      for(uint32_t i = 0, j = 0; j < initialContents.numDescriptors; j++)
       {
         writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writes[i].pNext = NULL;
@@ -714,8 +709,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
           i++;
       }
 
-      GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(type, NULL, validBinds, blob));
+      initialContents.numDescriptors = validBinds;
+
+      GetResourceManager()->SetInitialContents(id, initialContents);
     }
   }
   else if(type == eResBuffer)
@@ -726,12 +722,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   else if(type == eResDeviceMemory || type == eResImage)
   {
     VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
-    VulkanResourceManager::InitialContentData initContents =
-        GetResourceManager()->GetInitialContents(id);
+    VkInitialContents initContents = GetResourceManager()->GetInitialContents(id);
 
     // if we have a blob of data, this contains sparse mapping so re-direct to the sparse
     // implementation of this function
-    SERIALISE_ELEMENT_LOCAL(IsSparse, bool(initContents.blob != NULL));
+    SERIALISE_ELEMENT_LOCAL(IsSparse, initContents.tag == VkInitialContents::Sparse);
 
     if(IsSparse)
     {
@@ -753,7 +748,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     VkResult vkr = VK_SUCCESS;
 
     byte *Contents = NULL;
-    uint64_t ContentsSize = (uint64_t)initContents.num;
+    uint64_t ContentsSize = initContents.size;
     VkDeviceMemory mappedMem = VK_NULL_HANDLE;
 
     // Serialise this separately so that it can be used on reading to prepare the upload memory
@@ -766,8 +761,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     // during writing, we already have the memory copied off - we just need to map it.
     if(ser.IsWriting())
     {
-      // the memory was created not wrapped.
-      mappedMem = (VkDeviceMemory)(uint64_t)initContents.resource;
+      mappedMem = initContents.mem;
       vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0,
                                   (void **)&Contents);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -828,24 +822,22 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
       if(type == eResDeviceMemory)
       {
-        m_CleanupMems.push_back(uploadMemory);
+        VkInitialContents initialContents(type, uploadMemory, ContentsSize);
+        initialContents.buf = uploadBuf;
 
-        GetResourceManager()->SetInitialContents(
-            id, VulkanResourceManager::InitialContentData(type, GetWrapped(uploadBuf),
-                                                          (uint32_t)ContentsSize, NULL));
+        GetResourceManager()->SetInitialContents(id, initialContents);
       }
       else
       {
-        VulkanResourceManager::InitialContentData initial(type, GetWrapped(uploadBuf), 0, NULL);
+        VkInitialContents initial(type, uploadMemory, 0);
 
         VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[liveid];
 
         // for non-MSAA images, we're done - we'll do buffer-to-image copies with appropriate
-        // offsets
-        // to copy out the subresources into the image itself.
+        // offsets to copy out the subresources into the image itself.
         if(c.samples == VK_SAMPLE_COUNT_1_BIT)
         {
-          m_CleanupMems.push_back(uploadMemory);
+          initial.buf = uploadBuf;
         }
         else
         {
@@ -1019,10 +1011,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
           vkDestroyBuffer(d, uploadBuf, NULL);
           vkFreeMemory(d, uploadMemory, NULL);
 
-          // the array-backing memory must be cleaned-up later as we'll be using the array image to
-          // apply from.
-          m_CleanupMems.push_back(arrayMem);
-          initial.resource = GetWrapped(arrayIm);
+          initial.buf = VK_NULL_HANDLE;
+          initial.img = arrayIm;
+          initial.mem = arrayMem;
         }
 
         GetResourceManager()->SetInitialContents(id, initial);
@@ -1072,8 +1063,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
     {
       RDCERR("Couldn't find image info for %llu", id);
       GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(type, NULL,
-                                                        eInitialContents_ClearColorImage, NULL));
+          id, VkInitialContents(type, VkInitialContents::ClearColorImage));
       return;
     }
 
@@ -1081,12 +1071,10 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
     if(layouts.subresourceStates[0].subresourceRange.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
       GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(type, NULL,
-                                                        eInitialContents_ClearColorImage, NULL));
+          id, VkInitialContents(type, VkInitialContents::ClearColorImage));
     else
       GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(
-                  type, NULL, eInitialContents_ClearDepthStencilImage, NULL));
+          id, VkInitialContents(type, VkInitialContents::ClearDepthStencilImage));
   }
   else if(type == eResDeviceMemory)
   {
@@ -1098,30 +1086,29 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
   }
 }
 
-void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
-                                       VulkanResourceManager::InitialContentData initial)
+void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents initial)
 {
-  VkResourceType type = (VkResourceType)initial.resourceType;
+  VkResourceType type = initial.type;
 
   ResourceId id = GetResourceManager()->GetID(live);
 
   if(type == eResDescriptorSet)
   {
-    VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)initial.blob;
+    VkWriteDescriptorSet *writes = initial.descriptorWrites;
 
     // if it ended up that no descriptors were valid, just skip
-    if(initial.num == 0)
+    if(initial.numDescriptors == 0)
       return;
 
     // deliberately go through our wrapper implementation, to unwrap the VkWriteDescriptorSet
     // structs
-    vkUpdateDescriptorSets(GetDev(), initial.num, writes, 0, NULL);
+    vkUpdateDescriptorSets(GetDev(), initial.numDescriptors, writes, 0, NULL);
 
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
     vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
 
-    for(uint32_t i = 0; i < initial.num; i++)
+    for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {
       RDCASSERT(writes[i].dstBinding < bindings.size());
       RDCASSERT(writes[i].dstArrayElement == 0);
@@ -1160,18 +1147,16 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-    if(initial.blob != NULL)
+    if(initial.tag == VkInitialContents::Sparse)
     {
-      RDCASSERT(initial.num == eInitialContents_Sparse);
       Apply_SparseInitialState((WrappedVkImage *)live, initial);
       return;
     }
 
     // handle any 'created' initial states, without an actual image with contents
-    if(initial.resource == NULL)
+    if(initial.tag != VkInitialContents::BufferCopy)
     {
-      RDCASSERT(initial.num != eInitialContents_Sparse);
-      if(initial.num == eInitialContents_ClearColorImage)
+      if(initial.tag == VkInitialContents::ClearColorImage)
       {
         if(IsBlockFormat(m_ImageLayouts[id].format))
         {
@@ -1240,7 +1225,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         SubmitCmds();
 #endif
       }
-      else if(initial.num == eInitialContents_ClearDepthStencilImage)
+      else if(initial.tag == VkInitialContents::ClearDepthStencilImage)
       {
         VkCommandBuffer cmd = GetNextCmd();
 
@@ -1302,7 +1287,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
       }
       else
       {
-        RDCERR("Unexpected initial state type %u with NULL resource", initial.num);
+        RDCERR("Unexpected initial state tag %u", initial.tag);
       }
 
       return;
@@ -1352,14 +1337,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         DoPipelineBarrier(cmd, 1, &barrier);
       }
 
-      WrappedVkImage *arrayIm = (WrappedVkImage *)initial.resource;
+      VkImage arrayIm = initial.img;
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      GetDebugManager()->CopyArrayToTex2DMS(ToHandle<VkImage>(live), arrayIm->real.As<VkImage>(),
-                                            c.extent, (uint32_t)c.arrayLayers, (uint32_t)c.samples,
-                                            fmt);
+      GetDebugManager()->CopyArrayToTex2DMS(ToHandle<VkImage>(live), Unwrap(arrayIm), c.extent,
+                                            (uint32_t)c.arrayLayers, (uint32_t)c.samples, fmt);
 
       cmd = GetNextCmd();
 
@@ -1390,7 +1374,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
       return;
     }
 
-    WrappedVkBuffer *buf = (WrappedVkBuffer *)initial.resource;
+    VkBuffer buf = initial.buf;
 
     VkCommandBuffer cmd = GetNextCmd();
 
@@ -1469,8 +1453,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         // pass 0 for mip since we've already pre-downscaled extent
         bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
 
-        ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), buf->real.As<VkBuffer>(),
-                                           ToHandle<VkImage>(live),
+        ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), ToHandle<VkImage>(live),
                                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
         if(sizeFormat != fmt)
@@ -1483,8 +1466,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
 
           bufOffset += GetByteSize(extent.width, extent.height, extent.depth, VK_FORMAT_S8_UINT, 0);
 
-          ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), buf->real.As<VkBuffer>(),
-                                             ToHandle<VkImage>(live),
+          ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), ToHandle<VkImage>(live),
                                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         }
 
@@ -1524,8 +1506,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-    VkBuffer srcBuf = (VkBuffer)(uint64_t)initial.resource;
-    VkDeviceSize datasize = (VkDeviceSize)initial.num;
+    VkBuffer srcBuf = initial.buf;
+    VkDeviceSize datasize = initial.size;
     VkDeviceSize dstMemOffs = 0;
 
     VkCommandBuffer cmd = GetNextCmd();

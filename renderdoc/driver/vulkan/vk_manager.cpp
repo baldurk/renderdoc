@@ -591,7 +591,7 @@ void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *liv
   return m_Core->Create_InitialState(id, live, hasData);
 }
 
-void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, InitialContentData initial)
+void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, VkInitialContents initial)
 {
   return m_Core->Apply_InitialState(live, initial);
 }

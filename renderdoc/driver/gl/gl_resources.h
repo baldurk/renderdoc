@@ -39,7 +39,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat,
 void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
                                GLint *mip, GLint *layer);
 void GetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, GLenum *swizzleRGBA);
-void SetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, GLenum *swizzleRGBA);
+void SetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, const GLenum *swizzleRGBA);
 
 bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat,
                             GLenum &dataFormat);

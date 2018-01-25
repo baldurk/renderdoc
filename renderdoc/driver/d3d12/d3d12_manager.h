@@ -439,11 +439,71 @@ struct D3D12ResourceRecord : public ResourceRecord
 
 typedef vector<D3D12_RESOURCE_STATES> SubresourceStateVector;
 
+struct D3D12InitialContents
+{
+  enum Tag
+  {
+    Copy,
+    // this is only valid during capture - it indicates we didn't create a staging texture, we're
+    // going to read directly from the resource (only valid for resources that are already READBACK)
+    MapDirect,
+    Multisampled,
+  };
+  D3D12InitialContents(D3D12Descriptor *d, uint32_t n)
+      : tag(Copy),
+        resourceType(Resource_DescriptorHeap),
+        descriptors(d),
+        numDescriptors(n),
+        resource(NULL)
+  {
+  }
+  D3D12InitialContents(ID3D12DescriptorHeap *r)
+      : tag(Copy),
+        resourceType(Resource_DescriptorHeap),
+        descriptors(NULL),
+        numDescriptors(0),
+        resource(r)
+  {
+  }
+  D3D12InitialContents(ID3D12Resource *r)
+      : tag(Copy),
+        resourceType(Resource_DescriptorHeap),
+        descriptors(NULL),
+        numDescriptors(0),
+        resource(r)
+  {
+  }
+  D3D12InitialContents(Tag tg)
+      : tag(tg),
+        resourceType(Resource_DescriptorHeap),
+        descriptors(NULL),
+        numDescriptors(0),
+        resource(NULL)
+  {
+  }
+  D3D12InitialContents()
+      : tag(Copy), resourceType(Resource_Unknown), descriptors(NULL), numDescriptors(0), resource(NULL)
+  {
+  }
+  template <typename Configuration>
+  void Free(ResourceManager<Configuration> *rm)
+  {
+    SAFE_RELEASE(resource);
+  }
+
+  Tag tag;
+  D3D12ResourceType resourceType;
+  D3D12Descriptor *descriptors;
+  uint32_t numDescriptors;
+  ID3D12DeviceChild *resource;
+};
+
 struct D3D12ResourceManagerConfiguration
 {
   typedef ID3D12DeviceChild *WrappedResourceType;
   typedef ID3D12DeviceChild *RealResourceType;
   typedef D3D12ResourceRecord RecordType;
+  typedef D3D12InitialContents InitialContentData;
 };
 
 class D3D12ResourceManager : public ResourceManager<D3D12ResourceManagerConfiguration>
@@ -490,7 +550,7 @@ private:
     return Serialise_InitialState<WriteSerialiser>(ser, resid, res);
   }
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
-  void Apply_InitialState(ID3D12DeviceChild *live, InitialContentData data);
+  void Apply_InitialState(ID3D12DeviceChild *live, D3D12InitialContents data);
 
   CaptureState m_State;
   WrappedID3D12Device *m_Device;

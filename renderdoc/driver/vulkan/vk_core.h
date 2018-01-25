@@ -214,13 +214,6 @@ private:
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
-  enum
-  {
-    eInitialContents_ClearColorImage = 1,
-    eInitialContents_ClearDepthStencilImage,
-    eInitialContents_Sparse,
-  };
-
   CaptureState m_State;
   bool m_AppControlledCapture;
 
@@ -399,7 +392,6 @@ private:
     // -> FlushQ() ----back to freesems-------^
   } m_InternalCmds;
 
-  vector<VkDeviceMemory> m_CleanupMems;
   vector<VkEvent> m_CleanupEvents;
   vector<VkEvent> m_PersistentEvents;
 
@@ -663,14 +655,12 @@ private:
   bool Prepare_SparseInitialState(WrappedVkImage *im);
   template <typename SerialiserType>
   bool Serialise_SparseBufferInitialState(SerialiserType &ser, ResourceId id,
-                                          VulkanResourceManager::InitialContentData contents);
+                                          VkInitialContents contents);
   template <typename SerialiserType>
   bool Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
-                                         VulkanResourceManager::InitialContentData contents);
-  bool Apply_SparseInitialState(WrappedVkBuffer *buf,
-                                VulkanResourceManager::InitialContentData contents);
-  bool Apply_SparseInitialState(WrappedVkImage *im,
-                                VulkanResourceManager::InitialContentData contents);
+                                         VkInitialContents contents);
+  bool Apply_SparseInitialState(WrappedVkBuffer *buf, VkInitialContents contents);
+  bool Apply_SparseInitialState(WrappedVkImage *im, VkInitialContents contents);
 
   void ApplyInitialContents();
 
@@ -751,7 +741,7 @@ public:
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
-  void Apply_InitialState(WrappedVkRes *live, VulkanResourceManager::InitialContentData initial);
+  void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);
 
   bool ReleaseResource(WrappedVkRes *res);
 

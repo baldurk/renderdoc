@@ -50,13 +50,10 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     UINT numElems = heap->GetDesc().NumDescriptors;
 
-    D3D12Descriptor *descs =
-        (D3D12Descriptor *)AllocAlignedBuffer(sizeof(D3D12Descriptor) * numElems);
-
+    D3D12Descriptor *descs = new D3D12Descriptor[numElems];
     memcpy(descs, heap->GetDescriptors(), sizeof(D3D12Descriptor) * numElems);
 
-    SetInitialContents(heap->GetResourceID(), D3D12ResourceManager::InitialContentData(
-                                                  type, NULL, numElems, (byte *)descs));
+    SetInitialContents(heap->GetResourceID(), D3D12InitialContents(descs, numElems));
     return true;
   }
   else if(type == Resource_Resource)
@@ -74,7 +71,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
     {
       D3D12NOTIMP("Multisampled initial contents");
 
-      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(type, NULL, 2, NULL));
+      SetInitialContents(GetResID(r), D3D12InitialContents(D3D12InitialContents::Multisampled));
       return true;
     }
     else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -85,8 +82,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
       {
         // already on readback heap, just mark that we can map it directly and continue
-        SetInitialContents(GetResID(r),
-                           D3D12ResourceManager::InitialContentData(type, NULL, 1, NULL));
+        SetInitialContents(GetResID(r), D3D12InitialContents(D3D12InitialContents::MapDirect));
         return true;
       }
 
@@ -127,8 +123,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         m_Device->Evict(1, &pageable);
       }
 
-      SetInitialContents(GetResID(r),
-                         D3D12ResourceManager::InitialContentData(type, copyDst, 0, NULL));
+      SetInitialContents(GetResID(r), D3D12InitialContents(copyDst));
       return true;
     }
     else
@@ -241,8 +236,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       SAFE_DELETE_ARRAY(layouts);
 
-      SetInitialContents(GetResID(r),
-                         D3D12ResourceManager::InitialContentData(type, copyDst, 0, NULL));
+      SetInitialContents(GetResID(r), D3D12InitialContents(copyDst));
       return true;
     }
   }
@@ -257,24 +251,24 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 uint32_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res)
 {
   D3D12ResourceRecord *record = GetResourceRecord(id);
-  D3D12ResourceManager::InitialContentData initContents = GetInitialContents(id);
+  D3D12InitialContents initContents = GetInitialContents(id);
 
   if(record->type == Resource_DescriptorHeap)
   {
     // the initial contents are just the descriptors. Estimate the serialise size here
     const uint32_t descriptorSerSize = 40 + sizeof(D3D12_SAMPLER_DESC);
 
-    return initContents.num * descriptorSerSize;
+    return initContents.numDescriptors * descriptorSerSize;
   }
   else if(record->type == Resource_Resource)
   {
     ID3D12Resource *buf = (ID3D12Resource *)initContents.resource;
 
-    if(initContents.num == 1)
+    if(initContents.tag == D3D12InitialContents::MapDirect)
     {
       buf = (ID3D12Resource *)res;
     }
-    else if(initContents.num == 2)
+    else if(initContents.tag == D3D12InitialContents::Multisampled)
     {
       D3D12NOTIMP("Multisampled initial contents");
       buf = NULL;
@@ -296,7 +290,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
                                                   ID3D12DeviceChild *liveRes)
 {
   D3D12ResourceRecord *record = NULL;
-  D3D12ResourceManager::InitialContentData initContents;
+  D3D12InitialContents initContents;
   if(ser.IsWriting())
   {
     record = GetResourceRecord(resid);
@@ -318,8 +312,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
   if(type == Resource_DescriptorHeap)
   {
-    D3D12Descriptor *Descriptors = (D3D12Descriptor *)initContents.blob;
-    uint32_t numElems = initContents.num;
+    D3D12Descriptor *Descriptors = initContents.descriptors;
+    uint32_t numElems = initContents.numDescriptors;
 
     SERIALISE_ELEMENT_ARRAY(Descriptors, numElems);
 
@@ -364,7 +358,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         handle.ptr += increment;
       }
 
-      SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, copyheap, 0, NULL));
+      SetInitialContents(id, D3D12InitialContents(copyheap));
     }
   }
   else if(type == Resource_Resource)
@@ -381,11 +375,11 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
       mappedBuffer = (ID3D12Resource *)initContents.resource;
 
-      if(initContents.num == 1)
+      if(initContents.tag == D3D12InitialContents::MapDirect)
       {
         mappedBuffer = (ID3D12Resource *)liveRes;
       }
-      else if(initContents.num == 2)
+      else if(initContents.tag == D3D12InitialContents::Multisampled)
       {
         D3D12NOTIMP("Multisampled initial contents");
         mappedBuffer = NULL;
@@ -418,10 +412,13 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
       if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && resDesc.SampleDesc.Count > 1)
       {
+        initContents.tag = D3D12InitialContents::Multisampled;
         D3D12NOTIMP("Multisampled initial contents");
       }
       else
       {
+        initContents.tag = D3D12InitialContents::Copy;
+
         // create an upload buffer to contain the contents
         D3D12_HEAP_PROPERTIES heapProps;
         heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -490,7 +487,11 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading() && mappedBuffer)
-      SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, mappedBuffer, 1, NULL));
+    {
+      initContents.resourceType = Resource_Resource;
+      initContents.resource = mappedBuffer;
+      SetInitialContents(id, initContents);
+    }
 
     return true;
   }
@@ -516,7 +517,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   {
     // set a NULL heap, if there are no initial contents for a descriptor heap we just leave
     // it all entirely undefined.
-    SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, NULL, 1, NULL));
+    SetInitialContents(id, D3D12InitialContents((ID3D12DescriptorHeap *)NULL));
   }
   else if(type == Resource_Resource)
   {
@@ -530,7 +531,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   }
 }
 
-void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialContentData data)
+void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12InitialContents data)
 {
   D3D12ResourceType type = (D3D12ResourceType)data.resourceType;
 
@@ -549,10 +550,20 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
   }
   else if(type == Resource_Resource)
   {
-    if(data.num == 1 && data.resource)
+    if(data.tag == D3D12InitialContents::Multisampled)
+    {
+      D3D12NOTIMP("Multisampled initial contents");
+    }
+    else if(data.tag == D3D12InitialContents::Copy)
     {
       ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
       ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
+
+      if(!copySrc || !copyDst)
+      {
+        RDCERR("Missing copy source or destination in initial state apply (%p %p)", copySrc, copyDst);
+        return;
+      }
 
       D3D12_HEAP_PROPERTIES heapProps = {};
       copyDst->GetHeapProperties(&heapProps, NULL);
@@ -727,7 +738,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
     }
     else
     {
-      RDCERR("Unexpected num or NULL resource: %d, %p", data.num, data.resource);
+      RDCERR("Unexpected tag: %u", data.tag);
     }
   }
   else

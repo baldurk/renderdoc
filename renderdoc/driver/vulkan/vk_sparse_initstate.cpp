@@ -25,33 +25,12 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 
-struct MemIDOffset
-{
-  ResourceId memory;
-  VkDeviceSize memOffs;
-};
-
-DECLARE_REFLECTION_STRUCT(MemIDOffset);
-
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, MemIDOffset &el)
 {
   SERIALISE_MEMBER(memory);
   SERIALISE_MEMBER(memOffs);
 }
-
-struct SparseBufferInitState
-{
-  uint32_t numBinds;
-  VkSparseMemoryBind *binds;
-
-  uint32_t numUniqueMems;
-  MemIDOffset *memDataOffs;
-
-  VkDeviceSize totalSize;
-};
-
-DECLARE_REFLECTION_STRUCT(SparseBufferInitState);
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, SparseBufferInitState &el)
@@ -67,29 +46,6 @@ void Deserialise(const SparseBufferInitState &el)
   delete[] el.binds;
   delete[] el.memDataOffs;
 }
-
-struct SparseImageInitState
-{
-  uint32_t opaqueCount;
-  VkSparseMemoryBind *opaque;
-
-  VkExtent3D imgdim;    // in pages
-  VkExtent3D pagedim;
-  uint32_t pageCount[NUM_VK_IMAGE_ASPECTS];
-
-  // available on capture - filled out in Prepare_SparseInitialState and serialised to disk
-  MemIDOffset *pages[NUM_VK_IMAGE_ASPECTS];
-
-  // available on replay - filled out in the read path of Serialise_SparseInitialState
-  VkSparseImageMemoryBind *pageBinds[NUM_VK_IMAGE_ASPECTS];
-
-  uint32_t numUniqueMems;
-  MemIDOffset *memDataOffs;
-
-  VkDeviceSize totalSize;
-};
-
-DECLARE_REFLECTION_STRUCT(SparseImageInitState);
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, SparseImageInitState &el)
@@ -127,19 +83,18 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
   uint32_t numElems = (uint32_t)buf->record->sparseInfo->opaquemappings.size();
 
-  SparseBufferInitState *info = (SparseBufferInitState *)AllocAlignedBuffer(
-      sizeof(SparseBufferInitState) + sizeof(VkSparseMemoryBind) * numElems +
-      sizeof(MemIDOffset) * boundMems.size());
+  VkInitialContents initContents;
 
-  VkSparseMemoryBind *binds = (VkSparseMemoryBind *)(info + 1);
-  MemIDOffset *memDataOffs = (MemIDOffset *)(binds + numElems);
+  initContents.tag = VkInitialContents::Sparse;
+  initContents.type = eResBuffer;
 
-  info->numBinds = numElems;
-  info->numUniqueMems = (uint32_t)boundMems.size();
-  info->memDataOffs = memDataOffs;
-  info->binds = binds;
+  initContents.sparseBuffer.numBinds = numElems;
+  initContents.sparseBuffer.binds = new VkSparseMemoryBind[numElems];
+  initContents.sparseBuffer.numUniqueMems = (uint32_t)boundMems.size();
+  initContents.sparseBuffer.memDataOffs = new MemIDOffset[boundMems.size()];
 
-  memcpy(binds, &buf->record->sparseInfo->opaquemappings[0], sizeof(VkSparseMemoryBind) * numElems);
+  memcpy(initContents.sparseBuffer.binds, &buf->record->sparseInfo->opaquemappings[0],
+         sizeof(VkSparseMemoryBind) * numElems);
 
   VkDevice d = GetDev();
   // INITSTATEBATCH
@@ -159,15 +114,15 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
     // store offset
     it->second = bufInfo.size;
 
-    memDataOffs[memidx].memory = GetResID(it->first);
-    memDataOffs[memidx].memOffs = bufInfo.size;
+    initContents.sparseBuffer.memDataOffs[memidx].memory = GetResID(it->first);
+    initContents.sparseBuffer.memDataOffs[memidx].memOffs = bufInfo.size;
 
     // increase size
     bufInfo.size += GetRecord(it->first)->Length;
     memidx++;
   }
 
-  info->totalSize = bufInfo.size;
+  initContents.sparseBuffer.totalSize = bufInfo.size;
 
   VkDeviceMemory readbackmem = VK_NULL_HANDLE;
 
@@ -194,6 +149,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
+
+  initContents.mem = readbackmem;
 
   vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -237,9 +194,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   for(size_t i = 0; i < bufdeletes.size(); i++)
     ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i], NULL);
 
-  GetResourceManager()->SetInitialContents(
-      id, VulkanResourceManager::InitialContentData(eResBuffer, GetWrapped(readbackmem), 0,
-                                                    (byte *)info));
+  GetResourceManager()->SetInitialContents(id, initContents);
 
   return true;
 }
@@ -270,50 +225,42 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
     }
   }
 
-  uint32_t totalPageCount = 0;
-  for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
-    totalPageCount += sparse->pages[a] ? pagePerAspect : 0;
-
   uint32_t opaqueCount = (uint32_t)sparse->opaquemappings.size();
 
-  byte *blob = AllocAlignedBuffer(
-      sizeof(SparseImageInitState) + sizeof(VkSparseMemoryBind) * opaqueCount +
-      sizeof(MemIDOffset) * totalPageCount + sizeof(MemIDOffset) * boundMems.size());
+  VkInitialContents initContents;
 
-  SparseImageInitState *state = (SparseImageInitState *)blob;
-  VkSparseMemoryBind *opaque = (VkSparseMemoryBind *)(state + 1);
-  MemIDOffset *pages = (MemIDOffset *)(opaque + opaqueCount);
-  MemIDOffset *memDataOffs = (MemIDOffset *)(pages + totalPageCount);
+  initContents.tag = VkInitialContents::Sparse;
+  initContents.type = eResImage;
 
-  state->opaque = opaque;
-  state->opaqueCount = opaqueCount;
-  state->pagedim = sparse->pagedim;
-  state->imgdim = sparse->imgdim;
-  state->numUniqueMems = (uint32_t)boundMems.size();
-  state->memDataOffs = memDataOffs;
+  SparseImageInitState &sparseInit = initContents.sparseImage;
+
+  sparseInit.opaqueCount = opaqueCount;
+  sparseInit.opaque = new VkSparseMemoryBind[opaqueCount];
+  sparseInit.imgdim = sparse->imgdim;
+  sparseInit.pagedim = sparse->pagedim;
+  sparseInit.numUniqueMems = (uint32_t)boundMems.size();
+  sparseInit.memDataOffs = new MemIDOffset[boundMems.size()];
 
   if(opaqueCount > 0)
-    memcpy(opaque, &sparse->opaquemappings[0], sizeof(VkSparseMemoryBind) * opaqueCount);
+    memcpy(sparseInit.opaque, &sparse->opaquemappings[0], sizeof(VkSparseMemoryBind) * opaqueCount);
 
   for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
   {
-    state->pageCount[a] = (sparse->pages[a] ? pagePerAspect : 0);
+    sparseInit.pageCount[a] = (sparse->pages[a] ? pagePerAspect : 0);
 
-    if(state->pageCount[a] != 0)
+    if(sparseInit.pageCount[a] != 0)
     {
-      state->pages[a] = pages;
+      sparseInit.pages[a] = new MemIDOffset[pagePerAspect];
 
       for(uint32_t i = 0; i < pagePerAspect; i++)
       {
-        state->pages[a][i].memory = GetResID(sparse->pages[a][i].first);
-        state->pages[a][i].memOffs = sparse->pages[a][i].second;
+        sparseInit.pages[a][i].memory = GetResID(sparse->pages[a][i].first);
+        sparseInit.pages[a][i].memOffs = sparse->pages[a][i].second;
       }
-
-      pages += pagePerAspect;
     }
     else
     {
-      state->pages[a] = NULL;
+      sparseInit.pages[a] = NULL;
     }
   }
 
@@ -335,15 +282,15 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
     // store offset
     it->second = bufInfo.size;
 
-    memDataOffs[memidx].memory = GetResID(it->first);
-    memDataOffs[memidx].memOffs = bufInfo.size;
+    sparseInit.memDataOffs[memidx].memory = GetResID(it->first);
+    sparseInit.memDataOffs[memidx].memOffs = bufInfo.size;
 
     // increase size
     bufInfo.size += GetRecord(it->first)->Length;
     memidx++;
   }
 
-  state->totalSize = bufInfo.size;
+  sparseInit.totalSize = bufInfo.size;
 
   VkDeviceMemory readbackmem = VK_NULL_HANDLE;
 
@@ -370,6 +317,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
+
+  initContents.mem = readbackmem;
 
   vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -413,9 +362,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
   for(size_t i = 0; i < bufdeletes.size(); i++)
     ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i], NULL);
 
-  GetResourceManager()->SetInitialContents(
-      id, VulkanResourceManager::InitialContentData(eResImage, GetWrapped(readbackmem), 0,
-                                                    (byte *)blob));
+  GetResourceManager()->SetInitialContents(id, initContents);
 
   return true;
 }
@@ -424,29 +371,29 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
 {
   VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
   VkResourceType type = IdentifyTypeByPtr(record->Resource);
-  VulkanResourceManager::InitialContentData contents = GetResourceManager()->GetInitialContents(id);
+  VkInitialContents contents = GetResourceManager()->GetInitialContents(id);
 
   if(type == eResBuffer)
   {
-    SparseBufferInitState *info = (SparseBufferInitState *)contents.blob;
+    SparseBufferInitState &info = contents.sparseBuffer;
 
     // some bytes just to cover overheads etc.
     uint32_t ret = 128;
 
     // the list of memory objects bound
-    ret += 8 + sizeof(VkSparseMemoryBind) * info->numBinds;
+    ret += 8 + sizeof(VkSparseMemoryBind) * info.numBinds;
 
     // the list of memory regions to copy
-    ret += 8 + sizeof(MemIDOffset) * info->numUniqueMems;
+    ret += 8 + sizeof(MemIDOffset) * info.numUniqueMems;
 
     // the actual data
-    ret += uint32_t(info->totalSize + WriteSerialiser::GetChunkAlignment());
+    ret += uint32_t(info.totalSize + WriteSerialiser::GetChunkAlignment());
 
     return ret;
   }
   else if(type == eResImage)
   {
-    SparseImageInitState *info = (SparseImageInitState *)contents.blob;
+    SparseImageInitState &info = contents.sparseImage;
 
     // some bytes just to cover overheads etc.
     uint32_t ret = 128;
@@ -455,17 +402,17 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
     ret += sizeof(SparseImageInitState);
 
     // the list of memory objects bound
-    ret += sizeof(VkSparseMemoryBind) * info->opaqueCount;
+    ret += sizeof(VkSparseMemoryBind) * info.opaqueCount;
 
     // the page tables
     for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
-      ret += 8 + sizeof(MemIDOffset) * info->pageCount[a];
+      ret += 8 + sizeof(MemIDOffset) * info.pageCount[a];
 
     // the list of memory regions to copy
-    ret += sizeof(MemIDOffset) * info->numUniqueMems;
+    ret += sizeof(MemIDOffset) * info.numUniqueMems;
 
     // the actual data
-    ret += uint32_t(info->totalSize + WriteSerialiser::GetChunkAlignment());
+    ret += uint32_t(info.totalSize + WriteSerialiser::GetChunkAlignment());
 
     return ret;
   }
@@ -475,15 +422,13 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_SparseBufferInitialState(
-    SerialiserType &ser, ResourceId id, VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, ResourceId id,
+                                                       VkInitialContents contents)
 {
   VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
-  SparseBufferInitState *info = (SparseBufferInitState *)contents.blob;
-
-  SERIALISE_ELEMENT_LOCAL(SparseState, *info);
+  SERIALISE_ELEMENT_LOCAL(SparseState, contents.sparseBuffer);
 
   VkDeviceMemory mappedMem = VK_NULL_HANDLE;
   byte *Contents = NULL;
@@ -500,7 +445,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
   if(ser.IsWriting())
   {
     // the memory was created not wrapped.
-    mappedMem = (VkDeviceMemory)(uint64_t)contents.resource;
+    mappedMem = contents.mem;
     vkr =
         ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -555,25 +500,18 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
 
   if(IsReplayingAndReading())
   {
-    // allocate a persistent set of metadata info
-    info = (SparseBufferInitState *)AllocAlignedBuffer(
-        sizeof(SparseBufferInitState) + sizeof(VkSparseMemoryBind) * SparseState.numBinds +
-        sizeof(MemIDOffset) * SparseState.numUniqueMems);
+    VkInitialContents initContents;
+    initContents.type = eResBuffer;
+    initContents.buf = uploadBuf;
+    initContents.mem = uploadMemory;
+    initContents.tag = VkInitialContents::Sparse;
+    initContents.sparseBuffer = SparseState;
 
-    info->numBinds = SparseState.numBinds;
-    info->numUniqueMems = SparseState.numUniqueMems;
+    // we steal the serialised arrays here by resetting the struct, then the serialisation won't
+    // deallocate them. VkInitialContents::Free() will deallocate them in the same way.
+    SparseState = SparseBufferInitState();
 
-    info->binds = (VkSparseMemoryBind *)(info + 1);
-    info->memDataOffs = (MemIDOffset *)(info->binds + SparseState.numBinds);
-
-    memcpy(info->binds, SparseState.binds, sizeof(VkSparseMemoryBind) * info->numBinds);
-    memcpy(info->memDataOffs, SparseState.memDataOffs, sizeof(MemIDOffset) * info->numUniqueMems);
-
-    m_CleanupMems.push_back(uploadMemory);
-
-    GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(eResBuffer, GetWrapped(uploadBuf), 0,
-                                                      (byte *)info));
+    GetResourceManager()->SetInitialContents(id, initContents);
   }
 
   return true;
@@ -581,14 +519,12 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
-                                                      VulkanResourceManager::InitialContentData contents)
+                                                      VkInitialContents contents)
 {
   VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
-  SparseImageInitState *info = (SparseImageInitState *)contents.blob;
-
-  SERIALISE_ELEMENT_LOCAL(SparseState, *info);
+  SERIALISE_ELEMENT_LOCAL(SparseState, contents.sparseImage);
 
   VkDeviceMemory mappedMem = VK_NULL_HANDLE;
   byte *Contents = NULL;
@@ -604,8 +540,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
   // during writing, we already have the memory copied off - we just need to map it.
   if(ser.IsWriting())
   {
-    // the memory was created not wrapped.
-    mappedMem = (VkDeviceMemory)(uint64_t)contents.resource;
+    mappedMem = contents.mem;
     vkr =
         ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -660,43 +595,22 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
 
   if(IsReplayingAndReading())
   {
-    uint32_t totalPageCount = 0;
-
-    for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
-      totalPageCount += SparseState.pageCount[a];
-
-    info = (SparseImageInitState *)AllocAlignedBuffer(
-        sizeof(SparseImageInitState) + sizeof(VkSparseMemoryBind) * SparseState.opaqueCount +
-        sizeof(VkSparseImageMemoryBind) * totalPageCount +
-        sizeof(MemIDOffset) * SparseState.numUniqueMems);
-
-    RDCEraseEl(info->pages);
-    RDCEraseEl(info->pageBinds);
-
-    info->opaque = (VkSparseMemoryBind *)(info + 1);
-    VkSparseImageMemoryBind *pageBinds =
-        (VkSparseImageMemoryBind *)(info->opaque + SparseState.opaqueCount);
-    info->memDataOffs = (MemIDOffset *)(pageBinds + totalPageCount);
-
-    info->opaqueCount = SparseState.opaqueCount;
-    info->numUniqueMems = SparseState.numUniqueMems;
-    info->memDataOffs = SparseState.memDataOffs;
-    info->imgdim = SparseState.imgdim;
-    info->pagedim = SparseState.pagedim;
-
-    memcpy(info->opaque, SparseState.opaque, sizeof(VkSparseMemoryBind) * info->opaqueCount);
-    memcpy(info->memDataOffs, SparseState.memDataOffs, sizeof(MemIDOffset) * info->numUniqueMems);
+    VkInitialContents initContents;
+    initContents.type = eResImage;
+    initContents.buf = uploadBuf;
+    initContents.mem = uploadMemory;
+    initContents.tag = VkInitialContents::Sparse;
+    initContents.sparseImage = SparseState;
 
     for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
     {
       if(SparseState.pageCount[a] == 0)
       {
-        info->pageBinds[a] = NULL;
+        initContents.sparseImage.pageBinds[a] = NULL;
       }
       else
       {
-        info->pageBinds[a] = pageBinds;
-        pageBinds += SparseState.pageCount[a];
+        initContents.sparseImage.pageBinds[a] = new VkSparseImageMemoryBind[SparseState.pageCount[a]];
 
         uint32_t i = 0;
 
@@ -706,7 +620,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
           {
             for(uint32_t x = 0; x < SparseState.imgdim.width; x++)
             {
-              VkSparseImageMemoryBind &p = info->pageBinds[a][i];
+              VkSparseImageMemoryBind &p = initContents.sparseImage.pageBinds[a][i];
 
               p.memory = Unwrap(GetResourceManager()->GetLiveHandle<VkDeviceMemory>(
                   SparseState.pages[a][i].memory));
@@ -726,29 +640,32 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
       }
     }
 
-    m_CleanupMems.push_back(uploadMemory);
+    // delete and free the pages array, we no longer need it.
+    for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
+      SAFE_DELETE_ARRAY(SparseState.pages[a]);
 
-    GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(eResImage, GetWrapped(uploadBuf),
-                                                      eInitialContents_Sparse, (byte *)info));
+    // we steal the serialised arrays here by resetting the struct, then the serialisation won't
+    // deallocate them. VkInitialContents::Free() will deallocate them in the same way.
+    SparseState = SparseImageInitState();
+
+    GetResourceManager()->SetInitialContents(id, initContents);
   }
 
   return true;
 }
 
-template bool WrappedVulkan::Serialise_SparseBufferInitialState(
-    ReadSerialiser &ser, ResourceId id, VulkanResourceManager::InitialContentData contents);
-template bool WrappedVulkan::Serialise_SparseBufferInitialState(
-    WriteSerialiser &ser, ResourceId id, VulkanResourceManager::InitialContentData contents);
-template bool WrappedVulkan::Serialise_SparseImageInitialState(
-    ReadSerialiser &ser, ResourceId id, VulkanResourceManager::InitialContentData contents);
-template bool WrappedVulkan::Serialise_SparseImageInitialState(
-    WriteSerialiser &ser, ResourceId id, VulkanResourceManager::InitialContentData contents);
+template bool WrappedVulkan::Serialise_SparseBufferInitialState(ReadSerialiser &ser, ResourceId id,
+                                                                VkInitialContents contents);
+template bool WrappedVulkan::Serialise_SparseBufferInitialState(WriteSerialiser &ser, ResourceId id,
+                                                                VkInitialContents contents);
+template bool WrappedVulkan::Serialise_SparseImageInitialState(ReadSerialiser &ser, ResourceId id,
+                                                               VkInitialContents contents);
+template bool WrappedVulkan::Serialise_SparseImageInitialState(WriteSerialiser &ser, ResourceId id,
+                                                               VkInitialContents contents);
 
-bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
-                                             VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VkInitialContents contents)
 {
-  SparseBufferInitState *info = (SparseBufferInitState *)contents.blob;
+  SparseBufferInitState &info = contents.sparseBuffer;
 
   // unbind the entire buffer so that any new areas that are bound are unbound again
 
@@ -785,10 +702,10 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
   ObjDisp(q)->QueueBindSparse(Unwrap(q), 1, &bindsparse, VK_NULL_HANDLE);
 
   // then make any bindings
-  if(info->numBinds > 0)
+  if(info.numBinds > 0)
   {
-    bufBind.bindCount = info->numBinds;
-    bufBind.pBinds = info->binds;
+    bufBind.bindCount = info.numBinds;
+    bufBind.pBinds = info.binds;
 
     // wait for unbind semaphore
     bindsparse.waitSemaphoreCount = 1;
@@ -806,7 +723,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
 
   VkResult vkr = VK_SUCCESS;
 
-  VkBuffer srcBuf = (VkBuffer)(uint64_t)contents.resource;
+  VkBuffer srcBuf = contents.buf;
 
   VkCommandBuffer cmd = GetNextCmd();
 
@@ -816,17 +733,17 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  for(uint32_t i = 0; i < info->numUniqueMems; i++)
+  for(uint32_t i = 0; i < info.numUniqueMems; i++)
   {
     VkDeviceMemory dstMem =
-        GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info->memDataOffs[i].memory);
+        GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info.memDataOffs[i].memory);
 
     VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
 
     VkDeviceSize size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
 
     // fill the whole memory from the given offset
-    VkBufferCopy region = {info->memDataOffs[i].memOffs, 0, size};
+    VkBufferCopy region = {info.memDataOffs[i].memOffs, 0, size};
 
     ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
   }
@@ -839,14 +756,13 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
   return true;
 }
 
-bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
-                                             VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VkInitialContents contents)
 {
-  SparseImageInitState *info = (SparseImageInitState *)contents.blob;
+  SparseImageInitState &info = contents.sparseImage;
 
   VkQueue q = GetQ();
 
-  if(info->opaque)
+  if(info.opaque)
   {
     // unbind the entire image so that any new areas that are bound are unbound again
 
@@ -881,10 +797,10 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
     ObjDisp(q)->QueueBindSparse(Unwrap(q), 1, &bindsparse, VK_NULL_HANDLE);
 
     // then make any bindings
-    if(info->opaqueCount > 0)
+    if(info.opaqueCount > 0)
     {
-      opaqueBind.bindCount = info->opaqueCount;
-      opaqueBind.pBinds = info->opaque;
+      opaqueBind.bindCount = info.opaqueCount;
+      opaqueBind.pBinds = info.opaque;
 
       // wait for unbind semaphore
       bindsparse.waitSemaphoreCount = 1;
@@ -923,12 +839,12 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
     // blat the page tables
     for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
     {
-      if(!info->pageBinds[a])
+      if(!info.pageBinds[a])
         continue;
 
       imgBinds[bindsparse.imageBindCount].image = im->real.As<VkImage>(),
-      imgBinds[bindsparse.imageBindCount].bindCount = info->pageCount[a];
-      imgBinds[bindsparse.imageBindCount].pBinds = info->pageBinds[a];
+      imgBinds[bindsparse.imageBindCount].bindCount = info.pageCount[a];
+      imgBinds[bindsparse.imageBindCount].pBinds = info.pageBinds[a];
 
       bindsparse.imageBindCount++;
     }
@@ -938,7 +854,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
 
   VkResult vkr = VK_SUCCESS;
 
-  VkBuffer srcBuf = (VkBuffer)(uint64_t)contents.resource;
+  VkBuffer srcBuf = contents.buf;
 
   VkCommandBuffer cmd = GetNextCmd();
 
@@ -948,10 +864,10 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  for(uint32_t i = 0; i < info->numUniqueMems; i++)
+  for(uint32_t i = 0; i < info.numUniqueMems; i++)
   {
     VkDeviceMemory dstMem =
-        GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info->memDataOffs[i].memory);
+        GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info.memDataOffs[i].memory);
 
     // since this is short lived it isn't wrapped. Note that we want
     // to cache this up front, so it will then be wrapped
@@ -959,7 +875,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
     VkDeviceSize size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
 
     // fill the whole memory from the given offset
-    VkBufferCopy region = {info->memDataOffs[i].memOffs, 0, size};
+    VkBufferCopy region = {info.memDataOffs[i].memOffs, 0, size};
 
     ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
   }

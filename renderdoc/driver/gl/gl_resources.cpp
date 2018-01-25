@@ -724,7 +724,7 @@ void GetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, GLenum *s
   gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_A, (GLint *)&swizzleRGBA[3]);
 }
 
-void SetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, GLenum *swizzleRGBA)
+void SetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, const GLenum *swizzleRGBA)
 {
   gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_R, (GLint *)&swizzleRGBA[0]);
   gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_G, (GLint *)&swizzleRGBA[1]);

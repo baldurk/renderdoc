@@ -491,14 +491,6 @@ void WrappedVulkan::Shutdown()
   // we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
   // no explicit vkDestroyDevice, we destroy the device here then the instance
 
-  // destroy any replay objects that aren't specifically to do with the frame capture
-  for(size_t i = 0; i < m_CleanupMems.size(); i++)
-  {
-    ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m_CleanupMems[i]), NULL);
-    GetResourceManager()->ReleaseWrappedResource(m_CleanupMems[i]);
-  }
-  m_CleanupMems.clear();
-
   // destroy the physical devices manually because due to remapping the may have leftover
   // refcounts
   for(size_t i = 0; i < m_ReplayPhysicalDevices.size(); i++)

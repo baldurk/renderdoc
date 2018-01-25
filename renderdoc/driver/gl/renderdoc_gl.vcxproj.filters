@@ -111,6 +111,7 @@
     <ClInclude Include="gl_library_egl.h">
       <Filter>OS\EGL</Filter>
     </ClInclude>
+    <ClInclude Include="gl_initstate.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">

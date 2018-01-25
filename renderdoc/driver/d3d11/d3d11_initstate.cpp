@@ -64,7 +64,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     if(udesc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
        (udesc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_COUNTER | D3D11_BUFFER_UAV_FLAG_APPEND)) != 0)
     {
-      ID3D11Buffer *stage = NULL;
+      ID3D11Buffer *stagingCountBuf = NULL;
 
       D3D11_BUFFER_DESC desc;
       desc.BindFlags = 0;
@@ -73,9 +73,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       desc.StructureByteStride = 0;
       desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
       desc.Usage = D3D11_USAGE_STAGING;
-      HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &stage);
+      HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &stagingCountBuf);
 
-      if(FAILED(hr) || stage == NULL)
+      if(FAILED(hr) || stagingCountBuf == NULL)
       {
         RDCERR("Failed to create staging buffer for UAV initial contents HRESULT: %s",
                ToStr(hr).c_str());
@@ -83,10 +83,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       else
       {
         m_pImmediateContext->GetReal()->CopyStructureCount(
-            stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
+            stagingCountBuf, 0, UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
 
-        m_ResourceManager->SetInitialContents(
-            Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
+        m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, stagingCountBuf));
       }
     }
   }
@@ -97,7 +96,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
     RDCASSERT(record);
 
-    ID3D11Buffer *stage = NULL;
+    ID3D11Buffer *stagingBuf = NULL;
 
     D3D11_BUFFER_DESC desc;
     desc.BindFlags = 0;
@@ -106,19 +105,18 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     desc.StructureByteStride = 0;
     desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     desc.Usage = D3D11_USAGE_STAGING;
-    HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &stage);
+    HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &stagingBuf);
 
-    if(FAILED(hr) || stage == NULL)
+    if(FAILED(hr) || stagingBuf == NULL)
     {
       RDCERR("Failed to create staging buffer for buffer initial contents HRESULT: %s",
              ToStr(hr).c_str());
     }
     else
     {
-      m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Buffer, buf));
+      m_pImmediateContext->GetReal()->CopyResource(stagingBuf, UNWRAP(WrappedID3D11Buffer, buf));
 
-      m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
+      m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, stagingBuf));
     }
   }
   else if(type == Resource_Texture1D)
@@ -129,14 +127,14 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     tex1D->GetDesc(&desc);
 
     D3D11_TEXTURE1D_DESC stageDesc = desc;
-    ID3D11Texture1D *stage = NULL;
+    ID3D11Texture1D *stagingTex = NULL;
 
     stageDesc.MiscFlags = 0;
     stageDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     stageDesc.BindFlags = 0;
     stageDesc.Usage = D3D11_USAGE_STAGING;
 
-    HRESULT hr = m_pDevice->CreateTexture1D(&stageDesc, NULL, &stage);
+    HRESULT hr = m_pDevice->CreateTexture1D(&stageDesc, NULL, &stagingTex);
 
     if(FAILED(hr))
     {
@@ -144,10 +142,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     }
     else
     {
-      m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture1D, tex1D));
+      m_pImmediateContext->GetReal()->CopyResource(stagingTex, UNWRAP(WrappedID3D11Texture1D, tex1D));
 
-      m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
+      m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, stagingTex));
     }
   }
   else if(type == Resource_Texture2D)
@@ -160,7 +157,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     bool multisampled = desc.SampleDesc.Count > 1 || desc.SampleDesc.Quality > 0;
 
     D3D11_TEXTURE2D_DESC stageDesc = desc;
-    ID3D11Texture2D *stage = NULL;
+    ID3D11Texture2D *stagingTex = NULL;
 
     stageDesc.MiscFlags = 0;
     stageDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -179,7 +176,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
     HRESULT hr = S_OK;
 
-    hr = m_pDevice->CreateTexture2D(&stageDesc, NULL, &stage);
+    hr = m_pDevice->CreateTexture2D(&stageDesc, NULL, &stagingTex);
 
     if(FAILED(hr))
     {
@@ -210,9 +207,10 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       }
 
       if(multisampled)
-        m_DebugManager->CopyTex2DMSToArray(stage, UNWRAP(WrappedID3D11Texture2D1, tex2D));
+        m_DebugManager->CopyTex2DMSToArray(stagingTex, UNWRAP(WrappedID3D11Texture2D1, tex2D));
       else
-        m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture2D1, tex2D));
+        m_pImmediateContext->GetReal()->CopyResource(stagingTex,
+                                                     UNWRAP(WrappedID3D11Texture2D1, tex2D));
 
       m_pImmediateContext->GetReal()->Flush();
 
@@ -223,8 +221,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
         SAFE_RELEASE(mutex);
       }
 
-      m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
+      m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, stagingTex));
     }
   }
   else if(type == Resource_Texture3D)
@@ -235,14 +232,14 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     tex3D->GetDesc(&desc);
 
     D3D11_TEXTURE3D_DESC stageDesc = desc;
-    ID3D11Texture3D *stage = NULL;
+    ID3D11Texture3D *stagingTex = NULL;
 
     stageDesc.MiscFlags = 0;
     stageDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     stageDesc.BindFlags = 0;
     stageDesc.Usage = D3D11_USAGE_STAGING;
 
-    HRESULT hr = m_pDevice->CreateTexture3D(&stageDesc, NULL, &stage);
+    HRESULT hr = m_pDevice->CreateTexture3D(&stageDesc, NULL, &stagingTex);
 
     if(FAILED(hr))
     {
@@ -250,10 +247,10 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     }
     else
     {
-      m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture3D1, tex3D));
+      m_pImmediateContext->GetReal()->CopyResource(stagingTex,
+                                                   UNWRAP(WrappedID3D11Texture3D1, tex3D));
 
-      m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
+      m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, stagingTex));
     }
   }
 
@@ -503,8 +500,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     if(bufferUAVWithCounter && IsReplayingAndReading())
     {
-      m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(type, NULL, InitialHiddenCount, NULL));
+      m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, InitialHiddenCount));
     }
   }
   else if(type == Resource_Buffer)
@@ -643,10 +639,10 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       desc.Usage = D3D11_USAGE_IMMUTABLE;
       desc.MiscFlags = 0;
 
-      ID3D11Texture1D *contents = NULL;
-      HRESULT hr = m_pDevice->CreateTexture1D(&desc, subData, &contents);
+      ID3D11Texture1D *dataTex = NULL;
+      HRESULT hr = m_pDevice->CreateTexture1D(&desc, subData, &dataTex);
 
-      if(FAILED(hr) || contents == NULL)
+      if(FAILED(hr) || dataTex == NULL)
       {
         RDCERR("Failed to create staging resource for Texture1D initial contents HRESULT: %s",
                ToStr(hr).c_str());
@@ -654,8 +650,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       }
       else
       {
-        m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
-                                                      type, contents, eInitialContents_Copy, NULL));
+        m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, dataTex));
       }
 
       // free the buffers we stole
@@ -818,10 +813,10 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
         HRESULT hr = S_OK;
 
-        ID3D11Texture2D *contents = NULL;
-        hr = m_pDevice->CreateTexture2D(&initialDesc, subData, &contents);
+        ID3D11Texture2D *dataTex = NULL;
+        hr = m_pDevice->CreateTexture2D(&initialDesc, subData, &dataTex);
 
-        if(FAILED(hr) || contents == NULL)
+        if(FAILED(hr) || dataTex == NULL)
         {
           RDCERR("Failed to create staging resource for Texture2D initial contents HRESULT: %s",
                  ToStr(hr).c_str());
@@ -842,14 +837,13 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
             ID3D11Texture2D *contentsMS = NULL;
             hr = m_pDevice->CreateTexture2D(&desc, NULL, &contentsMS);
 
-            m_DebugManager->CopyArrayToTex2DMS(contentsMS, contents);
+            m_DebugManager->CopyArrayToTex2DMS(contentsMS, dataTex);
 
-            SAFE_RELEASE(contents);
-            contents = contentsMS;
+            SAFE_RELEASE(dataTex);
+            dataTex = contentsMS;
           }
 
-          m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
-                                                        type, contents, eInitialContents_Copy, NULL));
+          m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, dataTex));
         }
 
         // free the buffers we stole
@@ -969,10 +963,10 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       desc.Usage = D3D11_USAGE_IMMUTABLE;
       desc.MiscFlags = 0;
 
-      ID3D11Texture3D *contents = NULL;
-      HRESULT hr = m_pDevice->CreateTexture3D(&desc, subData, &contents);
+      ID3D11Texture3D *dataTex = NULL;
+      HRESULT hr = m_pDevice->CreateTexture3D(&desc, subData, &dataTex);
 
-      if(FAILED(hr) || contents == NULL)
+      if(FAILED(hr) || dataTex == NULL)
       {
         RDCERR("Failed to create staging resource for Texture3D initial contents HRESULT: %s",
                ToStr(hr).c_str());
@@ -980,8 +974,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       }
       else
       {
-        m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
-                                                      type, contents, eInitialContents_Copy, NULL));
+        m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, dataTex));
       }
 
       // free the buffers we stole
@@ -1073,8 +1066,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
           m_pImmediateContext->GetReal()->Unmap(stage, 0);
         }
 
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, NULL, countData, NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, countData));
 
         SAFE_RELEASE(stage);
       }
@@ -1094,10 +1086,10 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       rdesc.Format = GetTypedFormat(desc.Format);
       rdesc.Texture1D.MipSlice = 0;
 
-      ID3D11RenderTargetView *initContents = NULL;
+      ID3D11RenderTargetView *clearRTV = NULL;
 
       HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture1D, tex1D), &rdesc,
-                                                     &initContents);
+                                                     &clearRTV);
 
       if(FAILED(hr))
       {
@@ -1106,9 +1098,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents,
-                                                         eInitialContents_ClearRTV, NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV));
       }
     }
     else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -1119,10 +1109,10 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       ddesc.Texture1D.MipSlice = 0;
       ddesc.Flags = 0;
 
-      ID3D11DepthStencilView *initContents = NULL;
+      ID3D11DepthStencilView *clearDSV = NULL;
 
       HRESULT hr = m_pDevice->CreateDepthStencilView(UNWRAP(WrappedID3D11Texture1D, tex1D), &ddesc,
-                                                     &initContents);
+                                                     &clearDSV);
 
       if(FAILED(hr))
       {
@@ -1131,9 +1121,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents,
-                                                         eInitialContents_ClearDSV, NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearDSV));
       }
     }
     else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -1145,9 +1133,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
         desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
       desc.MiscFlags &= ~D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
-      ID3D11Texture1D *initContents = NULL;
+      ID3D11Texture1D *dataTex = NULL;
 
-      HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &initContents);
+      HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &dataTex);
 
       if(FAILED(hr))
       {
@@ -1155,12 +1143,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_pImmediateContext->GetReal()->CopyResource(initContents,
-                                                     UNWRAP(WrappedID3D11Texture1D, tex1D));
+        m_pImmediateContext->GetReal()->CopyResource(dataTex, UNWRAP(WrappedID3D11Texture1D, tex1D));
 
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents, eInitialContents_Copy,
-                                                         NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, dataTex));
       }
     }
   }
@@ -1183,10 +1168,10 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       if(isMS)
         rdesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
 
-      ID3D11RenderTargetView *initContents = NULL;
+      ID3D11RenderTargetView *clearRTV = NULL;
 
       HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, tex2D), &rdesc,
-                                                     &initContents);
+                                                     &clearRTV);
 
       if(FAILED(hr))
       {
@@ -1195,9 +1180,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents,
-                                                         eInitialContents_ClearRTV, NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV));
       }
     }
     else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -1211,10 +1194,10 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       if(isMS)
         ddesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 
-      ID3D11DepthStencilView *initContents = NULL;
+      ID3D11DepthStencilView *clearDSV = NULL;
 
       HRESULT hr = m_pDevice->CreateDepthStencilView(UNWRAP(WrappedID3D11Texture2D1, tex2D), &ddesc,
-                                                     &initContents);
+                                                     &clearDSV);
 
       if(FAILED(hr))
       {
@@ -1223,9 +1206,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents,
-                                                         eInitialContents_ClearDSV, NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearDSV));
       }
     }
     else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -1237,9 +1218,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
         desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
       desc.MiscFlags &= ~D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
-      ID3D11Texture2D *initContents = NULL;
+      ID3D11Texture2D *dataTex = NULL;
 
-      HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &initContents);
+      HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &dataTex);
 
       if(FAILED(hr))
       {
@@ -1247,12 +1228,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_pImmediateContext->GetReal()->CopyResource(initContents,
-                                                     UNWRAP(WrappedID3D11Texture2D1, tex2D));
+        m_pImmediateContext->GetReal()->CopyResource(dataTex, UNWRAP(WrappedID3D11Texture2D1, tex2D));
 
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents, eInitialContents_Copy,
-                                                         NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, dataTex));
       }
     }
   }
@@ -1272,10 +1250,10 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       rdesc.Texture3D.MipSlice = 0;
       rdesc.Texture3D.WSize = desc.Depth;
 
-      ID3D11RenderTargetView *initContents = NULL;
+      ID3D11RenderTargetView *clearRTV = NULL;
 
       HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture3D1, tex3D), &rdesc,
-                                                     &initContents);
+                                                     &clearRTV);
 
       if(FAILED(hr))
       {
@@ -1284,9 +1262,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents,
-                                                         eInitialContents_ClearRTV, NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV));
       }
     }
     else if(!hasData && desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -1296,9 +1272,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       desc.BindFlags = 0;
       desc.MiscFlags &= ~D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
-      ID3D11Texture3D *initContents = NULL;
+      ID3D11Texture3D *dataTex = NULL;
 
-      HRESULT hr = m_pDevice->CreateTexture3D(&desc, NULL, &initContents);
+      HRESULT hr = m_pDevice->CreateTexture3D(&desc, NULL, &dataTex);
 
       if(FAILED(hr))
       {
@@ -1306,41 +1282,37 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_pImmediateContext->GetReal()->CopyResource(initContents,
-                                                     UNWRAP(WrappedID3D11Texture3D1, tex3D));
+        m_pImmediateContext->GetReal()->CopyResource(dataTex, UNWRAP(WrappedID3D11Texture3D1, tex3D));
 
-        m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(type, initContents, eInitialContents_Copy,
-                                                         NULL));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, dataTex));
       }
     }
   }
 }
 
-void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
-                                             D3D11ResourceManager::InitialContentData initial)
+void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11InitialContents initial)
 {
   if(initial.resourceType == Resource_UnorderedAccessView)
   {
     ID3D11UnorderedAccessView *uav = (ID3D11UnorderedAccessView *)live;
 
-    m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &initial.num);
+    m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &initial.uavCount);
   }
   else
   {
-    if(initial.num == eInitialContents_ClearRTV)
+    if(initial.tag == D3D11InitialContents::ClearRTV)
     {
       float emptyCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->GetReal()->ClearRenderTargetView(
           (ID3D11RenderTargetView *)initial.resource, emptyCol);
     }
-    else if(initial.num == eInitialContents_ClearDSV)
+    else if(initial.tag == D3D11InitialContents::ClearDSV)
     {
       m_pImmediateContext->GetReal()->ClearDepthStencilView(
           (ID3D11DepthStencilView *)initial.resource, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f,
           0);
     }
-    else if(initial.num == eInitialContents_Copy)
+    else if(initial.tag == D3D11InitialContents::Copy)
     {
       ID3D11Resource *liveResource = (ID3D11Resource *)m_ResourceManager->UnwrapResource(live);
       ID3D11Resource *initialResource = (ID3D11Resource *)initial.resource;

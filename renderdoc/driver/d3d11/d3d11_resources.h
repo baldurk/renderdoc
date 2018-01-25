@@ -30,38 +30,6 @@
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/shaders/dxbc/dxbc_inspect.h"
 
-enum D3D11ResourceType
-{
-  Resource_Unknown = 0,
-  Resource_InputLayout,
-  Resource_Buffer,
-  Resource_Texture1D,
-  Resource_Texture2D,
-  Resource_Texture3D,
-  Resource_RasterizerState,
-  Unused1,    // Resource_RasterizerState1
-  Resource_BlendState,
-  Unused2,    // Resource_BlendState
-  Resource_DepthStencilState,
-  Resource_SamplerState,
-  Resource_RenderTargetView,
-  Resource_ShaderResourceView,
-  Resource_DepthStencilView,
-  Resource_UnorderedAccessView,
-  Resource_Shader,
-  Resource_Counter,
-  Resource_Query,
-  Resource_Predicate,
-  Resource_ClassInstance,
-  Resource_ClassLinkage,
-
-  Resource_DeviceContext,
-  Resource_CommandList,
-  Resource_DeviceState,
-};
-
-DECLARE_REFLECTION_ENUM(D3D11ResourceType);
-
 D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr);
 ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr);
 template <typename T>

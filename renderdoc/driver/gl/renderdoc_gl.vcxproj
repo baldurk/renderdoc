@@ -104,6 +104,7 @@
     <ClInclude Include="gl_hookset.h" />
     <ClInclude Include="gl_hookset_defs.h" />
     <ClInclude Include="gl_hooks_linux_shared.h" />
+    <ClInclude Include="gl_initstate.h" />
     <ClInclude Include="gl_library_egl.h" />
     <ClInclude Include="gl_manager.h" />
     <ClInclude Include="gl_renderstate.h" />
