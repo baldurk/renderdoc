@@ -166,8 +166,14 @@ private:
   bool contexts[32];
 };
 
-class D3D11ResourceManager
-    : public ResourceManager<ID3D11DeviceChild *, ID3D11DeviceChild *, D3D11ResourceRecord>
+struct D3D11ResourceManagerConfiguration
+{
+  typedef ID3D11DeviceChild *WrappedResourceType;
+  typedef ID3D11DeviceChild *RealResourceType;
+  typedef D3D11ResourceRecord RecordType;
+};
+
+class D3D11ResourceManager : public ResourceManager<D3D11ResourceManagerConfiguration>
 {
 public:
   D3D11ResourceManager(WrappedID3D11Device *dev) : m_Device(dev) {}

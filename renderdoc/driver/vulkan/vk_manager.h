@@ -33,8 +33,14 @@ using std::pair;
 
 class WrappedVulkan;
 
-class VulkanResourceManager
-    : public ResourceManager<WrappedVkRes *, TypedRealHandle, VkResourceRecord>
+struct VulkanResourceManagerConfiguration
+{
+  typedef WrappedVkRes *WrappedResourceType;
+  typedef TypedRealHandle RealResourceType;
+  typedef VkResourceRecord RecordType;
+};
+
+class VulkanResourceManager : public ResourceManager<VulkanResourceManagerConfiguration>
 {
 public:
   VulkanResourceManager(CaptureState state, WrappedVulkan *core)

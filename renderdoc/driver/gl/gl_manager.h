@@ -30,7 +30,14 @@
 
 class WrappedOpenGL;
 
-class GLResourceManager : public ResourceManager<GLResource, GLResource, GLResourceRecord>
+struct GLResourceManagerConfiguration
+{
+  typedef GLResource WrappedResourceType;
+  typedef GLResource RealResourceType;
+  typedef GLResourceRecord RecordType;
+};
+
+class GLResourceManager : public ResourceManager<GLResourceManagerConfiguration>
 {
 public:
   GLResourceManager(WrappedOpenGL *gl);

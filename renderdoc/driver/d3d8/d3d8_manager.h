@@ -48,7 +48,14 @@ struct D3D8ResourceRecord : public ResourceRecord
   D3D8ResourceRecord(ResourceId id) : ResourceRecord(id, true) {}
 };
 
-class D3D8ResourceManager : public ResourceManager<IUnknown *, IUnknown *, D3D8ResourceRecord>
+struct D3D8ResourceManagerConfiguration
+{
+  typedef IUnknown *WrappedResourceType;
+  typedef IUnknown *RealResourceType;
+  typedef D3D8ResourceRecord RecordType;
+};
+
+class D3D8ResourceManager : public ResourceManager<D3D8ResourceManagerConfiguration>
 {
 public:
   D3D8ResourceManager(WrappedD3DDevice8 *dev) : m_Device(dev) {}

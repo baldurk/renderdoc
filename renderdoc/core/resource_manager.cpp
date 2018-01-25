@@ -51,11 +51,52 @@ void SetReplayResourceIDs()
 
 INSTANTIATE_SERIALISE_TYPE(ResourceManagerInternal::WrittenRecord);
 
+bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType)
+{
+  if(refs.find(id) == refs.end())
+  {
+    if(refType == eFrameRef_Read)
+      refs[id] = eFrameRef_ReadOnly;
+    else if(refType == eFrameRef_Write)
+      refs[id] = eFrameRef_ReadAndWrite;
+    else    // unknown or existing state
+      refs[id] = refType;
+
+    return true;
+  }
+  else
+  {
+    if(refType == eFrameRef_Unknown)
+    {
+      // nothing
+    }
+    else if(refType == eFrameRef_ReadBeforeWrite)
+    {
+      // special case, explicitly set to ReadBeforeWrite for when
+      // we know that this use will likely be a partial-write
+      refs[id] = eFrameRef_ReadBeforeWrite;
+    }
+    else if(refs[id] == eFrameRef_Unknown)
+    {
+      if(refType == eFrameRef_Read || refType == eFrameRef_ReadOnly)
+        refs[id] = eFrameRef_ReadOnly;
+      else
+        refs[id] = eFrameRef_ReadAndWrite;
+    }
+    else if(refs[id] == eFrameRef_ReadOnly && refType == eFrameRef_Write)
+    {
+      refs[id] = eFrameRef_ReadBeforeWrite;
+    }
+  }
+
+  return false;
+}
+
 bool ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
 {
   if(id == ResourceId())
     return false;
-  return ResourceManager<void *, void *, ResourceRecord>::MarkReferenced(m_FrameRefs, id, refType);
+  return MarkReferenced(m_FrameRefs, id, refType);
 }
 
 void ResourceRecord::AddResourceReferences(ResourceRecordHandler *mgr)
