@@ -638,7 +638,9 @@ public:
   Serialiser &Serialise(const char *name, char (&el)[N],
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
-    std::string str = el;
+    std::string str;
+    if(IsReading())
+      str = el;
     Serialise(name, str, flags);
     if(str.length() >= N)
     {
