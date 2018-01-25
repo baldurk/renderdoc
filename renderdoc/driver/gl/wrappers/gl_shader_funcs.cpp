@@ -85,7 +85,10 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
   GLuint sepProg = prog;
 
   GLint status = 0;
-  gl.glGetShaderiv(realShader, eGL_COMPILE_STATUS, &status);
+  if(realShader == 0)
+    status = 1;
+  else
+    gl.glGetShaderiv(realShader, eGL_COMPILE_STATUS, &status);
 
   if(sepProg == 0 && status == 1)
     sepProg = MakeSeparableShaderProgram(gl, type, sources, NULL);
