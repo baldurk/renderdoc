@@ -24,6 +24,7 @@
 
 #include "d3d8_device.h"
 #include "core/core.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "serialise/serialiser.h"
 #include "d3d8_debug.h"
 #include "d3d8_resources.h"
@@ -145,7 +146,7 @@ HRESULT WrappedD3DDevice8::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    RDCWARN("Querying IDirect3DDevice8 for interface: %s", ToStr(riid).c_str());
+    WarnUnknownGUID("IDirect3DDevice8", riid);
   }
 
   return m_device->QueryInterface(riid, ppvObject);

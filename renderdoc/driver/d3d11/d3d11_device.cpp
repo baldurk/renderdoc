@@ -356,7 +356,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void *
     return S_OK;
   }
 
-  RDCWARN("Querying ID3D11Debug for interface: %s", ToStr(riid).c_str());
+  WarnUnknownGUID("ID3D11Debug", riid);
 
   return m_pDebug->QueryInterface(riid, ppvObject);
 }
@@ -615,7 +615,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    RDCWARN("Querying ID3D11Device for interface: %s", ToStr(riid).c_str());
+    WarnUnknownGUID("ID3D11Device", riid);
   }
 
   return m_RefCounter.QueryInterface(riid, ppvObject);

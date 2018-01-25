@@ -24,6 +24,7 @@
 
 #include "d3d9_device.h"
 #include "core/core.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "serialise/serialiser.h"
 #include "d3d9_debug.h"
 
@@ -99,7 +100,7 @@ HRESULT WrappedD3DDevice9::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    RDCWARN("Querying IDirect3DDevice9 for interface: %s", ToStr(riid).c_str());
+    WarnUnknownGUID("IDirect3DDevice9", riid);
   }
 
   return m_device->QueryInterface(riid, ppvObject);

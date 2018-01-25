@@ -163,8 +163,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying IDXGIObject for interface: %s", guid.c_str());
+    WarnUnknownGUID("IDXGIObject", riid);
   }
 
   return false;
@@ -291,8 +290,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying IDXGISwapChain for interface: %s", guid.c_str());
+    WarnUnknownGUID("IDXGISwapChain", riid);
   }
 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -652,8 +650,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput5::QueryInterface(REFIID riid, void 
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying IDXGIOutput for interface: %s", guid.c_str());
+    WarnUnknownGUID("IDXGIOutput", riid);
   }
 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -727,8 +724,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIAdapter3::QueryInterface(REFIID riid, void
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying IDXGIAdapter for interface: %s", guid.c_str());
+    WarnUnknownGUID("IDXGIAdapter", riid);
   }
 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -827,8 +823,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void 
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying IDXGIDevice for interface: %s", guid.c_str());
+    WarnUnknownGUID("IDXGIDevice", riid);
   }
 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -934,8 +929,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory5::QueryInterface(REFIID riid, void
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying IDXGIFactory for interface: %s", guid.c_str());
+    WarnUnknownGUID("IDXGIFactory", riid);
   }
 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);

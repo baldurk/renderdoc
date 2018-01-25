@@ -84,7 +84,7 @@ HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, vo
     return S_OK;
   }
 
-  RDCWARN("Querying ID3D12DebugDevice for interface: %s", ToStr(riid).c_str());
+  WarnUnknownGUID("ID3D12DebugDevice", riid);
 
   return E_NOINTERFACE;
 }
@@ -114,8 +114,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
     return S_OK;
   }
 
-  string guid = ToStr(riid);
-  RDCWARN("Querying ID3D12DebugDevice for interface: %s", guid.c_str());
+  WarnUnknownGUID("ID3D12DebugDevice", riid);
 
   return m_pDebug->QueryInterface(riid, ppvObject);
 }
@@ -481,8 +480,7 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    string guid = ToStr(riid);
-    RDCWARN("Querying ID3D12Device for interface: %s", guid.c_str());
+    WarnUnknownGUID("ID3D12Device", riid);
   }
 
   return m_RefCounter.QueryInterface(riid, ppvObject);

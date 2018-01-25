@@ -1389,7 +1389,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
   }
   else
   {
-    RDCWARN("Querying ID3D11DeviceContext for interface: %s", ToStr(riid).c_str());
+    WarnUnknownGUID("ID3D11DeviceContext", riid);
   }
 
   return RefCounter::QueryInterface(riid, ppvObject);
