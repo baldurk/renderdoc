@@ -1222,7 +1222,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   };
 
   std::vector<bool> attrIsInstanced;
-  CompactedAttrBuffer vbuffers[64] = {};
+  CompactedAttrBuffer vbuffers[64];
+  RDCEraseEl(vbuffers);
 
   {
     VkWriteDescriptorSet descWrites[64];
