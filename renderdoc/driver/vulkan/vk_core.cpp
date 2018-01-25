@@ -1074,10 +1074,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-    // since these objects are very short lived (only this scope), we
-    // don't wrap them.
+    // since this happens during capture, we don't want to start serialising extra image creates,
+    // so we manually create & then just wrap.
     VkImage readbackIm = VK_NULL_HANDLE;
-    VkDeviceMemory readbackMem = VK_NULL_HANDLE;
 
     VkResult vkr = VK_SUCCESS;
 
@@ -1102,22 +1101,17 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     vt->CreateImage(Unwrap(device), &imInfo, NULL, &readbackIm);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq = {0};
-    vt->GetImageMemoryRequirements(Unwrap(device), readbackIm, &mrq);
+    GetResourceManager()->WrapResource(Unwrap(device), readbackIm);
 
     VkImageSubresource subr = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
     VkSubresourceLayout layout = {0};
-    vt->GetImageSubresourceLayout(Unwrap(device), readbackIm, &subr, &layout);
+    vt->GetImageSubresourceLayout(Unwrap(device), Unwrap(readbackIm), &subr, &layout);
 
-    // allocate readback memory
-    VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-        GetReadbackMemoryIndex(mrq.memoryTypeBits),
-    };
+    MemoryAllocation readbackMem =
+        AllocateMemoryForResource(readbackIm, MemoryScope::InitialContents, MemoryType::Readback);
 
-    vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &readbackMem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-    vkr = vt->BindImageMemory(Unwrap(device), readbackIm, readbackMem, 0);
+    vkr = vt->BindImageMemory(Unwrap(device), Unwrap(readbackIm), Unwrap(readbackMem.mem),
+                              readbackMem.offs);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -1153,14 +1147,14 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                         VK_QUEUE_FAMILY_IGNORED,
                                         VK_QUEUE_FAMILY_IGNORED,
-                                        readbackIm,    // was never wrapped
+                                        Unwrap(readbackIm),
                                         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(cmd, 1, &bbBarrier);
     DoPipelineBarrier(cmd, 1, &readBarrier);
 
     vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                     readbackIm, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
+                     Unwrap(readbackIm), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
 
     // barrier to switch backbuffer back to present layout
     std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
@@ -1182,7 +1176,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     // map memory and readback
     byte *pData = NULL;
-    vkr = vt->MapMemory(Unwrap(device), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
+    vkr = vt->MapMemory(Unwrap(device), Unwrap(readbackMem.mem), readbackMem.offs, readbackMem.size,
+                        0, (void **)&pData);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     RDCASSERT(pData != NULL);
@@ -1306,11 +1301,11 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    vt->UnmapMemory(Unwrap(device), readbackMem);
+    vt->UnmapMemory(Unwrap(device), Unwrap(readbackMem.mem));
 
     // delete all
-    vt->DestroyImage(Unwrap(device), readbackIm, NULL);
-    vt->FreeMemory(Unwrap(device), readbackMem, NULL);
+    vt->DestroyImage(Unwrap(device), Unwrap(readbackIm), NULL);
+    GetResourceManager()->ReleaseWrappedResource(readbackIm);
   }
 
   byte *jpgbuf = NULL;
@@ -1448,6 +1443,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   GetResourceManager()->FreeInitialContents();
 
   GetResourceManager()->FlushPendingDirty();
+
+  FreeAllMemory(MemoryScope::InitialContents);
 
   return true;
 }

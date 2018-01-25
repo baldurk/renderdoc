@@ -124,9 +124,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
   initContents.sparseBuffer.totalSize = bufInfo.size;
 
-  VkDeviceMemory readbackmem = VK_NULL_HANDLE;
-
-  // since these are very short lived, they are not wrapped
+  // since this happens during capture, we don't want to start serialising extra buffer creates, so
+  // we manually create & then just wrap.
   VkBuffer dstBuf;
 
   VkResult vkr = VK_SUCCESS;
@@ -134,28 +133,18 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkMemoryRequirements mrq = {0};
+  GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
 
-  ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), dstBuf, &mrq);
-
-  VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, bufInfo.size,
-      GetReadbackMemoryIndex(mrq.memoryTypeBits),
-  };
-
-  allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
-
-  vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &readbackmem);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
+  MemoryAllocation readbackmem =
+      AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
   initContents.mem = readbackmem;
 
-  vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
+  vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
+                                     readbackmem.offs);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  vector<VkBuffer> bufdeletes;
+  std::vector<VkBuffer> bufdeletes;
   bufdeletes.push_back(dstBuf);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -173,13 +162,15 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, Unwrap(it->first), 0);
+    GetResourceManager()->WrapResource(Unwrap(d), srcBuf);
+
+    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(srcBuf), Unwrap(it->first), 0);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // copy srcbuf into its area in dstbuf
     VkBufferCopy region = {0, it->second, bufInfo.size};
 
-    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), srcBuf, dstBuf, 1, &region);
+    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 
     bufdeletes.push_back(srcBuf);
   }
@@ -192,7 +183,10 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   FlushQ();
 
   for(size_t i = 0; i < bufdeletes.size(); i++)
-    ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i], NULL);
+  {
+    ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(bufdeletes[i]), NULL);
+    GetResourceManager()->ReleaseWrappedResource(bufdeletes[i]);
+  }
 
   GetResourceManager()->SetInitialContents(id, initContents);
 
@@ -292,9 +286,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 
   sparseInit.totalSize = bufInfo.size;
 
-  VkDeviceMemory readbackmem = VK_NULL_HANDLE;
-
-  // since these are very short lived, they are not wrapped
+  // since this happens during capture, we don't want to start serialising extra buffer creates, so
+  // we manually create & then just wrap.
   VkBuffer dstBuf;
 
   VkResult vkr = VK_SUCCESS;
@@ -302,25 +295,15 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
   vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkMemoryRequirements mrq = {0};
+  GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
 
-  ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), dstBuf, &mrq);
-
-  VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, bufInfo.size,
-      GetReadbackMemoryIndex(mrq.memoryTypeBits),
-  };
-
-  allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
-
-  vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &readbackmem);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
+  MemoryAllocation readbackmem =
+      AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
   initContents.mem = readbackmem;
 
-  vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
+  vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
+                                     readbackmem.offs);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   vector<VkBuffer> bufdeletes;
@@ -341,13 +324,15 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, Unwrap(it->first), 0);
+    GetResourceManager()->WrapResource(Unwrap(d), srcBuf);
+
+    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(srcBuf), Unwrap(it->first), 0);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // copy srcbuf into its area in dstbuf
     VkBufferCopy region = {0, it->second, bufInfo.size};
 
-    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), srcBuf, dstBuf, 1, &region);
+    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 
     bufdeletes.push_back(srcBuf);
   }
@@ -360,7 +345,10 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
   FlushQ();
 
   for(size_t i = 0; i < bufdeletes.size(); i++)
-    ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i], NULL);
+  {
+    ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(bufdeletes[i]), NULL);
+    GetResourceManager()->ReleaseWrappedResource(bufdeletes[i]);
+  }
 
   GetResourceManager()->SetInitialContents(id, initContents);
 
@@ -430,7 +418,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
 
   SERIALISE_ELEMENT_LOCAL(SparseState, contents.sparseBuffer);
 
-  VkDeviceMemory mappedMem = VK_NULL_HANDLE;
+  MemoryAllocation mappedMem;
   byte *Contents = NULL;
   uint64_t ContentsSize = (uint64_t)SparseState.totalSize;
 
@@ -438,7 +426,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
   SERIALISE_ELEMENT(ContentsSize);
 
   // the memory/buffer that we allocated on read, to upload the initial contents.
-  VkDeviceMemory uploadMemory = VK_NULL_HANDLE;
+  MemoryAllocation uploadMemory;
   VkBuffer uploadBuf = VK_NULL_HANDLE;
 
   // during writing, we already have the memory copied off - we just need to map it.
@@ -446,8 +434,8 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
   {
     // the memory was created not wrapped.
     mappedMem = contents.mem;
-    vkr =
-        ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
+    vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs, mappedMem.size, 0,
+                                (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
   else if(IsReplayingAndReading() && !ser.IsErrored())
@@ -466,26 +454,17 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
 
     GetResourceManager()->WrapResource(Unwrap(d), uploadBuf);
 
-    VkMemoryRequirements mrq = {0};
+    uploadMemory =
+        AllocateMemoryForResource(uploadBuf, MemoryScope::InitialContents, MemoryType::Upload);
 
-    ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(uploadBuf), &mrq);
-
-    VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-        GetUploadMemoryIndex(mrq.memoryTypeBits),
-    };
-
-    vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &uploadMemory);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    GetResourceManager()->WrapResource(Unwrap(d), uploadMemory);
-
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(uploadBuf), Unwrap(uploadMemory), 0);
+    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(uploadBuf), Unwrap(uploadMemory.mem),
+                                       uploadMemory.offs);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     mappedMem = uploadMemory;
 
-    ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(uploadMemory), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
+    ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(uploadMemory.mem), uploadMemory.offs, uploadMemory.size,
+                          0, (void **)&Contents);
   }
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
@@ -493,8 +472,8 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
   ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
   // unmap the resource we mapped before - we need to do this on read and on write.
-  if(!IsStructuredExporting(m_State) && mappedMem != VK_NULL_HANDLE)
-    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+  if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)
+    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem.mem));
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -526,7 +505,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
 
   SERIALISE_ELEMENT_LOCAL(SparseState, contents.sparseImage);
 
-  VkDeviceMemory mappedMem = VK_NULL_HANDLE;
+  MemoryAllocation mappedMem;
   byte *Contents = NULL;
   uint64_t ContentsSize = (uint64_t)SparseState.totalSize;
 
@@ -534,15 +513,15 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
   SERIALISE_ELEMENT(ContentsSize);
 
   // the memory/buffer that we allocated on read, to upload the initial contents.
-  VkDeviceMemory uploadMemory = VK_NULL_HANDLE;
+  MemoryAllocation uploadMemory;
   VkBuffer uploadBuf = VK_NULL_HANDLE;
 
   // during writing, we already have the memory copied off - we just need to map it.
   if(ser.IsWriting())
   {
     mappedMem = contents.mem;
-    vkr =
-        ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
+    vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs, mappedMem.size, 0,
+                                (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
   else if(IsReplayingAndReading() && !ser.IsErrored())
@@ -561,26 +540,17 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
 
     GetResourceManager()->WrapResource(Unwrap(d), uploadBuf);
 
-    VkMemoryRequirements mrq = {0};
+    uploadMemory =
+        AllocateMemoryForResource(uploadBuf, MemoryScope::InitialContents, MemoryType::Upload);
 
-    ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(uploadBuf), &mrq);
-
-    VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-        GetUploadMemoryIndex(mrq.memoryTypeBits),
-    };
-
-    vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &uploadMemory);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    GetResourceManager()->WrapResource(Unwrap(d), uploadMemory);
-
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(uploadBuf), Unwrap(uploadMemory), 0);
+    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(uploadBuf), Unwrap(uploadMemory.mem),
+                                       uploadMemory.offs);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     mappedMem = uploadMemory;
 
-    ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(uploadMemory), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
+    ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(uploadMemory.mem), uploadMemory.offs, uploadMemory.size,
+                          0, (void **)&Contents);
   }
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
@@ -588,8 +558,8 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
   ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
   // unmap the resource we mapped before - we need to do this on read and on write.
-  if(!IsStructuredExporting(m_State) && mappedMem != VK_NULL_HANDLE)
-    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+  if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)
+    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem.mem));
 
   SERIALISE_CHECK_READ_ERRORS();
 

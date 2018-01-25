@@ -89,6 +89,7 @@ struct VkInitialContents
     ClearColorImage = 1,
     ClearDepthStencilImage,
     Sparse,
+    DescriptorSet,
   };
 
   VkInitialContents()
@@ -105,12 +106,11 @@ struct VkInitialContents
     tag = tg;
   }
 
-  VkInitialContents(VkResourceType t, VkDeviceMemory m, VkDeviceSize s)
+  VkInitialContents(VkResourceType t, MemoryAllocation m)
   {
     memset(this, 0, sizeof(*this));
     type = t;
     mem = m;
-    size = s;
   }
 
   template <typename Configuration>
@@ -123,7 +123,8 @@ struct VkInitialContents
 
     rm->ResourceTypeRelease(GetWrapped(buf));
     rm->ResourceTypeRelease(GetWrapped(img));
-    rm->ResourceTypeRelease(GetWrapped(mem));
+
+    // memory is not free'd here
 
     if(tag == Sparse)
     {
@@ -153,10 +154,9 @@ struct VkInitialContents
 
   // for plain resources, we store the resource type and memory allocation details of the contents
   VkResourceType type;
-  VkDeviceMemory mem;
   VkBuffer buf;
   VkImage img;
-  VkDeviceSize size;
+  MemoryAllocation mem;
   Tag tag;
 
   // sparse resources need extra information. Which one is valid, depends on the value of type above

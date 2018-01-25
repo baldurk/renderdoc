@@ -174,3 +174,194 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
     }
   }
 }
+
+MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryRequirements mrq,
+                                                          MemoryScope scope, MemoryType type)
+{
+  MemoryAllocation ret;
+  ret.scope = scope;
+  ret.type = type;
+  ret.buffer = buffer;
+  ret.size = AlignUp(mrq.size, mrq.alignment);
+
+  RDCDEBUG("Allocating 0x%llx with alignment 0x%llx in 0x%x for a %s (%s in %s)", ret.size,
+           mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image", ToStr(type).c_str(),
+           ToStr(scope).c_str());
+
+  std::vector<MemoryAllocation> &blockList = m_MemoryBlocks[(size_t)scope];
+
+  // first try to find a match
+  int i = 0;
+  for(MemoryAllocation &block : blockList)
+  {
+    RDCDEBUG(
+        "Considering block %d: memory type %u and type %s. Total size 0x%llx, current offset "
+        "0x%llx, last alloc was %s",
+        i, block.memoryTypeIndex, ToStr(block.type).c_str(), block.size, block.offs,
+        block.buffer ? "buffer" : "image");
+    i++;
+
+    // skip this block if it's not the memory type we want
+    if(ret.type != block.type || (mrq.memoryTypeBits & (1 << block.memoryTypeIndex)) == 0)
+    {
+      RDCDEBUG("block type %d or memory type %d is incompatible", block.type, block.memoryTypeIndex);
+      continue;
+    }
+
+    // offs is where we can put our next sub-allocation
+    VkDeviceSize offs = block.offs;
+
+    // if we are on a buffer/image, account for any alignment we might have to do
+    if(ret.buffer != block.buffer)
+      offs = AlignUp(offs, m_PhysicalDeviceData.props.limits.bufferImageGranularity);
+
+    // align as required by the resource
+    offs = AlignUp(offs, mrq.alignment);
+
+    VkDeviceSize avail = block.size - offs;
+
+    RDCDEBUG("At next offset 0x%llx, there's 0x%llx bytes available for 0x%llx bytes requested",
+             offs, avail, ret.size);
+
+    // if the allocation will fit, we've found our candidate.
+    if(ret.size <= avail)
+    {
+      // update the block offset and buffer/image bit
+      block.offs = offs + ret.size;
+      block.buffer = ret.buffer;
+
+      // update our return value
+      ret.offs = offs;
+      ret.mem = block.mem;
+
+      RDCDEBUG("Allocating using this block: 0x%llx -> 0x%llx", ret.offs, block.offs);
+
+      // stop searching
+      break;
+    }
+  }
+
+  if(ret.mem == VK_NULL_HANDLE)
+  {
+    RDCDEBUG("No available block found - allocating new block");
+
+    VkDeviceSize &allocSize = m_MemoryBlockSize[(size_t)scope];
+
+    // we start allocating 32M, then increment each time we need a new block.
+    switch(allocSize)
+    {
+      case 0: allocSize = 32; break;
+      case 32: allocSize = 64; break;
+      case 64: allocSize = 128; break;
+      case 128:
+      case 256: allocSize = 256; break;
+      default:
+        RDCDEBUG("Unexpected previous allocation size 0x%llx bytes, allocating 256MB", allocSize);
+        allocSize = 256;
+        break;
+    }
+
+    uint32_t memoryTypeIndex = 0;
+
+    switch(ret.type)
+    {
+      case MemoryType::Upload: memoryTypeIndex = GetUploadMemoryIndex(mrq.memoryTypeBits); break;
+      case MemoryType::GPULocal:
+        memoryTypeIndex = GetGPULocalMemoryIndex(mrq.memoryTypeBits);
+        break;
+      case MemoryType::Readback:
+        memoryTypeIndex = GetReadbackMemoryIndex(mrq.memoryTypeBits);
+        break;
+    }
+
+    VkMemoryAllocateInfo info = {
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, allocSize * 1024 * 1024, memoryTypeIndex,
+    };
+
+    if(ret.size > info.allocationSize)
+    {
+      // if we get an over-sized allocation, first try to immediately jump to the largest block
+      // size.
+      allocSize = 256;
+      info.allocationSize = allocSize * 1024 * 1024;
+
+      // if it's still over-sized, just allocate precisely enough and give it a dedicated allocation
+      if(ret.size > info.allocationSize)
+      {
+        RDCDEBUG("Over-sized allocation for 0x%llx bytes", ret.size);
+        info.allocationSize = ret.size;
+      }
+    }
+
+    RDCDEBUG("Creating new allocation of 0x%llx bytes", info.allocationSize);
+
+    MemoryAllocation chunk;
+    chunk.buffer = ret.buffer;
+    chunk.memoryTypeIndex = memoryTypeIndex;
+    chunk.scope = scope;
+    chunk.type = type;
+    chunk.size = info.allocationSize;
+
+    // the offset starts immediately after this allocation
+    chunk.offs = ret.size;
+
+    VkDevice d = GetDev();
+
+    // do the actual allocation
+    VkResult vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &info, NULL, &chunk.mem);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    GetResourceManager()->WrapResource(Unwrap(d), chunk.mem);
+
+    // push the new chunk
+    blockList.push_back(chunk);
+
+    // return the first bytes in the new chunk
+    ret.offs = 0;
+    ret.mem = chunk.mem;
+  }
+
+  return ret;
+}
+
+MemoryAllocation WrappedVulkan::AllocateMemoryForResource(VkImage im, MemoryScope scope,
+                                                          MemoryType type)
+{
+  VkDevice d = GetDev();
+
+  VkMemoryRequirements mrq = {};
+  ObjDisp(d)->GetImageMemoryRequirements(Unwrap(d), Unwrap(im), &mrq);
+
+  return AllocateMemoryForResource(false, mrq, scope, type);
+}
+
+MemoryAllocation WrappedVulkan::AllocateMemoryForResource(VkBuffer buf, MemoryScope scope,
+                                                          MemoryType type)
+{
+  VkDevice d = GetDev();
+
+  VkMemoryRequirements mrq = {};
+  ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(buf), &mrq);
+
+  return AllocateMemoryForResource(true, mrq, scope, type);
+}
+
+void WrappedVulkan::FreeAllMemory(MemoryScope scope)
+{
+  VkDevice d = GetDev();
+
+  std::vector<MemoryAllocation> &allocList = m_MemoryBlocks[(size_t)scope];
+
+  for(MemoryAllocation alloc : allocList)
+  {
+    ObjDisp(d)->FreeMemory(Unwrap(d), Unwrap(alloc.mem), NULL);
+    GetResourceManager()->ReleaseWrappedResource(alloc.mem);
+  }
+
+  allocList.clear();
+}
+
+void WrappedVulkan::FreeMemoryAllocation(MemoryAllocation alloc)
+{
+  // don't do anything at the moment, we only support freeing the whole scope at once.
+}

@@ -392,6 +392,26 @@ private:
     // -> FlushQ() ----back to freesems-------^
   } m_InternalCmds;
 
+  // Internal lumped/pooled memory allocations
+
+  // Each memory scope gets a separate vector of allocation objects. The vector contains the list of
+  // all 'base' allocations. The offset is used to indicate the current offset, and the size is the
+  // total size, thus the free space can be determined with size - offset.
+  std::vector<MemoryAllocation> m_MemoryBlocks[arraydim<MemoryScope>()];
+
+  // Per memory scope, the size of the next allocation. This allows us to balance number of memory
+  // allocation objects with size by incrementally allocating larger blocks.
+  VkDeviceSize m_MemoryBlockSize[arraydim<MemoryScope>()];
+
+  MemoryAllocation AllocateMemoryForResource(VkImage im, MemoryScope scope, MemoryType type);
+  MemoryAllocation AllocateMemoryForResource(VkBuffer buf, MemoryScope scope, MemoryType type);
+  void FreeAllMemory(MemoryScope scope);
+  void FreeMemoryAllocation(MemoryAllocation alloc);
+
+  // internal implementation - call one of the functions above
+  MemoryAllocation AllocateMemoryForResource(bool buffer, VkMemoryRequirements mrq,
+                                             MemoryScope scope, MemoryType type);
+
   vector<VkEvent> m_CleanupEvents;
   vector<VkEvent> m_PersistentEvents;
 

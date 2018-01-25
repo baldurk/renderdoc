@@ -488,6 +488,8 @@ void WrappedVulkan::Shutdown()
     GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freesems[i]);
   }
 
+  FreeAllMemory(MemoryScope::InitialContents);
+
   // we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
   // no explicit vkDestroyDevice, we destroy the device here then the instance
 

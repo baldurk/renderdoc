@@ -486,6 +486,8 @@ ResourceManager<Configuration>::ResourceManager()
 template <typename Configuration>
 void ResourceManager<Configuration>::Shutdown()
 {
+  FreeInitialContents();
+
   while(!m_LiveResourceMap.empty())
   {
     auto it = m_LiveResourceMap.begin();
@@ -496,8 +498,6 @@ void ResourceManager<Configuration>::Shutdown()
     if(removeit != m_LiveResourceMap.end())
       m_LiveResourceMap.erase(removeit);
   }
-
-  FreeInitialContents();
 
   RDCASSERT(m_ResourceRecords.empty());
 }

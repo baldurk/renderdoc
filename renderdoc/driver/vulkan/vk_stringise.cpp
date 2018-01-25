@@ -173,6 +173,28 @@ std::string DoStringise(const VkResourceType &el)
 }
 
 template <>
+std::string DoStringise(const MemoryScope &el)
+{
+  BEGIN_ENUM_STRINGISE(MemoryScope);
+  {
+    STRINGISE_ENUM_CLASS(InitialContents);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+std::string DoStringise(const MemoryType &el)
+{
+  BEGIN_ENUM_STRINGISE(MemoryType)
+  {
+    STRINGISE_ENUM_CLASS(Upload);
+    STRINGISE_ENUM_CLASS(GPULocal);
+    STRINGISE_ENUM_CLASS(Readback);
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 std::string DoStringise(const VkFlagWithNoBits &el)
 {
   if(el != 0)

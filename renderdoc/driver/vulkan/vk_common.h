@@ -280,6 +280,36 @@ void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   nextChainTail = (VkGenericStruct *)outputStruct;
 }
 
+enum class MemoryScope : uint8_t
+{
+  InitialContents,
+  First = InitialContents,
+  Count,
+};
+
+ITERABLE_OPERATORS(MemoryScope);
+
+enum class MemoryType : uint8_t
+{
+  Upload,
+  GPULocal,
+  Readback,
+};
+
+struct MemoryAllocation
+{
+  VkDeviceMemory mem = VK_NULL_HANDLE;
+  VkDeviceSize offs = 0;
+  VkDeviceSize size = 0;
+
+  // not strictly necessary but useful for reflection/readback - what scope/type were used, what was
+  // the actual memory type index selected, and was a buffer or image allocated.
+  MemoryScope scope = MemoryScope::InitialContents;
+  MemoryType type = MemoryType::GPULocal;
+  uint32_t memoryTypeIndex = 0;
+  bool buffer = false;
+};
+
 #define RENDERDOC_LAYER_NAME "VK_LAYER_RENDERDOC_Capture"
 
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
