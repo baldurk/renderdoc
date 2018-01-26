@@ -29,12 +29,17 @@
 #define NOMINMAX
 
 #include <intrin.h>
+#include <stdlib.h>
 #include <windows.h>
 #include "data/resource.h"
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
 
 #define OS_DEBUG_BREAK() __debugbreak()
+
+#define EndianSwap16(x) _byteswap_ushort(x)
+#define EndianSwap32(x) _byteswap_ulong(x)
+#define EndianSwap64(x) _byteswap_uint64(x)
 
 #define EmbeddedResourceType int
 #define EmbeddedResource(filename) CONCAT(RESOURCE_, filename)

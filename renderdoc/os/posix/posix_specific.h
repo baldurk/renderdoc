@@ -32,6 +32,21 @@
 
 #define OS_DEBUG_BREAK() raise(SIGTRAP)
 
+#if ENABLED(RDOC_APPLE)
+
+#include <libkern/OSByteOrder.h>
+#define EndianSwap16(x) OSSwapInt16(x)
+#define EndianSwap32(x) OSSwapInt32(x)
+#define EndianSwap64(x) OSSwapInt64(x)
+
+#else
+
+#define EndianSwap16(x) __builtin_bswap16(x)
+#define EndianSwap32(x) __builtin_bswap32(x)
+#define EndianSwap64(x) __builtin_bswap64(x)
+
+#endif
+
 struct EmbeddedResourceType
 {
   EmbeddedResourceType(const unsigned char *b, int l) : base(b), len(l) {}
