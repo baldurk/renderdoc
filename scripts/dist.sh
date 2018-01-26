@@ -51,32 +51,9 @@ cp -R plugins-win32/ dist/Release32/plugins
 find dist/Release{32,64}/ -iname '*.ipdb' -exec rm '{}' \;
 find dist/Release{32,64}/ -iname '*.iobj' -exec rm '{}' \;
 
-ANDROID32="bin-android32"
-if [ -f build-android32/bin/RenderDocCmd.apk ]; then
-	ANDROID32="build-android32/bin";
-fi
-
-ANDROID64="bin-android64"
-if [ -f build-android64/bin/RenderDocCmd.apk ]; then
-	ANDROID64="build-android64/bin";
-fi
-
-if [ -f $ANDROID32/RenderDocCmd.apk ]; then
-	# Building for android, copy the apk and vulkan layer into folders
-	mkdir -p dist/Release64/android/apk dist/Release64/android/lib/armeabi-v7a
-
-	cp $ANDROID32/RenderDocCmd.apk dist/Release64/android/apk
-	cp $ANDROID32/libVkLayer_GLES_RenderDoc.so dist/Release64/android/lib/armeabi-v7a/libVkLayer_GLES_RenderDoc.so
-fi
-
-if [ -f $ANDROID64/RenderDocCmd.apk ]; then
-	# Building for android, copy the vulkan layer into folder
-	mkdir -p dist/Release64/android/lib/arm64-v8a
-
-	# We don't distribute the 64-bit apk, we use armeabi-v7a for both 32-bit and 64-bit
-	#cp $ANDROID64/RenderDocCmd.apk dist/Release64/android/apk/64
-	cp $ANDROID64/libVkLayer_GLES_RenderDoc.so dist/Release64/android/lib/arm64-v8a/libVkLayer_GLES_RenderDoc.so
-fi
+# Copy in any android APKs that were built
+mkdir -p dist/Release64/android/apk
+find build-android-* -iname 'org.renderdoc.renderdoccmd.*.apk' -exec cp '{}' dist/Release64/android/apk ';'
 
 # try to copy adb.exe in as well, with its dll dependencies
 if [ -f $ANDROID_SDK/platform-tools/adb.exe ] && [ -d dist/Release64/android ]; then

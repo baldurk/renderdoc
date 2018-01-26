@@ -58,6 +58,54 @@ void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::strin
   deviceID = c;
 }
 
+ABI GetABI(const std::string &abiName)
+{
+  if(abiName == "armeabi-v7a")
+    return ABI::armeabi_v7a;
+  else if(abiName == "arm64-v8a")
+    return ABI::arm64_v8a;
+  else if(abiName == "x86-v7a")
+    return ABI::x86;
+  else if(abiName == "x86_64")
+    return ABI::x86_64;
+
+  RDCWARN("Unknown or unsupported ABI %s", abiName.c_str());
+
+  return ABI::unknown;
+}
+
+std::vector<ABI> GetSupportedABIs(const std::string &deviceID)
+{
+  std::string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout);
+
+  // these returned lists should be such that the first entry is the 'lowest command denominator' -
+  // typically 32-bit.
+  switch(GetABI(adbAbi))
+  {
+    case ABI::arm64_v8a: return {ABI::armeabi_v7a, ABI::arm64_v8a};
+    case ABI::armeabi_v7a: return {ABI::armeabi_v7a};
+    case ABI::x86_64: return {ABI::x86, ABI::x86_64};
+    case ABI::x86: return {ABI::x86};
+    default: break;
+  }
+
+  return {};
+}
+
+std::string GetRenderDocPackageForABI(ABI abi)
+{
+  switch(abi)
+  {
+    case ABI::arm64_v8a: return RENDERDOC_ANDROID_PACKAGE_BASE ".arm64";
+    case ABI::armeabi_v7a: return RENDERDOC_ANDROID_PACKAGE_BASE ".arm32";
+    case ABI::x86_64: return RENDERDOC_ANDROID_PACKAGE_BASE ".x64";
+    case ABI::x86: return RENDERDOC_ANDROID_PACKAGE_BASE ".x86";
+    default: break;
+  }
+
+  return RENDERDOC_ANDROID_PACKAGE_BASE ".unknown";
+}
+
 std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName)
 {
   std::string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);

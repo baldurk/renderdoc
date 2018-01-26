@@ -47,5 +47,22 @@ enum class ToolDir
 std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist);
 bool toolExists(const std::string &path);
 
+std::string GetFirstMatchingLine(const std::string &haystack, const std::string &needle);
+
 std::string GetFriendlyName(std::string deviceID);
+
+// supported ABIs
+enum class ABI
+{
+  unknown,
+  armeabi_v7a,
+  arm64_v8a,
+  x86,
+  x86_64,
+};
+
+ABI GetABI(const std::string &abiName);
+std::vector<ABI> GetSupportedABIs(const std::string &deviceID);
+std::string GetRenderDocPackageForABI(ABI abi);
+std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName);
 };

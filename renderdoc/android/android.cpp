@@ -89,7 +89,7 @@ std::string GetDefaultActivityForPackage(const std::string &deviceID, const std:
   return "";
 }
 
-int GetCurrentPid(const std::string &deviceID, const std::string &packageName)
+int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
 {
   // try 5 times, 200ms apart to find the pid
   for(int i = 0; i < 5; i++)
@@ -146,7 +146,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
                                              activityName.c_str()));
 
   // adb shell ps | grep $PACKAGE | awk '{print $2}')
-  int pid = GetCurrentPid(deviceID, packageName);
+  int pid = GetCurrentPID(deviceID, packageName);
 
   adbForwardPorts(index, deviceID, jdwpPort, pid);
 
@@ -194,15 +194,17 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   return ret;
 }
 
-bool installRenderDocServer(const string &deviceID)
+bool InstallRenderDocServer(const std::string &deviceID)
 {
-  string targetApk = "RenderDocCmd.apk";
-  string serverApk;
+  std::vector<ABI> abis = GetSupportedABIs(deviceID);
+
+  if(abis.empty())
+    return false;
 
   // Check known paths for RenderDoc server
-  string exePath;
+  std::string exePath;
   FileIO::GetExecutableFilename(exePath);
-  string exeDir = dirname(FileIO::GetFullPathname(exePath));
+  std::string exeDir = dirname(FileIO::GetFullPathname(exePath));
 
   std::vector<std::string> paths;
 
@@ -213,160 +215,145 @@ bool installRenderDocServer(const string &deviceID)
   if(FileIO::IsRelativePath(customPath))
     customPath = exeDir + "/" + customPath;
 
-  // Check to see if APK name was included in custom path
-  if(!endswith(customPath, targetApk))
-  {
-    if(customPath.back() != '/')
-      customPath += "/";
-    customPath += targetApk;
-  }
+  if(!endswith(customPath, "/"))
+    customPath += "/";
 
   paths.push_back(customPath);
 #endif
 
-  paths.push_back(exeDir + "/android/apk/" + targetApk);                         // Windows install
-  paths.push_back(exeDir + "/../share/renderdoc/android/apk/" + targetApk);      // Linux install
-  paths.push_back(exeDir + "/../../build-android/bin/" + targetApk);             // Local build
-  paths.push_back(exeDir + "/../../../../../build-android/bin/" + targetApk);    // macOS build
+  paths.push_back(exeDir + "/android/apk/");                         // Windows install
+  paths.push_back(exeDir + "/../share/renderdoc/android/apk/");      // Linux install
+  paths.push_back(exeDir + "/../../build-android/bin/");             // Local build
+  paths.push_back(exeDir + "/../../../../../build-android/bin/");    // macOS build
+
+  // use the first ABI for searching
+  std::string apk = GetRenderDocPackageForABI(abis[0]);
+  std::string apksFolder;
 
   for(uint32_t i = 0; i < paths.size(); i++)
   {
     RDCLOG("Checking for server APK in %s", paths[i].c_str());
-    if(FileIO::exists(paths[i].c_str()))
+
+    std::string apkpath = paths[i] + apk + ".apk";
+
+    if(FileIO::exists(apkpath.c_str()))
     {
-      serverApk = paths[i];
-      RDCLOG("APK found!: %s", serverApk.c_str());
+      apksFolder = paths[i];
+      RDCLOG("APKs found: %s", apksFolder.c_str());
       break;
     }
   }
 
-  if(serverApk.empty())
+  if(apksFolder.empty())
   {
     RDCERR(
-        "%s missing! RenderDoc for Android will not work without it. "
+        "APK folder missing! RenderDoc for Android will not work without it. "
         "Build your Android ABI in build-android in the root to have it "
-        "automatically found and installed.",
-        targetApk.c_str());
+        "automatically found and installed.");
     return false;
   }
 
-  // Build a map so we can switch on the string that returns from adb calls
-  enum AndroidAbis
+  for(ABI abi : abis)
   {
-    Android_armeabi,
-    Android_armeabi_v7a,
-    Android_arm64_v8a,
-    Android_x86,
-    Android_x86_64,
-    Android_mips,
-    Android_mips64,
-    Android_numAbis
-  };
+    apk = apksFolder + GetRenderDocPackageForABI(abi) + ".apk";
 
-  // clang-format off
-  static std::map<std::string, AndroidAbis> abi_string_map;
-  abi_string_map["armeabi"]     = Android_armeabi;
-  abi_string_map["armeabi-v7a"] = Android_armeabi_v7a;
-  abi_string_map["arm64-v8a"]   = Android_arm64_v8a;
-  abi_string_map["x86"]         = Android_x86;
-  abi_string_map["x86_64"]      = Android_x86_64;
-  abi_string_map["mips"]        = Android_mips;
-  abi_string_map["mips64"]      = Android_mips64;
-  // clang-format on
+    if(!FileIO::exists(apk.c_str()))
+      RDCWARN(
+          "%s missing - ensure you build all ABIs your device can support for full compatibility",
+          apk.c_str());
 
-  // 32-bit server works for 32 and 64 bit apps
-  // For stable builds of the server, only 32-bit libs will be packaged into APK
-  // For local builds, whatever was specified as single ABI will be packaged into APK
+    adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+  }
 
-  string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout);
+  // Ensure installation succeeded. We should have as many lines as abis we installed
+  std::string adbCheck =
+      adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE).strStdout;
 
-  string adbInstall;
-  switch(abi_string_map[adbAbi])
+  if(adbCheck.empty())
+    return false;
+
+  size_t lines = adbCheck.find('\n') == std::string::npos ? 1 : 2;
+
+  if(lines != abis.size())
+    RDCWARN("Installation of some apks failed!");
+
+  return true;
+}
+
+bool RemoveRenderDocAndroidServer(const string &deviceID)
+{
+  std::vector<ABI> abis = GetSupportedABIs(deviceID);
+
+  if(abis.empty())
+    return false;
+
+  // remove the old package, if it's still there. Ignore any errors
+  adbExecCommand(deviceID, "uninstall " RENDERDOC_ANDROID_PACKAGE_BASE);
+
+  for(ABI abi : abis)
   {
-    case Android_armeabi_v7a:
-    case Android_arm64_v8a:
-      adbInstall = adbExecCommand(deviceID, "install -r -g \"" + serverApk + "\"").strStdout;
-      break;
-    case Android_armeabi:
-    case Android_x86:
-    case Android_x86_64:
-    case Android_mips:
-    case Android_mips64:
-    default:
+    std::string packageName = GetRenderDocPackageForABI(abi);
+
+    adbExecCommand(deviceID, "uninstall " + packageName);
+
+    // Ensure uninstall succeeded
+    std::string adbCheck =
+        adbExecCommand(deviceID, "shell pm list packages " + packageName).strStdout;
+
+    if(!adbCheck.empty())
     {
-      RDCERR("Unsupported target ABI: %s", adbAbi.c_str());
+      RDCERR("Uninstall of %s failed!", packageName.c_str());
       return false;
     }
   }
 
-  // Ensure installation succeeded
-  string adbCheck =
-      adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;
-  if(adbCheck.empty())
-  {
-    RDCERR("Installation of RenderDocCmd.apk failed!");
-    return false;
-  }
-
   return true;
 }
-bool RemoveRenderDocAndroidServer(const string &deviceID, const string &packageName)
-{
-  adbExecCommand(deviceID, "uninstall " + packageName);
 
-  // Ensure uninstall succeeded
-  string adbCheck = adbExecCommand(deviceID, "shell pm list packages " + packageName).strStdout;
-
-  if(!adbCheck.empty())
-  {
-    RDCERR("Uninstall of %s failed!", packageName.c_str());
-    return false;
-  }
-
-  return true;
-}
 bool CheckAndroidServerVersion(const string &deviceID)
 {
-  string packageName = "org.renderdoc.renderdoccmd";
+  std::vector<ABI> abis = GetSupportedABIs(deviceID);
+
+  if(abis.empty())
+    return false;
+
+  // assume all servers are updated at the same rate. Only check first ABI's version
+  std::string packageName = GetRenderDocPackageForABI(abis[0]);
   RDCLOG("Checking installed version of %s on %s", packageName.c_str(), deviceID.c_str());
 
-  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
   if(dump.empty())
     RDCERR("Unable to pm dump %s", packageName.c_str());
 
-  // Walk through the output and look for versionCode and versionName
-  std::istringstream contents(dump);
-  string line;
-  string versionCode;
-  string versionName;
-  string prefix1("versionCode=");
-  string prefix2("versionName=");
-  while(std::getline(contents, line))
+  std::string versionCode = trim(GetFirstMatchingLine(dump, "versionCode="));
+  std::string versionName = trim(GetFirstMatchingLine(dump, "versionName="));
+
+  // versionCode is not alone in this line, isolate it
+  if(versionCode != "")
   {
-    line = trim(line);
-    if(line.compare(0, prefix1.size(), prefix1) == 0)
-    {
-      // versionCode is not alone in this line, isolate it
-      std::vector<string> vec;
-      split(line, vec, ' ');
-      versionCode = vec[0].substr(vec[0].find_last_of("=") + 1);
-    }
-    if(line.compare(0, prefix2.size(), prefix2) == 0)
-    {
-      versionName = line.substr(line.find_first_of("=") + 1);
-    }
+    size_t spaceOffset = versionCode.find(' ');
+    versionCode.erase(spaceOffset);
+
+    versionCode.erase(0, strlen("versionCode="));
+  }
+  else
+  {
+    RDCERR("Unable to determine versionCode for: %s", packageName.c_str());
   }
 
-  if(versionCode.empty())
-    RDCERR("Unable to determine versionCode for: %s", packageName.c_str());
-
-  if(versionName.empty())
+  if(versionName != "")
+  {
+    versionName.erase(0, strlen("versionName="));
+  }
+  else
+  {
     RDCERR("Unable to determine versionName for: %s", packageName.c_str());
+  }
 
   // Compare the server's versionCode and versionName with the host's for compatibility
-  string hostVersionCode =
+  std::string hostVersionCode =
       string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + string(STRINGIZE(RENDERDOC_VERSION_MINOR));
-  string hostVersionName = RENDERDOC_STABLE_BUILD ? MAJOR_MINOR_VERSION_STRING : GitVersionHash;
+  std::string hostVersionName = RENDERDOC_STABLE_BUILD ? MAJOR_MINOR_VERSION_STRING : GitVersionHash;
 
   // False positives will hurt us, so check for explicit matches
   if((hostVersionCode == versionCode) && (hostVersionName == versionName))
@@ -379,14 +366,12 @@ bool CheckAndroidServerVersion(const string &deviceID)
   RDCWARN("RenderDoc server versionCode:versionName (%s:%s) is incompatible with host (%s:%s)",
           versionCode.c_str(), versionName.c_str(), hostVersionCode.c_str(), hostVersionName.c_str());
 
-  if(RemoveRenderDocAndroidServer(deviceID, packageName))
+  if(RemoveRenderDocAndroidServer(deviceID))
     RDCLOG("Uninstall of incompatible server succeeded");
 
   return false;
 }
-
 };    // namespace Android
-using namespace Android;
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
                                                                             rdcstr &friendly)
@@ -412,17 +397,17 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList)
 {
-  string adbStdout = adbExecCommand("", "devices").strStdout;
+  std::string adbStdout = Android::adbExecCommand("", "devices").strStdout;
 
   int idx = 0;
 
-  using namespace std;
-  istringstream stdoutStream(adbStdout);
-  string ret;
-  string line;
-  while(getline(stdoutStream, line))
+  std::string ret;
+
+  std::vector<std::string> lines;
+  split(adbStdout, lines, '\n');
+  for(const std::string &line : lines)
   {
-    vector<string> tokens;
+    std::vector<std::string> tokens;
     split(line, tokens, '\t');
     if(tokens.size() == 2 && trim(tokens[1]) == "device")
     {
@@ -432,7 +417,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
       ret += StringFormat::Fmt("adb:%d:%s", idx, tokens[0].c_str());
 
       // Forward the ports so we can see if a remoteserver/captured app is already running.
-      adbForwardPorts(idx, tokens[0], 0, 0);
+      Android::adbForwardPorts(idx, tokens[0], 0, 0);
 
       idx++;
     }
@@ -448,20 +433,29 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
 
   Android::ExtractDeviceIDAndIndex(device, index, deviceID);
 
-  string adbPackage =
-      adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;
+  std::string packages =
+      Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE).strStdout;
 
-  if(adbPackage.empty() || !CheckAndroidServerVersion(deviceID))
+  if(packages.empty() || !Android::CheckAndroidServerVersion(deviceID))
   {
     // If server is not detected or has been removed due to incompatibility, install it
-    if(!installRenderDocServer(deviceID))
+    if(!Android::InstallRenderDocServer(deviceID))
       return;
   }
 
-  adbExecCommand(deviceID, "shell am force-stop org.renderdoc.renderdoccmd");
-  adbForwardPorts(index, deviceID, 0, 0);
-  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
-  adbExecCommand(
-      deviceID,
-      "shell am start -n org.renderdoc.renderdoccmd/.Loader -e renderdoccmd remoteserver");
+  // stop all servers of any ABI
+  std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
+
+  for(Android::ABI abi : abis)
+    Android::adbExecCommand(deviceID, "shell am force-stop " + GetRenderDocPackageForABI(abi));
+
+  if(abis.empty())
+    return;
+
+  Android::adbForwardPorts(index, deviceID, 0, 0);
+  Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
+
+  // launch the first ABI, as the default 'most compatible' package
+  Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis[0]) +
+                                        "/.Loader -e renderdoccmd remoteserver");
 }

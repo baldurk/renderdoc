@@ -27,6 +27,7 @@
 #include "core/core.h"
 #include "strings/string_utils.h"
 #include "android.h"
+#include "android_utils.h"
 
 namespace JDWP
 {
@@ -95,7 +96,7 @@ void InjectVulkanLayerSearchPath(Connection &conn, threadID thread, int32_t slot
   conn.SetLocalValue(thread, stack[0].id, slotIdx, temp);
 }
 
-bool InjectLibraries(Network::Socket *sock, std::string libPath)
+bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 {
   Connection conn(sock);
 
@@ -112,7 +113,7 @@ bool InjectLibraries(Network::Socket *sock, std::string libPath)
     return false;
 
   // default to arm as a safe bet
-  std::string abi = "armeabi-v7a";
+  Android::ABI abi = Android::ABI::armeabi_v7a;
 
   // determine the CPU ABI from android.os.Build.CPU_ABI
   referenceTypeID buildClass = conn.GetType("Landroid/os/Build;");
@@ -125,7 +126,7 @@ bool InjectLibraries(Network::Socket *sock, std::string libPath)
       value val = conn.GetFieldValue(buildClass, CPU_ABI);
 
       if(val.tag == Tag::String)
-        abi = conn.GetString(val.String);
+        abi = Android::GetABI(conn.GetString(val.String));
       else
         RDCERR("CPU_ABI value was type %u, not string!", (uint32_t)val.tag);
     }
@@ -139,19 +140,21 @@ bool InjectLibraries(Network::Socket *sock, std::string libPath)
     RDCERR("Couldn't find android.os.Build");
   }
 
-  // use the ABI to determine where to find our library
-  if(abi == "armeabi-v7a")
+  if(abi == Android::ABI::unknown)
   {
-    libPath += "arm";
+    RDCERR("Unrecognised running ABI, falling back to armeabi-v7a");
+    abi = Android::ABI::armeabi_v7a;
   }
-  else if(abi == "arm64-v8a")
+
+  std::string libPath = Android::GetPathForPackage(deviceID, Android::GetRenderDocPackageForABI(abi));
+
+  switch(abi)
   {
-    libPath += "arm64";
-  }
-  else
-  {
-    RDCERR("Unhandled ABI '%s'", abi.c_str());
-    return false;
+    case Android::ABI::unknown:
+    case Android::ABI::armeabi_v7a: libPath += "lib/arm"; break;
+    case Android::ABI::arm64_v8a: libPath += "lib/arm64"; break;
+    case Android::ABI::x86_64: libPath += "lib/x86_64"; break;
+    case Android::ABI::x86: libPath += "lib/x86"; break;
   }
 
   if(conn.IsErrored())
@@ -386,12 +389,7 @@ bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport)
 
   if(sock)
   {
-    std::string apk = adbExecCommand(deviceID, "shell pm path org.renderdoc.renderdoccmd").strStdout;
-    apk = trim(apk);
-    apk.resize(apk.size() - 8);
-    apk.erase(0, 8);
-
-    bool ret = JDWP::InjectLibraries(sock, apk + "lib/");
+    bool ret = JDWP::InjectLibraries(deviceID, sock);
     delete sock;
 
     return ret;

@@ -39,8 +39,7 @@ set(BUILD_VERSION_DIST_NAME "" CACHE STRING "The name of the distribution. See D
 set(BUILD_VERSION_DIST_VER "" CACHE STRING "The distribution-specific version number. See DISTRIBUTION_VERSION in renderdoc/api/replay/version.h")
 set(BUILD_VERSION_DIST_CONTACT "" CACHE STRING "The URL or email to contact with issues. See DISTRIBUTION_CONTACT in renderdoc/api/replay/version.h")
 set(RENDERDOC_PLUGINS_PATH "" CACHE STRING "Path to RenderDoc plugins folder after installation of RenderDoc (either absolute or relative to binary)")
-set(RENDERDOC_APK_PATH "" CACHE STRING "Path to RenderDocCmd.apk after installation of RenderDoc on host (either absolute or relative to binary)")
-set(RENDERDOC_LAYER_PATH "" CACHE STRING "Path to ABI directories (i.e. lib in lib/armeabi-v7a/libVkLayer_GLES_RenderDoc.so) after installation of RenderDoc on host (either absolute or relative to dir)")
+set(RENDERDOC_APK_PATH "" CACHE STRING "Path to RenderDoc .apk files after installation of RenderDoc on host (either absolute or relative to binary)")
 
 set(LIB_SUFFIX "" CACHE STRING "Suffix for 'lib' folder in target directory structure. E.g. set to '64' to use /usr/local/lib64 instead of /usr/local/lib.")
 set(LIB_SUBFOLDER "" CACHE STRING "Subfolder under the 'lib' folder in target directory structure. E.g. set to 'renderdoc' to use /usr/local/lib/renderdoc instead of /usr/local/lib.")
@@ -80,11 +79,6 @@ endif()
 if(NOT RENDERDOC_APK_PATH STREQUAL "")
     message(STATUS "Detected custom path to RenderDocCmd.apk: ${RENDERDOC_APK_PATH}")
     add_definitions(-DRENDERDOC_APK_PATH="${RENDERDOC_APK_PATH}")
-endif()
-
-if(NOT RENDERDOC_LAYER_PATH STREQUAL "")
-	message(STATUS "Detected custom path to libVkLayer_GLES_RenderDoc.so: ${RENDERDOC_LAYER_PATH}")
-    add_definitions(-DRENDERDOC_LAYER_PATH="${RENDERDOC_LAYER_PATH}")
 endif()
 
 function(get_git_hash _git_hash)

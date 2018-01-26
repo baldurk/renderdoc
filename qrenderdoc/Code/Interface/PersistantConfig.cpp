@@ -236,7 +236,7 @@ void PersistantConfig::AddAndroidHosts()
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
     host->friendlyName = friendly;
     // Just a command to display in the GUI and allow Launch() to be called.
-    host->runCommand = lit("org.renderdoc.renderdoccmd");
+    host->runCommand = lit("Automatically handled");
     RemoteHosts.push_back(host);
   }
 

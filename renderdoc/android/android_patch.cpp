@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <sstream>
+#include "api/replay/version.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"
@@ -363,24 +364,35 @@ bool HasRootAccess(const std::string &deviceID)
   return false;
 }
 
+std::string GetFirstMatchingLine(const std::string &haystack, const std::string &needle)
+{
+  size_t needleOffset = haystack.find(needle);
+
+  if(needleOffset == std::string::npos)
+  {
+    RDCERR("Couldn't get pkgFlags from adb");
+    return "";
+  }
+
+  size_t nextLine = haystack.find('\n', needleOffset + 1);
+
+  return haystack.substr(needleOffset,
+                         nextLine == std::string::npos ? nextLine : nextLine - needleOffset);
+}
+
 bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
 {
   RDCLOG("Checking that APK is debuggable");
 
   std::string info = adbExecCommand(deviceID, "shell dumpsys package " + packageName).strStdout;
 
-  size_t flagsOffset = info.find("pkgFlags=[");
+  std::string pkgFlags = GetFirstMatchingLine(info, "pkgFlags=[");
 
-  if(flagsOffset == std::string::npos)
+  if(pkgFlags == "")
   {
     RDCERR("Couldn't get pkgFlags from adb");
     return false;
   }
-
-  size_t nextLine = info.find('\n', flagsOffset + 1);
-
-  std::string pkgFlags =
-      info.substr(flagsOffset, nextLine == std::string::npos ? nextLine : nextLine - flagsOffset);
 
   return pkgFlags.find("DEBUGGABLE") != std::string::npos;
 }

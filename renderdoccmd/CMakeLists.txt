@@ -102,17 +102,29 @@ if(ANDROID)
     endif()
     message(STATUS "Building APK versionCode ${APK_VERSION_CODE}, versionName ${APK_VERSION_NAME}")
 
+    # Set the package name based on the ABI
+    if(ANDROID_ABI STREQUAL "armeabi-v7a")
+        set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.arm32")
+    elseif(ANDROID_ABI STREQUAL "arm64-v8a")
+        set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.arm64")
+    else()
+        message(FATAL_ERROR "ABI ${ANDROID_ABI} is not supported.")
+    endif()
 
-    set(APK_FILE ${CMAKE_BINARY_DIR}/bin/RenderDocCmd.apk)
+    set(APK_FILE ${CMAKE_BINARY_DIR}/bin/${RENDERDOC_ANDROID_PACKAGE_NAME}.apk)
     add_custom_target(apk ALL
                       DEPENDS ${APK_FILE}
                       DEPENDS ${KEYSTORE})
+
+    # Copy in android package files, replacing the package name with the architecture-specific package name
+    configure_file(android/Loader.java ${CMAKE_CURRENT_BINARY_DIR}/src/org/renderdoc/renderdoccmd/Loader.java)
+    configure_file(android/AndroidManifest.xml ${CMAKE_CURRENT_BINARY_DIR}/AndroidManifest.xml)
+    configure_file(android/icon.png ${CMAKE_CURRENT_BINARY_DIR}/res/drawable/icon.png COPYONLY)
 
     add_custom_command(OUTPUT ${APK_FILE}
                        DEPENDS renderdoc
                        DEPENDS renderdoccmd
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/android ${CMAKE_CURRENT_BINARY_DIR}
                        COMMAND ${CMAKE_COMMAND} -E make_directory libs/lib/${ANDROID_ABI}
                        COMMAND ${CMAKE_COMMAND} -E make_directory obj
                        COMMAND ${CMAKE_COMMAND} -E make_directory bin

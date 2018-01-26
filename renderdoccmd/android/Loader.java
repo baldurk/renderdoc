@@ -1,4 +1,4 @@
-package org.renderdoc.renderdoccmd;
+package @RENDERDOC_ANDROID_PACKAGE_NAME@;
 import android.app.Activity;
 
 public class Loader extends android.app.NativeActivity
