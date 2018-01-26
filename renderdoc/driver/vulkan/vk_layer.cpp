@@ -220,7 +220,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLay
       return VK_INCOMPLETE;
 
     const VkLayerProperties layerProperties = {
-        RENDERDOC_LAYER_NAME, VK_API_VERSION_1_0,
+        RENDERDOC_VULKAN_LAYER_NAME, VK_API_VERSION_1_0,
         VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
         "Debugging capture layer for RenderDoc",
     };
@@ -238,7 +238,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExt
 {
   // if pLayerName is NULL or not ours we're calling down through the layer chain to the ICD.
   // This is our chance to filter out any reported extensions that we don't support
-  if(physicalDevice != NULL && (pLayerName == NULL || strcmp(pLayerName, RENDERDOC_LAYER_NAME)))
+  if(physicalDevice != NULL && (pLayerName == NULL || strcmp(pLayerName, RENDERDOC_VULKAN_LAYER_NAME)))
     return CoreDisp(physicalDevice)
         ->FilterDeviceExtensionProperties(physicalDevice, pPropertyCount, pProperties);
 
@@ -249,7 +249,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateInstanceE
     const VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
     uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
-  if(pLayerName && !strcmp(pLayerName, RENDERDOC_LAYER_NAME))
+  if(pLayerName && !strcmp(pLayerName, RENDERDOC_VULKAN_LAYER_NAME))
     return WrappedVulkan::GetProvidedInstanceExtensionProperties(pPropertyCount, pProperties);
 
   return WrappedVulkan::FilterInstanceExtensionProperties(pChain, pLayerName, pPropertyCount,

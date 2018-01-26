@@ -310,8 +310,6 @@ struct MemoryAllocation
   bool buffer = false;
 };
 
-#define RENDERDOC_LAYER_NAME "VK_LAYER_RENDERDOC_Capture"
-
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
   ret func(__VA_ARGS__);                              \
   template <typename SerialiserType>                  \

@@ -54,7 +54,7 @@ static void StripUnwantedLayers(vector<string> &Layers)
   for(auto it = Layers.begin(); it != Layers.end();)
   {
     // don't try and create our own layer on replay!
-    if(*it == RENDERDOC_LAYER_NAME)
+    if(*it == RENDERDOC_VULKAN_LAYER_NAME)
     {
       it = Layers.erase(it);
       continue;

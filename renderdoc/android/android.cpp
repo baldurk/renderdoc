@@ -140,7 +140,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   // force stop the package if it was running before
   adbExecCommand(deviceID, "shell am force-stop " + packageName);
   // enable the vulkan layer (will only be used by vulkan programs)
-  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers VK_LAYER_RENDERDOC_Capture");
+  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
   // start the activity in this package with debugging enabled and force-stop after starting
   adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D %s/%s", packageName.c_str(),
                                              activityName.c_str()));

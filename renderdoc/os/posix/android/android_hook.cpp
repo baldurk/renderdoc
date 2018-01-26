@@ -385,11 +385,11 @@ void PosixHookApply()
   suppressTLS = Threading::AllocateTLSSlot();
 
   // blacklist hooking certain system libraries or ourselves
-  GetHookInfo().AlreadyHooked("libVkLayer_GLES_RenderDoc.so");
+  GetHookInfo().AlreadyHooked(RENDERDOC_ANDROID_LIBRARY);
   GetHookInfo().AlreadyHooked("libc.so");
   GetHookInfo().AlreadyHooked("libvndksupport.so");
 
-  GetHookInfo().AddLibHook("libVkLayer_GLES_RenderDoc.so");
+  GetHookInfo().AddLibHook(RENDERDOC_ANDROID_LIBRARY);
 
   loader_dlopen = (pfn__loader_dlopen)dlsym(RTLD_NEXT, "__loader_dlopen");
 
@@ -416,7 +416,7 @@ void PosixHookReapply()
 void *intercept_dlopen(const char *filename, int flag)
 {
   if(GetHookInfo().IsLibHook(filename))
-    return dlopen("libVkLayer_GLES_RenderDoc.so", flag);
+    return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
 
   return NULL;
 }
