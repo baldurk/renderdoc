@@ -369,7 +369,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   {
     int index = 0;
     std::string deviceID;
-    Android::extractDeviceIDAndIndex(host, index, deviceID);
+    Android::ExtractDeviceIDAndIndex(host, index, deviceID);
 
     // each subsequent device gets a new range of ports. The deviceID isn't needed since we already
     // forwarded the ports to the right devices.

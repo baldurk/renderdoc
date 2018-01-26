@@ -91,6 +91,7 @@ set(sources
     core/replay_proxy.h
     android/android.cpp
     android/android_tools.cpp
+    android/android_utils.cpp
     android/android.h
     android/android_utils.h
     core/plugins.cpp

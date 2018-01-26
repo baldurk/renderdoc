@@ -1152,7 +1152,7 @@ public:
     {
       int index = 0;
       std::string deviceID;
-      Android::extractDeviceIDAndIndex(m_hostname, index, deviceID);
+      Android::ExtractDeviceIDAndIndex(m_hostname, index, deviceID);
 
       string adbStdout = Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
       using namespace std;
@@ -1770,7 +1770,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteS
 
     int index = 0;
     std::string deviceID;
-    Android::extractDeviceIDAndIndex(host, index, deviceID);
+    Android::ExtractDeviceIDAndIndex(host, index, deviceID);
 
     // each subsequent device gets a new range of ports. The deviceID isn't needed since we
     // already

@@ -43,36 +43,6 @@ static const char keystoreName[] = "renderdoc.keystore";
 
 namespace Android
 {
-bool IsHostADB(const char *hostname)
-{
-  return !strncmp(hostname, "adb:", 4);
-}
-void extractDeviceIDAndIndex(const string &hostname, int &index, string &deviceID)
-{
-  if(!IsHostADB(hostname.c_str()))
-    return;
-
-  const char *c = hostname.c_str();
-  c += 4;
-
-  index = atoi(c);
-
-  c = strchr(c, ':');
-
-  if(!c)
-  {
-    index = 0;
-    return;
-  }
-
-  c++;
-
-  deviceID = c;
-}
-string adbGetDeviceList()
-{
-  return adbExecCommand("", "devices").strStdout;
-}
 void adbForwardPorts(int index, const std::string &deviceID)
 {
   const char *forwardCommand = "forward tcp:%i localabstract:renderdoc_%i";
@@ -87,7 +57,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 {
   int index = 0;
   std::string deviceID;
-  Android::extractDeviceIDAndIndex(host, index, deviceID);
+  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
 
   string packageName = basename(string(package));    // Remove leading '/' if any
 
@@ -119,20 +89,6 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
 
   return ret;
-}
-
-bool SearchForAndroidLayer(const string &deviceID, const string &location, const string &layerName,
-                           string &foundLayer)
-{
-  RDCLOG("Checking for layers in: %s", location.c_str());
-  foundLayer =
-      trim(adbExecCommand(deviceID, "shell find " + location + " -name " + layerName).strStdout);
-  if(!foundLayer.empty())
-  {
-    RDCLOG("Found RenderDoc layer in %s", location.c_str());
-    return true;
-  }
-  return false;
 }
 
 bool RemoveAPKSignature(const string &apk)
@@ -558,9 +514,7 @@ bool CheckDebuggable(const string &apk)
 
   return true;
 }
-}    // namespace Android
 
-using namespace Android;
 bool installRenderDocServer(const string &deviceID)
 {
   string targetApk = "RenderDocCmd.apk";
@@ -765,30 +719,6 @@ bool CheckInstalledPermissions(const string &deviceID, const string &packageName
   return CheckPermissions(dump);
 }
 
-bool CheckRootAccess(const string &deviceID)
-{
-  RDCLOG("Checking for root access on %s", deviceID.c_str());
-
-  Process::ProcessResult result = {};
-
-  // Try switching adb to root and check a few indicators for success
-  // Nothing will fall over if we get a false positive here, it just enables
-  // additional methods of getting things set up.
-
-  result = adbExecCommand(deviceID, "root");
-
-  string whoami = trim(adbExecCommand(deviceID, "shell whoami").strStdout);
-  if(whoami == "root")
-    return true;
-
-  string checksu =
-      trim(adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout);
-  if(checksu == "found")
-    return true;
-
-  return false;
-}
-
 string DetermineInstalledABI(const string &deviceID, const string &packageName)
 {
   RDCLOG("Checking installed ABI for %s", packageName.c_str());
@@ -882,11 +812,13 @@ string FindAndroidLayer(const string &abi, const string &layerName)
 
   return layer;
 }
+};    // namespace Android
+using namespace Android;
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
                                                                             rdcstr &friendly)
 {
-  if(!IsHostADB(device.c_str()))
+  if(!Android::IsHostADB(device.c_str()))
   {
     RDCERR("Calling RENDERDOC_GetAndroidFriendlyName with non-android device: %s", device.c_str());
     return;
@@ -894,7 +826,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
 
   int index = 0;
   std::string deviceID;
-  Android::extractDeviceIDAndIndex(device.c_str(), index, deviceID);
+  Android::ExtractDeviceIDAndIndex(device.c_str(), index, deviceID);
 
   if(deviceID.empty())
   {
@@ -902,29 +834,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
     return;
   }
 
-  string manuf = trim(adbExecCommand(deviceID, "shell getprop ro.product.manufacturer").strStdout);
-  string model = trim(adbExecCommand(deviceID, "shell getprop ro.product.model").strStdout);
-
-  std::string combined;
-
-  if(manuf.empty() && model.empty())
-    combined = "";
-  else if(manuf.empty() && !model.empty())
-    combined = model;
-  else if(!manuf.empty() && model.empty())
-    combined = manuf + " device";
-  else if(!manuf.empty() && !model.empty())
-    combined = manuf + " " + model;
-
-  if(combined.empty())
-    friendly = "";
-  else
-    friendly = combined;
+  friendly = Android::GetFriendlyName(deviceID);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList)
 {
-  string adbStdout = adbGetDeviceList();
+  string adbStdout = adbExecCommand("", "devices").strStdout;
 
   int idx = 0;
 
@@ -958,7 +873,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   int index = 0;
   std::string deviceID;
 
-  Android::extractDeviceIDAndIndex(device, index, deviceID);
+  Android::ExtractDeviceIDAndIndex(device, index, deviceID);
 
   string adbPackage =
       adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;
@@ -986,7 +901,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
 
   int index = 0;
   std::string deviceID;
-  Android::extractDeviceIDAndIndex(host, index, deviceID);
+  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
 
   // Find the path to package
   string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
@@ -1003,11 +918,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
   string layerPath = "";
 
   // Check a debug location only usable by rooted devices, overriding app's layer
-  if(SearchForAndroidLayer(deviceID, "/data/local/debug/vulkan", layerName, layerPath))
+  if(SearchForAndroidLibrary(deviceID, "/data/local/debug/vulkan", layerName, layerPath))
     found = true;
 
   // See if the application contains the layer
-  if(!found && SearchForAndroidLayer(deviceID, pkgPath, layerName, layerPath))
+  if(!found && SearchForAndroidLibrary(deviceID, pkgPath, layerName, layerPath))
     found = true;
 
   // TODO: Add any future layer locations
@@ -1055,7 +970,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroid
 
   int index = 0;
   std::string deviceID;
-  Android::extractDeviceIDAndIndex(host, index, deviceID);
+  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
 
   // Detect which ABI was installed on the device
   string abi = DetermineInstalledABI(deviceID, packageName);
@@ -1080,7 +995,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroid
 
   // Ensure the push succeeded
   string foundLayer;
-  return SearchForAndroidLayer(deviceID, layerDst, layerName, foundLayer);
+  return SearchForAndroidLibrary(deviceID, layerDst, layerName, foundLayer);
 }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(
@@ -1091,7 +1006,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(
 
   int index = 0;
   std::string deviceID;
-  Android::extractDeviceIDAndIndex(host, index, deviceID);
+  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
 
   // make sure progress is valid so we don't have to check it everywhere
   if(!progress)
