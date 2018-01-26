@@ -307,6 +307,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="android\android.cpp" />
+    <ClCompile Include="android\android_patch.cpp" />
     <ClCompile Include="android\android_tools.cpp" />
     <ClCompile Include="android\android_utils.cpp" />
     <ClCompile Include="common\common.cpp" />

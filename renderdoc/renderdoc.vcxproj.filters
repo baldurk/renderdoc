@@ -662,6 +662,9 @@
     <ClCompile Include="android\android_utils.cpp">
       <Filter>Android</Filter>
     </ClCompile>
+    <ClCompile Include="android\android_patch.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">
