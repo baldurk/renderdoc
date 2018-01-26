@@ -170,6 +170,16 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
       break;
     }
 
+    // check to see if the PID is still there. If it was before and isn't now, the APK has exited
+    // without ever opening a connection.
+    int curpid = GetCurrentPID(deviceID, packageName);
+
+    if(pid != 0 && curpid == 0)
+    {
+      RDCERR("APK has crashed or never opened target control connection before closing.");
+      break;
+    }
+
     Threading::Sleep(1000);
     elapsed += 1000;
   }
