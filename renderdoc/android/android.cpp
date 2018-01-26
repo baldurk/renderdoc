@@ -31,7 +31,7 @@
 
 namespace Android
 {
-void adbForwardPorts(int index, const std::string &deviceID)
+void adbForwardPorts(int index, const std::string &deviceID, uint16_t jdwpPort, int pid)
 {
   const char *forwardCommand = "forward tcp:%i localabstract:renderdoc_%i";
   int offs = RenderDoc_AndroidPortOffset * (index + 1);
@@ -40,7 +40,88 @@ void adbForwardPorts(int index, const std::string &deviceID)
                                              RenderDoc_RemoteServerPort));
   adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_FirstTargetControlPort + offs,
                                              RenderDoc_FirstTargetControlPort));
+
+  if(jdwpPort && pid)
+    adbExecCommand(deviceID, StringFormat::Fmt("forward tcp:%hu jdwp:%i", jdwpPort, pid));
 }
+
+uint16_t GetJdwpPort()
+{
+  // we loop over a number of ports to try and avoid previous failed attempts from leaving sockets
+  // open and messing with subsequent attempts
+  const uint16_t portBase = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * 2;
+
+  static uint16_t portIndex = 0;
+
+  portIndex++;
+  portIndex %= RenderDoc_AndroidPortOffset;
+
+  return portBase + portIndex;
+}
+
+std::string GetDefaultActivityForPackage(const std::string &deviceID, const std::string &packageName)
+{
+  Process::ProcessResult activity =
+      adbExecCommand(deviceID, StringFormat::Fmt("shell cmd package resolve-activity"
+                                                 " -c android.intent.category.LAUNCHER %s",
+                                                 packageName.c_str()));
+
+  if(activity.strStdout.empty())
+  {
+    RDCERR("Failed to resolve default activity of APK. STDERR: %s", activity.strStderror.c_str());
+    return "";
+  }
+
+  std::vector<std::string> lines;
+  split(activity.strStdout, lines, '\n');
+
+  for(std::string &line : lines)
+  {
+    line = trim(line);
+
+    if(!strncmp(line.c_str(), "name=", 5))
+    {
+      return line.substr(5);
+    }
+  }
+
+  RDCERR("Didn't find default activity in adb output");
+  return "";
+}
+
+int GetCurrentPid(const std::string &deviceID, const std::string &packageName)
+{
+  // try 5 times, 200ms apart to find the pid
+  for(int i = 0; i < 5; i++)
+  {
+    Process::ProcessResult pidOutput =
+        adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", packageName.c_str()));
+
+    std::string output = trim(pidOutput.strStdout);
+    size_t space = output.find_first_of("\t ");
+
+    if(output.empty() || output.find(packageName) == std::string::npos || space == std::string::npos)
+    {
+      Threading::Sleep(200);
+      continue;
+    }
+
+    char *pid = &output[space];
+    while(*pid == ' ' || *pid == '\t')
+      pid++;
+
+    char *end = pid;
+    while(*end >= '0' && *end <= '9')
+      end++;
+
+    *end = 0;
+
+    return atoi(pid);
+  }
+
+  return 0;
+}
+
 uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 {
   int index = 0;
@@ -49,11 +130,31 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 
   string packageName = basename(string(package));    // Remove leading '/' if any
 
+  // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
+  string activityName = GetDefaultActivityForPackage(deviceID, packageName);
+
+  uint16_t jdwpPort = GetJdwpPort();
+
+  // remove any previous jdwp port forward on this port
+  adbExecCommand(deviceID, StringFormat::Fmt("forward --remove tcp:%i", jdwpPort));
+  // force stop the package if it was running before
   adbExecCommand(deviceID, "shell am force-stop " + packageName);
-  adbForwardPorts(index, deviceID);
+  // enable the vulkan layer (will only be used by vulkan programs)
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers VK_LAYER_RENDERDOC_Capture");
-  adbExecCommand(deviceID,
-                 "shell monkey -p " + packageName + " -c android.intent.category.LAUNCHER 1");
+  // start the activity in this package with debugging enabled and force-stop after starting
+  adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D %s/%s", packageName.c_str(),
+                                             activityName.c_str()));
+
+  // adb shell ps | grep $PACKAGE | awk '{print $2}')
+  int pid = GetCurrentPid(deviceID, packageName);
+
+  adbForwardPorts(index, deviceID, jdwpPort, pid);
+
+  // sleep a little to let the ports initialise
+  Threading::Sleep(500);
+
+  // use a JDWP connection to inject our libraries
+  InjectWithJDWP(deviceID, jdwpPort);
 
   uint32_t ret = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
   uint32_t elapsed = 0,
@@ -72,6 +173,10 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
     Threading::Sleep(1000);
     elapsed += 1000;
   }
+
+  // we might open the connection early, when the library is first injected, before the vulkan
+  // loader completes .
+  Threading::Sleep(1000);
 
   // Let the app pickup the setprop before we turn it back off for replaying.
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
@@ -317,7 +422,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
       ret += StringFormat::Fmt("adb:%d:%s", idx, tokens[0].c_str());
 
       // Forward the ports so we can see if a remoteserver/captured app is already running.
-      adbForwardPorts(idx, tokens[0]);
+      adbForwardPorts(idx, tokens[0], 0, 0);
 
       idx++;
     }
@@ -344,7 +449,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   }
 
   adbExecCommand(deviceID, "shell am force-stop org.renderdoc.renderdoccmd");
-  adbForwardPorts(index, deviceID);
+  adbForwardPorts(index, deviceID, 0, 0);
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
   adbExecCommand(
       deviceID,

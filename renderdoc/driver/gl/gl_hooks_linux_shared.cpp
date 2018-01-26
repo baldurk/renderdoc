@@ -1181,6 +1181,7 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 #define HookInit(function)                                                                     \
   if(GL.function == NULL)                                                                      \
   {                                                                                            \
+    PosixScopedSuppressHooking suppress;                                                       \
     if(dlsymFirst)                                                                             \
       GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); \
     lookupFunc((const char *)STRINGIZE(function));                                             \
@@ -1203,4 +1204,20 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
   glEmulate::EmulateRequiredExtensions(&GL);
 
   return true;
+}
+
+void PosixHookFunctions()
+{
+#undef HookInit
+#define HookInit(function) \
+  PosixHookFunction(STRINGIZE(function), (void *)&CONCAT(function, _renderdoc_hooked))
+#undef HookExtension
+#define HookExtension(funcPtrType, function) \
+  PosixHookFunction(STRINGIZE(function), (void *)&CONCAT(function, _renderdoc_hooked))
+#undef HookExtensionAlias
+#define HookExtensionAlias(funcPtrType, function, alias) \
+  PosixHookFunction(STRINGIZE(alias), (void *)&CONCAT(function, _renderdoc_hooked))
+
+  DLLExportHooks();
+  HookCheckGLExtensions();
 }

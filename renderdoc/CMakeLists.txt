@@ -95,6 +95,10 @@ set(sources
     android/android_utils.cpp
     android/android.h
     android/android_utils.h
+    android/jdwp.h
+    android/jdwp.cpp
+    android/jdwp_util.cpp
+    android/jdwp_connection.cpp
     core/plugins.cpp
     core/plugins.h
     core/resource_manager.cpp

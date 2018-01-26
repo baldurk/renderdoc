@@ -1,0 +1,406 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2018 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#include "jdwp.h"
+#include <functional>
+#include "core/core.h"
+#include "strings/string_utils.h"
+#include "android.h"
+
+namespace JDWP
+{
+void InjectVulkanLayerSearchPath(Connection &conn, threadID thread, int32_t slotIdx,
+                                 const std::string &libPath)
+{
+  referenceTypeID stringClass = conn.GetType("Ljava/lang/String;");
+  methodID stringConcat = conn.GetMethod(stringClass, "concat");
+
+  if(conn.IsErrored())
+    return;
+
+  if(!stringClass || !stringConcat)
+  {
+    RDCERR("Couldn't find java.lang.String (%llu) or java.lang.String.concat() (%llu)", stringClass,
+           stringConcat);
+    return;
+  }
+
+  // get the callstack frames
+  std::vector<StackFrame> stack = conn.GetCallStack(thread);
+
+  if(stack.empty())
+  {
+    RDCERR("Couldn't get callstack!");
+    return;
+  }
+
+  // get the local in the top (current) frame
+  value librarySearchPath = conn.GetLocalValue(thread, stack[0].id, slotIdx, Tag::Object);
+
+  if(librarySearchPath.tag != Tag::String || librarySearchPath.String == 0)
+  {
+    RDCERR("Couldn't get 'String librarySearchPath' local parameter!");
+    return;
+  }
+
+  RDCDEBUG("librarySearchPath is %s", conn.GetString(librarySearchPath.String).c_str());
+
+  value appendSearch = conn.NewString(thread, ":" + libPath);
+
+  // temp = librarySearchPath.concat(appendSearch);
+  value temp = conn.InvokeInstance(thread, stringClass, stringConcat, librarySearchPath.String,
+                                   {appendSearch});
+
+  if(temp.tag != Tag::String || temp.String == 0)
+  {
+    RDCERR("Failed to concat search path!");
+    return;
+  }
+
+  RDCDEBUG("librarySearchPath is now %s", conn.GetString(temp.String).c_str());
+
+  // we will have resume the thread above to call concat, invalidating our frames.
+  // Re-fetch the callstack
+  stack = conn.GetCallStack(thread);
+
+  if(stack.empty())
+  {
+    RDCERR("Couldn't get callstack!");
+    return;
+  }
+
+  // replace the search path with our modified one
+  // librarySearchPath = temp;
+  conn.SetLocalValue(thread, stack[0].id, slotIdx, temp);
+}
+
+bool InjectLibraries(Network::Socket *sock, std::string libPath)
+{
+  Connection conn(sock);
+
+  // check that the handshake completed successfully
+  if(conn.IsErrored())
+    return false;
+
+  // immediately re-suspend, as connecting will have woken it up
+  conn.Suspend();
+
+  conn.SetupIDSizes();
+
+  if(conn.IsErrored())
+    return false;
+
+  // default to arm as a safe bet
+  std::string abi = "armeabi-v7a";
+
+  // determine the CPU ABI from android.os.Build.CPU_ABI
+  referenceTypeID buildClass = conn.GetType("Landroid/os/Build;");
+  if(buildClass)
+  {
+    fieldID CPU_ABI = conn.GetField(buildClass, "CPU_ABI");
+
+    if(CPU_ABI)
+    {
+      value val = conn.GetFieldValue(buildClass, CPU_ABI);
+
+      if(val.tag == Tag::String)
+        abi = conn.GetString(val.String);
+      else
+        RDCERR("CPU_ABI value was type %u, not string!", (uint32_t)val.tag);
+    }
+    else
+    {
+      RDCERR("Couldn't find CPU_ABI field in android.os.Build");
+    }
+  }
+  else
+  {
+    RDCERR("Couldn't find android.os.Build");
+  }
+
+  // use the ABI to determine where to find our library
+  if(abi == "armeabi-v7a")
+  {
+    libPath += "arm";
+  }
+  else if(abi == "arm64-v8a")
+  {
+    libPath += "arm64";
+  }
+  else
+  {
+    RDCERR("Unhandled ABI '%s'", abi.c_str());
+    return false;
+  }
+
+  if(conn.IsErrored())
+    return false;
+
+  // try to find the vulkan loader class and patch the search path when getClassLoader is called.
+  // This is an optional step as some devices may not support vulkan and may not have this class, so
+  // in that case we just skip it.
+  referenceTypeID vulkanLoaderClass = conn.GetType("Landroid/app/ApplicationLoaders;");
+
+  if(vulkanLoaderClass)
+  {
+    // See:
+    // https://android.googlesource.com/platform/frameworks/base/+/f9419f0f8524da4980726e06130a80e0fb226763/core/java/android/app/ApplicationLoaders.java
+    // for the public getClassLoader.
+
+    // look for both signatures in this order, note that the final "String classLoaderName" was
+    // added recently
+
+    // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
+    //                            String librarySearchPath, String libraryPermittedPath,
+    //                            ClassLoader parent);
+    methodID vulkanLoaderMethod = conn.GetMethod(
+        vulkanLoaderClass, "getClassLoader",
+        "(Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)"
+        "Ljava/lang/ClassLoader;");
+
+    // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
+    //                            String librarySearchPath, String libraryPermittedPath,
+    //                            ClassLoader parent, String classLoaderName);
+    if(vulkanLoaderMethod == 0)
+      vulkanLoaderMethod = conn.GetMethod(
+          vulkanLoaderClass, "getClassLoader",
+          "(Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;"
+          "Ljava/lang/String;)Ljava/lang/ClassLoader;");
+
+    if(vulkanLoaderMethod)
+    {
+      int32_t slotIdx =
+          conn.GetLocalVariable(vulkanLoaderClass, vulkanLoaderMethod, "librarySearchPath");
+
+      // as a default, use the 4th slot as it's the 4th argument argument (0 is this), if symbols
+      // weren't available we can't identify the variable by name
+      if(slotIdx == -1)
+        slotIdx = 4;
+
+      // wait for the method to get hit - WaitForEvent will resume, watch events, and return
+      // (re-suspended) when the first event occurs that matches the filter function
+      Event evData =
+          conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, vulkanLoaderClass}},
+                            [vulkanLoaderMethod](const Event &evData) {
+                              return evData.MethodEntry.location.methodID == vulkanLoaderMethod;
+                            });
+
+      // if we successfully hit the event, try to inject
+      if(evData.eventKind == EventKind::MethodEntry)
+        InjectVulkanLayerSearchPath(conn, evData.MethodEntry.thread, slotIdx, libPath);
+    }
+    else
+    {
+      // we expect if we can get the class, we should find the method.
+      RDCERR("Couldn't find getClassLoader method in android.app.ApplicationLoaders");
+    }
+  }
+  else
+  {
+    // warning only - it's not a problem if we're capturing GLES
+    RDCWARN("Couldn't find class android.app.ApplicationLoaders. Vulkan won't be hooked.");
+  }
+
+  // we get here whether we processed vulkan or not. Now we need to wait for the application to hit
+  // onCreate() and load our library
+
+  referenceTypeID androidApp = conn.GetType("Landroid/app/Application;");
+
+  if(androidApp == 0)
+  {
+    RDCERR("Couldn't find android.app.Application");
+    return false;
+  }
+
+  methodID appConstruct = conn.GetMethod(androidApp, "<init>", "()V");
+
+  if(appConstruct == 0)
+  {
+    RDCERR("Couldn't find android.app.Application constructor");
+    return false;
+  }
+
+  threadID thread;
+
+  // wait until we hit the constructor of android.app.Application
+  {
+    Event evData = conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, androidApp}},
+                                     [appConstruct](const Event &evData) {
+                                       return evData.MethodEntry.location.methodID == appConstruct;
+                                     });
+
+    if(evData.eventKind == EventKind::MethodEntry)
+      thread = evData.MethodEntry.thread;
+  }
+
+  if(thread == 0)
+  {
+    RDCERR("Didn't hit android.app.Application constructor");
+    return false;
+  }
+
+  // get the callstack frames
+  std::vector<StackFrame> stack = conn.GetCallStack(thread);
+
+  if(stack.empty())
+  {
+    RDCERR("Couldn't get callstack!");
+    return false;
+  }
+
+  // get this on the top frame
+  objectID thisPtr = conn.GetThis(thread, stack[0].id);
+
+  if(thisPtr == 0)
+  {
+    RDCERR("Couldn't find this");
+    return false;
+  }
+
+  // get the type for the this object
+  referenceTypeID thisType = conn.GetType(thisPtr);
+
+  if(thisType == 0)
+  {
+    RDCERR("Couldn't find this's class");
+    return false;
+  }
+
+  // call getClass, this will give us the information for the most derived class
+  methodID getClass = conn.GetMethod(thisType, "getClass", "()Ljava/lang/Class;");
+
+  if(getClass == 0)
+  {
+    RDCERR("Couldn't find this.getClass()");
+    return false;
+  }
+
+  value thisClass = conn.InvokeInstance(thread, thisType, getClass, thisPtr, {});
+
+  if(thisClass.tag != Tag::ClassObject || thisClass.Object == 0)
+  {
+    RDCERR("Failed to call this.getClass()!");
+    return false;
+  }
+
+  // look up onCreate in the most derived class - since we can't guarantee that the base
+  // application.app.onCreate() will get called.
+  methodID onCreate = conn.GetMethod(thisClass.Object, "onCreate", "()V");
+
+  if(onCreate == 0)
+  {
+    RDCERR("Couldn't find this.getClass().onCreate()");
+    return false;
+  }
+
+  // wait until we hit the derived onCreate
+  {
+    thread = 0;
+
+    Event evData = conn.WaitForEvent(
+        EventKind::MethodEntry, {{ModifierKind::ClassOnly, thisClass.Object}},
+        [onCreate](const Event &evData) { return evData.MethodEntry.location.methodID == onCreate; });
+
+    if(evData.eventKind == EventKind::MethodEntry)
+      thread = evData.MethodEntry.thread;
+  }
+
+  if(thread == 0)
+  {
+    RDCERR("Didn't hit android.app.Application.onCreate()");
+    return false;
+  }
+
+  // find java.lang.Runtime
+  referenceTypeID runtime = conn.GetType("Ljava/lang/Runtime;");
+
+  if(runtime == 0)
+  {
+    RDCERR("Couldn't find java.lang.Runtime");
+    return false;
+  }
+
+  // find both the static Runtime.getRuntime() as well as the instance Runtime.load()
+  methodID getRuntime = conn.GetMethod(runtime, "getRuntime", "()Ljava/lang/Runtime;");
+  methodID load = conn.GetMethod(runtime, "load", "(Ljava/lang/String;)V");
+
+  if(getRuntime == 0 || load == 0)
+  {
+    RDCERR("Couldn't find java.lang.Runtime.getRuntime() %llu or java.lang.Runtime.load() %llu",
+           getRuntime, load);
+    return false;
+  }
+
+  // get the Runtime object via java.lang.Runtime.getRuntime()
+  value runtimeObject = conn.InvokeStatic(thread, runtime, getRuntime, {});
+
+  if(runtimeObject.tag != Tag::Object || runtimeObject.Object == 0)
+  {
+    RDCERR("Failed to call getClass!");
+    return false;
+  }
+
+  // call Runtime.load() on our library. This will load the library and from then on it's
+  // responsible for injecting its hooks into GLES on its own. See android_hook.cpp for more
+  // information on the implementation
+  value ret =
+      conn.InvokeInstance(thread, runtime, load, runtimeObject.Object,
+                          {conn.NewString(thread, libPath + "/libVkLayer_GLES_RenderDoc.so")});
+
+  if(ret.tag != Tag::Void)
+  {
+    RDCERR("Failed to call load()!");
+    return false;
+  }
+
+  return true;
+}
+};    // namespace JDWP
+
+namespace Android
+{
+bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport)
+{
+  Network::Socket *sock = Network::CreateClientSocket("localhost", jdwpport, 500);
+
+  if(sock)
+  {
+    std::string apk = adbExecCommand(deviceID, "shell pm path org.renderdoc.renderdoccmd").strStdout;
+    apk = trim(apk);
+    apk.resize(apk.size() - 8);
+    apk.erase(0, 8);
+
+    bool ret = JDWP::InjectLibraries(sock, apk + "lib/");
+    delete sock;
+
+    return ret;
+  }
+  else
+  {
+    RDCERR("Couldn't make JDWP connection");
+  }
+
+  return false;
+}
+};    // namespace Android

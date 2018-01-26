@@ -68,7 +68,7 @@ private:
 #include <dlfcn.h>
 
 #define HOOKS_BEGIN() PosixHookInit()
-#define HOOKS_END()
+#define HOOKS_END() PosixHookApply()
 #define HOOKS_REMOVE()
 #define HOOKS_IDENTIFY(identifier) PosixHookDetect(identifier)
 

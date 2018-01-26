@@ -381,6 +381,9 @@
     <ClInclude Include="android\android_utils.h">
       <Filter>Android</Filter>
     </ClInclude>
+    <ClInclude Include="android\jdwp.h">
+      <Filter>Android</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -663,6 +666,15 @@
       <Filter>Android</Filter>
     </ClCompile>
     <ClCompile Include="android\android_patch.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\jdwp.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\jdwp_connection.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\jdwp_util.cpp">
       <Filter>Android</Filter>
     </ClCompile>
   </ItemGroup>

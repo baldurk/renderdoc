@@ -35,4 +35,5 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package);
 void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::string &deviceID);
 Process::ProcessResult adbExecCommand(const std::string &deviceID, const std::string &args,
                                       const string &workDir = ".");
+bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport);
 };

@@ -32,4 +32,18 @@ void PosixHookInit();
 // to the callback and librenderdoc.so will be returned to user code
 void PosixHookLibrary(const char *name, dlopenCallback cb);
 
+void PosixHookFunction(const char *name, void *hook);
+
+void PosixHookApply();
+
+// this is needed on android, when we are PLT hooking to ensure hooks are applied as soon as
+// possible.
+void PosixHookReapply();
+
+struct PosixScopedSuppressHooking
+{
+  PosixScopedSuppressHooking();
+  ~PosixScopedSuppressHooking();
+};
+
 bool PosixHookDetect(const char *identifier);

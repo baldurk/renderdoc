@@ -54,6 +54,9 @@ static std::map<std::string, dlopenCallback> libraryHooks;
 
 void PosixHookLibrary(const char *name, dlopenCallback cb)
 {
+  if(cb == NULL)
+    return;
+
   SCOPED_LOCK(libLock);
   libraryHooks[name] = cb;
 }
@@ -115,4 +118,25 @@ void plthook_lib(void *handle)
 
   plthook_replace(plthook, "dlopen", (void *)dlopen, NULL);
   plthook_close(plthook);
+}
+
+// android only hooking functions, not used on linux
+PosixScopedSuppressHooking::PosixScopedSuppressHooking()
+{
+}
+
+PosixScopedSuppressHooking::~PosixScopedSuppressHooking()
+{
+}
+
+void PosixHookApply()
+{
+}
+
+void PosixHookReapply()
+{
+}
+
+void PosixHookFunction(char const *, void *)
+{
 }
