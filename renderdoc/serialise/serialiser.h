@@ -639,7 +639,7 @@ public:
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     std::string str;
-    if(IsReading())
+    if(IsWriting())
       str = el;
     Serialise(name, str, flags);
     if(str.length() >= N)
