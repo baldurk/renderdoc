@@ -454,7 +454,7 @@ value Connection::NewString(threadID thread, const std::string &str)
 
   stringID ret;
   cmd.GetData().Read(ret).Done();
-  return {Tag::String, ret};
+  return {Tag::String, {ret}};
 }
 
 value Connection::GetLocalValue(threadID thread, frameID frame, int32_t slot, Tag tag)
