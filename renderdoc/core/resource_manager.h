@@ -412,7 +412,7 @@ public:
   void RemoveWrapper(RealResourceType real);
 
 protected:
-  friend typename InitialContentData;
+  friend InitialContentData;
   // 'interface' to implement by derived classes
   virtual bool SerialisableResource(ResourceId id, RecordType *record) = 0;
   virtual ResourceId GetID(WrappedResourceType res) = 0;
