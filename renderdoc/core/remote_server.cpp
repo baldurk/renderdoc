@@ -1218,7 +1218,25 @@ public:
   {
     const char *host = hostname().c_str();
     if(Android::IsHostADB(host))
-      return Android::StartAndroidPackageForCapture(host, a);
+    {
+      // we spin up a thread to Ping() every second, since StartAndroidPackageForCapture can block
+      // for a long time.
+      volatile int32_t done = 0;
+      Threading::ThreadHandle pingThread = Threading::CreateThread([&done, this]() {
+        bool ok = true;
+        while(ok && Atomic::CmpExch32(&done, 0, 0) == 0)
+          ok = Ping();
+      });
+
+      uint32_t ret = Android::StartAndroidPackageForCapture(host, a);
+
+      Atomic::Inc32(&done);
+
+      Threading::JoinThread(pingThread);
+      Threading::CloseThread(pingThread);
+
+      return ret;
+    }
 
     std::string app = a && a[0] ? a : "";
     std::string workingDir = w && w[0] ? w : "";
