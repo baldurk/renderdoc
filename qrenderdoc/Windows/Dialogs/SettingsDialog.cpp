@@ -158,7 +158,6 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->Android_SDKPath->setText(m_Ctx.Config().Android_SDKPath);
   ui->Android_JDKPath->setText(m_Ctx.Config().Android_JDKPath);
   ui->Android_MaxConnectTimeout->setValue(m_Ctx.Config().Android_MaxConnectTimeout);
-  ui->Android_AutoPushLayerToApp->setChecked(m_Ctx.Config().Android_AutoPushLayerToApp);
 
   ui->TextureViewer_ResetRange->setChecked(m_Ctx.Config().TextureViewer_ResetRange);
   ui->TextureViewer_PerTexSettings->setChecked(m_Ctx.Config().TextureViewer_PerTexSettings);
@@ -637,13 +636,6 @@ void SettingsDialog::on_Android_JDKPath_textEdited(const QString &adb)
 void SettingsDialog::on_Android_MaxConnectTimeout_valueChanged(double timeout)
 {
   m_Ctx.Config().Android_MaxConnectTimeout = ui->Android_MaxConnectTimeout->value();
-
-  m_Ctx.Config().Save();
-}
-
-void SettingsDialog::on_Android_AutoPushLayerToApp_toggled(bool checked)
-{
-  m_Ctx.Config().Android_AutoPushLayerToApp = ui->Android_AutoPushLayerToApp->isChecked();
 
   m_Ctx.Config().Save();
 }

@@ -58,42 +58,17 @@ void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::strin
   deviceID = c;
 }
 
-bool CheckRootAccess(const std::string &deviceID)
+std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName)
 {
-  RDCLOG("Checking for root access on %s", deviceID.c_str());
+  std::string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
 
-  Process::ProcessResult result = {};
+  if(pkgPath.empty() || pkgPath.find("package:") != 0 || pkgPath.find("base.apk") == std::string::npos)
+    return pkgPath;
 
-  // Try switching adb to root and check a few indicators for success
-  // Nothing will fall over if we get a false positive here, it just enables
-  // additional methods of getting things set up.
+  pkgPath.erase(pkgPath.begin(), pkgPath.begin() + strlen("package:"));
+  pkgPath.erase(pkgPath.end() - strlen("base.apk"), pkgPath.end());
 
-  result = adbExecCommand(deviceID, "root");
-
-  std::string whoami = trim(adbExecCommand(deviceID, "shell whoami").strStdout);
-  if(whoami == "root")
-    return true;
-
-  std::string checksu =
-      trim(adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout);
-  if(checksu == "found")
-    return true;
-
-  return false;
-}
-
-bool SearchForAndroidLibrary(const std::string &deviceID, const std::string &location,
-                             const std::string &layerName, std::string &foundLayer)
-{
-  RDCLOG("Checking for layers in: %s", location.c_str());
-  foundLayer =
-      trim(adbExecCommand(deviceID, "shell find " + location + " -name " + layerName).strStdout);
-  if(!foundLayer.empty())
-  {
-    RDCLOG("Found RenderDoc layer in %s", location.c_str());
-    return true;
-  }
-  return false;
+  return pkgPath;
 }
 
 std::string GetFriendlyName(std::string deviceID)

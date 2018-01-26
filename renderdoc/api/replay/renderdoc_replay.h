@@ -2074,17 +2074,13 @@ DOCUMENT("Internal function for starting an android remote server.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device);
 
 DOCUMENT("Internal function for checking remote Android package for requirements");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const char *host,
-                                                                         const char *exe,
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const char *hostname,
+                                                                         const char *packageName,
                                                                          AndroidFlags *flags);
 
-DOCUMENT("Internal function that attempts to push Vulkan layer to Android application.");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroidApp(const char *host,
-                                                                                    const char *exe);
-
-DOCUMENT("Internal function that attempts to modify APK contents, adding Vulkan layer.");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(
-    const char *host, const char *exe, RENDERDOC_ProgressCallback progress);
+DOCUMENT("Internal function that attempts to modify APK contents, adding debuggable flag.");
+extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
+    const char *hostname, const char *packageName, RENDERDOC_ProgressCallback progress);
 
 DOCUMENT("Internal function that runs unit tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,

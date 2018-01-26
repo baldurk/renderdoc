@@ -86,50 +86,6 @@ bool RemoveAPKSignature(const string &apk)
   return true;
 }
 
-bool AddLayerToAPK(const string &apk, const string &layerPath, const string &layerName,
-                   const string &abi, const string &tmpDir)
-{
-  RDCLOG("Adding RenderDoc layer");
-
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
-
-  // Run aapt from the directory containing "lib" so the relative paths are good
-  string relativeLayer("lib/" + abi + "/" + layerName);
-  string workDir = removeFromEnd(layerPath, relativeLayer);
-
-  // If the layer was already present in the APK, we need to remove it first
-  Process::ProcessResult contents = execCommand(aapt, "list \"" + apk + "\"", workDir);
-  if(contents.strStdout.empty())
-  {
-    RDCERR("Failed to list contents of APK. STDERR: %s", contents.strStderror.c_str());
-    return false;
-  }
-
-  if(contents.strStdout.find(relativeLayer) != std::string::npos)
-  {
-    RDCLOG("Removing existing layer from APK before trying to add");
-    Process::ProcessResult remove =
-        execCommand(aapt, "remove \"" + apk + "\" " + relativeLayer, workDir);
-
-    if(!remove.strStdout.empty())
-    {
-      RDCERR("Failed to remove existing layer from APK. STDERR: %s", remove.strStderror.c_str());
-      return false;
-    }
-  }
-
-  // Add the RenderDoc layer
-  Process::ProcessResult result = execCommand(aapt, "add \"" + apk + "\" " + relativeLayer, workDir);
-
-  if(result.strStdout.empty())
-  {
-    RDCERR("Failed to add layer to APK. STDERR: %s", result.strStderror.c_str());
-    return false;
-  }
-
-  return true;
-}
-
 bool RealignAPK(const string &apk, string &alignedAPK, const string &tmpDir)
 {
   std::string zipalign = getToolPath(ToolDir::BuildTools, "zipalign", false);
@@ -383,265 +339,74 @@ bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
   return false;
 }
 
-bool CheckLayerVersion(const string &deviceID, const string &layerName, const string &remoteLayer)
+bool HasRootAccess(const std::string &deviceID)
 {
-  RDCDEBUG("Checking layer version of: %s", layerName.c_str());
+  RDCLOG("Checking for root access on %s", deviceID.c_str());
 
-  bool match = false;
+  Process::ProcessResult result = {};
 
-  // Use 'strings' command on the device to find the layer's build version
-  // i.e. strings -n <tag length> <layer> | grep <tag marker>
-  // Subtract 5 to provide a bit of wiggle room on version length
-  Process::ProcessResult result = adbExecCommand(
-      deviceID, "shell strings -n " +
-                    StringFormat::Fmt("%u", strlen(RENDERDOC_Version_Tag_String) - 5) + " " +
-                    remoteLayer + " | grep RenderDoc_build_version");
+  // Try switching adb to root and check a few indicators for success
+  // Nothing will fall over if we get a false positive here, it just enables
+  // additional methods of getting things set up.
 
-  string line = trim(result.strStdout);
+  result = adbExecCommand(deviceID, "root");
 
-  if(line.empty())
+  std::string whoami = trim(adbExecCommand(deviceID, "shell whoami").strStdout);
+  if(whoami == "root")
+    return true;
+
+  std::string checksu =
+      trim(adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout);
+  if(checksu == "found")
+    return true;
+
+  return false;
+}
+
+bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
+{
+  RDCLOG("Checking that APK is debuggable");
+
+  std::string info = adbExecCommand(deviceID, "shell dumpsys package " + packageName).strStdout;
+
+  size_t flagsOffset = info.find("pkgFlags=[");
+
+  if(flagsOffset == std::string::npos)
   {
-    RDCLOG("RenderDoc layer is not versioned, so cannot be checked for compatibility.");
+    RDCERR("Couldn't get pkgFlags from adb");
     return false;
   }
 
-  std::vector<string> vec;
-  split(line, vec, ' ');
-  string version = vec[1];
-  string hash = vec[5];
+  size_t nextLine = info.find('\n', flagsOffset + 1);
 
-  if(version == FULL_VERSION_STRING && hash == GitVersionHash)
-  {
-    RDCLOG("RenderDoc layer version (%s) and git hash (%s) match.", version.c_str(), hash.c_str());
-    match = true;
-  }
-  else
-  {
-    RDCLOG(
-        "RenderDoc layer version (%s) and git hash (%s) do NOT match the host version (%s) or git "
-        "hash (%s).",
-        version.c_str(), hash.c_str(), FULL_VERSION_STRING, GitVersionHash);
-  }
+  std::string pkgFlags =
+      info.substr(flagsOffset, nextLine == std::string::npos ? nextLine : nextLine - flagsOffset);
 
-  return match;
-}
-
-bool CheckPermissions(const string &dump)
-{
-  // TODO: remove this if we are sure that there are no permissions to check.
-  return true;
-}
-
-bool CheckAPKPermissions(const string &apk)
-{
-  RDCLOG("Checking that APK can be can write to sdcard");
-
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
-
-  string badging = execCommand(aapt, "dump badging \"" + apk + "\"").strStdout;
-
-  if(badging.empty())
-  {
-    RDCERR("Unable to aapt dump %s", apk.c_str());
-    return false;
-  }
-
-  return CheckPermissions(badging);
-}
-
-bool CheckDebuggable(const string &apk)
-{
-  RDCLOG("Checking that APK s debuggable");
-
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
-
-  string badging = execCommand(aapt, "dump badging \"" + apk + "\"").strStdout;
-
-  if(badging.find("application-debuggable") == string::npos)
-  {
-    RDCERR("APK is not debuggable");
-    return false;
-  }
-
-  return true;
-}
-
-bool CheckInstalledPermissions(const string &deviceID, const string &packageName)
-{
-  RDCLOG("Checking installed permissions for %s", packageName.c_str());
-
-  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
-  if(dump.empty())
-    RDCERR("Unable to pm dump %s", packageName.c_str());
-
-  return CheckPermissions(dump);
-}
-
-string DetermineInstalledABI(const string &deviceID, const string &packageName)
-{
-  RDCLOG("Checking installed ABI for %s", packageName.c_str());
-  string abi;
-
-  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
-  if(dump.empty())
-    RDCERR("Unable to pm dump %s", packageName.c_str());
-
-  // Walk through the output and look for primaryCpuAbi
-  std::istringstream contents(dump);
-  string line;
-  string prefix("primaryCpuAbi=");
-  while(std::getline(contents, line))
-  {
-    line = trim(line);
-    if(line.compare(0, prefix.size(), prefix) == 0)
-    {
-      // Extract the abi
-      abi = line.substr(line.find_last_of("=") + 1);
-      RDCLOG("primaryCpuAbi found: %s", abi.c_str());
-      break;
-    }
-  }
-
-  if(abi.empty())
-    RDCERR("Unable to determine installed abi for: %s", packageName.c_str());
-
-  return abi;
-}
-
-string FindAndroidLayer(const string &abi, const string &layerName)
-{
-  string layer;
-
-  // Check known paths for RenderDoc layer
-  string exePath;
-  FileIO::GetExecutableFilename(exePath);
-  string exeDir = dirname(FileIO::GetFullPathname(exePath));
-
-  std::vector<std::string> paths;
-
-#if defined(RENDERDOC_LAYER_PATH)
-  string customPath(RENDERDOC_LAYER_PATH);
-  RDCLOG("Custom layer path: %s", customPath.c_str());
-
-  if(FileIO::IsRelativePath(customPath))
-    customPath = exeDir + "/" + customPath;
-
-  if(!endswith(customPath, "/"))
-    customPath += "/";
-
-  // Custom path must point to directory containing ABI folders
-  customPath += abi;
-  if(!FileIO::exists(customPath.c_str()))
-  {
-    RDCWARN("Custom layer path does not contain required ABI");
-  }
-  paths.push_back(customPath + "/" + layerName);
-#endif
-
-  string windows = "/android/lib/";
-  string linux = "/../share/renderdoc/android/lib/";
-  string local = "/../../build-android/renderdoccmd/libs/lib/";
-  string macOS = "/../../../../../build-android/renderdoccmd/libs/lib/";
-
-  paths.push_back(exeDir + windows + abi + "/" + layerName);
-  paths.push_back(exeDir + linux + abi + "/" + layerName);
-  paths.push_back(exeDir + local + abi + "/" + layerName);
-  paths.push_back(exeDir + macOS + abi + "/" + layerName);
-
-  for(uint32_t i = 0; i < paths.size(); i++)
-  {
-    RDCLOG("Checking for layer in %s", paths[i].c_str());
-    if(FileIO::exists(paths[i].c_str()))
-    {
-      layer = paths[i];
-      RDCLOG("Layer found!: %s", layer.c_str());
-      break;
-    }
-  }
-
-  if(layer.empty())
-  {
-    RDCERR(
-        "%s missing! RenderDoc for Android will not work without it. "
-        "Build your Android ABI in build-android in the root to have it "
-        "automatically found and installed.",
-        layerName.c_str());
-  }
-
-  return layer;
-}
-
-std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName)
-{
-  std::string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
-
-  if(pkgPath.empty() || pkgPath.find("package:") != 0 || pkgPath.find("base.apk") == std::string::npos)
-    return pkgPath;
-
-  pkgPath.erase(pkgPath.begin(), pkgPath.begin() + strlen("package:"));
-  pkgPath.erase(pkgPath.end() - strlen("base.apk"), pkgPath.end());
-
-  return pkgPath;
+  return pkgFlags.find("DEBUGGABLE") != std::string::npos;
 }
 };
-using namespace Android;
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const char *host,
-                                                                         const char *exe,
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const char *hostname,
+                                                                         const char *packageName,
                                                                          AndroidFlags *flags)
 {
-  string packageName(basename(string(exe)));
-
   int index = 0;
   std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
-
-  // Find the path to package
-  std::string pkgPath = Android::GetPathForPackage(deviceID, packageName) + "lib";
-
-  string layerName = "libVkLayer_GLES_RenderDoc.so";
+  Android::ExtractDeviceIDAndIndex(hostname, index, deviceID);
 
   // Reset the flags each time we check
   *flags = AndroidFlags::NoFlags;
 
-  bool found = false;
-  string layerPath = "";
-
-  // Check a debug location only usable by rooted devices, overriding app's layer
-  if(SearchForAndroidLibrary(deviceID, "/data/local/debug/vulkan", layerName, layerPath))
-    found = true;
-
-  // See if the application contains the layer
-  if(!found && SearchForAndroidLibrary(deviceID, pkgPath, layerName, layerPath))
-    found = true;
-
-  // TODO: Add any future layer locations
-
-  if(found)
+  if(Android::IsDebuggable(deviceID, basename(std::string(packageName))))
   {
-#if ENABLED(RDOC_DEVEL)
-    // Check the version of the layer found
-    if(!CheckLayerVersion(deviceID, layerName, layerPath))
-    {
-      RDCWARN("RenderDoc layer found, but version does not match");
-      *flags |= AndroidFlags::WrongLayerVersion;
-    }
-#endif
+    *flags |= AndroidFlags::Debuggable;
   }
   else
   {
-    RDCWARN("No RenderDoc layer for Vulkan or GLES was found");
-    *flags |= AndroidFlags::MissingLibrary;
+    RDCLOG("%s is not debuggable", packageName);
   }
 
-  // Next check permissions of the installed application (without pulling the APK)
-  if(!CheckInstalledPermissions(deviceID, packageName))
-  {
-    RDCWARN("Android application does not have required permissions");
-    *flags |= AndroidFlags::MissingPermissions;
-  }
-
-  if(CheckRootAccess(deviceID))
+  if(Android::HasRootAccess(deviceID))
   {
     RDCLOG("Root access detected");
     *flags |= AndroidFlags::RootAccess;
@@ -650,124 +415,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
   return;
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroidApp(const char *host,
-                                                                                    const char *exe)
+extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
+    const char *hostname, const char *packageName, RENDERDOC_ProgressCallback progress)
 {
-  Process::ProcessResult result = {};
-  string packageName(basename(string(exe)));
-
-  RDCLOG("Attempting to push RenderDoc layer to %s", packageName.c_str());
-
-  int index = 0;
-  std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
-
-  // Detect which ABI was installed on the device
-  string abi = DetermineInstalledABI(deviceID, packageName);
-
-  // Find the layer on host
-  string layerName("libVkLayer_GLES_RenderDoc.so");
-  string layerPath = FindAndroidLayer(abi, layerName);
-  if(layerPath.empty())
-    return false;
-
-  // Determine where to push the layer
-  string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
-
-  // Isolate the app's lib dir
-  pkgPath.erase(pkgPath.begin(), pkgPath.begin() + strlen("package:"));
-  string libDir = removeFromEnd(pkgPath, "base.apk") + "lib/";
-
-  // There will only be one ABI in the lib dir
-  string libsAbi = trim(adbExecCommand(deviceID, "shell ls " + libDir).strStdout);
-  string layerDst = libDir + libsAbi + "/";
-  result = adbExecCommand(deviceID, "push " + layerPath + " " + layerDst);
-
-  // Ensure the push succeeded
-  string foundLayer;
-  return SearchForAndroidLibrary(deviceID, layerDst, layerName, foundLayer);
-}
-
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(
-    const char *host, const char *exe, RENDERDOC_ProgressCallback progress)
-{
-  Process::ProcessResult result = {};
-  string packageName(basename(string(exe)));
-
-  int index = 0;
-  std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
-
-  // make sure progress is valid so we don't have to check it everywhere
-  if(!progress)
-    progress = [](float) {};
-
-  progress(0.0f);
-
-  if(!CheckPatchingRequirements())
-    return false;
-
-  progress(0.11f);
-
-  // Detect which ABI was installed on the device
-  string abi = DetermineInstalledABI(deviceID, packageName);
-
-  // Find the layer on host
-  string layerName("libVkLayer_GLES_RenderDoc.so");
-  string layerPath = FindAndroidLayer(abi, layerName);
-  if(layerPath.empty())
-    return false;
-
-  // Find the APK on the device
-  std::string apkPath = Android::GetPathForPackage(deviceID, packageName) + "base.apk";
-
-  string tmpDir = FileIO::GetTempFolderFilename();
-  string origAPK(tmpDir + packageName + ".orig.apk");
-  string alignedAPK(origAPK + ".aligned.apk");
-
-  progress(0.21f);
-
-  // Try the following steps, bailing if anything fails
-  if(!PullAPK(deviceID, pkgPath, origAPK))
-    return false;
-
-  progress(0.31f);
-
-  if(!CheckAPKPermissions(origAPK))
-    return false;
-
-  progress(0.41f);
-
-  if(!RemoveAPKSignature(origAPK))
-    return false;
-
-  progress(0.51f);
-
-  if(!AddLayerToAPK(origAPK, layerPath, layerName, abi, tmpDir))
-    return false;
-
-  progress(0.61f);
-
-  if(!RealignAPK(origAPK, alignedAPK, tmpDir))
-    return false;
-
-  progress(0.71f);
-
-  if(!DebugSignAPK(alignedAPK, tmpDir))
-    return false;
-
-  progress(0.81f);
-
-  if(!UninstallOriginalAPK(deviceID, packageName, tmpDir))
-    return false;
-
-  progress(0.91f);
-
-  if(!ReinstallPatchedAPK(deviceID, alignedAPK, abi, packageName, tmpDir))
-    return false;
-
-  progress(1.0f);
-
-  // All clean!
-  return true;
+  // stub for now
+  return AndroidFlags::ManifestPatchFailure;
 }

@@ -48,7 +48,4 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 bool toolExists(const std::string &path);
 
 std::string GetFriendlyName(std::string deviceID);
-bool CheckRootAccess(const std::string &deviceID);
-bool SearchForAndroidLibrary(const std::string &deviceID, const std::string &location,
-                             const std::string &layerName, std::string &foundLayer);
 };

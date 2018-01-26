@@ -3529,41 +3529,34 @@ DOCUMENT(R"(A set of flags giving details of the current status of Android traca
 
   There are no problems with the Android application setup.
 
-.. data:: MissingLibrary
+.. data:: Debuggable
 
-  The RenderDoc library (whether Vulkan layer or OpenGLES library) could not be found in the
-  application or system locations.
-
-.. data:: MissingPermissions
-
-  The application being checked does not have the requesite permission. Currently there
-  are no required permissions.
-
-.. data:: NotDebuggable
-
-  The application is not debuggable.
-
-.. data:: WrongLayerVersion
-
-   The found RenderDoc layer does not match the server's version.
+  The application is debuggable.
 
 .. data:: RootAccess
 
    The device being targeted has root access.
 
-.. data:: Unfixable
+.. data:: MissingTools
 
-  The current situation is not fixable automatically and requires user intervention/disambiguation.
+   When patching, some necessary tools were not found.
+
+.. data:: ManifestPatchFailure
+
+   When patching, modifying the manifest file to include the debuggable flag failed.
+
+.. data:: RepackagingAPKFailure
+
+   When patching, repackaging, signing and installing the new package failed.
 )");
 enum class AndroidFlags : uint32_t
 {
   NoFlags = 0x0,
-  MissingLibrary = 0x1,
-  MissingPermissions = 0x2,
-  NotDebuggable = 0x4,
-  WrongLayerVersion = 0x8,
-  RootAccess = 0x10,
-  Unfixable = 0x20,
+  Debuggable = 0x1,
+  RootAccess = 0x2,
+  MissingTools = 0x1000,
+  ManifestPatchFailure = 0x2000,
+  RepackagingAPKFailure = 0x4000,
 };
 
 BITMASK_OPERATORS(AndroidFlags);

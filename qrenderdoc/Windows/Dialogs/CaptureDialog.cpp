@@ -428,11 +428,10 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
     rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
     RENDERDOC_CheckAndroidPackage(host.c_str(), filename.toUtf8().data(), &m_AndroidFlags);
 
-    const bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
-    const bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
-    const bool wrongLayerVersion = bool(m_AndroidFlags & AndroidFlags::WrongLayerVersion);
+    const bool debuggable = bool(m_AndroidFlags & AndroidFlags::Debuggable);
+    const bool hasroot = bool(m_AndroidFlags & AndroidFlags::RootAccess);
 
-    if(missingLibrary || missingPermissions || wrongLayerVersion)
+    if(!debuggable && !hasroot)
     {
       // Check failed - set the warning visible
       GUIInvoke::call([this]() {
@@ -442,7 +441,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
     }
     else
     {
-      // Check passed - no warnings needed
+      // Check passed, either app is debuggable or we have root - no warnings needed
       GUIInvoke::call([this]() {
         ui->androidScan->setVisible(false);
         ui->androidWarn->setVisible(false);
@@ -458,192 +457,78 @@ void CaptureDialog::androidWarn_mouseClick()
 {
   QString exe = ui->exePath->text();
 
-  QString caption = tr("Missing RenderDoc requirements");
+  QString caption = tr("Application is not debuggable");
 
-  QString msg = tr("In order to debug on Android, the following problems must be fixed:<br><br>");
+  QString msg = tr(R"(In order to debug on Android, the package must be <b>debuggable</b>.
+<br><br>
+On UE4 you must disable <em>for distribution</em>, on Unity enable <em>development mode</em>.
+<br><br>
+RenderDoc can try to add the flag for you, which will involve completely reinstalling your package
+as well as re-signing it with a debug key. This method is prone to error and is
+<b>not recommended</b>. It is instead advised to configure your app to be debuggable at build time.
+<br><br>
+Would you like RenderDoc to try patching your package?
+)");
 
-  bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
-  bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
-  bool wrongLayerVersion = bool(m_AndroidFlags & AndroidFlags::WrongLayerVersion);
-  bool rootAccess = bool(m_AndroidFlags & AndroidFlags::RootAccess);
+  QMessageBox::StandardButton prompt = RDDialog::question(this, caption, msg, RDDialog::YesNoCancel);
 
-  if(missingPermissions)
+  if(prompt == QMessageBox::Yes)
   {
-    msg +=
-        tr("<b>Missing permissions</b><br>"
-           "The target APK must have the following permissions:<br>"
-           "android.permission.INTERNET<br><br>");
-  }
+    float progress = 0.0f;
+    bool patchSucceeded = false;
 
-  if(missingLibrary)
-  {
-    msg +=
-        tr("<b>Missing library</b><br>"
-           "The RenderDoc library must be present in the "
-           "installed application.<br><br>");
-  }
+    // call into APK pull, patch, install routine, then continue
+    LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
+      rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
+      AndroidFlags result = RENDERDOC_MakeDebuggablePackage(host.c_str(), exe.toUtf8().data(),
+                                                            [&progress](float p) { progress = p; });
 
-  if(wrongLayerVersion)
-  {
-    msg +=
-        tr("<b>Wrong layer version</b><br>"
-           "The RenderDoc library was found, but its version "
-           "does not match that of the host.<br><br>");
-  }
-
-  if(missingPermissions)
-  {
-    // Don't prompt for patching if permissions are wrong - we can't fix that
-    RDDialog::critical(this, caption, msg);
-    return;
-  }
-
-  // Track whether we tried to push layer directly, to influence text
-  bool triedPush = false;
-
-  // Track whether to continue with push suggestion dialogue, in case user clicked Cancel
-  bool suggestPatch = true;
-
-  if(rootAccess)
-  {
-    // Check whether user has requested automatic pushing
-    bool autoPushConfig = m_Ctx.Config().Android_AutoPushLayerToApp;
-
-    // Separately, track whether the persistent checkBox is selected
-    bool autoPushCheckBox = autoPushConfig;
-
-    QMessageBox::StandardButton prompt = QMessageBox::No;
-
-    // Only display initial prompt if user has not chosen to push automatically
-    if(!autoPushConfig)
-    {
-      QString rootmsg = msg;
-      rootmsg +=
-          tr("Your device appears to have <b>root access</b>. If you are only targeting Vulkan, "
-             "RenderDoc can try to push the layer directly to your application.<br><br>"
-             "Would you like RenderDoc to push the layer?<br>");
-
-      QString checkMsg(tr("Automatically push the layer on rooted devices"));
-      QCheckBox *cb = new QCheckBox(checkMsg, this);
-      cb->setChecked(autoPushCheckBox);
-      prompt = RDDialog::questionChecked(this, caption, rootmsg, cb, autoPushCheckBox,
-                                         RDDialog::YesNoCancel);
-    }
-
-    if(autoPushConfig || prompt == QMessageBox::Yes)
-    {
-      bool pushSucceeded = false;
-      triedPush = true;
-
-      // Only update the autoPush setting if Yes was clicked
-      if(autoPushCheckBox != m_Ctx.Config().Android_AutoPushLayerToApp)
+      if(result & AndroidFlags::Debuggable)
       {
-        m_Ctx.Config().Android_AutoPushLayerToApp = autoPushCheckBox;
-        m_Ctx.Config().Save();
-      }
+        // Sucess!
+        patchSucceeded = true;
 
-      // Call into layer push routine, then continue
-      LambdaThread *push = new LambdaThread([this, exe, &pushSucceeded]() {
-        rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
-        if(RENDERDOC_PushLayerToInstalledAndroidApp(host.c_str(), exe.toUtf8().data()))
+        RDDialog::information(this, tr("Patch succeeded!"),
+                              tr("The patch process succeeded and the package is ready to debug"));
+      }
+      else
+      {
+        QString failmsg = tr("Something has gone wrong and the patching process failed.<br><br>");
+
+        if(result == AndroidFlags::MissingTools)
         {
-          // Sucess!
-          pushSucceeded = true;
-
-          RDDialog::information(
-              this, tr("Push succeeded!"),
-              tr("The push attempt succeeded and<br>%1 now contains the RenderDoc layer").arg(exe));
+          failmsg +=
+              tr("Tools required for the process were not found. Try configuring the path to your "
+                 "android SDK or java JDK in the settings dialog.");
         }
-      });
-
-      push->start();
-      if(push->isRunning())
-      {
-        ShowProgressDialog(this, tr("Pushing layer to %1, please wait...").arg(exe),
-                           [push]() { return !push->isRunning(); });
-      }
-      push->deleteLater();
-
-      if(pushSucceeded)
-      {
-        // We should be good from here, no futher prompts
-        suggestPatch = false;
-        ui->androidWarn->setVisible(false);
-      }
-    }
-    else if(prompt == QMessageBox::Cancel)
-    {
-      // Cancel skips any other fix prompts
-      suggestPatch = false;
-    }
-  }
-
-  if(suggestPatch)
-  {
-    if(triedPush)
-      msg.insert(0, tr("The push attempt failed, so other methods must be used to fix the missing "
-                       "layer.<br><br>"));
-
-    msg +=
-        tr("To fix this, you should repackage the APK following guidelines on the "
-           "<a href='http://github.com/baldurk/renderdoc/wiki/Android-Support'>"
-           "RenderDoc Wiki</a><br><br>"
-           "If you are <b>only targeting Vulkan</b>, RenderDoc can try to add the layer for you, "
-           "which requires pulling the APK, patching it, uninstalling the original, and "
-           "installing the modified version with a debug key. "
-           "This works for many debuggable applications, but not all, especially those that "
-           "check their integrity before launching.<br><br>"
-           "Your system will need several tools installed and available to RenderDoc. "
-           "Any missing tools will be noted in the log. Follow the steps "
-           "<a href='http://github.com/baldurk/renderdoc/wiki/Android-Support'>here"
-           "</a> to get them.<br><br>"
-           "Would you like RenderDoc to try patching your APK?");
-
-    QMessageBox::StandardButton prompt =
-        RDDialog::question(this, caption, msg, RDDialog::YesNoCancel);
-
-    if(prompt == QMessageBox::Yes)
-    {
-      float progress = 0.0f;
-      bool patchSucceeded = false;
-
-      // call into APK pull, patch, install routine, then continue
-      LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
-        rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
-        if(RENDERDOC_AddLayerToAndroidPackage(host.c_str(), exe.toUtf8().data(),
-                                              [&progress](float p) { progress = p; }))
+        else if(result == AndroidFlags::ManifestPatchFailure)
         {
-          // Sucess!
-          patchSucceeded = true;
-
-          RDDialog::information(
-              this, tr("Patch succeeded!"),
-              tr("The patch process succeeded and<br>%1 now contains the RenderDoc layer").arg(exe));
+          failmsg +=
+              tr("The package manifest could not be patched. This is not solveable, you will have "
+                 "to rebuild the package with the debuggable flag.");
         }
-        else
+        else if(result == AndroidFlags::RepackagingAPKFailure)
         {
-          RDDialog::critical(this, tr("Failed to patch APK"),
-                             tr("Something has gone wrong and APK patching failed "
-                                "for:<br>%1<br>Check diagnostic log in Help "
-                                "menu for more details.")
-                                 .arg(exe));
+          failmsg += tr("The package was patched but could not be repackaged and installed.");
         }
-      });
 
-      patch->start();
-      // wait a few ms before popping up a progress bar
-      patch->wait(500);
-      if(patch->isRunning())
-      {
-        ShowProgressDialog(this, tr("Patching %1, please wait...").arg(exe),
-                           [patch]() { return !patch->isRunning(); },
-                           [&progress]() { return progress; });
+        RDDialog::critical(this, tr("Failed to patch package"), failmsg);
       }
-      patch->deleteLater();
+    });
 
-      if(patchSucceeded)
-        ui->androidWarn->setVisible(false);
+    patch->start();
+    // wait a few ms before popping up a progress bar
+    patch->wait(500);
+    if(patch->isRunning())
+    {
+      ShowProgressDialog(this, tr("Patching %1, please wait...").arg(exe),
+                         [patch]() { return !patch->isRunning(); },
+                         [&progress]() { return progress; });
     }
+    patch->deleteLater();
+
+    if(patchSucceeded)
+      ui->androidWarn->setVisible(false);
   }
 }
 

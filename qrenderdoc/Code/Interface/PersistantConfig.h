@@ -219,8 +219,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
                                                                                            \
-  CONFIG_SETTING_VAL(public, bool, bool, Android_AutoPushLayerToApp, false)                \
-                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                    \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
@@ -494,12 +492,6 @@ For more information about some of these settings that are user-facing see
   The maximum timeout in seconds to wait when launching an Android package.
 
   Defaults to ``30``.
-
-.. data:: Android_AutoPushLayerToApp
-
-  Whether to automatically push the RenderDoc layer to the application's lib directory when running
-  on a device with root access.  This can enable debugging of Vulkan applications that didn't already
-  package the layer in the APK.
 
 .. data:: CheckUpdate_AllowChecks
 

@@ -219,9 +219,6 @@ void PersistantConfig::AddAndroidHosts()
 
   SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
 
-  SetConfigSetting(lit("Android_AutoPushLayerToApp"),
-                   Android_AutoPushLayerToApp ? lit("1") : lit("0"));
-
   rdcstr androidHosts;
   RENDERDOC_EnumerateAndroidDevices(&androidHosts);
   for(const QString &hostName :
