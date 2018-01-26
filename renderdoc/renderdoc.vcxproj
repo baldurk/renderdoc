@@ -132,6 +132,7 @@
     <ClInclude Include="3rdparty\zstd\zstdmt_compress.h" />
     <ClInclude Include="3rdparty\zstd\zstd_opt.h" />
     <ClInclude Include="3rdparty\zstd\zstd.h" />
+    <ClInclude Include="android\android.h" />
     <ClInclude Include="api\app\renderdoc_app.h" />
     <ClInclude Include="api\replay\basic_types.h" />
     <ClInclude Include="api\replay\capture_options.h" />
@@ -156,7 +157,6 @@
     <ClInclude Include="common\threading.h" />
     <ClInclude Include="common\timing.h" />
     <ClInclude Include="common\wrapped_pool.h" />
-    <ClInclude Include="core\android.h" />
     <ClInclude Include="core\core.h" />
     <ClInclude Include="core\crash_handler.h" />
     <ClInclude Include="core\plugins.h" />
@@ -305,9 +305,9 @@
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
     </ClCompile>
+    <ClCompile Include="android\android.cpp" />
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="common\dds_readwrite.cpp" />
-    <ClCompile Include="core\android.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
     <ClCompile Include="core\plugins.cpp" />

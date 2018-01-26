@@ -23,8 +23,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "android/android.h"
 #include "api/replay/renderdoc_replay.h"
-#include "core/android.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "os/os_specific.h"

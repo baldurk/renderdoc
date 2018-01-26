@@ -109,6 +109,9 @@
     <Filter Include="Common\Serialise\Codecs">
       <UniqueIdentifier>{dc39ebda-045d-4d75-8ef9-0c927be3c7ff}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Android">
+      <UniqueIdentifier>{f9ed2873-6120-4b34-a3c2-e57b2de31eb9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -291,9 +294,6 @@
     <ClInclude Include="core\precompiled.h">
       <Filter>PCH</Filter>
     </ClInclude>
-    <ClInclude Include="core\android.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="core\plugins.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -374,6 +374,9 @@
     </ClInclude>
     <ClInclude Include="os\posix\posix_network.h">
       <Filter>OS\Posix</Filter>
+    </ClInclude>
+    <ClInclude Include="android\android.h">
+      <Filter>Android</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -557,9 +560,6 @@
     <ClCompile Include="3rdparty\catch\catch.cpp">
       <Filter>3rdparty\catch</Filter>
     </ClCompile>
-    <ClCompile Include="core\android.cpp">
-      <Filter>Replay</Filter>
-    </ClCompile>
     <ClCompile Include="replay\basic_types_tests.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
@@ -649,6 +649,9 @@
     </ClCompile>
     <ClCompile Include="os\posix\android\android_network.cpp">
       <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\android.cpp">
+      <Filter>Android</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

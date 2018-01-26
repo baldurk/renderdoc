@@ -25,8 +25,8 @@
 
 #include <sstream>
 #include <utility>
+#include "android/android.h"
 #include "api/replay/renderdoc_replay.h"
-#include "core/android.h"
 #include "core/core.h"
 #include "os/os_specific.h"
 #include "replay/replay_controller.h"

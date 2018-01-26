@@ -89,8 +89,8 @@ set(sources
     core/remote_server.cpp
     core/replay_proxy.cpp
     core/replay_proxy.h
-    core/android.cpp
-    core/android.h
+    android/android.cpp
+    android/android.h
     core/plugins.cpp
     core/plugins.h
     core/resource_manager.cpp

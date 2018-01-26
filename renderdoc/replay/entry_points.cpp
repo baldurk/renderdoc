@@ -24,10 +24,10 @@
  ******************************************************************************/
 
 #include "3rdparty/catch/catch.hpp"
+#include "android/android.h"
 #include "api/replay/renderdoc_replay.h"
 #include "api/replay/version.h"
 #include "common/common.h"
-#include "core/android.h"
 #include "core/core.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
