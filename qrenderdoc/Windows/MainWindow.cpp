@@ -1109,8 +1109,6 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
   statusText->setText(tr("Checking for updates..."));
 
   statusProgress->setVisible(true);
-  statusProgress->setMinimumSize(QSize(200, 0));
-  statusProgress->setMinimum(0);
   statusProgress->setMaximum(0);
 
   // call out to the status-check to see when the bug report was last updated
@@ -1127,7 +1125,6 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
 
     statusText->setText(QString());
     statusProgress->setVisible(false);
-    statusProgress->setMaximum(1000);
 
     if(response.isEmpty())
     {
@@ -1594,12 +1591,18 @@ void MainWindow::switchContext()
 
       if(!host->serverRunning && !host->runCommand.isEmpty())
       {
-        GUIInvoke::call([this]() { statusText->setText(tr("Running remote server command...")); });
+        GUIInvoke::call([this]() {
+          statusText->setText(tr("Running remote server command..."));
+          statusProgress->setVisible(true);
+          statusProgress->setMaximum(0);
+        });
 
         host->Launch();
 
         // check if it's running now
         host->CheckStatus();
+
+        GUIInvoke::call([this]() { statusProgress->setVisible(false); });
       }
 
       ReplayStatus status = ReplayStatus::Succeeded;
