@@ -67,9 +67,9 @@ struct ProcessResult
   string strStdout, strStderror;
   int retCode;
 };
-uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
+uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine, bool internal,
                        ProcessResult *result = NULL);
-uint32_t LaunchScript(const char *script, const char *workingDir, const char *args,
+uint32_t LaunchScript(const char *script, const char *workingDir, const char *args, bool internal,
                       ProcessResult *result = NULL);
 uint32_t LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
                                     const rdcarray<EnvironmentModification> &env, const char *logfile,

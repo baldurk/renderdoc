@@ -130,7 +130,7 @@ static uint32_t LaunchReplayUI(uint32_t connectTargetControl, const char *cmdlin
     cmd += StringFormat::Fmt(" --targetcontrol localhost:%u",
                              RenderDoc::Inst().GetTargetControlIdent());
 
-  return Process::LaunchProcess(replayapp.c_str(), "", cmd.c_str());
+  return Process::LaunchProcess(replayapp.c_str(), "", cmd.c_str(), false);
 }
 
 static void SetActiveWindow(void *device, void *wndHandle)

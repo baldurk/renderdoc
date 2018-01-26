@@ -395,7 +395,8 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 }
 
 static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                      HANDLE *phChildStdOutput_Rd, HANDLE *phChildStdError_Rd)
+                                      bool internal, HANDLE *phChildStdOutput_Rd,
+                                      HANDLE *phChildStdError_Rd)
 {
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
@@ -472,7 +473,8 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
     si.hStdError = hChildStdError_Wr;
   }
 
-  RDCLOG("Running process %s", app);
+  if(!internal)
+    RDCLOG("Running process %s", app);
 
   BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec,
                                  true,    // Need to inherit handles for ReadFile to read stdout
@@ -921,12 +923,13 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                ProcessResult *result)
+                                bool internal, ProcessResult *result)
 {
   HANDLE hChildStdOutput_Rd, hChildStdError_Rd;
 
-  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, result ? &hChildStdOutput_Rd : NULL,
-                                      result ? &hChildStdError_Rd : NULL);
+  PROCESS_INFORMATION pi =
+      RunProcess(app, workingDir, cmdLine, internal, result ? &hChildStdOutput_Rd : NULL,
+                 result ? &hChildStdError_Rd : NULL);
 
   if(pi.dwProcessId == 0)
   {
@@ -934,7 +937,8 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
     return 0;
   }
 
-  RDCLOG("Launched process '%s' with '%s'", app, cmdLine);
+  if(!internal)
+    RDCLOG("Launched process '%s' with '%s'", app, cmdLine);
 
   ResumeThread(pi.hThread);
 
@@ -981,12 +985,12 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 }
 
 uint32_t Process::LaunchScript(const char *script, const char *workingDir, const char *argList,
-                               ProcessResult *result)
+                               bool internal, ProcessResult *result)
 {
   // Change parameters to invoke command interpreter
   string args = "/C " + string(script) + " " + string(argList);
 
-  return LaunchProcess("cmd.exe", workingDir, args.c_str(), result);
+  return LaunchProcess("cmd.exe", workingDir, args.c_str(), internal, result);
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
@@ -1005,7 +1009,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
     return 0;
   }
 
-  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, NULL, NULL);
+  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, false, NULL, NULL);
 
   if(pi.dwProcessId == 0)
     return 0;

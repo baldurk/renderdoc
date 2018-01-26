@@ -417,7 +417,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                ProcessResult *result)
+                                bool internal, ProcessResult *result)
 {
   if(app == NULL || app[0] == 0)
   {
@@ -469,12 +469,12 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 }
 
 uint32_t Process::LaunchScript(const char *script, const char *workingDir, const char *argList,
-                               ProcessResult *result)
+                               bool internal, ProcessResult *result)
 {
   // Change parameters to invoke command interpreter
   string args = "-lc \"" + string(script) + " " + string(argList) + "\"";
 
-  return LaunchProcess("bash", workingDir, args.c_str(), result);
+  return LaunchProcess("bash", workingDir, args.c_str(), internal, result);
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,

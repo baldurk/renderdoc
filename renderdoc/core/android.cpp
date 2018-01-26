@@ -311,7 +311,7 @@ Process::ProcessResult execScript(const string &script, const string &args,
   RDCLOG("SCRIPT: %s", script.c_str());
 
   Process::ProcessResult result;
-  Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), &result);
+  Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), true, &result);
   return result;
 }
 Process::ProcessResult execCommand(const string &exe, const string &args,
@@ -320,7 +320,7 @@ Process::ProcessResult execCommand(const string &exe, const string &args,
   RDCLOG("COMMAND: %s '%s'", exe.c_str(), args.c_str());
 
   Process::ProcessResult result;
-  Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), &result);
+  Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), true, &result);
   return result;
 }
 Process::ProcessResult adbExecCommand(const string &device, const string &args, const string &workDir)

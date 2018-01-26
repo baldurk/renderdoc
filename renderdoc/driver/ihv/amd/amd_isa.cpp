@@ -51,7 +51,7 @@ static bool IsSupported(ShaderEncoding encoding)
     std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
     Process::ProcessResult result = {};
-    Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), "", &result);
+    Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), "", true, &result);
 
     // running with no parameters produces an error, so if there's no output something went wrong.
     if(result.strStdout.empty())
@@ -66,7 +66,7 @@ static bool IsSupported(ShaderEncoding encoding)
     std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
     Process::ProcessResult result = {};
-    Process::LaunchProcess(amdspv.c_str(), dirname(amdspv).c_str(), "", &result);
+    Process::LaunchProcess(amdspv.c_str(), dirname(amdspv).c_str(), "", true, &result);
 
     // running with no parameters produces help text, so if there's no output something went wrong.
     if(result.strStdout.empty())
@@ -195,7 +195,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
   Process::ProcessResult result = {};
-  Process::LaunchProcess(amdspv.c_str(), dirname(amdspv).c_str(), cmdLine.c_str(), &result);
+  Process::LaunchProcess(amdspv.c_str(), dirname(amdspv).c_str(), cmdLine.c_str(), true, &result);
 
   if(result.strStdout.find("SUCCESS") == std::string::npos)
   {
@@ -348,7 +348,7 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
   Process::ProcessResult result = {};
-  Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), cmdLine.c_str(), &result);
+  Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), cmdLine.c_str(), true, &result);
 
   if(result.retCode != 0 || result.strStdout.find("Error") != string::npos ||
      result.strStdout.empty() || !FileIO::exists(outPath.c_str()))
