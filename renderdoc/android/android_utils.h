@@ -24,15 +24,26 @@
 
 #pragma once
 
-#include <string>
-#include "os/os_specific.h"
+#include "android.h"
 
-// public interface, for other non-android parts of the code
+// internal functions, shouldn't be used outside the android implementation - anything public goes
+// in android.h
+
 namespace Android
 {
-bool IsHostADB(const char *hostname);
-uint32_t StartAndroidPackageForCapture(const char *host, const char *package);
-void extractDeviceIDAndIndex(const std::string &hostname, int &index, std::string &deviceID);
-Process::ProcessResult adbExecCommand(const std::string &deviceID, const std::string &args,
-                                      const string &workDir = ".");
+Process::ProcessResult execScript(const string &script, const string &args,
+                                  const string &workDir = ".");
+Process::ProcessResult execCommand(const string &exe, const string &args,
+                                   const string &workDir = ".");
+
+enum class ToolDir
+{
+  None,
+  Java,
+  BuildTools,
+  BuildToolsLib,
+  PlatformTools,
+};
+std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist);
+bool toolExists(const std::string &path);
 };

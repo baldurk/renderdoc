@@ -378,6 +378,9 @@
     <ClInclude Include="android\android.h">
       <Filter>Android</Filter>
     </ClInclude>
+    <ClInclude Include="android\android_utils.h">
+      <Filter>Android</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -651,6 +654,9 @@
       <Filter>OS\Posix\Android</Filter>
     </ClCompile>
     <ClCompile Include="android\android.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\android_tools.cpp">
       <Filter>Android</Filter>
     </ClCompile>
   </ItemGroup>

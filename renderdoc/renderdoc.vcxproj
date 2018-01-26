@@ -133,6 +133,7 @@
     <ClInclude Include="3rdparty\zstd\zstd_opt.h" />
     <ClInclude Include="3rdparty\zstd\zstd.h" />
     <ClInclude Include="android\android.h" />
+    <ClInclude Include="android\android_utils.h" />
     <ClInclude Include="api\app\renderdoc_app.h" />
     <ClInclude Include="api\replay\basic_types.h" />
     <ClInclude Include="api\replay\capture_options.h" />
@@ -306,6 +307,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="android\android.cpp" />
+    <ClCompile Include="android\android_tools.cpp" />
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="common\dds_readwrite.cpp" />
     <ClCompile Include="core\core.cpp" />
