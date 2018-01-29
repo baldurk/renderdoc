@@ -436,7 +436,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   std::string packages =
       Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE).strStdout;
 
-  if(packages.empty() || !Android::CheckAndroidServerVersion(deviceID))
+  std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
+
+  if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID))
   {
     // If server is not detected or has been removed due to incompatibility, install it
     if(!Android::InstallRenderDocServer(deviceID))
@@ -444,8 +446,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   }
 
   // stop all servers of any ABI
-  std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
-
   for(Android::ABI abi : abis)
     Android::adbExecCommand(deviceID, "shell am force-stop " + GetRenderDocPackageForABI(abi));
 
