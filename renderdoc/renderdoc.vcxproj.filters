@@ -112,6 +112,9 @@
     <Filter Include="Android">
       <UniqueIdentifier>{f9ed2873-6120-4b34-a3c2-e57b2de31eb9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\android">
+      <UniqueIdentifier>{6e798cbc-0eae-4f48-9d7c-f3fe58bd32dc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -383,6 +386,9 @@
     </ClInclude>
     <ClInclude Include="android\jdwp.h">
       <Filter>Android</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\android\android_manifest.h">
+      <Filter>3rdparty\android</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -675,6 +681,9 @@
       <Filter>Android</Filter>
     </ClCompile>
     <ClCompile Include="android\jdwp_util.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\android_manifest.cpp">
       <Filter>Android</Filter>
     </ClCompile>
   </ItemGroup>

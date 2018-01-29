@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <sstream>
+#include "3rdparty/miniz/miniz.h"
 #include "api/replay/version.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
@@ -84,6 +85,86 @@ bool RemoveAPKSignature(const string &apk)
       return false;
     }
   }
+  return true;
+}
+
+bool ExtractAndRemoveManifest(const std::string &apk, std::vector<byte> &manifest)
+{
+  // pull out the manifest with miniz
+  mz_zip_archive zip;
+  RDCEraseEl(zip);
+
+  mz_bool b = mz_zip_reader_init_file(&zip, apk.c_str(), 0);
+
+  if(b)
+  {
+    mz_uint numfiles = mz_zip_reader_get_num_files(&zip);
+
+    for(mz_uint i = 0; i < numfiles; i++)
+    {
+      mz_zip_archive_file_stat zstat;
+      mz_zip_reader_file_stat(&zip, i, &zstat);
+
+      if(!strcmp(zstat.m_filename, "AndroidManifest.xml"))
+      {
+        size_t sz = 0;
+        byte *buf = (byte *)mz_zip_reader_extract_to_heap(&zip, i, &sz, 0);
+
+        RDCLOG("Got manifest of %zu bytes", sz);
+
+        manifest.insert(manifest.begin(), buf, buf + sz);
+      }
+    }
+  }
+  else
+  {
+    RDCERR("Couldn't open %s", apk.c_str());
+  }
+
+  mz_zip_reader_end(&zip);
+
+  if(manifest.empty())
+    return false;
+
+  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+
+  RDCDEBUG("Removing AndroidManifest.xml");
+  execCommand(aapt, "remove \"" + apk + "\" AndroidManifest.xml");
+
+  std::string fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  std::vector<std::string> files;
+  split(fileList, files, ' ');
+
+  for(const std::string &f : files)
+  {
+    if(trim(f) == "AndroidManifest.xml")
+    {
+      RDCERR("AndroidManifest.xml found, that means removal failed!");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool AddManifestToAPK(const std::string &apk, const std::string &tmpDir,
+                      const std::vector<byte> &manifest)
+{
+  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+
+  // write the manifest to disk
+  FileIO::dump((tmpDir + "AndroidManifest.xml").c_str(), manifest.data(), manifest.size());
+
+  // run aapt to add the manifest
+  Process::ProcessResult result =
+      execCommand(aapt, "add \"" + apk + "\" AndroidManifest.xml", tmpDir);
+
+  if(result.strStdout.empty())
+  {
+    RDCERR("Failed to add manifest to APK. STDERR: %s", result.strStderror.c_str());
+    return false;
+  }
+
   return true;
 }
 
@@ -243,7 +324,10 @@ bool ReinstallPatchedAPK(const string &deviceID, const string &apk, const string
 {
   RDCLOG("Reinstalling APK");
 
-  adbExecCommand(deviceID, "install --abi " + abi + " \"" + apk + "\"", workDir);
+  if(abi == "null" || abi.empty())
+    adbExecCommand(deviceID, "install \"" + apk + "\"", workDir);
+  else
+    adbExecCommand(deviceID, "install --abi " + abi + " \"" + apk + "\"", workDir);
 
   // Wait until re-install completes
   string reinstallResult;
@@ -315,6 +399,37 @@ bool CheckPatchingRequirements()
   return true;
 }
 
+std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName)
+{
+  RDCLOG("Checking installed ABI for %s", packageName.c_str());
+  string abi;
+
+  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  if(dump.empty())
+    RDCERR("Unable to pm dump %s", packageName.c_str());
+
+  // Walk through the output and look for primaryCpuAbi
+  std::istringstream contents(dump);
+  string line;
+  string prefix("primaryCpuAbi=");
+  while(std::getline(contents, line))
+  {
+    line = trim(line);
+    if(line.compare(0, prefix.size(), prefix) == 0)
+    {
+      // Extract the abi
+      abi = line.substr(line.find_last_of("=") + 1);
+      RDCLOG("primaryCpuAbi found: %s", abi.c_str());
+      break;
+    }
+  }
+
+  if(abi.empty())
+    RDCERR("Unable to determine installed abi for: %s", packageName.c_str());
+
+  return abi;
+}
+
 bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
 {
   RDCLOG("Pulling APK to patch");
@@ -369,10 +484,7 @@ std::string GetFirstMatchingLine(const std::string &haystack, const std::string 
   size_t needleOffset = haystack.find(needle);
 
   if(needleOffset == std::string::npos)
-  {
-    RDCERR("Couldn't get pkgFlags from adb");
     return "";
-  }
 
   size_t nextLine = haystack.find('\n', needleOffset + 1);
 
@@ -430,6 +542,85 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
     const char *hostname, const char *packageName, RENDERDOC_ProgressCallback progress)
 {
-  // stub for now
-  return AndroidFlags::ManifestPatchFailure;
+  Process::ProcessResult result = {};
+  std::string package(basename(std::string(packageName)));
+
+  int index = 0;
+  std::string deviceID;
+  Android::ExtractDeviceIDAndIndex(hostname, index, deviceID);
+
+  // make sure progress is valid so we don't have to check it everywhere
+  if(!progress)
+    progress = [](float) {};
+
+  progress(0.0f);
+
+  if(!Android::CheckPatchingRequirements())
+    return AndroidFlags::MissingTools;
+
+  progress(0.02f);
+
+  std::string abi = Android::DetermineInstalledABI(deviceID, package);
+
+  // Find the APK on the device
+  std::string pkgPath = Android::GetPathForPackage(deviceID, package) + "base.apk";
+
+  std::string tmpDir = FileIO::GetTempFolderFilename();
+  std::string origAPK(tmpDir + package + ".orig.apk");
+  std::string alignedAPK(origAPK + ".aligned.apk");
+  std::vector<byte> manifest;
+
+  // Try the following steps, bailing if anything fails
+  if(!Android::PullAPK(deviceID, pkgPath, origAPK))
+    return AndroidFlags::ManifestPatchFailure;
+
+  progress(0.4f);
+
+  if(!Android::RemoveAPKSignature(origAPK))
+    return AndroidFlags::ManifestPatchFailure;
+
+  progress(0.425f);
+
+  if(!Android::ExtractAndRemoveManifest(origAPK, manifest))
+    return AndroidFlags::ManifestPatchFailure;
+
+  progress(0.45f);
+
+  if(!Android::PatchManifest(manifest))
+    return AndroidFlags::ManifestPatchFailure;
+
+  progress(0.46f);
+
+  if(!Android::AddManifestToAPK(origAPK, tmpDir, manifest))
+    return AndroidFlags::ManifestPatchFailure;
+
+  progress(0.475f);
+
+  if(!Android::RealignAPK(origAPK, alignedAPK, tmpDir))
+    return AndroidFlags::RepackagingAPKFailure;
+
+  progress(0.5f);
+
+  if(!Android::DebugSignAPK(alignedAPK, tmpDir))
+    return AndroidFlags::RepackagingAPKFailure;
+
+  progress(0.525f);
+
+  if(!Android::UninstallOriginalAPK(deviceID, packageName, tmpDir))
+    return AndroidFlags::RepackagingAPKFailure;
+
+  progress(0.6f);
+
+  if(!Android::ReinstallPatchedAPK(deviceID, alignedAPK, abi, packageName, tmpDir))
+    return AndroidFlags::RepackagingAPKFailure;
+
+  progress(0.95f);
+
+  if(!Android::IsDebuggable(deviceID, packageName))
+    return AndroidFlags::ManifestPatchFailure;
+
+  progress(1.0f);
+
+  // All clean!
+  return AndroidFlags::Debuggable;
 }

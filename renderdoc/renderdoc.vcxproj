@@ -105,6 +105,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\android\android_manifest.h" />
     <ClInclude Include="3rdparty\catch\catch.hpp" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
@@ -308,6 +309,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="android\android.cpp" />
+    <ClCompile Include="android\android_manifest.cpp" />
     <ClCompile Include="android\android_patch.cpp" />
     <ClCompile Include="android\android_tools.cpp" />
     <ClCompile Include="android\android_utils.cpp" />
