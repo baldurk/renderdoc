@@ -132,15 +132,14 @@ public:
     return false;
   }
 
-  bool AlreadyHooked(void *handle)
+  bool IsHooked(void *handle)
   {
     SCOPED_LOCK(lock);
     bool ret = hooked_handle_already.find(handle) != hooked_handle_already.end();
-    hooked_handle_already.insert(handle);
     return ret;
   }
 
-  bool AlreadyHooked(const std::string &soname)
+  bool IsHooked(const std::string &soname)
   {
     SCOPED_LOCK(lock);
     if(hooked_soname_already.find(soname) != hooked_soname_already.end())
@@ -151,8 +150,19 @@ public:
       if(soname.find(fn) != std::string::npos)
         return true;
 
-    hooked_soname_already.insert(soname);
     return false;
+  }
+
+  void SetHooked(void *handle)
+  {
+    SCOPED_LOCK(lock);
+    hooked_handle_already.insert(handle);
+  }
+
+  void SetHooked(const std::string &soname)
+  {
+    SCOPED_LOCK(lock);
+    hooked_soname_already.insert(soname);
   }
 
 private:
@@ -193,10 +203,11 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
   }
   std::string soname = info->dlpi_name;
 
-  if(GetHookInfo().AlreadyHooked(soname))
+  if(GetHookInfo().IsHooked(soname))
     return 0;
 
   HOOK_DEBUG_PRINT("Hooking %s", soname.c_str());
+  GetHookInfo().SetHooked(soname);
 
   for(int ph = 0; ph < info->dlpi_phnum; ph++)
   {
@@ -385,9 +396,9 @@ void PosixHookApply()
   suppressTLS = Threading::AllocateTLSSlot();
 
   // blacklist hooking certain system libraries or ourselves
-  GetHookInfo().AlreadyHooked(RENDERDOC_ANDROID_LIBRARY);
-  GetHookInfo().AlreadyHooked("libc.so");
-  GetHookInfo().AlreadyHooked("libvndksupport.so");
+  GetHookInfo().SetHooked(RENDERDOC_ANDROID_LIBRARY);
+  GetHookInfo().SetHooked("libc.so");
+  GetHookInfo().SetHooked("libvndksupport.so");
 
   GetHookInfo().AddLibHook(RENDERDOC_ANDROID_LIBRARY);
 
@@ -423,9 +434,11 @@ void *intercept_dlopen(const char *filename, int flag)
 
 void process_dlopen(const char *filename, int flag)
 {
-  if(!GetHookInfo().AlreadyHooked(filename))
+  if(!GetHookInfo().IsHooked(filename))
   {
+    HOOK_DEBUG_PRINT("iterating after %s", filename);
     dl_iterate_phdr(dl_iterate_callback, NULL);
+    GetHookInfo().SetHooked(filename);
   }
   else
   {
@@ -507,9 +520,10 @@ extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handl
   if(repl == NULL)
     return dlsym(handle, symbol);
 
-  if(!GetHookInfo().AlreadyHooked(handle))
+  if(!GetHookInfo().IsHooked(handle))
   {
     dl_iterate_phdr(dl_iterate_callback, NULL);
+    GetHookInfo().SetHooked(handle);
   }
 
   HOOK_DEBUG_PRINT("Got dlsym for %s which we want in %p...", symbol, handle);
