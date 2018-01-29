@@ -457,6 +457,18 @@ void CaptureDialog::androidWarn_mouseClick()
 {
   QString exe = ui->exePath->text();
 
+  const RemoteHost *remote = m_Ctx.Replay().CurrentRemote();
+
+  if(!remote)
+  {
+    RDDialog::critical(this, tr("Android server disconnected"),
+                       tr("You've been disconnected from the android server.\n\n"
+                          "Please reconnect before attempting to fix package problems."));
+    return;
+  }
+
+  rdcstr host = remote->hostname;
+
   QString caption = tr("Application is not debuggable");
 
   QString msg = tr(R"(In order to debug on Android, the package must be <b>debuggable</b>.
@@ -478,8 +490,7 @@ Would you like RenderDoc to try patching your package?
     bool patchSucceeded = false;
 
     // call into APK pull, patch, install routine, then continue
-    LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
-      rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
+    LambdaThread *patch = new LambdaThread([this, host, exe, &patchSucceeded, &progress]() {
       AndroidFlags result = RENDERDOC_MakeDebuggablePackage(host.c_str(), exe.toUtf8().data(),
                                                             [&progress](float p) { progress = p; });
 
