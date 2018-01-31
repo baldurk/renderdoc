@@ -33,7 +33,7 @@ elseif(UNIX)
             PRIVATE ${X11_X11_INCLUDE_PATH})
 
         list(APPEND RDOC_LIBRARIES
-            PRIVATE -l${X11_X11_LIB})
+            PRIVATE ${X11_X11_LIB})
     endif()
 
     if(ENABLE_XCB)
@@ -51,7 +51,7 @@ elseif(UNIX)
 endif()
 
 if(NOT "x${CMAKE_THREAD_LIBS_INIT}" STREQUAL "x")
-    list(APPEND RDOC_LIBRARIES PRIVATE -l${CMAKE_THREAD_LIBS_INIT})
+    list(APPEND RDOC_LIBRARIES PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 set(sources
