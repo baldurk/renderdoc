@@ -634,6 +634,8 @@ private:
   // the ID of the output window to use for previewing on the remote host. Only valid/useful if
   // m_Replay is set
   uint64_t m_PreviewOutput = 0;
+  // The previous windowing data, so we can detect changes and recreate the window
+  WindowingData m_PreviewWindowingData;
 
   uint32_t m_PreviewEvent = 0;
 

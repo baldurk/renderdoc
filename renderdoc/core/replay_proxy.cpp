@@ -1860,13 +1860,29 @@ const DrawcallDescription *ReplayProxy::FindDraw(const rdcarray<DrawcallDescript
 
 void ReplayProxy::InitPreviewWindow()
 {
-  if(m_Replay && m_PreviewWindow && m_PreviewOutput == 0)
+  if(m_Replay && m_PreviewWindow)
   {
     WindowingData data = m_PreviewWindow(true, m_Replay->GetSupportedWindowSystems());
-    if(data.system != WindowingSystem::Unknown)
-      m_PreviewOutput = m_Replay->MakeOutputWindow(data, false);
 
-    m_FrameRecord = m_Replay->GetFrameRecord();
+    if(data.system != WindowingSystem::Unknown)
+    {
+      // if the data has changed, destroy the old window so we'll recreate
+      if(m_PreviewWindow == 0 || memcmp(&m_PreviewWindowingData, &data, sizeof(data)))
+      {
+        if(m_PreviewWindow)
+        {
+          RDCDEBUG("Re-creating preview window due to change in data");
+          m_Replay->DestroyOutputWindow(m_PreviewOutput);
+        }
+
+        m_PreviewOutput = m_Replay->MakeOutputWindow(data, false);
+
+        m_PreviewWindowingData = data;
+      }
+    }
+
+    if(m_FrameRecord.drawcallList.empty())
+      m_FrameRecord = m_Replay->GetFrameRecord();
   }
 }
 
