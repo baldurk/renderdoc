@@ -141,20 +141,67 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   adbExecCommand(deviceID, "shell am force-stop " + packageName);
   // enable the vulkan layer (will only be used by vulkan programs)
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
-  // start the activity in this package with debugging enabled and force-stop after starting
-  adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D %s/%s", packageName.c_str(),
-                                             activityName.c_str()));
 
-  // adb shell ps | grep $PACKAGE | awk '{print $2}')
-  int pid = GetCurrentPID(deviceID, packageName);
+  std::string installedPath = GetPathForPackage(deviceID, packageName);
+
+  std::string RDCLib = trim(
+      adbExecCommand(deviceID, "shell ls " + installedPath + "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
+          .strStdout);
+
+  bool injectLibraries = true;
+
+  if(RDCLib.empty())
+  {
+    RDCLOG("No library found in %s/lib/*/" RENDERDOC_ANDROID_LIBRARY
+           " for %s - assuming injection is required.",
+           installedPath.c_str(), packageName.c_str());
+  }
+  else
+  {
+    injectLibraries = false;
+    RDCLOG("Library found, no injection required: %s", RDCLib.c_str());
+  }
+
+  int pid = 0;
+
+  if(injectLibraries)
+  {
+    RDCLOG("Setting up to launch the application as a debugger to inject.");
+
+    // start the activity in this package with debugging enabled and force-stop after starting
+    adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D %s/%s", packageName.c_str(),
+                                               activityName.c_str()));
+
+    // adb shell ps | grep $PACKAGE | awk '{print $2}')
+    pid = GetCurrentPID(deviceID, packageName);
+  }
+  else
+  {
+    RDCLOG("Not doing any injection - assuming APK is pre-loaded with RenderDoc capture library.");
+
+    // start the activity in this package with debugging enabled and force-stop after starting
+    adbExecCommand(deviceID, StringFormat::Fmt("shell am start %s/%s", packageName.c_str(),
+                                               activityName.c_str()));
+
+    // don't connect JDWP
+    jdwpPort = 0;
+  }
 
   adbForwardPorts(index, deviceID, jdwpPort, pid);
 
   // sleep a little to let the ports initialise
   Threading::Sleep(500);
 
-  // use a JDWP connection to inject our libraries
-  InjectWithJDWP(deviceID, jdwpPort);
+  if(jdwpPort)
+  {
+    // use a JDWP connection to inject our libraries
+    bool injected = InjectWithJDWP(deviceID, jdwpPort);
+    if(!injected)
+    {
+      RDCERR("Failed to inject using JDWP");
+      return 0;
+    }
+  }
 
   uint32_t ret = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
   uint32_t elapsed = 0,

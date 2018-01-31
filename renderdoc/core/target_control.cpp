@@ -712,6 +712,9 @@ public:
       msg.apiUse.presenting = presenting;
       msg.apiUse.supported = supported;
 
+      if(presenting)
+        m_API = ToStr(driver);
+
       RDCLOG("Used API: %s (%s & %s)", msg.apiUse.name.c_str(),
              presenting ? "Presenting" : "Not presenting",
              supported ? "supported" : "not supported");
