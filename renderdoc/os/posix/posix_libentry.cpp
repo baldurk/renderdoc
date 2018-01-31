@@ -87,3 +87,10 @@ struct init
 {
   init() { library_loaded(); }
 } do_init;
+
+// we want to be sure the constructor and library_loaded are included even when this is in a static
+// library, so we have this global function that does nothing but takes the address.
+extern "C" __attribute__((visibility("default"))) void *force_include_libentry()
+{
+  return &do_init;
+}
