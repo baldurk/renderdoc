@@ -593,6 +593,9 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QWidget *parent)
   // switch to home folder and expand it
   changeCurrentDir(m_Model->homeFolder());
   ui->dirList->expand(m_DirProxy->mapFromSource(currentDir()));
+
+  QObject::connect(ui->fileList->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+                   &VirtualFileDialog::fileList_selectionChanged);
 }
 
 VirtualFileDialog::~VirtualFileDialog()
@@ -719,6 +722,14 @@ void VirtualFileDialog::on_fileList_doubleClicked(const QModelIndex &index)
 void VirtualFileDialog::on_fileList_clicked(const QModelIndex &index)
 {
   ui->filename->setText(m_FileProxy->data(index, RemoteFileModel::FileNameRole).toString());
+}
+
+void VirtualFileDialog::fileList_selectionChanged(const QItemSelection &selected,
+                                                  const QItemSelection &deselected)
+{
+  QModelIndexList indices = selected.indexes();
+  if(indices.count() >= 1)
+    on_fileList_clicked(indices[0]);
 }
 
 void VirtualFileDialog::on_fileList_keyPress(QKeyEvent *e)

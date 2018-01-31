@@ -61,6 +61,9 @@ private slots:
   void on_forward_clicked();
   void on_upFolder_clicked();
 
+  // manual slots
+  void fileList_selectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
+
 private:
   Ui::VirtualFileDialog *ui;
 
