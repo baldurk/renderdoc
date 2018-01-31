@@ -1252,7 +1252,6 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
   DLLExportHooks();
   HookCheckGLExtensions();
 
-
   return true;
 }
 
