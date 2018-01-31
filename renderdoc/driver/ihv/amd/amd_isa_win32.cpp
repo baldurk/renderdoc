@@ -120,6 +120,9 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
 
   compileShader(&in, &out);
 
+  if(out.pShaderBinary == NULL || out.shaderBinarySize < 16)
+    return "; Failed to disassemble shader";
+
   const uint8_t *elf = (const uint8_t *)out.pShaderBinary;
 
   const Elf32_Ehdr *elfHeader = (const Elf32_Ehdr *)elf;
