@@ -107,6 +107,15 @@
   <ItemGroup>
     <ClInclude Include="3rdparty\android\android_manifest.h" />
     <ClInclude Include="3rdparty\catch\catch.hpp" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\ARM\target_arm.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\code_generator.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\constant_pool_data_expr.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\disassembler.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\error.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\linker.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\memory_manager.h" />
+    <ClInclude Include="3rdparty\interceptor-lib\lib\target.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
     <ClInclude Include="3rdparty\lz4\lz4.h" />
@@ -205,6 +214,36 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\catch\catch.cpp" />
+    <ClCompile Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\ARM\target_arm.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\code_generator.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\constant_pool_data_expr.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\disassembler.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\error.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\interceptor.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\linker.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\memory_manager.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\target.cc">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="3rdparty\jpeg-compressor\jpgd.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>

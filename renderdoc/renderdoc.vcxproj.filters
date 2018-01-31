@@ -115,6 +115,15 @@
     <Filter Include="3rdparty\android">
       <UniqueIdentifier>{6e798cbc-0eae-4f48-9d7c-f3fe58bd32dc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\interceptor-lib">
+      <UniqueIdentifier>{0362a726-a8e6-436e-b523-893693163440}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\interceptor-lib\ARM">
+      <UniqueIdentifier>{cb120bec-b864-4240-9b04-369ce8d60316}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\interceptor-lib\AArch64">
+      <UniqueIdentifier>{7894d954-a38a-450f-9780-a38f73df1208}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -389,6 +398,33 @@
     </ClInclude>
     <ClInclude Include="3rdparty\android\android_manifest.h">
       <Filter>3rdparty\android</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\code_generator.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\constant_pool_data_expr.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\disassembler.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\error.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\linker.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\memory_manager.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\target.h">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\ARM\target_arm.h">
+      <Filter>3rdparty\interceptor-lib\ARM</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.h">
+      <Filter>3rdparty\interceptor-lib\AArch64</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -685,6 +721,36 @@
     </ClCompile>
     <ClCompile Include="android\android_manifest.cpp">
       <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\code_generator.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\constant_pool_data_expr.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\disassembler.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\error.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\interceptor.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\linker.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\memory_manager.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\target.cc">
+      <Filter>3rdparty\interceptor-lib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\ARM\target_arm.cc">
+      <Filter>3rdparty\interceptor-lib\ARM</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.cc">
+      <Filter>3rdparty\interceptor-lib\AArch64</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -112,6 +112,14 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to simplify Android workflows by distributing some tools from the android SDK, as well as patching android manifest files to enable debugging.
 
+* `interceptor-lib <https://github.com/google/gapid>`_ - Copyright (c) 2017, Google Inc., distributed under the Apache 2.0 License.
+
+  Taken from the GAPID project, used to inject hooks into android library functions if LLVM is available at build-time.
+
+* `LLVM <http://llvm.org/>`_ - Copyright (c) 2003-2017 University of Illinois at Urbana-Champaign, distributed under the University of Illinois/NCSA Open Source License.
+
+  Used to support interceptor-lib to inject hooks into android library functions.
+
 Thanks
 ------
 
