@@ -647,6 +647,8 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
     glhooks.m_Contexts.insert(ctx);
 
     glhooks.PopulateHooks();
+
+    SharedCheckContext();
   }
 
   GLWindowingData data;
@@ -674,6 +676,8 @@ __attribute__((visibility("default"))) Bool glXMakeContextCurrent(Display *dpy, 
     glhooks.m_Contexts.insert(ctx);
 
     glhooks.PopulateHooks();
+
+    SharedCheckContext();
   }
 
   GLWindowingData data;

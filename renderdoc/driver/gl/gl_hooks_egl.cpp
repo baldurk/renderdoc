@@ -327,7 +327,7 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
   {
     eglhooks.m_Contexts.insert(ctx);
 
-    eglhooks.PopulateHooks();
+    SharedCheckContext();
   }
 
   GLWindowingData data;
@@ -435,7 +435,7 @@ bool EGLHook::CreateHooks(const char *libName)
     return true;
   }
 
-  bool success = SetupHooks();
+  bool success = PopulateHooks();
 
   if(!success)
     return false;
@@ -449,6 +449,9 @@ bool EGLHook::PopulateHooks()
 {
   SetupHooks();
 
+  if(m_PopulatedHooks)
+    return true;
+
   // dlsym can return GL symbols during a GLES context
   bool dlsymFirst = false;
 
@@ -457,12 +460,14 @@ bool EGLHook::PopulateHooks()
   dlsymFirst = true;
 #endif
 
-  return SharedPopulateHooks(dlsymFirst, [](const char *funcName) {
+  m_PopulatedHooks = SharedPopulateHooks(dlsymFirst, [](const char *funcName) {
     // on some android devices we need to hook dlsym, but eglGetProcAddress might call dlsym so we
     // need to ensure we return the 'real' pointers
     PosixScopedSuppressHooking suppress;
     return (void *)eglGetProcAddress(funcName);
   });
+
+  return m_PopulatedHooks;
 }
 
 const GLHookSet &GetRealGLFunctionsEGL()

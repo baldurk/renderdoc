@@ -1252,14 +1252,18 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
   DLLExportHooks();
   HookCheckGLExtensions();
 
+
+  return true;
+}
+
+void SharedCheckContext()
+{
   CheckExtensions(GL);
 
   // see gl_emulated.cpp
   glEmulate::EmulateUnsupportedFunctions(&GL);
 
   glEmulate::EmulateRequiredExtensions(&GL);
-
-  return true;
 }
 
 void PosixHookFunctions()
