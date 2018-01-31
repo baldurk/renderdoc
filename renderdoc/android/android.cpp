@@ -494,8 +494,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
 
   Android::ExtractDeviceIDAndIndex(device, index, deviceID);
 
-  std::string packages =
-      Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE).strStdout;
+  std::string packagesOutput = trim(
+      Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
+          .strStdout);
+
+  std::vector<std::string> packages;
+  split(packagesOutput, packages, '\n');
 
   std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
 
