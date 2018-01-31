@@ -60,3 +60,8 @@ void PosixHookReapply()
 void PosixHookFunction(char const *, void *)
 {
 }
+
+void *PosixGetFunction(void *handle, const char *name)
+{
+  return dlsym(handle, name);
+}

@@ -55,35 +55,7 @@ public:
   }
   static void libHooked(void *realLib);
 
-  bool CreateHooks(const char *libName)
-  {
-    if(!m_EnabledHooks)
-      return false;
-
-    if(libName)
-    {
-      // register our hooked functions for PLT hooking on android
-      PosixHookFunctions();
-
-      // load the libEGL.so library and when loaded call libHooked which initialises GLES capture
-      PosixHookLibrary("libEGL.so", &libHooked);
-      PosixHookLibrary("libEGL.so.1", NULL);
-      PosixHookLibrary("libGL.so.1", NULL);
-      PosixHookLibrary("libGLESv1_CM.so", NULL);
-      PosixHookLibrary("libGLESv2.so", NULL);
-      PosixHookLibrary("libGLESv2.so.2", NULL);
-      PosixHookLibrary("libGLESv3.so", NULL);
-    }
-
-    bool success = SetupHooks();
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
-
-    return true;
-  }
+  bool CreateHooks(const char *libName);
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
@@ -432,13 +404,45 @@ void EGLHook::libHooked(void *realLib)
   libGLdlsymHandle = realLib;
   eglhooks.CreateHooks(NULL);
   eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
+}
 
-  PosixHookFunction("eglCreateContext", (void *)&eglCreateContext);
-  PosixHookFunction("eglGetDisplay", (void *)&eglGetDisplay);
-  PosixHookFunction("eglDestroyContext", (void *)&eglDestroyContext);
-  PosixHookFunction("eglMakeCurrent", (void *)&eglMakeCurrent);
-  PosixHookFunction("eglSwapBuffers", (void *)&eglSwapBuffers);
-  PosixHookFunction("eglGetProcAddress", (void *)&eglGetProcAddress);
+bool EGLHook::CreateHooks(const char *libName)
+{
+  if(!m_EnabledHooks)
+    return false;
+
+  if(libName)
+  {
+    // register our hooked functions for PLT hooking on android
+    PosixHookFunctions();
+
+    PosixHookFunction("eglCreateContext", (void *)&eglCreateContext);
+    PosixHookFunction("eglGetDisplay", (void *)&eglGetDisplay);
+    PosixHookFunction("eglDestroyContext", (void *)&eglDestroyContext);
+    PosixHookFunction("eglMakeCurrent", (void *)&eglMakeCurrent);
+    PosixHookFunction("eglSwapBuffers", (void *)&eglSwapBuffers);
+    PosixHookFunction("eglGetProcAddress", (void *)&eglGetProcAddress);
+
+    // load the libEGL.so library and when loaded call libHooked which initialises GLES capture
+    PosixHookLibrary("libEGL.so", &libHooked);
+    PosixHookLibrary("libEGL.so.1", NULL);
+    PosixHookLibrary("libGL.so.1", NULL);
+    PosixHookLibrary("libGLESv1_CM.so", NULL);
+    PosixHookLibrary("libGLESv2.so", NULL);
+    PosixHookLibrary("libGLESv2.so.2", NULL);
+    PosixHookLibrary("libGLESv3.so", NULL);
+
+    return true;
+  }
+
+  bool success = SetupHooks();
+
+  if(!success)
+    return false;
+
+  m_HasHooks = true;
+
+  return true;
 }
 
 bool EGLHook::PopulateHooks()
@@ -446,7 +450,14 @@ bool EGLHook::PopulateHooks()
   SetupHooks();
 
   // dlsym can return GL symbols during a GLES context
-  return SharedPopulateHooks(false, [](const char *funcName) {
+  bool dlsymFirst = false;
+
+// however on android we want to use it to look up our trampoline map
+#if ENABLED(RDOC_ANDROID)
+  dlsymFirst = true;
+#endif
+
+  return SharedPopulateHooks(dlsymFirst, [](const char *funcName) {
     // on some android devices we need to hook dlsym, but eglGetProcAddress might call dlsym so we
     // need to ensure we return the 'real' pointers
     PosixScopedSuppressHooking suppress;

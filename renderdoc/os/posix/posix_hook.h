@@ -34,6 +34,8 @@ void PosixHookLibrary(const char *name, dlopenCallback cb);
 
 void PosixHookFunction(const char *name, void *hook);
 
+void *PosixGetFunction(void *handle, const char *name);
+
 void PosixHookApply();
 
 // this is needed on android, when we are PLT hooking to ensure hooks are applied as soon as

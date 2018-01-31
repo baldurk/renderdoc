@@ -355,6 +355,25 @@ if(ENABLE_GL OR ENABLE_GLES OR ENABLE_VULKAN)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_spirv>)
 endif()
 
+find_package(LLVM CONFIG)
+
+# on Android, pull in interceptor-lib only if we have LLVM available
+if(ANDROID AND LLVM_FOUND)
+    message(STATUS "LLVM found - android hooking using interceptor-lib.")
+    add_subdirectory(3rdparty/interceptor-lib)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:interceptor_lib>)
+    link_directories(${LLVM_DIR}/../..)
+    set(RDOC_DEFINITIONS ${RDOC_DEFINITIONS} PRIVATE -DRENDERDOC_HAVE_INTERCEPTOR_LIB)
+
+    foreach(lib ${interceptor_libs})
+        list(APPEND RDOC_LIBRARIES PRIVATE -l${lib})
+    endforeach()
+endif()
+
+if(ANDROID AND NOT LLVM_FOUND)
+    message(STATUS "LLVM not found - android hooking will use sometimes less reliable PLT-interception method.")
+endif()
+
 # always pull in the amd folder
 add_subdirectory(driver/ihv/amd)
 list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_amd>)

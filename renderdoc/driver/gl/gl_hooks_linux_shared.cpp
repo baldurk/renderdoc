@@ -110,7 +110,7 @@ Threading::CriticalSection &GetGLLock()
         echo ") \\";
 
         echo -e "  { \\";
-        echo -e "    SCOPED_LOCK(glLock); \\";
+        echo -e "    SCOPED_GLCALL(glLock, function); \\";
         echo -e "    gl_CurChunk = GLChunk::function; \\";
         if [ $ALIAS -eq 1 ]; then
           echo -n "    return m_GLDriver->realfunc(";
@@ -127,7 +127,7 @@ Threading::CriticalSection &GetGLLock()
         echo ") \\";
 
         echo -e "  { \\";
-        echo -e "    SCOPED_LOCK(glLock); \\";
+        echo -e "    SCOPED_GLCALL(glLock, function); \\";
         echo -e "    gl_CurChunk = GLChunk::function; \\";
         if [ $ALIAS -eq 1 ]; then
           echo -n "    return m_GLDriver->realfunc(";
@@ -153,6 +153,41 @@ Threading::CriticalSection &GetGLLock()
 #undef far
 #endif
 
+#if ENABLED(RDOC_DEVEL)
+
+struct ScopedPrinter
+{
+  ScopedPrinter(const char *f) : func(f)
+  {
+    // RDCLOG("Entering %s", func);
+    depth++;
+    if(depth > 100)
+      RDCFATAL("Infinite recursion detected!");
+  }
+  ~ScopedPrinter()
+  {
+    // RDCLOG("Exiting %s", func);
+    depth--;
+  }
+  const char *func = NULL;
+  static int depth;
+};
+
+int ScopedPrinter::depth = 0;
+
+// This checks that we're not infinite looping by calling our own hooks from ourselves. Mostly
+// useful on android where you can only debug by printf and the stack dumps are often corrupted when
+// the callstack overflows.
+#define SCOPED_GLCALL(lock, funcname) \
+  SCOPED_LOCK(lock);                  \
+  ScopedPrinter CONCAT(scopedprint, __LINE__)(STRINGIZE(funcname));
+
+#else
+
+#define SCOPED_GLCALL(lock, funcname) SCOPED_LOCK(lock);
+
+#endif
+
 // the _renderdoc_hooked variants are to make sure we always have a function symbol
 // exported that we can return from glXGetProcAddress. If another library (or the app)
 // creates a symbol called 'glEnable' we'll return the address of that, and break
@@ -163,13 +198,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))();                    \
   extern "C" __attribute__((visibility("default"))) ret function() \
   {                                                                \
-    SCOPED_LOCK(glLock);                                           \
+    SCOPED_GLCALL(glLock, function);                               \
     gl_CurChunk = GLChunk::function;                               \
     return m_GLDriver->function();                                 \
   }                                                                \
   ret CONCAT(function, _renderdoc_hooked)()                        \
   {                                                                \
-    SCOPED_LOCK(glLock);                                           \
+    SCOPED_GLCALL(glLock, function);                               \
     gl_CurChunk = GLChunk::function;                               \
     return m_GLDriver->function();                                 \
   }
@@ -178,13 +213,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1);                       \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1) \
   {                                                                     \
-    SCOPED_LOCK(glLock);                                                \
+    SCOPED_GLCALL(glLock, function);                                    \
     gl_CurChunk = GLChunk::function;                                    \
     return m_GLDriver->function(p1);                                    \
   }                                                                     \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                        \
   {                                                                     \
-    SCOPED_LOCK(glLock);                                                \
+    SCOPED_GLCALL(glLock, function);                                    \
     gl_CurChunk = GLChunk::function;                                    \
     return m_GLDriver->function(p1);                                    \
   }
@@ -193,13 +228,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                          \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2) \
   {                                                                            \
-    SCOPED_LOCK(glLock);                                                       \
+    SCOPED_GLCALL(glLock, function);                                           \
     gl_CurChunk = GLChunk::function;                                           \
     return m_GLDriver->function(p1, p2);                                       \
   }                                                                            \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                        \
   {                                                                            \
-    SCOPED_LOCK(glLock);                                                       \
+    SCOPED_GLCALL(glLock, function);                                           \
     gl_CurChunk = GLChunk::function;                                           \
     return m_GLDriver->function(p1, p2);                                       \
   }
@@ -208,13 +243,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                             \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3) \
   {                                                                                   \
-    SCOPED_LOCK(glLock);                                                              \
+    SCOPED_GLCALL(glLock, function);                                                  \
     gl_CurChunk = GLChunk::function;                                                  \
     return m_GLDriver->function(p1, p2, p3);                                          \
   }                                                                                   \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                        \
   {                                                                                   \
-    SCOPED_LOCK(glLock);                                                              \
+    SCOPED_GLCALL(glLock, function);                                                  \
     gl_CurChunk = GLChunk::function;                                                  \
     return m_GLDriver->function(p1, p2, p3);                                          \
   }
@@ -223,13 +258,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->function(p1, p2, p3, p4);                                             \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->function(p1, p2, p3, p4);                                             \
   }
@@ -238,13 +273,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
+    SCOPED_GLCALL(glLock, function);                                                                \
     gl_CurChunk = GLChunk::function;                                                                \
     return m_GLDriver->function(p1, p2, p3, p4, p5);                                                \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
   {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
+    SCOPED_GLCALL(glLock, function);                                                                \
     gl_CurChunk = GLChunk::function;                                                                \
     return m_GLDriver->function(p1, p2, p3, p4, p5);                                                \
   }
@@ -254,13 +289,13 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
                                                                  t5 p5, t6 p6)               \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6);                                     \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6);                                     \
   }
@@ -270,13 +305,13 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
                                                                  t5 p5, t6 p6, t7 p7)        \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7);                                 \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7);                                 \
   }
@@ -286,13 +321,13 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,        \
                                                                  t5 p5, t6 p6, t7 p7, t8 p8)        \
   {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
+    SCOPED_GLCALL(glLock, function);                                                                \
     gl_CurChunk = GLChunk::function;                                                                \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8);                                    \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
   {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
+    SCOPED_GLCALL(glLock, function);                                                                \
     gl_CurChunk = GLChunk::function;                                                                \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8);                                    \
   }
@@ -303,14 +338,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                              \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                              \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9)                                                  \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                              \
   }
@@ -321,14 +356,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                         \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10)                                         \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                         \
   }
@@ -339,14 +374,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)            \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                    \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11)                                \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                    \
   }
@@ -357,14 +392,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)   \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);               \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12)                       \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);               \
   }
@@ -377,14 +412,14 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
       t13 p13)                                                                                    \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);          \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)              \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);          \
   }
@@ -397,14 +432,14 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
       t13 p13, t14 p14)                                                                           \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);     \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)     \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);     \
   }
@@ -417,7 +452,7 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
       t13 p13, t14 p14, t15 p15)                                                                   \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
   }                                                                                                \
@@ -425,7 +460,7 @@ Threading::CriticalSection &GetGLLock()
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,      \
                                           t15 p15)                                                 \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
   }
@@ -439,7 +474,7 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
       t13 p13, t14 p14, t15 p15, t16 p16)                                                          \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,  \
                                 p16);                                                              \
@@ -448,7 +483,7 @@ Threading::CriticalSection &GetGLLock()
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,      \
                                           t15 p15, t16 p16)                                        \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,  \
                                 p16);                                                              \
@@ -463,7 +498,7 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
       t13 p13, t14 p14, t15 p15, t16 p16, t17 p17)                                                 \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,  \
                                 p16, p17);                                                         \
@@ -472,7 +507,7 @@ Threading::CriticalSection &GetGLLock()
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,      \
                                           t15 p15, t16 p16, t17 p17)                               \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,  \
                                 p16, p17);                                                         \
@@ -482,13 +517,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))();                    \
   extern "C" __attribute__((visibility("default"))) ret function() \
   {                                                                \
-    SCOPED_LOCK(glLock);                                           \
+    SCOPED_GLCALL(glLock, function);                               \
     gl_CurChunk = GLChunk::function;                               \
     return m_GLDriver->realfunc();                                 \
   }                                                                \
   ret CONCAT(function, _renderdoc_hooked)()                        \
   {                                                                \
-    SCOPED_LOCK(glLock);                                           \
+    SCOPED_GLCALL(glLock, function);                               \
     gl_CurChunk = GLChunk::function;                               \
     return m_GLDriver->realfunc();                                 \
   }
@@ -497,13 +532,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1);                       \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1) \
   {                                                                     \
-    SCOPED_LOCK(glLock);                                                \
+    SCOPED_GLCALL(glLock, function);                                    \
     gl_CurChunk = GLChunk::function;                                    \
     return m_GLDriver->realfunc(p1);                                    \
   }                                                                     \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                        \
   {                                                                     \
-    SCOPED_LOCK(glLock);                                                \
+    SCOPED_GLCALL(glLock, function);                                    \
     gl_CurChunk = GLChunk::function;                                    \
     return m_GLDriver->realfunc(p1);                                    \
   }
@@ -512,13 +547,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                          \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2) \
   {                                                                            \
-    SCOPED_LOCK(glLock);                                                       \
+    SCOPED_GLCALL(glLock, function);                                           \
     gl_CurChunk = GLChunk::function;                                           \
     return m_GLDriver->realfunc(p1, p2);                                       \
   }                                                                            \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                        \
   {                                                                            \
-    SCOPED_LOCK(glLock);                                                       \
+    SCOPED_GLCALL(glLock, function);                                           \
     gl_CurChunk = GLChunk::function;                                           \
     return m_GLDriver->realfunc(p1, p2);                                       \
   }
@@ -527,13 +562,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                             \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3) \
   {                                                                                   \
-    SCOPED_LOCK(glLock);                                                              \
+    SCOPED_GLCALL(glLock, function);                                                  \
     gl_CurChunk = GLChunk::function;                                                  \
     return m_GLDriver->realfunc(p1, p2, p3);                                          \
   }                                                                                   \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                        \
   {                                                                                   \
-    SCOPED_LOCK(glLock);                                                              \
+    SCOPED_GLCALL(glLock, function);                                                  \
     gl_CurChunk = GLChunk::function;                                                  \
     return m_GLDriver->realfunc(p1, p2, p3);                                          \
   }
@@ -542,13 +577,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->realfunc(p1, p2, p3, p4);                                             \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
   {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
+    SCOPED_GLCALL(glLock, function);                                                         \
     gl_CurChunk = GLChunk::function;                                                         \
     return m_GLDriver->realfunc(p1, p2, p3, p4);                                             \
   }
@@ -557,13 +592,13 @@ Threading::CriticalSection &GetGLLock()
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
+    SCOPED_GLCALL(glLock, function);                                                                \
     gl_CurChunk = GLChunk::function;                                                                \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5);                                                \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
   {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
+    SCOPED_GLCALL(glLock, function);                                                                \
     gl_CurChunk = GLChunk::function;                                                                \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5);                                                \
   }
@@ -573,13 +608,13 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,       \
                                                                  t5 p5, t6 p6)                     \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6);                                           \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)                \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6);                                           \
   }
@@ -590,13 +625,13 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,       \
                                                                  t5 p5, t6 p6, t7 p7)              \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7);                                       \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)         \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7);                                       \
   }
@@ -607,13 +642,13 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,       \
                                                                  t5 p5, t6 p6, t7 p7, t8 p8)       \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8);                                   \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)  \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8);                                   \
   }
@@ -624,14 +659,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                  \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                               \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9);                               \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9)                                                   \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9);                               \
   }
@@ -642,14 +677,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                         \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10)                                         \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                         \
   }
@@ -660,14 +695,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)            \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                    \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11)                                \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                    \
   }
@@ -678,14 +713,14 @@ Threading::CriticalSection &GetGLLock()
   extern "C" __attribute__((visibility("default"))) ret function(                                 \
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)   \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);               \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12)                       \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);               \
   }
@@ -698,14 +733,14 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
       t13 p13)                                                                                    \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);          \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)              \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);          \
   }
@@ -719,14 +754,14 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
       t13 p13, t14 p14)                                                                           \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);     \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)     \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);     \
   }
@@ -740,7 +775,7 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
       t13 p13, t14 p14, t15 p15)                                                                   \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
   }                                                                                                \
@@ -748,7 +783,7 @@ Threading::CriticalSection &GetGLLock()
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,      \
                                           t15 p15)                                                 \
   {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
+    SCOPED_GLCALL(glLock, function);                                                               \
     gl_CurChunk = GLChunk::function;                                                               \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
   }
@@ -762,7 +797,7 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
       t13 p13, t14 p14, t15 p15, t16 p16)                                                         \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, \
                                 p16);                                                             \
@@ -771,7 +806,7 @@ Threading::CriticalSection &GetGLLock()
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,     \
                                           t15 p15, t16 p16)                                       \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, \
                                 p16);                                                             \
@@ -786,7 +821,7 @@ Threading::CriticalSection &GetGLLock()
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
       t13 p13, t14 p14, t15 p15, t16 p16, t17 p17)                                                \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, \
                                 p16, p17);                                                        \
@@ -795,7 +830,7 @@ Threading::CriticalSection &GetGLLock()
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,     \
                                           t15 p15, t16 p16, t17 p17)                              \
   {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
+    SCOPED_GLCALL(glLock, function);                                                              \
     gl_CurChunk = GLChunk::function;                                                              \
     return m_GLDriver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, \
                                 p16, p17);                                                        \
@@ -1178,20 +1213,41 @@ void *SharedLookupFuncPtr(const char *func, void *realFunc)
 bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 {
 #undef HookInit
-#define HookInit(function)                                                                     \
-  if(GL.function == NULL)                                                                      \
-  {                                                                                            \
-    PosixScopedSuppressHooking suppress;                                                       \
-    if(dlsymFirst)                                                                             \
-      GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); \
-    lookupFunc((const char *)STRINGIZE(function));                                             \
+#define HookInit(function)                                                                      \
+  if(GL.function == NULL)                                                                       \
+  {                                                                                             \
+    PosixScopedSuppressHooking suppress;                                                        \
+    if(dlsymFirst && GL.function == NULL)                                                       \
+    {                                                                                           \
+      GL.function =                                                                             \
+          (CONCAT(function, _hooktype))PosixGetFunction(libGLdlsymHandle, STRINGIZE(function)); \
+    }                                                                                           \
+    lookupFunc((const char *)STRINGIZE(function));                                              \
   }
 
 // cheeky
 #undef HookExtension
-#define HookExtension(funcPtrType, function) lookupFunc((const char *)STRINGIZE(function))
+#define HookExtension(funcPtrType, function)                                              \
+  if(GL.function == NULL)                                                                 \
+  {                                                                                       \
+    PosixScopedSuppressHooking suppress;                                                  \
+    if(dlsymFirst && GL.function == NULL)                                                 \
+    {                                                                                     \
+      GL.function = (funcPtrType)PosixGetFunction(libGLdlsymHandle, STRINGIZE(function)); \
+    }                                                                                     \
+    lookupFunc((const char *)STRINGIZE(function));                                        \
+  }
 #undef HookExtensionAlias
-#define HookExtensionAlias(funcPtrType, function, alias) lookupFunc((const char *)STRINGIZE(alias))
+#define HookExtensionAlias(funcPtrType, function, alias)                               \
+  if(GL.function == NULL)                                                              \
+  {                                                                                    \
+    PosixScopedSuppressHooking suppress;                                               \
+    if(dlsymFirst && GL.function == NULL)                                              \
+    {                                                                                  \
+      GL.function = (funcPtrType)PosixGetFunction(libGLdlsymHandle, STRINGIZE(alias)); \
+    }                                                                                  \
+    lookupFunc((const char *)STRINGIZE(alias));                                        \
+  }
 
   DLLExportHooks();
   HookCheckGLExtensions();

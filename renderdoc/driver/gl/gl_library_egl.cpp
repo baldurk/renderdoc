@@ -24,6 +24,7 @@
 
 #include "gl_library_egl.h"
 #include <dlfcn.h>
+#include "os/posix/posix_hook.h"
 
 bool EGLPointers::LoadSymbolsFrom(void *lib_handle)
 {
@@ -33,16 +34,18 @@ bool EGLPointers::LoadSymbolsFrom(void *lib_handle)
     return m_initialized;
   }
 
+  RDCDEBUG("Initialising EGL function pointers");
+
   bool symbols_ok = true;
-#define LOAD_SYM(SYMBOL_NAME)                                                        \
-  do                                                                                 \
-  {                                                                                  \
-    this->SYMBOL_NAME = (PFN_egl##SYMBOL_NAME)dlsym(lib_handle, "egl" #SYMBOL_NAME); \
-    if(this->SYMBOL_NAME == NULL)                                                    \
-    {                                                                                \
-      symbols_ok = false;                                                            \
-      RDCWARN("Unable to load symbol: %s", #SYMBOL_NAME);                            \
-    }                                                                                \
+#define LOAD_SYM(SYMBOL_NAME)                                                                   \
+  do                                                                                            \
+  {                                                                                             \
+    this->SYMBOL_NAME = (PFN_egl##SYMBOL_NAME)PosixGetFunction(lib_handle, "egl" #SYMBOL_NAME); \
+    if(this->SYMBOL_NAME == NULL)                                                               \
+    {                                                                                           \
+      symbols_ok = false;                                                                       \
+      RDCWARN("Unable to load symbol: %s", #SYMBOL_NAME);                                       \
+    }                                                                                           \
   } while(0)
 
   EGL_SYMBOLS(LOAD_SYM)

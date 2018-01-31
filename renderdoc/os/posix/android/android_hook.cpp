@@ -96,6 +96,37 @@ public:
     libhooks.insert(name);
   }
 
+  void AddHookCallback(const std::string &name, dlopenCallback hook)
+  {
+    SCOPED_LOCK(lock);
+    hookcallbacks[name] = hook;
+  }
+
+  std::map<std::string, void *> GetFunctionHooks()
+  {
+    SCOPED_LOCK(lock);
+    return funchooks;
+  }
+
+  void ClearHooks()
+  {
+    SCOPED_LOCK(lock);
+    libhooks.clear();
+    funchooks.clear();
+  }
+
+  std::set<std::string> GetLibHooks()
+  {
+    SCOPED_LOCK(lock);
+    return libhooks;
+  }
+
+  std::map<std::string, dlopenCallback> GetHookCallbacks()
+  {
+    SCOPED_LOCK(lock);
+    return hookcallbacks;
+  }
+
   void *GetFunctionHook(const std::string &name)
   {
     SCOPED_LOCK(lock);
@@ -165,12 +196,27 @@ public:
     hooked_soname_already.insert(soname);
   }
 
+  void SetTrampoline(const std::string &funcname, void *trampoline)
+  {
+    SCOPED_LOCK(lock);
+    trampolines[funcname] = trampoline;
+  }
+
+  void *GetTrampoline(const std::string &funcname)
+  {
+    SCOPED_LOCK(lock);
+    return trampolines[funcname];
+  }
+
 private:
   std::set<std::string> hooked_soname_already;
   std::set<void *> hooked_handle_already;
 
   std::map<std::string, void *> funchooks;
   std::set<std::string> libhooks;
+
+  std::map<std::string, dlopenCallback> hookcallbacks;
+  std::map<std::string, void *> trampolines;
 
   Threading::CriticalSection lock;
 };
@@ -191,9 +237,36 @@ void PosixHookLibrary(const char *name, dlopenCallback cb)
   GetHookInfo().AddLibHook(name);
 
   if(cb)
-    cb(dlopen(name, RTLD_NOW));
+  {
+    GetHookInfo().AddHookCallback(name, cb);
+    dlopen(name, RTLD_NOW);
+  }
 }
 
+void *PosixGetFunction(void *handle, const char *name)
+{
+  // when we're not using interceptor-lib, this will always return NULL
+  void *ret = GetHookInfo().GetTrampoline(name);
+  if(ret)
+  {
+    HOOK_DEBUG_PRINT("Returning trampoline %p for %s", ret, name);
+    return ret;
+  }
+
+  HOOK_DEBUG_PRINT("No trampoline for %s, going to dlsym", name);
+  PosixScopedSuppressHooking suppress;
+  return dlsym(handle, name);
+}
+
+void *intercept_dlopen(const char *filename, int flag)
+{
+  if(GetHookInfo().IsLibHook(filename))
+    return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
+
+  return NULL;
+}
+
+// we need this on both paths since interceptor-lib is unable to hook dlopen in libvulkan.so
 static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *data)
 {
   if(info->dlpi_name == NULL)
@@ -377,60 +450,21 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
   return 0;
 }
 
-extern "C" __attribute__((visibility("default"))) void *hooked_dlopen(const char *filename, int flag);
-extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handle,
-                                                                     const char *symbol);
-extern "C" __attribute__((visibility("default"))) void *hooked_android_dlopen_ext(
-    const char *__filename, int __flags, const android_dlextinfo *__info);
-
-// android has a special dlopen that passes the caller address in.
-typedef void *(*pfn__loader_dlopen)(const char *filename, int flags, const void *caller_addr);
-
-pfn__loader_dlopen loader_dlopen = NULL;
-uint64_t suppressTLS = 0;
-
-void PosixHookApply()
-{
-  RDCLOG("Applying hooks");
-
-  suppressTLS = Threading::AllocateTLSSlot();
-
-  // blacklist hooking certain system libraries or ourselves
-  GetHookInfo().SetHooked(RENDERDOC_ANDROID_LIBRARY);
-  GetHookInfo().SetHooked("libc.so");
-  GetHookInfo().SetHooked("libvndksupport.so");
-
-  GetHookInfo().AddLibHook(RENDERDOC_ANDROID_LIBRARY);
-
-  loader_dlopen = (pfn__loader_dlopen)dlsym(RTLD_NEXT, "__loader_dlopen");
-
-  if(loader_dlopen)
-  {
-    PosixHookFunction("dlopen", (void *)&hooked_dlopen);
-  }
-  else
-  {
-    RDCWARN("Couldn't find __loader_dlopen, falling back to slow path for dlopen hooking");
-    PosixHookFunction("dlsym", (void *)&hooked_dlsym);
-  }
-
-  PosixHookFunction("android_dlopen_ext", (void *)&hooked_android_dlopen_ext);
-
-  dl_iterate_phdr(dl_iterate_callback, NULL);
-}
-
 void PosixHookReapply()
 {
   dl_iterate_phdr(dl_iterate_callback, NULL);
 }
 
-void *intercept_dlopen(const char *filename, int flag)
-{
-  if(GetHookInfo().IsLibHook(filename))
-    return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
+// android has a special dlopen that passes the caller address in.
+typedef void *(*pfn__loader_dlopen)(const char *filename, int flags, const void *caller_addr);
 
-  return NULL;
-}
+typedef void *(*pfnandroid_dlopen_ext)(const char *__filename, int __flags,
+                                       const android_dlextinfo *__info);
+
+pfnandroid_dlopen_ext real_android_dlopen_ext = NULL;
+
+pfn__loader_dlopen loader_dlopen = NULL;
+uint64_t suppressTLS = 0;
 
 void process_dlopen(const char *filename, int flag)
 {
@@ -478,7 +512,11 @@ extern "C" __attribute__((visibility("default"))) void *hooked_android_dlopen_ex
   if(ret)
     return ret;
 
-  ret = android_dlopen_ext(__filename, __flags, __info);
+  // otherwise return the 'real' result.
+  if(real_android_dlopen_ext == NULL)
+    ret = real_android_dlopen_ext(__filename, __flags, __info);
+  else
+    ret = android_dlopen_ext(__filename, __flags, __info);
   HOOK_DEBUG_PRINT("Got %p", ret);
 
   if(__filename && ret)
@@ -540,3 +578,153 @@ extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handl
   HOOK_DEBUG_PRINT("real ret is %p in %s", ret, info.dli_fname);
   return ret;
 }
+
+static void PosixHookApplyCommon()
+{
+  suppressTLS = Threading::AllocateTLSSlot();
+
+  // blacklist hooking certain system libraries or ourselves
+  GetHookInfo().SetHooked(RENDERDOC_ANDROID_LIBRARY);
+  GetHookInfo().SetHooked("libc.so");
+  GetHookInfo().SetHooked("libvndksupport.so");
+
+  GetHookInfo().AddLibHook(RENDERDOC_ANDROID_LIBRARY);
+
+  real_android_dlopen_ext = &android_dlopen_ext;
+
+  loader_dlopen = (pfn__loader_dlopen)dlsym(RTLD_NEXT, "__loader_dlopen");
+
+  if(loader_dlopen)
+  {
+    PosixHookFunction("dlopen", (void *)&hooked_dlopen);
+  }
+  else
+  {
+    RDCWARN("Couldn't find __loader_dlopen, falling back to slow path for dlopen hooking");
+    PosixHookFunction("dlsym", (void *)&hooked_dlsym);
+  }
+
+  PosixHookFunction("android_dlopen_ext", (void *)&hooked_android_dlopen_ext);
+}
+
+#if defined(RENDERDOC_HAVE_INTERCEPTOR_LIB)
+
+void intercept_error(void *, const char *error_msg)
+{
+  RDCERR("intercept_error: %s", error_msg);
+}
+
+#include "3rdparty/interceptor-lib/include/interceptor.h"
+
+void PosixHookApply()
+{
+  RDCLOG("Applying hooks with interceptor-lib");
+
+// see below - Huawei workaround
+#if defined(__LP64__)
+  PosixHookLibrary("/system/lib64/libhwgl.so", NULL);
+#else
+  PosixHookLibrary("/system/lib/libhwgl.so", NULL);
+#endif
+
+  std::set<std::string> libs = GetHookInfo().GetLibHooks();
+  std::map<std::string, void *> funchooks = GetHookInfo().GetFunctionHooks();
+
+  // we just leak this
+  void *intercept = InitializeInterceptor();
+
+  for(const std::string &lib : libs)
+  {
+    void *handle = dlopen(lib.c_str(), RTLD_NOW);
+
+    bool huawei = lib.find("libhwgl.so") != std::string::npos;
+
+    if(!handle)
+    {
+      HOOK_DEBUG_PRINT("Didn't get handle for %s", lib.c_str());
+      continue;
+    }
+
+    HOOK_DEBUG_PRINT("Hooking %s = %p", lib.c_str(), handle);
+
+    for(const std::pair<std::string, void *> &hook : funchooks)
+    {
+      void *oldfunc = dlsym(handle, hook.first.c_str());
+
+      // UNTESTED workaround taken directly from GAPID, in installer.cpp. Quoted comment:
+      /*
+            // Huawei implements all functions in this library with prefix,
+            // all GL functions in libGLES*.so are just trampolines to his.
+            // However, we do not support trampoline interception for now,
+            // so try to intercept the internal implementation instead.
+      */
+      if(huawei && oldfunc == NULL)
+        oldfunc = dlsym(handle, ("hw_" + hook.first).c_str());
+
+      if(GetHookInfo().IsHooked(oldfunc))
+        continue;
+
+      if(!oldfunc)
+      {
+        HOOK_DEBUG_PRINT("%s didn't have %s", lib.c_str(), hook.first.c_str());
+        continue;
+      }
+
+      HOOK_DEBUG_PRINT("Hooking %s::%s = %p with %p", lib.c_str(), hook.first.c_str(), oldfunc,
+                       hook.second);
+
+      void *trampoline = NULL;
+
+      bool success =
+          InterceptFunction(intercept, oldfunc, hook.second, &trampoline, &intercept_error);
+
+      if(success)
+        HOOK_DEBUG_PRINT("Hooked successfully, trampoline is %p", trampoline);
+      else
+        HOOK_DEBUG_PRINT("Failed to hook!");
+
+      GetHookInfo().SetHooked(oldfunc);
+
+      GetHookInfo().SetTrampoline(hook.first, trampoline);
+    }
+  }
+
+  std::map<std::string, dlopenCallback> callbacks = GetHookInfo().GetHookCallbacks();
+  for(const std::pair<std::string, dlopenCallback> &cb : callbacks)
+  {
+    HOOK_DEBUG_PRINT("Calling complete callback for %s", cb.first.c_str());
+    cb.second(dlopen(cb.first.c_str(), RTLD_GLOBAL));
+  }
+
+  // we still need to hook android_dlopen_ext with interceptor-lib so that we can intercept the
+  // vulkan loader's attempts to load our library and prevent it from loading a second copy (!!)
+  // into the process.
+  // Unfortunately, interceptor-lib can't hook this function so we need to set up the PLT hooking.
+  // This is just a minimal setup to intercept that one function.
+  GetHookInfo().ClearHooks();
+
+  // this already hooks dlopen (if possible) and android_dlopen_ext, which is enough
+  PosixHookApplyCommon();
+
+  PosixHookReapply();
+}
+
+#else
+
+void PosixHookApply()
+{
+  RDCLOG("Applying hooks with PLT hooks");
+
+  PosixHookApplyCommon();
+
+  PosixHookReapply();
+
+  std::map<std::string, dlopenCallback> callbacks = GetHookInfo().GetHookCallbacks();
+  for(const std::pair<std::string, dlopenCallback> &cb : callbacks)
+  {
+    HOOK_DEBUG_PRINT("Calling complete callback for %s", cb.first.c_str());
+    cb.second(dlopen(cb.first.c_str(), RTLD_GLOBAL));
+  }
+}
+
+#endif
