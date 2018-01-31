@@ -177,6 +177,9 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
 
   compileShader(&in, &out);
 
+  if(out.pShaderBinary == NULL || out.shaderBinarySize < 16)
+    return "; Failed to disassemble shader";
+
   const uint8_t *elf = (const uint8_t *)out.pShaderBinary;
 
   const Elf32_Ehdr *elfHeader = (const Elf32_Ehdr *)elf;
