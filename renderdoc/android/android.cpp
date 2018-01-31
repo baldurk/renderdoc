@@ -213,8 +213,25 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
     ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
     if(control)
     {
+      std::string api;
+
+      // allow a few messages to come in, to see the reported active API
+      for(int i = 0; i < 4; i++)
+      {
+        Threading::Sleep(5);
+        control->ReceiveMessage();
+
+        api = control->GetAPI();
+        if(!api.empty())
+          break;
+      }
+
       control->Shutdown();
-      break;
+
+      if(!api.empty())
+        break;
+      else
+        RDCDEBUG("Connection established, but no API initialised yet. Waiting...");
     }
 
     // check to see if the PID is still there. If it was before and isn't now, the APK has exited
@@ -231,11 +248,8 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
     elapsed += 1000;
   }
 
-  // we might open the connection early, when the library is first injected, before the vulkan
-  // loader completes .
-  Threading::Sleep(1000);
-
-  // Let the app pickup the setprop before we turn it back off for replaying.
+  // We've ensured above that the app picked up the setprop before we turn it back off for
+  // replaying.
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
 
   return ret;
