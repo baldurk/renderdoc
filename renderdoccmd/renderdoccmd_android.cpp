@@ -38,7 +38,7 @@ extern "C" {
 }
 
 #include <android/log.h>
-#define ANDROID_LOG(...) __android_log_print(ANDROID_LOG_INFO, "renderdoc", __VA_ARGS__);
+#define ANDROID_LOG(...) __android_log_print(ANDROID_LOG_INFO, "renderdoccmd", __VA_ARGS__);
 
 using std::string;
 using std::vector;
@@ -49,14 +49,16 @@ pthread_t cmdthread_handle = 0;
 
 struct PThreadLock
 {
-  void init()
+  PThreadLock(const char *n) : name(n)
   {
+    ANDROID_LOG("Creating lock %s", name);
     pthread_mutexattr_init(&mutexattr);
     pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &mutexattr);
   }
-  void destroy()
+  ~PThreadLock()
   {
+    ANDROID_LOG("Destroying lock %s", name);
     pthread_mutex_destroy(&mutex);
     pthread_mutexattr_destroy(&mutexattr);
   }
@@ -64,9 +66,12 @@ struct PThreadLock
   void lock() { pthread_mutex_lock(&mutex); }
   void unlock() { pthread_mutex_unlock(&mutex); }
 private:
+  const char *name;
   pthread_mutex_t mutex;
   pthread_mutexattr_t mutexattr;
-} m_DrawLock, m_CmdLock;
+};
+
+PThreadLock m_DrawLock("m_DrawLock"), m_CmdLock("m_CmdLock");
 
 void Daemonise()
 {
@@ -74,9 +79,11 @@ void Daemonise()
 
 void DisplayGenericSplash()
 {
+  ANDROID_LOG("Trying to splash");
   // if something else is drawing and holding the lock, then bail
   if(!m_DrawLock.trylock())
     return;
+  ANDROID_LOG("Doing a splash");
 
   // since we're not pumping this continually and we only draw when we need to, we can just do the
   // full initialisation and teardown every time. This means we don't have to pay attention to
@@ -291,6 +298,7 @@ void main()
   dlclose(libEGL);
 
   m_DrawLock.unlock();
+  ANDROID_LOG("Done splashing");
 }
 
 WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
@@ -305,11 +313,13 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
     // if we're opening it, aquire the draw lock, otherwise release it.
     if(active)
     {
+      ANDROID_LOG("Locking for preview");
       m_DrawLock.lock();
     }
     else
     {
       m_DrawLock.unlock();
+      ANDROID_LOG("Unlocking from preview");
 
       // when we release it, re-draw the splash
       DisplayGenericSplash();
@@ -393,9 +403,11 @@ void *cmdthread(void *)
   vector<string> args = getRenderdoccmdArgs();
   if(args.size())
   {
+    ANDROID_LOG("Entering cmd thread");
     m_CmdLock.lock();
     renderdoccmd(GlobalEnvironment(), args);
     m_CmdLock.unlock();
+    ANDROID_LOG("Exiting cmd thread");
   }
 
   // activity is done and should be closed
@@ -406,18 +418,22 @@ void *cmdthread(void *)
 
 void handle_cmd(android_app *app, int32_t cmd)
 {
+  ANDROID_LOG("handle_cmd(%i)", cmd);
   switch(cmd)
   {
     case APP_CMD_INIT_WINDOW:
     {
+      ANDROID_LOG("APP_CMD_INIT_WINDOW");
       // if we already have a thread handle, see if it's still running
       if(cmdthread_handle != 0)
       {
+        ANDROID_LOG("thread handle exists");
         // if the thread isn't running anymore, we can acquire m_CmdLock. If so, we need to join the
         // thread and start afresh. If we can't acquire the lock, the thread is still running so we
         // leave it alone.
         if(m_CmdLock.trylock())
         {
+          ANDROID_LOG("thread is dead, reaping");
           m_CmdLock.unlock();
           // safe to join here, thread will terminate soon if it hasn't already
           pthread_join(cmdthread_handle, NULL);
@@ -427,7 +443,10 @@ void handle_cmd(android_app *app, int32_t cmd)
 
       // if we don't have a command thread, start one.
       if(cmdthread_handle == 0)
+      {
+        ANDROID_LOG("spawning command thread");
         pthread_create(&cmdthread_handle, NULL, cmdthread, NULL);
+      }
 
       DisplayGenericSplash();
       break;
@@ -436,6 +455,7 @@ void handle_cmd(android_app *app, int32_t cmd)
     case APP_CMD_GAINED_FOCUS:
     case APP_CMD_LOST_FOCUS:
     {
+      ANDROID_LOG("doing misc splash");
       DisplayGenericSplash();
       break;
     }
@@ -446,9 +466,6 @@ void android_main(struct android_app *state)
 {
   android_state = state;
   android_state->onAppCmd = handle_cmd;
-
-  m_DrawLock.init();
-  m_CmdLock.init();
 
   ANDROID_LOG("android_main android_state->window: %p", android_state->window);
 
@@ -465,7 +482,4 @@ void android_main(struct android_app *state)
   } while(android_state->destroyRequested == 0);
 
   ANDROID_LOG("android_main exiting");
-
-  m_DrawLock.destroy();
-  m_CmdLock.destroy();
 }
