@@ -355,17 +355,18 @@ if(ENABLE_GL OR ENABLE_GLES OR ENABLE_VULKAN)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_spirv>)
 endif()
 
-find_package(LLVM CONFIG)
-
-set(HAVE_INTERCEPTOR_LIB OFF)
+option(USE_INTERCEPTOR_LIB OFF)
 
 # on Android, pull in interceptor-lib only if we have LLVM available
-if(ANDROID AND LLVM_FOUND)
-    if(${LLVM_PACKAGE_VERSION} VERSION_LESS "4.0.0" OR ${LLVM_PACKAGE_VERSION} VERSION_GREATER "4.0.1")
-        message(STATUS "LLVM ${LLVM_PACKAGE_VERSION} found - we require precisely 4.0.")
+if(ANDROID AND USE_INTERCEPTOR_LIB )
+    find_package(LLVM CONFIG)
+
+    if(NOT LLVM_FOUND)
+        message(FATAL_ERROR "LLVM not found - interceptor-lib requires LLVM 4.0 available.")
+    elseif(${LLVM_PACKAGE_VERSION} VERSION_LESS "4.0.0" OR ${LLVM_PACKAGE_VERSION} VERSION_GREATER "4.0.1")
+        message(FATAL_ERROR "LLVM ${LLVM_PACKAGE_VERSION} found - we require precisely 4.0.")
     else()
         message(STATUS "LLVM ${LLVM_PACKAGE_VERSION} found - enabling android hooking using interceptor-lib.")
-        set(HAVE_INTERCEPTOR_LIB ON)
         add_subdirectory(3rdparty/interceptor-lib)
         list(APPEND renderdoc_objects $<TARGET_OBJECTS:interceptor_lib>)
         link_directories(${LLVM_DIR}/../..)
@@ -377,8 +378,8 @@ if(ANDROID AND LLVM_FOUND)
     endif()
 endif()
 
-if(ANDROID AND NOT HAVE_INTERCEPTOR_LIB)
-    message(STATUS "LLVM not found - android hooking will use sometimes less reliable PLT-interception method.")
+if(ANDROID AND NOT USE_INTERCEPTOR_LIB)
+    message(STATUS "Interceptor-lib not enabled (USE_INTERCEPTOR_LIB) - android hooking will use sometimes less reliable PLT-interception method. ")
 endif()
 
 # always pull in the amd folder

@@ -10,7 +10,7 @@ See [LICENSE](LICENSE) file in this directory.
 
 # LLVM Build instructions
 
-To use this in RenderDoc you must set `-DLLVM_DIR=/path/to/llvm` pointing to a compatible build of LLVM 4.0 for the target you are building. Below are instructions on how to build that compatible LLVM.
+To use this in RenderDoc you must set `-DUSE_INTERCEPTOR_LIB=On -DLLVM_DIR=/path/to/llvm` pointing to a compatible build of LLVM 4.0 for the target you are building. Below are instructions on how to build that compatible LLVM.
 
 You'll need the Android NDK r16b, and you'll need python available in your path.
 
@@ -70,4 +70,4 @@ cp ./lib/Target/ARM/ARM*.inc $TARGET_PATH/include/MCTargetDesc/
 cp ./lib/Target/AArch64/AArch64*.inc  $TARGET_PATH/include/MCTargetDesc/
 ```
 
-Then you can set `-DLLVM_DIR=/path/to/llvm/install_armXX/lib/cmake/llvm` when building renderdoc and you should see a line saying that LLVM is being used to compile interceptor-lib!
+Then you can set `-DUSE_INTERCEPTOR_LIB=On -DLLVM_DIR=/path/to/llvm/install_armXX/lib/cmake/llvm` when building renderdoc and you should see a line saying that LLVM is being used to compile interceptor-lib!
