@@ -315,6 +315,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       RDCLOG("Copying file to local path '%s'.", path.c_str());
 
+      FileIO::CreateParentDirectory(path);
+
       {
         READ_DATA_SCOPE();
 
