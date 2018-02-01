@@ -35,26 +35,24 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id)
   if(type == eGL_VERTEX_SHADER)
     CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
 
+  string concatenated;
+
+  for(size_t i = 0; i < sources.size(); i++)
   {
-    string concatenated;
-
-    for(size_t i = 0; i < sources.size(); i++)
+    if(sources.size() > 1)
     {
-      if(sources.size() > 1)
-      {
-        if(i > 0)
-          concatenated += "\n";
-        concatenated += "/////////////////////////////";
-        concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
-        concatenated += "/////////////////////////////";
+      if(i > 0)
         concatenated += "\n";
-      }
-
-      concatenated += sources[i];
+      concatenated += "/////////////////////////////";
+      concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
+      concatenated += "/////////////////////////////";
+      concatenated += "\n";
     }
 
-    create_array_init(reflection.RawBytes, concatenated.size(), (byte *)concatenated.c_str());
+    concatenated += sources[i];
   }
+
+  create_array_init(reflection.RawBytes, concatenated.size(), (byte *)concatenated.c_str());
 
   GLuint sepProg = prog;
 
@@ -85,13 +83,9 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id)
     reflection.ID = id;
     reflection.EntryPoint = "main";
 
-    // TODO sort these so that the first file contains the entry point
-    create_array_uninit(reflection.DebugInfo.files, sources.size());
-    for(size_t i = 0; i < sources.size(); i++)
-    {
-      reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-      reflection.DebugInfo.files[i].second = sources[i];
-    }
+    create_array_uninit(reflection.DebugInfo.files, 1);
+    reflection.DebugInfo.files[0].first = "main.glsl";
+    reflection.DebugInfo.files[0].second = concatenated;
   }
 }
 
