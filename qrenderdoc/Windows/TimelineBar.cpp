@@ -47,6 +47,65 @@ QMargins uniformMargins(int m)
   return QMargins(m, m, m, m);
 }
 
+class PipRanges
+{
+public:
+  void push(qreal pos, const int triRadius)
+  {
+    if(ranges.isEmpty())
+    {
+      ranges.push_back({pos, pos});
+      return;
+    }
+
+    QPair<qreal, qreal> &range = ranges.back();
+
+    if(range.second + triRadius >= pos)
+      range.second = pos;
+    else
+      ranges.push_back({pos, pos});
+  }
+
+  QPainterPath makePath(const int triRadius, const int triHeight, qreal y)
+  {
+    QPainterPath path;
+
+    for(const QPair<qreal, qreal> &range : ranges)
+    {
+      if(range.first == range.second)
+      {
+        QPointF pos = aliasAlign(QPointF(range.first, y));
+
+        QPainterPath triangle;
+        triangle.addPolygon(
+            QPolygonF({pos + QPoint(0, triHeight), pos + QPoint(triRadius * 2, triHeight),
+                       pos + QPoint(triRadius, 0)}));
+        triangle.closeSubpath();
+
+        path = path.united(triangle);
+      }
+      else
+      {
+        QPointF left = aliasAlign(QPointF(range.first, y));
+        QPointF right = aliasAlign(QPointF(range.second, y));
+
+        QPainterPath trapezoid;
+        trapezoid.addPolygon(
+            QPolygonF({left + QPoint(0, triHeight), right + QPoint(triRadius * 2, triHeight),
+                       right + QPoint(triRadius, 0), left + QPoint(triRadius, 0)}));
+        trapezoid.closeSubpath();
+
+        path = path.united(trapezoid);
+      }
+    }
+
+    return path;
+  }
+
+private:
+  QVector<QPair<qreal, qreal>> ranges;
+};
+
 TimelineBar::TimelineBar(ICaptureContext &ctx, QWidget *parent)
     : QAbstractScrollArea(parent), m_Ctx(ctx)
 {
@@ -681,7 +740,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
     }
 
-    QPainterPath paths[UsageCount];
+    PipRanges pipranges[UsageCount];
 
     QRectF pipsRect = m_highlightingRect.marginsRemoved(uniformMargins(margin));
 
@@ -691,67 +750,68 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     p.setClipRect(pipsRect);
 
+    qreal leftClip = -triRadius * 2.0;
+    qreal rightClip = pipsRect.width() + triRadius * 10.0;
+
     if(!m_HistoryEvents.isEmpty())
     {
       for(const PixelModification &mod : m_HistoryEvents)
       {
-        QPointF pos;
+        qreal pos = offsetOf(mod.eventId) + m_eidWidth / 2 - triRadius;
 
-        pos.setX(offsetOf(mod.eventId) + m_eidWidth / 2 - triRadius);
-        pos.setY(pipsRect.y());
-
-        QPainterPath path = triangle.translated(aliasAlign(pos));
+        if(pos < leftClip || pos > rightClip)
+          continue;
 
         if(mod.Passed())
-          paths[HistoryPassed] = paths[HistoryPassed].united(path);
+          pipranges[HistoryPassed].push(pos, triRadius);
         else
-          paths[HistoryFailed] = paths[HistoryFailed].united(path);
+          pipranges[HistoryFailed].push(pos, triRadius);
       }
     }
     else
     {
       for(const EventUsage &use : m_UsageEvents)
       {
-        QPointF pos;
+        qreal pos = offsetOf(use.eventId) + m_eidWidth / 2 - triRadius;
 
-        pos.setX(offsetOf(use.eventId) + m_eidWidth / 2 - triRadius);
-        pos.setY(pipsRect.y());
-
-        QPainterPath path = triangle.translated(aliasAlign(pos));
+        if(pos < leftClip || pos > rightClip)
+          continue;
 
         if(((int)use.usage >= (int)ResourceUsage::VS_RWResource &&
             (int)use.usage <= (int)ResourceUsage::All_RWResource) ||
            use.usage == ResourceUsage::GenMips || use.usage == ResourceUsage::Copy ||
            use.usage == ResourceUsage::Resolve)
         {
-          paths[ReadWriteUsage] = paths[ReadWriteUsage].united(path);
+          pipranges[ReadWriteUsage].push(pos, triRadius);
         }
         else if(use.usage == ResourceUsage::StreamOut || use.usage == ResourceUsage::ResolveDst ||
                 use.usage == ResourceUsage::ColorTarget || use.usage == ResourceUsage::CopyDst)
         {
-          paths[WriteUsage] = paths[WriteUsage].united(path);
+          pipranges[WriteUsage].push(pos, triRadius);
         }
         else if(use.usage == ResourceUsage::Clear)
         {
-          paths[ClearUsage] = paths[ClearUsage].united(path);
+          pipranges[ClearUsage].push(pos, triRadius);
         }
         else if(use.usage == ResourceUsage::Barrier)
         {
-          paths[BarrierUsage] = paths[BarrierUsage].united(path);
+          pipranges[BarrierUsage].push(pos, triRadius);
         }
         else
         {
-          paths[ReadUsage] = paths[ReadUsage].united(path);
+          pipranges[ReadUsage].push(pos, triRadius);
         }
       }
     }
 
     for(int i = 0; i < UsageCount; i++)
     {
-      if(!paths[i].isEmpty())
+      QPainterPath path = pipranges[i].makePath(triRadius, triHeight, pipsRect.y());
+
+      if(!path.isEmpty())
       {
-        p.drawPath(paths[i]);
-        p.fillPath(paths[i], colors[i]);
+        p.drawPath(path);
+        p.fillPath(path, colors[i]);
       }
     }
   }
