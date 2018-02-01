@@ -60,27 +60,25 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
   if(type == eGL_VERTEX_SHADER)
     CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
 
+  string concatenated;
+
+  for(size_t i = 0; i < sources.size(); i++)
   {
-    string concatenated;
-
-    for(size_t i = 0; i < sources.size(); i++)
+    if(sources.size() > 1)
     {
-      if(sources.size() > 1)
-      {
-        if(i > 0)
-          concatenated += "\n";
-        concatenated += "/////////////////////////////";
-        concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
-        concatenated += "/////////////////////////////";
+      if(i > 0)
         concatenated += "\n";
-      }
-
-      concatenated += sources[i];
+      concatenated += "/////////////////////////////";
+      concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
+      concatenated += "/////////////////////////////";
+      concatenated += "\n";
     }
 
-    reflection.encoding = ShaderEncoding::GLSL;
-    reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
+    concatenated += sources[i];
   }
+
+  reflection.encoding = ShaderEncoding::GLSL;
+  reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
 
   GLuint sepProg = prog;
 
@@ -123,13 +121,9 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
 
     reflection.stage = MakeShaderStage(type);
 
-    // TODO sort these so that the first file contains the entry point
-    reflection.debugInfo.files.resize(sources.size());
-    for(size_t i = 0; i < sources.size(); i++)
-    {
-      reflection.debugInfo.files[i].filename = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-      reflection.debugInfo.files[i].contents = sources[i];
-    }
+    reflection.debugInfo.files.resize(1);
+    reflection.debugInfo.files[0].filename = "main.glsl";
+    reflection.debugInfo.files[0].contents = concatenated;
   }
 }
 
