@@ -853,6 +853,12 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
       if(prog == 0)
         continue;
 
+      GLint numSubroutines = 0;
+      m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINES, &numSubroutines);
+
+      if(numSubroutines == 0)
+        continue;
+
       m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS,
                                   &Subroutines[s].numSubroutines);
 
