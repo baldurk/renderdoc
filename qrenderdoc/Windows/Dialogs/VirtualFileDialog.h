@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QItemSelection>
 
 namespace Ui
 {
