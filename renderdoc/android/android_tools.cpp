@@ -193,7 +193,7 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
     FileIO::GetExecutableFilename(exepath);
     std::string exedir = dirname(FileIO::GetFullPathname(exepath));
 
-    toolpath = exedir + "/android/" + toolname;
+    toolpath = exedir + "/plugins/android/" + toolname;
     if(toolExists(toolpath))
       return toolpath;
   }

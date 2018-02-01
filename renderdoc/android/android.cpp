@@ -282,10 +282,10 @@ bool InstallRenderDocServer(const std::string &deviceID)
   paths.push_back(customPath);
 #endif
 
-  paths.push_back(exeDir + "/android/apk/");                         // Windows install
-  paths.push_back(exeDir + "/../share/renderdoc/android/apk/");      // Linux install
-  paths.push_back(exeDir + "/../../build-android/bin/");             // Local build
-  paths.push_back(exeDir + "/../../../../../build-android/bin/");    // macOS build
+  paths.push_back(exeDir + "/plugins/android/");                       // Windows install
+  paths.push_back(exeDir + "/../share/renderdoc/plugins/android/");    // Linux install
+  paths.push_back(exeDir + "/../../build-android/bin/");               // Local build
+  paths.push_back(exeDir + "/../../../../../build-android/bin/");      // macOS build
 
   // use the first ABI for searching
   std::string apk = GetRenderDocPackageForABI(abis[0]);
