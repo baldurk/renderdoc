@@ -62,7 +62,10 @@ public:
   const GLHookSet &GetRealGLFunctions()
   {
     if(!m_PopulatedHooks)
+    {
       m_PopulatedHooks = PopulateHooks();
+      SharedCheckContext();
+    }
     return GL;
   }
 

@@ -647,8 +647,6 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
     glhooks.m_Contexts.insert(ctx);
 
     glhooks.PopulateHooks();
-
-    SharedCheckContext();
   }
 
   GLWindowingData data;
@@ -676,8 +674,6 @@ __attribute__((visibility("default"))) Bool glXMakeContextCurrent(Display *dpy, 
     glhooks.m_Contexts.insert(ctx);
 
     glhooks.PopulateHooks();
-
-    SharedCheckContext();
   }
 
   GLWindowingData data;
@@ -868,9 +864,16 @@ bool OpenGLHook::PopulateHooks()
 
   glXGetProcAddress((const GLubyte *)"glXCreateContextAttribsARB");
 
-  return SharedPopulateHooks(true, [](const char *funcName) {
+  bool ret = SharedPopulateHooks(true, [](const char *funcName) {
     return (void *)glXGetProcAddress((const GLubyte *)funcName);
   });
+
+  if(!ret)
+    return false;
+
+  SharedCheckContext();
+
+  return true;
 }
 
 const GLHookSet &GetRealGLFunctions()
