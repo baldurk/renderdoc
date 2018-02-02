@@ -1160,6 +1160,10 @@ void D3D11Replay::SavePipelineState()
 
         SAFE_RELEASE(res);
       }
+      else
+      {
+        view.resourceResourceId = ResourceId();
+      }
 
       ret.outputMerger.uavs[s] = view;
     }
@@ -1221,6 +1225,10 @@ void D3D11Replay::SavePipelineState()
         }
 
         SAFE_RELEASE(res);
+      }
+      else
+      {
+        view.resourceResourceId = ResourceId();
       }
     }
 
