@@ -2172,7 +2172,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
               if(fmt.indexResourceId != ResourceId())
               {
                 VkBuffer ib =
-                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.indexResourceId);
+                    m_pDriver->GetResourceManager()->GetLiveHandle<VkBuffer>(fmt.indexResourceId);
 
                 vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.indexByteOffset, idxtype);
                 vt->CmdDrawIndexed(Unwrap(cmd), fmt.numIndices, 1, 0, fmt.baseVertex, 0);

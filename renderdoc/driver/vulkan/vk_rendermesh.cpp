@@ -497,7 +497,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &second
           if(fmt.indexResourceId != ResourceId())
           {
             VkBuffer ib =
-                m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.indexResourceId);
+                m_pDriver->GetResourceManager()->GetLiveHandle<VkBuffer>(fmt.indexResourceId);
 
             vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.indexByteOffset, idxtype);
           }
