@@ -29,6 +29,7 @@
 
 #include <thumbcache.h>
 #include <windows.h>
+#include "3rdparty/lz4/lz4.h"
 #include "3rdparty/stb/stb_image_resize.h"
 #include "common/common.h"
 #include "core/core.h"
@@ -47,10 +48,14 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 {
   unsigned int m_iRefcount;
   bool m_Inited;
-  RDCFile m_RDC;
+  RDCThumb m_Thumb;
 
   RDCThumbnailProvider() : m_iRefcount(1), m_Inited(false) { InterlockedIncrement(&numProviders); }
-  virtual ~RDCThumbnailProvider() { InterlockedDecrement(&numProviders); }
+  virtual ~RDCThumbnailProvider()
+  {
+    delete[] m_Thumb.pixels;
+    InterlockedDecrement(&numProviders);
+  }
   ULONG STDMETHODCALLTYPE AddRef()
   {
     InterlockedIncrement(&m_iRefcount);
@@ -112,13 +117,206 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
     RDCDEBUG("RDCThumbnailProvider Initialize read %d bytes from file", numRead);
 
-    m_RDC.Open(std::vector<byte>(buf, buf + numRead));
+    std::vector<byte> captureHeader(buf, buf + numRead);
 
     delete[] buf;
+
+    {
+      RDCFile rdc;
+      rdc.Open(captureHeader);
+
+      if(rdc.ErrorCode() == ContainerError::NoError)
+      {
+        m_Thumb = rdc.GetThumbnail();
+        buf = new byte[m_Thumb.len];
+        memcpy(buf, m_Thumb.pixels, m_Thumb.len);
+        m_Thumb.pixels = buf;
+      }
+      else
+      {
+        RDCDEBUG("RDC error %d", rdc.ErrorCode());
+        ReadLegacyCaptureThumb(captureHeader);
+      }
+    }
 
     m_Inited = true;
 
     return S_OK;
+  }
+
+  void STDMETHODCALLTYPE ReadLegacyCaptureThumb(std::vector<byte> &captureHeader)
+  {
+    // we want to support old capture files, so we decode the thumbnail by hand here with the
+    // old header.
+    const uint32_t MAGIC_HEADER = MAKE_FOURCC('R', 'D', 'O', 'C');
+
+    byte *readPtr = &captureHeader[0];
+    byte *readEnd = readPtr + captureHeader.size();
+
+    if(memcmp(&MAGIC_HEADER, readPtr, sizeof(MAGIC_HEADER)))
+    {
+      RDCDEBUG("Legacy header did not have expected magic number");
+      return;
+    }
+
+    // uint64_t MAGIC_HEADER
+    readPtr += sizeof(uint64_t);
+
+    uint32_t version = 0;
+    memcpy(&version, readPtr, sizeof(version));
+
+    // uint64_t version
+    readPtr += sizeof(uint64_t);
+
+    if(version == 0x31)
+    {
+      readPtr += sizeof(uint64_t);    // uint64_t filesize
+
+      uint64_t resolveDBSize = 0;
+      memcpy(&resolveDBSize, readPtr, sizeof(resolveDBSize));
+      readPtr += sizeof(resolveDBSize);
+
+      if(resolveDBSize > 0)
+      {
+        readPtr += resolveDBSize;
+        readPtr = (byte *)AlignUp<uintptr_t>((uintptr_t)readPtr, 16);
+      }
+
+      // now readPtr points to data
+    }
+    else if(version == 0x32)
+    {
+      // only support a binary capture section as the first section
+      if(*readPtr != '0')
+      {
+        RDCDEBUG("Unsupported IsASCII value %x", (uint32_t)*readPtr);
+        return;
+      }
+
+      readPtr += sizeof(byte) * 4;    // isASCII and 3 padding bytes
+
+      uint32_t sectionFlags = 0;
+      memcpy(&sectionFlags, readPtr, sizeof(sectionFlags));
+      readPtr += sizeof(sectionFlags);
+
+      readPtr += sizeof(uint32_t);    // uint32_t sectionType
+      readPtr += sizeof(uint32_t);    // uint32_t sectionLength
+
+      uint32_t sectionNameLength = 0;
+      memcpy(&sectionNameLength, readPtr, sizeof(sectionNameLength));
+      readPtr += sizeof(sectionNameLength);
+
+      readPtr += sectionNameLength;
+
+      // eSectionFlag_LZ4Compressed
+      if(sectionFlags & 0x2)
+      {
+        std::vector<byte> uncompressed;
+
+        LZ4_streamDecode_t lZ4Decomp = {};
+        LZ4_setStreamDecode(&lZ4Decomp, NULL, 0);
+
+        // decompress all the complete blocks we have
+        while(readPtr < readEnd)
+        {
+          int32_t compSize = 0;
+          memcpy(&compSize, readPtr, sizeof(compSize));
+          readPtr += sizeof(compSize);
+
+          // break if this block is not complete, as we should have enough by now.
+          if(readPtr + compSize > readEnd)
+            break;
+
+          size_t off = uncompressed.size();
+          const size_t BlockSize = 64 * 1024;
+          uncompressed.resize(off + BlockSize);
+
+          int32_t decompSize = LZ4_decompress_safe_continue(
+              &lZ4Decomp, (const char *)readPtr, (char *)&uncompressed[off], compSize, BlockSize);
+
+          readPtr += compSize;
+
+          uncompressed.resize(off + decompSize);
+        }
+
+        captureHeader = uncompressed;
+
+        readPtr = &captureHeader[0];
+        readEnd = readPtr + captureHeader.size();
+      }
+    }
+    else
+    {
+      RDCDEBUG("Unsupported legacy version %x", version);
+      return;
+    }
+
+    byte *dataStart = readPtr;
+
+    // now we're at the first chunk. It should be THUMBNAIL_DATA
+    const uint16_t THUMBNAIL_DATA = 2;
+
+    uint16_t chunkID = 0;
+    memcpy(&chunkID, readPtr, sizeof(chunkID));
+    readPtr += sizeof(chunkID);
+
+    if((chunkID & 0x3fff) != THUMBNAIL_DATA)
+    {
+      RDCDEBUG("Unsupported chunk type %hu", chunkID);
+      return;
+    }
+
+    readPtr += sizeof(uint32_t);    // uint32_t chunkSize
+
+    // contents we care about
+    bool hasThumbnail = false;
+    memcpy(&hasThumbnail, readPtr, sizeof(hasThumbnail));
+    readPtr += sizeof(hasThumbnail);
+
+    if(!hasThumbnail)
+    {
+      RDCDEBUG("File does not have thumbnail");
+      return;
+    }
+
+    uint32_t thumbWidth = 0;
+    memcpy(&thumbWidth, readPtr, sizeof(thumbWidth));
+    readPtr += sizeof(thumbWidth);
+
+    uint32_t thumbHeight = 0;
+    memcpy(&thumbHeight, readPtr, sizeof(thumbHeight));
+    readPtr += sizeof(thumbHeight);
+
+    uint32_t thumbLen = 0;
+    memcpy(&thumbLen, readPtr, sizeof(thumbLen));
+    readPtr += sizeof(thumbLen);
+
+    // serialise version 0x00000031 had only 16-byte alignment
+    const size_t BufferAlignment = (version == 0x31) ? 16 : 64;
+
+    // buffer follows. First we need to align relative to the start of the data
+    size_t offs = readPtr - dataStart;
+    size_t alignedOffs = AlignUp(offs, BufferAlignment);
+
+    readPtr += (alignedOffs - offs);
+
+    if(uint32_t(readEnd - readPtr) >= thumbLen)
+    {
+      RDCDEBUG("Got %ux%u thumbnail, %u pixels", thumbWidth, thumbHeight, thumbLen);
+
+      byte *pixels = new byte[thumbLen];
+      memcpy(pixels, readPtr, thumbLen);
+
+      m_Thumb.width = (uint16_t)thumbWidth;
+      m_Thumb.height = (uint16_t)thumbHeight;
+      m_Thumb.len = thumbLen;
+      m_Thumb.pixels = pixels;
+    }
+    else
+    {
+      RDCDEBUG("Thumbnail length %u is impossible or truncated with %llu remaining bytes", thumbLen,
+               uint64_t(readEnd - readPtr));
+    }
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetThumbnail(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha)
@@ -131,17 +329,15 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       return E_NOTIMPL;
     }
 
-    if(m_RDC.ErrorCode() != ContainerError::NoError)
+    if(m_Thumb.len == 0)
     {
       RDCERR("Problem opening file");
       return E_NOTIMPL;
     }
 
-    const RDCThumb &thumb = m_RDC.GetThumbnail();
-
-    const byte *jpgbuf = thumb.pixels;
-    size_t thumblen = thumb.len;
-    uint32_t thumbwidth = thumb.width, thumbheight = thumb.height;
+    const byte *jpgbuf = m_Thumb.pixels;
+    size_t thumblen = m_Thumb.len;
+    uint32_t thumbwidth = m_Thumb.width, thumbheight = m_Thumb.height;
 
     if(jpgbuf == NULL)
       return E_NOTIMPL;
