@@ -46,6 +46,14 @@
 PyTypeObject **SbkPySide2_QtCoreTypes = NULL;
 PyTypeObject **SbkPySide2_QtGuiTypes = NULL;
 PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
+#else
+
+// for non-windows, this message is displayed at CMake time.
+#ifdef _MSC_VER
+#pragma message( \
+    "Building without PySide2 - Qt will not be accessible in python scripting. See https://github.com/baldurk/renderdoc/wiki/PySide2")
+#endif
+
 #endif
 
 #include <QApplication>

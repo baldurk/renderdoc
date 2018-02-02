@@ -170,7 +170,7 @@ if(PYSIDE2_FOUND)
          "LIBS+=-L${PYSIDE2_LIBRARY_DIR}\n"
          "LIBS+=-lshiboken2\n")
 else()
-    message(STATUS "PySide2 not found - Qt will not be accessible in python scripting")
+    message(STATUS "PySide2 not found - Qt will not be accessible in python scripting. See https://github.com/baldurk/renderdoc/wiki/PySide2")
 
     file(APPEND
          ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
