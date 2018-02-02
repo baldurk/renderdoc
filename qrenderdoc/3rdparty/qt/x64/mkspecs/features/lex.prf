@@ -1,0 +1,38 @@
+#
+# Lex extra-compiler for handling files specified in the LEXSOURCES variable
+#
+
+{
+    lex.name = Lex ${QMAKE_FILE_IN}
+    lex.input = LEXSOURCES
+    lex.dependency_type = TYPE_C
+    lex_included {
+        lex.CONFIG += no_link
+    } else {
+        lex.variable_out = GENERATED_SOURCES
+    }
+
+    isEmpty(QMAKE_LEXFLAGS_MANGLE):QMAKE_LEXFLAGS_MANGLE = -P${QMAKE_FILE_BASE}
+    QMAKE_LEXEXTRAFLAGS = $$QMAKE_LEXFLAGS
+    !yacc_no_name_mangle:QMAKE_LEXEXTRAFLAGS += $$QMAKE_LEXFLAGS_MANGLE
+
+    contains(QMAKE_LEX, .*flex) {
+        # GNU flex, we can use -o outfile
+        lex.commands = $$QMAKE_LEX $$QMAKE_LEXEXTRAFLAGS --nounistd -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+    } else {
+        # stupid POSIX lex, it only generates a file called lex.yy.c
+        # or lex.prefix.c if the -P<prefix> option is active
+        intermediate_file = lex.yy.c
+        QMAKE_LEXEXTRAFLAGS = $$QMAKE_LEXFLAGS $$QMAKE_LEXFLAGS_MANGLE
+
+        lex.commands = \
+                   -$(DEL_FILE) ${QMAKE_FILE_OUT}$$escape_expand(\\n\\t) \
+                   $$QMAKE_LEX $$QMAKE_LEXEXTRAFLAGS ${QMAKE_FILE_IN}$$escape_expand(\\n\\t) \
+                   $(MOVE) $$intermediate_file ${QMAKE_FILE_OUT} $$escape_expand(\\n\\t)
+        unset(intermediate_file)
+    }
+    lex.output = $${QMAKE_CPP_MOD_MOC}${QMAKE_FILE_BASE}$${QMAKE_MOD_LEX}$${first(QMAKE_EXT_CPP)}
+
+    silent:lex.commands = @echo Lex ${QMAKE_FILE_IN} && $$lex.commands
+    QMAKE_EXTRA_COMPILERS += lex
+}

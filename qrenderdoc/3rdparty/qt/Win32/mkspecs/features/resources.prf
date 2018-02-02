@@ -1,0 +1,109 @@
+qtPrepareTool(QMAKE_RCC, rcc, _DEP)
+
+isEmpty(RCC_DIR):RCC_DIR = .
+isEmpty(QMAKE_MOD_RCC):QMAKE_MOD_RCC = qrc
+
+!contains(QMAKE_RESOURCE_FLAGS, -root):!isEmpty(QMAKE_RESOURCE_ROOT):QMAKE_RESOURCE_FLAGS += -root $$QMAKE_RESOURCE_ROOT
+!contains(QMAKE_RESOURCE_FLAGS, -name): QMAKE_RESOURCE_FLAGS += -name ${QMAKE_FILE_BASE}
+
+# http://www.w3.org/TR/xml/#syntax
+defineReplace(xml_escape) {
+    1 ~= s,&,&amp;,
+    1 ~= s,\',&apos;,
+    1 ~= s,\",&quot;,
+    1 ~= s,<,&lt;,
+    1 ~= s,>,&gt;,
+    return($$1)
+}
+
+RESOURCES += qmake_immediate
+for(resource, RESOURCES) {
+    # Regular case of user qrc file
+    contains(resource, ".*\\.qrc$"): \
+        next()
+
+    # Fallback for stand-alone files/directories
+    !defined($${resource}.files, var) {
+        !equals(resource, qmake_immediate) {
+            !exists($$absolute_path($$resource, $$_PRO_FILE_PWD_)): \
+                warning("Failure to find: $$resource")
+            qmake_immediate.files += $$resource
+        }
+        RESOURCES -= $$resource
+        next()
+    }
+
+    resource_file = $$RCC_DIR/qmake_$${resource}.qrc
+
+    isEmpty(BUILDS)|build_pass {
+        # Collection of files, generate qrc file
+        prefix = $$eval($${resource}.prefix)
+        isEmpty(prefix): \
+            prefix = "/"
+
+        resource_file_content = \
+            "<!DOCTYPE RCC><RCC version=\"1.0\">" \
+            "<qresource prefix=\"$$xml_escape($$prefix)\">"
+
+        abs_base = $$absolute_path($$eval($${resource}.base), $$_PRO_FILE_PWD_)
+
+        for(file, $${resource}.files) {
+            abs_path = $$absolute_path($$file, $$_PRO_FILE_PWD_)
+            files = $$files($$abs_path/*, true)
+            isEmpty(files): \
+                files = $$abs_path
+            for (file, files) {
+                exists($$file/*): next()  # exclude directories
+                alias = $$relative_path($$file, $$abs_base)
+                resource_file_content += \
+                    "<file alias=\"$$xml_escape($$alias)\">$$xml_escape($$file)</file>"
+            }
+        }
+
+        resource_file_content += \
+            "</qresource>" \
+            "</RCC>"
+
+        !write_file($$OUT_PWD/$$resource_file, resource_file_content): \
+            error()
+    }
+
+    RESOURCES -= $$resource
+    RESOURCES += $$resource_file
+}
+
+rcc.input = RESOURCES
+rcc.name = RCC ${QMAKE_FILE_IN}
+rcc.depend_command = $$QMAKE_RCC_DEP -list $$QMAKE_RESOURCE_FLAGS ${QMAKE_FILE_IN}
+rcc.CONFIG += add_inputs_as_makefile_deps
+
+!resources_big|ltcg|macx-xcode|contains(TEMPLATE, "vc.*") {
+
+rcc.output = $$RCC_DIR/$${first(QMAKE_MOD_RCC)}_${QMAKE_FILE_BASE}$${first(QMAKE_EXT_CPP)}
+rcc.commands = $$QMAKE_RCC $$QMAKE_RESOURCE_FLAGS ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
+rcc.variable_out = SOURCES
+
+} else {
+
+isEmpty(RCC_CXX):RCC_CXX = $$QMAKE_CXX $(CXXFLAGS)
+RCC_OUT_BASE = $$RCC_DIR/$${first(QMAKE_MOD_RCC)}_${QMAKE_FILE_BASE}
+RCC_CPP = $$RCC_OUT_BASE$${first(QMAKE_EXT_CPP)}
+RCC_TMP = $${RCC_OUT_BASE}.tmp$${first(QMAKE_EXT_OBJ)}
+RCC_OBJ = $$RCC_OUT_BASE$${first(QMAKE_EXT_OBJ)}
+
+msvc: RCC_CXX_O_FLAG = "-Fo"
+else: RCC_CXX_O_FLAG = "-o "
+
+rcc.output = $$RCC_OBJ
+rcc.commands = \
+    $$QMAKE_RCC $$QMAKE_RESOURCE_FLAGS ${QMAKE_FILE_IN} -pass 1 -o $$RCC_CPP && \
+    $$RCC_CXX -c $$RCC_CPP $$RCC_CXX_O_FLAG$$RCC_TMP && \
+    $$QMAKE_RCC $$QMAKE_RESOURCE_FLAGS ${QMAKE_FILE_IN} -pass 2 -temp $$RCC_TMP -o ${QMAKE_FILE_OUT}
+rcc.clean += $$RCC_CPP $$RCC_TMP
+
+}
+
+rcc.depends += $$QMAKE_RCC_EXE
+silent:rcc.commands = @echo rcc ${QMAKE_FILE_IN} && $$rcc.commands
+else:rcc.commands ~= s/&&/$$escape_expand(\\n\\t)/g
+QMAKE_EXTRA_COMPILERS += rcc

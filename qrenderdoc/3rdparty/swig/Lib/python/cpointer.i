@@ -1,0 +1,1 @@
+%include <typemaps/cpointer.swg>

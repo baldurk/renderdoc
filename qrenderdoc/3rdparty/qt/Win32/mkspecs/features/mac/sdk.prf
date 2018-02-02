@@ -1,0 +1,58 @@
+
+isEmpty(QMAKE_MAC_SDK): \
+    error("QMAKE_MAC_SDK must be set when using CONFIG += sdk.")
+
+contains(QMAKE_MAC_SDK, .*/.*): \
+    error("QMAKE_MAC_SDK can only contain short-form SDK names (eg. macosx, iphoneos)")
+
+defineReplace(xcodeSDKInfo) {
+    info = $$1
+    equals(info, "Path"): \
+        info = --show-sdk-path
+    equals(info, "PlatformPath"): \
+        info = --show-sdk-platform-path
+    equals(info, "SDKVersion"): \
+        info = --show-sdk-version
+    sdk = $$2
+    isEmpty(sdk): \
+        sdk = $$QMAKE_MAC_SDK
+
+    isEmpty(QMAKE_MAC_SDK.$${sdk}.$${info}) {
+        QMAKE_MAC_SDK.$${sdk}.$${info} = $$system("/usr/bin/xcrun --sdk $$sdk $$info 2>/dev/null")
+        # --show-sdk-platform-path won't work for Command Line Tools; this is fine
+        # only used by the XCTest backend to testlib
+        isEmpty(QMAKE_MAC_SDK.$${sdk}.$${info}):if(!isEmpty(QMAKE_XCODEBUILD_PATH)|!equals(info, "--show-sdk-platform-path")): \
+            error("Could not resolve SDK $$info for \'$$sdk\'")
+        cache(QMAKE_MAC_SDK.$${sdk}.$${info}, set stash, QMAKE_MAC_SDK.$${sdk}.$${info})
+    }
+
+    return($$eval(QMAKE_MAC_SDK.$${sdk}.$${info}))
+}
+
+QMAKE_MAC_SDK_PATH = $$xcodeSDKInfo(Path)
+QMAKE_MAC_SDK_PLATFORM_PATH = $$xcodeSDKInfo(PlatformPath)
+QMAKE_MAC_SDK_VERSION = $$xcodeSDKInfo(SDKVersion)
+
+sysrootified =
+for(val, QMAKE_INCDIR_OPENGL): sysrootified += $${QMAKE_MAC_SDK_PATH}$$val
+QMAKE_INCDIR_OPENGL = $$sysrootified
+
+QMAKESPEC_NAME = $$basename(QMAKESPEC)
+
+# Resolve SDK version of various tools
+for(tool, $$list(QMAKE_CC QMAKE_CXX QMAKE_FIX_RPATH QMAKE_AR QMAKE_RANLIB QMAKE_LINK QMAKE_LINK_SHLIB QMAKE_ACTOOL)) {
+    tool_variable = QMAKE_MAC_SDK.$${QMAKESPEC_NAME}.$${QMAKE_MAC_SDK}.$${tool}
+    !isEmpty($$tool_variable) {
+        $$tool = $$eval($$tool_variable)
+        next()
+    }
+
+    value = $$eval($$tool)
+    isEmpty(value): next()
+
+    sysrooted = $$system("/usr/bin/xcrun -sdk $$QMAKE_MAC_SDK -find $$first(value) 2>/dev/null")
+    isEmpty(sysrooted): next()
+
+    $$tool = $$sysrooted $$member(value, 1, -1)
+    cache($$tool_variable, set stash, $$tool)
+}

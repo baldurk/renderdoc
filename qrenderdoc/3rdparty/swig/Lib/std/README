@@ -1,0 +1,22 @@
+/* -----------------------------------------------------------------------------
+ *  C++ STD + STL 
+ * ----------------------------------------------------------------------------- */
+
+std_common.i		general common code 
+std_container.i		general container code 
+std_basic_string.i	basic string
+std_char_traits.i	char traits
+std_complex.i		complex
+std_deque.i		deque	
+std_except.i		exceptions
+std_ios.i		ios
+std_iostream.i		istream/ostream
+std_list.i		list
+std_map.i		map
+std_multimap.i		multimap
+std_multiset.i		multiset
+std_pair.i		pair
+std_set.i		set
+std_streambuf.i		streambuf
+std_vector.i		vector
+std_vectora.i		vector + allocator

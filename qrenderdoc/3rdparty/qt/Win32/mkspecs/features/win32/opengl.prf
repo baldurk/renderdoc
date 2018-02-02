@@ -1,0 +1,31 @@
+QT_FOR_CONFIG += gui
+
+qtConfig(opengles2) {
+    # Depending on the configuration we use libQtANGLE or libEGL and libGLESv2
+    qtConfig(combined-angle-lib) {
+        QMAKE_LIBS_OPENGL_ES2 = -l$${LIBQTANGLE_NAME} $$QMAKE_LIBS_OPENGL_ES2
+        QMAKE_LIBS_OPENGL_ES2_DEBUG = -l$${LIBQTANGLE_NAME}d $$QMAKE_LIBS_OPENGL_ES2_DEBUG
+    } else {
+        QMAKE_LIBS_OPENGL_ES2 = -l$${LIBEGL_NAME} -l$${LIBGLESV2_NAME} $$QMAKE_LIBS_OPENGL_ES2
+        QMAKE_LIBS_OPENGL_ES2_DEBUG = -l$${LIBEGL_NAME}d -l$${LIBGLESV2_NAME}d $$QMAKE_LIBS_OPENGL_ES2_DEBUG
+    }
+#   For Desktop, use the ANGLE library location passed on from configure.
+    INCLUDEPATH += $$QMAKE_INCDIR_OPENGL_ES2
+    CONFIG(debug, debug|release) {
+        QMAKE_LIBDIR += $$QMAKE_LIBDIR_OPENGL_ES2_DEBUG
+        qtConfig(angle) {
+            LIBS += $$QMAKE_LIBS_OPENGL_ES2_DEBUG
+        } else {
+            LIBS += $$QMAKE_LIBS_OPENGL_ES2
+        }
+    } else {
+        LIBS += $$QMAKE_LIBS_OPENGL_ES2
+        QMAKE_LIBDIR += $$QMAKE_LIBDIR_OPENGL_ES2_RELEASE
+    }
+    qtConfig(static): DEFINES += GL_APICALL= EGLAPI=
+} else {
+    !qtConfig(dynamicgl) {
+        QMAKE_LIBS += $$QMAKE_LIBS_OPENGL
+        QMAKE_LFLAGS += $$QMAKE_LFLAGS_OPENGL
+    }
+}

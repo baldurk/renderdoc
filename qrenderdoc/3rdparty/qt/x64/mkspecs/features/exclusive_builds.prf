@@ -1,0 +1,42 @@
+
+defineTest(addExclusiveBuildsProper) {
+    !$$1:!fix_output_dirs: \
+        return(true)
+
+    for(build, 2) {
+        isEmpty($${build}.name) {
+            $${build}.name = $$title($$build)
+            export($${build}.name)
+        }
+        isEmpty($${build}.target) {
+            $${build}.target = $$lower($$build)
+            export($${build}.target)
+        }
+        isEmpty($${build}.dir_affix) {
+            $${build}.dir_affix = $$lower($$build)
+            export($${build}.dir_affix)
+        }
+
+        $${build}.exclusive = $$2
+        export($${build}.exclusive)
+
+        QMAKE_EXCLUSIVE_BUILDS += $$build
+    }
+
+    CONFIG *= exclusive_builds
+    export(CONFIG)
+
+    export(QMAKE_EXCLUSIVE_BUILDS)
+    return(true)
+}
+
+defineTest(addExclusiveBuilds) {
+    lessThan(ARGC, 2): \
+        error("addExclusiveBuilds() requires at least two arguments")
+
+    addExclusiveBuildsProper($$join(ARGS, _and_), $$ARGS)
+}
+
+# Default directories to process
+QMAKE_DIR_REPLACE = OBJECTS_DIR MOC_DIR RCC_DIR PRECOMPILED_DIR QGLTF_DIR DESTDIR
+QMAKE_DIR_REPLACE_SANE += QGLTF_DIR

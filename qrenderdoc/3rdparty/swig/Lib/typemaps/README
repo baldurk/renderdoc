@@ -1,0 +1,54 @@
+Still in development, but if you are interested into looking around,
+start with
+
+
+     swigtypemaps.swg
+
+which is the head file. Also read the docs for %fragments in 
+
+     fragments.swg 
+
+and follow the definitions in one of the supported languages:
+
+     python, perl, ruby, tcl
+
+
+
+
+/* -----------------------------------------------------------------------------
+ *  Internal typemap specializations
+ * ----------------------------------------------------------------------------- */
+
+
+carrays.swg		Implement the carrays.i library
+cdata.swg		Implement the cdata.i library
+cmalloc.swg		Implement the cmalloc.i library
+cpointer.swg		Implement the cpointer.i library
+cstring.swg		Implement the cstring.i library typemaps for char *
+cwstring.swg		Implement the cstring.i library typemaps for wchar_t *
+exception.swg		Implement the exception.i library
+implicit.swg		Allow the use of implicit C++ constructors
+
+string.swg		Typemaps for char * string
+wstring.swg		Typemaps for wchar_t * string
+std_string.swg		Typemaps for std::string
+std_wstring.swg		Typemaps for std::wstring
+swigtype.swg		Typemaps for the SWIGTYPE type
+void.swg		Typemaps for the 'void' type
+enumint.swg		Typemaps for enums treated as 'int' 
+swigobject.swg		Typemaps for the SWIG_Object as in PyObject, Tcl_Obj, etc.
+misctypes.swg		Typemaps for miscellaneos types (size_t, ptrdiff_t, etc)
+ptrtypes.swg		Typemaps for types with a 'ptr' behavior
+valtypes.swg		Typemaps for 'by value' types
+inoutlist.swg		IN/OUTPUT/INOUT typemaps, where the OUTPUT values are returned in a list
+primtypes.swg		Common macros to manage primitive types (short,int,double,etc)
+
+cstrings.swg		Common macros to implemented the cstring/cwstring libraries
+std_strings.swg		Common macros to implemented the std::string/std::wstring typemaps
+strings.swg		Common macros and typemaps for string and wstring (char *, wchar_t *)
+
+swigmacros.swg		Basic macros 
+fragments.swg		Macros for fragment manipulations
+
+
+typemaps.swg		The old typemaps.i library, not needed anymore
