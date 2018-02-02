@@ -296,6 +296,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(dispatchThreadsDimension);
 
+  SERIALISE_MEMBER(encoding);
   SERIALISE_MEMBER(rawBytes);
 
   SERIALISE_MEMBER(inputSignature);
