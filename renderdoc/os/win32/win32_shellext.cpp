@@ -125,16 +125,18 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       RDCFile rdc;
       rdc.Open(captureHeader);
 
-      if(rdc.ErrorCode() == ContainerError::NoError)
+      m_Thumb = rdc.GetThumbnail();
+
+      // we don't care about the error code (which would come from the truncated file), we just care
+      // if we got the thumbnail
+      if(m_Thumb.len > 0 && m_Thumb.width > 0 && m_Thumb.height > 0 && m_Thumb.pixels)
       {
-        m_Thumb = rdc.GetThumbnail();
         buf = new byte[m_Thumb.len];
         memcpy(buf, m_Thumb.pixels, m_Thumb.len);
         m_Thumb.pixels = buf;
       }
       else
       {
-        RDCDEBUG("RDC error %d", rdc.ErrorCode());
         ReadLegacyCaptureThumb(captureHeader);
       }
     }
