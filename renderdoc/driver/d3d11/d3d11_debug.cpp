@@ -155,6 +155,11 @@ void D3D11DebugManager::InitCommonResources()
   displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
 
   MSArrayCopyVS = shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+
+  for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
+    PublicCBuffers[i] = MakeCBuffer(sizeof(float) * 4 * 100);
+
+  publicCBufIdx = 0;
 }
 
 void D3D11DebugManager::InitReplayResources()
@@ -162,11 +167,6 @@ void D3D11DebugManager::InitReplayResources()
   D3D11ShaderCache *shaderCache = m_pDevice->GetShaderCache();
 
   HRESULT hr = S_OK;
-
-  for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
-    PublicCBuffers[i] = MakeCBuffer(sizeof(float) * 4 * 100);
-
-  publicCBufIdx = 0;
 
   {
     std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
