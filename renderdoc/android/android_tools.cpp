@@ -157,12 +157,15 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   // search path for tools:
   // 1. First look relative to the configured paths, these come from the user manually setting them
   //    so they always have priority.
-  // 2. Next if those paths don't exist or the tool isn't found, we search relative to our
-  //    executable looking for an android/ subfolder, and look for the tool in there.
-  // 3. If we still don't have that (most likely because it's a local build from a git clone and not
-  //    a distributed build with the tools available) then we fall back to trying to auto-locate it.
+  // 2. Next we try to auto-locate it.
   //    - First check if the tool is in the path, assuming the user configured it to their system.
   //    - Otherwise check environment variables or default locations
+  // 3. Finally if those paths don't exist or the tool isn't found, we search relative to our
+  //    executable looking for an android/ subfolder, and look for the tool in there.
+  //
+  // The main reason we check our bundled folder last is because adb requires a *precise* match in
+  // its client-server setup, so if we run our bundled adb that might be newer than the user's, they
+  // will then get fighting back and forth when trying to run their own.
 
   std::string sdk = RenderDoc::Inst().GetConfigSetting("androidSDKPath");
   std::string jdk = RenderDoc::Inst().GetConfigSetting("androidJDKPath");
@@ -186,17 +189,6 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 
   if(toolExists(toolpath))
     return toolpath;
-
-  // next try to locate it in our own distributed android subfolder
-  {
-    std::string exepath;
-    FileIO::GetExecutableFilename(exepath);
-    std::string exedir = dirname(FileIO::GetFullPathname(exepath));
-
-    toolpath = exedir + "/plugins/android/" + toolname;
-    if(toolExists(toolpath))
-      return toolpath;
-  }
 
   // need to try to auto-guess the tool's location
 
@@ -241,12 +233,29 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
     sdk = env ? env : "";
   }
 
+  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  {
+    env = Process::GetEnvVariable("ANDROID_SDK_HOME");
+    sdk = env ? env : "";
+  }
+
   // maybe in future we can try to search in common install locations.
 
   toolpath = getToolInSDK(subdir, jdk, sdk, toolname);
 
   if(toolExists(toolpath))
     return toolpath;
+
+  // finally try to locate it in our own distributed android subfolder
+  {
+    std::string exepath;
+    FileIO::GetExecutableFilename(exepath);
+    std::string exedir = dirname(FileIO::GetFullPathname(exepath));
+
+    toolpath = exedir + "/plugins/android/" + toolname;
+    if(toolExists(toolpath))
+      return toolpath;
+  }
 
   toolpath = "";
 
