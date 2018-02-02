@@ -3131,8 +3131,13 @@ namespace renderdocui.Windows
 
             m_MeshDisplay.aspect = 1.0f;
 
+            Viewport vp = m_Core.CurPipelineState.GetViewport(0);
+
+            float vpWidth = Math.Abs(vp.width);
+            float vpHeight = Math.Abs(vp.height);
+
             // take a guess for the aspect ratio, for if the user hasn't overridden it
-            m_MeshDisplay.aspect = m_Core.CurPipelineState.GetViewport(0).width / m_Core.CurPipelineState.GetViewport(0).height;
+            m_MeshDisplay.aspect = (vpWidth > 0.0f && vpHeight > 0.0f) ? (vpWidth / vpHeight) : 1.0f;
 
             if (aspectGuess.Text.Length > 0 && float.TryParse(aspectGuess.Text, out m_MeshDisplay.aspect))
                 aspectGuess.Text = m_MeshDisplay.aspect.ToString("G");
