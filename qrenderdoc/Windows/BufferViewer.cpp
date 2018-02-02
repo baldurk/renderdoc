@@ -2283,8 +2283,11 @@ void BufferViewer::configureMeshColumns()
 
   Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 
+  float vpWidth = qAbs(vp.width);
+  float vpHeight = qAbs(vp.height);
+
   m_Config.fov = ui->fovGuess->value();
-  m_Config.aspect = (vp.width > 0.0f && vp.height > 0.0f) ? (vp.width / vp.height) : 1.0f;
+  m_Config.aspect = (vpWidth > 0.0f && vpHeight > 0.0f) ? (vpWidth / vpHeight) : 1.0f;
   m_Config.highlightVert = 0;
 
   if(ui->aspectGuess->value() > 0.0)
