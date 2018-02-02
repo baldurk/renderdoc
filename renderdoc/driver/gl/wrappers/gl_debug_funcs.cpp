@@ -36,10 +36,22 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
 
   if(ser.IsWriting())
   {
-    if(length == 0 || label == NULL)
+    // we share implementations between KHR_debug and EXT_debug_label, however KHR_debug follows the
+    // pattern elsewhere (e.g. in glShaderSource) of a length of -1 meaning indeterminate
+    // NULL-terminated length, but EXT_debug_label takes length of 0 to mean that.
+    GLsizei realLength = length;
+    if(gl_CurChunk == GLChunk::glLabelObjectEXT && length == 0)
+      realLength = -1;
+
+    // if length is negative (after above twiddling), it's taken from strlen and the label must be
+    // NULL-terminated
+    if(realLength < 0)
+      realLength = label ? (GLsizei)strlen(label) : 0;
+
+    if(realLength == 0 || label == NULL)
       Label = "";
     else
-      Label = std::string(label, label + (length > 0 ? length : strlen(label)));
+      Label = std::string(label, label + realLength);
 
     switch(identifier)
     {
