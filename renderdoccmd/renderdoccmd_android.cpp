@@ -132,7 +132,7 @@ void DisplayGenericSplash()
   EGLDisplay eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   ANativeWindow *previewWindow = android_state->window;
 
-  if(eglDisplay)
+  if(eglDisplay && previewWindow)
   {
     int major = 0, minor = 0;
     eglInitialize(eglDisplay, &major, &minor);

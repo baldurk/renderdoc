@@ -1891,9 +1891,11 @@ void ReplayProxy::ShutdownPreviewWindow()
   if(m_Replay && m_PreviewOutput)
   {
     m_Replay->DestroyOutputWindow(m_PreviewOutput);
-    m_PreviewWindow(false, {});
     m_PreviewOutput = 0;
   }
+
+  if(m_PreviewWindow)
+    m_PreviewWindow(false, {});
 }
 
 void ReplayProxy::RefreshPreviewWindow()
