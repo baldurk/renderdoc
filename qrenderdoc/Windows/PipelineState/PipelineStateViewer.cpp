@@ -387,7 +387,7 @@ void PipelineStateViewer::exportHTMLTable(QXmlStreamWriter &xml, const QStringLi
         {
           xml.writeStartElement(lit("td"));
 
-          if(el.canConvert<bool>())
+          if(el.type() == QVariant::Bool)
             xml.writeCharacters(el.toBool() ? tr("True") : tr("False"));
           else
             xml.writeCharacters(el.toString());
