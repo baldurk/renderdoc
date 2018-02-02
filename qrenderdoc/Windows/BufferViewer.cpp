@@ -3128,7 +3128,10 @@ void BufferViewer::exportData(const BufferExport &params)
                 bytes += d.stride * idx;
 
               if(bytes + d.byteSize <= (const char *)d.end)
+              {
                 f->write(bytes, d.byteSize);
+                continue;
+              }
             }
 
             // if we didn't continue above, something was wrong, so write nulls
