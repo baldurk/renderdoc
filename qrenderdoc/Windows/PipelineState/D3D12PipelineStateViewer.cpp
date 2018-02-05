@@ -1198,9 +1198,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
         if(length < bytesize)
           filledSlot = false;
 
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({rootel, (qulonglong)space, regname, b.resourceId,
-                                  (qulonglong)offset, sizestr, QString()});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {rootel, (qulonglong)space, regname, b.resourceId,
+             QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
 
         node->setTag(tag);
 
