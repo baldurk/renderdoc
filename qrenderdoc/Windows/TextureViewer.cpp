@@ -87,7 +87,8 @@ bool Following::operator==(const Following &o)
 void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
-  copy = curDraw != NULL && (curDraw->flags & (DrawFlags::Copy | DrawFlags::Resolve));
+  copy = curDraw != NULL &&
+         (curDraw->flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Present));
   clear = curDraw != NULL && (curDraw->flags & DrawFlags::Clear);
   compute = curDraw != NULL && (curDraw->flags & DrawFlags::Dispatch) &&
             ctx.CurPipelineState().GetShader(ShaderStage::Compute) != ResourceId();
