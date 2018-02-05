@@ -50,7 +50,7 @@
 // Once the report is sent, the database is reset and begins the next period.
 
 // this is the root switch that can turn off *all* analytics code globally
-#define RENDERDOC_ANALYTICS_ENABLE 0
+#define RENDERDOC_ANALYTICS_ENABLE 1
 
 // we don't want any of this to be accessible to script, only code.
 #if !defined(SWIG) && !defined(SWIG_GENERATED)
