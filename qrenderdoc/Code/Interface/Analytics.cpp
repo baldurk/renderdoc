@@ -73,6 +73,7 @@ namespace
 enum class AnalyticsState
 {
   Nothing,
+  Disabled,
   PromptFirstTime,
   SubmitReport,
 };
@@ -177,25 +178,25 @@ void saveTo(QVariantMap &parent, const QString &name, const T &el, bool reportin
 }
 
 // add a macro to either document, load, or save, depending on our state.
-#define ANALYTIC_SERIALISE(varname)                                                  \
-  if(type == AnalyticsSerialiseType::Documenting)                                    \
-  {                                                                                  \
-    QString var = lit(#varname);                                                     \
-    int idx = var.indexOf(QLatin1Char('.'));                                         \
-    if(idx >= 0)                                                                     \
-      var = var.mid(idx + 1);                                                        \
-    doc += lit("<b>%1 (%2)</b>: %3<br>")                                             \
-               .arg(var)                                                             \
-               .arg(QString::fromUtf8(TypeName<decltype(Analytics::db->varname)>())) \
-               .arg(docs.varname);                                                   \
-  }                                                                                  \
-  else if(type == AnalyticsSerialiseType::Loading)                                   \
-  {                                                                                  \
-    loadFrom(values, lit(#varname), Analytics::db->varname);                         \
-  }                                                                                  \
-  else                                                                               \
-  {                                                                                  \
-    saveTo(values, lit(#varname), Analytics::db->varname, reporting);                \
+#define ANALYTIC_SERIALISE(varname)                                         \
+  if(type == AnalyticsSerialiseType::Documenting)                           \
+  {                                                                         \
+    QString var = lit(#varname);                                            \
+    int idx = var.indexOf(QLatin1Char('.'));                                \
+    if(idx >= 0)                                                            \
+      var = var.mid(idx + 1);                                               \
+    doc += lit("<b>%1 (%2)</b>: %3<br>")                                    \
+               .arg(var)                                                    \
+               .arg(QString::fromUtf8(TypeName<decltype(serdb.varname)>())) \
+               .arg(docs.varname);                                          \
+  }                                                                         \
+  else if(type == AnalyticsSerialiseType::Loading)                          \
+  {                                                                         \
+    loadFrom(values, lit(#varname), serdb.varname);                         \
+  }                                                                         \
+  else                                                                      \
+  {                                                                         \
+    saveTo(values, lit(#varname), serdb.varname, reporting);                \
   }
 
 // only used during documenting
@@ -309,12 +310,9 @@ static struct AnalyticsDocumentation
   } DOCUMENT_ANALYTIC_SECTION(CaptureFeatures, "Capture API Usage");
 } docs;
 
-void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
+void AnalyticsSerialise(Analytics &serdb, QVariantMap &values, AnalyticsSerialiseType type)
 {
   bool reporting = type == AnalyticsSerialiseType::Reporting;
-
-  if(!Analytics::db)
-    return;
 
   static_assert(sizeof(Analytics) == 147, "Sizeof Analytics has changed - update serialisation.");
 
@@ -425,7 +423,8 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(CaptureFeatures.D3D12Bundle);
   }
 
-  values[lit("doc")] = doc;
+  if(type == AnalyticsSerialiseType::Documenting)
+    values[lit("doc")] = doc;
 }
 
 };    // anonymous namespace
@@ -434,21 +433,35 @@ Analytics *Analytics::db = NULL;
 
 void Analytics::Save()
 {
-  if(analyticsSaveLocation.isEmpty())
+  if(analyticsSaveLocation.isEmpty() || analyticsState == AnalyticsState::Disabled ||
+     Analytics::db == NULL)
     return;
 
   QVariantMap values;
 
   // call to the serialise function to save into the 'values' map
-  AnalyticsSerialise(values, AnalyticsSerialiseType::Saving);
+  AnalyticsSerialise(*Analytics::db, values, AnalyticsSerialiseType::Saving);
 
   QFile f(analyticsSaveLocation);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
     SaveToJSON(values, f, analyticsJSONMagic, analyticsJSONVersion);
 }
 
+void Analytics::Disable()
+{
+  // do not save any values
+  Analytics::db = NULL;
+  analyticsSaveLocation = QString();
+  analyticsState = AnalyticsState::Disabled;
+}
+
 void Analytics::Load()
 {
+  // refuse to load if we were previously disabled, just in case this function is called somehow. We
+  // require a full restart with the analytics enabled for it to start collecting.
+  if(analyticsState == AnalyticsState::Disabled)
+    return;
+
   // allocate space for the Analytics singleton
   Analytics::db = &actualDB;
 
@@ -467,7 +480,7 @@ void Analytics::Load()
       bool success = LoadFromJSON(values, f, analyticsJSONMagic, analyticsJSONVersion);
 
       if(success)
-        AnalyticsSerialise(values, AnalyticsSerialiseType::Loading);
+        AnalyticsSerialise(*Analytics::db, values, AnalyticsSerialiseType::Loading);
     }
   }
 
@@ -491,9 +504,10 @@ void Analytics::Load()
 
 void Analytics::DocumentReport()
 {
-  QVariantMap dummy;
-  AnalyticsSerialise(dummy, AnalyticsSerialiseType::Documenting);
-  QString reportText = dummy[lit("doc")].toString();
+  Analytics dummyDB;
+  QVariantMap dummyMap;
+  AnalyticsSerialise(dummyDB, dummyMap, AnalyticsSerialiseType::Documenting);
+  QString reportText = dummyMap[lit("doc")].toString();
 
   {
     QDialog dialog;
@@ -523,20 +537,25 @@ void Analytics::DocumentReport()
 
 void Analytics::Prompt(ICaptureContext &ctx, PersistantConfig &config)
 {
-  if(analyticsState == AnalyticsState::PromptFirstTime)
+  if(analyticsState == AnalyticsState::Disabled)
+  {
+    // do nothing, we're disabled
+    return;
+  }
+  else if(analyticsState == AnalyticsState::PromptFirstTime)
   {
     QWidget *mainWindow = ctx.GetMainWindow()->Widget();
 
     AnalyticsPromptDialog prompt(config, mainWindow);
     RDDialog::show(&prompt);
   }
-  else if(analyticsState == AnalyticsState::SubmitReport)
+  else if(analyticsState == AnalyticsState::SubmitReport && Analytics::db != NULL)
   {
     QWidget *mainWindow = ctx.GetMainWindow()->Widget();
 
     QVariantMap values;
 
-    AnalyticsSerialise(values, AnalyticsSerialiseType::Reporting);
+    AnalyticsSerialise(*Analytics::db, values, AnalyticsSerialiseType::Reporting);
 
     QBuffer buf;
     buf.open(QBuffer::WriteOnly);
@@ -583,6 +602,10 @@ void Analytics::Prompt(ICaptureContext &ctx, PersistantConfig &config)
 namespace Analytics
 {
 void Load()
+{
+}
+
+void Disable()
 {
 }
 

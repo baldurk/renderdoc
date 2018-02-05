@@ -167,6 +167,37 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   ui->AlwaysReplayLocally->setChecked(m_Ctx.Config().AlwaysReplayLocally);
 
+#if RENDERDOC_ANALYTICS_ENABLE
+  if(m_Ctx.Config().Analytics_TotalOptOut)
+  {
+    ui->analyticsAutoSubmit->setChecked(false);
+    ui->analyticsManualCheck->setChecked(false);
+    ui->analyticsOptOut->setChecked(true);
+
+    // once we've started with analytics disabled, only a restart can re-enable them.
+    ui->analyticsAutoSubmit->setText(ui->analyticsAutoSubmit->text() + tr(" (Requires Restart)"));
+    ui->analyticsManualCheck->setText(ui->analyticsManualCheck->text() + tr(" (Requires Restart)"));
+  }
+  else if(m_Ctx.Config().Analytics_ManualCheck)
+  {
+    ui->analyticsAutoSubmit->setChecked(false);
+    ui->analyticsManualCheck->setChecked(true);
+    ui->analyticsOptOut->setChecked(false);
+  }
+  else
+  {
+    ui->analyticsAutoSubmit->setChecked(true);
+    ui->analyticsManualCheck->setChecked(false);
+    ui->analyticsOptOut->setChecked(false);
+  }
+#else
+  ui->analyticsDescribeLabel->setText(tr("Analytics was disabled at compile time."));
+
+  ui->analyticsAutoSubmit->setEnabled(false);
+  ui->analyticsManualCheck->setEnabled(false);
+  ui->analyticsOptOut->setEnabled(false);
+#endif
+
   ui->AllowGlobalHook->setChecked(m_Ctx.Config().AllowGlobalHook);
 
   ui->EventBrowser_TimeUnit->setCurrentIndex((int)m_Ctx.Config().EventBrowser_TimeUnit);
@@ -317,6 +348,47 @@ void SettingsDialog::on_AlwaysReplayLocally_toggled(bool checked)
   m_Ctx.Config().AlwaysReplayLocally = ui->AlwaysReplayLocally->isChecked();
 
   m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_analyticsAutoSubmit_toggled(bool checked)
+{
+  if(checked)
+  {
+    m_Ctx.Config().Analytics_ManualCheck = false;
+    m_Ctx.Config().Analytics_TotalOptOut = false;
+
+    m_Ctx.Config().Save();
+  }
+}
+
+void SettingsDialog::on_analyticsManualCheck_toggled(bool checked)
+{
+  if(checked)
+  {
+    m_Ctx.Config().Analytics_ManualCheck = true;
+    m_Ctx.Config().Analytics_TotalOptOut = false;
+
+    m_Ctx.Config().Save();
+  }
+}
+
+void SettingsDialog::on_analyticsOptOut_toggled(bool checked)
+{
+  if(checked)
+  {
+    m_Ctx.Config().Analytics_ManualCheck = false;
+    m_Ctx.Config().Analytics_TotalOptOut = true;
+
+    // immediately disable the analytics collection and ensure it can't send any reports.
+    Analytics::Disable();
+
+    m_Ctx.Config().Save();
+  }
+}
+
+void SettingsDialog::on_analyticsDescribeLabel_linkActivated(const QString &link)
+{
+  Analytics::DocumentReport();
 }
 
 // core

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>614</width>
-    <height>470</height>
+    <width>561</width>
+    <height>519</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -73,7 +73,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>6</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -82,7 +82,7 @@
       <attribute name="title">
        <string>General</string>
       </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="leftMargin">
         <number>0</number>
        </property>
@@ -101,108 +101,6 @@
           <string>General</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_5">
-          <item row="5" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="toolTip">
-             <string>Any numbers larger than this exponent will be displayed in scientific notation.
-e.g. 1000 * 10 = 1e4</string>
-            </property>
-            <property name="text">
-             <string>Positive exponential cutoff value</string>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="0">
-           <widget class="QLabel" name="label_9">
-            <property name="toolTip">
-             <string>Wherever possible a monospaced font will be used instead of the default font</string>
-            </property>
-            <property name="text">
-             <string>Prefer monospaced fonts in UI (restart required)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QSpinBox" name="Formatter_MinFigures">
-            <property name="toolTip">
-             <string>Decimals will display at least this many digits.
-e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
-            </property>
-            <property name="value">
-             <number>2</number>
-            </property>
-           </widget>
-          </item>
-          <item row="8" column="0">
-           <widget class="QLabel" name="label_6">
-            <property name="toolTip">
-             <string>Changes the default directory for the save dialog when saving capture files.
-
-Defaults to blank, which follows system default behaviour.</string>
-            </property>
-            <property name="text">
-             <string>Default save directory for captures</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_3">
-            <property name="toolTip">
-             <string>Any numbers smaller than this exponent will be displayed in scientific notation.
-E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
-            </property>
-            <property name="text">
-             <string>Negative exponential cutoff value</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label">
-            <property name="toolTip">
-             <string>Decimals will display at least this many digits.
-e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
-            </property>
-            <property name="text">
-             <string>Minimum decimal places on float values</string>
-            </property>
-           </widget>
-          </item>
-          <item row="10" column="0">
-           <widget class="QLabel" name="globalHookLabel">
-            <property name="toolTip">
-             <string>Enables functionality on the capture application window that will insert RenderDoc automatically
-into all new processes created - then inject into the target (matching) executable.
-
-Useful for capturing programs indirectly that can't easily be launched directly by RenderDoc
-
-Since this is a global system hook it must be used carefully and only when necessary!</string>
-            </property>
-            <property name="text">
-             <string>Allow global process hooking - be careful!</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="toolTip">
-             <string>No more significant figures than this will be displayed on floats.
-e.g. a value of 5 means 0.123456789 will display as 0.12345</string>
-            </property>
-            <property name="text">
-             <string>Maximum significant figures on decimals</string>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="0">
-           <widget class="QLabel" name="label_8">
-            <property name="toolTip">
-             <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
-            </property>
-            <property name="text">
-             <string>Allow periodic anonymous update checks</string>
-            </property>
-           </widget>
-          </item>
           <item row="6" column="0">
            <widget class="QLabel" name="label_5">
             <property name="toolTip">
@@ -230,12 +128,6 @@ E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
            <spacer name="verticalSpacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>216</height>
-             </size>
             </property>
            </spacer>
           </item>
@@ -391,6 +283,148 @@ This option overrides that and will always replay locally if the local context i
            <widget class="Line" name="line">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="toolTip">
+             <string>Any numbers larger than this exponent will be displayed in scientific notation.
+e.g. 1000 * 10 = 1e4</string>
+            </property>
+            <property name="text">
+             <string>Positive exponential cutoff value</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="0">
+           <widget class="QLabel" name="label_9">
+            <property name="toolTip">
+             <string>Wherever possible a monospaced font will be used instead of the default font</string>
+            </property>
+            <property name="text">
+             <string>Prefer monospaced fonts in UI (restart required)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QSpinBox" name="Formatter_MinFigures">
+            <property name="toolTip">
+             <string>Decimals will display at least this many digits.
+e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
+            </property>
+            <property name="value">
+             <number>2</number>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="0">
+           <widget class="QLabel" name="label_6">
+            <property name="toolTip">
+             <string>Changes the default directory for the save dialog when saving capture files.
+
+Defaults to blank, which follows system default behaviour.</string>
+            </property>
+            <property name="text">
+             <string>Default save directory for captures</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="toolTip">
+             <string>Any numbers smaller than this exponent will be displayed in scientific notation.
+E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
+            </property>
+            <property name="text">
+             <string>Negative exponential cutoff value</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label">
+            <property name="toolTip">
+             <string>Decimals will display at least this many digits.
+e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
+            </property>
+            <property name="text">
+             <string>Minimum decimal places on float values</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="globalHookLabel">
+            <property name="toolTip">
+             <string>Enables functionality on the capture application window that will insert RenderDoc automatically
+into all new processes created - then inject into the target (matching) executable.
+
+Useful for capturing programs indirectly that can't easily be launched directly by RenderDoc
+
+Since this is a global system hook it must be used carefully and only when necessary!</string>
+            </property>
+            <property name="text">
+             <string>Allow global process hooking - be careful!</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="toolTip">
+             <string>No more significant figures than this will be displayed on floats.
+e.g. a value of 5 means 0.123456789 will display as 0.12345</string>
+            </property>
+            <property name="text">
+             <string>Maximum significant figures on decimals</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="0">
+           <widget class="QLabel" name="label_8">
+            <property name="toolTip">
+             <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
+            </property>
+            <property name="text">
+             <string>Allow periodic anonymous update checks</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_9">
+         <property name="title">
+          <string>Anonymous Analytics</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QLabel" name="analyticsDescribeLabel">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;#analyticsDescribe&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Click here&lt;/span&gt;&lt;/a&gt; to see currently reported data.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="analyticsAutoSubmit">
+            <property name="text">
+             <string>Gather anonymous low-detail statistics and submit automatically.</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="analyticsManualCheck">
+            <property name="text">
+             <string>Gather anonymous low-detail statistics, but manually verify before submitting.</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="analyticsOptOut">
+            <property name="text">
+             <string>Do not gather or submit any statistics.</string>
             </property>
            </widget>
           </item>

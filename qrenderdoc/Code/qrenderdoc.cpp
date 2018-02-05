@@ -290,7 +290,9 @@ int main(int argc, char *argv[])
               .arg(configFilename));
     }
 
-    if(!config.Analytics_TotalOptOut)
+    if(config.Analytics_TotalOptOut)
+      Analytics::Disable();
+    else
       Analytics::Load();
 
     bool isDarkTheme = IsDarkTheme();

@@ -112,6 +112,9 @@ struct Analytics
 {
   // utility function - loads the analytics from disk and initialise the Analytics::db member.
   static void Load();
+  // utility function - explicitly disables the analytics and sets it into a black-hole mode that
+  // does nothing.
+  static void Disable();
   // utility function - performs any UI-level prompting, such as asking the user if they want to
   // opt-out, or manually vetting a report for uploading.
   static void Prompt(ICaptureContext &ctx, PersistantConfig &config);
@@ -307,6 +310,7 @@ struct ICaptureContext;
 
 namespace Analytics
 {
+void Disable();
 void Load();
 void Prompt(ICaptureContext &ctx, PersistantConfig &config);
 void DocumentReport();
