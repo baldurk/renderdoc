@@ -186,7 +186,7 @@ void ToolWindowManagerWrapper::closeEvent(QCloseEvent *event)
     if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
       m_manager->hideToolWindow(toolWindow);
     else
-      m_manager->removeToolWindow(toolWindow);
+      m_manager->removeToolWindow(toolWindow, true);
   }
 }
 
