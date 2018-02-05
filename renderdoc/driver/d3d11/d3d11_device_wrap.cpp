@@ -1242,9 +1242,14 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
 
   if(IsReplayingAndReading())
   {
+    // for no explicable reason, CreateInputLayout requires a descriptor pointer even if
+    // NumElements==0.
+    D3D11_INPUT_ELEMENT_DESC dummy = {};
+    const D3D11_INPUT_ELEMENT_DESC *inputDescs = pInputElementDescs ? pInputElementDescs : &dummy;
+
     ID3D11InputLayout *ret = NULL;
     HRESULT hr = m_pDevice->CreateInputLayout(
-        pInputElementDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, &ret);
+        inputDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, &ret);
 
     if(FAILED(hr))
     {
@@ -1260,8 +1265,9 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
 
     AddResource(pInputLayout, ResourceType::StateObject, "Input Layout");
 
-    m_LayoutDescs[ret] =
-        std::vector<D3D11_INPUT_ELEMENT_DESC>(pInputElementDescs, pInputElementDescs + NumElements);
+    if(NumElements > 0)
+      m_LayoutDescs[ret] = std::vector<D3D11_INPUT_ELEMENT_DESC>(pInputElementDescs,
+                                                                 pInputElementDescs + NumElements);
 
     if(BytecodeLength > 0 && pShaderBytecodeWithInputSignature)
       m_LayoutShaders[ret] =
