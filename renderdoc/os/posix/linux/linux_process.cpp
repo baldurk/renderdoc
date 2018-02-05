@@ -44,7 +44,7 @@ int GetIdentPort(pid_t childPid)
   int waitTime = INITIAL_WAIT_TIME;
 
   // try for a little while for the /proc entry to appear
-  while(waitTime <= MAX_WAIT_TIME)
+  while(ret == 0 && waitTime <= MAX_WAIT_TIME)
   {
     // back-off for each retry
     usleep(waitTime);
@@ -75,7 +75,6 @@ int GetIdentPort(pid_t childPid)
          hexport <= RenderDoc_LastTargetControlPort)
       {
         ret = hexport;
-        break;
       }
     }
 
