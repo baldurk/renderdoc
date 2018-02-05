@@ -802,7 +802,15 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateRasterizerState2);
       Serialise_CreateRasterizerState2(GET_SERIALISER, pRasterizerDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11RasterizerState2 *st = (WrappedID3D11RasterizerState2 *)wrapped;
+      ResourceId id = st->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppRasterizerState = wrapped;
@@ -875,7 +883,15 @@ HRESULT WrappedID3D11Device::CreateQuery1(const D3D11_QUERY_DESC1 *pQueryDesc, I
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateQuery1);
       Serialise_CreateQuery1(GET_SERIALISER, pQueryDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11Query1 *q = (WrappedID3D11Query1 *)wrapped;
+      ResourceId id = q->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppQuery = wrapped;

@@ -834,7 +834,12 @@ void WrappedID3D11DeviceContext::VSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
   for(UINT i = 0; i < NumSamplers; i++)
+  {
+    if(ppSamplers[i] && IsActiveCapturing(m_State))
+      MarkResourceReferenced(GetIDForResource(ppSamplers[i]), eFrameRef_Read);
+
     samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->VSSetSamplers(StartSlot, NumSamplers, samps));
 
@@ -1204,7 +1209,12 @@ void WrappedID3D11DeviceContext::HSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
   for(UINT i = 0; i < NumSamplers; i++)
+  {
+    if(ppSamplers[i] && IsActiveCapturing(m_State))
+      MarkResourceReferenced(GetIDForResource(ppSamplers[i]), eFrameRef_Read);
+
     samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->HSSetSamplers(StartSlot, NumSamplers, samps));
 
@@ -1573,7 +1583,12 @@ void WrappedID3D11DeviceContext::DSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
   for(UINT i = 0; i < NumSamplers; i++)
+  {
+    if(ppSamplers[i] && IsActiveCapturing(m_State))
+      MarkResourceReferenced(GetIDForResource(ppSamplers[i]), eFrameRef_Read);
+
     samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->DSSetSamplers(StartSlot, NumSamplers, samps));
 
@@ -1944,7 +1959,12 @@ void WrappedID3D11DeviceContext::GSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
   for(UINT i = 0; i < NumSamplers; i++)
+  {
+    if(ppSamplers[i] && IsActiveCapturing(m_State))
+      MarkResourceReferenced(GetIDForResource(ppSamplers[i]), eFrameRef_Read);
+
     samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->GSSetSamplers(StartSlot, NumSamplers, samps));
 
@@ -2417,6 +2437,8 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
     SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
     Serialise_RSSetState(GET_SERIALISER, pRasterizerState);
 
+    MarkResourceReferenced(GetIDForResource(pRasterizerState), eFrameRef_Read);
+
     m_ContextRecord->AddChunk(scope.Get());
   }
 
@@ -2705,7 +2727,12 @@ void WrappedID3D11DeviceContext::PSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
   for(UINT i = 0; i < NumSamplers; i++)
+  {
+    if(ppSamplers[i] && IsActiveCapturing(m_State))
+      MarkResourceReferenced(GetIDForResource(ppSamplers[i]), eFrameRef_Read);
+
     samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->PSSetSamplers(StartSlot, NumSamplers, samps));
 
@@ -3420,6 +3447,8 @@ void WrappedID3D11DeviceContext::OMSetBlendState(ID3D11BlendState *pBlendState,
     SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
     Serialise_OMSetBlendState(GET_SERIALISER, pBlendState, BlendFactor, SampleMask);
 
+    MarkResourceReferenced(GetIDForResource(pBlendState), eFrameRef_Read);
+
     m_ContextRecord->AddChunk(scope.Get());
   }
 
@@ -3476,6 +3505,8 @@ void WrappedID3D11DeviceContext::OMSetDepthStencilState(ID3D11DepthStencilState 
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::OMSetDepthStencilState);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
     Serialise_OMSetDepthStencilState(GET_SERIALISER, pDepthStencilState, StencilRef);
+
+    MarkResourceReferenced(GetIDForResource(pDepthStencilState), eFrameRef_Read);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -4529,7 +4560,12 @@ void WrappedID3D11DeviceContext::CSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
   for(UINT i = 0; i < NumSamplers; i++)
+  {
+    if(ppSamplers[i] && IsActiveCapturing(m_State))
+      MarkResourceReferenced(GetIDForResource(ppSamplers[i]), eFrameRef_Read);
+
     samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->CSSetSamplers(StartSlot, NumSamplers, samps));
 

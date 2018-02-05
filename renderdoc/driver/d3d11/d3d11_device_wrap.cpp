@@ -2273,7 +2273,15 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateBlendState);
       Serialise_CreateBlendState(GET_SERIALISER, pBlendStateDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11BlendState1 *st = (WrappedID3D11BlendState1 *)wrapped;
+      ResourceId id = st->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppBlendState = wrapped;
@@ -2367,7 +2375,15 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateDepthStencilState);
       Serialise_CreateDepthStencilState(GET_SERIALISER, pDepthStencilDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11DepthStencilState *st = (WrappedID3D11DepthStencilState *)wrapped;
+      ResourceId id = st->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppDepthStencilState = wrapped;
@@ -2461,7 +2477,15 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateRasterizerState);
       Serialise_CreateRasterizerState(GET_SERIALISER, pRasterizerDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11RasterizerState2 *st = (WrappedID3D11RasterizerState2 *)wrapped;
+      ResourceId id = st->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppRasterizerState = wrapped;
@@ -2555,7 +2579,15 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateSamplerState);
       Serialise_CreateSamplerState(GET_SERIALISER, pSamplerDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11SamplerState *st = (WrappedID3D11SamplerState *)wrapped;
+      ResourceId id = st->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppSamplerState = wrapped;
