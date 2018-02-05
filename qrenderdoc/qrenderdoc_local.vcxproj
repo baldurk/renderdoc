@@ -128,41 +128,41 @@
     <Link>
       <AdditionalDependencies>python36.lib;qtmaind.lib;Qt5Widgetsd.lib;Qt5Guid.lib;Qt5Cored.lib;Qt5Svgd.lib;shell32.lib</AdditionalDependencies>
     </Link>
-    <ItemDefinitionGroup Condition="Exists('$(SolutionDir)/qrenderdoc/3rdparty/pyside/include/PySide2/pyside.h')">
-      <ClCompile>
-        <PreprocessorDefinitions>PYSIDE2_ENABLED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      </ClCompile>
-      <Link>
-        <AdditionalDependencies>shiboken2.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      </Link>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="!Exists('$(SolutionDir)/qrenderdoc/3rdparty/pyside/include/PySide2/pyside.h')">
-      <ClCompile>
-        <PreprocessorDefinitions>PYSIDE2_ENABLED=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      </ClCompile>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)'=='Development'">
-      <ClCompile>
-        <Optimization>Disabled</Optimization>
-      </ClCompile>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)'=='QTDebug'">
-      <ClCompile>
-        <Optimization>Disabled</Optimization>
-      </ClCompile>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
-      <ClCompile>
-        <Optimization>MaxSpeed</Optimization>
-        <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-        <FunctionLevelLinking>true</FunctionLevelLinking>
-        <IntrinsicFunctions>true</IntrinsicFunctions>
-      </ClCompile>
-      <Link>
-        <EnableCOMDATFolding>true</EnableCOMDATFolding>
-        <OptimizeReferences>true</OptimizeReferences>
-      </Link>
-    </ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h')">
+    <ClCompile>
+      <PreprocessorDefinitions>PYSIDE2_ENABLED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>shiboken2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="!Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h')">
+    <ClCompile>
+      <PreprocessorDefinitions>PYSIDE2_ENABLED=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Development'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='QTDebug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\scintilla\lexers\LexCPP.cxx">
