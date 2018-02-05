@@ -38,6 +38,12 @@
 #if RENDERDOC_ANALYTICS_ENABLE
 
 template <>
+inline const char *TypeName<int32_t>()
+{
+  return "int";
+}
+
+template <>
 inline const char *TypeName<QString>()
 {
   return "string";
@@ -314,7 +320,10 @@ void AnalyticsSerialise(Analytics &serdb, QVariantMap &values, AnalyticsSerialis
 {
   bool reporting = type == AnalyticsSerialiseType::Reporting;
 
+// only check this on 64-bit as it is different on 32-bit
+#if QT_POINTER_SIZE == 8 && defined(Q_OS_WIN32)
   static_assert(sizeof(Analytics) == 147, "Sizeof Analytics has changed - update serialisation.");
+#endif
 
   QString doc;
 
