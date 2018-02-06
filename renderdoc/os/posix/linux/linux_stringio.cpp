@@ -54,7 +54,9 @@ using std::string;
 
 namespace Keyboard
 {
-void Init() {}
+void Init()
+{
+}
 
 bool PlatformHasKeyInput()
 {
@@ -140,7 +142,9 @@ bool GetXlibKeyState(int key)
 
 // if RENDERDOC_WINDOWING_XLIB is not enabled
 
-void CloneDisplay(Display *dpy) {}
+void CloneDisplay(Display *dpy)
+{
+}
 
 bool GetXlibKeyState(int key)
 {
@@ -290,8 +294,7 @@ static void SeatHandleCapabilities(void *data, struct wl_seat *seat, uint32_t ca
 }
 
 static const struct wl_seat_listener SeatListener = {
-    SeatHandleCapabilities,
-    NULL,
+    SeatHandleCapabilities, NULL,
 };
 
 static void RegistryAddObject(void *data, struct wl_registry *registry, uint32_t name,
@@ -320,7 +323,9 @@ void AddWaylandInputWindow(void *wnd)
   wl_registry_add_listener(registry, &RegistryListener, NULL);
 }
 
-void RemoveWaylandInputWindow(void *wnd) {}
+void RemoveWaylandInputWindow(void *wnd)
+{
+}
 
 bool GetWaylandKeyState(int key)
 {
@@ -331,9 +336,13 @@ bool GetWaylandKeyState(int key)
 
 // if RENDERDOC_WINDOWING_WAYLAND is not enabled
 
-void AddWaylandInputWindow(void *wnd) {}
+void AddWaylandInputWindow(void *wnd)
+{
+}
 
-void RemoveWaylandInputWindow(void *wnd) {}
+void RemoveWaylandInputWindow(void *wnd)
+{
+}
 
 bool GetWaylandKeyState(int key)
 {
@@ -347,7 +356,9 @@ void AddInputWindow(void *wnd)
   // TODO check against this drawable & parent window being focused in GetKeyState
 }
 
-void RemoveInputWindow(void *wnd) {}
+void RemoveInputWindow(void *wnd)
+{
+}
 
 bool GetKeyState(int key)
 {
