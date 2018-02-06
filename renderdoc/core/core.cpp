@@ -1131,6 +1131,8 @@ void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
   // the first one we see becomes the default
   if(m_ActiveWindow == DeviceWnd())
     m_ActiveWindow = dw;
+
+  Keyboard::AddInputWindow(wnd);
 }
 
 void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
@@ -1149,6 +1151,7 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
         if(m_WindowFrameCapturers.size() == 1)
         {
           m_ActiveWindow = DeviceWnd();
+          Keyboard::RemoveInputWindow(wnd);
         }
         else
         {
@@ -1157,7 +1160,10 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
           // to second (we know from above there are at least 2)
           if(m_ActiveWindow == newactive->first)
             newactive++;
+
           m_ActiveWindow = newactive->first;
+          Keyboard::RemoveInputWindow(wnd);
+          Keyboard::AddInputWindow(m_ActiveWindow.wnd);
         }
       }
 

@@ -318,6 +318,11 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceWaylandPresentationSupportKHR(
       ->GetPhysicalDeviceWaylandPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy);
 }
 
+namespace Keyboard
+{
+void CloneDisplay(wl_display *dpy);
+}
+
 VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
                                                   const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
                                                   const VkAllocationCallbacks *pAllocator,
@@ -338,6 +343,9 @@ VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
     // since there's no point in allocating a full resource record and storing the window
     // handle under there somewhere, we just cast. We won't use the resource record for anything
     wrapped->record = (VkResourceRecord *)pCreateInfo->surface;
+
+    Keyboard::CloneDisplay(pCreateInfo->display);
+    Keyboard::AddInputWindow(pCreateInfo->surface);
   }
 
   return ret;

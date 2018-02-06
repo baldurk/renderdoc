@@ -264,13 +264,22 @@ static void KeyboardHandleLeave(void *data, wl_keyboard *keyboard, uint32_t seri
 static void KeyboardHandleKey(void *data, wl_keyboard *keyboard, uint32_t serial, uint32_t time,
                               uint32_t key, uint32_t state_w)
 {
+  RDCLOG("Entered KeyboardHandleKey");
+  wl_surface *window = (wl_surface *)data;
+
+  if(!window || !keyboard)
+  {
+    RDCLOG("KeyboardHandleKey - Window empty!");
+    return;
+  }
+
   if(state_w == WL_KEYBOARD_KEY_STATE_PRESSED)
   {
-    printf("Key %c pressed!\n", key);
+    RDCLOG("Key %c pressed!", key);
   }
   else if(state_w == WL_KEYBOARD_KEY_STATE_RELEASED)
   {
-    printf("Key %c released!\n", key);
+    RDCLOG("Key %c released!", key);
   }
 }
 
@@ -280,11 +289,17 @@ static const wl_keyboard_listener KeyboardListener = {
 
 static void SeatHandleCapabilities(void *data, wl_seat *seat, uint32_t caps)
 {
+  RDCLOG("Entered SeatHandleCapabilities");
+  wl_surface *window = (wl_surface *)data;
+
+  if(!window || !seat)
+    return;
+
   if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !CurrentWaylandKeyboard)
   {
     CurrentWaylandKeyboard = wl_seat_get_keyboard(seat);
     /* wl_keyboard_set_user_data(input->keyboard, input); */
-    wl_keyboard_add_listener(CurrentWaylandKeyboard, &KeyboardListener, NULL);
+    wl_keyboard_add_listener(CurrentWaylandKeyboard, &KeyboardListener, window);
   }
   else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && CurrentWaylandKeyboard)
   {
@@ -300,16 +315,30 @@ static const wl_seat_listener SeatListener = {
 static void RegistryAddObject(void *data, wl_registry *registry, uint32_t name,
                               const char *interface, uint32_t version)
 {
+  RDCLOG("Entered RegistryAddObject");
+  wl_surface *window = (wl_surface *)data;
+
+  if(!window || !registry)
+    return;
+
   if(!strcmp(interface, "wl_seat"))
   {
     CurrentWaylandSeat = (wl_seat *)wl_registry_bind(registry, name, &wl_seat_interface, 1);
-    wl_seat_add_listener(CurrentWaylandSeat, &SeatListener, NULL);
+    wl_seat_add_listener(CurrentWaylandSeat, &SeatListener, window);
   }
 }
 
 static const wl_registry_listener RegistryListener = {
     RegistryAddObject,
 };
+
+void CloneDisplay(wl_display *dpy)
+{
+  if(!CurrentWaylandDisplay || dpy == NULL)
+    CurrentWaylandDisplay = wl_display_connect(NULL);
+
+  CurrentWaylandDisplay = wl_display_connect_to_fd(wl_display_get_fd(dpy));
+}
 
 void AddWaylandInputWindow(void *wnd)
 {
@@ -320,11 +349,32 @@ void AddWaylandInputWindow(void *wnd)
     CurrentWaylandDisplay = wl_display_connect(NULL);
 
   wl_registry *registry = wl_display_get_registry(CurrentWaylandDisplay);
-  wl_registry_add_listener(registry, &RegistryListener, NULL);
+  wl_registry_add_listener(registry, &RegistryListener, (wl_surface *)wnd);
+
+  RDCLOG("Added Wayland input window!");
 }
 
 void RemoveWaylandInputWindow(void *wnd)
 {
+  if(CurrentWaylandKeyboard)
+  {
+    wl_keyboard_destroy(CurrentWaylandKeyboard);
+    CurrentWaylandKeyboard = NULL;
+  }
+
+  if(CurrentWaylandSeat)
+  {
+    wl_seat_destroy(CurrentWaylandSeat);
+    CurrentWaylandSeat = NULL;
+  }
+
+  if(CurrentWaylandDisplay)
+  {
+    wl_display_disconnect(CurrentWaylandDisplay);
+    CurrentWaylandDisplay = NULL;
+  }
+
+  RDCLOG("Removed Wayland input window!");
 }
 
 bool GetWaylandKeyState(int key)
@@ -335,6 +385,10 @@ bool GetWaylandKeyState(int key)
 #else
 
 // if RENDERDOC_WINDOWING_WAYLAND is not enabled
+
+void CloneDisplay(wl_display *dpy)
+{
+}
 
 void AddWaylandInputWindow(void *wnd)
 {
@@ -353,16 +407,18 @@ bool GetWaylandKeyState(int key)
 
 void AddInputWindow(void *wnd)
 {
-  // TODO check against this drawable & parent window being focused in GetKeyState
+  // TODO (X11) check against this drawable & parent window being focused in GetKeyState
+  AddWaylandInputWindow(wnd);
 }
 
 void RemoveInputWindow(void *wnd)
 {
+  RemoveWaylandInputWindow(wnd);
 }
 
 bool GetKeyState(int key)
 {
-  return GetXCBKeyState(key) || GetXlibKeyState(key) || GetWaylandKeyState(key);
+  return GetWaylandKeyState(key) || GetXCBKeyState(key) || GetXlibKeyState(key);
 }
 }
 
