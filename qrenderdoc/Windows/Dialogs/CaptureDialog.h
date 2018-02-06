@@ -87,6 +87,8 @@ private slots:
   void on_processFilter_textChanged(const QString &arg1);
   void on_processRefesh_clicked();
 
+  void on_processList_activated(const QModelIndex &index);
+
   void on_saveSettings_clicked();
   void on_loadSettings_clicked();
 

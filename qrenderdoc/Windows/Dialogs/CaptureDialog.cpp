@@ -802,6 +802,11 @@ void CaptureDialog::on_close_clicked()
   ToolWindowManager::closeToolWindow(this);
 }
 
+void CaptureDialog::on_processList_activated(const QModelIndex &index)
+{
+  TriggerCapture();
+}
+
 void CaptureDialog::SetSettings(CaptureSettings settings)
 {
   SetInjectMode(settings.inject);
