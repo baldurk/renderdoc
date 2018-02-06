@@ -81,11 +81,11 @@
 
 #if ENABLED(RDOC_WAYLAND)
 
-#define WINDOW_HANDLE_WAYLAND   \
-  struct                        \
-  {                             \
-    wl_display *display; \
-    wl_surface *surface; \
+#define WINDOW_HANDLE_WAYLAND \
+  struct                      \
+  {                           \
+    wl_display *display;      \
+    wl_surface *surface;      \
   } wayland;
 
 #else
