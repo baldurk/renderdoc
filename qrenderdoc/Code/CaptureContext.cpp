@@ -276,8 +276,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
     m_CurWinSystem = WindowingSystem::Win32;
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 #if defined(RENDERDOC_WINDOWING_WAYLAND)
-    if(QGuiApplication::platformName().startsWith(
-      QLatin1String("wayland"), Qt::CaseInsensitive))
+    if(QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive))
     {
       m_CurWinSystem = WindowingSystem::Wayland;
       m_WaylandDisplay = wl_display_connect(NULL);

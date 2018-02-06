@@ -110,8 +110,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
       m_SupportedWindowSystems.push_back(WindowingSystem::Wayland);
 
       // don't add duplicates
-      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) ==
-         extensionList.end())
+      if(std::find(extensionList.begin(), extensionList.end(),
+                   VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) == extensionList.end())
       {
         extensionList.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
       }
@@ -312,8 +312,7 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 
 VkBool32 WrappedVulkan::vkGetPhysicalDeviceWaylandPresentationSupportKHR(
-    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex,
-    struct wl_display *dpy)
+    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, struct wl_display *dpy)
 {
   return ObjDisp(physicalDevice)
       ->GetPhysicalDeviceWaylandPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy);
@@ -327,8 +326,8 @@ VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
-  VkResult ret =
-      ObjDisp(instance)->CreateWaylandSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+  VkResult ret = ObjDisp(instance)->CreateWaylandSurfaceKHR(Unwrap(instance), pCreateInfo,
+                                                            pAllocator, pSurface);
 
   if(ret == VK_SUCCESS)
   {

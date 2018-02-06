@@ -138,15 +138,13 @@
 
 #endif
 
-#define HookInitInstance_PlatformSpecific() \
-  HookInitInstance_PlatformSpecific_Xcb() \
-  HookInitInstance_PlatformSpecific_Xlib() \
-  HookInitInstance_PlatformSpecific_Wayland()
+#define HookInitInstance_PlatformSpecific()                                        \
+  HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib() \
+      HookInitInstance_PlatformSpecific_Wayland()
 #define HookInitDevice_PlatformSpecific()
-#define HookDefine_PlatformSpecific() \
-  HookDefine_PlatformSpecific_Xcb() \
-  HookDefine_PlatformSpecific_Xlib() \
-  HookDefine_PlatformSpecific_Wayland()
+#define HookDefine_PlatformSpecific()                                  \
+  HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib() \
+      HookDefine_PlatformSpecific_Wayland()
 
 #endif
 

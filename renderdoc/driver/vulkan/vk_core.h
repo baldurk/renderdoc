@@ -34,8 +34,8 @@
 #include "vk_replay.h"
 #include "vk_state.h"
 
-using std::vector;
 using std::list;
+using std::vector;
 
 class VulkanShaderCache;
 class VulkanTextRenderer;
@@ -1503,7 +1503,8 @@ public:
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
   // VK_KHR_wayland_surface
-  VkResult vkCreateWaylandSurfaceKHR(VkInstance instance, const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+  VkResult vkCreateWaylandSurfaceKHR(VkInstance instance,
+                                     const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
                                      const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 
   VkBool32 vkGetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice physicalDevice,

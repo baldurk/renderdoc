@@ -54,9 +54,7 @@ using std::string;
 
 namespace Keyboard
 {
-void Init()
-{
-}
+void Init() {}
 
 bool PlatformHasKeyInput()
 {
@@ -142,9 +140,7 @@ bool GetXlibKeyState(int key)
 
 // if RENDERDOC_WINDOWING_XLIB is not enabled
 
-void CloneDisplay(Display *dpy)
-{
-}
+void CloneDisplay(Display *dpy) {}
 
 bool GetXlibKeyState(int key)
 {
@@ -251,22 +247,18 @@ struct wl_seat *CurrentWaylandSeat = NULL;
 struct wl_display *CurrentWaylandDisplay = NULL;
 struct wl_keyboard *CurrentWaylandKeyboard = NULL;
 
-static void KeyboardHandleEnter(void *data, struct wl_keyboard *keyboard,
-                                uint32_t serial, struct wl_surface *surface,
-                                struct wl_array *keys)
+static void KeyboardHandleEnter(void *data, struct wl_keyboard *keyboard, uint32_t serial,
+                                struct wl_surface *surface, struct wl_array *keys)
 {
-
 }
 
-static void KeyboardHandleLeave(void *data, struct wl_keyboard *keyboard,
-                                uint32_t serial, struct wl_surface *surface)
+static void KeyboardHandleLeave(void *data, struct wl_keyboard *keyboard, uint32_t serial,
+                                struct wl_surface *surface)
 {
-
 }
 
-static void KeyboardHandleKey(void *data, struct wl_keyboard *keyboard,
-                              uint32_t serial, uint32_t time, uint32_t key,
-                              uint32_t state_w)
+static void KeyboardHandleKey(void *data, struct wl_keyboard *keyboard, uint32_t serial,
+                              uint32_t time, uint32_t key, uint32_t state_w)
 {
   if(state_w == WL_KEYBOARD_KEY_STATE_PRESSED)
   {
@@ -279,16 +271,10 @@ static void KeyboardHandleKey(void *data, struct wl_keyboard *keyboard,
 }
 
 static const struct wl_keyboard_listener KeyboardListener = {
-  NULL,
-  KeyboardHandleEnter,
-  KeyboardHandleLeave,
-  KeyboardHandleKey,
-  NULL,
-  NULL,
+    NULL, KeyboardHandleEnter, KeyboardHandleLeave, KeyboardHandleKey, NULL, NULL,
 };
 
-static void SeatHandleCapabilities(void *data, struct wl_seat *seat,
-                                   uint32_t caps)
+static void SeatHandleCapabilities(void *data, struct wl_seat *seat, uint32_t caps)
 {
   if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !CurrentWaylandKeyboard)
   {
@@ -304,40 +290,37 @@ static void SeatHandleCapabilities(void *data, struct wl_seat *seat,
 }
 
 static const struct wl_seat_listener SeatListener = {
-  SeatHandleCapabilities,
-  NULL,
+    SeatHandleCapabilities,
+    NULL,
 };
 
-static void RegistryAddObject(void *data, struct wl_registry *registry,
-                              uint32_t name, const char *interface,
-                              uint32_t version)
+static void RegistryAddObject(void *data, struct wl_registry *registry, uint32_t name,
+                              const char *interface, uint32_t version)
 {
-  if(!strcmp(interface,"wl_seat"))
+  if(!strcmp(interface, "wl_seat"))
   {
-    CurrentWaylandSeat = (struct wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
+    CurrentWaylandSeat = (struct wl_seat *)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     wl_seat_add_listener(CurrentWaylandSeat, &SeatListener, NULL);
   }
 }
 
 static const struct wl_registry_listener RegistryListener = {
-  RegistryAddObject,
+    RegistryAddObject,
 };
 
 void AddWaylandInputWindow(void *wnd)
 {
-  if (wnd == NULL)
+  if(wnd == NULL)
     return;
 
-  if (!CurrentWaylandDisplay)
+  if(!CurrentWaylandDisplay)
     CurrentWaylandDisplay = wl_display_connect(NULL);
 
   struct wl_registry *registry = wl_display_get_registry(CurrentWaylandDisplay);
   wl_registry_add_listener(registry, &RegistryListener, NULL);
 }
 
-void RemoveWaylandInputWindow(void *wnd)
-{
-}
+void RemoveWaylandInputWindow(void *wnd) {}
 
 bool GetWaylandKeyState(int key)
 {
@@ -348,13 +331,9 @@ bool GetWaylandKeyState(int key)
 
 // if RENDERDOC_WINDOWING_WAYLAND is not enabled
 
-void AddWaylandInputWindow(void *wnd)
-{
-}
+void AddWaylandInputWindow(void *wnd) {}
 
-void RemoveWaylandInputWindow(void *wnd)
-{
-}
+void RemoveWaylandInputWindow(void *wnd) {}
 
 bool GetWaylandKeyState(int key)
 {
@@ -368,9 +347,7 @@ void AddInputWindow(void *wnd)
   // TODO check against this drawable & parent window being focused in GetKeyState
 }
 
-void RemoveInputWindow(void *wnd)
-{
-}
+void RemoveInputWindow(void *wnd) {}
 
 bool GetKeyState(int key)
 {
