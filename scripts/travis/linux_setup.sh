@@ -6,7 +6,7 @@ sudo add-apt-repository -y 'ppa:beineri/opt-qt562-trusty'
 sudo add-apt-repository -y 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.8 main'
 wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
 sudo apt-get update -qq 
-sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt56base qt56svg qt56x11extras libxcb-keysyms1-dev libwayland-dev gdb clang-format-3.8 g++-6
+sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt56base qt56svg qt56x11extras libxcb-keysyms1-dev gdb clang-format-3.8 g++-6
 
 # check formatting matches clang-format-3.8. Since newer versions can have
 # changes in formatting even without any rule changes, we have to fix on a
