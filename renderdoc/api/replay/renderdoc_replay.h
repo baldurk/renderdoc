@@ -432,7 +432,8 @@ inline const WindowingData CreateAndroidWindowingData(ANativeWindow *window)
 
 DOCUMENT(R"(Create a :class:`WindowingData` for a Wayland ``wl_surface`` handle.
 
-:param ANativeWindow window: The native ``wl_surface`` handle for this window.
+:param struct wl_display *display: The native ``wl_display`` connection used for this window.
+:param struct wl_surface *window: The native ``wl_surface`` handle for this window.
 :return: A :class:`WindowingData` corresponding to the given window.
 :rtype: WindowingData
 )");
