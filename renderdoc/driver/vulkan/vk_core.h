@@ -1501,6 +1501,16 @@ public:
 
 #endif
 
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+  // VK_KHR_wayland_surface
+  VkResult vkCreateWaylandSurfaceKHR(VkInstance instance, const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+                                     const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
+
+  VkBool32 vkGetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                            uint32_t queueFamilyIndex,
+                                                            struct wl_display *dpy);
+#endif
+
   // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
   // wecan just compile them in on all platforms to reduce platform-specific code. They are mostly
   // only actually used though on *nix.

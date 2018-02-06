@@ -103,6 +103,21 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     }
 #endif
 
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    // check if supported
+    if(supportedExtensions.find(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      m_SupportedWindowSystems.push_back(WindowingSystem::Wayland);
+
+      // don't add duplicates
+      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) ==
+         extensionList.end())
+      {
+        extensionList.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+      }
+    }
+#endif
+
 #if EXPECT_WSI
     // we must have VK_KHR_surface to support WSI at all
     if(supportedExtensions.find(VK_KHR_SURFACE_EXTENSION_NAME) == supportedExtensions.end())
@@ -134,6 +149,11 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
       RDCWARN("XLib Output requires the '%s' extension to be present",
               VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#endif
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+      RDCWARN("Wayland Output requires the '%s' extension to be present",
+              VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
     }
 
@@ -261,6 +281,7 @@ VkResult WrappedVulkan::vkGetRandROutputDisplayEXT(VkPhysicalDevice physicalDevi
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
+
 VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
                                                   const VkAndroidSurfaceCreateInfoKHR *pCreateInfo,
                                                   const VkAllocationCallbacks *pAllocator,
@@ -285,4 +306,42 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
 
   return ret;
 }
+
+#endif
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+
+VkBool32 WrappedVulkan::vkGetPhysicalDeviceWaylandPresentationSupportKHR(
+    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex,
+    struct wl_display *dpy)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceWaylandPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy);
+}
+
+VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
+                                                  const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+                                                  const VkAllocationCallbacks *pAllocator,
+                                                  VkSurfaceKHR *pSurface)
+{
+  // should not come in here at all on replay
+  RDCASSERT(IsCaptureMode(m_State));
+
+  VkResult ret =
+      ObjDisp(instance)->CreateWaylandSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+
+  if(ret == VK_SUCCESS)
+  {
+    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+    // since there's no point in allocating a full resource record and storing the window
+    // handle under there somewhere, we just cast. We won't use the resource record for anything
+    wrapped->record = (VkResourceRecord *)pCreateInfo->surface;
+  }
+
+  return ret;
+}
+
 #endif

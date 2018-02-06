@@ -81,6 +81,10 @@ elseif(UNIX)
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     endif()
 
+    if(ENABLE_WAYLAND)
+        add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
+    endif()
+
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
     set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
     add_custom_command(OUTPUT ${json_out}

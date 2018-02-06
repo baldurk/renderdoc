@@ -53,6 +53,15 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   }
 #endif
 
+#if ENABLED(RDOC_WAYLAND)
+  if(window.system == WindowingSystem::Wayland)
+  {
+    wayland.display = window.wayland.display;
+    wayland.surface = window.wayland.surface;
+    return;
+  }
+#endif
+
   RDCERR("Unrecognised/unsupported window system %d", window.system);
 }
 
@@ -88,6 +97,24 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
     createInfo.window = xcb.window;
 
     VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    return;
+  }
+#endif
+
+#if ENABLED(RDOC_WAYLAND)
+  if(m_WindowSystem == WindowingSystem::Wayland)
+  {
+    VkWaylandSurfaceCreateInfoKHR createInfo;
+
+    createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.display = wayland.display;
+    createInfo.surface = wayland.surface;
+
+    VkResult vkr = ObjDisp(inst)->CreateWaylandSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     return;

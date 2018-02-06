@@ -48,6 +48,16 @@ elseif(UNIX)
         list(APPEND RDOC_LIBRARIES
             PRIVATE -l${XCB_LIBRARIES})
     endif()
+
+    if(ENABLE_WAYLAND)
+        find_package(Wayland REQUIRED)
+
+        list(APPEND RDOC_INCLUDES
+            PRIVATE ${WAYLAND_INCLUDE_DIR})
+
+        list(APPEND RDOC_LIBRARIES
+            PRIVATE ${WAYLAND_LIBRARIES})
+    endif()
 endif()
 
 if(NOT "x${CMAKE_THREAD_LIBS_INIT}" STREQUAL "x")
