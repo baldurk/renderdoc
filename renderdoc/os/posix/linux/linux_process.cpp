@@ -27,7 +27,7 @@
 
 extern char **environ;
 
-#define INITIAL_WAIT_TIME 1000
+#define INITIAL_WAIT_TIME 1
 #define MAX_WAIT_TIME 128000
 
 char **GetCurrentEnvironment()
