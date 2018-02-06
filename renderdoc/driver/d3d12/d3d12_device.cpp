@@ -284,7 +284,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     RDCDEBUG("Couldn't get ID3D12InfoQueue.");
   }
 
-  m_InitParams = *params;
+  if(params)
+    m_InitParams = *params;
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()
@@ -2556,6 +2557,11 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
+
+      if(IsStructuredExporting(m_State))
+      {
+        m_Queue = new WrappedID3D12CommandQueue(NULL, this, m_State);
+      }
 
       m_Queue->SetFrameReader(new StreamReader(reader, frameDataSize));
 

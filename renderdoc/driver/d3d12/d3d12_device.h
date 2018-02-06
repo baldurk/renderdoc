@@ -416,6 +416,7 @@ public:
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
   }
+  CaptureState GetState() { return m_State; }
   D3D12Replay *GetReplay() { return &m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }

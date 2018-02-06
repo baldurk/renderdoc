@@ -289,6 +289,8 @@ template <typename SerialiserType>
 bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId resid,
                                                   ID3D12DeviceChild *liveRes)
 {
+  m_State = m_Device->GetState();
+
   D3D12ResourceRecord *record = NULL;
   D3D12InitialContents initContents;
   if(ser.IsWriting())
