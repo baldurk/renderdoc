@@ -1009,7 +1009,7 @@ void TextureViewer::UI_UpdateTextureDetails()
     ui->renderContainer->setWindowTitle(title);
   }
 
-  status = m_Ctx.GetResourceName(followID) + lit(" - ");
+  status = m_Ctx.GetResourceName(current.resourceId) + lit(" - ");
 
   if(current.dimension >= 1)
     status += QString::number(current.width);
