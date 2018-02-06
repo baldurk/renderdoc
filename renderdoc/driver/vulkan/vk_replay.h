@@ -84,8 +84,8 @@
 #define WINDOW_HANDLE_WAYLAND   \
   struct                        \
   {                             \
-    struct wl_display *display; \
-    struct wl_surface *surface; \
+    wl_display *display; \
+    wl_surface *surface; \
   } wayland;
 
 #else

@@ -312,7 +312,7 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 
 VkBool32 WrappedVulkan::vkGetPhysicalDeviceWaylandPresentationSupportKHR(
-    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, struct wl_display *dpy)
+    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, wl_display *dpy)
 {
   return ObjDisp(physicalDevice)
       ->GetPhysicalDeviceWaylandPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy);

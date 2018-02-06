@@ -247,21 +247,21 @@ bool GetXCBKeyState(int key)
 
 #if ENABLED(RDOC_WAYLAND)
 
-struct wl_seat *CurrentWaylandSeat = NULL;
-struct wl_display *CurrentWaylandDisplay = NULL;
-struct wl_keyboard *CurrentWaylandKeyboard = NULL;
+wl_seat *CurrentWaylandSeat = NULL;
+wl_display *CurrentWaylandDisplay = NULL;
+wl_keyboard *CurrentWaylandKeyboard = NULL;
 
-static void KeyboardHandleEnter(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-                                struct wl_surface *surface, struct wl_array *keys)
+static void KeyboardHandleEnter(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                wl_surface *surface, wl_array *keys)
 {
 }
 
-static void KeyboardHandleLeave(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-                                struct wl_surface *surface)
+static void KeyboardHandleLeave(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                wl_surface *surface)
 {
 }
 
-static void KeyboardHandleKey(void *data, struct wl_keyboard *keyboard, uint32_t serial,
+static void KeyboardHandleKey(void *data, wl_keyboard *keyboard, uint32_t serial,
                               uint32_t time, uint32_t key, uint32_t state_w)
 {
   if(state_w == WL_KEYBOARD_KEY_STATE_PRESSED)
@@ -274,11 +274,11 @@ static void KeyboardHandleKey(void *data, struct wl_keyboard *keyboard, uint32_t
   }
 }
 
-static const struct wl_keyboard_listener KeyboardListener = {
+static const wl_keyboard_listener KeyboardListener = {
     NULL, KeyboardHandleEnter, KeyboardHandleLeave, KeyboardHandleKey, NULL, NULL,
 };
 
-static void SeatHandleCapabilities(void *data, struct wl_seat *seat, uint32_t caps)
+static void SeatHandleCapabilities(void *data, wl_seat *seat, uint32_t caps)
 {
   if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !CurrentWaylandKeyboard)
   {
@@ -293,21 +293,21 @@ static void SeatHandleCapabilities(void *data, struct wl_seat *seat, uint32_t ca
   }
 }
 
-static const struct wl_seat_listener SeatListener = {
+static const wl_seat_listener SeatListener = {
     SeatHandleCapabilities, NULL,
 };
 
-static void RegistryAddObject(void *data, struct wl_registry *registry, uint32_t name,
+static void RegistryAddObject(void *data, wl_registry *registry, uint32_t name,
                               const char *interface, uint32_t version)
 {
   if(!strcmp(interface, "wl_seat"))
   {
-    CurrentWaylandSeat = (struct wl_seat *)wl_registry_bind(registry, name, &wl_seat_interface, 1);
+    CurrentWaylandSeat = (wl_seat *)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     wl_seat_add_listener(CurrentWaylandSeat, &SeatListener, NULL);
   }
 }
 
-static const struct wl_registry_listener RegistryListener = {
+static const wl_registry_listener RegistryListener = {
     RegistryAddObject,
 };
 
@@ -319,7 +319,7 @@ void AddWaylandInputWindow(void *wnd)
   if(!CurrentWaylandDisplay)
     CurrentWaylandDisplay = wl_display_connect(NULL);
 
-  struct wl_registry *registry = wl_display_get_registry(CurrentWaylandDisplay);
+  wl_registry *registry = wl_display_get_registry(CurrentWaylandDisplay);
   wl_registry_add_listener(registry, &RegistryListener, NULL);
 }
 

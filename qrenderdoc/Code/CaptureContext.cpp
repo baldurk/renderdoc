@@ -1272,7 +1272,7 @@ WindowingData CaptureContext::CreateWindowingData(uintptr_t widget)
 
 #if defined(RENDERDOC_WINDOWING_WAYLAND)
   if(m_CurWinSystem == WindowingSystem::Wayland)
-    return CreateWaylandWindowingData(m_WaylandDisplay, (struct wl_surface *)widget);
+    return CreateWaylandWindowingData(m_WaylandDisplay, (wl_surface *)widget);
 #endif
 #if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
   if(m_CurWinSystem == WindowingSystem::XCB)

@@ -352,8 +352,8 @@ struct WindowingData
 
     struct
     {
-      struct wl_display *display;
-      struct wl_surface *surface;
+      wl_display *display;
+      wl_surface *surface;
     } wayland;
   };
 };
@@ -432,13 +432,12 @@ inline const WindowingData CreateAndroidWindowingData(ANativeWindow *window)
 
 DOCUMENT(R"(Create a :class:`WindowingData` for a Wayland ``wl_surface`` handle.
 
-:param struct wl_display *display: The native ``wl_display`` connection used for this window.
-:param struct wl_surface *window: The native ``wl_surface`` handle for this window.
+:param wl_display display: The native ``wl_display`` connection used for this window.
+:param wl_surface surface: The native ``wl_surface`` handle for this window.
 :return: A :class:`WindowingData` corresponding to the given window.
 :rtype: WindowingData
 )");
-inline const WindowingData CreateWaylandWindowingData(struct wl_display *display,
-                                                      struct wl_surface *surface)
+inline const WindowingData CreateWaylandWindowingData(wl_display *display, wl_surface *surface)
 {
   WindowingData ret = {};
 

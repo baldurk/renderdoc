@@ -129,7 +129,7 @@
               const VkWaylandSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);                                             \
   HookDefine3(VkBool32, vkGetPhysicalDeviceWaylandPresentationSupportKHR, VkPhysicalDevice,      \
-              physicalDevice, uint32_t, queueFamilyIndex, struct wl_display *, dpy);
+              physicalDevice, uint32_t, queueFamilyIndex, wl_display *, dpy);
 
 #else
 

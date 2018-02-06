@@ -348,7 +348,7 @@ private:
   Display *m_X11Display = NULL;
 #endif
 #if defined(RENDERDOC_WINDOWING_WAYLAND)
-  struct wl_display *m_WaylandDisplay = NULL;
+  wl_display *m_WaylandDisplay = NULL;
 #endif
 #endif
 

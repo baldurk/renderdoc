@@ -1509,7 +1509,7 @@ public:
 
   VkBool32 vkGetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice physicalDevice,
                                                             uint32_t queueFamilyIndex,
-                                                            struct wl_display *dpy);
+                                                            wl_display *dpy);
 #endif
 
   // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
