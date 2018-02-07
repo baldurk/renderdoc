@@ -458,7 +458,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList)
 {
-  std::string adbStdout = Android::adbExecCommand("", "devices").strStdout;
+  std::string adbStdout = Android::adbExecCommand("", "devices", ".", true).strStdout;
 
   int idx = 0;
 

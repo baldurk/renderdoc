@@ -32,9 +32,9 @@
 namespace Android
 {
 Process::ProcessResult execScript(const string &script, const string &args,
-                                  const string &workDir = ".");
+                                  const string &workDir = ".", bool silent = false);
 Process::ProcessResult execCommand(const string &exe, const string &args,
-                                   const string &workDir = ".");
+                                   const string &workDir = ".", bool silent = false);
 
 enum class ToolDir
 {

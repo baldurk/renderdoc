@@ -267,25 +267,27 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   return toolname;
 }
 Process::ProcessResult execScript(const std::string &script, const std::string &args,
-                                  const std::string &workDir)
+                                  const std::string &workDir, bool silent)
 {
-  RDCLOG("SCRIPT: %s", script.c_str());
+  if(!silent)
+    RDCLOG("SCRIPT: %s", script.c_str());
 
   Process::ProcessResult result;
   Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), true, &result);
   return result;
 }
 Process::ProcessResult execCommand(const std::string &exe, const std::string &args,
-                                   const std::string &workDir)
+                                   const std::string &workDir, bool silent)
 {
-  RDCLOG("COMMAND: %s '%s'", exe.c_str(), args.c_str());
+  if(!silent)
+    RDCLOG("COMMAND: %s '%s'", exe.c_str(), args.c_str());
 
   Process::ProcessResult result;
   Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), true, &result);
   return result;
 }
 Process::ProcessResult adbExecCommand(const std::string &device, const std::string &args,
-                                      const std::string &workDir)
+                                      const std::string &workDir, bool silent)
 {
   std::string adb = getToolPath(ToolDir::PlatformTools, "adb", false);
   Process::ProcessResult result;
@@ -294,6 +296,6 @@ Process::ProcessResult adbExecCommand(const std::string &device, const std::stri
     deviceArgs = args;
   else
     deviceArgs = StringFormat::Fmt("-s %s %s", device.c_str(), args.c_str());
-  return execCommand(adb, deviceArgs, workDir);
+  return execCommand(adb, deviceArgs, workDir, silent);
 }
 };
