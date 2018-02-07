@@ -95,7 +95,7 @@ private slots:
   // android
   void on_browseTempCaptureDirectory_clicked();
   void on_browseAndroidSDKPath_clicked();
-  void on_browseAndroidJDKPath_clicked();
+  void on_browseJDKPath_clicked();
   void on_Android_MaxConnectTimeout_valueChanged(double timeout);
   void on_Android_SDKPath_textEdited(const QString &path);
   void on_Android_JDKPath_textEdited(const QString &path);

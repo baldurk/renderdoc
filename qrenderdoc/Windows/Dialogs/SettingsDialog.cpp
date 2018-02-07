@@ -682,7 +682,7 @@ void SettingsDialog::on_Android_SDKPath_textEdited(const QString &adb)
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_browseAndroidJDKPath_clicked()
+void SettingsDialog::on_browseJDKPath_clicked()
 {
   QString adb =
       RDDialog::getExistingDirectory(this, tr("Locate JDK root folder (containing bin, jre, lib)"),
