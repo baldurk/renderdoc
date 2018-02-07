@@ -53,6 +53,7 @@ private slots:
   void on_uploadCancel_clicked();
   void on_uploadRetry_clicked();
   void on_buttonBox_accepted();
+  void on_captureFilename_linkActivated(const QString &link);
 
 private:
   void showEvent(QShowEvent *) override;

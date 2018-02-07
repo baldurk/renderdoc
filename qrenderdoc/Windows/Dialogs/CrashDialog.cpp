@@ -32,6 +32,7 @@
 #include <QLabel>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QSslSocket>
 #include <QString>
 #include <QUrlQuery>
 #include "Code/QRDUtils.h"
@@ -65,7 +66,10 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
   if(replayCrash && capInfo.exists())
   {
     // if we have a previous capture, fill out the capture group
-    ui->captureFilename->setText(capInfo.fileName());
+    ui->captureFilename->setTextFormat(Qt::RichText);
+    ui->captureFilename->setText(lit("<a href=\"file://%1\">%2</a>")
+                                     .arg(QUrl::fromLocalFile(capInfo.absoluteFilePath()).toString())
+                                     .arg(capInfo.fileName()));
 
     // hide the preview until we have a successful thumbnail
     ui->capturePreviewFrame->hide();
@@ -116,6 +120,44 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
              "reporter</a> and <a href=\"" BUGREPORT_URL
              "/privacy\">privacy statement</a> "
              "for submissions.");
+
+  if(!QSslSocket::supportsSsl())
+  {
+    ui->send->setEnabled(false);
+    ui->description->setEnabled(false);
+    ui->captureUpload->setEnabled(false);
+    ui->rememberEmail->setEnabled(false);
+    ui->email->setEnabled(false);
+
+    text = tr(
+        "<p>RenderDoc encountered a serious problem. "
+        "Unfortunately something went wrong while initialising the bug reporter as Qt was unable "
+        "to load SSL support at runtime.</p>");
+
+    text +=
+        tr("<p>Due to legal reasons only official builds can be distributed with the OpenSSL "
+           "libraries needed for SSL support. "
+           "If you are building locally, check that ");
+
+#if defined(Q_OS_WIN32)
+    text += tr("you have libeay32.dll and ssleay32.dll available next to qrenderdoc.exe.");
+#else
+    text += tr("you have the runtime libopenssl library >= 1.0.0 available in your system.");
+#endif
+
+    text += lit("</p>");
+
+    text += tr("<p>There is no non-secure bug reporting system available so unfortunately we can't "
+               "proceed. If you'd like to send in the capture directly you can "
+               "<a href=\"mailto:baldurk@baldurk.org\">email it to me</a> attaching "
+               "<a href=\"%1\">this report</a> ")
+                .arg(QUrl::fromLocalFile(m_ReportPath).toString());
+
+    if(ui->captureFilename->isVisible())
+      text += tr(" and if you'd like, the capture linked below.");
+
+    text += lit("</p>");
+  }
 
   ui->reportText->setTextFormat(Qt::RichText);
   ui->reportText->setText(text);
@@ -421,4 +463,10 @@ void CrashDialog::on_buttonBox_accepted()
   }
 
   accept();
+}
+
+void CrashDialog::on_captureFilename_linkActivated(const QString &link)
+{
+  if(QFileInfo::exists(m_CaptureFilename))
+    RevealFilenameInExternalFileBrowser(m_CaptureFilename);
 }
