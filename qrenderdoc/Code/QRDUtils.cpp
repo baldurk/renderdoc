@@ -25,7 +25,7 @@
 #include "QRDUtils.h"
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
-#include <QElapsedTimer>
+#include <QDesktopServices>
 #include <QElapsedTimer>
 #include <QFileSystemModel>
 #include <QFontDatabase>
@@ -1422,6 +1422,19 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
               << "Please run " << fullExecutablePath << "with args" << params << "manually.";
 
   return false;
+#endif
+}
+
+void RevealFilenameInExternalFileBrowser(const QString &filePath)
+{
+#if defined(Q_OS_WIN32)
+  // on windows we can ask explorer to highlight the exact file.
+  QProcess::startDetached(lit("explorer.exe"), QStringList() << lit("/select,")
+                                                             << QDir::toNativeSeparators(filePath));
+#else
+  // on all other platforms, we just use QDesktopServices to invoke the external file browser on the
+  // directory and hope that's close enough.
+  QDesktopServices::openUrl(QFileInfo(filePath).absoluteDir().absolutePath());
 #endif
 }
 

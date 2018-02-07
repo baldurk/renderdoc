@@ -526,6 +526,8 @@ bool IsRunningAsAdmin();
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
                        std::function<void()> finishedCallback = std::function<void()>());
 
+void RevealFilenameInExternalFileBrowser(const QString &filePath);
+
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update = ProgressUpdateMethod());
 
