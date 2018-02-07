@@ -94,6 +94,17 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
     }
 
     cap->Shutdown();
+
+    if(capInfo.size() > 2250ULL * 1024ULL * 1024ULL)
+    {
+      // capture is too large to upload :(
+      ui->captureFilename->setText(
+          tr("%1 is too large for upload (%2 MB).").arg(capInfo.fileName()).arg(capInfo.size() >> 20));
+      ui->captureUpload->setChecked(false);
+      ui->captureUpload->setEnabled(false);
+
+      ui->capturePreviewFrame->hide();
+    }
   }
   else
   {
