@@ -731,6 +731,14 @@ bool LiveCapture::saveCapture(Capture *cap)
 {
   QString path = m_Main->GetSavePath();
 
+  if(QString(m_Ctx.GetCaptureFilename()) == path)
+  {
+    RDDialog::critical(this, tr("Cannot save"), tr("Can't overwrite currently open capture at %1\n"
+                                                   "Close the capture or save to another location.")
+                                                    .arg(path));
+    return false;
+  }
+
   // we copy the temp capture to the desired path, but the capture item remains referring to the
   // temp path.
   // This ensures that if the user deletes the saved path we can still open or re-save it.
