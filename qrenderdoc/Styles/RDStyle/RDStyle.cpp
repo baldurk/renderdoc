@@ -202,7 +202,7 @@ void RDStyle::polish(QPalette &pal)
   pal.setColor(QPalette::HighlightedText, Qt::white);
 
   // links are based on the highlight colour
-  QColor link = highlight.lighter(105);
+  QColor link = m_Scheme == Light ? highlight.darker(125) : highlight.lighter(105);
   pal.setColor(QPalette::Link, link);
 
   // visited links are desaturated
