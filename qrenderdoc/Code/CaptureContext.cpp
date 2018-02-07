@@ -138,7 +138,10 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
   m_LoadInProgress = true;
 
   if(local)
+  {
     m_Config.CrashReport_LastOpenedCapture = origFilename;
+    m_Config.Save();
+  }
 
   bool newCapture = (!temporary && !Config().RecentCaptureFiles.contains(origFilename));
 
