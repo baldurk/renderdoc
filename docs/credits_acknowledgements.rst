@@ -120,6 +120,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to support interceptor-lib to inject hooks into android library functions.
 
+* `OpenSSL <https://www.openssl.org/>`_ - Copyright (c) 1998-2018 The OpenSSL Project. Copyright (C) 1995-1998 Eric Young. Distributed under the double license of the OpenSSL and SSLeay licenses.
+
+  Used to connect securely to RenderDoc's servers for update checks and bug reports.
+
 Thanks
 ------
 
