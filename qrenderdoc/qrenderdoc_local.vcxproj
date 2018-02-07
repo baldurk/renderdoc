@@ -1680,6 +1680,16 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\libeay32.dll" Condition="Exists('$(ProjectDir)3rdparty\qt\$(Platform)\bin\libeay32.dll')">
+      <Link>libeay32.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\ssleay32.dll" Condition="Exists('$(ProjectDir)3rdparty\qt\$(Platform)\bin\ssleay32.dll')">
+      <Link>ssleay32.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
     <Content Include="3rdparty\qt\$(Platform)\plugins\platforms\qwindowsd.dll" Condition="$(Configuration)==QTDebug">
       <Link>qtplugins\platforms\qwindowsd.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
