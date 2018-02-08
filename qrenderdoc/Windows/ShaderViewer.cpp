@@ -297,7 +297,6 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   if(!shader || !bind)
     m_Trace = NULL;
-  updateWindowTitle();
 
   if(shader)
   {
@@ -338,6 +337,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       });
     });
   }
+
+  updateWindowTitle();
 
   // we always want to highlight words/registers
   QObject::connect(m_DisassemblyView, &ScintillaEdit::buttonReleased, this,
