@@ -148,6 +148,11 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
       adbExecCommand(deviceID, "shell ls " + installedPath + "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
           .strStdout);
 
+  // some versions of adb/android return the error message on stdout, so try to detect those and
+  // clear the output.
+  if(RDCLib.size() < installedPath.size() || RDCLib.substr(0, installedPath.size()) != installedPath)
+    RDCLib.clear();
+
   bool injectLibraries = true;
 
   if(RDCLib.empty())
