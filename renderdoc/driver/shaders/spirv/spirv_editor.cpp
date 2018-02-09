@@ -139,65 +139,165 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   // [4] is reserved
   RDCASSERT(spirv[4] == 0);
 
+  // simple state machine to track which section we're in.
+  // Note that a couple of sections are optional and could be skipped over, at which point we insert
+  // a dummy OpNop so they're not empty (which will be stripped later) and record them as in
+  // between.
+  enum class SectionState
+  {
+    Preamble,          // OpCapability, OpExtension, anything before OpEntryPoint
+    EntryPoints,       // REQUIRED: OpEntryPoint
+    ExecutionMode,     // OpExecutionMode
+    Debug,             // OPTIONAL: debug instructions (OpString, OpSource*, Op*Name, etc)
+    Decoration,        // OPTIONAL (technically): Op*Decorate*
+    TypeVar,           // REQUIRED: OpType*, OpVariable
+    FunctionBodies,    // REQUIRED: OpFunction*
+  } section;
+
+  section = SectionState::Preamble;
+
   for(SPIRVIterator it(spirv, FirstRealWord); it; it++)
   {
     spv::Op opcode = it.opcode();
 
     if(opcode == spv::OpEntryPoint)
     {
-      // first entry point marks the start of this section
-      if(entryPointSection.startOffset == 0)
+      if(section != SectionState::Preamble && section != SectionState::EntryPoints)
+        RDCERR("Unexpected current section when encountering OpEntryPoint: %d", section);
+
+      if(section != SectionState::EntryPoints)
         entryPointSection.startOffset = it.offset;
+
+      section = SectionState::EntryPoints;
     }
-    else
+    else if(opcode == spv::OpExecutionMode)
     {
-      // once we found the start of this section, the first non-entrypoint instruction marks the end
-      if(entryPointSection.startOffset && entryPointSection.endOffset == 0)
+      if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode)
+        RDCERR("Unexpected current section when encountering OpExecutionMode: %d", section);
+
+      if(section == SectionState::EntryPoints)
         entryPointSection.endOffset = it.offset;
+
+      section = SectionState::ExecutionMode;
     }
-
-    // apart from OpExecutionMode, the first instruction after the entry points is the debug section
-    if(opcode != spv::OpExecutionMode && entryPointSection.endOffset && debugSection.startOffset == 0)
-      debugSection.startOffset = it.offset;
-
-    if(opcode == spv::OpDecorate || opcode == spv::OpMemberDecorate ||
-       opcode == spv::OpGroupDecorate || opcode == spv::OpGroupMemberDecorate ||
-       opcode == spv::OpDecorationGroup)
+    else if(opcode == spv::OpString || opcode == spv::OpSource || opcode == spv::OpSourceContinued ||
+            opcode == spv::OpSourceExtension || opcode == spv::OpName || opcode == spv::OpMemberName)
     {
-      // when we hit the first decoration, this is the end of the debug section and the start of the
-      // annotation section
-      if(decorationSection.startOffset == 0)
+      if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode &&
+         section != SectionState::Debug)
+        RDCERR("Unexpected current section when encountering debug instruction %s: %d",
+               ToStr(opcode).c_str(), section);
+
+      if(section == SectionState::EntryPoints)
+        entryPointSection.endOffset = it.offset;
+
+      if(section != SectionState::Debug)
+        debugSection.startOffset = it.offset;
+
+      section = SectionState::Debug;
+    }
+    else if(opcode == spv::OpDecorate || opcode == spv::OpMemberDecorate ||
+            opcode == spv::OpGroupDecorate || opcode == spv::OpGroupMemberDecorate ||
+            opcode == spv::OpDecorationGroup)
+    {
+      if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode &&
+         section != SectionState::Debug && section != SectionState::Decoration)
+        RDCERR("Unexpected current section when encountering decoration instruction %s: %d",
+               ToStr(opcode).c_str(), section);
+
+      if(section == SectionState::EntryPoints)
+        entryPointSection.endOffset = it.offset;
+
+      if(section == SectionState::Debug)
       {
         debugSection.endOffset = it.offset;
-        decorationSection.startOffset = it.offset;
       }
+      else if(section != SectionState::Decoration)
+      {
+        // coming from some other section that isn't debug, insert a dummy debug section
+        RDCDEBUG("Debug section is empty, inserting OpNop which will later be stripped");
+        spirv.insert(spirv.begin() + it.offset, SPV_NOP);
+
+        debugSection.startOffset = it.offset;
+        it.offset++;
+        debugSection.endOffset = it.offset;
+      }
+
+      if(section != SectionState::Decoration)
+        decorationSection.startOffset = it.offset;
+
+      section = SectionState::Decoration;
+    }
+    else if(opcode == spv::OpFunction)
+    {
+      if(section != SectionState::TypeVar)
+        RDCERR("Unexpected current section when encountering OpFunction: %d", section);
+
+      // we've now met the function bodies
+      section = SectionState::FunctionBodies;
+
+      typeVarSection.endOffset = it.offset;
+
+      if(typeVarSection.startOffset == typeVarSection.endOffset || typeVarSection.startOffset == 0)
+        RDCERR("No types found in this shader! There should be at least one for the entry point");
     }
     else
     {
-      // when we stop seeing decoration instructions, this is the end of that section and the start
-      // of the types section
-      if(decorationSection.startOffset && decorationSection.endOffset == 0)
+      // if we've reached another instruction, ignore it if we've reached the function bodies. Also
+      // ignore during preamble
+      if(section != SectionState::FunctionBodies && section != SectionState::Preamble)
       {
-        decorationSection.endOffset = it.offset;
-        typeVarSection.startOffset = it.offset;
-      }
-    }
+        // if it's an instruction not covered above, and we haven't hit the functions, it's a
+        // type/variable/constant instruction.
+        if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode &&
+           section != SectionState::Debug && section != SectionState::Decoration &&
+           section != SectionState::TypeVar)
+          RDCERR("Unexpected current section when encountering type/variable instruction %s: %d",
+                 ToStr(opcode).c_str(), section);
 
-    if(opcode == spv::OpFunction)
-    {
-      // if we don't have the end of the types/variables section, this is it
-      if(typeVarSection.endOffset == 0)
-      {
-        typeVarSection.endOffset = it.offset;
+        if(section == SectionState::EntryPoints)
+          entryPointSection.endOffset = it.offset;
 
-        // we must have started the debug section, but if there were no annotations at all, we won't
-        // have ended it. In that case, end the debug section (which might be empty) and mark the
-        // annotation section as empty.
-        if(debugSection.endOffset == 0)
+        if(section == SectionState::Decoration)
+        {
+          // if we're coming from decoration, all is well. We inserted a dummy debug section if
+          // needed above before starting it.
+          decorationSection.endOffset = it.offset;
+        }
+        else if(section == SectionState::Debug)
         {
           debugSection.endOffset = it.offset;
-          decorationSection.startOffset = decorationSection.endOffset = it.offset;
+
+          // if we're coming straight from debug, we need to insert a dummy decoration section
+          RDCDEBUG("Decoration section is empty, inserting OpNop which will later be stripped");
+          spirv.insert(spirv.begin() + it.offset, SPV_NOP);
+
+          decorationSection.startOffset = it.offset;
+          it.offset++;
+          decorationSection.endOffset = it.offset;
         }
+        else if(section != SectionState::TypeVar)
+        {
+          // coming from some other section that isn't debug or decoration, insert a dummy debug
+          // AND a dummy decoration section.
+          RDCDEBUG("Debug/decoration sections empty, inserting OpNops to later be stripped");
+          spirv.insert(spirv.begin() + it.offset, SPV_NOP);
+
+          debugSection.startOffset = it.offset;
+          it.offset++;
+          debugSection.endOffset = it.offset;
+
+          spirv.insert(spirv.begin() + it.offset, SPV_NOP);
+
+          decorationSection.startOffset = it.offset;
+          it.offset++;
+          decorationSection.endOffset = it.offset;
+        }
+
+        if(section != SectionState::TypeVar)
+          typeVarSection.startOffset = it.offset;
+
+        section = SectionState::TypeVar;
       }
     }
 
@@ -670,10 +770,32 @@ void SPIRVEditor::addWords(size_t offs, int32_t num)
   for(LogicalSection *section :
       {&entryPointSection, &debugSection, &decorationSection, &typeVarSection})
   {
-    if(section->startOffset >= offs)
+    // we have three cases to consider: either the offset matches start, is within (up to and
+    // including end) or is outside the section.
+    // We ensured during parsing that all sections were non-empty by adding nops if necessary, so we
+    // don't have to worry about the situation where we can't decide if an insert is at the end of
+    // one section or inside the next. Note this means we don't support inserting at the start of a
+    // section.
+
+    if(offs == section->startOffset)
+    {
+      // if the offset matches the start, we're appending at the end of the previous section so move
+      // both
       section->startOffset += num;
-    if(section->endOffset >= offs)
       section->endOffset += num;
+    }
+    else if(offs > section->startOffset && offs <= section->endOffset)
+    {
+      // if the offset is in the section (up to and including the end) then we're inserting in this
+      // section, so move the end only
+      section->endOffset += num;
+    }
+    else if(section->startOffset >= offs)
+    {
+      // otherwise move both or neither depending on which side the offset is.
+      section->startOffset += num;
+      section->endOffset += num;
+    }
   }
 
   // look through every id, and do the same
