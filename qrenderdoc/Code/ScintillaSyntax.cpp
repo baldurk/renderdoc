@@ -228,8 +228,6 @@ uimage2DMSArray
 
 void ConfigureSyntax(ScintillaEdit *scintilla, int language)
 {
-  scintilla->setLexer(language);
-
   bool hlsl = false;
   bool glsl = false;
 
@@ -248,17 +246,55 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   scintilla->setLexer(language);
   scintilla->styleSetSize(STYLE_DEFAULT, 10);
 
+#define SC_COL(qcol) SCINTILLA_COLOUR(qcol.red(), qcol.green(), qcol.blue())
+
+  // set the default style to base/text
+  QColor base = scintilla->palette().color(QPalette::Base);
+  QColor text = scintilla->palette().color(QPalette::Text);
+  scintilla->styleSetBack(STYLE_DEFAULT, SC_COL(base));
+  scintilla->styleSetFore(STYLE_DEFAULT, SC_COL(text));
+
+  // default all lexer styles up to STYLE_DEFAULT as the same, then override per-colour below
+  for(sptr_t i = 0; i < STYLE_DEFAULT; i++)
+  {
+    scintilla->styleSetBack(i, SC_COL(base));
+    scintilla->styleSetFore(i, SC_COL(text));
+  }
+
+  // set highlight text colour
+  QColor highlight = scintilla->palette().color(QPalette::Highlight);
+  QColor highlightedText = scintilla->palette().color(QPalette::HighlightedText);
+  scintilla->setSelBack(true, SC_COL(highlight));
+  scintilla->setSelFore(true, SC_COL(highlightedText));
+
+  // set margin colours
+  QColor window = scintilla->palette().color(QPalette::Window);
+  QColor windowText = scintilla->palette().color(QPalette::WindowText);
+  for(sptr_t i = 0; i < 5; i++)
+    scintilla->setMarginBackN(i, SC_COL(window));
+  scintilla->styleSetBack(STYLE_LINENUMBER, SC_COL(window));
+  scintilla->styleSetFore(STYLE_LINENUMBER, SC_COL(windowText));
+
+  sptr_t blue = IsDarkTheme() ? SCINTILLA_COLOUR(105, 105, 255) : SCINTILLA_COLOUR(0, 0, 150);
+  sptr_t magenta = IsDarkTheme() ? SCINTILLA_COLOUR(255, 105, 255) : SCINTILLA_COLOUR(150, 0, 150);
+  sptr_t rouge = IsDarkTheme() ? SCINTILLA_COLOUR(255, 150, 150) : SCINTILLA_COLOUR(175, 70, 70);
+
+  // works for either dark or light
+  sptr_t green = SCINTILLA_COLOUR(0, 150, 0);
+  sptr_t teal = SCINTILLA_COLOUR(0, 150, 150);
+  sptr_t olive = SCINTILLA_COLOUR(150, 150, 0);
+
   if(language == SCLEX_CPP)
   {
     scintilla->setProperty("lexer.cpp.track.preprocessor", "0");
     scintilla->setProperty("styling.within.preprocessor", "1");
 
-    scintilla->styleSetFore(SCE_C_COMMENT, SCINTILLA_COLOUR(0, 150, 0));
-    scintilla->styleSetFore(SCE_C_COMMENTDOC, SCINTILLA_COLOUR(0, 150, 0));
-    scintilla->styleSetFore(SCE_C_COMMENTLINE, SCINTILLA_COLOUR(0, 150, 0));
-    scintilla->styleSetFore(SCE_C_WORD, SCINTILLA_COLOUR(0, 0, 150));
-    scintilla->styleSetFore(SCE_C_WORD2, SCINTILLA_COLOUR(0, 0, 150));
-    scintilla->styleSetFore(SCE_C_PREPROCESSOR, SCINTILLA_COLOUR(0, 0, 150));
+    scintilla->styleSetFore(SCE_C_COMMENT, green);
+    scintilla->styleSetFore(SCE_C_COMMENTDOC, green);
+    scintilla->styleSetFore(SCE_C_COMMENTLINE, green);
+    scintilla->styleSetFore(SCE_C_WORD, blue);
+    scintilla->styleSetFore(SCE_C_WORD2, blue);
+    scintilla->styleSetFore(SCE_C_PREPROCESSOR, blue);
     scintilla->styleSetBold(SCE_C_PREPROCESSOR, true);
 
     if(hlsl)
@@ -279,15 +315,17 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
 
     scintilla->setKeyWords(0, python_keywords);
 
-    scintilla->styleSetFore(SCE_P_COMMENTLINE, SCINTILLA_COLOUR(0, 150, 0));
-    scintilla->styleSetFore(SCE_P_COMMENTBLOCK, SCINTILLA_COLOUR(0, 150, 0));
-    scintilla->styleSetFore(SCE_P_NUMBER, SCINTILLA_COLOUR(0, 150, 150));
-    scintilla->styleSetFore(SCE_P_STRING, SCINTILLA_COLOUR(150, 0, 150));
-    scintilla->styleSetFore(SCE_P_CHARACTER, SCINTILLA_COLOUR(150, 0, 150));
-    scintilla->styleSetFore(SCE_P_DEFNAME, SCINTILLA_COLOUR(150, 150, 0));
-    scintilla->styleSetFore(SCE_P_CLASSNAME, SCINTILLA_COLOUR(150, 0, 150));
-    scintilla->styleSetFore(SCE_P_WORD, SCINTILLA_COLOUR(0, 0, 150));
-    scintilla->styleSetFore(SCE_P_WORD2, SCINTILLA_COLOUR(0, 0, 150));
+    scintilla->styleSetFore(SCE_P_COMMENTLINE, green);
+    scintilla->styleSetFore(SCE_P_COMMENTBLOCK, green);
+    scintilla->styleSetFore(SCE_P_NUMBER, teal);
+    scintilla->styleSetFore(SCE_P_STRING, magenta);
+    scintilla->styleSetFore(SCE_P_TRIPLE, rouge);
+    scintilla->styleSetFore(SCE_P_TRIPLEDOUBLE, rouge);
+    scintilla->styleSetFore(SCE_P_CHARACTER, magenta);
+    scintilla->styleSetFore(SCE_P_DEFNAME, olive);
+    scintilla->styleSetFore(SCE_P_CLASSNAME, magenta);
+    scintilla->styleSetFore(SCE_P_WORD, blue);
+    scintilla->styleSetFore(SCE_P_WORD2, blue);
     scintilla->styleSetBold(SCE_P_WORD, true);
     scintilla->styleSetBold(SCE_P_WORD2, true);
   }

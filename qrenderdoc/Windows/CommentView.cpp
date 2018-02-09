@@ -26,6 +26,7 @@
 #include <QFontDatabase>
 #include "3rdparty/scintilla/include/SciLexer.h"
 #include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
+#include "Code/ScintillaSyntax.h"
 #include "ui_CommentView.h"
 
 CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
@@ -38,6 +39,8 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
   m_commentsEditor->styleSetFont(
       STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
   m_commentsEditor->setTabWidth(4);
+
+  ConfigureSyntax(m_commentsEditor, SCLEX_PYTHON);
 
   QObject::connect(m_commentsEditor, &ScintillaEdit::modified, [this](int type, int, int, int,
                                                                       const QByteArray &, int, int,
