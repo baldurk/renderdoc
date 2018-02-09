@@ -214,7 +214,7 @@ void TextureSaveDialog::on_overlayTex_clicked()
 
 void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
 {
-  saveData.destType = (FileType)qMax(0, ui->fileFormat->currentIndex());
+  saveData.destType = selectedFileType();
 
   ui->jpegCompression->setEnabled(saveData.destType == FileType::JPG);
 
@@ -254,6 +254,11 @@ void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
   SetFilenameFromFiletype();
 
   adjustSize();
+}
+
+FileType TextureSaveDialog::selectedFileType()
+{
+  return (FileType)qMax(0, ui->fileFormat->currentIndex());
 }
 
 void TextureSaveDialog::on_jpegCompression_valueChanged(double arg1)
@@ -538,19 +543,39 @@ void TextureSaveDialog::on_browse_clicked()
 {
   QString filter;
 
+  // put the selected filetype first
+  FileType curType = selectedFileType();
+  QString ext = ToQStr(curType);
+  filter = tr("%1 Files").arg(ext) + lit(" (*.%1)").arg(ext.toLower());
+
   for(FileType i : values<FileType>())
   {
-    QString ext = ToQStr(i);
+    // skip the one we bumped to the front
+    if(i == curType)
+      continue;
 
-    if(filter.length() > 0)
-      filter += lit(";;");
-    filter += tr("%1 Files (*.%2)").arg(ext).arg(ext.toLower());
+    ext = ToQStr(i);
+
+    filter += lit(";;") + tr("%1 Files").arg(ext) + lit(" (*.%1)").arg(ext.toLower());
   }
 
-  QString *selectedFilter = NULL;
+  QString selectedFilter;
 
   QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Texture As"), QString(), filter, selectedFilter);
+      RDDialog::getSaveFileName(this, tr("Save Texture As"), QString(), filter, &selectedFilter);
+
+  // if they selected a different file type, update the selection.
+  for(FileType i : values<FileType>())
+  {
+    ext = ToQStr(i);
+
+    if(selectedFilter.startsWith(tr("%1 Files").arg(ext)))
+    {
+      if(i != curType)
+        ui->fileFormat->setCurrentIndex(uint32_t(i));
+      break;
+    }
+  }
 
   if(!filename.isEmpty())
   {

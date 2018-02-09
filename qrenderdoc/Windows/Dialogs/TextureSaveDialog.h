@@ -83,6 +83,8 @@ private:
   void SetFilenameFromFiletype();
   void SetFiletypeFromFilename();
 
+  FileType selectedFileType();
+
   QTimer typingTimer;
 
   TextureDescription tex;
