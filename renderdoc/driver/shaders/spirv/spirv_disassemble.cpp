@@ -3743,6 +3743,10 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
     arraySize = type->arraySize;
     isArray = true;
     type = type->baseType;
+
+    // step through multi-dimensional arrays
+    while(type->type == SPVTypeData::eArray)
+      type = type->baseType;
   }
 
   if(type->type == SPVTypeData::eStruct)
