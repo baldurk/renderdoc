@@ -120,6 +120,16 @@ public:
     iter = SPIRVIterator(words, 0);
   }
 
+  static SPIRVOperation copy(SPIRVIterator it)
+  {
+    SPIRVOperation ret(it);
+
+    ret.words.insert(ret.words.begin(), it.it(), it.it() + it.size());
+    ret.iter = SPIRVIterator(ret.words, 0);
+
+    return ret;
+  }
+
   // constructor that takes existing words from elsewhere and just references it.
   // Since this is iterator based, normal iteration invalidation rules apply, if you modify earlier
   // in the SPIR-V this operation will become invalid.

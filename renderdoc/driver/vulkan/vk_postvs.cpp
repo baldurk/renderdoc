@@ -185,6 +185,20 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       if(mod)
         editor.PostModify(it);
+
+      // if we repointed this variable to an existing private declaration, we must also move it to
+      // the end of the section. The reason being that the private pointer type declared may be
+      // declared *after* this variable. There can't be any dependencies on this later in the
+      // section because it's a variable not a type, so it's safe to move to the end.
+      if(replIt != typeReplacements.end())
+      {
+        // make a copy of the opcode
+        SPIRVOperation op = SPIRVOperation::copy(it);
+        // remove the old one
+        editor.Remove(it);
+        // add it anew
+        editor.AddVariable(op);
+      }
     }
     else if(it.opcode() == spv::OpTypeFunction)
     {
