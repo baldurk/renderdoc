@@ -3334,34 +3334,28 @@ void TextureViewer::on_saveTex_clicked()
   if(!texptr || !m_Output)
     return;
 
-  TextureSave config;
-  memset(&config, 0, sizeof(config));
-  config.jpegQuality = 90;
-
-  config.id = m_TexDisplay.resourceId;
-  config.typeHint = m_TexDisplay.typeHint;
-  config.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
-  config.mip = (int)m_TexDisplay.mip;
+  // overwrite save params with current texture display settings
+  m_SaveConfig.id = m_TexDisplay.resourceId;
+  m_SaveConfig.typeHint = m_TexDisplay.typeHint;
+  m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
+  m_SaveConfig.mip = (int)m_TexDisplay.mip;
 
   if(texptr->depth > 1)
-    config.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
+    m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
 
-  config.channelExtract = -1;
+  m_SaveConfig.channelExtract = -1;
   if(m_TexDisplay.red && !m_TexDisplay.green && !m_TexDisplay.blue && !m_TexDisplay.alpha)
-    config.channelExtract = 0;
+    m_SaveConfig.channelExtract = 0;
   if(!m_TexDisplay.red && m_TexDisplay.green && !m_TexDisplay.blue && !m_TexDisplay.alpha)
-    config.channelExtract = 1;
+    m_SaveConfig.channelExtract = 1;
   if(!m_TexDisplay.red && !m_TexDisplay.green && m_TexDisplay.blue && !m_TexDisplay.alpha)
-    config.channelExtract = 2;
+    m_SaveConfig.channelExtract = 2;
   if(!m_TexDisplay.red && !m_TexDisplay.green && !m_TexDisplay.blue && m_TexDisplay.alpha)
-    config.channelExtract = 3;
+    m_SaveConfig.channelExtract = 3;
 
-  config.comp.blackPoint = m_TexDisplay.rangeMin;
-  config.comp.whitePoint = m_TexDisplay.rangeMax;
-  config.alphaCol = m_TexDisplay.backgroundColor;
-  config.alpha = m_TexDisplay.alpha ? AlphaMapping::BlendToCheckerboard : AlphaMapping::Discard;
-  if(m_TexDisplay.alpha && !ui->checkerBack->isChecked())
-    config.alpha = AlphaMapping::BlendToColor;
+  m_SaveConfig.comp.blackPoint = m_TexDisplay.rangeMin;
+  m_SaveConfig.comp.whitePoint = m_TexDisplay.rangeMax;
+  m_SaveConfig.alphaCol = m_TexDisplay.backgroundColor;
 
   if(m_TexDisplay.customShaderId != ResourceId())
   {
@@ -3370,20 +3364,20 @@ void TextureViewer::on_saveTex_clicked()
         [this, &id](IReplayController *r) { id = m_Output->GetCustomShaderTexID(); });
 
     if(id != ResourceId())
-      config.id = id;
+      m_SaveConfig.id = id;
   }
 
   const ResourceId overlayTexID = m_Output->GetDebugOverlayTexID();
   const bool hasSelectedOverlay = (m_TexDisplay.overlay != DebugOverlay::NoOverlay);
   const bool hasOverlay = (hasSelectedOverlay && overlayTexID != ResourceId());
-  TextureSaveDialog saveDialog(*texptr, hasOverlay, config, this);
+  TextureSaveDialog saveDialog(*texptr, hasOverlay, m_SaveConfig, this);
   int res = RDDialog::show(&saveDialog);
 
-  config = saveDialog.config();
+  m_SaveConfig = saveDialog.config();
 
   if(saveDialog.saveOverlayInstead())
   {
-    config.id = overlayTexID;
+    m_SaveConfig.id = overlayTexID;
   }
 
   if(res)
@@ -3393,8 +3387,8 @@ void TextureViewer::on_saveTex_clicked()
     bool ret = false;
     QString fn = saveDialog.filename();
 
-    m_Ctx.Replay().BlockInvoke([this, &ret, config, fn](IReplayController *r) {
-      ret = r->SaveTexture(config, fn.toUtf8().data());
+    m_Ctx.Replay().BlockInvoke([this, &ret, fn](IReplayController *r) {
+      ret = r->SaveTexture(m_SaveConfig, fn.toUtf8().data());
     });
 
     if(!ret)

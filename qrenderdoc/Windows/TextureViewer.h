@@ -309,6 +309,8 @@ private:
   ICaptureContext &m_Ctx;
   IReplayOutput *m_Output = NULL;
 
+  TextureSave m_SaveConfig;
+
   TextureDescription *m_CachedTexture;
   Following m_Following = Following::Default;
   QMap<ResourceId, TexSettings> m_TextureSettings;
