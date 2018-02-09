@@ -1020,9 +1020,14 @@ public:
   }
   const std::string &hostname() const { return m_hostname; }
   virtual ~RemoteServer() { SAFE_DELETE(m_Socket); }
-  void ShutdownConnection() { delete this; }
+  void ShutdownConnection()
+  {
+    ResetAndroidSettings();
+    delete this;
+  }
   void ShutdownServerAndConnection()
   {
+    ResetAndroidSettings();
     {
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_ShutdownServer);
@@ -1360,6 +1365,8 @@ public:
     ret.first = ReplayStatus::InternalError;
     ret.second = NULL;
 
+    ResetAndroidSettings();
+
     if(proxyid != ~0U && proxyid >= m_Proxies.size())
     {
       RDCERR("Invalid proxy driver id %d specified for remote renderer", proxyid);
@@ -1451,6 +1458,17 @@ public:
     ret.first = ReplayStatus::Succeeded;
     ret.second = rend;
     return ret;
+  }
+
+  void ResetAndroidSettings()
+  {
+    if(Android::IsHostADB(m_hostname.c_str()))
+    {
+      int index = 0;
+      std::string deviceID;
+      Android::ExtractDeviceIDAndIndex(m_hostname.c_str(), index, deviceID);
+      Android::ResetCaptureSettings(deviceID);
+    }
   }
 
   void CloseCapture(IReplayController *rend)

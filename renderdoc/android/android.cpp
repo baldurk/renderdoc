@@ -218,25 +218,8 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
     ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
     if(control)
     {
-      std::string api;
-
-      // allow a few messages to come in, to see the reported active API
-      for(int i = 0; i < 4; i++)
-      {
-        Threading::Sleep(5);
-        control->ReceiveMessage();
-
-        api = control->GetAPI();
-        if(!api.empty())
-          break;
-      }
-
       control->Shutdown();
-
-      if(!api.empty())
-        break;
-      else
-        RDCDEBUG("Connection established, but no API initialised yet. Waiting...");
+      break;
     }
 
     // check to see if the PID is still there. If it was before and isn't now, the APK has exited
@@ -253,9 +236,9 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
     elapsed += 1000;
   }
 
-  // We've ensured above that the app picked up the setprop before we turn it back off for
-  // replaying.
-  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
+  // we leave the setprop in case the application later initialises a vulkan device. It's impossible
+  // to tell if it will or not, since many applications will init and present from GLES and then
+  // later use vulkan.
 
   return ret;
 }
@@ -437,6 +420,11 @@ bool CheckAndroidServerVersion(const string &deviceID)
 
   return false;
 }
+
+void ResetCaptureSettings(const std::string &deviceID)
+{
+  Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
+}
 };    // namespace Android
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
@@ -523,7 +511,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
     return;
 
   Android::adbForwardPorts(index, deviceID, 0, 0);
-  Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
+  Android::ResetCaptureSettings(deviceID);
 
   // launch the first ABI, as the default 'most compatible' package
   Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis[0]) +
