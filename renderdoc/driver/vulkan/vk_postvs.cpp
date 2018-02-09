@@ -49,7 +49,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   descSet = 0;
 
-  for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it != end; ++it)
+  for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it < end; ++it)
   {
     // we will use the descriptor set immediately after the last set statically used by the shader.
     // This means we don't have to worry about if the descriptor set layout declares more sets which
@@ -103,7 +103,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   std::map<SPIRVId, SPIRVId> typeReplacements;
 
   // rewrite any inputs and outputs to be private storage class
-  for(SPIRVIterator it = editor.BeginTypes(), end = editor.EndTypes(); it != end; ++it)
+  for(SPIRVIterator it = editor.BeginTypes(), end = editor.EndTypes(); it < end; ++it)
   {
     // rewrite any input/output variables to private, and build up inputs/outputs list
     if(it.opcode() == spv::OpTypePointer)
@@ -246,7 +246,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   }
 
   // detect builtin inputs or outputs, and remove builtin decorations
-  for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it != end; ++it)
+  for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it < end; ++it)
   {
     // remove any builtin decorations
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBuiltIn)
@@ -335,7 +335,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   RDCASSERT(entryID);
 
-  for(SPIRVIterator it = editor.BeginDebug(), end2 = editor.EndDebug(); it != end2; ++it)
+  for(SPIRVIterator it = editor.BeginDebug(), end2 = editor.EndDebug(); it < end2; ++it)
   {
     if(it.opcode() == spv::OpName &&
        (inputs.find(it.word(1)) != inputs.end() || outputs.find(it.word(1)) != outputs.end()))
@@ -659,7 +659,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     ++it;
   }
 
-  for(SPIRVIterator end = editor.EndEntries(); it != end; ++it)
+  for(SPIRVIterator end = editor.EndEntries(); it < end; ++it)
     editor.Remove(it);
 
   editor.AddOperation(

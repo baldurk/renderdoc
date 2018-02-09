@@ -77,11 +77,9 @@ public:
 
     return *this;
   }
-  bool operator==(const SPIRVIterator &it) const
-  {
-    return words == it.words && offset == it.offset;
-  }
-  bool operator!=(const SPIRVIterator &it) const { return !(*this == it); }
+  bool operator==(const SPIRVIterator &it) const = delete;
+  bool operator!=(const SPIRVIterator &it) const = delete;
+  bool operator<(const SPIRVIterator &it) const { return words == it.words && offset < it.offset; }
   // utility functions
   explicit operator bool() const { return words != NULL && offset < words->size(); }
   uint32_t &operator*() { return cur(); }

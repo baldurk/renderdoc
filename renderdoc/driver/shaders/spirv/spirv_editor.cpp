@@ -325,7 +325,7 @@ SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
   SPIRVIterator it(spirv, entryPointSection.startOffset);
   SPIRVIterator end(spirv, entryPointSection.endOffset);
 
-  while(it && it != end)
+  while(it && it < end)
   {
     if(it.word(2) == id)
       return it;
