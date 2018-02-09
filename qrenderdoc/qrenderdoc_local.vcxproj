@@ -1756,6 +1756,8 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\arrow_join.png" />
     <Image Include="Resources\arrow_left%402x.png" />
     <Image Include="Resources\arrow_left.png" />
+    <Image Include="Resources\arrow_refresh%402x.png" />
+    <Image Include="Resources\arrow_refresh.png" />
     <Image Include="Resources\arrow_out%402x.png" />
     <Image Include="Resources\arrow_out.png" />
     <Image Include="Resources\arrow_right%402x.png" />

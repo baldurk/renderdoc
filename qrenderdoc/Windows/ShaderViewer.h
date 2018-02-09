@@ -108,7 +108,7 @@ public:
 private slots:
   // automatic slots
   void on_findReplace_clicked();
-  void on_save_clicked();
+  void on_refresh_clicked();
   void on_intView_clicked();
   void on_floatView_clicked();
 

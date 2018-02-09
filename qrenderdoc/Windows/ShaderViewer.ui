@@ -153,9 +153,9 @@
   <widget class="QFrame" name="toolbar">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>10</y>
-     <width>388</width>
+     <width>1132</width>
      <height>28</height>
     </rect>
    </property>
@@ -199,11 +199,14 @@
        <string>Find &amp; Replace</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Find</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/find.png</normaloff>:/find.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -218,16 +221,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="save">
+     <widget class="QToolButton" name="refresh">
       <property name="toolTip">
-       <string>Compile &amp; Save changes</string>
+       <string>Compile Shader &amp; Refresh changes</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Refresh</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/save.png</normaloff>:/save.png</iconset>
+        <normaloff>:/arrow_refresh.png</normaloff>:/arrow_refresh.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -240,7 +246,7 @@
        <string>Insert built-in snippets</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Insert...</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
@@ -248,6 +254,9 @@
       </property>
       <property name="popupMode">
        <enum>QToolButton::InstantPopup</enum>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -267,11 +276,14 @@
        <string>Run backwards (Shift-F5)</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Run backwards</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_start_blue.png</normaloff>:/control_start_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -284,11 +296,14 @@
        <string>Step Back (Shift-F10)</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Step Back</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_reverse_blue.png</normaloff>:/control_reverse_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -301,11 +316,14 @@
        <string>Step Next (F10)</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Step Next</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_play_blue.png</normaloff>:/control_play_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -318,11 +336,14 @@
        <string>Run forwards (F5)</string>
       </property>
       <property name="text">
-       <string/>
+       <string>Run forwards</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_end_blue.png</normaloff>:/control_end_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -347,9 +368,15 @@
       <property name="toolTip">
        <string>Run to Cursor (Ctrl-F10)</string>
       </property>
+      <property name="text">
+       <string>Run to Cursor</string>
+      </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_cursor_blue.png</normaloff>:/control_cursor_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -367,9 +394,15 @@
       <property name="toolTip">
        <string>Run to Sample/Load/Gather</string>
       </property>
+      <property name="text">
+       <string>Run to Sample</string>
+      </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_sample_blue.png</normaloff>:/control_sample_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -387,9 +420,15 @@
       <property name="toolTip">
        <string>Run to NaN or Inf</string>
       </property>
+      <property name="text">
+       <string>Run to NaN/Inf</string>
+      </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_nan_blue.png</normaloff>:/control_nan_blue.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -453,8 +492,8 @@
   <widget class="RDTableWidget" name="watch">
    <property name="geometry">
     <rect>
-     <x>710</x>
-     <y>20</y>
+     <x>390</x>
+     <y>90</y>
      <width>151</width>
      <height>131</height>
     </rect>

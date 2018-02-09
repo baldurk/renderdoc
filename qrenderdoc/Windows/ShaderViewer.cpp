@@ -210,6 +210,9 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   ui->snippets->setVisible(customShader);
 
   // hide debugging toolbar buttons
+  ui->debugSep->hide();
+  ui->runBack->hide();
+  ui->run->hide();
   ui->stepBack->hide();
   ui->stepNext->hide();
   ui->runToCursor->hide();
@@ -242,8 +245,10 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
         m_FindState = FindState();
     });
 
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Save).toString(), this,
-                                            [this]() { on_save_clicked(); });
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
+                                            [this]() { on_refresh_clicked(); });
+    ui->refresh->setToolTip(ui->refresh->toolTip() +
+                            lit(" (%1)").arg(QKeySequence(QKeySequence::Refresh).toString()));
 
     QWidget *w = (QWidget *)scintilla;
     w->setProperty("filename", kv.first);
@@ -408,6 +413,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ToolWindowManager::raiseToolWindow(sel);
   }
 
+  // hide edit buttons
+  ui->editSep->hide();
+  ui->refresh->hide();
   ui->snippets->hide();
 
   if(trace)
@@ -506,6 +514,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->constants->hide();
 
     // hide debugging toolbar buttons
+    ui->debugSep->hide();
+    ui->runBack->hide();
+    ui->run->hide();
     ui->stepBack->hide();
     ui->stepNext->hide();
     ui->runToCursor->hide();
@@ -2106,7 +2117,7 @@ void ShaderViewer::on_findReplace_clicked()
   m_FindReplace->takeFocus();
 }
 
-void ShaderViewer::on_save_clicked()
+void ShaderViewer::on_refresh_clicked()
 {
   if(m_Trace)
   {

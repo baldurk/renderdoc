@@ -33,6 +33,7 @@
   RESOURCE_DEF(arrow_in, "arrow_in.png")                                \
   RESOURCE_DEF(arrow_join, "arrow_join.png")                            \
   RESOURCE_DEF(arrow_left, "arrow_left.png")                            \
+  RESOURCE_DEF(arrow_refresh, "arrow_refresh.png")                      \
   RESOURCE_DEF(arrow_right, "arrow_right.png")                          \
   RESOURCE_DEF(arrow_undo, "arrow_undo.png")                            \
   RESOURCE_DEF(asterisk_orange, "asterisk_orange.png")                  \
