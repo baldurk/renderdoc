@@ -101,7 +101,7 @@ public:
   virtual vector<DebugMessage> GetDebugMessages() = 0;
 
   virtual rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) = 0;
-  virtual ShaderReflection *GetShader(ResourceId shader, string entryPoint) = 0;
+  virtual ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) = 0;
 
   virtual vector<string> GetDisassemblyTargets() = 0;
   virtual string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,

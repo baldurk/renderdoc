@@ -69,7 +69,7 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
           if(i == 0)
           {
             CopyProgramAttribBindings(gl.GetHookset(), progsrc, progdst,
-                                      GetShader(pipeDetails.stageShaders[i], ""));
+                                      GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint()));
 
             gl.glLinkProgram(progdst);
           }
@@ -94,7 +94,7 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
         if(i == 0)
         {
           CopyProgramAttribBindings(gl.GetHookset(), Program, progdst,
-                                    GetShader(progDetails.stageShaders[i], ""));
+                                    GetShader(progDetails.stageShaders[i], ShaderEntryPoint()));
 
           gl.glLinkProgram(progdst);
         }

@@ -370,7 +370,7 @@ rdcarray<ShaderEntryPoint> D3D11Replay::GetShaderEntryPoints(ResourceId shader)
   return {{"main", ret.stage}};
 }
 
-ShaderReflection *D3D11Replay::GetShader(ResourceId shader, string entryPoint)
+ShaderReflection *D3D11Replay::GetShader(ResourceId shader, ShaderEntryPoint entry)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);
 
@@ -590,7 +590,7 @@ void D3D11Replay::SavePipelineState()
     ResourceId layoutId = GetIDForResource(rs->IA.Layout);
 
     ret.inputAssembly.resourceId = rm->GetOriginalID(layoutId);
-    ret.inputAssembly.bytecode = GetShader(layoutId, "");
+    ret.inputAssembly.bytecode = GetShader(layoutId, ShaderEntryPoint());
 
     ret.inputAssembly.layouts.resize(vec.size());
     for(size_t i = 0; i < vec.size(); i++)

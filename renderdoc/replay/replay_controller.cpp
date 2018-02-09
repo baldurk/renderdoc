@@ -333,7 +333,7 @@ rdcarray<ShaderEntryPoint> ReplayController::GetShaderEntryPoints(ResourceId sha
 
 ShaderReflection *ReplayController::GetShader(ResourceId shader, ShaderEntryPoint entry)
 {
-  return m_pDevice->GetShader(m_pDevice->GetLiveID(shader), entry.name);
+  return m_pDevice->GetShader(m_pDevice->GetLiveID(shader), entry);
 }
 
 rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)

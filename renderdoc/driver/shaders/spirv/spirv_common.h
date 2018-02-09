@@ -137,7 +137,7 @@ struct SPVModule
   ShaderStage StageForEntry(const string &entryPoint) const;
 
   void MakeReflection(ShaderStage stage, const string &entryPoint, ShaderReflection &reflection,
-                      ShaderBindpointMapping &mapping, SPIRVPatchData &patchData);
+                      ShaderBindpointMapping &mapping, SPIRVPatchData &patchData) const;
 };
 
 string CompileSPIRV(const SPIRVCompilationSettings &settings, const vector<string> &sources,

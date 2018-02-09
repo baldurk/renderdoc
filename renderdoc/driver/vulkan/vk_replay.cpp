@@ -318,7 +318,7 @@ rdcarray<ShaderEntryPoint> VulkanReplay::GetShaderEntryPoints(ResourceId shader)
   return ret;
 }
 
-ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
+ShaderReflection *VulkanReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
 {
   auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
 
@@ -328,7 +328,11 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
     return NULL;
   }
 
-  return &shad->second.m_Reflections[entryPoint].refl;
+  shad->second.m_Reflections[entry.name].Init(GetResourceManager(), shader, shad->second.spirv,
+                                              entry.name,
+                                              VkShaderStageFlagBits(1 << uint32_t(entry.stage)));
+
+  return &shad->second.m_Reflections[entry.name].refl;
 }
 
 vector<string> VulkanReplay::GetDisassemblyTargets()
@@ -383,7 +387,7 @@ string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
     VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
 
     VkShaderStageFlagBits stageBit =
-        VkShaderStageFlagBits(1 << it->second.m_Reflections[refl->entryPoint.c_str()].stage);
+        VkShaderStageFlagBits(1 << it->second.m_Reflections[refl->entryPoint.c_str()].stageIndex);
 
     size_t size;
     vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
@@ -1636,7 +1640,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
         if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
         {
           auto specInfo =
-              pipeIt->second.shaders[it->second.m_Reflections[entryPoint].stage].specialization;
+              pipeIt->second.shaders[it->second.m_Reflections[entryPoint].stageIndex].specialization;
 
           // find any actual values specified
           for(size_t i = 0; i < specInfo.size(); i++)

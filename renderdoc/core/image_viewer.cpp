@@ -207,7 +207,7 @@ public:
     return ResourceId();
   }
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) { return {}; }
-  ShaderReflection *GetShader(ResourceId shader, string entryPoint) { return NULL; }
+  ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) { return NULL; }
   vector<string> GetDisassemblyTargets() { return {"N/A"}; }
   string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const string &target)
   {

@@ -138,23 +138,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     ShaderModule::Reflection &reflData = info.m_ShaderModule[id].m_Reflections[shad.entryPoint];
 
-    if(reflData.entryPoint.empty())
-    {
-      SPVModule &spv = info.m_ShaderModule[id].spirv;
-      spv.MakeReflection(ShaderStage(reflData.stage), shad.entryPoint, reflData.refl,
-                         reflData.mapping, reflData.patchData);
-
-      reflData.entryPoint = shad.entryPoint;
-      reflData.stage = stageIndex;
-      reflData.refl.resourceId = resourceMan->GetOriginalID(id);
-
-      if(!spv.spirv.empty())
-      {
-        const std::vector<uint32_t> &spirv = spv.spirv;
-        reflData.refl.encoding = ShaderEncoding::SPIRV;
-        reflData.refl.rawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
-      }
-    }
+    reflData.Init(resourceMan, id, info.m_ShaderModule[id].spirv, shad.entryPoint,
+                  pCreateInfo->pStages[i].stage);
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
     {
@@ -364,22 +349,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     ShaderModule::Reflection &reflData = info.m_ShaderModule[id].m_Reflections[shad.entryPoint];
 
-    if(reflData.entryPoint.empty())
-    {
-      reflData.entryPoint = shad.entryPoint;
-      reflData.stage = StageIndex(pCreateInfo->stage.stage);
-      SPVModule &spv = info.m_ShaderModule[id].spirv;
-      spv.MakeReflection(ShaderStage::Compute, shad.entryPoint, reflData.refl, reflData.mapping,
-                         reflData.patchData);
-      reflData.refl.resourceId = resourceMan->GetOriginalID(id);
-
-      if(!spv.spirv.empty())
-      {
-        const vector<uint32_t> &spirv = spv.spirv;
-        reflData.refl.encoding = ShaderEncoding::SPIRV;
-        reflData.refl.rawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
-      }
-    }
+    reflData.Init(resourceMan, id, info.m_ShaderModule[id].spirv, shad.entryPoint,
+                  pCreateInfo->stage.stage);
 
     if(pCreateInfo->stage.pSpecializationInfo)
     {
@@ -636,5 +607,28 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
   {
     RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
     ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize / sizeof(uint32_t), spirv);
+  }
+}
+
+void VulkanCreationInfo::ShaderModule::Reflection::Init(VulkanResourceManager *resourceMan,
+                                                        ResourceId id, const SPVModule &spv,
+                                                        const std::string &entry,
+                                                        VkShaderStageFlagBits stage)
+{
+  if(entryPoint.empty())
+  {
+    entryPoint = entry;
+    stageIndex = StageIndex(stage);
+
+    spv.MakeReflection(ShaderStage(stageIndex), entryPoint, refl, mapping, patchData);
+
+    refl.resourceId = resourceMan->GetOriginalID(id);
+    refl.entryPoint = entryPoint;
+
+    if(!spv.spirv.empty())
+    {
+      refl.encoding = ShaderEncoding::SPIRV;
+      refl.rawBytes.assign((byte *)spv.spirv.data(), spv.spirv.size() * sizeof(uint32_t));
+    }
   }
 }

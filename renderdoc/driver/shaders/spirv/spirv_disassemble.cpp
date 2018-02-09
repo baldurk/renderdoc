@@ -3924,7 +3924,7 @@ ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
 
 void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
                                ShaderReflection &reflection, ShaderBindpointMapping &mapping,
-                               SPIRVPatchData &patchData)
+                               SPIRVPatchData &patchData) const
 {
   vector<SigParameter> inputs;
   vector<SigParameter> outputs;

@@ -100,7 +100,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       if(pipeDetails.stageShaders[0] != ResourceId())
       {
-        vsRefl = GetShader(pipeDetails.stageShaders[0], "");
+        vsRefl = GetShader(pipeDetails.stageShaders[0], ShaderEntryPoint());
         vsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].prog;
         vsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[0]).name;
       }
@@ -111,13 +111,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       }
       if(pipeDetails.stageShaders[2] != ResourceId())
       {
-        tesRefl = GetShader(pipeDetails.stageShaders[2], "");
+        tesRefl = GetShader(pipeDetails.stageShaders[2], ShaderEntryPoint());
         tesProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[2]].prog;
         tesProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[2]).name;
       }
       if(pipeDetails.stageShaders[3] != ResourceId())
       {
-        gsRefl = GetShader(pipeDetails.stageShaders[3], "");
+        gsRefl = GetShader(pipeDetails.stageShaders[3], ShaderEntryPoint());
         gsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[3]].prog;
         gsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[3]).name;
       }
@@ -129,7 +129,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     if(progDetails.stageShaders[0] != ResourceId())
     {
-      vsRefl = GetShader(progDetails.stageShaders[0], "");
+      vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
       vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
     }
     if(progDetails.stageShaders[1] != ResourceId())
@@ -138,12 +138,12 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
     if(progDetails.stageShaders[2] != ResourceId())
     {
-      tesRefl = GetShader(progDetails.stageShaders[2], "");
+      tesRefl = GetShader(progDetails.stageShaders[2], ShaderEntryPoint());
       tesProg = m_pDriver->m_Shaders[progDetails.stageShaders[2]].prog;
     }
     if(progDetails.stageShaders[3] != ResourceId())
     {
-      gsRefl = GetShader(progDetails.stageShaders[3], "");
+      gsRefl = GetShader(progDetails.stageShaders[3], ShaderEntryPoint());
       gsProg = m_pDriver->m_Shaders[progDetails.stageShaders[3]].prog;
     }
 

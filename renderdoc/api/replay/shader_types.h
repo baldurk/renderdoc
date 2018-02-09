@@ -646,6 +646,8 @@ DECLARE_REFLECTION_STRUCT(ShaderResource);
 DOCUMENT("Describes an entry point in a shader.");
 struct ShaderEntryPoint
 {
+  ShaderEntryPoint() = default;
+  ShaderEntryPoint(const rdcstr &n, ShaderStage s) : name(n), stage(s) {}
   DOCUMENT("");
   bool operator==(const ShaderEntryPoint &o) const { return name == o.name && stage == o.stage; }
   bool operator<(const ShaderEntryPoint &o) const

@@ -603,7 +603,7 @@ rdcarray<ShaderEntryPoint> GLReplay::GetShaderEntryPoints(ResourceId shader)
   return {{"main", MakeShaderStage(shaderDetails.type)}};
 }
 
-ShaderReflection *GLReplay::GetShader(ResourceId shader, string entryPoint)
+ShaderReflection *GLReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
 {
   auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
@@ -881,7 +881,8 @@ void GLReplay::SavePipelineState()
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
           curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
-          stages[i]->reflection = refls[i] = GetShader(pipeDetails.stageShaders[i], "");
+          stages[i]->reflection = refls[i] =
+              GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
           GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i],
                               stages[i]->bindpointMapping);
           mappings[i] = &stages[i]->bindpointMapping;
@@ -907,7 +908,7 @@ void GLReplay::SavePipelineState()
     {
       if(progDetails.stageShaders[i] != ResourceId())
       {
-        stages[i]->reflection = refls[i] = GetShader(progDetails.stageShaders[i], "");
+        stages[i]->reflection = refls[i] = GetShader(progDetails.stageShaders[i], ShaderEntryPoint());
         GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->bindpointMapping);
         mappings[i] = &stages[i]->bindpointMapping;
 

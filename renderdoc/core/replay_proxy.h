@@ -473,7 +473,7 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
   IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId shader,
-                             std::string entryPoint);
+                             ShaderEntryPoint entry);
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<std::string>, GetDisassemblyTargets);
   IMPLEMENT_FUNCTION_PROXIED(std::string, DisassembleShader, ResourceId pipeline,
@@ -597,15 +597,15 @@ private:
   struct ShaderReflKey
   {
     ShaderReflKey() {}
-    ShaderReflKey(ResourceId i, string e) : id(i), entryPoint(e) {}
+    ShaderReflKey(ResourceId i, ShaderEntryPoint e) : id(i), entry(e) {}
     ResourceId id;
-    string entryPoint;
+    ShaderEntryPoint entry;
     bool operator<(const ShaderReflKey &o) const
     {
       if(id != o.id)
         return id < o.id;
 
-      return entryPoint < o.entryPoint;
+      return entry < o.entry;
     }
   };
 

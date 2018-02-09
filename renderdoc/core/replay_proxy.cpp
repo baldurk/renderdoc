@@ -817,12 +817,12 @@ rdcarray<ShaderEntryPoint> ReplayProxy::GetShaderEntryPoints(ResourceId id)
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                 ResourceId id, std::string entryPoint)
+                                                 ResourceId id, ShaderEntryPoint entry)
 {
   const ReplayProxyPacket packet = eReplayProxy_GetShader;
   ShaderReflection *ret = NULL;
 
-  ShaderReflKey key(id, entryPoint);
+  ShaderReflKey key(id, entry);
 
   if(retser.IsReading() && m_ShaderReflectionCache.find(key) != m_ShaderReflectionCache.end())
     return m_ShaderReflectionCache[key];
@@ -830,12 +830,12 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(id);
-    SERIALISE_ELEMENT(entryPoint);
+    SERIALISE_ELEMENT(entry);
     END_PARAMS();
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    ret = m_Remote->GetShader(id, entryPoint);
+    ret = m_Remote->GetShader(id, entry);
 
   {
     ReturnSerialiser &ser = retser;
@@ -855,9 +855,9 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
   return m_ShaderReflectionCache[key];
 }
 
-ShaderReflection *ReplayProxy::GetShader(ResourceId id, std::string entryPoint)
+ShaderReflection *ReplayProxy::GetShader(ResourceId id, ShaderEntryPoint entry)
 {
-  PROXY_FUNCTION(GetShader, id, entryPoint);
+  PROXY_FUNCTION(GetShader, id, entry);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -868,13 +868,14 @@ std::string ReplayProxy::Proxied_DisassembleShader(ParamSerialiser &paramser,
 {
   const ReplayProxyPacket packet = eReplayProxy_DisassembleShader;
   ResourceId Shader;
-  std::string EntryPoint;
+  ShaderEntryPoint EntryPoint;
   std::string ret;
 
   if(refl)
   {
     Shader = refl->resourceId;
-    EntryPoint = refl->entryPoint;
+    EntryPoint.name = refl->entryPoint;
+    EntryPoint.stage = refl->stage;
   }
 
   {
@@ -1229,11 +1230,11 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
 
         for(int i = 0; i < 6; i++)
           if(stages[i]->resourceId != ResourceId())
-            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), "");
+            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
 
         if(m_D3D11PipelineState.inputAssembly.resourceId != ResourceId())
-          m_D3D11PipelineState.inputAssembly.bytecode =
-              GetShader(GetLiveID(m_D3D11PipelineState.inputAssembly.resourceId), "");
+          m_D3D11PipelineState.inputAssembly.bytecode = GetShader(
+              GetLiveID(m_D3D11PipelineState.inputAssembly.resourceId), ShaderEntryPoint());
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
       {
@@ -1245,7 +1246,7 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
 
         for(int i = 0; i < 6; i++)
           if(stages[i]->resourceId != ResourceId())
-            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), "");
+            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
       {
@@ -1257,7 +1258,8 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
 
         for(int i = 0; i < 6; i++)
           if(stages[i]->shaderResourceId != ResourceId())
-            stages[i]->reflection = GetShader(GetLiveID(stages[i]->shaderResourceId), "");
+            stages[i]->reflection =
+                GetShader(GetLiveID(stages[i]->shaderResourceId), ShaderEntryPoint());
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
       {
@@ -1270,7 +1272,8 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
         for(int i = 0; i < 6; i++)
           if(stages[i]->resourceId != ResourceId())
             stages[i]->reflection =
-                GetShader(GetLiveID(stages[i]->resourceId), stages[i]->entryPoint);
+                GetShader(GetLiveID(stages[i]->resourceId),
+                          ShaderEntryPoint(stages[i]->entryPoint, stages[i]->stage));
       }
     }
   }
@@ -2012,7 +2015,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetBuffers: GetBuffers(); break;
     case eReplayProxy_GetBuffer: GetBuffer(ResourceId()); break;
     case eReplayProxy_GetShaderEntryPoints: GetShaderEntryPoints(ResourceId()); break;
-    case eReplayProxy_GetShader: GetShader(ResourceId(), ""); break;
+    case eReplayProxy_GetShader: GetShader(ResourceId(), ShaderEntryPoint()); break;
     case eReplayProxy_GetDebugMessages: GetDebugMessages(); break;
     case eReplayProxy_GetBufferData:
     {

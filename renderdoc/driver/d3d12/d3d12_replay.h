@@ -71,7 +71,7 @@ public:
   vector<DebugMessage> GetDebugMessages();
 
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
-  ShaderReflection *GetShader(ResourceId shader, string entryPoint);
+  ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry);
 
   vector<string> GetDisassemblyTargets();
   string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const string &target);

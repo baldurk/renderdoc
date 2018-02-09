@@ -355,12 +355,15 @@ struct VulkanCreationInfo
 
     struct Reflection
     {
-      uint32_t stage;
+      uint32_t stageIndex;
       string entryPoint;
       string disassembly;
       ShaderReflection refl;
       ShaderBindpointMapping mapping;
       SPIRVPatchData patchData;
+
+      void Init(VulkanResourceManager *resourceMan, ResourceId id, const SPVModule &spv,
+                const std::string &entry, VkShaderStageFlagBits stage);
     };
     map<string, Reflection> m_Reflections;
   };
