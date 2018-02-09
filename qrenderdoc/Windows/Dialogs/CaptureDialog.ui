@@ -495,7 +495,7 @@
          <string>Hook into child processes - useful with launchers or similar intermediate processes</string>
         </property>
         <property name="text">
-         <string>Hook into Children</string>
+         <string>Capture Child Processes</string>
         </property>
        </widget>
       </item>
