@@ -889,6 +889,15 @@ void CaptureDialog::fillProcessList()
 
   QProcessList processes = QProcessInfo::enumerate();
 
+  for(int i = 0; i < processes.count(); i++)
+  {
+    if(processes[i].pid() == qApp->applicationPid())
+    {
+      processes.removeAt(i);
+      break;
+    }
+  }
+
   // no way of listing processes in Qt, fill with dummy data
   m_ProcessModel->insertRows(0, processes.size());
 
