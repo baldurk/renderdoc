@@ -286,6 +286,7 @@ void LiveCapture::on_triggerCapture_clicked()
   if(ui->captureDelay->value() == 0.0)
   {
     m_TriggerCapture = true;
+    m_CaptureNumFrames = (int)ui->numFrames->value();
   }
   else
   {
