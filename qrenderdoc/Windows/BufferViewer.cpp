@@ -2942,8 +2942,11 @@ void BufferViewer::data_scrolled(int scrollvalue)
 {
   QObject *sender = QObject::sender();
   RDTableView *view = qobject_cast<RDTableView *>(sender);
-  if(view == NULL)
-    view = qobject_cast<RDTableView *>(sender->parent());
+  while(sender != NULL && view == NULL)
+  {
+    sender = sender->parent();
+    view = qobject_cast<RDTableView *>(sender);
+  }
 
   if(view == NULL)
     return;
