@@ -217,8 +217,9 @@ conservative size estimate was used on creation to avoid seeking to fix-up the s
 
   DOCUMENT(R"(The duration in microseconds that this chunk took. This is the time for the actual
 work, not the serialising.
+Since 0 is a possible value for this (for extremely fast calls), -1 is the invalid/not present value.
 )");
-  uint64_t durationMicro = 0;
+  int64_t durationMicro = -1;
 
   DOCUMENT("The point in time when this chunk was recorded, in microseconds since program start.");
   uint64_t timestampMicro = 0;

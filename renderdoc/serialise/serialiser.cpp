@@ -431,7 +431,7 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
     if(m_ChunkMetadata.threadID != 0)
       m_ChunkFlags |= ChunkThreadID;
 
-    if(m_ChunkMetadata.durationMicro != 0)
+    if(m_ChunkMetadata.durationMicro >= 0)
       m_ChunkFlags |= ChunkDuration;
 
     if(m_ChunkMetadata.timestampMicro != 0)

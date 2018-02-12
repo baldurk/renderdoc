@@ -354,7 +354,7 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
       xChunk.append_attribute("threadID") = chunk->metadata.threadID;
     if(chunk->metadata.timestampMicro)
       xChunk.append_attribute("timestamp") = chunk->metadata.timestampMicro;
-    if(chunk->metadata.durationMicro)
+    if(chunk->metadata.durationMicro >= 0)
       xChunk.append_attribute("duration") = chunk->metadata.durationMicro;
     if(!chunk->metadata.callstack.empty())
     {
