@@ -202,7 +202,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   if(params)
     m_InitParams = *params;
 
-  m_DebugManager = new D3D11DebugManager(this);
+  if(realDevice)
+    m_DebugManager = new D3D11DebugManager(this);
 
   // ATI workaround - these dlls can get unloaded and cause a crash.
 
@@ -278,10 +279,13 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_RELEASE(m_WrappedDebug.m_pDebug);
   SAFE_RELEASE(m_pDevice);
 
-  RDCASSERT(WrappedID3D11Buffer::m_BufferList.empty());
-  RDCASSERT(WrappedID3D11Texture1D::m_TextureList.empty());
-  RDCASSERT(WrappedID3D11Texture2D1::m_TextureList.empty());
-  RDCASSERT(WrappedID3D11Texture3D1::m_TextureList.empty());
+  if(!IsStructuredExporting(m_State))
+  {
+    RDCASSERT(WrappedID3D11Buffer::m_BufferList.empty());
+    RDCASSERT(WrappedID3D11Texture1D::m_TextureList.empty());
+    RDCASSERT(WrappedID3D11Texture2D1::m_TextureList.empty());
+    RDCASSERT(WrappedID3D11Texture3D1::m_TextureList.empty());
+  }
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
