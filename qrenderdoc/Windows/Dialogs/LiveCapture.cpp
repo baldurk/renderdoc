@@ -129,6 +129,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
 
   ui->captures->setItemDelegate(new NameEditOnlyDelegate(this));
 
+  ui->captures->verticalScrollBar()->setSingleStep(20);
+
   {
     QToolBar *bottomTools = new QToolBar(this);
 
