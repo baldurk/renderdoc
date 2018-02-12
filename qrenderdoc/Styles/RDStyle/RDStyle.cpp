@@ -66,6 +66,7 @@ static const qreal ProgressRadius = 4.0;
 static const int MenuBarMargin = 6;
 static const int MenuSubmenuWidth = 8;
 static const int MenuBarIconSize = 16;
+static const int MenuBarMinimumWidth = 80;
 
 static const int TabWidgetBorder = 1;
 static const int TabMargin = 4;
@@ -666,6 +667,8 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
     // add room for an icon
     if(menuitem->maxIconWidth)
       ret.setWidth(ret.width() + Constants::MenuBarMargin + menuitem->maxIconWidth);
+
+    ret = ret.expandedTo(QSize(Constants::MenuBarMinimumWidth, 0));
 
     return ret;
   }
