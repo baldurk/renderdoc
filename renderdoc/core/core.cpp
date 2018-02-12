@@ -849,13 +849,15 @@ std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
 {
   std::vector<CaptureFileFormat> ret;
 
-  CaptureFileFormat rdc;
-  rdc.name = "rdc";
-  rdc.description = "Native RDC capture file format.";
-  rdc.openSupported = true;
-  rdc.convertSupported = true;
+  {
+    CaptureFileFormat rdc;
+    rdc.name = "rdc";
+    rdc.description = "Native RDC capture file format.";
+    rdc.openSupported = true;
+    rdc.convertSupported = true;
 
-  ret.push_back(rdc);
+    ret.push_back(rdc);
+  }
 
   for(auto it = m_ImportExportFormats.begin(); it != m_ImportExportFormats.end(); ++it)
   {
@@ -863,10 +865,10 @@ std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
     fmt.name = it->first;
     fmt.description = it->second;
 
-    rdc.openSupported = m_Importers.find(it->first) != m_Importers.end();
-    rdc.convertSupported = m_Exporters.find(it->first) != m_Exporters.end();
+    fmt.openSupported = m_Importers.find(it->first) != m_Importers.end();
+    fmt.convertSupported = m_Exporters.find(it->first) != m_Exporters.end();
 
-    RDCASSERT(rdc.openSupported || rdc.convertSupported);
+    RDCASSERT(fmt.openSupported || fmt.convertSupported);
 
     ret.push_back(fmt);
   }
