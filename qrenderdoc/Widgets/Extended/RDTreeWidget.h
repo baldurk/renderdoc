@@ -125,6 +125,8 @@ public:
 private:
   void checkForResourceId(int column);
 
+  void sort(int column, Qt::SortOrder order);
+
   friend class RDTreeWidget;
   friend class RDTreeWidgetModel;
   friend class RDTreeWidgetDelegate;
@@ -151,8 +153,6 @@ private:
   // each element, per-column, is a list of other data values
   // we allocate this lazily only if it's really needed
   QVector<QVector<RoleData>> *m_data = NULL;
-  // bitmask of which special Qt roles have data set
-  uint64_t m_customData = 0;
 
   // per-item properties
   QString m_tooltip;

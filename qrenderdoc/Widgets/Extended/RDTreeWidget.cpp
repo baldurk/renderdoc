@@ -59,6 +59,13 @@ public:
     return (RDTreeWidgetItem *)idx.internalPointer();
   }
 
+  void sort(int column, Qt::SortOrder order = Qt::AscendingOrder)
+  {
+    emit beginResetModel();
+    widget->m_root->sort(column, order);
+    emit endResetModel();
+  }
+
   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
   {
     if(row < 0 || column < 0 || row >= rowCount(parent) || column >= columnCount(parent))
@@ -170,9 +177,15 @@ public:
     if(!item->m_parent || index.column() >= item->m_text.count())
       return QVariant();
 
-    if(role == Qt::DisplayRole)
+    if(role == Qt::TextAlignmentRole)
     {
-      return item->m_text[index.column()];
+      if(index.column() < widget->m_alignments.count())
+      {
+        Qt::Alignment align = widget->m_alignments[index.column()];
+
+        if(align != 0)
+          return QVariant(align);
+      }
     }
     else if(role == Qt::DecorationRole)
     {
@@ -184,7 +197,7 @@ public:
           return widget->m_normalHoverIcon;
       }
 
-      return item->m_icons[index.column()];
+      // if not hovering, fall through to the decoration from the item
     }
     else if(role == Qt::BackgroundRole)
     {
@@ -203,45 +216,8 @@ public:
       // otherwise, no special background
       return QVariant();
     }
-    else if(role == Qt::ForegroundRole)
-    {
-      // same priority order as background role above
-      if(item->m_fore != QBrush())
-        return item->m_fore;
 
-      return QVariant();
-    }
-    else if(role == Qt::ToolTipRole && !widget->m_instantTooltips)
-    {
-      return item->m_tooltip;
-    }
-    else if(role == Qt::FontRole)
-    {
-      QFont font;    // TODO should this come from some default?
-      font.setItalic(item->m_italic);
-      font.setBold(item->m_bold);
-      return font;
-    }
-    else if(role == Qt::TextAlignmentRole)
-    {
-      if(index.column() < widget->m_alignments.count())
-      {
-        Qt::Alignment align = widget->m_alignments[index.column()];
-
-        if(align != 0)
-          return QVariant(align);
-      }
-    }
-    else if(role < 64 && item->m_customData & 1ULL << role)
-    {
-      return item->data(index.column(), role);
-    }
-    else if(role >= Qt::UserRole)
-    {
-      return item->data(index.column(), role);
-    }
-
-    return QVariant();
+    return item->data(index.column(), role);
   }
 
   bool setData(const QModelIndex &index, const QVariant &value, int role) override
@@ -330,6 +306,22 @@ void RDTreeWidgetItem::checkForResourceId(int col)
   RichResourceTextInitialise(m_text[col]);
 }
 
+void RDTreeWidgetItem::sort(int column, Qt::SortOrder order)
+{
+  std::sort(m_children.begin(), m_children.end(),
+            [column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+              QVariant va = a->data(column, Qt::DisplayRole);
+              QVariant vb = b->data(column, Qt::DisplayRole);
+
+              if(order == Qt::AscendingOrder)
+                return va < vb;
+              return va > vb;
+            });
+
+  for(RDTreeWidgetItem *child : m_children)
+    child->sort(column, order);
+}
+
 RDTreeWidgetItem::~RDTreeWidgetItem()
 {
   if(m_parent)
@@ -342,6 +334,41 @@ RDTreeWidgetItem::~RDTreeWidgetItem()
 
 QVariant RDTreeWidgetItem::data(int column, int role) const
 {
+  if(role == Qt::DisplayRole)
+  {
+    return m_text[column];
+  }
+  else if(role == Qt::DecorationRole)
+  {
+    return m_icons[column];
+  }
+  else if(role == Qt::BackgroundRole)
+  {
+    if(m_back != QBrush())
+      return m_back;
+
+    return QVariant();
+  }
+  else if(role == Qt::ForegroundRole)
+  {
+    if(m_fore != QBrush())
+      return m_fore;
+
+    return QVariant();
+  }
+  else if(role == Qt::ToolTipRole && !m_widget->m_instantTooltips)
+  {
+    return m_tooltip;
+  }
+  else if(role == Qt::FontRole)
+  {
+    QFont font;    // TODO should this come from some default?
+    font.setItalic(m_italic);
+    font.setBold(m_bold);
+    return font;
+  }
+
+  // if we don't have any custom data, and the role wasn't covered above, it's invalid
   if(m_data == NULL || column >= m_data->count())
     return QVariant();
 
@@ -363,12 +390,6 @@ void RDTreeWidgetItem::setData(int column, int role, const QVariant &value)
   {
     m_data = new QVector<QVector<RoleData>>;
     m_data->resize(qMax(m_text.count(), column + 1));
-  }
-
-  if(role < Qt::UserRole)
-  {
-    Q_ASSERT(role < 64);
-    m_customData |= 1ULL << role;
   }
 
   // data is allowed to resize above the column count in the widget
