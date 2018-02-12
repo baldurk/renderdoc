@@ -148,7 +148,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="autoFit">
+     <widget class="RDToolButton" name="autoFit">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
         <horstretch>0</horstretch>
@@ -164,6 +164,9 @@
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/wand.png</normaloff>:/wand.png</iconset>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -1275,11 +1278,6 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>Widgets/Extended/RDLineEdit.h</header>
-  </customwidget>
-  <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
    <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
@@ -1288,6 +1286,11 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
    <header>Widgets/CustomPaintWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
   <customwidget>
    <class>ThumbnailStrip</class>

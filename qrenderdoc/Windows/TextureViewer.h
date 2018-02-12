@@ -155,6 +155,7 @@ private slots:
 
   void on_zoomRange_clicked();
   void on_autoFit_clicked();
+  void on_autoFit_mouseClicked(QMouseEvent *e);
   void on_reset01_clicked();
   void on_visualiseRange_clicked();
   void on_backcolorPick_clicked();

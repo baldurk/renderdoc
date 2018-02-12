@@ -2682,8 +2682,8 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 
-  // if(autoFit.Checked)
-  // AutoFitRange();
+  if(ui->autoFit->isChecked())
+    AutoFitRange();
 }
 
 QVariant TextureViewer::persistData()
@@ -2991,6 +2991,12 @@ void TextureViewer::on_zoomRange_clicked()
 void TextureViewer::on_autoFit_clicked()
 {
   AutoFitRange();
+}
+
+void TextureViewer::on_autoFit_mouseClicked(QMouseEvent *e)
+{
+  if(e->buttons() & Qt::RightButton)
+    ui->autoFit->toggle();
 }
 
 void TextureViewer::on_reset01_clicked()
