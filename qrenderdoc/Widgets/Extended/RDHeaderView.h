@@ -114,9 +114,7 @@ protected:
   bool m_customSizing = false;
 
   QList<int> m_sectionStretchHints;
-  int m_sectionStretchHintTotal = 0;
   QVector<int> m_sectionMinSizes;
-  int m_sectionMinSizesTotal = 0;
 
   int m_columnGroupRole = 0;
   int m_pinnedColumns = 0;

@@ -333,7 +333,6 @@ bool RDHeaderView::hasGroupTitle(int columnIndex) const
 void RDHeaderView::cacheSectionMinSizes()
 {
   m_sectionMinSizes.resize(count());
-  m_sectionMinSizesTotal = 0;
 
   for(int i = 0; i < m_sectionMinSizes.count(); i++)
   {
@@ -360,16 +359,27 @@ void RDHeaderView::cacheSectionMinSizes()
 
     // update the minimum size for this section and count the total which we'll need
     m_sectionMinSizes[i] = sz;
-    m_sectionMinSizesTotal += m_sectionMinSizes[i];
   }
 }
 
 void RDHeaderView::resizeSectionsWithHints()
 {
-  if(m_sectionMinSizes.count() == 0 || m_sectionStretchHintTotal <= 0)
+  if(m_sectionMinSizes.isEmpty() || m_sectionStretchHints.isEmpty())
     return;
 
   QVector<int> sizes = m_sectionMinSizes;
+  int minsizesTotal = 0;
+  int stretchHintTotal = 0;
+
+  for(int i = 0; i < count() && i < sizes.count() && i < m_sectionStretchHints.count(); i++)
+  {
+    if(isSectionHidden(i))
+      sizes[i] = 0;
+    else if(m_sectionStretchHints[i] >= 0)
+      stretchHintTotal += m_sectionStretchHints[i];
+
+    minsizesTotal += sizes[i];
+  }
 
   int available = 0;
 
@@ -379,28 +389,28 @@ void RDHeaderView::resizeSectionsWithHints()
     available = rect().height();
 
   // see if we even have any extra space to allocate
-  if(available > m_sectionMinSizesTotal)
+  if(available > minsizesTotal)
   {
     // this is how much space we can allocate to stretch sections
-    available -= m_sectionMinSizesTotal;
+    available -= minsizesTotal;
 
     // distribute the available space between the sections. Dividing by the total stretch tells us
     // how many 'whole' multiples we can allocate:
-    int wholeMultiples = available / m_sectionStretchHintTotal;
+    int wholeMultiples = available / stretchHintTotal;
 
     if(wholeMultiples > 0)
     {
       for(int i = 0; i < sizes.count() && i < m_sectionStretchHints.count(); i++)
       {
         int hint = m_sectionStretchHints[i];
-        if(hint > 0)
+        if(hint > 0 && !isSectionHidden(i))
           sizes[i] += wholeMultiples * hint;
       }
     }
 
-    available -= wholeMultiples * m_sectionStretchHintTotal;
+    available -= wholeMultiples * stretchHintTotal;
 
-    // we now have a small amount (less than m_sectionStretchHintTotal) of extra space to allocate.
+    // we now have a small amount (less than stretchHintTotal) of extra space to allocate.
     // we still want to assign this leftover proportional to the hints, otherwise we'd end up with a
     // stair-stepping effect.
     // To do this we calculate hint/total for each section then loop around adding on fractional
@@ -413,14 +423,15 @@ void RDHeaderView::resizeSectionsWithHints()
     // set up increments
     for(int i = 0; i < sizes.count(); i++)
     {
-      // don't assign any space to sections with negative hints, or sections without hints
-      if(i >= m_sectionStretchHints.count() || m_sectionStretchHints[i] <= 0)
+      // don't assign any space to sections with negative hints, or sections without hints, or
+      // hidden sections
+      if(i >= m_sectionStretchHints.count() || m_sectionStretchHints[i] <= 0 || isSectionHidden(i))
       {
         increment[i] = 0.0f;
         continue;
       }
 
-      increment[i] = float(m_sectionStretchHints[i]) / float(m_sectionStretchHintTotal);
+      increment[i] = float(m_sectionStretchHints[i]) / float(stretchHintTotal);
     }
 
     while(available > 0)
@@ -453,13 +464,6 @@ void RDHeaderView::setColumnStretchHints(const QList<int> &hints)
   if(hints.count() != count())
     qCritical() << "Got" << hints.count() << "hints, but have" << count() << "columns";
   m_sectionStretchHints = hints;
-
-  m_sectionStretchHintTotal = 0;
-  for(int h : m_sectionStretchHints)
-  {
-    if(h > 0)
-      m_sectionStretchHintTotal += h;
-  }
 
   // we take control of the sizing, we don't currently support custom resizing AND stretchy size
   // hints.
