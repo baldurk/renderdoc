@@ -1807,10 +1807,12 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventU
   QAction showDisabled(tr("Show Disabled"), this);
   QAction showEmpty(tr("Show Empty"), this);
   QAction openLockedTab(tr("Open new Locked Tab"), this);
+  QAction openResourceInspector(tr("Open in Resource Inspector"), this);
   QAction usageTitle(tr("Used:"), this);
   QAction imageLayout(this);
 
   openLockedTab.setIcon(Icons::action_hover());
+  openResourceInspector.setIcon(Icons::link());
 
   showDisabled.setChecked(m_ShowDisabled);
   showDisabled.setChecked(m_ShowEmpty);
@@ -1832,6 +1834,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventU
   {
     contextMenu.addSeparator();
     contextMenu.addAction(&openLockedTab);
+    contextMenu.addAction(&openResourceInspector);
     contextMenu.addSeparator();
     contextMenu.addAction(&usageTitle);
 
@@ -1839,6 +1842,12 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventU
 
     QObject::connect(&openLockedTab, &QAction::triggered, this,
                      &TextureViewer::texContextItem_triggered);
+
+    QObject::connect(&openResourceInspector, &QAction::triggered, [this, id]() {
+      m_Ctx.ShowResourceInspector();
+
+      m_Ctx.GetResourceInspector()->Inspect(id);
+    });
 
     CombineUsageEvents(m_Ctx, usage,
                        [this, &contextMenu](uint32_t start, uint32_t end, ResourceUsage use) {
