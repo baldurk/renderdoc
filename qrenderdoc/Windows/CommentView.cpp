@@ -40,7 +40,7 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
       STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
   m_commentsEditor->setTabWidth(4);
 
-  ConfigureSyntax(m_commentsEditor, SCLEX_PYTHON);
+  ConfigureSyntax(m_commentsEditor, SCLEX_NULL);
 
   QObject::connect(m_commentsEditor, &ScintillaEdit::modified, [this](int type, int, int, int,
                                                                       const QByteArray &, int, int,
