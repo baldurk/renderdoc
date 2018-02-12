@@ -1488,10 +1488,14 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   {
     const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(opt);
 
-    p->save();
-    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+    qreal lineWidth = qMax(1, frame->lineWidth);
 
-    QRectF rect = QRectF(opt->rect).adjusted(0.5, 0.5, -0.5, -0.5);
+    p->save();
+    p->setPen(QPen(opt->palette.brush(widget->foregroundRole()), lineWidth));
+
+    qreal adjust = 0.5 * lineWidth;
+
+    QRectF rect = QRectF(opt->rect).adjusted(adjust, adjust, -adjust, -adjust);
 
     QPainterPath path;
     path.addRoundedRect(rect, 1.0, 1.0);
