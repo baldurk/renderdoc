@@ -804,7 +804,7 @@ ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }
 
-static ConversionRegistration XMLConversionRegistration("xml", R"(XML+ZIP format.
+static ConversionRegistration XMLConversionRegistration("xml", R"(XML+ZIP capture
 
 Stores the structured data in an xml tree, with large buffer data stored in indexed blobs in
 similarly named zip file.
