@@ -74,6 +74,8 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
   desc.uuid.words[2] = 0xBA18F032;
   desc.uuid.words[3] = 0x9DA370A0 ^ (uint32_t)counterID;
 
+  desc.category = "OpenGL Built-in";
+
   switch(counterID)
   {
     case GPUCounter::EventGPUDuration:

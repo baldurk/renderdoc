@@ -68,6 +68,8 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
   desc.uuid.words[2] = 0xB6068C65;
   desc.uuid.words[3] = 0x157C684C ^ (uint32_t)counterID;
 
+  desc.category = "Vulkan Built-in";
+
   switch(counterID)
   {
     case GPUCounter::EventGPUDuration:

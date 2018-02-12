@@ -57,6 +57,8 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
   desc.uuid.words[2] = 0x81F78549;
   desc.uuid.words[3] = 0x4E648F22 ^ (uint32_t)counterID;
 
+  desc.category = "D3D12 Built-in";
+
   switch(counterID)
   {
     case GPUCounter::EventGPUDuration:

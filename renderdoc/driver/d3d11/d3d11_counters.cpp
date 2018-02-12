@@ -79,7 +79,7 @@ CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
   desc.uuid.words[2] = 0xA6DCCFE7;
   desc.uuid.words[3] = 0x222FC1AC ^ (uint32_t)counterID;
 
-  desc.category = "D3D11";
+  desc.category = "D3D11 Built-in";
 
   switch(counterID)
   {
