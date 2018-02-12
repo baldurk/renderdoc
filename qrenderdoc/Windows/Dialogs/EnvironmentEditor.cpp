@@ -122,12 +122,10 @@ void EnvironmentEditor::on_variables_keyPress(QKeyEvent *event)
 void EnvironmentEditor::on_variables_currentItemChanged(RDTreeWidgetItem *current,
                                                         RDTreeWidgetItem *previous)
 {
-  RDTreeWidgetItem *sel = ui->variables->selectedItem();
-
-  if(!sel)
+  if(!current)
     return;
 
-  EnvironmentModification mod = sel->tag().value<EnvironmentModification>();
+  EnvironmentModification mod = current->tag().value<EnvironmentModification>();
 
   if(!mod.value.empty())
   {
