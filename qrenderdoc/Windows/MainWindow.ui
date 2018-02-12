@@ -14,7 +14,7 @@
    <string>QRenderDoc</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="../Resources/resources.qrc">
     <normaloff>:/logo.svg</normaloff>:/logo.svg</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
@@ -70,10 +70,26 @@
     </widget>
     <widget class="QMenu" name="menu_Recent_Capture_Settings">
      <property name="title">
-      <string>R&amp;ecent Capture Settings</string>
+      <string>Recent Capture Settings</string>
      </property>
      <addaction name="separator"/>
      <addaction name="action_Clear_Capture_Settings_History"/>
+    </widget>
+    <widget class="QMenu" name="menu_Export_As">
+     <property name="title">
+      <string>&amp;Export As...</string>
+     </property>
+     <property name="toolTipsVisible">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QMenu" name="menu_Import_From">
+     <property name="title">
+      <string>&amp;Import From...</string>
+     </property>
+     <property name="toolTipsVisible">
+      <bool>true</bool>
+     </property>
     </widget>
     <addaction name="action_Launch_Application"/>
     <addaction name="action_Attach_to_Running_Instance"/>
@@ -84,10 +100,14 @@
     <addaction name="action_Save_Capture_As"/>
     <addaction name="action_Close_Capture"/>
     <addaction name="separator"/>
+    <addaction name="menu_Import_From"/>
+    <addaction name="menu_Export_As"/>
+    <addaction name="separator"/>
     <addaction name="menu_Recent_Capture_Files"/>
     <addaction name="menu_Recent_Capture_Settings"/>
     <addaction name="separator"/>
     <addaction name="action_Exit"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menu_Window">
     <property name="title">
@@ -442,6 +462,8 @@
    <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../Resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

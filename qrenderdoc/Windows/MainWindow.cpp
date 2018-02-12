@@ -330,6 +330,54 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Save_Capture_Inplace->setEnabled(false);
   ui->action_Save_Capture_As->setEnabled(false);
   ui->action_Close_Capture->setEnabled(false);
+  ui->menu_Export_As->setEnabled(false);
+
+  {
+    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
+    rdcarray<CaptureFileFormat> formats = tmp->GetCaptureFileFormats();
+
+    for(const CaptureFileFormat &fmt : formats)
+    {
+      QString name = fmt.name;
+      if(name == lit("rdc"))
+        continue;
+
+      QString desc = fmt.description;
+
+      int idx = desc.indexOf(QLatin1Char('\n'));
+
+      QString title = idx >= 0 ? desc.mid(0, idx).trimmed() : desc.trimmed();
+      QString tooltip = idx >= 0 ? desc.mid(idx).trimmed() : QString();
+
+      if(fmt.openSupported)
+      {
+        QAction *action = new QAction(title, this);
+
+        QObject::connect(action, &QAction::triggered,
+                         [this, name, title]() { importCapture(name, title); });
+
+        if(!tooltip.isEmpty())
+          action->setToolTip(tooltip);
+
+        ui->menu_Import_From->addAction(action);
+      }
+
+      if(fmt.convertSupported)
+      {
+        QAction *action = new QAction(title, this);
+
+        QObject::connect(action, &QAction::triggered,
+                         [this, name, title]() { exportCapture(name, title); });
+
+        if(!tooltip.isEmpty())
+          action->setToolTip(tooltip);
+
+        ui->menu_Export_As->addAction(action);
+      }
+    }
+
+    tmp->Shutdown();
+  }
 
   QList<QAction *> actions = ui->menuBar->actions();
 
@@ -394,6 +442,78 @@ void MainWindow::on_action_Open_Capture_triggered()
 
   if(!filename.isEmpty())
     LoadFromFilename(filename, false);
+}
+
+void MainWindow::importCapture(QString ext, QString title)
+{
+  if(!PromptCloseCapture())
+    return;
+
+  QString filename =
+      RDDialog::getOpenFileName(this, tr("Select file to open"), m_Ctx.Config().LastCaptureFilePath,
+                                tr("%1 Files (*.%2);;All Files (*)").arg(title).arg(ext));
+
+  if(!filename.isEmpty())
+  {
+    QString rdcfile = m_Ctx.TempCaptureFilename("imported");
+
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+
+    ReplayStatus status = file->OpenFile(filename.toUtf8().data(), ext.toUtf8().data());
+
+    filename = QFileInfo(filename).fileName();
+
+    if(status != ReplayStatus::Succeeded)
+    {
+      QString text = tr("Couldn't open file '%1'\n").arg(filename);
+      QString message = file->ErrorString();
+      if(message.isEmpty())
+        text += tr("%1").arg(ToQStr(status));
+      else
+        text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+      RDDialog::critical(this, tr("Error opening file"), text);
+
+      file->Shutdown();
+      return;
+    }
+
+    float progress = 0.0f;
+
+    LambdaThread *th = new LambdaThread([file, rdcfile, &progress, &status]() {
+      status = file->Convert(rdcfile.toUtf8().data(), "rdc", [&progress](float p) { progress = p; });
+    });
+    th->start();
+    // wait a few ms before popping up a progress bar
+    th->wait(500);
+    if(th->isRunning())
+    {
+      ShowProgressDialog(this, tr("Importing from %1, please wait...").arg(filename),
+                         [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
+    }
+    th->deleteLater();
+
+    if(status != ReplayStatus::Succeeded)
+    {
+      QString text = tr("Couldn't convert file '%1'\n").arg(filename);
+      QString message = file->ErrorString();
+      if(message.isEmpty())
+        text += tr("%1").arg(ToQStr(status));
+      else
+        text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+      RDDialog::critical(this, tr("Error converting capture"), text);
+
+      file->Shutdown();
+      return;
+    }
+
+    file->Shutdown();
+
+    // open file as temporary, in case the user wants to save the imported rdc
+    LoadFromFilename(rdcfile, true);
+    takeCaptureOwnership();
+  }
 }
 
 void MainWindow::captureModified()
@@ -538,7 +658,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
         else
           text += tr("%1: %2").arg(ToQStr(status)).arg(message);
 
-        RDDialog::critical(NULL, tr("Error opening capture"), text);
+        RDDialog::critical(this, tr("Error opening capture"), text);
 
         file->Shutdown();
         return;
@@ -638,7 +758,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
 
         remoteMessage += tr("Try selecting a different remote context in the status bar.");
 
-        RDDialog::critical(NULL, tr("Unsupported capture driver"), remoteMessage);
+        RDDialog::critical(this, tr("Unsupported capture driver"), remoteMessage);
       }
       else
       {
@@ -647,7 +767,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
 
         remoteMessage += tr("Try selecting a remote context in the status bar.");
 
-        RDDialog::critical(NULL, tr("Unsupported capture driver"), remoteMessage);
+        RDDialog::critical(this, tr("Unsupported capture driver"), remoteMessage);
       }
 
       return;
@@ -665,7 +785,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
         // some error
         if(fileToLoad.isEmpty())
         {
-          RDDialog::critical(NULL, tr("Error copying to remote"),
+          RDDialog::critical(this, tr("Error copying to remote"),
                              tr("Couldn't copy %1 to remote host for replaying").arg(filename));
           return;
         }
@@ -707,7 +827,7 @@ void MainWindow::OpenCaptureConfigFile(const QString &filename, bool exe)
   ToolWindowManager::raiseToolWindow(capDialog->Widget());
 }
 
-QString MainWindow::GetSavePath()
+QString MainWindow::GetSavePath(QString title, QString filter)
 {
   QString dir;
 
@@ -719,8 +839,13 @@ QString MainWindow::GetSavePath()
       dir = m_LastSaveCapturePath;
   }
 
-  QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, tr("Capture Files (*.rdc)"));
+  if(title.isEmpty())
+    title = tr("Save Capture As");
+
+  if(filter.isEmpty())
+    filter = tr("Capture Files (*.rdc)");
+
+  QString filename = RDDialog::getSaveFileName(this, title, dir, filter);
 
   if(!filename.isEmpty())
   {
@@ -755,6 +880,76 @@ bool MainWindow::PromptSaveCaptureAs()
   return false;
 }
 
+void MainWindow::exportCapture(QString ext, QString title)
+{
+  if(m_Ctx.Replay().CurrentRemote())
+  {
+    RDDialog::information(
+        this, tr("Save changes to capture?"),
+        tr("The capture is on a remote host, it must be saved locally before it can be exported."));
+    PromptSaveCaptureAs();
+    return;
+  }
+
+  QString saveFilename =
+      GetSavePath(tr("Export Capture As"), tr("%1 Files (*.%2)").arg(title).arg(ext));
+
+  if(!saveFilename.isEmpty())
+  {
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+
+    ReplayStatus status = file->OpenFile(m_Ctx.GetCaptureFilename().c_str(), "rdc");
+
+    QString filename = QFileInfo(QString(m_Ctx.GetCaptureFilename())).fileName();
+
+    if(status != ReplayStatus::Succeeded)
+    {
+      QString text = tr("Couldn't open file '%1' for export\n").arg(filename);
+      QString message = file->ErrorString();
+      if(message.isEmpty())
+        text += tr("%1").arg(ToQStr(status));
+      else
+        text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+      RDDialog::critical(this, tr("Error opening file"), text);
+
+      file->Shutdown();
+      return;
+    }
+
+    float progress = 0.0f;
+
+    LambdaThread *th = new LambdaThread([file, ext, saveFilename, &progress, &status]() {
+      status = file->Convert(saveFilename.toUtf8().data(), ext.toUtf8().data(),
+                             [&progress](float p) { progress = p; });
+    });
+    th->start();
+    // wait a few ms before popping up a progress bar
+    th->wait(500);
+    if(th->isRunning())
+    {
+      ShowProgressDialog(this, tr("Exporting %1 to %2, please wait...").arg(filename).arg(title),
+                         [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
+    }
+    th->deleteLater();
+
+    QString message = file->ErrorString();
+    file->Shutdown();
+
+    if(status != ReplayStatus::Succeeded)
+    {
+      QString text = tr("Couldn't convert file '%1'\n").arg(filename);
+      if(message.isEmpty())
+        text += tr("%1").arg(ToQStr(status));
+      else
+        text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+      RDDialog::critical(this, tr("Error converting capture"), text);
+      return;
+    }
+  }
+}
+
 bool MainWindow::PromptCloseCapture()
 {
   if(!m_Ctx.IsCaptureLoaded())
@@ -769,7 +964,7 @@ bool MainWindow::PromptCloseCapture()
     caplocal = m_Ctx.IsCaptureLocal();
 
     QMessageBox::StandardButton res =
-        RDDialog::question(NULL, tr("Unsaved capture"), tr("Save this capture?"),
+        RDDialog::question(this, tr("Unsaved capture"), tr("Save this capture?"),
                            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
     if(res == QMessageBox::Cancel)
@@ -817,7 +1012,7 @@ bool MainWindow::PromptCloseCapture()
           tr("\nThe capture is on a remote host, would you like to save these changes locally?");
     }
 
-    res = RDDialog::question(NULL, tr("Save changes to capture?"), text,
+    res = RDDialog::question(this, tr("Save changes to capture?"), text,
                              QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
     if(res == QMessageBox::Cancel)
@@ -851,6 +1046,7 @@ void MainWindow::CloseCapture()
 
   ui->action_Save_Capture_Inplace->setEnabled(false);
   ui->action_Save_Capture_As->setEnabled(false);
+  ui->menu_Export_As->setEnabled(false);
 }
 
 void MainWindow::SetTitle(const QString &filename)
@@ -1301,7 +1497,7 @@ void MainWindow::recentCaptureFile(const QString &filename)
   else
   {
     QMessageBox::StandardButton res =
-        RDDialog::question(NULL, tr("File not found"),
+        RDDialog::question(this, tr("File not found"),
                            tr("File %1 couldn't be found.\nRemove from recent list?").arg(filename));
 
     if(res == QMessageBox::Yes)
@@ -1322,7 +1518,7 @@ void MainWindow::recentCaptureSetting(const QString &filename)
   else
   {
     QMessageBox::StandardButton res =
-        RDDialog::question(NULL, tr("File not found"),
+        RDDialog::question(this, tr("File not found"),
                            tr("File %1 couldn't be found.\nRemove from recent list?").arg(filename));
 
     if(res == QMessageBox::Yes)
@@ -1669,6 +1865,7 @@ void MainWindow::OnCaptureLoaded()
   ui->action_Save_Capture_Inplace->setEnabled(m_Ctx.IsCaptureTemporary());
   ui->action_Save_Capture_As->setEnabled(true);
   ui->action_Close_Capture->setEnabled(true);
+  ui->menu_Export_As->setEnabled(true);
 
   // don't allow changing context while capture is open
   contextChooser->setEnabled(false);
@@ -1705,6 +1902,7 @@ void MainWindow::OnCaptureClosed()
   ui->action_Save_Capture_Inplace->setEnabled(false);
   ui->action_Save_Capture_As->setEnabled(false);
   ui->action_Close_Capture->setEnabled(false);
+  ui->menu_Export_As->setEnabled(false);
 
   ui->action_Start_Replay_Loop->setEnabled(false);
 

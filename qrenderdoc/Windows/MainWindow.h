@@ -76,7 +76,7 @@ public:
   void LoadFromFilename(const QString &filename, bool temporary);
   void LoadCapture(const QString &filename, bool temporary, bool local);
   void CloseCapture();
-  QString GetSavePath();
+  QString GetSavePath(QString title = QString(), QString filter = QString());
 
   void OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
                         const rdcarray<EnvironmentModification> &env, CaptureOptions opts,
@@ -161,6 +161,9 @@ private:
   void dropEvent(QDropEvent *event) override;
 
   bool eventFilter(QObject *watched, QEvent *event) override;
+
+  void importCapture(QString ext, QString title);
+  void exportCapture(QString ext, QString title);
 
   QString dragFilename(const QMimeData *mimeData);
 
