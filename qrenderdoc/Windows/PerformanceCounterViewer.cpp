@@ -230,7 +230,7 @@ void PerformanceCounterViewer::CaptureCounters()
       {
         if(eventIdToRow.contains(result.eventId))
           continue;
-        eventIdToRow[result.eventId] = eventIdToRow.size();
+        eventIdToRow.insert(result.eventId, eventIdToRow.size());
       }
 
       ui->counterResults->setColumnCount(headers.size());
