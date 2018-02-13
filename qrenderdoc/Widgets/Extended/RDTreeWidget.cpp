@@ -59,7 +59,7 @@ public:
     return (RDTreeWidgetItem *)idx.internalPointer();
   }
 
-  void sort(int column, Qt::SortOrder order = Qt::AscendingOrder)
+  void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override
   {
     emit beginResetModel();
     widget->m_root->sort(column, order);
