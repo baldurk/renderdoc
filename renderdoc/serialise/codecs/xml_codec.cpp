@@ -693,7 +693,8 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
                                 const StructuredBufferList &buffers,
                                 RENDERDOC_ProgressCallback progress)
 {
-  std::string zipFile = filename + ".zip";
+  std::string zipFile = filename;
+  zipFile.erase(zipFile.size() - 4);    // remove the .xml, leave only the .zip
 
   mz_zip_archive zip;
   memset(&zip, 0, sizeof(zip));
@@ -804,9 +805,22 @@ ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }
 
-static ConversionRegistration XMLConversionRegistration("xml", R"(XML+ZIP capture
+ReplayStatus exportXMLOnly(const char *filename, const RDCFile &rdc, const SDFile &structData,
+                           RENDERDOC_ProgressCallback progress)
+{
+  return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
+}
+
+static ConversionRegistration XMLZIPConversionRegistration("zip.xml", R"(XML+ZIP capture
 
 Stores the structured data in an xml tree, with large buffer data stored in indexed blobs in
 similarly named zip file.
 )",
-                                                        &importXMLZ, &exportXMLZ);
+                                                           &importXMLZ, &exportXMLZ);
+
+static ConversionRegistration XMLOnlyConversionRegistration("xml", R"(XML capture
+
+Stores the structured data in an xml tree, with large buffer data omitted - that makes it easier to
+work with but it cannot then be imported.
+)",
+                                                            &exportXMLOnly);
