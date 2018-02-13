@@ -1818,8 +1818,9 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
       ResourceId drawId = GetResourceManager()->GetID(drawFramebuffer);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(), ToStr(readId).c_str(),
-                                    ToStr(drawId).c_str());
+      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(readId)).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(drawId)).c_str());
       draw.flags |= DrawFlags::Resolve;
 
       GLint numCols = 8;
