@@ -1001,9 +1001,9 @@ void CaptureContext::LoadRenames(const QString &data)
     {
       ResourceId id;
 
-      if(str.startsWith(lit("resourceid::")))
+      if(str.startsWith(lit("ResourceId::")))
       {
-        qulonglong num = str.mid(sizeof("resourceid::") - 1).toULongLong();
+        qulonglong num = str.mid(sizeof("ResourceId::") - 1).toULongLong();
         memcpy(&id, &num, sizeof(num));
       }
       else

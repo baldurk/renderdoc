@@ -64,7 +64,7 @@ std::string DoStringise(const ResourceId &el)
 {
   uint64_t num;
   memcpy(&num, &el, sizeof(num));
-  return lit("resourceid::%1").arg(num).toStdString();
+  return lit("ResourceId::%1").arg(num).toStdString();
 }
 
 struct RichResourceText
@@ -180,7 +180,7 @@ void RegisterMetatypeConversions()
 
 void RichResourceTextInitialise(QVariant &var)
 {
-  static QRegularExpression re(lit("(resourceid::)([0-9]*)"));
+  static QRegularExpression re(lit("(ResourceId::)([0-9]*)"));
 
   if(var.userType() == qMetaTypeId<ResourceId>() || re.match(var.toString()).hasMatch())
   {

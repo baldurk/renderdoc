@@ -3762,7 +3762,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             buf->AddChild(makeSDObject("Offset", offs));
 
             buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
-            buf->data.children[0]->data.str = ToStr(id);
+            buf->data.children[0]->data.str = ToStr(GetResourceManager()->GetOriginalID(id));
 
             command->AddChild(buf);
           }
@@ -3811,7 +3811,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             buf->AddChild(makeSDObject("Offset", offs));
 
             buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
-            buf->data.children[0]->data.str = ToStr(id);
+            buf->data.children[0]->data.str = ToStr(GetResourceManager()->GetOriginalID(id));
 
             command->AddChild(buf);
           }
@@ -3867,7 +3867,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             buf->AddChild(makeSDObject("Offset", offs));
 
             buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
-            buf->data.children[0]->data.str = ToStr(id);
+            buf->data.children[0]->data.str = ToStr(GetResourceManager()->GetOriginalID(id));
 
             fakeChunk->AddChild(buf);
           }

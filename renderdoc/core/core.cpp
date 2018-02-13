@@ -45,7 +45,7 @@ std::string DoStringise(const ResourceId &el)
 {
   RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint64_t), "ResourceId is no longer 1:1 with uint64_t");
 
-  return StringFormat::Fmt("ResourceId(%llu)", el);
+  return StringFormat::Fmt("ResourceId::%llu", el);
 }
 
 BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::UnsignedInteger, 8);
