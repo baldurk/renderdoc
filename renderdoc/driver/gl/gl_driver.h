@@ -288,7 +288,7 @@ private:
 
   struct ShaderData
   {
-    ShaderData() : type(eGL_NONE), prog(0) {}
+    ShaderData() : type(eGL_NONE), prog(0), version(0) {}
     GLenum type;
     vector<string> sources;
     vector<string> includepaths;
@@ -296,6 +296,7 @@ private:
     std::string disassembly;
     ShaderReflection reflection;
     GLuint prog;
+    int version;
 
     void Compile(WrappedOpenGL &gl, ResourceId id, GLuint realShader);
   };

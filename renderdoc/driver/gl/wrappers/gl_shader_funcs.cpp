@@ -77,6 +77,87 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
     concatenated += sources[i];
   }
 
+  size_t offs = concatenated.find("#version");
+
+  if(offs == std::string::npos)
+  {
+    // if there's no #version it's assumed to be 100 which we set below
+    version = 0;
+  }
+  else
+  {
+    // see if we find a second result after the first
+    size_t offs2 = concatenated.find("#version", offs + 1);
+
+    if(offs2 == std::string::npos)
+    {
+      version = ParseVersionStatement(concatenated.c_str() + offs);
+    }
+    else
+    {
+      // slow path, multiple #version matches so the first one might be in a comment. We need to
+      // search from the start, past comments and whitespace, to find the first real #version.
+      const char *search = concatenated.c_str();
+      const char *end = search + concatenated.size();
+
+      while(search < end)
+      {
+        // skip whitespace
+        if(isspace(*search))
+        {
+          search++;
+          continue;
+        }
+
+        // skip single-line C++ style comments
+        if(search + 1 < end && search[0] == '/' && search[1] == '/')
+        {
+          // continue until the next newline
+          while(search < end && search[0] != '\r' && search[0] != '\n')
+            search++;
+
+          // continue, the whitespace skip above will skip the newline
+          continue;
+        }
+
+        // skip multi-line C style comments
+        if(search + 1 < end && search[0] == '/' && search[1] == '*')
+        {
+          // continue until the ending marker
+          while(search + 1 < end && (search[0] != '*' || search[1] != '/'))
+            search++;
+
+          // skip the end marker
+          search += 2;
+
+          // continue, the whitespace skip above will skip the newline
+          continue;
+        }
+
+        // missing #version is valid, so just exit
+        if(search + sizeof("#version") > end)
+        {
+          RDCERR("Bad shader - reached end of text after skipping all comments and whitespace");
+          break;
+        }
+
+        std::string versionText(search, search + sizeof("#version") - 1);
+
+        // if we found the version, parse it
+        if(versionText == "#version")
+          version = ParseVersionStatement(search);
+
+        // otherwise break - a missing #version is valid, and a legal #version cannot occur anywhere
+        // after this point.
+        break;
+      }
+    }
+  }
+
+  // default to version 100
+  if(version == 0)
+    version = 100;
+
   reflection.encoding = ShaderEncoding::GLSL;
   reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
 

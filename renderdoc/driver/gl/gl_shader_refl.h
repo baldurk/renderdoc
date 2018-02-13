@@ -27,6 +27,7 @@
 
 class WrappedOpenGL;
 
+int ParseVersionStatement(const char *version);
 void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
                           ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed);
 GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, std::vector<std::string> sources,

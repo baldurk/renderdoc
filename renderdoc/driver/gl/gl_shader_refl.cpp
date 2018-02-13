@@ -835,6 +835,26 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
   }
 }
 
+int ParseVersionStatement(const char *version)
+{
+  if(strncmp(version, "#version", 8))
+    return 0;
+
+  version += 8;
+  while(isspace(*version))
+    version++;
+
+  int ret = 0;
+  while(*version >= '0' && *version <= '9')
+  {
+    ret *= 10;
+    ret += int(*version) - int('0');
+    version++;
+  }
+
+  return ret;
+}
+
 void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
                           ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed)
 {
