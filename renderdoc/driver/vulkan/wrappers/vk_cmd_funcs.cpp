@@ -24,6 +24,27 @@
 
 #include "../vk_core.h"
 
+static std::string ToHumanStr(const VkAttachmentLoadOp &el)
+{
+  BEGIN_ENUM_STRINGISE(VkAttachmentLoadOp);
+  {
+    case VK_ATTACHMENT_LOAD_OP_LOAD: return "Load";
+    case VK_ATTACHMENT_LOAD_OP_CLEAR: return "Clear";
+    case VK_ATTACHMENT_LOAD_OP_DONT_CARE: return "Don't Care";
+  }
+  END_ENUM_STRINGISE();
+}
+
+static std::string ToHumanStr(const VkAttachmentStoreOp &el)
+{
+  BEGIN_ENUM_STRINGISE(VkAttachmentStoreOp);
+  {
+    case VK_ATTACHMENT_STORE_OP_STORE: return "Store";
+    case VK_ATTACHMENT_STORE_OP_DONT_CARE: return "Don't Care";
+  }
+  END_ENUM_STRINGISE();
+}
+
 std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint32_t subpass)
 {
   ResourceId rp, fb;
@@ -272,7 +293,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
     else
     {
       // all colour ops are the same, print it
-      opDesc = store ? ToStr(atts[col0].storeOp) : ToStr(atts[col0].loadOp);
+      opDesc = store ? ToHumanStr(atts[col0].storeOp) : ToHumanStr(atts[col0].loadOp);
     }
 
     // do we have depth?
@@ -285,7 +306,8 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
       // if there's no stencil, just print depth op
       if(!hasStencil)
       {
-        opDesc += "D=" + (store ? ToStr(atts[dsAttach].storeOp) : ToStr(atts[dsAttach].loadOp));
+        opDesc +=
+            "D=" + (store ? ToHumanStr(atts[dsAttach].storeOp) : ToHumanStr(atts[dsAttach].loadOp));
       }
       else
       {
@@ -293,19 +315,19 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
         {
           // if depth and stencil have same op, print together, otherwise separately
           if(atts[dsAttach].storeOp == atts[dsAttach].stencilStoreOp)
-            opDesc += "DS=" + ToStr(atts[dsAttach].storeOp);
+            opDesc += "DS=" + ToHumanStr(atts[dsAttach].storeOp);
           else
-            opDesc +=
-                "D=" + ToStr(atts[dsAttach].storeOp) + ", S=" + ToStr(atts[dsAttach].stencilStoreOp);
+            opDesc += "D=" + ToHumanStr(atts[dsAttach].storeOp) + ", S=" +
+                      ToHumanStr(atts[dsAttach].stencilStoreOp);
         }
         else
         {
           // if depth and stencil have same op, print together, otherwise separately
           if(atts[dsAttach].loadOp == atts[dsAttach].stencilLoadOp)
-            opDesc += "DS=" + ToStr(atts[dsAttach].loadOp);
+            opDesc += "DS=" + ToHumanStr(atts[dsAttach].loadOp);
           else
-            opDesc +=
-                "D=" + ToStr(atts[dsAttach].loadOp) + ", S=" + ToStr(atts[dsAttach].stencilLoadOp);
+            opDesc += "D=" + ToHumanStr(atts[dsAttach].loadOp) + ", S=" +
+                      ToHumanStr(atts[dsAttach].stencilLoadOp);
         }
       }
     }
