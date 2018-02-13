@@ -38,7 +38,35 @@
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 
-GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
+GLuint GLReplay::CreateShader(GLenum shaderType, const std::vector<std::string> &sources)
+{
+  const GLHookSet &gl = m_pDriver->GetHookset();
+
+  GLuint ret = gl.glCreateShader(shaderType);
+
+  std::vector<const char *> srcs;
+  srcs.reserve(sources.size());
+  for(size_t i = 0; i < sources.size(); i++)
+    srcs.push_back(sources[i].c_str());
+
+  gl.glShaderSource(ret, (GLsizei)srcs.size(), &srcs[0], NULL);
+
+  gl.glCompileShader(ret);
+
+  char buffer[1024] = {};
+  GLint status = 0;
+  gl.glGetShaderiv(ret, eGL_COMPILE_STATUS, &status);
+  if(status == 0)
+  {
+    gl.glGetShaderInfoLog(ret, 1024, NULL, buffer);
+    RDCERR("%s compile error: %s", ToStr(shaderType).c_str(), buffer);
+    return 0;
+  }
+
+  return ret;
+}
+
+GLuint GLReplay::CreateCShaderProgram(const std::vector<std::string> &csSources)
 {
   if(m_pDriver == NULL)
     return 0;
@@ -47,26 +75,9 @@ GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
 
   const GLHookSet &gl = m_pDriver->GetHookset();
 
-  GLuint cs = gl.glCreateShader(eGL_COMPUTE_SHADER);
-
-  vector<const char *> srcs;
-  srcs.reserve(csSources.size());
-  for(size_t i = 0; i < csSources.size(); i++)
-    srcs.push_back(csSources[i].c_str());
-
-  gl.glShaderSource(cs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-  gl.glCompileShader(cs);
-
-  char buffer[1024];
-  GLint status = 0;
-
-  gl.glGetShaderiv(cs, eGL_COMPILE_STATUS, &status);
-  if(status == 0)
-  {
-    gl.glGetShaderInfoLog(cs, 1024, NULL, buffer);
-    RDCERR("Shader error: %s", buffer);
-  }
+  GLuint cs = CreateShader(eGL_COMPUTE_SHADER, csSources);
+  if(cs == 0)
+    return 0;
 
   GLuint ret = gl.glCreateProgram();
 
@@ -74,6 +85,8 @@ GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
 
   gl.glLinkProgram(ret);
 
+  char buffer[1024] = {};
+  GLint status = 0;
   gl.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
@@ -88,14 +101,16 @@ GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
   return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(const vector<string> &vs, const vector<string> &fs)
+GLuint GLReplay::CreateShaderProgram(const std::vector<std::string> &vs,
+                                     const std::vector<std::string> &fs)
 {
-  vector<string> empty;
+  std::vector<std::string> empty;
   return CreateShaderProgram(vs, fs, empty);
 }
 
-GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
-                                     const vector<string> &fsSources, const vector<string> &gsSources)
+GLuint GLReplay::CreateShaderProgram(const std::vector<std::string> &vsSources,
+                                     const std::vector<std::string> &fsSources,
+                                     const std::vector<std::string> &gsSources)
 {
   if(m_pDriver == NULL)
     return 0;
@@ -108,85 +123,44 @@ GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
   GLuint fs = 0;
   GLuint gs = 0;
 
-  char buffer[1024];
-  GLint status = 0;
-
-  if(!vsSources.empty())
+  if(vsSources.empty())
   {
-    vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-
-    vector<const char *> srcs;
-    srcs.reserve(vsSources.size());
-    for(size_t i = 0; i < vsSources.size(); i++)
-      srcs.push_back(vsSources[i].c_str());
-
-    gl.glShaderSource(vs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-    gl.glCompileShader(vs);
-
-    gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-      RDCERR("Shader error: %s", buffer);
-    }
+    RDCERR("Must have vertex shader - no separable programs supported.");
+    return 0;
   }
 
-  if(!fsSources.empty())
+  if(fsSources.empty())
   {
-    fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
-
-    vector<const char *> srcs;
-    srcs.reserve(fsSources.size());
-    for(size_t i = 0; i < fsSources.size(); i++)
-      srcs.push_back(fsSources[i].c_str());
-
-    gl.glShaderSource(fs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-    gl.glCompileShader(fs);
-
-    gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-      RDCERR("Shader error: %s", buffer);
-    }
+    RDCERR("Must have fragment shader - no separable programs supported.");
+    return 0;
   }
+
+  vs = CreateShader(eGL_VERTEX_SHADER, vsSources);
+  if(vs == 0)
+    return 0;
+
+  fs = CreateShader(eGL_FRAGMENT_SHADER, fsSources);
+  if(fs == 0)
+    return 0;
 
   if(!gsSources.empty())
   {
-    gs = gl.glCreateShader(eGL_GEOMETRY_SHADER);
-
-    vector<const char *> srcs;
-    srcs.reserve(gsSources.size());
-    for(size_t i = 0; i < gsSources.size(); i++)
-      srcs.push_back(gsSources[i].c_str());
-
-    gl.glShaderSource(gs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-    gl.glCompileShader(gs);
-
-    gl.glGetShaderiv(gs, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(gs, 1024, NULL, buffer);
-      RDCERR("Shader error: %s", buffer);
-    }
+    gs = CreateShader(eGL_GEOMETRY_SHADER, gsSources);
+    if(gs == 0)
+      return 0;
   }
 
   GLuint ret = gl.glCreateProgram();
 
-  if(vs)
-    gl.glAttachShader(ret, vs);
-  if(fs)
-    gl.glAttachShader(ret, fs);
+  gl.glAttachShader(ret, vs);
+  gl.glAttachShader(ret, fs);
   if(gs)
     gl.glAttachShader(ret, gs);
 
-  gl.glProgramParameteri(ret, eGL_PROGRAM_SEPARABLE, GL_TRUE);
-
   gl.glLinkProgram(ret);
 
+  char buffer[1024] = {};
+  GLint status = 0;
   gl.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
@@ -194,17 +168,13 @@ GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
     RDCERR("Shader error: %s", buffer);
   }
 
-  if(vs)
-    gl.glDetachShader(ret, vs);
-  if(fs)
-    gl.glDetachShader(ret, fs);
+  gl.glDetachShader(ret, vs);
+  gl.glDetachShader(ret, fs);
   if(gs)
     gl.glDetachShader(ret, gs);
 
-  if(vs)
-    gl.glDeleteShader(vs);
-  if(fs)
-    gl.glDeleteShader(fs);
+  gl.glDeleteShader(vs);
+  gl.glDeleteShader(fs);
   if(gs)
     gl.glDeleteShader(gs);
 
@@ -266,12 +236,10 @@ void GLReplay::InitDebugData()
   DebugData.outWidth = 0.0f;
   DebugData.outHeight = 0.0f;
 
-  vector<string> empty;
-
-  vector<string> vs;
-  vector<string> fs;
-  vector<string> gs;
-  vector<string> cs;
+  std::vector<std::string> vs;
+  std::vector<std::string> fs;
+  std::vector<std::string> gs;
+  std::vector<std::string> cs;
 
   int glslVersion;
   int glslBaseVer;
@@ -296,7 +264,8 @@ void GLReplay::InitDebugData()
 
   GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
-  DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
+  // used to combine with custom shaders.
+  DebugData.texDisplayVertexShader = CreateShader(eGL_VERTEX_SHADER, vs);
 
   for(int i = 0; i < 3; i++)
   {
@@ -306,7 +275,7 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(fs, shaderType, defines, GetEmbeddedResource(glsl_texdisplay_frag),
                        glslBaseVer);
 
-    DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
+    DebugData.texDisplayProg[i] = CreateShaderProgram(vs, fs);
   }
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
@@ -336,28 +305,10 @@ void GLReplay::InitDebugData()
 
   GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
+  DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
+
   if(glesShadersAreComplete && HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
   {
-    string defines = "";
-
-    if(glslVersion < 450)
-    {
-      // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
-      // so won't show quad overdraw properly
-      defines += "#define dFdxFine dFdx\n\n";
-      defines += "#define dFdyFine dFdy\n\n";
-
-      RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
-      m_pDriver->AddDebugMessage(
-          MessageCategory::Portability, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-          "Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
-    }
-
-    GenerateGLSLShader(fs, shaderType, defines, GetEmbeddedResource(glsl_quadwrite_frag),
-                       RDCMIN(450, glslVersion));
-
-    DebugData.quadoverdrawFSProg = CreateShaderProgram(empty, fs);
-
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_quadresolve_frag), glslBaseVer);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
@@ -371,16 +322,11 @@ void GLReplay::InitDebugData()
                                MessageSource::RuntimeWarning,
                                "GL_ARB_shader_image_load_store/GL_ARB_gpu_shader5 not supported, "
                                "disabling quad overdraw feature.");
-    DebugData.quadoverdrawFSProg = 0;
     DebugData.quadoverdrawResolveProg = 0;
   }
 
   GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_checkerboard_frag), glslBaseVer);
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
-
-  GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_fixedcol_frag), glslBaseVer);
-
-  DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
   if(HasExt[ARB_geometry_shader4])
   {
@@ -412,8 +358,6 @@ void GLReplay::InitDebugData()
     m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
                                MessageSource::RuntimeWarning, warning_msg);
   }
-
-  gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
@@ -448,6 +392,8 @@ void GLReplay::InitDebugData()
 
   DebugData.overlayTexWidth = DebugData.overlayTexHeight = DebugData.overlayTexSamples = 0;
   DebugData.overlayTex = DebugData.overlayFBO = 0;
+
+  DebugData.overlayProg = 0;
 
   gl.glGenFramebuffers(1, &DebugData.customFBO);
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.customFBO);
@@ -678,7 +624,6 @@ void GLReplay::InitDebugData()
 
   // these below need to be made on the replay context, as they are context-specific (not shared)
   // and will be used on the replay context.
-  gl.glGenProgramPipelines(1, &DebugData.overlayPipe);
 
   gl.glGenTransformFeedbacks(1, &DebugData.feedbackObj);
   gl.glGenBuffers(1, &DebugData.feedbackBuffer);
@@ -729,7 +674,8 @@ void GLReplay::DeleteDebugData()
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  gl.glDeleteProgramPipelines(1, &DebugData.overlayPipe);
+  if(DebugData.overlayProg != 0)
+    gl.glDeleteProgram(DebugData.overlayProg);
 
   gl.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
   gl.glDeleteBuffers(1, &DebugData.feedbackBuffer);
@@ -742,17 +688,16 @@ void GLReplay::DeleteDebugData()
   gl.glDeleteFramebuffers(1, &DebugData.overlayFBO);
   gl.glDeleteTextures(1, &DebugData.overlayTex);
 
-  gl.glDeleteProgram(DebugData.quadoverdrawFSProg);
+  gl.glDeleteShader(DebugData.quadoverdrawFragShader);
   gl.glDeleteProgram(DebugData.quadoverdrawResolveProg);
 
-  gl.glDeleteProgram(DebugData.texDisplayVSProg);
+  gl.glDeleteShader(DebugData.texDisplayVertexShader);
   for(int i = 0; i < 3; i++)
     gl.glDeleteProgram(DebugData.texDisplayProg[i]);
 
-  gl.glDeleteProgramPipelines(1, &DebugData.texDisplayPipe);
-
   gl.glDeleteProgram(DebugData.checkerProg);
-  gl.glDeleteProgram(DebugData.fixedcolFSProg);
+  if(DebugData.fixedcolFragShader)
+    gl.glDeleteShader(DebugData.fixedcolFragShader);
   gl.glDeleteProgram(DebugData.meshProg);
   gl.glDeleteProgram(DebugData.meshgsProg);
   gl.glDeleteProgram(DebugData.trisizeProg);

@@ -2498,17 +2498,21 @@ void GLReplay::BuildCustomShader(string source, string entry, const ShaderCompil
   }
 
   const char *src = source.c_str();
-  GLuint shaderprog = gl.glCreateShaderProgramv(shtype, 1, &src);
+  GLuint shader = gl.glCreateShader(shtype);
+
+  gl.glShaderSource(shader, 1, &src, NULL);
+
+  gl.glCompileShader(shader);
 
   GLint status = 0;
-  gl.glGetProgramiv(shaderprog, eGL_LINK_STATUS, &status);
+  gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
 
   if(errors)
   {
     GLint len = 1024;
-    gl.glGetProgramiv(shaderprog, eGL_INFO_LOG_LENGTH, &len);
+    gl.glGetShaderiv(shader, eGL_INFO_LOG_LENGTH, &len);
     char *buffer = new char[len + 1];
-    gl.glGetProgramInfoLog(shaderprog, len, NULL, buffer);
+    gl.glGetShaderInfoLog(shader, len, NULL, buffer);
     buffer[len] = 0;
     *errors = buffer;
     delete[] buffer;
@@ -2517,7 +2521,7 @@ void GLReplay::BuildCustomShader(string source, string entry, const ShaderCompil
   if(status == 0)
     *id = ResourceId();
   else
-    *id = m_pDriver->GetResourceManager()->GetID(ProgramRes(m_pDriver->GetCtx(), shaderprog));
+    *id = m_pDriver->GetResourceManager()->GetID(ShaderRes(m_pDriver->GetCtx(), shader));
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,

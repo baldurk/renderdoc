@@ -22,9 +22,19 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#if defined(GL_ES) && __VERSION__ == 100
+
+// GLES shading language 1.0 must use gl_FragColor
+#define color_out gl_FragColor
+
+#else
+
+// otherwise we use a proper output
 layout (location = 0) out vec4 color_out;
 
-#ifdef OPENGL // OpenGL can't use SPIR-V patching
+#endif
+
+#ifndef VULKAN // OpenGL can't use SPIR-V patching
 uniform vec4 RENDERDOC_Fixed_Color;
 #endif
 

@@ -37,11 +37,24 @@
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 
-void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram)
+void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
   void *ctx = m_ReplayCtx.ctx;
+
+  // delete the old program if it exists
+  if(DebugData.overlayProg != 0)
+    gl.glDeleteProgram(DebugData.overlayProg);
+
+  DebugData.overlayProg = gl.glCreateProgram();
+
+  // these are the shaders to attach, and the programs to copy details from
+  GLuint shaders[4] = {0};
+  GLuint programs[4] = {0};
+
+  // the reflection for the vertex shader, used to copy vertex bindings
+  ShaderReflection *vsRefl = NULL;
 
   if(Program == 0)
   {
@@ -54,25 +67,18 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
       ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(ctx, Pipeline));
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
+      // fetch the corresponding shaders and programs for each stage
       for(size_t i = 0; i < 4; i++)
       {
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
-          GLuint progsrc =
+          programs[i] =
               m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
-          GLuint progdst = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]].prog;
-
-          gl.glUseProgramStages(DebugData.overlayPipe, ShaderBit(i), progdst);
-
-          CopyProgramUniforms(gl.GetHookset(), progsrc, progdst);
+          shaders[i] =
+              m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stageShaders[i]).name;
 
           if(i == 0)
-          {
-            CopyProgramAttribBindings(gl.GetHookset(), progsrc, progdst,
-                                      GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint()));
-
-            gl.glLinkProgram(progdst);
-          }
+            vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
         }
       }
     }
@@ -82,30 +88,58 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
     auto &progDetails =
         m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, Program))];
 
+    // fetch any and all non-fragment shader shaders
     for(size_t i = 0; i < 4; i++)
     {
       if(progDetails.stageShaders[i] != ResourceId())
       {
-        GLuint progdst = m_pDriver->m_Shaders[progDetails.stageShaders[i]].prog;
+        programs[i] = Program;
+        shaders[i] =
+            m_pDriver->GetResourceManager()->GetCurrentResource(progDetails.stageShaders[i]).name;
 
-        gl.glUseProgramStages(DebugData.overlayPipe, ShaderBit(i), progdst);
-
-        // we have to link the program first, as this trashes all uniform values
         if(i == 0)
-        {
-          CopyProgramAttribBindings(gl.GetHookset(), Program, progdst,
-                                    GetShader(progDetails.stageShaders[i], ShaderEntryPoint()));
-
-          gl.glLinkProgram(progdst);
-        }
-
-        CopyProgramUniforms(gl.GetHookset(), Program, progdst);
+          vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
       }
     }
   }
 
-  // use the generic FS program by default, can be overridden for specific overlays if needed
-  gl.glUseProgramStages(DebugData.overlayPipe, eGL_FRAGMENT_SHADER_BIT, fragProgram);
+  // attach the shaders
+  for(size_t i = 0; i < 4; i++)
+    if(shaders[i])
+      gl.glAttachShader(DebugData.overlayProg, shaders[i]);
+
+  gl.glAttachShader(DebugData.overlayProg, fragShader);
+
+  // copy the vertex attribs over from the source program
+  if(vsRefl && programs[0])
+    CopyProgramAttribBindings(gl.GetHookset(), programs[0], DebugData.overlayProg, vsRefl);
+
+  // link the overlay program
+  gl.glLinkProgram(DebugData.overlayProg);
+
+  // detach the shaders
+  for(size_t i = 0; i < 4; i++)
+    if(shaders[i])
+      gl.glDetachShader(DebugData.overlayProg, shaders[i]);
+
+  gl.glDetachShader(DebugData.overlayProg, fragShader);
+
+  // check that the link succeeded
+  char buffer[1024] = {};
+  GLint status = 0;
+  gl.glGetProgramiv(DebugData.overlayProg, eGL_LINK_STATUS, &status);
+  if(status == 0)
+  {
+    gl.glGetProgramInfoLog(DebugData.overlayProg, 1024, NULL, buffer);
+    RDCERR("Error linking overlay program: %s", buffer);
+    return;
+  }
+
+  // copy the uniform values over from the source program. This is redundant but harmless if the
+  // same program is bound to multiple stages. It's just inefficient
+  for(size_t i = 0; i < 4; i++)
+    if(programs[i])
+      CopyProgramUniforms(gl.GetHookset(), programs[i], DebugData.overlayProg);
 }
 
 ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
@@ -122,15 +156,96 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   GLRenderState rs(&gl.GetHookset());
   rs.FetchState(&gl);
 
-  // use our overlay pipeline that we'll fill up with all the right
+  if(rs.Program.name == 0 && rs.Pipeline.name == 0)
+    return ResourceId();
+
+  // use our overlay program that we'll fill up with all the right
   // shaders, then replace the fragment shader with our own.
-  gl.glUseProgram(0);
-  gl.glBindProgramPipeline(DebugData.overlayPipe);
+  gl.glBindProgramPipeline(0);
+
+  if(DebugData.fixedcolFragShader)
+    gl.glDeleteShader(DebugData.fixedcolFragShader);
+  if(DebugData.quadoverdrawFragShader)
+    gl.glDeleteShader(DebugData.quadoverdrawFragShader);
+
+  DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
+
+  ShaderType shaderType;
+  int glslVer;
+
+  if(IsGLES)
+  {
+    shaderType = eShaderGLSLES;
+
+    // default to 100 just in case something is broken
+    glslVer = 100;
+
+    // GLES requires that versions *precisely* match, so here we must figure out what version the
+    // existing shader was using (we pick the vertex shader for simplicity since by definition it
+    // must match any others) and recompile our shaders with that version. We've ensured they are
+    // compatible with anything after the minimum version
+    ResourceId vs;
+
+    if(rs.Program.name)
+      vs = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(rs.Program)].stageShaders[0];
+    else
+      vs = m_pDriver->m_Pipelines[m_pDriver->GetResourceManager()->GetID(rs.Pipeline)].stageShaders[0];
+
+    if(vs != ResourceId())
+    {
+      glslVer = m_pDriver->m_Shaders[vs].version;
+      if(glslVer == 0)
+        glslVer = 100;
+    }
+  }
+  else
+  {
+    // Desktop GL is vastly better, it can link any program so we just default to 150
+    glslVer = 150;
+    shaderType = eShaderGLSL;
+  }
+
+  // this is always compatible.
+  {
+    std::vector<std::string> sources;
+    GenerateGLSLShader(sources, shaderType, "", GetEmbeddedResource(glsl_fixedcol_frag), glslVer,
+                       false);
+    RDCLOG("Sources:\n\n%s\n\n%s\n\n%s\n\n%s\n\n", sources[0].c_str(), sources[1].c_str(),
+           sources[2].c_str(), sources[3].c_str());
+    DebugData.fixedcolFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
+  }
+
+  // this is not supported on GLES shading language 100
+  if(shaderType == eShaderGLSL || glslVer >= 300)
+  {
+    std::string defines = "";
+
+    if(glslVer < 450)
+    {
+      // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
+      // so won't show quad overdraw properly
+      defines += "#define dFdxFine dFdx\n\n";
+      defines += "#define dFdyFine dFdy\n\n";
+
+      RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
+    }
+
+    std::vector<std::string> sources;
+    GenerateGLSLShader(sources, shaderType, defines, GetEmbeddedResource(glsl_quadwrite_frag),
+                       glslVer);
+    DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
+  }
+  else
+  {
+    if(overlay == DebugOverlay::QuadOverdrawDraw || overlay == DebugOverlay::QuadOverdrawPass)
+      RDCWARN("Quad overdraw shader not supported on GLES with %d shader", glslVer);
+  }
 
   // we bind the separable program created for each shader, and copy
   // uniforms and attrib bindings from the 'real' programs, wherever
   // they are.
-  SetupOverlayPipeline(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFSProg);
+  CreateOverlayProgram(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFragShader);
+  gl.glUseProgram(DebugData.overlayProg);
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -224,9 +339,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float black[] = {0.0f, 0.0f, 0.0f, 0.5f};
     gl.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
+    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     float colVal[] = {0.8f, 0.1f, 0.8f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, colVal);
+    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, colVal);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
   }
@@ -235,14 +350,76 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float wireCol[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
     gl.glClearBufferfv(eGL_COLOR, 0, wireCol);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
+    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     wireCol[3] = 1.0f;
-    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, wireCol);
+    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, wireCol);
 
     if(!IsGLES)
+    {
+      // desktop GL is simple
       gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-    ReplayLog(eventId, eReplay_OnlyDraw);
+      ReplayLog(eventId, eReplay_OnlyDraw);
+    }
+    else
+    {
+      // GLES is hard. We need to readback the index buffer, convert it to a line list, then draw
+      // with that. We can at least use a client-side pointer for the index buffer.
+      GLint idxbuf = 0;
+      gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+
+      const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+
+      // readback the index buffer data
+      std::vector<byte> idxs;
+      uint32_t offset = draw->indexOffset * draw->indexByteWidth;
+      uint32_t length = 1;
+      gl.glGetNamedBufferParameterivEXT(idxbuf, eGL_BUFFER_SIZE, (GLint *)&length);
+
+      idxs.resize(length);
+      gl.glGetBufferSubData(
+          eGL_ELEMENT_ARRAY_BUFFER, offset,
+          RDCMIN(GLsizeiptr(length - offset), GLsizeiptr(draw->numIndices * draw->indexByteWidth)),
+          &idxs[0]);
+
+      // unbind the real index buffer
+      gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+
+      std::vector<uint32_t> patchedIndices;
+      PatchLineStripIndexBuffer(
+          draw, draw->indexByteWidth == 1 ? (uint8_t *)idxs.data() : (uint8_t *)NULL,
+          draw->indexByteWidth == 2 ? (uint16_t *)idxs.data() : (uint16_t *)NULL,
+          draw->indexByteWidth == 4 ? (uint32_t *)idxs.data() : (uint32_t *)NULL, patchedIndices);
+
+      GLboolean primRestart = gl.glIsEnabled(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+      gl.glEnable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+
+      if(draw->flags & DrawFlags::Instanced)
+      {
+        if(HasExt[ARB_base_instance])
+        {
+          gl.glDrawElementsInstancedBaseVertexBaseInstance(
+              eGL_LINE_STRIP, (GLsizei)patchedIndices.size(), eGL_UNSIGNED_INT,
+              patchedIndices.data(), draw->numInstances, 0, draw->instanceOffset);
+        }
+        else
+        {
+          gl.glDrawElementsInstancedBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
+                                               eGL_UNSIGNED_INT, patchedIndices.data(),
+                                               draw->numInstances, 0);
+        }
+      }
+      else
+      {
+        gl.glDrawElementsBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
+                                    eGL_UNSIGNED_INT, patchedIndices.data(), 0);
+      }
+
+      if(!primRestart)
+        gl.glDisable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+
+      gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxbuf);
+    }
   }
   else if(overlay == DebugOverlay::ViewportScissor)
   {
@@ -306,9 +483,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
     gl.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
+    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     float red[] = {1.0f, 0.0f, 0.0f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, red);
+    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, red);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
@@ -488,7 +665,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
 
     float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, green);
+    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, green);
 
     if(overlay == DebugOverlay::Depth)
     {
@@ -540,8 +717,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     col[0] = 1.0f;
     col[3] = 1.0f;
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
-    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, col);
+    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
+    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
@@ -553,7 +730,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     col[0] = 0.0f;
     col[1] = 1.0f;
 
-    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, col);
+    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
   }
@@ -975,7 +1152,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   }
   else if(overlay == DebugOverlay::QuadOverdrawDraw || overlay == DebugOverlay::QuadOverdrawPass)
   {
-    if(DebugData.quadoverdrawFSProg)
+    if(DebugData.quadoverdrawFragShader)
     {
       SCOPED_TIMER("Quad Overdraw");
 
@@ -1123,9 +1300,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           // replace fragment shader. This is exactly what we did
           // at the start of this function for the single-event case, but now we have
           // to do it for every event
-          SetupOverlayPipeline(prog, pipe, DebugData.quadoverdrawFSProg);
-          gl.glUseProgram(0);
-          gl.glBindProgramPipeline(DebugData.overlayPipe);
+          CreateOverlayProgram(prog, pipe, DebugData.quadoverdrawFragShader);
+          gl.glUseProgram(DebugData.overlayProg);
+          gl.glBindProgramPipeline(0);
 
           gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
           gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,

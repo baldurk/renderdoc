@@ -347,7 +347,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   // we just patch up to 32-bit since we'll be adding more indices and we might overflow 16-bit.
   std::vector<uint32_t> patchedIndices;
 
-  PatchLineStripIndexBufer(draw, idx16, idx32, patchedIndices);
+  ::PatchLineStripIndexBuffer(draw, NULL, idx16, idx32, patchedIndices);
 
   indexBuffer.Create(m_pDriver, m_Device, patchedIndices.size() * sizeof(uint32_t), 1,
                      GPUBuffer::eGPUBufferIBuffer);

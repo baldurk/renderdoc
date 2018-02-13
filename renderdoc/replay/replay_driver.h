@@ -226,8 +226,8 @@ DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> *d
 
 // for hardware/APIs that can't do line rasterization, manually expand any triangle input topology
 // to a linestrip with strip restart indices.
-void PatchLineStripIndexBufer(const DrawcallDescription *draw, uint16_t *idx16, uint32_t *idx32,
-                              std::vector<uint32_t> &patchedIndices);
+void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
+                               uint32_t *idx32, std::vector<uint32_t> &patchedIndices);
 
 // simple cache for when we need buffer data for highlighting
 // vertices, typical use will be lots of vertices in the same

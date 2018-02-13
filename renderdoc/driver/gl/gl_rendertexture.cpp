@@ -164,50 +164,75 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
       intIdx = 2;
   }
 
-  gl.glUseProgram(0);
-  gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_VERTEX_SHADER_BIT, DebugData.texDisplayVSProg);
-  gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT,
-                        DebugData.texDisplayProg[intIdx]);
+  gl.glBindProgramPipeline(0);
+  gl.glUseProgram(DebugData.texDisplayProg[intIdx]);
 
   int numMips =
       GetNumMips(gl.m_Real, target, texname, texDetails.width, texDetails.height, texDetails.depth);
 
+  GLuint customProgram = 0;
+
   if(cfg.customShaderId != ResourceId() &&
      gl.GetResourceManager()->HasCurrentResource(cfg.customShaderId))
   {
-    GLuint customProg = gl.GetResourceManager()->GetCurrentResource(cfg.customShaderId).name;
-    gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT, customProg);
+    GLuint customShader = gl.GetResourceManager()->GetCurrentResource(cfg.customShaderId).name;
 
-    GLint loc = -1;
+    customProgram = gl.glCreateProgram();
 
-    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TexDim");
-    if(loc >= 0)
-      gl.glProgramUniform4ui(customProg, loc, texDetails.width, texDetails.height, texDetails.depth,
-                             (uint32_t)numMips);
+    gl.glAttachShader(customProgram, DebugData.texDisplayVertexShader);
+    gl.glAttachShader(customProgram, customShader);
 
-    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedMip");
-    if(loc >= 0)
-      gl.glProgramUniform1ui(customProg, loc, cfg.mip);
+    gl.glLinkProgram(customProgram);
 
-    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedSliceFace");
-    if(loc >= 0)
-      gl.glProgramUniform1ui(customProg, loc, cfg.sliceFace);
+    gl.glDetachShader(customProgram, DebugData.texDisplayVertexShader);
+    gl.glDetachShader(customProgram, customShader);
 
-    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedSample");
-    if(loc >= 0)
+    char buffer[1024] = {};
+    GLint status = 0;
+    gl.glGetProgramiv(customProgram, eGL_LINK_STATUS, &status);
+    if(status == 0)
     {
-      if(cfg.sampleIdx == ~0U)
-        gl.glProgramUniform1i(customProg, loc, -texDetails.samples);
-      else
-        gl.glProgramUniform1i(customProg, loc,
-                              (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1));
+      gl.glGetProgramInfoLog(customProgram, 1024, NULL, buffer);
+      RDCERR("Error linking custom shader program: %s", buffer);
+
+      gl.glDeleteProgram(customProgram);
+      customProgram = 0;
     }
 
-    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TextureType");
-    if(loc >= 0)
-      gl.glProgramUniform1ui(customProg, loc, resType);
+    if(customProgram)
+    {
+      gl.glUseProgram(customProgram);
+
+      GLint loc = -1;
+
+      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_TexDim");
+      if(loc >= 0)
+        gl.glProgramUniform4ui(customProgram, loc, texDetails.width, texDetails.height,
+                               texDetails.depth, (uint32_t)numMips);
+
+      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_SelectedMip");
+      if(loc >= 0)
+        gl.glProgramUniform1ui(customProgram, loc, cfg.mip);
+
+      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSliceFace");
+      if(loc >= 0)
+        gl.glProgramUniform1ui(customProgram, loc, cfg.sliceFace);
+
+      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSample");
+      if(loc >= 0)
+      {
+        if(cfg.sampleIdx == ~0U)
+          gl.glProgramUniform1i(customProgram, loc, -texDetails.samples);
+        else
+          gl.glProgramUniform1i(customProgram, loc,
+                                (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1));
+      }
+
+      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_TextureType");
+      if(loc >= 0)
+        gl.glProgramUniform1ui(customProgram, loc, resType);
+    }
   }
-  gl.glBindProgramPipeline(DebugData.texDisplayPipe);
 
   gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
   gl.glBindTexture(target, texname);
@@ -372,6 +397,12 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   gl.glBindSampler(0, 0);
+
+  if(customProgram)
+  {
+    gl.glUseProgram(0);
+    gl.glDeleteProgram(customProgram);
+  }
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
     gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);

@@ -110,12 +110,14 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
   return ret;
 }
 
-void PatchLineStripIndexBufer(const DrawcallDescription *draw, uint16_t *idx16, uint32_t *idx32,
-                              std::vector<uint32_t> &patchedIndices)
+void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
+                               uint32_t *idx32, std::vector<uint32_t> &patchedIndices)
 {
   const uint32_t restart = 0xffffffff;
 
-#define IDX_VALUE(offs) (idx16 ? idx16[index + offs] : (idx32 ? idx32[index + offs] : index + offs))
+#define IDX_VALUE(offs)        \
+  (idx16 ? idx16[index + offs] \
+         : (idx32 ? idx32[index + offs] : (idx8 ? idx8[index + offs] : index + offs)))
 
   switch(draw->topology)
   {
