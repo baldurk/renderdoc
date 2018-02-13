@@ -1596,7 +1596,7 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
         buffers[i] = eGL_COLOR_ATTACHMENT0;
     }
 
-    m_Real.glFramebufferDrawBuffersEXT(framebuffer.name, n, bufs);
+    m_Real.glFramebufferDrawBuffersEXT(framebuffer.name ? framebuffer.name : m_FakeBB_FBO, n, bufs);
   }
 
   return true;
