@@ -283,6 +283,8 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
           blockrect.translate(0.0, -2.0);
 
+          blockrect.setRight(qMin(blockrect.right(), (qreal)rect.width()));
+
           painter->drawLine(blockrect.bottomLeft(), blockrect.bottomRight());
         }
       }

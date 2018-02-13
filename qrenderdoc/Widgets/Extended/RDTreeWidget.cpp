@@ -599,7 +599,21 @@ void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
         painter->save();
 
-        RichResourceTextPaint(m_widget, painter, option.rect, option.font, option.palette,
+        QRect rect = option.rect;
+        if(!opt.icon.isNull())
+        {
+          QIcon::Mode mode;
+          if((opt.state & QStyle::State_Enabled) == 0)
+            mode = QIcon::Disabled;
+          else if(opt.state & QStyle::State_Selected)
+            mode = QIcon::Selected;
+          else
+            mode = QIcon::Normal;
+          QIcon::State state = opt.state & QStyle::State_Open ? QIcon::On : QIcon::Off;
+          rect.setX(rect.x() + opt.icon.actualSize(opt.decorationSize, mode, state).width());
+        }
+
+        RichResourceTextPaint(m_widget, painter, rect, option.font, option.palette,
                               option.state & QStyle::State_MouseOver,
                               m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
 
@@ -645,8 +659,23 @@ bool RDTreeWidgetDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
 
       if(RichResourceTextCheck(v))
       {
+        QRect rect = option.rect;
+
+        if(!item->m_icons[index.column()].isNull())
+        {
+          QIcon::Mode mode;
+          if((option.state & QStyle::State_Enabled) == 0)
+            mode = QIcon::Disabled;
+          else if(option.state & QStyle::State_Selected)
+            mode = QIcon::Selected;
+          else
+            mode = QIcon::Normal;
+          QIcon::State state = option.state & QStyle::State_Open ? QIcon::On : QIcon::Off;
+          rect.setX(rect.x() + option.icon.actualSize(option.decorationSize, mode, state).width());
+        }
+
         // ignore the return value, we always consume clicks on this cell
-        RichResourceTextMouseEvent(m_widget, v, option.rect, (QMouseEvent *)event);
+        RichResourceTextMouseEvent(m_widget, v, rect, (QMouseEvent *)event);
         return true;
       }
     }
@@ -666,7 +695,20 @@ bool RDTreeWidgetDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)
       QVariant v = item->m_text[index.column()];
 
       if(RichResourceTextCheck(v))
-        return RichResourceTextMouseEvent(m_widget, v, m_widget->visualRect(index), e);
+      {
+        QRect rect = m_widget->visualRect(index);
+
+        QIcon icon = item->m_icons[index.column()];
+
+        if(!icon.isNull())
+        {
+          rect.setX(
+              rect.x() +
+              icon.actualSize(QSize(rect.height(), rect.height()), QIcon::Normal, QIcon::On).width());
+        }
+
+        return RichResourceTextMouseEvent(m_widget, v, rect, e);
+      }
     }
   }
 

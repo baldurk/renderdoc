@@ -91,7 +91,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   ui->events->header()->setCascadingSectionResizes(false);
 
-  ui->events->setItemVerticalMargin(3);
+  ui->events->setItemVerticalMargin(4);
   ui->events->setIgnoreIconSize(true);
 
   // set up default section layout. This will be overridden in restoreState()
@@ -253,8 +253,12 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
   {
     const DrawcallDescription &d = draws[i];
 
+    QVariant name = QString(d.name);
+
+    RichResourceTextInitialise(name);
+
     RDTreeWidgetItem *child = new RDTreeWidgetItem(
-        {d.name, QString::number(d.eventId), QString::number(d.drawcallId), lit("---")});
+        {name, QString::number(d.eventId), QString::number(d.drawcallId), lit("---")});
 
     QPair<uint32_t, uint32_t> last = AddDrawcalls(child, d.children);
     lastEID = last.first;
