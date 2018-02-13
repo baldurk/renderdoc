@@ -91,6 +91,7 @@ bool Connection::SendReceive(Command &cmd)
   // synchronous reply, no other commands in the way.
   uint32_t id = cmd.Send(writer);
   cmd.Recv(reader);
+  Threading::Sleep(10);
 
   if(id != cmd.GetID())
   {
