@@ -30,8 +30,17 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
                         bool uniforms)
 {
   sources.resize(4);
-  sources[0] =
-      StringFormat::Fmt("#version %d %s\n", version, type == eShaderGLSLES ? "es" : "core");
+  if(type == eShaderGLSLES)
+  {
+    if(version == 100)
+      sources[0] = "#version 100";    // no es suffix
+    else
+      sources[0] = StringFormat::Fmt("#version %d es\n", version);
+  }
+  else
+  {
+    sources[0] = StringFormat::Fmt("#version %d core\n", version);
+  }
 
   if(uniforms)
     sources[1] = GetEmbeddedResource(glsl_debuguniforms_h);
