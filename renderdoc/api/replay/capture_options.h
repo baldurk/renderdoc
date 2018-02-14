@@ -39,6 +39,37 @@ struct CaptureOptions
   CaptureOptions();
 #endif
 
+  DOCUMENT(R"(Encode the current options to a string suitable for passing around between processes.
+
+:return: The encoded string, suitable for passing to :meth:`DecodeFromString`.
+:rtype: ``str``
+)");
+  inline rdcstr EncodeAsString() const
+  {
+    rdcstr optstr;
+    optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
+    byte *b = (byte *)this;
+    for(size_t i = 0; i < sizeof(CaptureOptions); i++)
+    {
+      optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
+      optstr.push_back(char('a' + ((b[i]) & 0xf)));
+    }
+
+    return optstr;
+  }
+
+  DOCUMENT("Decode the options from a string, as returned by :meth:`EncodeAsString`.");
+  inline void DecodeFromString(const rdcstr &str)
+  {
+    if(str.size() < sizeof(CaptureOptions))
+      return;
+
+    // serialise from string with two chars per byte
+    byte *b = (byte *)this;
+    for(size_t i = 0; i < sizeof(CaptureOptions); i++)
+      *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
+  }
+
   DOCUMENT(R"(Allow the application to enable vsync.
 
 Default - enabled

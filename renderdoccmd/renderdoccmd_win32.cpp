@@ -607,7 +607,7 @@ struct GlobalHookCommand : public Command
     string debuglog = parser.get<string>("debuglog");
 
     CaptureOptions cmdopts;
-    readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
+    cmdopts.DecodeFromString(parser.get<string>("capopts"));
 
     // make sure the user doesn't accidentally run this with 'a' as a parameter or something.
     // "a.exe" is over 4 characters so this limit should not be a problem.

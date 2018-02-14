@@ -28,14 +28,6 @@
 
 void dlopen_hook_init();
 
-void readCapOpts(const char *str, CaptureOptions *opts)
-{
-  // serialise from string with two chars per byte
-  byte *b = (byte *)opts;
-  for(size_t i = 0; i < sizeof(CaptureOptions); i++)
-    *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
-}
-
 // DllMain equivalent
 void library_loaded()
 {
@@ -61,10 +53,10 @@ void library_loaded()
 
     if(opts)
     {
-      string optstr = opts;
-
       CaptureOptions optstruct;
-      readCapOpts(optstr.c_str(), &optstruct);
+      optstruct.DecodeFromString(opts);
+
+      RDCLOG("Using delay for debugger %u", optstruct.delayForDebugger);
 
       RenderDoc::Inst().SetCaptureOptions(optstruct);
     }

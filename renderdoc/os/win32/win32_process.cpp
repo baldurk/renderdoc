@@ -746,15 +746,6 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
 
     // serialise to string with two chars per byte
     string optstr;
-    {
-      optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-      byte *b = (byte *)&opts;
-      for(size_t i = 0; i < sizeof(CaptureOptions); i++)
-      {
-        optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
-        optstr.push_back(char('a' + ((b[i]) & 0xf)));
-      }
-    }
 
     wchar_t *paramsAlloc = new wchar_t[2048];
 
@@ -1404,16 +1395,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   paramsAlloc.resize(2048);
 
   // serialise to string with two chars per byte
-  string optstr;
-  {
-    optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-    byte *b = (byte *)&opts;
-    for(size_t i = 0; i < sizeof(CaptureOptions); i++)
-    {
-      optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
-      optstr.push_back(char('a' + ((b[i]) & 0xf)));
-    }
-  }
+  string optstr = opts.EncodeAsString();
 
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(string(logfile));
   wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));

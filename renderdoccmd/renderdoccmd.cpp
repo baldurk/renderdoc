@@ -56,17 +56,6 @@ rdcarray<rdcstr> convertArgs(const std::vector<std::string> &args)
   return ret;
 }
 
-void readCapOpts(const std::string &str, CaptureOptions *opts)
-{
-  if(str.length() < sizeof(CaptureOptions))
-    return;
-
-  // serialise from string with two chars per byte
-  byte *b = (byte *)opts;
-  for(size_t i = 0; i < sizeof(CaptureOptions); i++)
-    *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
-}
-
 void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_t height)
 {
   if(renderer == NULL)
@@ -805,7 +794,7 @@ struct CapAltBitCommand : public Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
     CaptureOptions cmdopts;
-    readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
+    cmdopts.DecodeFromString(parser.get<string>("capopts"));
 
     RENDERDOC_InitGlobalEnv(m_Env, rdcarray<rdcstr>());
 

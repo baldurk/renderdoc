@@ -516,16 +516,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 #endif
   }
 
-  string optstr;
-  {
-    optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-    byte *b = (byte *)&opts;
-    for(size_t i = 0; i < sizeof(CaptureOptions); i++)
-    {
-      optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
-      optstr.push_back(char('a' + ((b[i]) & 0xf)));
-    }
-  }
+  string optstr = opts.EncodeAsString();
 
   modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
                                                   "LD_LIBRARY_PATH", binpath.c_str()));
