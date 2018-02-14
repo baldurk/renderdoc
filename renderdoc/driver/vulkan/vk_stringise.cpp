@@ -199,7 +199,7 @@ std::string DoStringise(const VkFlagWithNoBits &el)
 {
   if(el != 0)
     return StringFormat::Fmt("Invalid bits set: %x", el);
-  return "";
+  return "0";
 }
 
 template <>
