@@ -24,6 +24,7 @@
 
 #include <unistd.h>
 #include "os/os_specific.h"
+#include "strings/string_utils.h"
 
 extern char **environ;
 
@@ -137,4 +138,22 @@ void CacheDebuggerPresent()
 bool OSUtility::DebuggerPresent()
 {
   return debuggerPresent;
+}
+
+const char *Process::GetEnvVariable(const char *name)
+{
+  // we fake environment variables with properties
+  Process::ProcessResult result;
+  Process::LaunchProcess("getprop", ".",
+                         StringFormat::Fmt("debug.rdoc.%s variable_is_not_set", name).c_str(), true,
+                         &result);
+
+  static std::string settingsOutput;
+
+  settingsOutput = trim(result.strStdout);
+
+  if(settingsOutput == "variable_is_not_set")
+    return NULL;
+
+  return settingsOutput.c_str();
 }

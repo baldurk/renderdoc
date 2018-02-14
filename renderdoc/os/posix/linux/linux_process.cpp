@@ -133,3 +133,8 @@ bool OSUtility::DebuggerPresent()
 {
   return debuggerPresent;
 }
+
+const char *Process::GetEnvVariable(const char *name)
+{
+  return getenv(name);
+}

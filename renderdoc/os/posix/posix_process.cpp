@@ -214,11 +214,6 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
-const char *Process::GetEnvVariable(const char *name)
-{
-  return getenv(name);
-}
-
 static void CleanupStringArray(char **arr, char **invalid)
 {
   if(arr != invalid)

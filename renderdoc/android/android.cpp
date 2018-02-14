@@ -122,7 +122,8 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   return 0;
 }
 
-uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
+uint32_t StartAndroidPackageForCapture(const char *host, const char *package,
+                                       const CaptureOptions &opts)
 {
   int index = 0;
   std::string deviceID;
@@ -141,6 +142,10 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   adbExecCommand(deviceID, "shell am force-stop " + packageName);
   // enable the vulkan layer (will only be used by vulkan programs)
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
+
+  // set our property with the capture options encoded, to be picked up by the library on the device
+  adbExecCommand(deviceID, StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPTUREOPTS %s",
+                                             opts.EncodeAsString().c_str()));
 
   std::string installedPath = GetPathForPackage(deviceID, packageName);
 

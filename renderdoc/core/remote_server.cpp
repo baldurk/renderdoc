@@ -1223,6 +1223,10 @@ public:
   uint32_t ExecuteAndInject(const char *a, const char *w, const char *c,
                             const rdcarray<EnvironmentModification> &env, const CaptureOptions &opts)
   {
+    std::string app = a && a[0] ? a : "";
+    std::string workingDir = w && w[0] ? w : "";
+    std::string cmdline = c && c[0] ? c : "";
+
     const char *host = hostname().c_str();
     if(Android::IsHostADB(host))
     {
@@ -1235,7 +1239,7 @@ public:
           ok = Ping();
       });
 
-      uint32_t ret = Android::StartAndroidPackageForCapture(host, a);
+      uint32_t ret = Android::StartAndroidPackageForCapture(host, app.c_str(), opts);
 
       Atomic::Inc32(&done);
 
@@ -1244,10 +1248,6 @@ public:
 
       return ret;
     }
-
-    std::string app = a && a[0] ? a : "";
-    std::string workingDir = w && w[0] ? w : "";
-    std::string cmdline = c && c[0] ? c : "";
 
     {
       WRITE_DATA_SCOPE();

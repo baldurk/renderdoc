@@ -154,3 +154,8 @@ bool OSUtility::DebuggerPresent()
   return info.kp_proc.p_flag & P_TRACED;
 #endif
 }
+
+const char *Process::GetEnvVariable(const char *name)
+{
+  return getenv(name);
+}

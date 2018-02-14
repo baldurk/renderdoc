@@ -48,8 +48,8 @@ void library_loaded()
   {
     RenderDoc::Inst().Initialise();
 
-    char *logfile = getenv("RENDERDOC_LOGFILE");
-    char *opts = getenv("RENDERDOC_CAPTUREOPTS");
+    const char *logfile = Process::GetEnvVariable("RENDERDOC_LOGFILE");
+    const char *opts = Process::GetEnvVariable("RENDERDOC_CAPTUREOPTS");
 
     if(opts)
     {
