@@ -36,20 +36,23 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
                                                      ID3D11Texture2D1 **ppTexture2D)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D));
 
-  SERIALISE_ELEMENT_LOCAL(HasInitialData, bool(pInitialData != NULL));
   // unused, just for the sake of the user
-  if(HasInitialData)
   {
-    SERIALISE_ELEMENT_LOCAL(SysMemPitch, pInitialData->SysMemPitch);
-    SERIALISE_ELEMENT_LOCAL(SysMemSlicePitch, pInitialData->SysMemSlicePitch);
+    UINT numSubresources = Descriptor.MipLevels
+                               ? Descriptor.MipLevels
+                               : CalcNumMips(Descriptor.Width, Descriptor.Height, 1);
+    numSubresources *= Descriptor.ArraySize;
+
+    SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
+
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D));
 
   std::vector<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture2D ? *ppTexture2D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, 1, Descriptor.Format,
-                                  Descriptor.MipLevels, Descriptor.ArraySize, HasInitialData);
+                                  Descriptor.MipLevels, Descriptor.ArraySize, pInitialData != NULL);
 
   if(IsReplayingAndReading() && ser.IsErrored())
   {
@@ -73,7 +76,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
 
     if(m_pDevice3)
     {
-      if(HasInitialData)
+      if(pInitialData != NULL)
         hr = m_pDevice3->CreateTexture2D1(&Descriptor, &descs[0], &ret);
       else
         hr = m_pDevice3->CreateTexture2D1(&Descriptor, NULL, &ret);
@@ -173,20 +176,22 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
                                                      ID3D11Texture3D1 **ppTexture3D)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D));
 
-  SERIALISE_ELEMENT_LOCAL(HasInitialData, bool(pInitialData != NULL));
   // unused, just for the sake of the user
-  if(HasInitialData)
   {
-    SERIALISE_ELEMENT_LOCAL(SysMemPitch, pInitialData->SysMemPitch);
-    SERIALISE_ELEMENT_LOCAL(SysMemSlicePitch, pInitialData->SysMemSlicePitch);
+    UINT numSubresources = Descriptor.MipLevels
+                               ? Descriptor.MipLevels
+                               : CalcNumMips(Descriptor.Width, Descriptor.Height, Descriptor.Depth);
+
+    SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
+
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D));
 
   std::vector<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture3D ? *ppTexture3D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, Descriptor.Depth,
-                                  Descriptor.Format, Descriptor.MipLevels, 1, HasInitialData);
+                                  Descriptor.Format, Descriptor.MipLevels, 1, pInitialData != NULL);
 
   if(IsReplayingAndReading() && ser.IsErrored())
   {
@@ -210,7 +215,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
 
     if(m_pDevice3)
     {
-      if(HasInitialData)
+      if(pInitialData != NULL)
         hr = m_pDevice3->CreateTexture3D1(&Descriptor, &descs[0], &ret);
       else
         hr = m_pDevice3->CreateTexture3D1(&Descriptor, NULL, &ret);

@@ -31,6 +31,7 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(SerialiserType &ser, VkCommandBuf
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(firstViewport);
+  SERIALISE_ELEMENT(viewportCount);
   SERIALISE_ELEMENT_ARRAY(pViewports, viewportCount);
 
   Serialise_DebugMessages(ser);
@@ -99,6 +100,7 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuff
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(firstScissor);
+  SERIALISE_ELEMENT(scissorCount);
   SERIALISE_ELEMENT_ARRAY(pScissors, scissorCount);
 
   Serialise_DebugMessages(ser);
@@ -288,7 +290,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(SerialiserType &ser,
                                                      const float *blendConst)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_ARRAY(blendConst, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(blendConst, 4);
 
   Serialise_DebugMessages(ser);
 

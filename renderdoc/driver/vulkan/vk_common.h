@@ -234,6 +234,8 @@ struct VkGenericStruct
   const VkGenericStruct *pNext;
 };
 
+DECLARE_REFLECTION_STRUCT(VkGenericStruct);
+
 // we cast to this type when serialising as a placeholder indicating that
 // the given flags field doesn't have any bits defined
 enum VkFlagWithNoBits
@@ -493,6 +495,7 @@ SERIALISE_VK_HANDLES();
 
 // declare reflect-able types
 
+DECLARE_REFLECTION_STRUCT(VkAllocationCallbacks);
 DECLARE_REFLECTION_STRUCT(VkOffset2D);
 DECLARE_REFLECTION_STRUCT(VkExtent2D);
 DECLARE_REFLECTION_STRUCT(VkMemoryType);

@@ -132,8 +132,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
                                             const VkSubmitInfo *pSubmits, VkFence fence)
 {
   SERIALISE_ELEMENT(queue);
-  SERIALISE_ELEMENT(fence);
+  SERIALISE_ELEMENT(submitCount);
   SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount);
+  SERIALISE_ELEMENT(fence);
 
   Serialise_DebugMessages(ser);
 
@@ -805,6 +806,7 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
                                                 const VkBindSparseInfo *pBindInfo, VkFence fence)
 {
   SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT(bindInfoCount);
   SERIALISE_ELEMENT_ARRAY(pBindInfo, bindInfoCount);
   SERIALISE_ELEMENT(fence);
 

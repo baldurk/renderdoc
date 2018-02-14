@@ -30,6 +30,7 @@
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, GLuint *framebuffers)
 {
+  SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(framebuffer,
                           GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
 
@@ -90,6 +91,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei n,
                                                    GLuint *framebuffers)
 {
+  SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(framebuffer,
                           GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
 
@@ -1579,7 +1581,8 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
                                                           const GLenum *bufs)
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
-  SERIALISE_ELEMENT_ARRAY(bufs, (uint32_t &)n);
+  SERIALISE_ELEMENT(n);
+  SERIALISE_ELEMENT_ARRAY(bufs, n);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1992,6 +1995,7 @@ void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n, GLuint *renderbuffers)
 {
+  SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
                           GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
 
@@ -2054,6 +2058,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei n,
                                                     GLuint *renderbuffers)
 {
+  SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
                           GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
 

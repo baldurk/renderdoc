@@ -1904,8 +1904,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
                                                 const GLsizei *count, GLsizei drawcount)
 {
   SERIALISE_ELEMENT(mode);
-  SERIALISE_ELEMENT_ARRAY(first, (uint32_t &)drawcount);
-  SERIALISE_ELEMENT_ARRAY(count, (uint32_t &)drawcount);
+  SERIALISE_ELEMENT_ARRAY(first, drawcount);
+  SERIALISE_ELEMENT_ARRAY(count, drawcount);
   SERIALISE_ELEMENT(drawcount);
 
   Serialise_DebugMessages(ser);
@@ -2040,7 +2040,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
   }
 
   SERIALISE_ELEMENT(mode);
-  SERIALISE_ELEMENT_ARRAY(count, (uint32_t &)drawcount);
+  SERIALISE_ELEMENT_ARRAY(count, drawcount);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(indices);
   SERIALISE_ELEMENT(drawcount);
@@ -2192,11 +2192,11 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
   }
 
   SERIALISE_ELEMENT(mode);
-  SERIALISE_ELEMENT_ARRAY(count, (uint32_t &)drawcount);
+  SERIALISE_ELEMENT_ARRAY(count, drawcount);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(indices);
-  SERIALISE_ELEMENT_ARRAY(basevertex, (uint32_t &)drawcount);
   SERIALISE_ELEMENT(drawcount);
+  SERIALISE_ELEMENT_ARRAY(basevertex, drawcount);
 
   Serialise_DebugMessages(ser);
 
@@ -3126,30 +3126,14 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
                                                         GLuint framebufferHandle, GLenum buffer,
-                                                        GLint drawbuffer, const GLfloat *valuePtr)
+                                                        GLint drawbuffer, const GLfloat *value)
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
   SERIALISE_ELEMENT(drawbuffer);
+  SERIALISE_ELEMENT_ARRAY(value, buffer == eGL_DEPTH ? 1 : 4);
 
   Serialise_DebugMessages(ser);
-
-  FloatVector value;
-
-  if(buffer == eGL_DEPTH)
-  {
-    if(ser.IsWriting())
-      value.x = *valuePtr;
-
-    ser.Serialise("value", value.x);
-  }
-  else
-  {
-    if(ser.IsWriting())
-      memcpy(&value.x, valuePtr, sizeof(FloatVector));
-
-    ser.Serialise("value", value);
-  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3162,7 +3146,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
     // and we need to support this case.
-    m_Real.glClearNamedFramebufferfv(framebuffer.name, buffer, drawbuffer, &value.x);
+    m_Real.glClearNamedFramebufferfv(framebuffer.name, buffer, drawbuffer, value);
 
     if(IsLoading(m_State))
     {
@@ -3172,11 +3156,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
 
       if(buffer == eGL_DEPTH)
         name = StringFormat::Fmt("%s(%s, %i, %f)", ToStr(gl_CurChunk).c_str(),
-                                 ToStr(buffer).c_str(), drawbuffer, value.x);
+                                 ToStr(buffer).c_str(), drawbuffer, value[0]);
       else
         name = StringFormat::Fmt("%s(%s, %i, %f, %f, %f, %f)", ToStr(gl_CurChunk).c_str(),
-                                 ToStr(buffer).c_str(), drawbuffer, value.x, value.y, value.z,
-                                 value.w);
+                                 ToStr(buffer).c_str(), drawbuffer, value[0], value[1], value[2],
+                                 value[2]);
 
       DrawcallDescription draw;
       draw.name = name;
@@ -3268,30 +3252,16 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
                                                         GLuint framebufferHandle, GLenum buffer,
-                                                        GLint drawbuffer, const GLint *valuePtr)
+                                                        GLint drawbuffer, const GLint *value)
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
   SERIALISE_ELEMENT(drawbuffer);
+  SERIALISE_ELEMENT_ARRAY(value, buffer == eGL_STENCIL ? 1 : 4);
 
   Serialise_DebugMessages(ser);
 
-  int32_t value[4];
-
-  if(buffer == eGL_STENCIL)
-  {
-    if(ser.IsWriting())
-      value[0] = *valuePtr;
-
-    ser.Serialise("value", value[0]);
-  }
-  else
-  {
-    if(ser.IsWriting())
-      memcpy(value, valuePtr, sizeof(value));
-
-    ser.Serialise("value", value);
-  }
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3404,7 +3374,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
   SERIALISE_ELEMENT(drawbuffer);
-  SERIALISE_ELEMENT_ARRAY(value, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(value, 4);
 
   Serialise_DebugMessages(ser);
 

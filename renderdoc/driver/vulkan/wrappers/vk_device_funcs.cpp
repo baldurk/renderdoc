@@ -915,8 +915,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 {
   SERIALISE_ELEMENT(physicalDevice);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Device, GetResID(*pDevice));
-  SERIALISE_ELEMENT(m_SupportedQueueFamily);
+  SERIALISE_ELEMENT(m_SupportedQueueFamily).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 

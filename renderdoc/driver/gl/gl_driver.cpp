@@ -3029,14 +3029,14 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glSamplerParameterIuiv:
       return Serialise_glSamplerParameterIuiv(ser, 0, eGL_NONE, 0);
 
-    case GLChunk::glCreateShader: return Serialise_glCreateShader(ser, 0, eGL_NONE);
+    case GLChunk::glCreateShader: return Serialise_glCreateShader(ser, eGL_NONE, 0);
     case GLChunk::glShaderSource: return Serialise_glShaderSource(ser, 0, 0, 0, 0);
     case GLChunk::glCompileShader: return Serialise_glCompileShader(ser, 0);
     case GLChunk::glAttachShader: return Serialise_glAttachShader(ser, 0, 0);
     case GLChunk::glDetachShader: return Serialise_glDetachShader(ser, 0, 0);
     case GLChunk::glCreateShaderProgramvEXT:
     case GLChunk::glCreateShaderProgramv:
-      return Serialise_glCreateShaderProgramv(ser, 0, eGL_NONE, 0, 0);
+      return Serialise_glCreateShaderProgramv(ser, eGL_NONE, 0, 0, 0);
     case GLChunk::glCreateProgram: return Serialise_glCreateProgram(ser, 0);
     case GLChunk::glLinkProgram: return Serialise_glLinkProgram(ser, 0);
     case GLChunk::glUniformBlockBinding: return Serialise_glUniformBlockBinding(ser, 0, 0, 0);

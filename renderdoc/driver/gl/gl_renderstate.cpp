@@ -1853,24 +1853,14 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
 
   ser.Serialise("GL_SAMPLER_BINDING", el.Samplers);
 
-  ser.Serialise("GL_IMAGE_BINDING", el.Images);
-  /*
-  for(size_t i = 0; i < ARRAY_COUNT(Images); i++)
-  {
-    ResourceId ID = ResourceId();
-    if(state >= WRITING)
-      ID = rm->GetID(TextureRes(ctx, Images[i].name));
-    m_pSerialiser->Serialise("GL_IMAGE_BINDING_NAME", ID);
-    m_pSerialiser->Serialise("GL_IMAGE_BINDING_LEVEL", Images[i].level);
-    m_pSerialiser->Serialise("GL_IMAGE_BINDING_LAYERED", Images[i].layered);
-    m_pSerialiser->Serialise("GL_IMAGE_BINDING_LAYER", Images[i].layer);
-    m_pSerialiser->Serialise("GL_IMAGE_BINDING_ACCESS", Images[i].access);
-    m_pSerialiser->Serialise("GL_IMAGE_BINDING_FORMAT", Images[i].format);
-    if(state < WRITING && ID != ResourceId())
-      Images[i].name = rm->GetLiveResource(ID).name;
-  }*/
-
   ser.Serialise("GL_ACTIVE_TEXTURE", el.ActiveTexture);
+
+  ser.Serialise("GL_IMAGE_BINDING", el.Images);
+
+  ser.Serialise("GL_CURRENT_PROGRAM", el.Program);
+  ser.Serialise("GL_PROGRAM_PIPELINE_BINDING", el.Pipeline);
+
+  ser.Serialise("GL_SUBROUTINES", el.Subroutines);
 
   ser.Serialise("GL_VERTEX_ARRAY_BINDING", el.VAO);
 
@@ -1884,6 +1874,18 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
   ser.Serialise("GL_POINT_SIZE", el.PointSize);
 
   ser.Serialise("GL_PRIMITIVE_RESTART_INDEX", el.PrimitiveRestartIndex);
+
+  {
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINX", el.PrimitiveBoundingBox.minX);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINY", el.PrimitiveBoundingBox.minY);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINZ", el.PrimitiveBoundingBox.minZ);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINW", el.PrimitiveBoundingBox.minW);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXX", el.PrimitiveBoundingBox.maxX);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXY", el.PrimitiveBoundingBox.maxY);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXZ", el.PrimitiveBoundingBox.maxZ);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXW", el.PrimitiveBoundingBox.maxW);
+  }
+
   ser.Serialise("GL_CLIP_ORIGIN", el.ClipOrigin);
   ser.Serialise("GL_CLIP_DEPTH_MODE", el.ClipDepth);
   ser.Serialise("GL_PROVOKING_VERTEX", el.ProvokingVertex);
@@ -1903,130 +1905,41 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
   ser.Serialise("GL_PARAMETER_BUFFER_ARB_BINDING",
                 el.BufferBindings[GLRenderState::eBufIdx_Parameter]);
 
-  ser.Serialise("GL_CURRENT_PROGRAM", el.Program);
-  ser.Serialise("GL_PROGRAM_PIPELINE_BINDING", el.Pipeline);
-
-  ser.Serialise("GL_SUBROUTINES", el.Subroutines);
-  /*
-  for(size_t s = 0; s < ARRAY_COUNT(Subroutines); s++)
-  {
-    m_pSerialiser->Serialise("GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS",
-  Subroutines[s].numSubroutines);
-    m_pSerialiser->SerialisePODArray<128>("GL_SUBROUTINE_UNIFORMS", Subroutines[s].Values);
-  }
-  */
-
-  ser.Serialise("GL_DRAW_FRAMEBUFFER_BINDING", el.DrawFBO);
-  ser.Serialise("GL_READ_FRAMEBUFFER_BINDING", el.ReadFBO);
-
   ser.Serialise("GL_ATOMIC_COUNTER_BUFFER_BINDING", el.AtomicCounter);
   ser.Serialise("GL_SHADER_STORAGE_BUFFER_BINDING", el.ShaderStorage);
   ser.Serialise("GL_TRANSFORM_FEEDBACK_BUFFER_BINDING", el.TransformFeedback);
   ser.Serialise("GL_UNIFORM_BUFFER_BINDING", el.UniformBinding);
-  /*
-  struct
-  {
-    IdxRangeBuffer *bufs;
-    int count;
-  } idxBufs[] = {
-      {
-          AtomicCounter, ARRAY_COUNT(AtomicCounter),
-      },
-      {
-          ShaderStorage, ARRAY_COUNT(ShaderStorage),
-      },
-      {
-          TransformFeedback, ARRAY_COUNT(TransformFeedback),
-      },
-      {
-          UniformBinding, ARRAY_COUNT(UniformBinding),
-      },
-  };
-
-  for(size_t b = 0; b < ARRAY_COUNT(idxBufs); b++)
-  {
-    for(int i = 0; i < idxBufs[b].count; i++)
-    {
-      ResourceId ID = ResourceId();
-      if(state >= WRITING)
-        ID = rm->GetID(BufferRes(ctx, idxBufs[b].bufs[i].name));
-      m_pSerialiser->Serialise("BUFFER_BINDING", ID);
-      if(state < WRITING && ID != ResourceId())
-        idxBufs[b].bufs[i].name = rm->GetLiveResource(ID).name;
-
-      m_pSerialiser->Serialise("BUFFER_START", idxBufs[b].bufs[i].start);
-      m_pSerialiser->Serialise("BUFFER_SIZE", idxBufs[b].bufs[i].size);
-    }
-  }*/
 
   ser.Serialise("GL_BLENDS", el.Blends);
-  /*
-  for(size_t i = 0; i < ARRAY_COUNT(Blends); i++)
-  {
-    m_pSerialiser->Serialise("GL_BLEND_EQUATION_RGB", Blends[i].EquationRGB);
-    m_pSerialiser->Serialise("GL_BLEND_EQUATION_ALPHA", Blends[i].EquationAlpha);
-
-    m_pSerialiser->Serialise("GL_BLEND_SRC_RGB", Blends[i].SourceRGB);
-    m_pSerialiser->Serialise("GL_BLEND_SRC_ALPHA", Blends[i].SourceAlpha);
-
-    m_pSerialiser->Serialise("GL_BLEND_DST_RGB", Blends[i].DestinationRGB);
-    m_pSerialiser->Serialise("GL_BLEND_DST_ALPHA", Blends[i].DestinationAlpha);
-
-    m_pSerialiser->Serialise("GL_BLEND", Blends[i].Enabled);
-  }
-  */
-
   ser.Serialise("GL_BLEND_COLOR", el.BlendColor);
 
   ser.Serialise("GL_VIEWPORT", el.Viewports);
   ser.Serialise("GL_SCISSOR", el.Scissors);
-  /*
-  for(size_t i = 0; i < ARRAY_COUNT(Viewports); i++)
-  {
-    m_pSerialiser->Serialise("GL_VIEWPORT.x", Viewports[i].x);
-    m_pSerialiser->Serialise("GL_VIEWPORT.y", Viewports[i].y);
-    m_pSerialiser->Serialise("GL_VIEWPORT.w", Viewports[i].width);
-    m_pSerialiser->Serialise("GL_VIEWPORT.h", Viewports[i].height);
-  }
 
-  for(size_t i = 0; i < ARRAY_COUNT(Scissors); i++)
-  {
-    m_pSerialiser->Serialise("GL_SCISSOR.x", Scissors[i].x);
-    m_pSerialiser->Serialise("GL_SCISSOR.y", Scissors[i].y);
-    m_pSerialiser->Serialise("GL_SCISSOR.w", Scissors[i].width);
-    m_pSerialiser->Serialise("GL_SCISSOR.h", Scissors[i].height);
-    m_pSerialiser->Serialise("GL_SCISSOR.enabled", Scissors[i].enabled);
-  }
-  */
+  ser.Serialise("GL_DEPTH_RANGE", el.DepthRanges);
 
-  ser.Serialise("GL_DRAW_BUFFERS", el.DrawBuffers);
+  ser.Serialise("GL_READ_FRAMEBUFFER_BINDING", el.ReadFBO);
+  ser.Serialise("GL_DRAW_FRAMEBUFFER_BINDING", el.DrawFBO);
+
   ser.Serialise("GL_READ_BUFFER", el.ReadBuffer);
+  ser.Serialise("GL_DRAW_BUFFERS", el.DrawBuffers);
 
-  ser.Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", el.Hints.Derivatives);
-  ser.Serialise("GL_LINE_SMOOTH_HINT", el.Hints.LineSmooth);
-  ser.Serialise("GL_POLYGON_SMOOTH_HINT", el.Hints.PolySmooth);
-  ser.Serialise("GL_TEXTURE_COMPRESSION_HINT", el.Hints.TexCompression);
+  {
+    ser.Serialise("GL_PATCH_VERTICES", el.PatchParams.numVerts);
+    ser.Serialise("GL_PATCH_DEFAULT_INNER_LEVEL", el.PatchParams.defaultInnerLevel);
+    ser.Serialise("GL_PATCH_DEFAULT_OUTER_LEVEL", el.PatchParams.defaultOuterLevel);
+  }
+
+  ser.Serialise("GL_POLYGON_MODE", el.PolygonMode);
+  ser.Serialise("GL_POLYGON_OFFSET_FACTOR", el.PolygonOffset[0]);
+  ser.Serialise("GL_POLYGON_OFFSET_UNITS", el.PolygonOffset[1]);
+  ser.Serialise("GL_POLYGON_OFFSET_CLAMP_EXT", el.PolygonOffset[2]);
 
   ser.Serialise("GL_DEPTH_WRITEMASK", el.DepthWriteMask);
   ser.Serialise("GL_DEPTH_CLEAR_VALUE", el.DepthClearValue);
   ser.Serialise("GL_DEPTH_FUNC", el.DepthFunc);
 
-  ser.Serialise("GL_DEPTH_RANGE", el.DepthRanges);
-  /*
-  for(size_t i = 0; i < ARRAY_COUNT(DepthRanges); i++)
-  {
-    m_pSerialiser->Serialise("GL_DEPTH_RANGE.near", DepthRanges[i].nearZ);
-    m_pSerialiser->Serialise("GL_DEPTH_RANGE.far", DepthRanges[i].farZ);
-  }
-  */
-
   ser.Serialise("GL_DEPTH_BOUNDS_EXT", el.DepthBounds);
-  /*
-  {
-    m_pSerialiser->Serialise("GL_DEPTH_BOUNDS_EXT.near", DepthBounds.nearZ);
-    m_pSerialiser->Serialise("GL_DEPTH_BOUNDS_EXT.far", DepthBounds.farZ);
-  }
-  */
 
   {
     ser.Serialise("GL_STENCIL_FUNC", el.StencilFront.func);
@@ -2055,28 +1968,22 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
 
   ser.Serialise("GL_COLOR_WRITEMASK", el.ColorMasks);
 
+  ser.Serialise("GL_RASTER_SAMPLES_EXT", el.RasterSamples);
+  ser.Serialise("GL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT", el.RasterFixed);
+
   ser.Serialise("GL_SAMPLE_MASK_VALUE", el.SampleMask);
   ser.Serialise("GL_SAMPLE_COVERAGE_VALUE", el.SampleCoverage);
   ser.Serialise("GL_SAMPLE_COVERAGE_INVERT", el.SampleCoverageInvert);
   ser.Serialise("GL_MIN_SAMPLE_SHADING", el.MinSampleShading);
 
-  ser.Serialise("GL_RASTER_SAMPLES_EXT", el.RasterSamples);
-  ser.Serialise("GL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT", el.RasterFixed);
-
   ser.Serialise("GL_LOGIC_OP_MODE", el.LogicOp);
 
   ser.Serialise("GL_COLOR_CLEAR_VALUE", el.ColorClearValue);
 
-  {
-    ser.Serialise("GL_PATCH_VERTICES", el.PatchParams.numVerts);
-    ser.Serialise("GL_PATCH_DEFAULT_INNER_LEVEL", el.PatchParams.defaultInnerLevel);
-    ser.Serialise("GL_PATCH_DEFAULT_OUTER_LEVEL", el.PatchParams.defaultOuterLevel);
-  }
-
-  ser.Serialise("GL_POLYGON_MODE", el.PolygonMode);
-  ser.Serialise("GL_POLYGON_OFFSET_FACTOR", el.PolygonOffset[0]);
-  ser.Serialise("GL_POLYGON_OFFSET_UNITS", el.PolygonOffset[1]);
-  ser.Serialise("GL_POLYGON_OFFSET_CLAMP_EXT", el.PolygonOffset[2]);
+  ser.Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", el.Hints.Derivatives);
+  ser.Serialise("GL_LINE_SMOOTH_HINT", el.Hints.LineSmooth);
+  ser.Serialise("GL_POLYGON_SMOOTH_HINT", el.Hints.PolySmooth);
+  ser.Serialise("GL_TEXTURE_COMPRESSION_HINT", el.Hints.TexCompression);
 
   ser.Serialise("GL_FRONT_FACE", el.FrontFace);
   ser.Serialise("GL_CULL_FACE_MODE", el.CullFace);
@@ -2093,17 +2000,6 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
   ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_HEIGHT", el.Unpack.compressedBlockHeight);
   ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_DEPTH", el.Unpack.compressedBlockDepth);
   ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_SIZE", el.Unpack.compressedBlockSize);
-
-  {
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINX", el.PrimitiveBoundingBox.minX);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINY", el.PrimitiveBoundingBox.minY);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINZ", el.PrimitiveBoundingBox.minZ);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINW", el.PrimitiveBoundingBox.minW);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXX", el.PrimitiveBoundingBox.maxX);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXY", el.PrimitiveBoundingBox.maxY);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXZ", el.PrimitiveBoundingBox.maxZ);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXW", el.PrimitiveBoundingBox.maxW);
-  }
 }
 
 INSTANTIATE_SERIALISE_TYPE(GLRenderState);

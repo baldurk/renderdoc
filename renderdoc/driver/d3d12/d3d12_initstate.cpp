@@ -318,6 +318,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     uint32_t numElems = initContents.numDescriptors;
 
     SERIALISE_ELEMENT_ARRAY(Descriptors, numElems);
+    SERIALISE_ELEMENT(numElems);
 
     SERIALISE_CHECK_READ_ERRORS();
 

@@ -78,6 +78,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Fence, GetResID(*pFence));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -186,6 +187,7 @@ bool WrappedVulkan::Serialise_vkResetFences(SerialiserType &ser, VkDevice device
                                             uint32_t fenceCount, const VkFence *pFences)
 {
   SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(fenceCount);
   SERIALISE_ELEMENT_ARRAY(pFences, fenceCount);
 
   Serialise_DebugMessages(ser);
@@ -234,6 +236,7 @@ bool WrappedVulkan::Serialise_vkWaitForFences(SerialiserType &ser, VkDevice devi
                                               VkBool32 waitAll, uint64_t timeout)
 {
   SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(fenceCount);
   SERIALISE_ELEMENT_ARRAY(pFences, fenceCount);
   SERIALISE_ELEMENT(waitAll);
   SERIALISE_ELEMENT(timeout);
@@ -282,6 +285,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Event, GetResID(*pEvent));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -471,6 +475,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Semaphore, GetResID(*pSemaphore));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -677,14 +682,19 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
     uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier *pImageMemoryBarriers)
 {
   SERIALISE_ELEMENT(commandBuffer);
+
+  // we serialise the original events even though we are going to replace them with our own
+  SERIALISE_ELEMENT(eventCount);
+  SERIALISE_ELEMENT_ARRAY(pEvents, eventCount);
+
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask);
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, dstStageMask);
 
-  // we serialise the original events even though we are going to replace them with our own
-  SERIALISE_ELEMENT_ARRAY(pEvents, eventCount);
-
+  SERIALISE_ELEMENT(memoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pMemoryBarriers, memoryBarrierCount);
+  SERIALISE_ELEMENT(bufferMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pBufferMemoryBarriers, bufferMemoryBarrierCount);
+  SERIALISE_ELEMENT(imageMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
 
   SERIALISE_CHECK_READ_ERRORS();

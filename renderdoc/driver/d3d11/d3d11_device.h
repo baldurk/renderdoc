@@ -64,7 +64,7 @@ struct D3D11InitParams
   D3D_FEATURE_LEVEL FeatureLevels[16];
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xE;
+  static const uint64_t CurrentVersion = 0xF;
   static bool IsSupportedVersion(uint64_t ver);
 };
 

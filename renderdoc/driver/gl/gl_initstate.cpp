@@ -84,8 +84,8 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, FramebufferInitialData &el)
 {
   SERIALISE_MEMBER(valid);
-  SERIALISE_MEMBER(DrawBuffers);
   SERIALISE_MEMBER(Attachments);
+  SERIALISE_MEMBER(DrawBuffers);
   SERIALISE_MEMBER(ReadBuffer);
 }
 
@@ -117,9 +117,9 @@ void DoSerialise(SerialiserType &ser, TextureStateInitialData &el)
   SERIALISE_MEMBER(depthMode);
   SERIALISE_MEMBER(compareFunc);
   SERIALISE_MEMBER(compareMode);
-  SERIALISE_MEMBER(seamless);
   SERIALISE_MEMBER(minFilter);
   SERIALISE_MEMBER(magFilter);
+  SERIALISE_MEMBER(seamless);
   SERIALISE_MEMBER(swizzle);
   SERIALISE_MEMBER(wrap);
   SERIALISE_MEMBER(border);

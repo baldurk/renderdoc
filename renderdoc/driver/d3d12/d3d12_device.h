@@ -46,7 +46,7 @@ struct D3D12InitParams
   D3D_FEATURE_LEVEL MinimumFeatureLevel;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x3;
+  static const uint64_t CurrentVersion = 0x4;
   static bool IsSupportedVersion(uint64_t ver);
 };
 

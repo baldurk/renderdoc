@@ -306,6 +306,8 @@ void DoSerialise(SerialiserType &ser, D3D12_COMMAND_QUEUE_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_SHADER_BYTECODE &el)
 {
+  SERIALISE_MEMBER_ARRAY(pShaderBytecode, BytecodeLength);
+
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t BytecodeLength = el.BytecodeLength;
@@ -313,8 +315,6 @@ void DoSerialise(SerialiserType &ser, D3D12_SHADER_BYTECODE &el)
     if(ser.IsReading())
       el.BytecodeLength = (size_t)BytecodeLength;
   }
-
-  SERIALISE_MEMBER_ARRAY(pShaderBytecode, BytecodeLength);
 }
 
 template <class SerialiserType>
@@ -332,7 +332,9 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_STREAM_OUTPUT_DESC &el)
 {
   SERIALISE_MEMBER_ARRAY(pSODeclaration, NumEntries);
+  SERIALISE_MEMBER(NumEntries);
   SERIALISE_MEMBER_ARRAY(pBufferStrides, NumStrides);
+  SERIALISE_MEMBER(NumStrides);
   SERIALISE_MEMBER(RasterizedStream);
 }
 
@@ -414,6 +416,7 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_INPUT_LAYOUT_DESC &el)
 {
   SERIALISE_MEMBER_ARRAY(pInputElementDescs, NumElements);
+  SERIALISE_MEMBER(NumElements);
 }
 
 template <class SerialiserType>
@@ -454,14 +457,24 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_COMMAND_SIGNATURE_DESC &el)
 {
   SERIALISE_MEMBER(ByteStride);
-  SERIALISE_MEMBER(NodeMask);
+  SERIALISE_MEMBER(NumArgumentDescs);
   SERIALISE_MEMBER_ARRAY(pArgumentDescs, NumArgumentDescs);
+  SERIALISE_MEMBER(NodeMask);
 }
 
 template <>
 void Deserialise(const D3D12_COMMAND_SIGNATURE_DESC &el)
 {
   delete[] el.pArgumentDescs;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_CACHED_PIPELINE_STATE &el)
+{
+  // don't serialise these, just set to NULL/0. See the definition of SERIALISE_MEMBER_DUMMY
+  SERIALISE_MEMBER_ARRAY_EMPTY(pCachedBlob);
+  uint64_t CachedBlobSizeInBytes = 0;
+  ser.Serialise("CachedBlobSizeInBytes", CachedBlobSizeInBytes);
 }
 
 template <class SerialiserType>
@@ -486,13 +499,8 @@ void DoSerialise(SerialiserType &ser, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el)
   SERIALISE_MEMBER(DSVFormat);
   SERIALISE_MEMBER(SampleDesc);
   SERIALISE_MEMBER(NodeMask);
+  SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
-
-  if(ser.IsReading())
-  {
-    el.CachedPSO.CachedBlobSizeInBytes = 0;
-    el.CachedPSO.pCachedBlob = NULL;
-  }
 }
 
 template <>
@@ -514,13 +522,8 @@ void DoSerialise(SerialiserType &ser, D3D12_COMPUTE_PIPELINE_STATE_DESC &el)
   SERIALISE_MEMBER(pRootSignature);
   SERIALISE_MEMBER(CS);
   SERIALISE_MEMBER(NodeMask);
+  SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
-
-  if(ser.IsReading())
-  {
-    el.CachedPSO.CachedBlobSizeInBytes = 0;
-    el.CachedPSO.pCachedBlob = NULL;
-  }
 }
 
 template <>
@@ -549,8 +552,8 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_STREAM_OUTPUT_BUFFER_VIEW &el)
 {
   SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation);
-  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferFilledSizeLocation);
   SERIALISE_MEMBER(SizeInBytes);
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferFilledSizeLocation);
 }
 
 template <class SerialiserType>
@@ -558,6 +561,91 @@ void DoSerialise(SerialiserType &ser, D3D12_CONSTANT_BUFFER_VIEW_DESC &el)
 {
   SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation);
   SERIALISE_MEMBER(SizeInBytes);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BUFFER_SRV &el)
+{
+  SERIALISE_MEMBER(FirstElement);
+  SERIALISE_MEMBER(NumElements);
+  SERIALISE_MEMBER(StructureByteStride);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_ARRAY_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(PlaneSlice);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_ARRAY_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+  SERIALISE_MEMBER(PlaneSlice);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_SRV &el)
+{
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_ARRAY_SRV &el)
+{
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX3D_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEXCUBE_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEXCUBE_ARRAY_SRV &el)
+{
+  SERIALISE_MEMBER(MostDetailedMip);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(First2DArrayFace);
+  SERIALISE_MEMBER(NumCubes);
+  SERIALISE_MEMBER(ResourceMinLODClamp);
 }
 
 template <class SerialiserType>
@@ -573,64 +661,75 @@ void DoSerialise(SerialiserType &ser, D3D12_SHADER_RESOURCE_VIEW_DESC &el)
     case D3D12_SRV_DIMENSION_UNKNOWN:
       // indicates an empty descriptor, which comes from a NULL parameter to Create.
       break;
-    case D3D12_SRV_DIMENSION_BUFFER:
-      SERIALISE_MEMBER(Buffer.FirstElement);
-      SERIALISE_MEMBER(Buffer.NumElements);
-      SERIALISE_MEMBER(Buffer.StructureByteStride);
-      SERIALISE_MEMBER(Buffer.Flags);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE1D:
-      SERIALISE_MEMBER(Texture1D.MostDetailedMip);
-      SERIALISE_MEMBER(Texture1D.MipLevels);
-      SERIALISE_MEMBER(Texture1D.ResourceMinLODClamp);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
-      SERIALISE_MEMBER(Texture1DArray.MostDetailedMip);
-      SERIALISE_MEMBER(Texture1DArray.MipLevels);
-      SERIALISE_MEMBER(Texture1DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture1DArray.ArraySize);
-      SERIALISE_MEMBER(Texture1DArray.ResourceMinLODClamp);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE2D:
-      SERIALISE_MEMBER(Texture2D.MostDetailedMip);
-      SERIALISE_MEMBER(Texture2D.MipLevels);
-      SERIALISE_MEMBER(Texture2D.PlaneSlice);
-      SERIALISE_MEMBER(Texture2D.ResourceMinLODClamp);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
-      SERIALISE_MEMBER(Texture2DArray.MostDetailedMip);
-      SERIALISE_MEMBER(Texture2DArray.MipLevels);
-      SERIALISE_MEMBER(Texture2DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DArray.ArraySize);
-      SERIALISE_MEMBER(Texture2DArray.PlaneSlice);
-      SERIALISE_MEMBER(Texture2DArray.ResourceMinLODClamp);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE2DMS:
-      // el.Texture2DMS.UnusedField_NothingToDefine
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
-      SERIALISE_MEMBER(Texture2DMSArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DMSArray.ArraySize);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURE3D:
-      SERIALISE_MEMBER(Texture3D.MipLevels);
-      SERIALISE_MEMBER(Texture3D.MostDetailedMip);
-      SERIALISE_MEMBER(Texture3D.ResourceMinLODClamp);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURECUBE:
-      SERIALISE_MEMBER(TextureCube.MostDetailedMip);
-      SERIALISE_MEMBER(TextureCube.MipLevels);
-      SERIALISE_MEMBER(TextureCube.ResourceMinLODClamp);
-      break;
-    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
-      SERIALISE_MEMBER(TextureCubeArray.MostDetailedMip);
-      SERIALISE_MEMBER(TextureCubeArray.MipLevels);
-      SERIALISE_MEMBER(TextureCubeArray.First2DArrayFace);
-      SERIALISE_MEMBER(TextureCubeArray.NumCubes);
-      SERIALISE_MEMBER(TextureCubeArray.ResourceMinLODClamp);
-      break;
+    case D3D12_SRV_DIMENSION_BUFFER: SERIALISE_MEMBER(Buffer); break;
+    case D3D12_SRV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D); break;
+    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY: SERIALISE_MEMBER(Texture1DArray); break;
+    case D3D12_SRV_DIMENSION_TEXTURE2D: SERIALISE_MEMBER(Texture2D); break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY: SERIALISE_MEMBER(Texture2DArray); break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DMS: SERIALISE_MEMBER(Texture2DMS); break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY: SERIALISE_MEMBER(Texture2DMSArray); break;
+    case D3D12_SRV_DIMENSION_TEXTURE3D: SERIALISE_MEMBER(Texture3D); break;
+    case D3D12_SRV_DIMENSION_TEXTURECUBE: SERIALISE_MEMBER(TextureCube); break;
+    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY: SERIALISE_MEMBER(TextureCubeArray); break;
     default: RDCERR("Unrecognised SRV Dimension %d", el.ViewDimension); break;
   }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BUFFER_RTV &el)
+{
+  SERIALISE_MEMBER(FirstElement);
+  SERIALISE_MEMBER(NumElements);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_RTV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_ARRAY_RTV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_RTV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(PlaneSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_ARRAY_RTV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+  SERIALISE_MEMBER(PlaneSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_RTV &el)
+{
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_ARRAY_RTV &el)
+{
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX3D_RTV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstWSlice);
+  SERIALISE_MEMBER(WSize);
 }
 
 template <class SerialiserType>
@@ -644,40 +743,56 @@ void DoSerialise(SerialiserType &ser, D3D12_RENDER_TARGET_VIEW_DESC &el)
     case D3D12_RTV_DIMENSION_UNKNOWN:
       // indicates an empty descriptor, which comes from a NULL parameter to Create.
       break;
-    case D3D12_RTV_DIMENSION_BUFFER:
-      SERIALISE_MEMBER(Buffer.FirstElement);
-      SERIALISE_MEMBER(Buffer.NumElements);
-      break;
-    case D3D12_RTV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D.MipSlice); break;
-    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
-      SERIALISE_MEMBER(Texture1DArray.MipSlice);
-      SERIALISE_MEMBER(Texture1DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture1DArray.ArraySize);
-      break;
-    case D3D12_RTV_DIMENSION_TEXTURE2D:
-      SERIALISE_MEMBER(Texture2D.MipSlice);
-      SERIALISE_MEMBER(Texture2D.PlaneSlice);
-      break;
-    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
-      SERIALISE_MEMBER(Texture2DArray.MipSlice);
-      SERIALISE_MEMBER(Texture2DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DArray.ArraySize);
-      SERIALISE_MEMBER(Texture2DArray.PlaneSlice);
-      break;
-    case D3D12_RTV_DIMENSION_TEXTURE2DMS:
-      // el.Texture2DMS.UnusedField_NothingToDefine
-      break;
-    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY:
-      SERIALISE_MEMBER(Texture2DMSArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DMSArray.ArraySize);
-      break;
-    case D3D12_RTV_DIMENSION_TEXTURE3D:
-      SERIALISE_MEMBER(Texture3D.MipSlice);
-      SERIALISE_MEMBER(Texture3D.FirstWSlice);
-      SERIALISE_MEMBER(Texture3D.WSize);
-      break;
+    case D3D12_RTV_DIMENSION_BUFFER: SERIALISE_MEMBER(Buffer); break;
+    case D3D12_RTV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D); break;
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY: SERIALISE_MEMBER(Texture1DArray); break;
+    case D3D12_RTV_DIMENSION_TEXTURE2D: SERIALISE_MEMBER(Texture2D); break;
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY: SERIALISE_MEMBER(Texture2DArray); break;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMS: SERIALISE_MEMBER(Texture2DMS); break;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY: SERIALISE_MEMBER(Texture2DMSArray); break;
+    case D3D12_RTV_DIMENSION_TEXTURE3D: SERIALISE_MEMBER(Texture3D); break;
     default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
   }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_DSV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_ARRAY_DSV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_DSV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_ARRAY_DSV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_DSV &el)
+{
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_ARRAY_DSV &el)
+{
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
 }
 
 template <class SerialiserType>
@@ -692,27 +807,62 @@ void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_VIEW_DESC &el)
     case D3D12_DSV_DIMENSION_UNKNOWN:
       // indicates an empty descriptor, which comes from a NULL parameter to Create.
       break;
-    case D3D12_DSV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D.MipSlice); break;
-    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY:
-      SERIALISE_MEMBER(Texture1DArray.MipSlice);
-      SERIALISE_MEMBER(Texture1DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture1DArray.ArraySize);
-      break;
-    case D3D12_DSV_DIMENSION_TEXTURE2D: SERIALISE_MEMBER(Texture2D.MipSlice); break;
-    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY:
-      SERIALISE_MEMBER(Texture2DArray.MipSlice);
-      SERIALISE_MEMBER(Texture2DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DArray.ArraySize);
-      break;
-    case D3D12_DSV_DIMENSION_TEXTURE2DMS:
-      // el.Texture2DMS.UnusedField_NothingToDefine
-      break;
-    case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY:
-      SERIALISE_MEMBER(Texture2DMSArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DMSArray.ArraySize);
-      break;
+    case D3D12_DSV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D); break;
+    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY: SERIALISE_MEMBER(Texture1DArray); break;
+    case D3D12_DSV_DIMENSION_TEXTURE2D: SERIALISE_MEMBER(Texture2D); break;
+    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY: SERIALISE_MEMBER(Texture2DArray); break;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMS: SERIALISE_MEMBER(Texture2DMS); break;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY: SERIALISE_MEMBER(Texture2DMSArray); break;
     default: RDCERR("Unrecognised DSV Dimension %d", el.ViewDimension); break;
   }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_BUFFER_UAV &el)
+{
+  SERIALISE_MEMBER(FirstElement);
+  SERIALISE_MEMBER(NumElements);
+  SERIALISE_MEMBER(StructureByteStride);
+  SERIALISE_MEMBER(CounterOffsetInBytes);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_UAV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX1D_ARRAY_UAV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_UAV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(PlaneSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX2D_ARRAY_UAV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstArraySlice);
+  SERIALISE_MEMBER(ArraySize);
+  SERIALISE_MEMBER(PlaneSlice);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_TEX3D_UAV &el)
+{
+  SERIALISE_MEMBER(MipSlice);
+  SERIALISE_MEMBER(FirstWSlice);
+  SERIALISE_MEMBER(WSize);
 }
 
 template <class SerialiserType>
@@ -726,34 +876,12 @@ void DoSerialise(SerialiserType &ser, D3D12_UNORDERED_ACCESS_VIEW_DESC &el)
     case D3D12_UAV_DIMENSION_UNKNOWN:
       // indicates an empty descriptor, which comes from a NULL parameter to Create.
       break;
-    case D3D12_UAV_DIMENSION_BUFFER:
-      SERIALISE_MEMBER(Buffer.FirstElement);
-      SERIALISE_MEMBER(Buffer.NumElements);
-      SERIALISE_MEMBER(Buffer.StructureByteStride);
-      SERIALISE_MEMBER(Buffer.CounterOffsetInBytes);
-      SERIALISE_MEMBER(Buffer.Flags);
-      break;
-    case D3D12_UAV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D.MipSlice); break;
-    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
-      SERIALISE_MEMBER(Texture1DArray.MipSlice);
-      SERIALISE_MEMBER(Texture1DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture1DArray.ArraySize);
-      break;
-    case D3D12_UAV_DIMENSION_TEXTURE2D:
-      SERIALISE_MEMBER(Texture2D.MipSlice);
-      SERIALISE_MEMBER(Texture2D.PlaneSlice);
-      break;
-    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
-      SERIALISE_MEMBER(Texture2DArray.MipSlice);
-      SERIALISE_MEMBER(Texture2DArray.FirstArraySlice);
-      SERIALISE_MEMBER(Texture2DArray.ArraySize);
-      SERIALISE_MEMBER(Texture2DArray.PlaneSlice);
-      break;
-    case D3D12_UAV_DIMENSION_TEXTURE3D:
-      SERIALISE_MEMBER(Texture3D.MipSlice);
-      SERIALISE_MEMBER(Texture3D.FirstWSlice);
-      SERIALISE_MEMBER(Texture3D.WSize);
-      break;
+    case D3D12_UAV_DIMENSION_BUFFER: SERIALISE_MEMBER(Buffer); break;
+    case D3D12_UAV_DIMENSION_TEXTURE1D: SERIALISE_MEMBER(Texture1D); break;
+    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY: SERIALISE_MEMBER(Texture1DArray); break;
+    case D3D12_UAV_DIMENSION_TEXTURE2D: SERIALISE_MEMBER(Texture2D); break;
+    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY: SERIALISE_MEMBER(Texture2DArray); break;
+    case D3D12_UAV_DIMENSION_TEXTURE3D: SERIALISE_MEMBER(Texture3D); break;
     default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
   }
 }
@@ -860,6 +988,13 @@ void DoSerialise(SerialiserType &ser, D3D12_SUBRESOURCE_FOOTPRINT &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_PLACED_SUBRESOURCE_FOOTPRINT &el)
+{
+  SERIALISE_MEMBER(Offset);
+  SERIALISE_MEMBER(Footprint);
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_TEXTURE_COPY_LOCATION &el)
 {
   SERIALISE_MEMBER(pResource);
@@ -867,10 +1002,7 @@ void DoSerialise(SerialiserType &ser, D3D12_TEXTURE_COPY_LOCATION &el)
 
   switch(el.Type)
   {
-    case D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT:
-      SERIALISE_MEMBER(PlacedFootprint.Footprint);
-      SERIALISE_MEMBER(PlacedFootprint.Offset);
-      break;
+    case D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT: SERIALISE_MEMBER(PlacedFootprint); break;
     case D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX: SERIALISE_MEMBER(SubresourceIndex); break;
     default: RDCERR("Unexpected texture copy type %d", el.Type); break;
   }
@@ -898,9 +1030,10 @@ void DoSerialise(SerialiserType &ser, D3D12_TILE_REGION_SIZE &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DISCARD_REGION &el)
 {
+  SERIALISE_MEMBER(NumRects);
+  SERIALISE_MEMBER_ARRAY(pRects, NumRects);
   SERIALISE_MEMBER(FirstSubresource);
   SERIALISE_MEMBER(NumSubresources);
-  SERIALISE_MEMBER_ARRAY(pRects, NumRects);
 }
 
 template <>

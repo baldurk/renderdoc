@@ -148,6 +148,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Memory, GetResID(*pMemory));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -706,6 +707,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
                                                         const VkMappedMemoryRange *pMemRanges)
 {
   SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(memRangeCount);
   SERIALISE_ELEMENT_LOCAL(MemRange, *pMemRanges);
 
   byte *MappedData = NULL;
@@ -1091,6 +1093,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
 
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer));
   // unused at the moment, just for user information
   SERIALISE_ELEMENT(memoryRequirements);
@@ -1212,6 +1215,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1323,6 +1327,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage));
   // unused at the moment, just for user information
   SERIALISE_ELEMENT(memoryRequirements);
@@ -1648,6 +1653,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView));
 
   SERIALISE_CHECK_READ_ERRORS();

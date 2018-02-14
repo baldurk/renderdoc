@@ -346,6 +346,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(CmdPool, GetResID(*pCmdPool));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1441,7 +1442,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
   SERIALISE_ELEMENT(pipelineBindPoint);
   SERIALISE_ELEMENT(layout);
   SERIALISE_ELEMENT(firstSet);
+  SERIALISE_ELEMENT(setCount);
   SERIALISE_ELEMENT_ARRAY(pDescriptorSets, setCount);
+  SERIALISE_ELEMENT(dynamicOffsetCount);
   SERIALISE_ELEMENT_ARRAY(pDynamicOffsets, dynamicOffsetCount);
 
   Serialise_DebugMessages(ser);
@@ -1615,9 +1618,9 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(firstBinding);
+  SERIALISE_ELEMENT(bindingCount);
   SERIALISE_ELEMENT_ARRAY(pBuffers, bindingCount);
   SERIALISE_ELEMENT_ARRAY(pOffsets, bindingCount);
-  SERIALISE_ELEMENT(bindingCount);
 
   Serialise_DebugMessages(ser);
 
@@ -1783,6 +1786,7 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(SerialiserType &ser, VkCommandBu
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(destBuffer);
   SERIALISE_ELEMENT(destOffset);
+  SERIALISE_ELEMENT(dataSize);
 
   // serialise as void* so it goes through as a buffer, not an actual array of integers.
   const void *Data = (const void *)pData;
@@ -1926,8 +1930,8 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
   SERIALISE_ELEMENT(layout);
   SERIALISE_ELEMENT_TYPED(VkShaderStageFlagBits, stageFlags);
   SERIALISE_ELEMENT(start);
-  SERIALISE_ELEMENT_ARRAY(values, length);
   SERIALISE_ELEMENT(length);
+  SERIALISE_ELEMENT_ARRAY(values, length);
 
   Serialise_DebugMessages(ser);
 
@@ -2001,8 +2005,11 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask);
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, destStageMask);
   SERIALISE_ELEMENT_TYPED(VkDependencyFlagBits, dependencyFlags);
+  SERIALISE_ELEMENT(memoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pMemoryBarriers, memoryBarrierCount);
+  SERIALISE_ELEMENT(bufferMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pBufferMemoryBarriers, bufferMemoryBarrierCount);
+  SERIALISE_ELEMENT(imageMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
 
   Serialise_DebugMessages(ser);
@@ -2448,6 +2455,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
                                                    const VkCommandBuffer *pCommandBuffers)
 {
   SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(commandBufferCount);
   SERIALISE_ELEMENT_ARRAY(pCommandBuffers, commandBufferCount);
 
   Serialise_DebugMessages(ser);

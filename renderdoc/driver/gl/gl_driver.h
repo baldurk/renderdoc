@@ -53,7 +53,7 @@ struct GLInitParams
   uint32_t height;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x19;
+  static const uint64_t CurrentVersion = 0x1A;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -896,12 +896,12 @@ public:
                                 GLbitfield mask, GLenum filter);
 
   template <typename SerialiserType>
-  bool Serialise_glCreateShader(SerialiserType &ser, GLuint real, GLenum type);
+  bool Serialise_glCreateShader(SerialiserType &ser, GLenum type, GLuint real);
   GLuint glCreateShader(GLenum type);
 
   template <typename SerialiserType>
-  bool Serialise_glCreateShaderProgramv(SerialiserType &ser, GLuint real, GLenum type,
-                                        GLsizei count, const GLchar *const *strings);
+  bool Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum type, GLsizei count,
+                                        const GLchar *const *strings, GLuint real);
   GLuint glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const *strings);
 
   template <typename SerialiserType>

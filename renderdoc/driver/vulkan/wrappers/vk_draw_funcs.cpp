@@ -1065,6 +1065,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
   SERIALISE_ELEMENT(srcImageLayout);
   SERIALISE_ELEMENT(destImage);
   SERIALISE_ELEMENT(destImageLayout);
+  SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
   SERIALISE_ELEMENT(filter);
 
@@ -1189,6 +1190,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
   SERIALISE_ELEMENT(srcImageLayout);
   SERIALISE_ELEMENT(destImage);
   SERIALISE_ELEMENT(destImageLayout);
+  SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
@@ -1312,6 +1314,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
   SERIALISE_ELEMENT(srcImageLayout);
   SERIALISE_ELEMENT(destImage);
   SERIALISE_ELEMENT(destImageLayout);
+  SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
@@ -1431,6 +1434,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
   SERIALISE_ELEMENT(srcBuffer);
   SERIALISE_ELEMENT(destImage);
   SERIALISE_ELEMENT(destImageLayout);
+  SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
@@ -1542,9 +1546,10 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
                                                      const VkBufferImageCopy *pRegions)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(destBuffer);
   SERIALISE_ELEMENT(srcImage);
   SERIALISE_ELEMENT(srcImageLayout);
+  SERIALISE_ELEMENT(destBuffer);
+  SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
@@ -1660,6 +1665,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(srcBuffer);
   SERIALISE_ELEMENT(destBuffer);
+  SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
@@ -1784,6 +1790,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
   SERIALISE_ELEMENT(image);
   SERIALISE_ELEMENT(imageLayout);
   SERIALISE_ELEMENT_LOCAL(Color, *pColor);
+  SERIALISE_ELEMENT(rangeCount);
   SERIALISE_ELEMENT_ARRAY(pRanges, rangeCount);
 
   Serialise_DebugMessages(ser);
@@ -1887,6 +1894,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
   SERIALISE_ELEMENT(image);
   SERIALISE_ELEMENT(imageLayout);
   SERIALISE_ELEMENT_LOCAL(DepthStencil, *pDepthStencil);
+  SERIALISE_ELEMENT(rangeCount);
   SERIALISE_ELEMENT_ARRAY(pRanges, rangeCount);
 
   Serialise_DebugMessages(ser);
@@ -1991,7 +1999,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
                                                     uint32_t rectCount, const VkClearRect *pRects)
 {
   SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(attachmentCount);
   SERIALISE_ELEMENT_ARRAY(pAttachments, attachmentCount);
+  SERIALISE_ELEMENT(rectCount);
   SERIALISE_ELEMENT_ARRAY(pRects, rectCount);
 
   Serialise_DebugMessages(ser);

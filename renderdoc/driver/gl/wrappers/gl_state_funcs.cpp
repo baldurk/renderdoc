@@ -854,8 +854,7 @@ bool WrappedOpenGL::Serialise_glDepthRangeArrayv(SerialiserType &ser, GLuint fir
 {
   SERIALISE_ELEMENT(first);
   SERIALISE_ELEMENT(count);
-  uint32_t numValues = count * 2;
-  SERIALISE_ELEMENT_ARRAY(v, numValues);
+  SERIALISE_ELEMENT_ARRAY(v, count * 2);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -863,8 +862,8 @@ bool WrappedOpenGL::Serialise_glDepthRangeArrayv(SerialiserType &ser, GLuint fir
   {
     if(IsGLES)
     {
-      GLfloat *fv = new GLfloat[numValues];
-      for(uint32_t i = 0; i < numValues; ++i)
+      GLfloat *fv = new GLfloat[count * 2];
+      for(GLsizei i = 0; i < count * 2; ++i)
         fv[i] = (GLfloat)v[i];
 
       m_Real.glDepthRangeArrayfvOES(first, count, fv);
@@ -1474,7 +1473,7 @@ bool WrappedOpenGL::Serialise_glPatchParameterfv(SerialiserType &ser, GLenum pna
                                                  const GLfloat *values)
 {
   SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_ARRAY(values, FIXED_COUNT(pname == eGL_PATCH_DEFAULT_OUTER_LEVEL ? 4U : 2U));
+  SERIALISE_ELEMENT_ARRAY(values, pname == eGL_PATCH_DEFAULT_OUTER_LEVEL ? 4U : 2U);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1730,8 +1729,7 @@ bool WrappedOpenGL::Serialise_glViewportArrayv(SerialiserType &ser, GLuint index
 {
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT(count);
-  uint32_t numValues = count * 4;
-  SERIALISE_ELEMENT_ARRAY(v, numValues);
+  SERIALISE_ELEMENT_ARRAY(v, count * 4);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1807,8 +1805,7 @@ bool WrappedOpenGL::Serialise_glScissorArrayv(SerialiserType &ser, GLuint first,
 {
   SERIALISE_ELEMENT(first);
   SERIALISE_ELEMENT(count);
-  uint32_t numValues = count * 4;
-  SERIALISE_ELEMENT_ARRAY(v, numValues);
+  SERIALISE_ELEMENT_ARRAY(v, count * 4);
 
   SERIALISE_CHECK_READ_ERRORS();
 

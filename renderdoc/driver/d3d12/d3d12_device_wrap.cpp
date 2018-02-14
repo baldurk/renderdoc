@@ -731,11 +731,12 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UINT nodeMask,
                                                         const void *pBlobWithRootSignature,
-                                                        SIZE_T blobLengthInBytes, REFIID riid,
+                                                        SIZE_T blobLengthInBytes_, REFIID riid,
                                                         void **ppvRootSignature)
 {
   SERIALISE_ELEMENT(nodeMask);
-  SERIALISE_ELEMENT_ARRAY(pBlobWithRootSignature, blobLengthInBytes);
+  SERIALISE_ELEMENT_ARRAY(pBlobWithRootSignature, blobLengthInBytes_);
+  SERIALISE_ELEMENT_LOCAL(blobLengthInBytes, uint64_t(blobLengthInBytes_));
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid");
   SERIALISE_ELEMENT_LOCAL(pRootSignature,
                           ((WrappedID3D12RootSignature *)*ppvRootSignature)->GetResourceID());
@@ -745,8 +746,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
   if(IsReplayingAndReading())
   {
     ID3D12RootSignature *ret = NULL;
-    HRESULT hr = m_pDevice->CreateRootSignature(nodeMask, pBlobWithRootSignature, blobLengthInBytes,
-                                                guid, (void **)&ret);
+    HRESULT hr = m_pDevice->CreateRootSignature(nodeMask, pBlobWithRootSignature,
+                                                (SIZE_T)blobLengthInBytes, guid, (void **)&ret);
 
     if(FAILED(hr))
     {
@@ -768,7 +769,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
         WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
 
-        wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+        wrapped->sig =
+            GetShaderCache()->GetRootSig(pBlobWithRootSignature, (size_t)blobLengthInBytes);
 
         GetResourceManager()->AddLiveResource(pRootSignature, ret);
       }

@@ -431,11 +431,10 @@ bool WrappedID3D11DeviceContext::Serialise_IASetVertexBuffers(SerialiserType &se
                                                               const UINT *pOffsets)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppVertexBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pStrides, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers);
-  // serialise NumBuffers here, because if any of the above were NULL it would be set to 0
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -665,6 +664,7 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers(SerialiserType &
                                                                 ID3D11Buffer *const *ppConstantBuffers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -736,6 +736,7 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShaderResources(
     ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -802,6 +803,7 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetSamplers(SerialiserType &ser, UI
                                                          ID3D11SamplerState *const *ppSamplers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumSamplers);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -867,6 +869,7 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+  SERIALISE_ELEMENT(NumClassInstances);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1040,6 +1043,7 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers(SerialiserType &
                                                                 ID3D11Buffer *const *ppConstantBuffers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1111,6 +1115,7 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShaderResources(
     ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1177,6 +1182,7 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetSamplers(SerialiserType &ser, UI
                                                          ID3D11SamplerState *const *ppSamplers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumSamplers);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1241,6 +1247,7 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(SerialiserType &ser, ID3D
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+  SERIALISE_ELEMENT(NumClassInstances);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1414,6 +1421,7 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers(SerialiserType &
                                                                 ID3D11Buffer *const *ppConstantBuffers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1485,6 +1493,7 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShaderResources(
     ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1551,6 +1560,7 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetSamplers(SerialiserType &ser, UI
                                                          ID3D11SamplerState *const *ppSamplers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumSamplers);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1616,6 +1626,7 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+  SERIALISE_ELEMENT(NumClassInstances);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1790,6 +1801,7 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers(SerialiserType &
                                                                 ID3D11Buffer *const *ppConstantBuffers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1861,6 +1873,7 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShaderResources(
     ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1927,6 +1940,7 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetSamplers(SerialiserType &ser, UI
                                                          ID3D11SamplerState *const *ppSamplers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumSamplers);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1992,6 +2006,7 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+  SERIALISE_ELEMENT(NumClassInstances);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2082,10 +2097,9 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
                                                         ID3D11Buffer *const *ppSOTargets,
                                                         const UINT *pOffsets)
 {
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppSOTargets, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers);
-  // serialise NumBuffers here, because if either of the above were NULL it would be set to 0
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2312,6 +2326,7 @@ template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_RSSetViewports(SerialiserType &ser, UINT NumViewports,
                                                           const D3D11_VIEWPORT *pViewports)
 {
+  SERIALISE_ELEMENT(NumViewports);
   SERIALISE_ELEMENT_ARRAY(pViewports, NumViewports);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2358,6 +2373,7 @@ template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_RSSetScissorRects(SerialiserType &ser, UINT NumRects,
                                                              const D3D11_RECT *pRects)
 {
+  SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2558,6 +2574,7 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers(SerialiserType &
                                                                 ID3D11Buffer *const *ppConstantBuffers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2629,6 +2646,7 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShaderResources(
     ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2695,6 +2713,7 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetSamplers(SerialiserType &ser, UI
                                                          ID3D11SamplerState *const *ppSamplers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumSamplers);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2760,6 +2779,7 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+  SERIALISE_ELEMENT(NumClassInstances);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2980,6 +3000,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargets(
     SerialiserType &ser, UINT NumViews, ID3D11RenderTargetView *const *ppRenderTargetViews,
     ID3D11DepthStencilView *pDepthStencilView)
 {
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppRenderTargetViews, NumViews);
   SERIALISE_ELEMENT(pDepthStencilView);
 
@@ -3117,33 +3138,70 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
   VerifyState();
 }
 
+// some helper enums with custom stringise to handle special cases
+enum D3D11RTVCount
+{
+};
+
+DECLARE_REFLECTION_ENUM(D3D11RTVCount);
+
+template <>
+std::string DoStringise(const D3D11RTVCount &el)
+{
+  RDCCOMPILE_ASSERT(sizeof(D3D11RTVCount) == sizeof(uint32_t), "Enum isn't uint sized");
+
+  if(el == D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
+    return "D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL";
+
+  return ToStr(uint32_t(el));
+}
+
+enum D3D11UAVCount
+{
+};
+
+DECLARE_REFLECTION_ENUM(D3D11UAVCount);
+
+template <>
+std::string DoStringise(const D3D11UAVCount &el)
+{
+  RDCCOMPILE_ASSERT(sizeof(D3D11UAVCount) == sizeof(uint32_t), "Enum isn't uint sized");
+
+  if(el == D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
+    return "D3D11_KEEP_UNORDERED_ACCESS_VIEWS";
+
+  return ToStr(uint32_t(el));
+}
+
 template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessViews(
     SerialiserType &ser, UINT NumRTVs, ID3D11RenderTargetView *const *ppRenderTargetViews,
     ID3D11DepthStencilView *pDepthStencilView, UINT UAVStartSlot, UINT NumUAVs,
     ID3D11UnorderedAccessView *const *ppUnorderedAccessViews, const UINT *pUAVInitialCounts)
 {
+  // cast to a special enum so we print the two 'keep' constants nicely
+  SERIALISE_ELEMENT_TYPED(D3D11RTVCount, NumRTVs);
+
   // handle special values for counts
-  SERIALISE_ELEMENT_LOCAL(KeepRTVs, bool(NumRTVs == D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL));
-  SERIALISE_ELEMENT_LOCAL(KeepUAVs, bool(NumUAVs == D3D11_KEEP_UNORDERED_ACCESS_VIEWS));
-
+  const bool KeepRTVs = (NumRTVs == D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL);
   const bool ModifyRTVs = !KeepRTVs;
-  const bool ModifyUAVs = !KeepUAVs;
-
   if(!ModifyRTVs)
     NumRTVs = 0;
-  if(!ModifyUAVs)
-    NumUAVs = 0;
 
   SERIALISE_ELEMENT_ARRAY(ppRenderTargetViews, NumRTVs);
-  SERIALISE_ELEMENT(NumRTVs);
 
   SERIALISE_ELEMENT(pDepthStencilView);
   SERIALISE_ELEMENT(UAVStartSlot);
 
+  SERIALISE_ELEMENT_TYPED(D3D11UAVCount, NumUAVs);
+
+  const bool KeepUAVs = (NumUAVs == D3D11_KEEP_UNORDERED_ACCESS_VIEWS);
+  const bool ModifyUAVs = !KeepUAVs;
+  if(!ModifyUAVs)
+    NumUAVs = 0;
+
   SERIALISE_ELEMENT_ARRAY(ppUnorderedAccessViews, NumUAVs);
   SERIALISE_ELEMENT_ARRAY(pUAVInitialCounts, NumUAVs);
-  SERIALISE_ELEMENT(NumUAVs);
 
   RDCASSERT(ModifyRTVs || ModifyUAVs);
 
@@ -3404,7 +3462,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(SerialiserType &ser,
                                                            UINT SampleMask)
 {
   SERIALISE_ELEMENT(pBlendState);
-  SERIALISE_ELEMENT_ARRAY(BlendFactor, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(BlendFactor, 4);
   SERIALISE_ELEMENT(SampleMask);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4311,6 +4369,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers(SerialiserType &
                                                                 ID3D11Buffer *const *ppConstantBuffers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4382,6 +4441,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(
     ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4448,9 +4508,9 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(
     ID3D11UnorderedAccessView *const *ppUnorderedAccessViews, const UINT *pUAVInitialCounts)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumUAVs);
   SERIALISE_ELEMENT_ARRAY(ppUnorderedAccessViews, NumUAVs);
   SERIALISE_ELEMENT_ARRAY(pUAVInitialCounts, NumUAVs);
-  SERIALISE_ELEMENT(NumUAVs);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4528,6 +4588,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetSamplers(SerialiserType &ser, UI
                                                          ID3D11SamplerState *const *ppSamplers)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumSamplers);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4593,6 +4654,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+  SERIALISE_ELEMENT(NumClassInstances);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -6123,7 +6185,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
     SerialiserType &ser, ID3D11RenderTargetView *pRenderTargetView, const FLOAT ColorRGBA[4])
 {
   SERIALISE_ELEMENT(pRenderTargetView);
-  SERIALISE_ELEMENT_ARRAY(ColorRGBA, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
 
   Serialise_DebugMessages(GET_SERIALISER);
 
@@ -6205,7 +6267,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
     SerialiserType &ser, ID3D11UnorderedAccessView *pUnorderedAccessView, const UINT Values[4])
 {
   SERIALISE_ELEMENT(pUnorderedAccessView);
-  SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(Values, 4);
 
   Serialise_DebugMessages(GET_SERIALISER);
 
@@ -6283,7 +6345,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
     SerialiserType &ser, ID3D11UnorderedAccessView *pUnorderedAccessView, const FLOAT Values[4])
 {
   SERIALISE_ELEMENT(pUnorderedAccessView);
-  SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(Values, 4);
 
   Serialise_DebugMessages(GET_SERIALISER);
 

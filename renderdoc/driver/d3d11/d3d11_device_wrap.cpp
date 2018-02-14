@@ -34,15 +34,9 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
                                                  ID3D11Buffer **ppBuffer)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc");
-  SERIALISE_ELEMENT_LOCAL(pBuffer, GetIDForResource(*ppBuffer));
-
   // unused, just for the sake of the user
-  SERIALISE_ELEMENT_LOCAL(HasInitialData, bool(pInitialData != NULL));
-  if(HasInitialData)
-  {
-    SERIALISE_ELEMENT_LOCAL(SysMemPitch, pInitialData->SysMemPitch);
-    SERIALISE_ELEMENT_LOCAL(SysMemSlicePitch, pInitialData->SysMemSlicePitch);
-  }
+  SERIALISE_ELEMENT_OPT(pInitialData);
+  SERIALISE_ELEMENT_LOCAL(pBuffer, GetIDForResource(*ppBuffer));
 
   D3D11_SUBRESOURCE_DATA fakeData;
   RDCEraseEl(fakeData);
@@ -77,6 +71,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
   }
 
   SERIALISE_ELEMENT_ARRAY(InitialData, InitialDataLength);
+  SERIALISE_ELEMENT(InitialDataLength);
 
   if(ser.IsWriting())
   {
@@ -335,6 +330,7 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
     }
 
     SERIALISE_ELEMENT_ARRAY(SubresourceContents, SubresourceContentsLength);
+    SERIALISE_ELEMENT(SubresourceContentsLength);
 
     if(ser.IsWriting())
     {
@@ -368,19 +364,21 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
                                                     ID3D11Texture1D **ppTexture1D)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture1D));
 
-  SERIALISE_ELEMENT_LOCAL(HasInitialData, bool(pInitialData != NULL));
   // unused, just for the sake of the user
-  if(HasInitialData)
   {
-    SERIALISE_ELEMENT_LOCAL(SysMemPitch, pInitialData->SysMemPitch);
-    SERIALISE_ELEMENT_LOCAL(SysMemSlicePitch, pInitialData->SysMemSlicePitch);
+    UINT numSubresources =
+        Descriptor.MipLevels ? Descriptor.MipLevels : CalcNumMips(Descriptor.Width, 1, 1);
+    numSubresources *= Descriptor.ArraySize;
+
+    SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
+
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture1D));
 
   std::vector<D3D11_SUBRESOURCE_DATA> descs = Serialise_CreateTextureData(
       ser, ppTexture1D ? *ppTexture1D : NULL, pTexture, pInitialData, Descriptor.Width, 1, 1,
-      Descriptor.Format, Descriptor.MipLevels, Descriptor.ArraySize, HasInitialData);
+      Descriptor.Format, Descriptor.MipLevels, Descriptor.ArraySize, pInitialData != NULL);
 
   if(IsReplayingAndReading() && ser.IsErrored())
   {
@@ -404,7 +402,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
         ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
           D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
 
-    if(HasInitialData)
+    if(pInitialData != NULL)
       hr = m_pDevice->CreateTexture1D(&Descriptor, &descs[0], &ret);
     else
       hr = m_pDevice->CreateTexture1D(&Descriptor, NULL, &ret);
@@ -498,20 +496,23 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
                                                     ID3D11Texture2D **ppTexture2D)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D));
 
-  SERIALISE_ELEMENT_LOCAL(HasInitialData, bool(pInitialData != NULL));
   // unused, just for the sake of the user
-  if(HasInitialData)
   {
-    SERIALISE_ELEMENT_LOCAL(SysMemPitch, pInitialData->SysMemPitch);
-    SERIALISE_ELEMENT_LOCAL(SysMemSlicePitch, pInitialData->SysMemSlicePitch);
+    UINT numSubresources = Descriptor.MipLevels
+                               ? Descriptor.MipLevels
+                               : CalcNumMips(Descriptor.Width, Descriptor.Height, 1);
+    numSubresources *= Descriptor.ArraySize;
+
+    SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
+
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D));
 
   std::vector<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture2D ? *ppTexture2D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, 1, Descriptor.Format,
-                                  Descriptor.MipLevels, Descriptor.ArraySize, HasInitialData);
+                                  Descriptor.MipLevels, Descriptor.ArraySize, pInitialData != NULL);
 
   if(IsReplayingAndReading() && ser.IsErrored())
   {
@@ -537,7 +538,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
         ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
           D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
 
-    if(HasInitialData)
+    if(pInitialData != NULL)
       hr = m_pDevice->CreateTexture2D(&Descriptor, &descs[0], &ret);
     else
       hr = m_pDevice->CreateTexture2D(&Descriptor, NULL, &ret);
@@ -629,20 +630,22 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
                                                     ID3D11Texture3D **ppTexture3D)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D));
 
-  SERIALISE_ELEMENT_LOCAL(HasInitialData, bool(pInitialData != NULL));
   // unused, just for the sake of the user
-  if(HasInitialData)
   {
-    SERIALISE_ELEMENT_LOCAL(SysMemPitch, pInitialData->SysMemPitch);
-    SERIALISE_ELEMENT_LOCAL(SysMemSlicePitch, pInitialData->SysMemSlicePitch);
+    UINT numSubresources = Descriptor.MipLevels
+                               ? Descriptor.MipLevels
+                               : CalcNumMips(Descriptor.Width, Descriptor.Height, Descriptor.Depth);
+
+    SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
+
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D));
 
   std::vector<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture3D ? *ppTexture3D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, Descriptor.Depth,
-                                  Descriptor.Format, Descriptor.MipLevels, 1, HasInitialData);
+                                  Descriptor.Format, Descriptor.MipLevels, 1, pInitialData != NULL);
 
   if(IsReplayingAndReading() && ser.IsErrored())
   {
@@ -668,7 +671,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
         ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
           D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
 
-    if(HasInitialData)
+    if(pInitialData != NULL)
       hr = m_pDevice->CreateTexture3D(&Descriptor, &descs[0], &ret);
     else
       hr = m_pDevice->CreateTexture3D(&Descriptor, NULL, &ret);
@@ -1231,11 +1234,13 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateInputLayout(
     SerialiserType &ser, const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs, UINT NumElements,
-    const void *pShaderBytecodeWithInputSignature, SIZE_T BytecodeLength,
+    const void *pShaderBytecodeWithInputSignature, SIZE_T BytecodeLength_,
     ID3D11InputLayout **ppInputLayout)
 {
   SERIALISE_ELEMENT_ARRAY(pInputElementDescs, NumElements);
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecodeWithInputSignature, BytecodeLength);
+  SERIALISE_ELEMENT(NumElements);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecodeWithInputSignature, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT_LOCAL(pInputLayout, GetIDForResource(*ppInputLayout));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1249,7 +1254,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
 
     ID3D11InputLayout *ret = NULL;
     HRESULT hr = m_pDevice->CreateInputLayout(
-        inputDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, &ret);
+        inputDescs, NumElements, pShaderBytecodeWithInputSignature, (SIZE_T)BytecodeLength, &ret);
 
     if(FAILED(hr))
     {
@@ -1270,9 +1275,9 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
                                                                  pInputElementDescs + NumElements);
 
     if(BytecodeLength > 0 && pShaderBytecodeWithInputSignature)
-      m_LayoutShaders[ret] =
-          new WrappedShader(this, pInputLayout, GetIDForResource(ret),
-                            (const byte *)pShaderBytecodeWithInputSignature, BytecodeLength);
+      m_LayoutShaders[ret] = new WrappedShader(this, pInputLayout, GetIDForResource(ret),
+                                               (const byte *)pShaderBytecodeWithInputSignature,
+                                               (size_t)BytecodeLength);
   }
 
   return true;
@@ -1329,11 +1334,12 @@ HRESULT WrappedID3D11Device::CreateInputLayout(const D3D11_INPUT_ELEMENT_DESC *p
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
                                                        const void *pShaderBytecode,
-                                                       SIZE_T BytecodeLength,
+                                                       SIZE_T BytecodeLength_,
                                                        ID3D11ClassLinkage *pClassLinkage,
                                                        ID3D11VertexShader **ppVertexShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppVertexShader));
 
@@ -1342,8 +1348,9 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     ID3D11VertexShader *ret;
-    HRESULT hr = m_pDevice->CreateVertexShader(
-        pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+    HRESULT hr =
+        m_pDevice->CreateVertexShader(pShaderBytecode, (SIZE_T)BytecodeLength,
+                                      UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1353,7 +1360,7 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11VertexShader>(ret, pShader, (const byte *)pShaderBytecode,
-                                                        BytecodeLength, this);
+                                                        (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1421,11 +1428,12 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
                                                          const void *pShaderBytecode,
-                                                         SIZE_T BytecodeLength,
+                                                         SIZE_T BytecodeLength_,
                                                          ID3D11ClassLinkage *pClassLinkage,
                                                          ID3D11GeometryShader **ppGeometryShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppGeometryShader));
 
@@ -1434,8 +1442,9 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     ID3D11GeometryShader *ret;
-    HRESULT hr = m_pDevice->CreateGeometryShader(
-        pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+    HRESULT hr =
+        m_pDevice->CreateGeometryShader(pShaderBytecode, (SIZE_T)BytecodeLength,
+                                        UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1445,7 +1454,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11GeometryShader>(
-          ret, pShader, (const byte *)pShaderBytecode, BytecodeLength, this);
+          ret, pShader, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1513,14 +1522,17 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
 
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
-    SerialiserType &ser, const void *pShaderBytecode, SIZE_T BytecodeLength,
+    SerialiserType &ser, const void *pShaderBytecode, SIZE_T BytecodeLength_,
     const D3D11_SO_DECLARATION_ENTRY *pSODeclaration, UINT NumEntries, const UINT *pBufferStrides,
     UINT NumStrides, UINT RasterizedStream, ID3D11ClassLinkage *pClassLinkage,
     ID3D11GeometryShader **ppGeometryShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT_ARRAY(pSODeclaration, NumEntries);
+  SERIALISE_ELEMENT(NumEntries);
   SERIALISE_ELEMENT_ARRAY(pBufferStrides, NumStrides);
+  SERIALISE_ELEMENT(NumStrides);
   SERIALISE_ELEMENT(RasterizedStream);
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppGeometryShader));
@@ -1531,8 +1543,8 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
   {
     ID3D11GeometryShader *ret;
     HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(
-        pShaderBytecode, BytecodeLength, pSODeclaration, NumEntries, pBufferStrides, NumStrides,
-        RasterizedStream, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+        pShaderBytecode, (SIZE_T)BytecodeLength, pSODeclaration, NumEntries, pBufferStrides,
+        NumStrides, RasterizedStream, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1542,7 +1554,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
     else
     {
       ret = new WrappedID3D11Shader<ID3D11GeometryShader>(
-          ret, pShader, (const byte *)pShaderBytecode, BytecodeLength, this);
+          ret, pShader, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1616,11 +1628,12 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
                                                       const void *pShaderBytecode,
-                                                      SIZE_T BytecodeLength,
+                                                      SIZE_T BytecodeLength_,
                                                       ID3D11ClassLinkage *pClassLinkage,
                                                       ID3D11PixelShader **ppPixelShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppPixelShader));
 
@@ -1629,8 +1642,8 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     ID3D11PixelShader *ret;
-    HRESULT hr = m_pDevice->CreatePixelShader(
-        pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+    HRESULT hr = m_pDevice->CreatePixelShader(pShaderBytecode, (SIZE_T)BytecodeLength,
+                                              UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1640,7 +1653,7 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11PixelShader>(ret, pShader, (const byte *)pShaderBytecode,
-                                                       BytecodeLength, this);
+                                                       (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1706,11 +1719,12 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
 
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const void *pShaderBytecode,
-                                                     SIZE_T BytecodeLength,
+                                                     SIZE_T BytecodeLength_,
                                                      ID3D11ClassLinkage *pClassLinkage,
                                                      ID3D11HullShader **ppHullShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppHullShader));
 
@@ -1719,8 +1733,8 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
   if(IsReplayingAndReading())
   {
     ID3D11HullShader *ret;
-    HRESULT hr = m_pDevice->CreateHullShader(
-        pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+    HRESULT hr = m_pDevice->CreateHullShader(pShaderBytecode, (SIZE_T)BytecodeLength,
+                                             UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1730,7 +1744,7 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
     else
     {
       ret = new WrappedID3D11Shader<ID3D11HullShader>(ret, pShader, (const byte *)pShaderBytecode,
-                                                      BytecodeLength, this);
+                                                      (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1797,11 +1811,12 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
                                                        const void *pShaderBytecode,
-                                                       SIZE_T BytecodeLength,
+                                                       SIZE_T BytecodeLength_,
                                                        ID3D11ClassLinkage *pClassLinkage,
                                                        ID3D11DomainShader **ppDomainShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppDomainShader));
 
@@ -1810,8 +1825,9 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     ID3D11DomainShader *ret;
-    HRESULT hr = m_pDevice->CreateDomainShader(
-        pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+    HRESULT hr =
+        m_pDevice->CreateDomainShader(pShaderBytecode, (SIZE_T)BytecodeLength,
+                                      UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1821,7 +1837,7 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11DomainShader>(ret, pShader, (const byte *)pShaderBytecode,
-                                                        BytecodeLength, this);
+                                                        (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1889,11 +1905,12 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
                                                         const void *pShaderBytecode,
-                                                        SIZE_T BytecodeLength,
+                                                        SIZE_T BytecodeLength_,
                                                         ID3D11ClassLinkage *pClassLinkage,
                                                         ID3D11ComputeShader **ppComputeShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppComputeShader));
 
@@ -1902,8 +1919,9 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     ID3D11ComputeShader *ret;
-    HRESULT hr = m_pDevice->CreateComputeShader(
-        pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
+    HRESULT hr =
+        m_pDevice->CreateComputeShader(pShaderBytecode, (SIZE_T)BytecodeLength,
+                                       UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &ret);
 
     if(FAILED(hr))
     {
@@ -1913,7 +1931,7 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11ComputeShader>(
-          ret, pShader, (const byte *)pShaderBytecode, BytecodeLength, this);
+          ret, pShader, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }

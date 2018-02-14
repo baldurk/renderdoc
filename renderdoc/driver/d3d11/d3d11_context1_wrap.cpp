@@ -145,6 +145,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
     }
 
     SERIALISE_ELEMENT_ARRAY(pSrcData, SourceDataLength);
+    SERIALISE_ELEMENT(SourceDataLength);
 
     SERIALISE_CHECK_READ_ERRORS();
 
@@ -200,6 +201,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
       Contents = new byte[(size_t)ContentsLength];
 
     SERIALISE_ELEMENT_ARRAY(Contents, ContentsLength);
+    SERIALISE_ELEMENT(ContentsLength);
 
     // the automatic deserialisation only happens when reading, when writing we need to
     // free this data
@@ -435,8 +437,9 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
                                                      const D3D11_RECT *pRect, UINT NumRects)
 {
   SERIALISE_ELEMENT(pView);
-  SERIALISE_ELEMENT_ARRAY(ColorRGBA, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
+  SERIALISE_ELEMENT(NumRects);
 
   Serialise_DebugMessages(ser);
 
@@ -565,10 +568,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -694,10 +697,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -823,10 +826,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -952,10 +955,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1081,10 +1084,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1210,10 +1213,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumBuffers);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
-  SERIALISE_ELEMENT(NumBuffers);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1812,6 +1815,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pResourceView);
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
+  SERIALISE_ELEMENT(NumRects);
 
   Serialise_DebugMessages(ser);
 

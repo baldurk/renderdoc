@@ -548,8 +548,8 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_DEPTH_STENCIL_VIEW_DESC &el)
 {
   SERIALISE_MEMBER(Format);
-  SERIALISE_MEMBER_TYPED(D3D11_DSV_FLAG, Flags);
   SERIALISE_MEMBER(ViewDimension);
+  SERIALISE_MEMBER_TYPED(D3D11_DSV_FLAG, Flags);
 
   switch(el.ViewDimension)
   {
@@ -683,23 +683,23 @@ void DoSerialise(SerialiserType &ser, D3D11_RASTERIZER_DESC2 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_QUERY_DESC &el)
 {
-  SERIALISE_MEMBER(MiscFlags);
   SERIALISE_MEMBER(Query);
+  SERIALISE_MEMBER(MiscFlags);
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_QUERY_DESC1 &el)
 {
-  SERIALISE_MEMBER(MiscFlags);
   SERIALISE_MEMBER(Query);
+  SERIALISE_MEMBER(MiscFlags);
   SERIALISE_MEMBER(ContextType);
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_COUNTER_DESC &el)
 {
-  SERIALISE_MEMBER(MiscFlags);
   SERIALISE_MEMBER(Counter);
+  SERIALISE_MEMBER(MiscFlags);
 }
 
 template <class SerialiserType>
@@ -743,7 +743,8 @@ void DoSerialise(SerialiserType &ser, D3D11_INPUT_ELEMENT_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_SUBRESOURCE_DATA &el)
 {
-  // ignore pSysMem
+  // don't serialise pSysMem, just set it to NULL. See the definition of SERIALISE_MEMBER_DUMMY
+  SERIALISE_MEMBER_ARRAY_EMPTY(pSysMem);
   SERIALISE_MEMBER(SysMemPitch);
   SERIALISE_MEMBER(SysMemSlicePitch);
 }
@@ -763,10 +764,10 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_BOX &el)
 {
   SERIALISE_MEMBER(left);
-  SERIALISE_MEMBER(right);
   SERIALISE_MEMBER(top);
-  SERIALISE_MEMBER(bottom);
   SERIALISE_MEMBER(front);
+  SERIALISE_MEMBER(right);
+  SERIALISE_MEMBER(bottom);
   SERIALISE_MEMBER(back);
 }
 

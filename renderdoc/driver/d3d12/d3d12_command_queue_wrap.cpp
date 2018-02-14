@@ -79,6 +79,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
+  SERIALISE_ELEMENT(NumCommandLists);
   SERIALISE_ELEMENT_ARRAY(ppCommandLists, NumCommandLists);
 
   {
@@ -552,6 +553,8 @@ template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_Signal(SerialiserType &ser, ID3D12Fence *pFence,
                                                  UINT64 Value)
 {
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
   SERIALISE_ELEMENT(pFence);
   SERIALISE_ELEMENT(Value);
 
@@ -588,6 +591,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence,
 template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_Wait(SerialiserType &ser, ID3D12Fence *pFence, UINT64 Value)
 {
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
   SERIALISE_ELEMENT(pFence);
   SERIALISE_ELEMENT(Value);
 

@@ -603,6 +603,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       }
 
       SERIALISE_ELEMENT_ARRAY(SubresourceContents, ContentsLength);
+      SERIALISE_ELEMENT(ContentsLength);
 
       if(ser.IsWriting() && SUCCEEDED(hr))
         m_pImmediateContext->GetReal()->Unmap(prepared, sub);
@@ -925,6 +926,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       SERIALISE_ELEMENT(RowPitch);
       SERIALISE_ELEMENT(DepthPitch);
       SERIALISE_ELEMENT_ARRAY(SubresourceContents, ContentsLength);
+      SERIALISE_ELEMENT(ContentsLength);
 
       if(ser.IsWriting() && SUCCEEDED(hr))
         m_pImmediateContext->GetReal()->Unmap(prepared, sub);

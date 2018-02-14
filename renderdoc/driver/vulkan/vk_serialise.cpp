@@ -120,9 +120,24 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 SERIALISE_VK_HANDLES();
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkGenericStruct &el)
+{
+  SERIALISE_MEMBER(sType);
+  SERIALISE_MEMBER_OPT(pNext);
+
+  RDCERR("Unexpected VkGenericStruct being serialised!");
+
+  // here we'd switch on sType to serialise the rest of the members
+}
+
+template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
 {
   ser.Serialise("sType", sType);
+
+  // we just serialise a dummy pointer to preserve it here.
+  VkGenericStruct *dummy = NULL;
+  ser.SerialiseNullable("pNext", dummy);
 
   if(ser.IsReading())
   {
@@ -179,6 +194,12 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
       next = (VkGenericStruct *)next->pNext;
     }
   }
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAllocationCallbacks &el)
+{
+  RDCERR("Serialising VkAllocationCallbacks - this should always be a NULL optional element");
 }
 
 template <typename SerialiserType>
@@ -438,9 +459,12 @@ void DoSerialise(SerialiserType &ser, VkDeviceCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(queueCreateInfoCount);
   SERIALISE_MEMBER_ARRAY(pQueueCreateInfos, queueCreateInfoCount);
-  SERIALISE_MEMBER_ARRAY(ppEnabledExtensionNames, enabledExtensionCount);
+  SERIALISE_MEMBER(enabledLayerCount);
   SERIALISE_MEMBER_ARRAY(ppEnabledLayerNames, enabledLayerCount);
+  SERIALISE_MEMBER(enabledExtensionCount);
+  SERIALISE_MEMBER_ARRAY(ppEnabledExtensionNames, enabledExtensionCount);
   SERIALISE_MEMBER_OPT(pEnabledFeatures);
 }
 
@@ -470,13 +494,14 @@ void DoSerialise(SerialiserType &ser, VkBufferCreateInfo &el)
   // pQueueFamilyIndices should *only* be read if the sharing mode is concurrent
   if(el.sharingMode == VK_SHARING_MODE_CONCURRENT)
   {
+    SERIALISE_MEMBER(queueFamilyIndexCount);
     SERIALISE_MEMBER_ARRAY(pQueueFamilyIndices, queueFamilyIndexCount);
   }
-  else if(ser.IsReading())
+  else
   {
-    // otherwise just set to NULL for sanity
-    el.pQueueFamilyIndices = NULL;
-    el.queueFamilyIndexCount = 0;
+    // otherwise do a dummy serialise so the struct is the same either way
+    SERIALISE_MEMBER_EMPTY(queueFamilyIndexCount);
+    SERIALISE_MEMBER_OPT_EMPTY(pQueueFamilyIndices);
   }
 }
 
@@ -516,19 +541,21 @@ void DoSerialise(SerialiserType &ser, VkImageCreateInfo &el)
   SERIALISE_MEMBER(tiling);
   SERIALISE_MEMBER_TYPED(VkImageUsageFlagBits, usage);
   SERIALISE_MEMBER(sharingMode);
-  SERIALISE_MEMBER(initialLayout);
 
   // pQueueFamilyIndices should *only* be read if the sharing mode is concurrent
   if(el.sharingMode == VK_SHARING_MODE_CONCURRENT)
   {
+    SERIALISE_MEMBER(queueFamilyIndexCount);
     SERIALISE_MEMBER_ARRAY(pQueueFamilyIndices, queueFamilyIndexCount);
   }
-  else if(ser.IsReading())
+  else
   {
-    // otherwise just set to NULL for sanity
-    el.pQueueFamilyIndices = NULL;
-    el.queueFamilyIndexCount = 0;
+    // otherwise do a dummy serialise so the struct is the same either way
+    SERIALISE_MEMBER_EMPTY(queueFamilyIndexCount);
+    SERIALISE_MEMBER_ARRAY_EMPTY(pQueueFamilyIndices);
   }
+
+  SERIALISE_MEMBER(initialLayout);
 }
 
 template <>
@@ -574,6 +601,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSparseBufferMemoryBindInfo &el)
 {
   SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(bindCount);
   SERIALISE_MEMBER_ARRAY(pBinds, bindCount);
 }
 
@@ -581,6 +609,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSparseImageOpaqueMemoryBindInfo &el)
 {
   SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(bindCount);
   SERIALISE_MEMBER_ARRAY(pBinds, bindCount);
 }
 
@@ -599,6 +628,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSparseImageMemoryBindInfo &el)
 {
   SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(bindCount);
   SERIALISE_MEMBER_ARRAY(pBinds, bindCount);
 }
 
@@ -608,12 +638,17 @@ void DoSerialise(SerialiserType &ser, VkBindSparseInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BIND_SPARSE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  SERIALISE_MEMBER(waitSemaphoreCount);
   SERIALISE_MEMBER_ARRAY(pWaitSemaphores, waitSemaphoreCount);
 
+  SERIALISE_MEMBER(bufferBindCount);
   SERIALISE_MEMBER_ARRAY(pBufferBinds, bufferBindCount);
+  SERIALISE_MEMBER(imageOpaqueBindCount);
   SERIALISE_MEMBER_ARRAY(pImageOpaqueBinds, imageOpaqueBindCount);
+  SERIALISE_MEMBER(imageBindCount);
   SERIALISE_MEMBER_ARRAY(pImageBinds, imageBindCount);
 
+  SERIALISE_MEMBER(signalSemaphoreCount);
   SERIALISE_MEMBER_ARRAY(pSignalSemaphores, signalSemaphoreCount);
 }
 
@@ -640,6 +675,9 @@ void DoSerialise(SerialiserType &ser, VkSubmitInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBMIT_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  SERIALISE_MEMBER(waitSemaphoreCount);
+  SERIALISE_MEMBER_ARRAY(pWaitSemaphores, waitSemaphoreCount);
+
   // bit of a hack, we alias the ptr here to the bits type so we serialise with better type info
   union
   {
@@ -650,8 +688,10 @@ void DoSerialise(SerialiserType &ser, VkSubmitInfo &el)
 
   ser.Serialise("pWaitDstStageMask", *u.typed, el.waitSemaphoreCount,
                 SerialiserFlags::AllocateMemory);
-  SERIALISE_MEMBER_ARRAY(pWaitSemaphores, waitSemaphoreCount);
+
+  SERIALISE_MEMBER(commandBufferCount);
   SERIALISE_MEMBER_ARRAY(pCommandBuffers, commandBufferCount);
+  SERIALISE_MEMBER(signalSemaphoreCount);
   SERIALISE_MEMBER_ARRAY(pSignalSemaphores, signalSemaphoreCount);
 }
 
@@ -672,10 +712,11 @@ void DoSerialise(SerialiserType &ser, VkFramebufferCreateInfo &el)
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
   SERIALISE_MEMBER(renderPass);
+  SERIALISE_MEMBER(attachmentCount);
+  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
   SERIALISE_MEMBER(width);
   SERIALISE_MEMBER(height);
   SERIALISE_MEMBER(layers);
-  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
 }
 
 template <>
@@ -704,10 +745,17 @@ void DoSerialise(SerialiserType &ser, VkSubpassDescription &el)
 {
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
   SERIALISE_MEMBER(pipelineBindPoint);
-  SERIALISE_MEMBER_OPT(pDepthStencilAttachment);
+
+  SERIALISE_MEMBER(inputAttachmentCount);
   SERIALISE_MEMBER_ARRAY(pInputAttachments, inputAttachmentCount);
-  SERIALISE_MEMBER_ARRAY(pResolveAttachments, colorAttachmentCount);
+
+  SERIALISE_MEMBER(colorAttachmentCount);
   SERIALISE_MEMBER_ARRAY(pColorAttachments, colorAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pResolveAttachments, colorAttachmentCount);
+
+  SERIALISE_MEMBER_OPT(pDepthStencilAttachment);
+
+  SERIALISE_MEMBER(preserveAttachmentCount);
   SERIALISE_MEMBER_ARRAY(pPreserveAttachments, preserveAttachmentCount);
 }
 
@@ -737,8 +785,11 @@ void DoSerialise(SerialiserType &ser, VkRenderPassCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(attachmentCount);
   SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+  SERIALISE_MEMBER(subpassCount);
   SERIALISE_MEMBER_ARRAY(pSubpasses, subpassCount);
+  SERIALISE_MEMBER(dependencyCount);
   SERIALISE_MEMBER_ARRAY(pDependencies, dependencyCount);
 }
 
@@ -769,6 +820,7 @@ void DoSerialise(SerialiserType &ser, VkRenderPassBeginInfo &el)
   SERIALISE_MEMBER(renderPass);
   SERIALISE_MEMBER(framebuffer);
   SERIALISE_MEMBER(renderArea);
+  SERIALISE_MEMBER(clearValueCount);
   SERIALISE_MEMBER_ARRAY(pClearValues, clearValueCount);
 }
 
@@ -803,7 +855,9 @@ void DoSerialise(SerialiserType &ser, VkPipelineVertexInputStateCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(vertexBindingDescriptionCount);
   SERIALISE_MEMBER_ARRAY(pVertexBindingDescriptions, vertexBindingDescriptionCount);
+  SERIALISE_MEMBER(vertexAttributeDescriptionCount);
   SERIALISE_MEMBER_ARRAY(pVertexAttributeDescriptions, vertexAttributeDescriptionCount);
 }
 
@@ -837,12 +891,10 @@ void DoSerialise(SerialiserType &ser, VkPipelineViewportStateCreateInfo &el)
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
 
-  SERIALISE_MEMBER_ARRAY(pViewports, viewportCount);
-  SERIALISE_MEMBER_ARRAY(pScissors, scissorCount);
-
-  // need to handle these arrays potentially being NULL if they're dynamic, we still want the count
   SERIALISE_MEMBER(viewportCount);
+  SERIALISE_MEMBER_ARRAY(pViewports, viewportCount);
   SERIALISE_MEMBER(scissorCount);
+  SERIALISE_MEMBER_ARRAY(pScissors, scissorCount);
 }
 
 template <typename SerialiserType>
@@ -903,6 +955,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineColorBlendStateCreateInfo &el)
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
   SERIALISE_MEMBER(logicOpEnable);
   SERIALISE_MEMBER(logicOp);
+  SERIALISE_MEMBER(attachmentCount);
   SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
   SERIALISE_MEMBER(blendConstants);
 }
@@ -933,6 +986,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineDynamicStateCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(dynamicStateCount);
   SERIALISE_MEMBER_ARRAY(pDynamicStates, dynamicStateCount);
 }
 
@@ -1046,8 +1100,8 @@ void DoSerialise(SerialiserType &ser, VkSamplerCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
-  SERIALISE_MEMBER(minFilter);
   SERIALISE_MEMBER(magFilter);
+  SERIALISE_MEMBER(minFilter);
   SERIALISE_MEMBER(mipmapMode);
   SERIALISE_MEMBER(addressModeU);
   SERIALISE_MEMBER(addressModeV);
@@ -1095,8 +1149,18 @@ void DoSerialise(SerialiserType &ser, VkSpecializationMapEntry &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSpecializationInfo &el)
 {
-  SERIALISE_MEMBER_ARRAY(pData, dataSize);
+  SERIALISE_MEMBER(mapEntryCount);
   SERIALISE_MEMBER_ARRAY(pMapEntries, mapEntryCount);
+
+  // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
+  {
+    uint64_t dataSize = el.dataSize;
+    ser.Serialise("dataSize", dataSize);
+    if(ser.IsReading())
+      el.dataSize = (size_t)dataSize;
+  }
+
+  SERIALISE_MEMBER_ARRAY(pData, dataSize);
 }
 
 template <typename SerialiserType>
@@ -1132,7 +1196,9 @@ void DoSerialise(SerialiserType &ser, VkPipelineLayoutCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(setLayoutCount);
   SERIALISE_MEMBER_ARRAY(pSetLayouts, setLayoutCount);
+  SERIALISE_MEMBER(pushConstantRangeCount);
   SERIALISE_MEMBER_ARRAY(pPushConstantRanges, pushConstantRangeCount);
 }
 
@@ -1151,6 +1217,14 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+
+  // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
+  {
+    uint64_t codeSize = el.codeSize;
+    ser.Serialise("codeSize", codeSize);
+    if(ser.IsReading())
+      el.codeSize = (size_t)codeSize;
+  }
 
   // serialise as void* so it goes through as a buffer, not an actual array of integers.
   {
@@ -1265,11 +1339,8 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkPipelineCreateFlagBits, flags);
-  SERIALISE_MEMBER(layout);
-  SERIALISE_MEMBER(renderPass);
-  SERIALISE_MEMBER(subpass);
-  SERIALISE_MEMBER(basePipelineHandle);
-  SERIALISE_MEMBER(basePipelineIndex);
+  SERIALISE_MEMBER(stageCount);
+  SERIALISE_MEMBER_ARRAY(pStages, stageCount);
 
   SERIALISE_MEMBER_OPT(pVertexInputState);
   SERIALISE_MEMBER_OPT(pInputAssemblyState);
@@ -1280,7 +1351,12 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   SERIALISE_MEMBER_OPT(pDepthStencilState);
   SERIALISE_MEMBER_OPT(pColorBlendState);
   SERIALISE_MEMBER_OPT(pDynamicState);
-  SERIALISE_MEMBER_ARRAY(pStages, stageCount);
+
+  SERIALISE_MEMBER(layout);
+  SERIALISE_MEMBER(renderPass);
+  SERIALISE_MEMBER(subpass);
+  SERIALISE_MEMBER(basePipelineHandle);
+  SERIALISE_MEMBER(basePipelineIndex);
 }
 
 template <>
@@ -1361,8 +1437,8 @@ void DoSerialise(SerialiserType &ser, VkComputePipelineCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER_TYPED(VkPipelineCreateFlagBits, flags);
+  SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(layout);
   SERIALISE_MEMBER(basePipelineHandle);
   SERIALISE_MEMBER(basePipelineIndex);
@@ -1396,6 +1472,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorPoolCreateInfo &el)
 
   SERIALISE_MEMBER_TYPED(VkDescriptorPoolCreateFlagBits, flags);
   SERIALISE_MEMBER(maxSets);
+  SERIALISE_MEMBER(poolSizeCount);
   SERIALISE_MEMBER_ARRAY(pPoolSizes, poolSizeCount);
 }
 
@@ -1413,6 +1490,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetAllocateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(descriptorPool);
+  SERIALISE_MEMBER(descriptorSetCount);
   SERIALISE_MEMBER_ARRAY(pSetLayouts, descriptorSetCount);
 }
 
@@ -1460,14 +1538,8 @@ void DoSerialise(SerialiserType &ser, VkWriteDescriptorSet &el)
   SERIALISE_MEMBER(dstSet);
   SERIALISE_MEMBER(dstBinding);
   SERIALISE_MEMBER(dstArrayElement);
+  SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER(descriptorType);
-
-  if(ser.IsReading())
-  {
-    el.pImageInfo = NULL;
-    el.pBufferInfo = NULL;
-    el.pTexelBufferView = NULL;
-  }
 
   // only serialise the array type used, the others are ignored
   if(el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -1478,17 +1550,31 @@ void DoSerialise(SerialiserType &ser, VkWriteDescriptorSet &el)
   {
     SERIALISE_MEMBER_ARRAY(pImageInfo, descriptorCount);
   }
-  else if(el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-          el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-          el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-          el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+  else
+  {
+    SERIALISE_MEMBER_ARRAY_EMPTY(pImageInfo);
+  }
+
+  if(el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+     el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+     el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+     el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
   {
     SERIALISE_MEMBER_ARRAY(pBufferInfo, descriptorCount);
   }
-  else if(el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
-          el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+  else
+  {
+    SERIALISE_MEMBER_ARRAY_EMPTY(pBufferInfo);
+  }
+
+  if(el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+     el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
   {
     SERIALISE_MEMBER_ARRAY(pTexelBufferView, descriptorCount);
+  }
+  else
+  {
+    SERIALISE_MEMBER_ARRAY_EMPTY(pTexelBufferView);
   }
 }
 
@@ -1536,11 +1622,9 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutBinding &el)
 {
   SERIALISE_MEMBER(binding);
   SERIALISE_MEMBER(descriptorType);
+  SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER_TYPED(VkShaderStageFlagBits, stageFlags);
   SERIALISE_MEMBER_ARRAY(pImmutableSamplers, descriptorCount);
-
-  // serialise count separately after, as if pImmutableSamplers is NULL, count would be set to 0
-  SERIALISE_MEMBER(descriptorCount);
 }
 
 template <typename SerialiserType>
@@ -1550,6 +1634,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(bindingCount);
   SERIALISE_MEMBER_ARRAY(pBindings, bindingCount);
 }
 
@@ -1647,8 +1732,8 @@ void DoSerialise(SerialiserType &ser, VkClearDepthStencilValue &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkClearValue &el)
 {
-  SERIALISE_MEMBER(depthStencil);
   SERIALISE_MEMBER(color);
+  SERIALISE_MEMBER(depthStencil);
 }
 
 template <typename SerialiserType>
@@ -1724,6 +1809,7 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
 
   // don't need the surface
+  SERIALISE_MEMBER_EMPTY(surface);
 
   SERIALISE_MEMBER(minImageCount);
   SERIALISE_MEMBER(imageFormat);
@@ -1734,6 +1820,8 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   SERIALISE_MEMBER(imageSharingMode);
 
   // SHARING: queueFamilyCount, pQueueFamilyIndices
+  SERIALISE_MEMBER_EMPTY(queueFamilyIndexCount);
+  SERIALISE_MEMBER_ARRAY_EMPTY(pQueueFamilyIndices);
 
   SERIALISE_MEMBER(preTransform);
   SERIALISE_MEMBER(compositeAlpha);
@@ -1741,6 +1829,7 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   SERIALISE_MEMBER(clipped);
 
   // don't need the old swap chain
+  SERIALISE_MEMBER_EMPTY(oldSwapchain);
 }
 
 template <typename SerialiserType>
@@ -1822,6 +1911,7 @@ INSTANTIATE_SERIALISE_TYPE(VkVertexInputAttributeDescription);
 INSTANTIATE_SERIALISE_TYPE(VkSpecializationMapEntry);
 INSTANTIATE_SERIALISE_TYPE(VkRect2D);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceQueueCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkAllocationCallbacks);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties);

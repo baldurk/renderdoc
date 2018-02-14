@@ -103,6 +103,9 @@ union ShaderValue
   DoubleVecVal d;
   DOCUMENT("``double`` values.");
   double dv[16];
+
+  DOCUMENT("64-bit integer values.");
+  uint64_t u64v[16];
 };
 
 DOCUMENT(R"(Holds a single named shader variable. It contains either a primitive type (up to a 4x4

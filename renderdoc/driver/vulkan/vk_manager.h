@@ -43,11 +43,11 @@ DECLARE_REFLECTION_STRUCT(MemIDOffset);
 
 struct SparseBufferInitState
 {
-  uint32_t numBinds;
   VkSparseMemoryBind *binds;
+  uint32_t numBinds;
 
-  uint32_t numUniqueMems;
   MemIDOffset *memDataOffs;
+  uint32_t numUniqueMems;
 
   VkDeviceSize totalSize;
 };
@@ -56,21 +56,22 @@ DECLARE_REFLECTION_STRUCT(SparseBufferInitState);
 
 struct SparseImageInitState
 {
-  uint32_t opaqueCount;
   VkSparseMemoryBind *opaque;
+  uint32_t opaqueCount;
 
   VkExtent3D imgdim;    // in pages
   VkExtent3D pagedim;
-  uint32_t pageCount[NUM_VK_IMAGE_ASPECTS];
 
   // available on capture - filled out in Prepare_SparseInitialState and serialised to disk
   MemIDOffset *pages[NUM_VK_IMAGE_ASPECTS];
 
+  uint32_t pageCount[NUM_VK_IMAGE_ASPECTS];
+
   // available on replay - filled out in the read path of Serialise_SparseInitialState
   VkSparseImageMemoryBind *pageBinds[NUM_VK_IMAGE_ASPECTS];
 
-  uint32_t numUniqueMems;
   MemIDOffset *memDataOffs;
+  uint32_t numUniqueMems;
 
   VkDeviceSize totalSize;
 };

@@ -539,6 +539,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     }
 
     SERIALISE_ELEMENT_ARRAY(Bindings, NumBindings);
+    SERIALISE_ELEMENT(NumBindings);
 
     SERIALISE_CHECK_READ_ERRORS();
 

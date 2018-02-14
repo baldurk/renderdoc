@@ -168,6 +168,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(id);
   SERIALISE_ELEMENT(severity);
+  SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT(name);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -237,6 +238,7 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
   std::string marker =
       marker_ ? std::string(marker_, marker_ + (length > 0 ? length : strlen(marker_))) : "";
 
+  SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT(marker);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -291,27 +293,28 @@ void WrappedOpenGL::glStringMarkerGREMEDY(GLsizei len, const void *string)
 
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum source, GLuint id,
-                                               GLsizei length, const GLchar *message)
+                                               GLsizei length, const GLchar *message_)
 {
-  std::string name =
-      message ? std::string(message, message + (length > 0 ? length : strlen(message))) : "";
+  std::string message =
+      message_ ? std::string(message_, message_ + (length > 0 ? length : strlen(message_))) : "";
 
   // unused, just for the user's benefit
   SERIALISE_ELEMENT(source);
   SERIALISE_ELEMENT(id);
-  SERIALISE_ELEMENT(name);
+  SERIALISE_ELEMENT(length);
+  SERIALISE_ELEMENT(message);
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    GLMarkerRegion::Begin(name, source, id);
+    GLMarkerRegion::Begin(message, source, id);
     m_ReplayEventCount++;
 
     if(IsLoading(m_State))
     {
       DrawcallDescription draw;
-      draw.name = name;
+      draw.name = message;
       draw.flags |= DrawFlags::PushMarker;
 
       AddEvent();

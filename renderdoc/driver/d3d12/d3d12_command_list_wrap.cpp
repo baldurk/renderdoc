@@ -415,6 +415,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(NumBarriers);
   SERIALISE_ELEMENT_ARRAY(pBarriers, NumBarriers);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -590,6 +591,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(SerialiserType &
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(NumViewports);
   SERIALISE_ELEMENT_ARRAY(pViewports, NumViewports);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -653,6 +655,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(SerialiserTyp
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -715,7 +718,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(SerialiserType
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT_ARRAY(BlendFactor, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(BlendFactor, 4);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -815,6 +818,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(NumDescriptorHeaps);
   SERIALISE_ELEMENT_ARRAY(ppDescriptorHeaps, NumDescriptorHeaps);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -978,6 +982,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(pViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1060,6 +1065,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(NumViews);
   SERIALISE_ELEMENT_ARRAY(pViews, NumViews);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1198,13 +1204,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumRenderTargetDescriptors);
-  SERIALISE_ELEMENT_TYPED(bool, RTsSingleHandleToDescriptorRange);
 
   // if RTsSingleHandleToDescriptorRange is true, we only have up to 1 actual handle
   UINT numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
                                                      : NumRenderTargetDescriptors;
 
   SERIALISE_ELEMENT_ARRAY(pRenderTargetDescriptors, numHandles);
+  SERIALISE_ELEMENT_TYPED(bool, RTsSingleHandleToDescriptorRange);
   SERIALISE_ELEMENT_OPT(pDepthStencilDescriptor);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1569,9 +1575,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT(Num32BitValuesToSet);
-  SERIALISE_ELEMENT(DestOffsetIn32BitValues);
   const UINT *pSrcData = (const UINT *)pSrcVoidData;
   SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet);
+  SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2131,9 +2137,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT(Num32BitValuesToSet);
-  SERIALISE_ELEMENT(DestOffsetIn32BitValues);
   const UINT *pSrcData = (const UINT *)pSrcVoidData;
   SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet);
+  SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4455,6 +4461,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
   SERIALISE_ELEMENT(ClearFlags);
   SERIALISE_ELEMENT(Depth);
   SERIALISE_ELEMENT(Stencil);
+  SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4538,7 +4545,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RenderTargetView);
-  SERIALISE_ELEMENT_ARRAY(ColorRGBA, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
+  SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4621,7 +4629,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
   SERIALISE_ELEMENT(ViewGPUHandleInCurrentHeap);
   SERIALISE_ELEMENT(ViewCPUHandle);
   SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(Values, 4);
+  SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4713,7 +4722,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
   SERIALISE_ELEMENT(ViewGPUHandleInCurrentHeap);
   SERIALISE_ELEMENT(ViewCPUHandle);
   SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
+  SERIALISE_ELEMENT_ARRAY(Values, 4);
+  SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
   SERIALISE_CHECK_READ_ERRORS();

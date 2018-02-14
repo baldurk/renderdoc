@@ -211,7 +211,7 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
 #pragma region Shaders
 
 template <typename SerialiserType>
-bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLuint shader, GLenum type)
+bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLenum type, GLuint shader)
 {
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(Shader, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
@@ -251,7 +251,7 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-      Serialise_glCreateShader(ser, real, type);
+      Serialise_glCreateShader(ser, type, real);
 
       chunk = scope.Get();
     }
@@ -291,7 +291,9 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     }
   }
 
+  SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(sources);
+  SERIALISE_ELEMENT_ARRAY(length, count);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -564,11 +566,12 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
 #pragma region Programs
 
 template <typename SerialiserType>
-bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLuint program, GLenum type,
-                                                     GLsizei count, const GLchar *const *strings)
+bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum type, GLsizei count,
+                                                     const GLchar *const *strings, GLuint program)
 {
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_ARRAY(strings, (uint32_t &)count);
+  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT_ARRAY(strings, count);
   SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -629,7 +632,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-      Serialise_glCreateShaderProgramv(ser, real, type, count, strings);
+      Serialise_glCreateShaderProgramv(ser, type, count, strings, real);
 
       chunk = scope.Get();
     }
@@ -966,7 +969,8 @@ bool WrappedOpenGL::Serialise_glUniformSubroutinesuiv(SerialiserType &ser, GLenu
                                                       GLsizei count, const GLuint *indices)
 {
   SERIALISE_ELEMENT(shadertype);
-  SERIALISE_ELEMENT_ARRAY(indices, (uint32_t &)count);
+  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT_ARRAY(indices, count);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1042,7 +1046,8 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackVaryings(SerialiserType &ser, G
                                                           GLenum bufferMode)
 {
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
-  SERIALISE_ELEMENT_ARRAY(varyings, (uint32_t &)count);
+  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT_ARRAY(varyings, count);
   SERIALISE_ELEMENT(bufferMode);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1352,6 +1357,7 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei n, GLuint *pipelines)
 {
+  SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(pipeline,
                           GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
 
@@ -1412,6 +1418,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsizei n,
                                                        GLuint *pipelines)
 {
+  SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(pipeline,
                           GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
 
@@ -1558,9 +1565,9 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
 {
   SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
 
-  SERIALISE_ELEMENT_ARRAY(path, (uint32_t &)count);
-  SERIALISE_ELEMENT_ARRAY(length, (uint32_t &)count);
   SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT_ARRAY(path, count);
+  SERIALISE_ELEMENT_ARRAY(length, count);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1627,8 +1634,10 @@ bool WrappedOpenGL::Serialise_glNamedStringARB(SerialiserType &ser, GLenum type,
                                                const GLchar *valStr)
 {
   SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(namelen);
   SERIALISE_ELEMENT_LOCAL(
       name, nameStr ? std::string(nameStr, nameStr + (namelen > 0 ? namelen : strlen(nameStr))) : "");
+  SERIALISE_ELEMENT(stringlen);
   SERIALISE_ELEMENT_LOCAL(
       value,
       valStr ? std::string(valStr, valStr + (stringlen > 0 ? stringlen : strlen(valStr))) : "");
@@ -1666,6 +1675,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDeleteNamedStringARB(SerialiserType &ser, GLint namelen,
                                                      const GLchar *nameStr)
 {
+  SERIALISE_ELEMENT(namelen);
   SERIALISE_ELEMENT_LOCAL(
       name, nameStr ? std::string(nameStr, nameStr + (namelen > 0 ? namelen : strlen(nameStr))) : "");
 
@@ -1698,14 +1708,14 @@ void WrappedOpenGL::glDeleteNamedStringARB(GLint namelen, const GLchar *name)
 
 #pragma endregion
 
-INSTANTIATE_FUNCTION_SERIALISED(void, glCreateShader, GLuint shader, GLenum type);
+INSTANTIATE_FUNCTION_SERIALISED(void, glCreateShader, GLenum type, GLuint shader);
 INSTANTIATE_FUNCTION_SERIALISED(void, glShaderSource, GLuint shaderHandle, GLsizei count,
                                 const GLchar *const *source, const GLint *length);
 INSTANTIATE_FUNCTION_SERIALISED(void, glCompileShader, GLuint shaderHandle);
 INSTANTIATE_FUNCTION_SERIALISED(void, glAttachShader, GLuint programHandle, GLuint shaderHandle);
 INSTANTIATE_FUNCTION_SERIALISED(void, glDetachShader, GLuint programHandle, GLuint shaderHandle);
-INSTANTIATE_FUNCTION_SERIALISED(void, glCreateShaderProgramv, GLuint program, GLenum type,
-                                GLsizei count, const GLchar *const *strings);
+INSTANTIATE_FUNCTION_SERIALISED(void, glCreateShaderProgramv, GLenum type, GLsizei count,
+                                const GLchar *const *strings, GLuint program);
 INSTANTIATE_FUNCTION_SERIALISED(void, glCreateProgram, GLuint program);
 INSTANTIATE_FUNCTION_SERIALISED(void, glLinkProgram, GLuint programHandle);
 INSTANTIATE_FUNCTION_SERIALISED(void, glUniformBlockBinding, GLuint programHandle,

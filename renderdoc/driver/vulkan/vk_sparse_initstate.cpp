@@ -36,7 +36,9 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, SparseBufferInitState &el)
 {
   SERIALISE_MEMBER_ARRAY(binds, numBinds);
+  SERIALISE_MEMBER(numBinds);
   SERIALISE_MEMBER_ARRAY(memDataOffs, numUniqueMems);
+  SERIALISE_MEMBER(numUniqueMems);
   SERIALISE_MEMBER(totalSize);
 }
 
@@ -51,13 +53,15 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, SparseImageInitState &el)
 {
   SERIALISE_MEMBER_ARRAY(opaque, opaqueCount);
+  SERIALISE_MEMBER(opaqueCount);
   SERIALISE_MEMBER(imgdim);
   SERIALISE_MEMBER(pagedim);
-  SERIALISE_MEMBER_ARRAY(memDataOffs, numUniqueMems);
-  SERIALISE_MEMBER(totalSize);
-
   for(uint32_t a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
     SERIALISE_MEMBER_ARRAY(pages[a], pageCount[a]);
+  SERIALISE_MEMBER(pageCount);
+  SERIALISE_MEMBER_ARRAY(memDataOffs, numUniqueMems);
+  SERIALISE_MEMBER(numUniqueMems);
+  SERIALISE_MEMBER(totalSize);
 }
 
 template <>

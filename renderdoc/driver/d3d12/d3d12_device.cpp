@@ -858,12 +858,12 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 {
   SERIALISE_ELEMENT(Resource);
   SERIALISE_ELEMENT(Subresource);
-  SERIALISE_ELEMENT(range);
 
   MappedData += range.Begin;
   uint64_t rangeSize = range.End - range.Begin;
 
   SERIALISE_ELEMENT_ARRAY(MappedData, rangeSize);
+  SERIALISE_ELEMENT(range);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -964,8 +964,6 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
   SERIALISE_ELEMENT(Resource);
   SERIALISE_ELEMENT(Subresource);
   SERIALISE_ELEMENT_OPT(pDstBox);
-  SERIALISE_ELEMENT(SrcRowPitch);
-  SERIALISE_ELEMENT(SrcDepthPitch);
 
   uint64_t dataSize = 0;
 
@@ -989,6 +987,10 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
   }
 
   SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize);
+  SERIALISE_ELEMENT(dataSize).Hidden();
+
+  SERIALISE_ELEMENT(SrcRowPitch);
+  SERIALISE_ELEMENT(SrcDepthPitch);
 
   SERIALISE_CHECK_READ_ERRORS();
 

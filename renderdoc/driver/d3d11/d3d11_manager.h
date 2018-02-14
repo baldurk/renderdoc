@@ -41,9 +41,7 @@ enum D3D11ResourceType
   Resource_Texture2D,
   Resource_Texture3D,
   Resource_RasterizerState,
-  Unused1,    // Resource_RasterizerState1
   Resource_BlendState,
-  Unused2,    // Resource_BlendState
   Resource_DepthStencilState,
   Resource_SamplerState,
   Resource_RenderTargetView,
