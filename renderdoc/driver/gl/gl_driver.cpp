@@ -570,6 +570,10 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
     m_FakeVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
     GetResourceManager()->AddResourceRecord(m_FakeVAOID);
     GetResourceManager()->MarkDirtyResource(m_FakeVAOID);
+
+    // also register an ID for the backbuffer, so we can identify it properly.
+    m_FBO0_ID = GetResourceManager()->RegisterResource(FramebufferRes(NULL, 0));
+    GetResourceManager()->AddResourceRecord(m_FBO0_ID);
   }
   else
   {
@@ -607,12 +611,6 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
 
   gl.glGenFramebuffers(1, &m_FakeBB_FBO);
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
-
-  // we'll add the chunk later when we re-process it.
-  ResourceId fboId = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_FakeBB_FBO));
-  AddResource(fboId, ResourceType::SwapchainImage, "");
-  GetReplay()->GetResourceDesc(fboId).initialisationChunks.clear();
-  GetReplay()->GetResourceDesc(fboId).SetCustomName("Default FBO");
 
   GLenum colfmt = eGL_RGBA8;
 
@@ -1687,6 +1685,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
         SCOPED_SERIALISE_CHUNK(GLChunk::DeviceInitialisation, 32);
 
         SERIALISE_ELEMENT(m_FakeVAOID);
+        SERIALISE_ELEMENT(m_FBO0_ID);
       }
 
       RDCDEBUG("Inserting Resource Serialisers");
@@ -2461,15 +2460,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 
       SERIALISE_CHECK_READ_ERRORS();
 
-      ResourceId fboId = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_FakeBB_FBO));
-      ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
-      ResourceId depthId;
-      if(m_FakeBB_DepthStencil)
-        depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
-
-      AddResourceCurChunk(fboId);
-      AddResourceCurChunk(colorId);
-      AddResourceCurChunk(depthId);
+      m_InitChunkIndex = (uint32_t)m_StructuredFile->chunks.size() - 1;
 
       return true;
     }
@@ -2523,6 +2514,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::DeviceInitialisation:
     {
       SERIALISE_ELEMENT(m_FakeVAOID).Named("VAO 0 ID");
+      SERIALISE_ELEMENT(m_FBO0_ID).Named("FBO 0 ID");
 
       SERIALISE_CHECK_READ_ERRORS();
 
@@ -2530,6 +2522,28 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 
       AddResource(m_FakeVAOID, ResourceType::StateObject, "");
       GetReplay()->GetResourceDesc(m_FakeVAOID).SetCustomName("Special VAO 0");
+
+      GetResourceManager()->AddLiveResource(m_FBO0_ID, FramebufferRes(GetCtx(), m_FakeBB_FBO));
+
+      AddResource(m_FBO0_ID, ResourceType::SwapchainImage, "");
+      GetReplay()->GetResourceDesc(m_FBO0_ID).SetCustomName("Default FBO");
+
+      GetReplay()->GetResourceDesc(m_FBO0_ID).initialisationChunks.push_back(m_InitChunkIndex);
+
+      ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
+      GetReplay()->GetResourceDesc(colorId).initialisationChunks.push_back(m_InitChunkIndex);
+      GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(colorId);
+      GetReplay()->GetResourceDesc(colorId).parentResources.push_back(m_FBO0_ID);
+
+      if(m_FakeBB_DepthStencil)
+      {
+        ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
+        GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
+
+        GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(depthId);
+        GetReplay()->GetResourceDesc(depthId).parentResources.push_back(m_FBO0_ID);
+      }
+
       return true;
     }
 

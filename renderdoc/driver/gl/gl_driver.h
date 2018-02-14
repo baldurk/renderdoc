@@ -350,6 +350,9 @@ private:
   GLsizeiptr m_FakeIdxSize;
 
   ResourceId m_FakeVAOID;
+  ResourceId m_FBO0_ID;
+
+  uint32_t m_InitChunkIndex = 0;
 
   bool ProcessChunk(ReadSerialiser &ser, GLChunk chunk);
   ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
