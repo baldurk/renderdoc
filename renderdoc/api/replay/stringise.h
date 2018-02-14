@@ -84,6 +84,7 @@ std::string ToStr(const T &el)
 #define BEGIN_BITFIELD_STRINGISE(type)                           \
   using enumType = type;                                         \
   static const char unknown_prefix[] = " | " #type "(";          \
+  static const char empty_ret[] = #type "(0)";                   \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   uint32_t local = (uint32_t)el;                                 \
@@ -138,7 +139,11 @@ std::string ToStr(const T &el)
   if(local)                                     \
     ret += unknown_prefix + ToStr(local) + ")"; \
                                                 \
-  if(!ret.empty())                              \
+  if(ret.empty())                               \
+  {                                             \
+    ret = empty_ret;                            \
+  }                                             \
+  else                                          \
   {                                             \
     ret = ret.substr(3);                        \
   }                                             \
