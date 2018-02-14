@@ -1483,6 +1483,8 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
+  GetResourceManager()->SetState(m_State);
+
   if(sectionIdx < 0)
     return ReplayStatus::FileCorrupted;
 
@@ -1788,12 +1790,12 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     // destroy any events we created for waiting on
     for(size_t i = 0; i < m_CleanupEvents.size(); i++)
       ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
+
+    vkFreeCommandBuffers(GetDev(), m_InternalCmds.cmdpool, (uint32_t)m_RerecordCmdList.size(),
+                         m_RerecordCmdList.data());
   }
 
   m_CleanupEvents.clear();
-
-  vkFreeCommandBuffers(GetDev(), m_InternalCmds.cmdpool, (uint32_t)m_RerecordCmdList.size(),
-                       m_RerecordCmdList.data());
 
   m_RerecordCmds.clear();
   m_RerecordCmdList.clear();

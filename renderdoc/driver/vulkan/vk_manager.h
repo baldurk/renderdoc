@@ -182,6 +182,8 @@ public:
       : ResourceManager(), m_State(state), m_Core(core)
   {
   }
+  void SetState(CaptureState state) { m_State = state; }
+  CaptureState GetState() { return m_State; }
   ~VulkanResourceManager() {}
   void ClearWithoutReleasing()
   {

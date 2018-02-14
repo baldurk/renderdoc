@@ -87,7 +87,7 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
   DoSerialise(ser, id);
 
-  if(ser.IsReading())
+  if(ser.IsReading() && !IsStructuredExporting(rm->GetState()))
   {
     el = VK_NULL_HANDLE;
 
