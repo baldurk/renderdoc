@@ -81,6 +81,11 @@ DOCUMENT(R"(The basic irreducible type of an object. Every other more complex ty
 
   A single byte character. Wide/multi-byte characters are not supported (these would be stored as a
   string with 1 character and multiple bytes in UTF-8).
+
+.. data:: ResourceId
+
+  A ResourceId. Equivalent to (and stored as) an 8-byte unsigned integer, but specifically contains
+  the unique Id of a resource in a capture.
 )");
 enum class SDBasic : uint32_t
 {
@@ -96,6 +101,7 @@ enum class SDBasic : uint32_t
   Float,
   Boolean,
   Character,
+  ResourceId,
 };
 
 DECLARE_REFLECTION_ENUM(SDBasic);
@@ -251,9 +257,14 @@ union SDObjectPODData
   DOCUMENT("The value as a single byte character.");
   char c;
 
+  DOCUMENT("The value as a :class:`ResourceId`.");
+  ResourceId id;
+
   // mostly here just for debugging
   DOCUMENT("A useful alias of :data:`u` - the number of children when a struct/array.");
   uint64_t numChildren;
+
+  SDObjectPODData() : u(0) {}
 };
 
 DECLARE_REFLECTION_STRUCT(SDObjectPODData);
@@ -378,6 +389,7 @@ struct SDObject
       case SDBasic::Enum:
       case SDBasic::UnsignedInteger: return QVariant(qulonglong(data.basic.u));
       case SDBasic::SignedInteger: return QVariant(qlonglong(data.basic.i));
+      case SDBasic::ResourceId: return (QVariant)data.basic.id;
       case SDBasic::Float: return data.basic.d;
       case SDBasic::Boolean: return data.basic.b;
       case SDBasic::Character: return data.basic.c;
@@ -520,6 +532,16 @@ inline SDObject *makeSDObject(const char *name, const char *val)
   ret->type.basetype = SDBasic::String;
   ret->type.byteSize = strlen(val);
   ret->data.str = val;
+  return ret;
+}
+
+DOCUMENT("Make a structured object out of a ResourceId");
+inline SDObject *makeSDObject(const char *name, ResourceId val)
+{
+  SDObject *ret = new SDObject(name, "ResourceId");
+  ret->type.basetype = SDBasic::ResourceId;
+  ret->type.byteSize = 8;
+  ret->data.basic.id = val;
   return ret;
 }
 

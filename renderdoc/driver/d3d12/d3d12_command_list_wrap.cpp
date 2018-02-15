@@ -3761,10 +3761,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             buf->type.basetype = SDBasic::Struct;
             buf->type.byteSize = sizeof(D3D12BufferLocation);
 
-            uint64_t bufid;
-            memcpy(&bufid, &id, sizeof(bufid));
-
-            buf->AddChild(makeSDObject("Buffer", bufid));
+            buf->AddChild(makeSDObject("Buffer", id));
             buf->AddChild(makeSDObject("Offset", offs));
 
             buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
@@ -3810,10 +3807,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             buf->type.basetype = SDBasic::Struct;
             buf->type.byteSize = sizeof(D3D12BufferLocation);
 
-            uint64_t bufid;
-            memcpy(&bufid, &id, sizeof(bufid));
-
-            buf->AddChild(makeSDObject("Buffer", bufid));
+            buf->AddChild(makeSDObject("Buffer", id));
             buf->AddChild(makeSDObject("Offset", offs));
 
             buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
@@ -3866,10 +3860,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             buf->type.basetype = SDBasic::Struct;
             buf->type.byteSize = sizeof(D3D12BufferLocation);
 
-            uint64_t bufid;
-            memcpy(&bufid, &id, sizeof(bufid));
-
-            buf->AddChild(makeSDObject("Buffer", bufid));
+            buf->AddChild(makeSDObject("Buffer", id));
             buf->AddChild(makeSDObject("Offset", offs));
 
             buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;

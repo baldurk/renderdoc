@@ -251,6 +251,54 @@ inline enum_name operator++(enum_name &a)                                      \
 
 #define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)
 
+// declare ResourceId extremely early so that it can be referenced in structured_data.h
+
+#ifdef RENDERDOC_EXPORTS
+struct ResourceId;
+
+namespace ResourceIDGen
+{
+// the only function allowed access to ResourceId internals, for allocating a new ID
+ResourceId GetNewUniqueID();
+};
+#endif
+
+// We give every resource a globally unique ID so that we can differentiate
+// between two textures allocated in the same memory (after the first is freed)
+//
+// it's a struct around a uint64_t to aid in template selection
+DOCUMENT(R"(This is an opaque identifier that uniquely locates a resource.
+
+.. note::
+  These IDs do not overlap ever - textures, buffers, shaders and samplers will all have unique IDs
+  and do not reuse the namespace. Likewise the IDs assigned for resources during capture  are not
+  re-used on replay - the corresponding resources created on replay to stand-in for capture-time
+  resources are given unique IDs and a mapping is stored to between the capture-time resource and
+  the replay-time one.
+)");
+struct ResourceId
+{
+  ResourceId() : id() {}
+  DOCUMENT("A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.");
+  inline static ResourceId Null() { return ResourceId(); }
+  DOCUMENT("Compares two ``ResourceId`` objects for equality.");
+  bool operator==(const ResourceId u) const { return id == u.id; }
+  DOCUMENT("Compares two ``ResourceId`` objects for inequality.");
+  bool operator!=(const ResourceId u) const { return id != u.id; }
+  DOCUMENT("Compares two ``ResourceId`` objects for less-than.");
+  bool operator<(const ResourceId u) const { return id < u.id; }
+#if defined(RENDERDOC_QT_COMPAT)
+  operator QVariant() const { return QVariant::fromValue(*this); }
+#endif
+
+private:
+  uint64_t id;
+
+#ifdef RENDERDOC_EXPORTS
+  friend ResourceId ResourceIDGen::GetNewUniqueID();
+#endif
+};
+
 #include "basic_types.h"
 #include "stringise.h"
 #include "structured_data.h"
@@ -422,52 +470,8 @@ struct GlobalEnvironment
   Display *xlibDisplay = NULL;
 };
 
-#ifdef RENDERDOC_EXPORTS
-struct ResourceId;
-
-namespace ResourceIDGen
-{
-// the only function allowed access to ResourceId internals, for allocating a new ID
-ResourceId GetNewUniqueID();
-};
-#endif
-
-// We give every resource a globally unique ID so that we can differentiate
-// between two textures allocated in the same memory (after the first is freed)
-//
-// it's a struct around a uint64_t to aid in template selection
-DOCUMENT(R"(This is an opaque identifier that uniquely locates a resource.
-
-.. note::
-  These IDs do not overlap ever - textures, buffers, shaders and samplers will all have unique IDs
-  and do not reuse the namespace. Likewise the IDs assigned for resources during capture  are not
-  re-used on replay - the corresponding resources created on replay to stand-in for capture-time
-  resources are given unique IDs and a mapping is stored to between the capture-time resource and
-  the replay-time one.
-)");
-struct ResourceId
-{
-  ResourceId() : id() {}
-  DOCUMENT("A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.");
-  inline static ResourceId Null() { return ResourceId(); }
-  DOCUMENT("Compares two ``ResourceId`` objects for equality.");
-  bool operator==(const ResourceId u) const { return id == u.id; }
-  DOCUMENT("Compares two ``ResourceId`` objects for inequality.");
-  bool operator!=(const ResourceId u) const { return id != u.id; }
-  DOCUMENT("Compares two ``ResourceId`` objects for less-than.");
-  bool operator<(const ResourceId u) const { return id < u.id; }
-#if defined(RENDERDOC_QT_COMPAT)
-  operator QVariant() const { return QVariant::fromValue(*this); }
-#endif
-
-private:
-  uint64_t id;
-
-#ifdef RENDERDOC_EXPORTS
-  friend ResourceId ResourceIDGen::GetNewUniqueID();
-#endif
-};
-
+// declare metatype/reflection for ResourceId here as the struct itself is declared before including
+// all relevant headers above
 #if defined(RENDERDOC_QT_COMPAT)
 Q_DECLARE_METATYPE(ResourceId);
 #endif

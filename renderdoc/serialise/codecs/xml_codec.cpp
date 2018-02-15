@@ -30,8 +30,8 @@
 #include "3rdparty/pugixml/pugixml.hpp"
 
 static const char *typeNames[] = {
-    "chunk", "struct", "array", "null",  "buffer", "string",
-    "enum",  "uint",   "int",   "float", "bool",   "char",
+    "chunk", "struct", "array", "null", "buffer", "string",     "enum",
+    "uint",  "int",    "float", "bool", "char",   "ResourceId",
 };
 
 template <typename inttype>
@@ -190,7 +190,8 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
     obj.append_attribute("typename") = child.type.name.c_str();
 
   if(child.type.basetype == SDBasic::UnsignedInteger ||
-     child.type.basetype == SDBasic::SignedInteger || child.type.basetype == SDBasic::Float)
+     child.type.basetype == SDBasic::SignedInteger || child.type.basetype == SDBasic::Float ||
+     child.type.basetype == SDBasic::ResourceId)
   {
     obj.append_attribute("width") = child.type.byteSize;
   }
@@ -240,6 +241,7 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
 
     switch(child.type.basetype)
     {
+      case SDBasic::ResourceId:
       case SDBasic::Enum:
       case SDBasic::UnsignedInteger: obj.text() = child.data.basic.u; break;
       case SDBasic::SignedInteger: obj.text() = child.data.basic.i; break;
@@ -404,8 +406,8 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
     }
   }
 
-  if(ret->type.basetype == SDBasic::UnsignedInteger ||
-     ret->type.basetype == SDBasic::SignedInteger || ret->type.basetype == SDBasic::Float)
+  if(ret->type.basetype == SDBasic::UnsignedInteger || ret->type.basetype == SDBasic::SignedInteger ||
+     ret->type.basetype == SDBasic::Float || ret->type.basetype == SDBasic::ResourceId)
   {
     ret->type.byteSize = obj.attribute("width").as_uint();
   }
@@ -460,6 +462,7 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
 
     switch(ret->type.basetype)
     {
+      case SDBasic::ResourceId:
       case SDBasic::Enum:
       case SDBasic::UnsignedInteger: ret->data.basic.u = obj.text().as_ullong(); break;
       case SDBasic::SignedInteger: ret->data.basic.i = obj.text().as_llong(); break;

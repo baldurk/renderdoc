@@ -48,7 +48,7 @@ std::string DoStringise(const ResourceId &el)
   return StringFormat::Fmt("ResourceId::%llu", el);
 }
 
-BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::UnsignedInteger, 8);
+BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::ResourceId, 8);
 
 INSTANTIATE_SERIALISE_TYPE(ResourceId);
 

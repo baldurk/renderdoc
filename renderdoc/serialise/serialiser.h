@@ -1338,6 +1338,7 @@ public:
       case SDBasic::Null: RDCFATAL("Cannot call SerialiseValue for type %d!", type); break;
       case SDBasic::String: RDCFATAL("eString should be specialised!"); break;
       case SDBasic::Enum:
+      case SDBasic::ResourceId:
       case SDBasic::UnsignedInteger:
         if(byteSize == 1)
           current.data.basic.u = (uint64_t)(uint8_t)el;
@@ -1634,12 +1635,27 @@ BASIC_TYPE_SERIALISE(bool, el, SDBasic::Boolean, 1);
 
 BASIC_TYPE_SERIALISE(char, el, SDBasic::Character, 1);
 
-BASIC_TYPE_SERIALISE(char *, el, SDBasic::String, 0);
-BASIC_TYPE_SERIALISE(const char *, el, SDBasic::String, 0);
+template <>
+inline const char *TypeName<char *>()
+{
+  return "string";
+}
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, char *&el)
+{
+  ser.SerialiseValue(SDBasic::String, 0, el);
+}
 
-// these are special because we give them a typename of 'string' for both:
-// BASIC_TYPE_SERIALISE(rdcstr, el, SDBasic::String, 0);
-// BASIC_TYPE_SERIALISE(std::string, el, SDBasic::String, 0);
+template <>
+inline const char *TypeName<const char *>()
+{
+  return "string";
+}
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, const char *&el)
+{
+  ser.SerialiseValue(SDBasic::String, 0, el);
+}
 
 template <>
 inline const char *TypeName<std::string>()

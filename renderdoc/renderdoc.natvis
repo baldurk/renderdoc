@@ -52,6 +52,7 @@
   <DisplayString Condition="type.basetype == SDBasic::Float">{name} = {data.basic.d}</DisplayString>
   <DisplayString Condition="type.basetype == SDBasic::Boolean">{name} = {data.basic.b}</DisplayString>
   <DisplayString Condition="type.basetype == SDBasic::Character">{name} = {data.basic.c}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::ResourceId">{name} = {data.basic.id}</DisplayString>
   <DisplayString Condition="type.basetype == SDBasic::Array">{name} = {type.name}[]</DisplayString>
   <DisplayString>SDObject: {type.name} {name}</DisplayString>
   <Expand>
