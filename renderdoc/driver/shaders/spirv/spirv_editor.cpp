@@ -230,16 +230,19 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
     }
     else if(opcode == spv::OpFunction)
     {
-      if(section != SectionState::TypeVar)
-        RDCERR("Unexpected current section when encountering OpFunction: %d", section);
+      if(section != SectionState::FunctionBodies)
+      {
+        if(section != SectionState::TypeVar)
+          RDCERR("Unexpected current section when encountering OpFunction: %d", section);
 
-      // we've now met the function bodies
-      section = SectionState::FunctionBodies;
+        // we've now met the function bodies
+        section = SectionState::FunctionBodies;
 
-      typeVarSection.endOffset = it.offset;
+        typeVarSection.endOffset = it.offset;
 
-      if(typeVarSection.startOffset == typeVarSection.endOffset || typeVarSection.startOffset == 0)
-        RDCERR("No types found in this shader! There should be at least one for the entry point");
+        if(typeVarSection.startOffset == typeVarSection.endOffset || typeVarSection.startOffset == 0)
+          RDCERR("No types found in this shader! There should be at least one for the entry point");
+      }
     }
     else
     {
