@@ -2991,12 +2991,13 @@ void TextureViewer::on_zoomRange_clicked()
 void TextureViewer::on_autoFit_clicked()
 {
   AutoFitRange();
+  ui->autoFit->setChecked(false);
 }
 
 void TextureViewer::on_autoFit_mouseClicked(QMouseEvent *e)
 {
   if(e->buttons() & Qt::RightButton)
-    ui->autoFit->toggle();
+    ui->autoFit->setChecked(!ui->autoFit->isChecked());
 }
 
 void TextureViewer::on_reset01_clicked()
