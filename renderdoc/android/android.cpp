@@ -142,6 +142,8 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package,
   adbExecCommand(deviceID, "shell am force-stop " + packageName);
   // enable the vulkan layer (will only be used by vulkan programs)
   adbExecCommand(deviceID, "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
+  // create the data directory we will use for storing, in case the application doesn't
+  adbExecCommand(deviceID, "shell mkdir -p /sdcard/Android/data/" + packageName);
 
   // set our property with the capture options encoded, to be picked up by the library on the device
   adbExecCommand(deviceID, StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPTUREOPTS %s",
