@@ -432,7 +432,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
       SDObject &o = *chunk.data.children[childIdx++];
 
       CHECK(o.name == "s");
-      CHECK(o.type.name == "const char *");
+      CHECK(o.type.name == "string");
       CHECK(o.type.basetype == SDBasic::String);
       CHECK(o.type.byteSize == 4);
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
