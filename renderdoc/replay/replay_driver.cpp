@@ -357,8 +357,23 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
       if(cfg.position.baseVertex > 0)
         maxIndex += add;
 
+      uint32_t primRestart = 0;
+      if(IsStrip(cfg.position.topology))
+      {
+        if(cfg.position.indexByteStride == 1)
+          primRestart = 0xff;
+        else if(cfg.position.indexByteStride == 2)
+          primRestart = 0xffff;
+        else
+          primRestart = 0xffffffff;
+      }
+
       for(uint32_t i = 0; cfg.position.baseVertex != 0 && i < numIndices; i++)
       {
+        // don't modify primitive restart indices
+        if(primRestart && indices[i] == primRestart)
+          continue;
+
         if(cfg.position.baseVertex < 0)
         {
           if(indices[i] < sub)
