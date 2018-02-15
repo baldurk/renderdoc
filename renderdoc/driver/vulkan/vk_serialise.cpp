@@ -281,7 +281,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkMemoryHeap &el)
 {
   SERIALISE_MEMBER(size);
-  SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER_TYPED(VkMemoryHeapFlagBits, flags);
 }
 
 template <typename SerialiserType>
