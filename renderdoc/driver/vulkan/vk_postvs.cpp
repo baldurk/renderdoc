@@ -1377,7 +1377,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
       m_pDriver->vkCreateBufferView(dev, &info, NULL, &vbuffers[attr].view);
 
-      attrIsInstanced.push_back(isInstanced);
+      attrIsInstanced.resize(RDCMAX(attrIsInstanced.size(), size_t(attr + 1)));
+      attrIsInstanced[attr] = isInstanced;
 
       descWrites[numWrites].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descWrites[numWrites].dstSet = m_MeshFetchDescSet;
