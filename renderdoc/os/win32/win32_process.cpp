@@ -745,7 +745,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
     tSec.nLength = sizeof(tSec);
 
     // serialise to string with two chars per byte
-    string optstr;
+    string optstr = opts.EncodeAsString();
 
     wchar_t *paramsAlloc = new wchar_t[2048];
 
