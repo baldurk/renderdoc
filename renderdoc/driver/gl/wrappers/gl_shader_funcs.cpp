@@ -214,7 +214,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLenum type, GLuint shader)
 {
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(Shader, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+  SERIALISE_ELEMENT_LOCAL(Shader, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -572,7 +573,8 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT_ARRAY(strings, count);
-  SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -677,7 +679,8 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint program)
 {
-  SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1358,8 +1361,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei n, GLuint *pipelines)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(pipeline,
-                          GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
+  SERIALISE_ELEMENT_LOCAL(pipeline, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1419,8 +1422,8 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
                                                        GLuint *pipelines)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(pipeline,
-                          GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
+  SERIALISE_ELEMENT_LOCAL(pipeline, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 

@@ -164,7 +164,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(DescriptorPool, GetResID(*pDescriptorPool));
+  SERIALISE_ELEMENT_LOCAL(DescriptorPool, GetResID(*pDescriptorPool)).TypedAs("VkDescriptorPool");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -238,7 +238,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(SetLayout, GetResID(*pSetLayout));
+  SERIALISE_ELEMENT_LOCAL(SetLayout, GetResID(*pSetLayout)).TypedAs("VkDescriptorSetLayout");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -379,7 +379,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
-  SERIALISE_ELEMENT_LOCAL(DescriptorSet, GetResID(*pDescriptorSets));
+  SERIALISE_ELEMENT_LOCAL(DescriptorSet, GetResID(*pDescriptorSets)).TypedAs("VkDescriptorSet");
 
   SERIALISE_CHECK_READ_ERRORS();
 

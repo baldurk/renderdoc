@@ -146,7 +146,7 @@ void WrappedID3D11DeviceContext::SetMarker(uint32_t Color, const wchar_t *Marker
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetMarker);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_SetMarker(GET_SERIALISER, Color, MarkerName);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -162,7 +162,7 @@ int WrappedID3D11DeviceContext::PushMarker(uint32_t Color, const wchar_t *Marker
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PushMarker);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PushMarker(GET_SERIALISER, Color, MarkerName);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -180,7 +180,7 @@ int WrappedID3D11DeviceContext::PopMarker()
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PopMarker);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PopMarker(GET_SERIALISER);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -367,7 +367,7 @@ void WrappedID3D11DeviceContext::IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::IASetPrimitiveTopology);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_IASetPrimitiveTopology(GET_SERIALISER, Topology);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -411,7 +411,7 @@ void WrappedID3D11DeviceContext::IASetInputLayout(ID3D11InputLayout *pInputLayou
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::IASetInputLayout);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_IASetInputLayout(GET_SERIALISER, pInputLayout);
 
     MarkResourceReferenced(GetIDForResource(pInputLayout), eFrameRef_Read);
@@ -484,7 +484,7 @@ void WrappedID3D11DeviceContext::IASetVertexBuffers(UINT StartSlot, UINT NumBuff
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::IASetVertexBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_IASetVertexBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppVertexBuffers, pStrides,
                                  pOffsets);
 
@@ -539,7 +539,7 @@ void WrappedID3D11DeviceContext::IASetIndexBuffer(ID3D11Buffer *pIndexBuffer, DX
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::IASetIndexBuffer);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_IASetIndexBuffer(GET_SERIALISER, pIndexBuffer, Format, Offset);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -714,7 +714,7 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers(UINT StartSlot, UINT NumBu
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::VSSetConstantBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_VSSetConstantBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppConstantBuffers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -785,7 +785,7 @@ void WrappedID3D11DeviceContext::VSSetShaderResources(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::VSSetShaderResources);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_VSSetShaderResources(GET_SERIALISER, StartSlot, NumViews, ppShaderResourceViews);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -849,7 +849,7 @@ void WrappedID3D11DeviceContext::VSSetSamplers(UINT StartSlot, UINT NumSamplers,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::VSSetSamplers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_VSSetSamplers(GET_SERIALISER, StartSlot, NumSamplers, ppSamplers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -916,7 +916,7 @@ void WrappedID3D11DeviceContext::VSSetShader(ID3D11VertexShader *pVertexShader,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::VSSetShader);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_VSSetShader(GET_SERIALISER, pVertexShader, ppClassInstances, NumClassInstances);
 
     MarkResourceReferenced(GetIDForResource(pVertexShader), eFrameRef_Read);
@@ -1093,7 +1093,7 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers(UINT StartSlot, UINT NumBu
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::HSSetConstantBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_HSSetConstantBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppConstantBuffers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1164,7 +1164,7 @@ void WrappedID3D11DeviceContext::HSSetShaderResources(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::HSSetShaderResources);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_HSSetShaderResources(GET_SERIALISER, StartSlot, NumViews, ppShaderResourceViews);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1228,7 +1228,7 @@ void WrappedID3D11DeviceContext::HSSetSamplers(UINT StartSlot, UINT NumSamplers,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::HSSetSamplers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_HSSetSamplers(GET_SERIALISER, StartSlot, NumSamplers, ppSamplers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1294,7 +1294,7 @@ void WrappedID3D11DeviceContext::HSSetShader(ID3D11HullShader *pHullShader,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::HSSetShader);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_HSSetShader(GET_SERIALISER, pHullShader, ppClassInstances, NumClassInstances);
 
     MarkResourceReferenced(GetIDForResource(pHullShader), eFrameRef_Read);
@@ -1471,7 +1471,7 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers(UINT StartSlot, UINT NumBu
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DSSetConstantBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DSSetConstantBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppConstantBuffers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1542,7 +1542,7 @@ void WrappedID3D11DeviceContext::DSSetShaderResources(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DSSetShaderResources);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DSSetShaderResources(GET_SERIALISER, StartSlot, NumViews, ppShaderResourceViews);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1606,7 +1606,7 @@ void WrappedID3D11DeviceContext::DSSetSamplers(UINT StartSlot, UINT NumSamplers,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DSSetSamplers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DSSetSamplers(GET_SERIALISER, StartSlot, NumSamplers, ppSamplers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1673,7 +1673,7 @@ void WrappedID3D11DeviceContext::DSSetShader(ID3D11DomainShader *pDomainShader,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DSSetShader);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DSSetShader(GET_SERIALISER, pDomainShader, ppClassInstances, NumClassInstances);
 
     MarkResourceReferenced(GetIDForResource(pDomainShader), eFrameRef_Read);
@@ -1851,7 +1851,7 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers(UINT StartSlot, UINT NumBu
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GSSetConstantBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_GSSetConstantBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppConstantBuffers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1922,7 +1922,7 @@ void WrappedID3D11DeviceContext::GSSetShaderResources(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GSSetShaderResources);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_GSSetShaderResources(GET_SERIALISER, StartSlot, NumViews, ppShaderResourceViews);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1986,7 +1986,7 @@ void WrappedID3D11DeviceContext::GSSetSamplers(UINT StartSlot, UINT NumSamplers,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GSSetSamplers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_GSSetSamplers(GET_SERIALISER, StartSlot, NumSamplers, ppSamplers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2053,7 +2053,7 @@ void WrappedID3D11DeviceContext::GSSetShader(ID3D11GeometryShader *pShader,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GSSetShader);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_GSSetShader(GET_SERIALISER, pShader, ppClassInstances, NumClassInstances);
 
     MarkResourceReferenced(GetIDForResource(pShader), eFrameRef_Read);
@@ -2209,7 +2209,7 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SOSetTargets);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_SOSetTargets(GET_SERIALISER, NumBuffers, ppSOTargets, pOffsets);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2357,7 +2357,7 @@ void WrappedID3D11DeviceContext::RSSetViewports(UINT NumViewports, const D3D11_V
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::RSSetViewports);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_RSSetViewports(GET_SERIALISER, NumViewports, pViewports);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2404,7 +2404,7 @@ void WrappedID3D11DeviceContext::RSSetScissorRects(UINT NumRects, const D3D11_RE
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::RSSetScissorRects);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_RSSetScissorRects(GET_SERIALISER, NumRects, pRects);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2450,7 +2450,7 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::RSSetState);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_RSSetState(GET_SERIALISER, pRasterizerState);
 
     MarkResourceReferenced(GetIDForResource(pRasterizerState), eFrameRef_Read);
@@ -2624,7 +2624,7 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers(UINT StartSlot, UINT NumBu
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PSSetConstantBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PSSetConstantBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppConstantBuffers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2695,7 +2695,7 @@ void WrappedID3D11DeviceContext::PSSetShaderResources(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PSSetShaderResources);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PSSetShaderResources(GET_SERIALISER, StartSlot, NumViews, ppShaderResourceViews);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2759,7 +2759,7 @@ void WrappedID3D11DeviceContext::PSSetSamplers(UINT StartSlot, UINT NumSamplers,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PSSetSamplers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PSSetSamplers(GET_SERIALISER, StartSlot, NumSamplers, ppSamplers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -2826,7 +2826,7 @@ void WrappedID3D11DeviceContext::PSSetShader(ID3D11PixelShader *pPixelShader,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PSSetShader);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PSSetShader(GET_SERIALISER, pPixelShader, ppClassInstances, NumClassInstances);
 
     MarkResourceReferenced(GetIDForResource(pPixelShader), eFrameRef_Read);
@@ -3059,7 +3059,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::OMSetRenderTargets);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_OMSetRenderTargets(GET_SERIALISER, NumViews, ppRenderTargetViews, pDepthStencilView);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -3322,7 +3322,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::OMSetRenderTargetsAndUnorderedAccessViews);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_OMSetRenderTargetsAndUnorderedAccessViews(GET_SERIALISER, NumRTVs, ppRenderTargetViews,
                                                         pDepthStencilView, UAVStartSlot, NumUAVs,
                                                         ppUnorderedAccessViews, pUAVInitialCounts);
@@ -3502,7 +3502,7 @@ void WrappedID3D11DeviceContext::OMSetBlendState(ID3D11BlendState *pBlendState,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::OMSetBlendState);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_OMSetBlendState(GET_SERIALISER, pBlendState, BlendFactor, SampleMask);
 
     MarkResourceReferenced(GetIDForResource(pBlendState), eFrameRef_Read);
@@ -3561,7 +3561,7 @@ void WrappedID3D11DeviceContext::OMSetDepthStencilState(ID3D11DepthStencilState 
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::OMSetDepthStencilState);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_OMSetDepthStencilState(GET_SERIALISER, pDepthStencilState, StencilRef);
 
     MarkResourceReferenced(GetIDForResource(pDepthStencilState), eFrameRef_Read);
@@ -3672,7 +3672,7 @@ void WrappedID3D11DeviceContext::DrawIndexedInstanced(UINT IndexCountPerInstance
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawIndexedInstanced);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DrawIndexedInstanced(GET_SERIALISER, IndexCountPerInstance, InstanceCount,
                                    StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
 
@@ -3741,7 +3741,7 @@ void WrappedID3D11DeviceContext::DrawInstanced(UINT VertexCountPerInstance, UINT
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawInstanced);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DrawInstanced(GET_SERIALISER, VertexCountPerInstance, InstanceCount,
                             StartVertexLocation, StartInstanceLocation);
 
@@ -3805,7 +3805,7 @@ void WrappedID3D11DeviceContext::DrawIndexed(UINT IndexCount, UINT StartIndexLoc
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawIndexed);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DrawIndexed(GET_SERIALISER, IndexCount, StartIndexLocation, BaseVertexLocation);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -3864,7 +3864,7 @@ void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::Draw);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_Draw(GET_SERIALISER, VertexCount, StartVertexLocation);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -3975,7 +3975,7 @@ void WrappedID3D11DeviceContext::DrawAuto()
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawAuto);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DrawAuto(GET_SERIALISER);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4101,7 +4101,7 @@ void WrappedID3D11DeviceContext::DrawIndexedInstancedIndirect(ID3D11Buffer *pBuf
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawIndexedInstancedIndirect);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DrawIndexedInstancedIndirect(GET_SERIALISER, pBufferForArgs, AlignedByteOffsetForArgs);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4227,7 +4227,7 @@ void WrappedID3D11DeviceContext::DrawInstancedIndirect(ID3D11Buffer *pBufferForA
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawInstancedIndirect);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DrawInstancedIndirect(GET_SERIALISER, pBufferForArgs, AlignedByteOffsetForArgs);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4419,7 +4419,7 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers(UINT StartSlot, UINT NumBu
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CSSetConstantBuffers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CSSetConstantBuffers(GET_SERIALISER, StartSlot, NumBuffers, ppConstantBuffers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4490,7 +4490,7 @@ void WrappedID3D11DeviceContext::CSSetShaderResources(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CSSetShaderResources);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CSSetShaderResources(GET_SERIALISER, StartSlot, NumViews, ppShaderResourceViews);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4569,7 +4569,7 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CSSetUnorderedAccessViews);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CSSetUnorderedAccessViews(GET_SERIALISER, StartSlot, NumUAVs, ppUnorderedAccessViews,
                                         pUAVInitialCounts);
 
@@ -4634,7 +4634,7 @@ void WrappedID3D11DeviceContext::CSSetSamplers(UINT StartSlot, UINT NumSamplers,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CSSetSamplers);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CSSetSamplers(GET_SERIALISER, StartSlot, NumSamplers, ppSamplers);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4701,7 +4701,7 @@ void WrappedID3D11DeviceContext::CSSetShader(ID3D11ComputeShader *pComputeShader
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CSSetShader);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CSSetShader(GET_SERIALISER, pComputeShader, ppClassInstances, NumClassInstances);
 
     MarkResourceReferenced(GetIDForResource(pComputeShader), eFrameRef_Read);
@@ -4793,7 +4793,7 @@ void WrappedID3D11DeviceContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGro
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::Dispatch);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_Dispatch(GET_SERIALISER, ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4912,7 +4912,7 @@ void WrappedID3D11DeviceContext::DispatchIndirect(ID3D11Buffer *pBufferForArgs,
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DispatchIndirect);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DispatchIndirect(GET_SERIALISER, pBufferForArgs, AlignedByteOffsetForArgs);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -4933,7 +4933,8 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
                                                               ID3D11CommandList *pCommandList,
                                                               BOOL RestoreContextState_)
 {
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetIDForResource(pCommandList));
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetIDForResource(pCommandList))
+      .TypedAs("ID3D11CommandList *");
   SERIALISE_ELEMENT_LOCAL(RestoreContextState, bool(RestoreContextState_ == TRUE));
 
   Serialise_DebugMessages(GET_SERIALISER);
@@ -4971,8 +4972,11 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
 
 template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_PostExecuteCommandList(SerialiserType &ser,
+                                                                  ID3D11CommandList *pCommandList,
                                                                   BOOL RestoreContextState_)
 {
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetIDForResource(pCommandList))
+      .TypedAs("ID3D11CommandList *");
   SERIALISE_ELEMENT_LOCAL(RestoreContextState, bool(RestoreContextState_ == TRUE));
 
   // this is a 'fake' call we insert after executing, to give us a chance to restore the state.
@@ -5018,7 +5022,7 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
       USE_SCRATCH_SERIALISER();
       GET_SERIALISER.SetDrawChunk();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::ExecuteCommandList);
-      SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+      SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
       Serialise_ExecuteCommandList(GET_SERIALISER, pCommandList, RestoreContextState);
       m_ContextRecord->AddChunk(scope.Get());
     }
@@ -5056,8 +5060,8 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
       // chunks and we can restore the state
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::PostExecuteCommandList);
-      SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
-      Serialise_PostExecuteCommandList(GET_SERIALISER, RestoreContextState);
+      SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
+      Serialise_PostExecuteCommandList(GET_SERIALISER, pCommandList, RestoreContextState);
       m_ContextRecord->AddChunk(scope.Get());
     }
 
@@ -5082,7 +5086,8 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(SerialiserType &ser
                                                              ID3D11CommandList **ppCommandList)
 {
   SERIALISE_ELEMENT_LOCAL(RestoreDeferredContextState, bool(RestoreDeferredContextState_ == TRUE));
-  SERIALISE_ELEMENT_LOCAL(pCommandList, GetIDForResource(*ppCommandList));
+  SERIALISE_ELEMENT_LOCAL(pCommandList, GetIDForResource(*ppCommandList))
+      .TypedAs("ID3D11CommandList *");
 
   Serialise_DebugMessages(GET_SERIALISER);
 
@@ -5110,8 +5115,12 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(SerialiserType &ser
 }
 
 template <typename SerialiserType>
-bool WrappedID3D11DeviceContext::Serialise_PostFinishCommandListSet(SerialiserType &ser)
+bool WrappedID3D11DeviceContext::Serialise_PostFinishCommandListSet(SerialiserType &ser,
+                                                                    ID3D11CommandList *pCommandList)
 {
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetIDForResource(pCommandList))
+      .TypedAs("ID3D11CommandList *");
+
   D3D11RenderState RenderState(*m_CurrentPipelineState);
 
   SERIALISE_ELEMENT(RenderState).Named("Initial Pipeline State");
@@ -5182,7 +5191,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
           USE_SCRATCH_SERIALISER();
           GET_SERIALISER.SetDrawChunk();
           SCOPED_SERIALISE_CHUNK(D3D11Chunk::FinishCommandList);
-          SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+          SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
           Serialise_FinishCommandList(GET_SERIALISER, RestoreDeferredContextState, &w);
           m_ContextRecord->AddChunk(scope.Get());
         }
@@ -5226,8 +5235,8 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
       {
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::PostFinishCommandListSet);
-        SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
-        Serialise_PostFinishCommandListSet(GET_SERIALISER);
+        SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
+        Serialise_PostFinishCommandListSet(GET_SERIALISER, wrapped);
         m_ContextRecord->AddChunk(scope.Get());
       }
     }
@@ -5279,7 +5288,7 @@ void WrappedID3D11DeviceContext::Flush()
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::Flush);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_Flush(GET_SERIALISER);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -5381,7 +5390,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion(ID3D11Resource *pDstResou
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopySubresourceRegion);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CopySubresourceRegion(GET_SERIALISER, pDstResource, DstSubresource, DstX, DstY, DstZ,
                                     pSrcResource, SrcSubresource, pSrcBox);
 
@@ -5529,7 +5538,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopyResource);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CopyResource(GET_SERIALISER, pDstResource, pSrcResource);
 
     D3D11ResourceRecord *record =
@@ -5599,7 +5608,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
         // can't copy without data allocated
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopyResource);
-        SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+        SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
         Serialise_CopyResource(GET_SERIALISER, pDstResource, pSrcResource);
 
         record->AddChunk(scope.Get());
@@ -5689,7 +5698,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::UpdateSubresource);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_UpdateSubresource(GET_SERIALISER, pDstResource, DstSubresource, pDstBox, pSrcData,
                                 SrcRowPitch, SrcDepthPitch);
 
@@ -5740,7 +5749,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
       {
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::UpdateSubresource);
-        SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+        SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
 
         Serialise_UpdateSubresource(GET_SERIALISER, pDstResource, DstSubresource, pDstBox, pSrcData,
                                     SrcRowPitch, SrcDepthPitch);
@@ -5927,7 +5936,7 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopyStructureCount);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CopyStructureCount(GET_SERIALISER, pDstBuffer, DstAlignedByteOffset, pSrcView);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6043,7 +6052,7 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ResolveSubresource);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ResolveSubresource(GET_SERIALISER, pDstResource, DstSubresource, pSrcResource,
                                  SrcSubresource, Format);
 
@@ -6123,7 +6132,7 @@ void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderR
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GenerateMips);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_GenerateMips(GET_SERIALISER, pShaderResourceView);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6170,7 +6179,7 @@ void WrappedID3D11DeviceContext::ClearState()
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearState);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ClearState(GET_SERIALISER);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6243,7 +6252,7 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearRenderTargetView);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ClearRenderTargetView(GET_SERIALISER, pRenderTargetView, ColorRGBA);
 
     if(pRenderTargetView)
@@ -6321,7 +6330,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearUnorderedAccessViewUint);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ClearUnorderedAccessViewUint(GET_SERIALISER, pUnorderedAccessView, Values);
 
     if(pUnorderedAccessView)
@@ -6399,7 +6408,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearUnorderedAccessViewFloat);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ClearUnorderedAccessViewFloat(GET_SERIALISER, pUnorderedAccessView, Values);
 
     if(pUnorderedAccessView)
@@ -6490,7 +6499,7 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
     USE_SCRATCH_SERIALISER();
     GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearDepthStencilView);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ClearDepthStencilView(GET_SERIALISER, pDepthStencilView, ClearFlags, Depth, Stencil);
 
     if(pDepthStencilView)
@@ -6570,7 +6579,7 @@ void WrappedID3D11DeviceContext::Begin(ID3D11Asynchronous *pAsync)
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::Begin);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_Begin(GET_SERIALISER, pAsync);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6636,7 +6645,7 @@ void WrappedID3D11DeviceContext::End(ID3D11Asynchronous *pAsync)
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::End);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_End(GET_SERIALISER, pAsync);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6707,7 +6716,7 @@ void WrappedID3D11DeviceContext::SetPredication(ID3D11Predicate *pPredicate, BOO
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetPredication);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_SetPredication(GET_SERIALISER, pPredicate, PredicateValue);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6754,7 +6763,7 @@ void WrappedID3D11DeviceContext::SetResourceMinLOD(ID3D11Resource *pResource, FL
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetResourceMinLOD);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_SetResourceMinLOD(GET_SERIALISER, pResource, MinLOD);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -7272,7 +7281,7 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
         // create a chunk purely for the user's benefit
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::Map);
-        SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+        SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
         Serialise_Map(GET_SERIALISER, pResource, Subresource, MapType, MapFlags, pMappedResource);
 
         m_ContextRecord->AddChunk(scope.Get());
@@ -7606,7 +7615,7 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::Unmap);
-        SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+        SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
         Serialise_Unmap(GET_SERIALISER, pResource, Subresource);
 
         m_ContextRecord->AddChunk(scope.Get());
@@ -7638,7 +7647,7 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
         {
           USE_SCRATCH_SERIALISER();
           SCOPED_SERIALISE_CHUNK(D3D11Chunk::Unmap);
-          SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+          SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
           Serialise_Unmap(GET_SERIALISER, pResource, Subresource);
 
           Chunk *chunk = scope.Get();

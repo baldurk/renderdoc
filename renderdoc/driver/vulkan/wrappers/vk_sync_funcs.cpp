@@ -79,7 +79,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Fence, GetResID(*pFence));
+  SERIALISE_ELEMENT_LOCAL(Fence, GetResID(*pFence)).TypedAs("VkFence");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -286,7 +286,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Event, GetResID(*pEvent));
+  SERIALISE_ELEMENT_LOCAL(Event, GetResID(*pEvent)).TypedAs("VkEvent");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -476,7 +476,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Semaphore, GetResID(*pSemaphore));
+  SERIALISE_ELEMENT_LOCAL(Semaphore, GetResID(*pSemaphore)).TypedAs("VkSemaphore");
 
   SERIALISE_CHECK_READ_ERRORS();
 

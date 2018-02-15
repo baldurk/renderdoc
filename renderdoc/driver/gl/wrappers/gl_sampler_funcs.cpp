@@ -36,7 +36,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLuint *samplers)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(sampler, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
+  SERIALISE_ELEMENT_LOCAL(sampler, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -95,7 +96,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, GLuint *samplers)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(sampler, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
+  SERIALISE_ELEMENT_LOCAL(sampler, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 

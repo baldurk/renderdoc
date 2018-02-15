@@ -185,9 +185,9 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
                                                       VkImage *pSwapchainImages)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(Swapchain, GetResID(swapchain));
+  SERIALISE_ELEMENT_LOCAL(Swapchain, GetResID(swapchain)).TypedAs("VkSwapchainKHR");
   SERIALISE_ELEMENT_LOCAL(SwapchainImageIndex, *pCount);
-  SERIALISE_ELEMENT_LOCAL(SwapchainImage, GetResID(*pSwapchainImages));
+  SERIALISE_ELEMENT_LOCAL(SwapchainImage, GetResID(*pSwapchainImages)).TypedAs("VkImage");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -293,7 +293,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(SwapChain, GetResID(*pSwapChain));
+  SERIALISE_ELEMENT_LOCAL(SwapChain, GetResID(*pSwapChain)).TypedAs("VkSwapchainKHR");
 
   uint32_t NumImages = 0;
 

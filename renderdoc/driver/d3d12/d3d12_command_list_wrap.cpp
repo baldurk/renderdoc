@@ -51,8 +51,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
       BakedCommandList = record->bakedCommands->GetResourceID();
   }
 
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID());
-  SERIALISE_ELEMENT(BakedCommandList);
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *");
+  SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -168,8 +168,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       BakedCommandList = record->bakedCommands->GetResourceID();
   }
 
-  SERIALISE_ELEMENT(BakedCommandList);
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID());
+  SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *");
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *");
   SERIALISE_ELEMENT(pAllocator);
   SERIALISE_ELEMENT(pInitialState);
 

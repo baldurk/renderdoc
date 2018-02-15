@@ -760,7 +760,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
   {
     case D3D11Chunk::DeviceInitialisation:
     {
-      SERIALISE_ELEMENT_LOCAL(ImmediateContext, ResourceId());
+      SERIALISE_ELEMENT_LOCAL(ImmediateContext, ResourceId()).TypedAs("ID3D11DeviceContext *");
 
       SERIALISE_CHECK_READ_ERRORS();
 
@@ -1196,7 +1196,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
   WrappedID3D11Texture2D1 *pTex = (WrappedID3D11Texture2D1 *)realSurface;
 
   SERIALISE_ELEMENT(Buffer);
-  SERIALISE_ELEMENT_LOCAL(SwapbufferID, pTex->GetResourceID());
+  SERIALISE_ELEMENT_LOCAL(SwapbufferID, pTex->GetResourceID()).TypedAs("IDXGISwapChain *");
 
   m_BBID = SwapbufferID;
 
@@ -1696,7 +1696,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
         // remember to update this estimated chunk length if you add more parameters
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::DeviceInitialisation, 16);
 
-        SERIALISE_ELEMENT_LOCAL(ImmediateContext, m_pImmediateContext->GetResourceID());
+        SERIALISE_ELEMENT_LOCAL(ImmediateContext, m_pImmediateContext->GetResourceID())
+            .TypedAs("ID3D11DeviceContext *");
       }
 
       RDCDEBUG("Inserting Resource Serialisers");

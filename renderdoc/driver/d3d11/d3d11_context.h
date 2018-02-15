@@ -542,7 +542,8 @@ public:
                                 ID3D11CommandList *pCommandList, BOOL RestoreContextState);         \
                                                                                                     \
   /* Fake function used to restore or clear state after ExecuteCommandList */                       \
-  IMPLEMENT_FUNCTION_SERIALISED(void, PostExecuteCommandList, BOOL RestoreContextState);            \
+  IMPLEMENT_FUNCTION_SERIALISED(void, PostExecuteCommandList, ID3D11CommandList *pCommandList,      \
+                                BOOL RestoreContextState);                                          \
                                                                                                     \
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, HSSetShaderResources,               \
                                 UINT StartSlot, UINT NumViews,                                      \
@@ -738,7 +739,7 @@ public:
                                 ID3D11CommandList **ppCommandList);                                 \
                                                                                                     \
   /* Fake function used to restore state after FinishCommandList */                                 \
-  IMPLEMENT_FUNCTION_SERIALISED(void, PostFinishCommandListSet);
+  IMPLEMENT_FUNCTION_SERIALISED(void, PostFinishCommandListSet, ID3D11CommandList *ppCommandList);
 
   SERIALISED_ID3D11CONTEXT_FUNCTIONS();
 

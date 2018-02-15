@@ -1293,6 +1293,19 @@ public:
     return *this;
   }
 
+  Serialiser &TypedAs(const char *name)
+  {
+    if(ExportStructure() && !m_StructureStack.empty())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      if(!current.data.children.empty())
+        current.data.children.back()->type.name = name;
+    }
+
+    return *this;
+  }
+
   Serialiser &Named(const char *name)
   {
     if(ExportStructure() && !m_StructureStack.empty())

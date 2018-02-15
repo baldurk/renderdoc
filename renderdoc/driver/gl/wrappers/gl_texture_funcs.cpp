@@ -67,7 +67,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLuint *textures)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
+  SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -131,7 +132,8 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
 {
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
+  SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 

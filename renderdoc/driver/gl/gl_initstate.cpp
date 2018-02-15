@@ -369,7 +369,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
     SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents);
 
-    SERIALISE_ELEMENT(Id);
+    SERIALISE_ELEMENT(Id).TypedAs("GLResource");
     SERIALISE_ELEMENT(res.Namespace);
 
     SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, gl, res.name);
@@ -902,7 +902,7 @@ uint32_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource re
 
     SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents);
 
-    SERIALISE_ELEMENT(resid);
+    SERIALISE_ELEMENT(resid).TypedAs("GLResource");
     SERIALISE_ELEMENT(res.Namespace);
 
     SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, m_GL->GetHookset(), res.name);
@@ -996,7 +996,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 {
   m_State = m_GL->GetState();
 
-  SERIALISE_ELEMENT_LOCAL(Id, GetID(res));
+  SERIALISE_ELEMENT_LOCAL(Id, GetID(res)).TypedAs("GLResource");
   SERIALISE_ELEMENT_LOCAL(Type, res.Namespace);
   GLInitialContents initContents = GetInitialContents(Id);
 

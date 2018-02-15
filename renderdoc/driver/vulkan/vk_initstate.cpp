@@ -494,6 +494,19 @@ uint32_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
   return 128;
 }
 
+const char *NameOfType(VkResourceType type)
+{
+  switch(type)
+  {
+    case eResDescriptorSet: return "VkDescriptorSet";
+    case eResDeviceMemory: return "VkDeviceMemory";
+    case eResBuffer: return "VkBuffer";
+    case eResImage: return "VkImage";
+    default: break;
+  }
+  return "VkResource";
+}
+
 // second parameter isn't used, as we might be serialising init state for a deleted resource
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, WrappedVkRes *)
@@ -512,7 +525,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   bool ret = true;
 
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT(id);
+  SERIALISE_ELEMENT(id).TypedAs(NameOfType(type));
 
   if(IsReplayingAndReading())
   {

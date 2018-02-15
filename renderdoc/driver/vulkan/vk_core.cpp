@@ -837,7 +837,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  SERIALISE_ELEMENT_LOCAL(PresentedImage, GetResID(presentImage));
+  SERIALISE_ELEMENT_LOCAL(PresentedImage, GetResID(presentImage)).TypedAs("VkImage");
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }
@@ -2254,7 +2254,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       }
       else if(system == SystemChunk::CaptureEnd)
       {
-        SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
+        SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId()).TypedAs("VkImage");
 
         SERIALISE_CHECK_READ_ERRORS();
 

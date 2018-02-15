@@ -330,7 +330,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::UpdateSubresource1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_UpdateSubresource1(ser, pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch,
                                  SrcDepthPitch, CopyFlags);
 
@@ -412,7 +412,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstReso
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopySubresourceRegion1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CopySubresourceRegion1(ser, pDstResource, DstSubresource, DstX, DstY, DstZ,
                                      pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
 
@@ -538,7 +538,7 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearView);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_ClearView(ser, pView, Color, pRect, NumRects);
 
     ID3D11Resource *viewRes = NULL;
@@ -652,7 +652,7 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers1(UINT StartSlot, UINT NumB
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::VSSetConstantBuffers1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_VSSetConstantBuffers1(ser, StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant,
                                     pNumConstants);
 
@@ -781,7 +781,7 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers1(UINT StartSlot, UINT NumB
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::HSSetConstantBuffers1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_HSSetConstantBuffers1(ser, StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant,
                                     pNumConstants);
 
@@ -910,7 +910,7 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers1(UINT StartSlot, UINT NumB
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DSSetConstantBuffers1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DSSetConstantBuffers1(ser, StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant,
                                     pNumConstants);
 
@@ -1039,7 +1039,7 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers1(UINT StartSlot, UINT NumB
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GSSetConstantBuffers1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_GSSetConstantBuffers1(ser, StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant,
                                     pNumConstants);
 
@@ -1168,7 +1168,7 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers1(UINT StartSlot, UINT NumB
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PSSetConstantBuffers1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_PSSetConstantBuffers1(ser, StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant,
                                     pNumConstants);
 
@@ -1297,7 +1297,7 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers1(UINT StartSlot, UINT NumB
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CSSetConstantBuffers1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CSSetConstantBuffers1(ser, StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant,
                                     pNumConstants);
 
@@ -1661,7 +1661,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DiscardResource);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DiscardResource(ser, pResource);
 
     m_MissingTracks.insert(GetIDForResource(pResource));
@@ -1784,7 +1784,7 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DiscardView);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DiscardView(ser, pResourceView);
 
     ID3D11Resource *viewRes = NULL;
@@ -1921,7 +1921,7 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DiscardView1);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DiscardView1(ser, pResourceView, pRects, NumRects);
 
     ID3D11Resource *viewRes = NULL;
@@ -2018,7 +2018,7 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SwapDeviceContextState);
-    SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_SwapDeviceContextState(ser, pState, NULL);
 
     m_ContextRecord->AddChunk(scope.Get());

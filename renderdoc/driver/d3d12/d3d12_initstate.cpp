@@ -301,7 +301,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
   bool ret = true;
 
-  SERIALISE_ELEMENT_LOCAL(id, resid);
+  SERIALISE_ELEMENT_LOCAL(id, resid).TypedAs("ID3D12DeviceChild *");
   SERIALISE_ELEMENT_LOCAL(type, record->type);
 
   if(IsReplayingAndReading())

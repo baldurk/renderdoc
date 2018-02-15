@@ -347,7 +347,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(CmdPool, GetResID(*pCmdPool));
+  SERIALISE_ELEMENT_LOCAL(CmdPool, GetResID(*pCmdPool)).TypedAs("VkCommandPool");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -434,7 +434,7 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
-  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(*pCommandBuffers));
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(*pCommandBuffers)).TypedAs("VkCommandBuffer");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -575,7 +575,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     AllocateInfo = record->cmdInfo->allocInfo;
   }
 
-  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(commandBuffer));
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(commandBuffer)).TypedAs("VkCommandBuffer");
   SERIALISE_ELEMENT_LOCAL(BeginInfo, *pBeginInfo);
   SERIALISE_ELEMENT(BakedCommandBuffer);
   SERIALISE_ELEMENT(device);
@@ -851,7 +851,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
       BakedCommandBuffer = record->bakedCommands->GetResourceID();
   }
 
-  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(commandBuffer));
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(commandBuffer)).TypedAs("VkCommandBuffer");
   SERIALISE_ELEMENT(BakedCommandBuffer);
 
   SERIALISE_CHECK_READ_ERRORS();

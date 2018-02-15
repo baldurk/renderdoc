@@ -32,7 +32,8 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(framebuffer,
-                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -93,7 +94,8 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(framebuffer,
-                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1997,7 +1999,8 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
-                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
+                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2060,7 +2063,8 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
-                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
+                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 

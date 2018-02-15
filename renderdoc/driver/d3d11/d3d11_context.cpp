@@ -509,7 +509,7 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+  SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
 
   m_ContextRecord->AddChunk(scope.Get());
 }
@@ -518,7 +518,7 @@ void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
 {
   WriteSerialiser &ser = m_ScratchSerialiser;
   SCOPED_SERIALISE_CHUNK(D3D11Chunk::SwapchainPresent);
-  SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
+  SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
   SERIALISE_ELEMENT(SyncInterval);
   SERIALISE_ELEMENT(Flags);
 
@@ -625,7 +625,7 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk)
 {
-  SERIALISE_ELEMENT(m_CurContextId).Named("Context ID");
+  SERIALISE_ELEMENT(m_CurContextId).Named("Context").TypedAs("ID3D11DeviceContext *");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -816,10 +816,12 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     case D3D11Chunk::DiscardView1: ret = Serialise_DiscardView1(ser, NULL, NULL, 0); break;
 
     case D3D11Chunk::PostExecuteCommandList:
-      ret = Serialise_PostExecuteCommandList(ser, FALSE);
+      ret = Serialise_PostExecuteCommandList(ser, NULL, FALSE);
       break;
 
-    case D3D11Chunk::PostFinishCommandListSet: ret = Serialise_PostFinishCommandListSet(ser); break;
+    case D3D11Chunk::PostFinishCommandListSet:
+      ret = Serialise_PostFinishCommandListSet(ser, NULL);
+      break;
 
     case D3D11Chunk::SwapDeviceContextState:
       ret = Serialise_SwapDeviceContextState(ser, NULL, NULL);

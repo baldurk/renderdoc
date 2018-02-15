@@ -397,7 +397,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Sampler, GetResID(*pSampler));
+  SERIALISE_ELEMENT_LOCAL(Sampler, GetResID(*pSampler)).TypedAs("VkSampler");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -490,7 +490,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Framebuffer, GetResID(*pFramebuffer));
+  SERIALISE_ELEMENT_LOCAL(Framebuffer, GetResID(*pFramebuffer)).TypedAs("VkFramebuffer");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -676,7 +676,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(RenderPass, GetResID(*pRenderPass));
+  SERIALISE_ELEMENT_LOCAL(RenderPass, GetResID(*pRenderPass)).TypedAs("VkRenderPass");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -889,7 +889,7 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(QueryPool, GetResID(*pQueryPool));
+  SERIALISE_ELEMENT_LOCAL(QueryPool, GetResID(*pQueryPool)).TypedAs("VkQueryPool");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1161,7 +1161,8 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkDevice d
                                                  const VkDebugMarkerObjectTagInfoEXT *pTagInfo)
 {
   SERIALISE_ELEMENT_LOCAL(ShaderObject,
-                          GetObjRecord(pTagInfo->objectType, pTagInfo->object)->GetResourceID());
+                          GetObjRecord(pTagInfo->objectType, pTagInfo->object)->GetResourceID())
+      .TypedAs("VkShaderModule");
 
   std::string DebugPath;
   if(IsCaptureMode(m_State))

@@ -657,7 +657,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
   WrappedID3D12Resource *pRes = (WrappedID3D12Resource *)realSurface;
 
   SERIALISE_ELEMENT(Buffer);
-  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes));
+  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("IDXGISwapChain *");
   SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1234,7 +1234,7 @@ void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage));
+  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage)).TypedAs("ID3D12Resource *");
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }

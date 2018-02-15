@@ -32,7 +32,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(queueFamilyIndex);
   SERIALISE_ELEMENT(queueIndex);
-  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue));
+  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue");
 
   SERIALISE_CHECK_READ_ERRORS();
 

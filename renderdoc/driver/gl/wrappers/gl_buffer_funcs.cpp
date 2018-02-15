@@ -59,7 +59,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuint *buffers)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
+  SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -123,7 +124,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GLuint *buffers)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
+  SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2615,7 +2617,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsizei n, GLuint *ids)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
+  SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2674,7 +2677,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GLsizei n, GLuint *ids)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
+  SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4007,7 +4011,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, GLuint *arrays)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
+  SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4066,7 +4071,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei n, GLuint *arrays)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
+  SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)))
+      .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
 
