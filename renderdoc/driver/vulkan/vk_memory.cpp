@@ -218,6 +218,13 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     // align as required by the resource
     offs = AlignUp(offs, mrq.alignment);
 
+    if(offs > block.size)
+    {
+      RDCDEBUG("Next offset 0x%llx would be off the end of the memory (size 0x%llx).", offs,
+               block.size);
+      continue;
+    }
+
     VkDeviceSize avail = block.size - offs;
 
     RDCDEBUG("At next offset 0x%llx, there's 0x%llx bytes available for 0x%llx bytes requested",
