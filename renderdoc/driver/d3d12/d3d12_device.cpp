@@ -860,10 +860,11 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
   SERIALISE_ELEMENT(Subresource);
 
   MappedData += range.Begin;
-  uint64_t rangeSize = range.End - range.Begin;
 
-  SERIALISE_ELEMENT_ARRAY(MappedData, rangeSize);
+  SERIALISE_ELEMENT_ARRAY(MappedData, range.End - range.Begin);
   SERIALISE_ELEMENT(range);
+
+  uint64_t rangeSize = range.End - range.Begin;
 
   SERIALISE_CHECK_READ_ERRORS();
 

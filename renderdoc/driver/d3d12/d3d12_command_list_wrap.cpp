@@ -1205,7 +1205,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumRenderTargetDescriptors);
 
-  // if RTsSingleHandleToDescriptorRange is true, we only have up to 1 actual handle
+  // if RTsSingleHandleToDescriptorRange is true, we only have up to 1 actual handle.
+  // This is only valid while writing, because we haven't serialised
+  // RTsSingleHandleToDescriptorRange yet!
   UINT numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
                                                      : NumRenderTargetDescriptors;
 
@@ -1217,6 +1219,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
 
   if(IsReplayingAndReading())
   {
+    // recalculate here during read
+    numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
+                                                  : NumRenderTargetDescriptors;
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> unwrappedRTs;
