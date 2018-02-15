@@ -1838,7 +1838,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
 
         DrawcallDescription draw;
         draw.name = StringFormat::Fmt("vkCmdClearColorImage(%f, %f, %f, %f)", Color.float32[0],
-                                      Color.float32[0], Color.float32[0], Color.float32[0]);
+                                      Color.float32[1], Color.float32[2], Color.float32[3]);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(image));
 
@@ -1941,7 +1941,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdClearColorImage(%f, %u)", DepthStencil.depth,
+        draw.name = StringFormat::Fmt("vkCmdClearDepthStencilImage(%f, %u)", DepthStencil.depth,
                                       DepthStencil.stencil);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(image));
