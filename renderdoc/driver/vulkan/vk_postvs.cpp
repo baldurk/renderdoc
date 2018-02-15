@@ -1387,7 +1387,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
         descWrites[numWrites].dstBinding = 3;
       else
         descWrites[numWrites].dstBinding = 2;
-      descWrites[numWrites].dstArrayElement = i;
+      descWrites[numWrites].dstArrayElement = attr;
       descWrites[numWrites].descriptorCount = 1;
       descWrites[numWrites].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
       descWrites[numWrites].pTexelBufferView = &vbuffers[attr].view;
