@@ -397,6 +397,17 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 
+  // bail out if the framebuffer dimensions don't match the current framebuffer, or draws will fail.
+  // This is an order-of-operations problem, if the overlay is set when the event is changed it is
+  // refreshed before the UI layer can update the current texture.
+  {
+    const VulkanCreationInfo::Framebuffer &fb =
+        m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.framebuffer];
+
+    if(fb.width != iminfo.extent.width || fb.height != iminfo.extent.height)
+      return GetResID(m_Overlay.Image);
+  }
+
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
