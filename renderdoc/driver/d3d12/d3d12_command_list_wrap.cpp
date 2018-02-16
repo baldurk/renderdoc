@@ -1420,13 +1420,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
         Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
             ->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
 
-        if(m_Cmd->m_RenderState.compute.sigelems.size() < RootParameterIndex + 1)
-          m_Cmd->m_RenderState.compute.sigelems.resize(RootParameterIndex + 1);
+        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+        {
+          if(m_Cmd->m_RenderState.compute.sigelems.size() < RootParameterIndex + 1)
+            m_Cmd->m_RenderState.compute.sigelems.resize(RootParameterIndex + 1);
 
-        m_Cmd->m_RenderState.compute.sigelems[RootParameterIndex] =
-            D3D12RenderState::SignatureElement(eRootTable,
-                                               GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
-                                               (UINT64)GetWrapped(BaseDescriptor)->nonsamp.idx);
+          m_Cmd->m_RenderState.compute.sigelems[RootParameterIndex] =
+              D3D12RenderState::SignatureElement(eRootTable,
+                                                 GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
+                                                 (UINT64)GetWrapped(BaseDescriptor)->nonsamp.idx);
+        }
       }
     }
     else
