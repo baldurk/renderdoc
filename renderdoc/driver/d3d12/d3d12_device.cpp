@@ -143,8 +143,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts, sizeof(m_D3D12Opts));
   }
 
-  WrappedID3D12Resource::m_List = NULL;
-
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
   m_SoftRefCounter.Release();
@@ -179,7 +177,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   {
     m_State = CaptureState::LoadingReplaying;
 
-    WrappedID3D12Resource::m_List = new std::map<ResourceId, WrappedID3D12Resource *>();
+    if(realDevice)
+      WrappedID3D12Resource::m_List = new std::map<ResourceId, WrappedID3D12Resource *>();
 
     m_FrameCaptureRecord = NULL;
 
@@ -188,6 +187,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   else
   {
     m_State = CaptureState::BackgroundCapturing;
+
+    WrappedID3D12Resource::m_List = NULL;
   }
 
   m_ResourceManager = new D3D12ResourceManager(m_State, this);
@@ -292,7 +293,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
 {
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
-  SAFE_DELETE(WrappedID3D12Resource::m_List);
+  if(!IsStructuredExporting(m_State))
+    SAFE_DELETE(WrappedID3D12Resource::m_List);
 
   for(size_t i = 0; i < m_QueueFences.size(); i++)
   {
