@@ -176,8 +176,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         // add a fake marker
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("=> %s[%u]: ID3D12CommandList(%s)", basename.c_str(), c,
-                                      ToStr(cmd).c_str());
+        draw.name =
+            StringFormat::Fmt("=> %s[%u]: Reset(%s)", basename.c_str(), c, ToStr(cmd).c_str());
         draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
         m_Cmd.AddEvent();
 
