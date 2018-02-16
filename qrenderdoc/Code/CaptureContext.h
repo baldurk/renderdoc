@@ -277,6 +277,9 @@ private:
   void SaveNotes();
   void LoadNotes(const QString &data);
 
+  void CacheResources();
+  rdcstr GetResourceName(const ResourceDescription *desc);
+
   float m_LoadProgress = 0.0f;
   float m_PostloadProgress = 0.0f;
   float UpdateLoadProgress();

@@ -113,8 +113,6 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
   m_FilterModel->setSourceModel(m_ResourceModel);
   m_FilterModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
   m_FilterModel->setFilterRole(FilterRole);
-  m_FilterModel->setSortCaseSensitivity(Qt::CaseInsensitive);
-  m_FilterModel->setSortRole(Qt::DisplayRole);
 
   ui->resourceList->setModel(m_FilterModel);
 
@@ -166,7 +164,6 @@ void ResourceInspector::Inspect(ResourceId id)
   m_Entries.clear();
 
   m_ResourceModel->reset();
-  m_FilterModel->sort(0);
 
   if(m_Ctx.HasResourceCustomName(id))
     ui->resetName->show();
@@ -282,7 +279,6 @@ void ResourceInspector::OnCaptureLoaded()
   ui->renameResource->setEnabled(true);
 
   m_ResourceModel->reset();
-  m_FilterModel->sort(0);
 }
 
 void ResourceInspector::OnCaptureClosed()
@@ -308,7 +304,6 @@ void ResourceInspector::OnEventChanged(uint32_t eventId)
   Inspect(m_Resource);
 
   m_ResourceModel->reset();
-  m_FilterModel->sort(0);
 }
 
 void ResourceInspector::on_renameResource_clicked()
