@@ -71,7 +71,6 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
   }
 
   SERIALISE_ELEMENT_ARRAY(InitialData, InitialDataLength);
-  SERIALISE_ELEMENT(InitialDataLength);
 
   if(ser.IsWriting())
   {
@@ -86,6 +85,8 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     record->DataInSerialiser = true;
     record->Length = Descriptor.ByteWidth;
   }
+
+  SERIALISE_ELEMENT(InitialDataLength);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -330,7 +331,6 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
     }
 
     SERIALISE_ELEMENT_ARRAY(SubresourceContents, SubresourceContentsLength);
-    SERIALISE_ELEMENT(SubresourceContentsLength);
 
     if(ser.IsWriting())
     {
@@ -338,6 +338,8 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
 
       record->SubResources[i]->SetDataOffset(ser.GetWriter()->GetOffset() - SubresourceContentsLength);
     }
+
+    SERIALISE_ELEMENT(SubresourceContentsLength);
 
     if(IsReplayingAndReading())
     {

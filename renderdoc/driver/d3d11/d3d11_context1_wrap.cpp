@@ -201,7 +201,6 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
       Contents = new byte[(size_t)ContentsLength];
 
     SERIALISE_ELEMENT_ARRAY(Contents, ContentsLength);
-    SERIALISE_ELEMENT(ContentsLength);
 
     // the automatic deserialisation only happens when reading, when writing we need to
     // free this data
@@ -212,6 +211,8 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
       if(record)
         record->SetDataOffset(ser.GetWriter()->GetOffset() - ContentsLength);
     }
+
+    SERIALISE_ELEMENT(ContentsLength);
 
     // nothing more to do here during write - the parent function will handle setting the record's
     // data pointer and either marking the resource as dirty or updating the backing store with
