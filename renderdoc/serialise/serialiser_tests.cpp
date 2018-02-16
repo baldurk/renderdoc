@@ -447,7 +447,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
       CHECK(o.type.name == "int32_t");
       CHECK(o.type.basetype == SDBasic::Array);
       CHECK(o.type.byteSize == 4);
-      CHECK(o.type.flags == SDTypeFlags::NoFlags);
+      CHECK(o.type.flags == SDTypeFlags::FixedArray);
 
       CHECK(o.data.children.size() == 4);
 
