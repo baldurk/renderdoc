@@ -538,6 +538,7 @@ public:
       SDObject &arr = *m_StructureStack.back();
       arr.type.basetype = SDBasic::Array;
       arr.type.byteSize = N;
+      arr.type.flags |= SDTypeFlags::FixedArray;
 
       arr.data.basic.numChildren = (uint64_t)N;
       arr.data.children.resize(N);

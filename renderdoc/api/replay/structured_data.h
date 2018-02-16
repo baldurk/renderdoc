@@ -130,6 +130,11 @@ DOCUMENT(R"(Bitfield flags that could be applied to a type.
 .. data:: NullString
 
   Special flag to indicate that this is a C-string which was NULL, not just empty.
+
+.. data:: FixedArray
+
+  Special flag to indicate that this is array was a fixed-size real array, rather than a complex
+  container type or a pointer & length.
 )");
 enum class SDTypeFlags : uint32_t
 {
@@ -138,6 +143,7 @@ enum class SDTypeFlags : uint32_t
   Hidden = 0x2,
   Nullable = 0x4,
   NullString = 0x8,
+  FixedArray = 0x10,
 };
 
 BITMASK_OPERATORS(SDTypeFlags);
