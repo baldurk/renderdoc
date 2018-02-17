@@ -743,8 +743,8 @@ std::string DoStringise(const VkAttachmentStoreOp &el)
 {
   BEGIN_ENUM_STRINGISE(VkAttachmentStoreOp);
   {
-    case VK_ATTACHMENT_STORE_OP_STORE: return "Store";
-    case VK_ATTACHMENT_STORE_OP_DONT_CARE: return "Don't Care";
+    STRINGISE_ENUM(VK_ATTACHMENT_STORE_OP_STORE)
+    STRINGISE_ENUM(VK_ATTACHMENT_STORE_OP_DONT_CARE)
   }
   END_ENUM_STRINGISE();
 }
