@@ -1448,7 +1448,8 @@ template <>
 std::string DoStringise(const VkSurfaceTransformFlagBitsKHR &el)
 {
   string ret;
-
+  if(el & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+    ret += " | VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR";
   if(el & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR)
     ret += " | VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR";
   if(el & VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR)
