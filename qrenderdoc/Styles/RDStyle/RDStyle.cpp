@@ -72,6 +72,9 @@ static const int TabWidgetBorder = 1;
 static const int TabMargin = 4;
 static const int TabMinWidth = 120;
 static const int TabMaxWidth = 250;
+
+static const int ItemHeaderMargin = 4;
+static const int ItemHeaderIconSize = 16;
 };
 
 namespace Animation
@@ -571,6 +574,10 @@ QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const
 
     return ret;
   }
+  else if(element == QStyle::SE_HeaderLabel)
+  {
+    return opt->rect;
+  }
 
   return RDTweakedNativeStyle::subElementRect(element, opt, widget);
 }
@@ -692,6 +699,27 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
   else if(type == CT_MenuBar || type == CT_Menu)
   {
     return size;
+  }
+  else if(type == CT_HeaderSection)
+  {
+    const QStyleOptionHeader *header = qstyleoption_cast<const QStyleOptionHeader *>(opt);
+    int iconSize = pixelMetric(QStyle::PM_SmallIconSize, opt, widget);
+    QSize sz = header->fontMetrics.size(Qt::TextShowMnemonic, header->text);
+
+    if(!header->icon.isNull())
+    {
+      sz.setWidth(sz.width() + Constants::ItemHeaderMargin + iconSize);
+      sz = sz.expandedTo(QSize(1, iconSize));
+    }
+
+    if(header->sortIndicator != QStyleOptionHeader::None)
+    {
+      sz += QSize(Constants::ItemHeaderMargin + Constants::SpinButtonDim, 0);
+    }
+
+    sz += QSize(Constants::ItemHeaderMargin * 2, Constants::ItemHeaderMargin);
+
+    return sz;
   }
 
   return RDTweakedNativeStyle::sizeFromContents(type, opt, size, widget);
@@ -1335,6 +1363,24 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
 
     return;
   }
+  else if(element == PE_PanelItemViewItem)
+  {
+    const QStyleOptionViewItem *viewitem = qstyleoption_cast<const QStyleOptionViewItem *>(opt);
+
+    QPalette::ColorGroup group = QPalette::Normal;
+
+    if((widget && !widget->isEnabled()) || !(viewitem->state & QStyle::State_Enabled))
+      group = QPalette::Disabled;
+    else if(!(viewitem->state & QStyle::State_Active))
+      group = QPalette::Inactive;
+
+    if(viewitem->state & QStyle::State_Selected)
+      p->fillRect(viewitem->rect, viewitem->palette.brush(group, QPalette::Highlight));
+    else if(viewitem->backgroundBrush.style() != Qt::NoBrush)
+      p->fillRect(viewitem->rect, viewitem->backgroundBrush);
+
+    return;
+  }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
@@ -1864,6 +1910,80 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
     drawItemText(p, rect.toRect().adjusted(Constants::TabMargin, 0, 0, 0),
                  Qt::AlignLeft | Qt::AlignTop | Qt::TextHideMnemonic, dockwidget->palette,
                  dockwidget->state & State_Enabled, dockwidget->title, QPalette::WindowText);
+
+    return;
+  }
+  else if(control == QStyle::CE_Header)
+  {
+    const QStyleOptionHeader *header = qstyleoption_cast<const QStyleOptionHeader *>(opt);
+
+    QRectF rect = QRectF(opt->rect).adjusted(0.0, 0.0, -0.5, -0.5);
+
+    p->save();
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    p->fillRect(rect, opt->palette.brush(QPalette::Midlight));
+    p->drawLine(rect.bottomLeft(), rect.bottomRight());
+    p->drawLine(rect.topRight(), rect.bottomRight());
+
+    rect.adjust(Constants::ItemHeaderMargin, 0, -Constants::ItemHeaderMargin, 0);
+
+    // draw the icon, if it exists
+    if(!header->icon.isNull())
+    {
+      drawItemPixmap(
+          p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter,
+          header->icon.pixmap(Constants::ItemHeaderIconSize, Constants::ItemHeaderIconSize,
+                              header->state & State_Enabled ? QIcon::Normal : QIcon::Disabled));
+    }
+
+    drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic,
+                 header->palette, header->state & State_Enabled, header->text, QPalette::WindowText);
+
+    if(header->sortIndicator != QStyleOptionHeader::None)
+    {
+      p->setRenderHint(QPainter::Antialiasing);
+
+      qreal penWidth = 1.5;
+      p->setPen(QPen(opt->palette.brush(QPalette::WindowText), penWidth));
+
+      {
+        QRectF arrowRect = rect;
+        arrowRect.setLeft(arrowRect.right() - Constants::SpinButtonDim);
+
+        qreal yoffset = 2.5f;
+        if(header->sortIndicator == QStyleOptionHeader::SortDown)
+          yoffset = -yoffset;
+
+        qreal ycentre = arrowRect.center().y();
+
+        QPainterPath path;
+        QPolygonF poly;
+
+        QPointF pt;
+        pt.setX(arrowRect.left() + penWidth);
+        pt.setY(ycentre + yoffset);
+        poly << pt;
+
+        pt.setX(arrowRect.center().x());
+        if(header->sortIndicator == QStyleOptionHeader::SortDown)
+          pt.setY(ycentre - yoffset);
+        else
+          pt.setY(ycentre - yoffset);
+        poly << pt;
+
+        pt.setX(arrowRect.right() - penWidth);
+        pt.setY(ycentre + yoffset);
+        poly << pt;
+
+        path.addPolygon(poly);
+
+        p->drawPath(path);
+      }
+    }
+
+    p->restore();
 
     return;
   }
