@@ -232,10 +232,12 @@ void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
                                           back.greenF() * 0.8 + fore.greenF() * 0.2,
                                           back.blueF() * 0.8 + fore.blueF() * 0.2)));
 
+    QRect intersectrect = options.rect.adjusted(0, 0, 1, 0);
+
     for(int i = 0, count = model()->columnCount(); i < count; i++)
     {
       QRect r = visualRect(model()->index(index.row(), i, index.parent()));
-      r = r.intersected(options.rect);
+      r = r.intersected(intersectrect);
 
       // draw bottom and right of the rect
       if(r.width() > 0 && r.height() > 0)

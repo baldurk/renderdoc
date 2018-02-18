@@ -802,7 +802,6 @@ void RDHeaderView::paintEvent(QPaintEvent *e)
     if(hasGroupTitle(i))
     {
       painter.save();
-      accumRect.setWidth(accumRect.width() - 1);
 
       if(accumRect.left() < m_pinnedWidth && i >= m_pinnedColumns)
         accumRect.setLeft(m_pinnedWidth);
