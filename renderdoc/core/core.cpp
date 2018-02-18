@@ -788,22 +788,45 @@ void RenderDoc::RegisterStructuredProcessor(RDCDriver driver, StructuredProcesso
   m_StructProcesssors[driver] = provider;
 }
 
-void RenderDoc::RegisterCaptureExporter(const char *filetype, const char *description,
-                                        CaptureExporter exporter)
+void RenderDoc::RegisterCaptureExporter(CaptureExporter exporter, CaptureFileFormat description)
 {
-  RDCASSERT(m_ImportExportFormats.find(filetype) == m_ImportExportFormats.end());
+  std::string filetype = description.extension;
 
-  m_ImportExportFormats[filetype] = description;
+  for(const CaptureFileFormat &fmt : m_ImportExportFormats)
+  {
+    if(fmt.extension == filetype)
+    {
+      RDCERR("Duplicate exporter for '%s' found", filetype.c_str());
+      return;
+    }
+  }
+
+  description.openSupported = false;
+  description.convertSupported = true;
+
+  m_ImportExportFormats.push_back(description);
 
   m_Exporters[filetype] = exporter;
 }
 
-void RenderDoc::RegisterCaptureImportExporter(const char *filetype, const char *description,
-                                              CaptureImporter importer, CaptureExporter exporter)
+void RenderDoc::RegisterCaptureImportExporter(CaptureImporter importer, CaptureExporter exporter,
+                                              CaptureFileFormat description)
 {
-  RDCASSERT(m_ImportExportFormats.find(filetype) == m_ImportExportFormats.end());
+  std::string filetype = description.extension;
 
-  m_ImportExportFormats[filetype] = description;
+  for(const CaptureFileFormat &fmt : m_ImportExportFormats)
+  {
+    if(fmt.extension == filetype)
+    {
+      RDCERR("Duplicate import/exporter for '%s' found", filetype.c_str());
+      return;
+    }
+  }
+
+  description.openSupported = true;
+  description.convertSupported = true;
+
+  m_ImportExportFormats.push_back(description);
 
   m_Importers[filetype] = importer;
   m_Exporters[filetype] = exporter;
@@ -847,30 +870,19 @@ CaptureImporter RenderDoc::GetCaptureImporter(const char *filetype)
 
 std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
 {
-  std::vector<CaptureFileFormat> ret;
+  std::vector<CaptureFileFormat> ret = m_ImportExportFormats;
+
+  std::sort(ret.begin(), ret.end());
 
   {
     CaptureFileFormat rdc;
-    rdc.name = "rdc";
-    rdc.description = "Native RDC capture file format.";
+    rdc.extension = "rdc";
+    rdc.name = "Native RDC capture file format.";
+    rdc.description = "The format produced by frame-captures from applications directly.";
     rdc.openSupported = true;
     rdc.convertSupported = true;
 
-    ret.push_back(rdc);
-  }
-
-  for(auto it = m_ImportExportFormats.begin(); it != m_ImportExportFormats.end(); ++it)
-  {
-    CaptureFileFormat fmt;
-    fmt.name = it->first;
-    fmt.description = it->second;
-
-    fmt.openSupported = m_Importers.find(it->first) != m_Importers.end();
-    fmt.convertSupported = m_Exporters.find(it->first) != m_Exporters.end();
-
-    RDCASSERT(fmt.openSupported || fmt.convertSupported);
-
-    ret.push_back(fmt);
+    ret.insert(ret.begin(), rdc);
   }
 
   return ret;

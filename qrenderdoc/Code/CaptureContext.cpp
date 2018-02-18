@@ -135,6 +135,8 @@ rdcstr CaptureContext::TempCaptureFilename(const rdcstr &appname)
 void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename,
                                  bool temporary, bool local)
 {
+  CloseCapture();
+
   m_LoadInProgress = true;
 
   if(local)
@@ -662,7 +664,7 @@ void CaptureContext::RecompressCapture()
   {
     // for remote files we open a new short-lived handle on the temporary file
     tempCap = cap = RENDERDOC_OpenCaptureFile();
-    cap->OpenFile(tempFilename.toUtf8().data(), "rdc");
+    cap->OpenFile(tempFilename.toUtf8().data(), "rdc", NULL);
   }
 
   if(!cap)
@@ -691,7 +693,7 @@ void CaptureContext::RecompressCapture()
   float progress = 0.0f;
 
   LambdaThread *th = new LambdaThread([this, cap, destFilename, &progress]() {
-    cap->Convert(destFilename.toUtf8().data(), "rdc", [&progress](float p) { progress = p; });
+    cap->Convert(destFilename.toUtf8().data(), "rdc", NULL, [&progress](float p) { progress = p; });
   });
   th->start();
   // wait a few ms before popping up a progress bar
@@ -709,7 +711,7 @@ void CaptureContext::RecompressCapture()
     // the original, then re-open.
 
     // this releases the hold over the real desired location.
-    cap->OpenFile("", "");
+    cap->OpenFile("", "", NULL);
 
     // now remove the old capture
     QFile::remove(GetCaptureFilename());
@@ -718,7 +720,7 @@ void CaptureContext::RecompressCapture()
     QFile::rename(destFilename, GetCaptureFilename());
 
     // and re-open
-    cap->OpenFile(GetCaptureFilename().c_str(), "rdc");
+    cap->OpenFile(GetCaptureFilename().c_str(), "rdc", NULL);
   }
   else
   {
@@ -866,6 +868,141 @@ void CaptureContext::CloseCapture()
   {
     if(viewer)
       viewer->OnCaptureClosed();
+  }
+}
+
+bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &importfile,
+                                   const rdcstr &rdcfile)
+{
+  CloseCapture();
+
+  QString ext = fmt.extension;
+
+  ReplayStatus status = ReplayStatus::UnknownError;
+  QString message;
+
+  // shorten the filename after here for error messages
+  QString filename = QFileInfo(importfile).fileName();
+
+  float progress = 0.0f;
+
+  LambdaThread *th = new LambdaThread([rdcfile, importfile, ext, &message, &progress, &status]() {
+
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+
+    status = file->OpenFile(importfile.c_str(), ext.toUtf8().data(),
+                            [&progress](float p) { progress = p * 0.5f; });
+
+    if(status != ReplayStatus::Succeeded)
+    {
+      message = file->ErrorString();
+      file->Shutdown();
+      return;
+    }
+
+    status = file->Convert(rdcfile.c_str(), "rdc", NULL,
+                           [&progress](float p) { progress = 0.5f + p * 0.5f; });
+    file->Shutdown();
+  });
+  th->start();
+  // wait a few ms before popping up a progress bar
+  th->wait(500);
+  if(th->isRunning())
+  {
+    ShowProgressDialog(m_MainWindow, tr("Importing from %1, please wait...").arg(filename),
+                       [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
+  }
+  th->deleteLater();
+
+  if(status != ReplayStatus::Succeeded)
+  {
+    QString text = tr("Couldn't convert file '%1'\n").arg(filename);
+    if(message.isEmpty())
+      text += tr("%1").arg(ToQStr(status));
+    else
+      text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+    RDDialog::critical(m_MainWindow, tr("Error converting capture"), text);
+    return false;
+  }
+
+  return true;
+}
+
+void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &exportfile)
+{
+  if(!m_CaptureLocal)
+    return;
+
+  QString ext = fmt.extension;
+
+  ICaptureFile *local = NULL;
+  ICaptureFile *file = NULL;
+  ReplayStatus status = ReplayStatus::Succeeded;
+
+  const SDFile *sdfile = NULL;
+
+  // if we don't need buffers, we can export directly from our existing capture file
+  if(!fmt.requiresBuffers)
+  {
+    file = Replay().GetCaptureFile();
+    sdfile = m_StructuredFile;
+  }
+
+  if(!file)
+  {
+    local = file = RENDERDOC_OpenCaptureFile();
+    status = file->OpenFile(m_CaptureFile.toUtf8().data(), "rdc", NULL);
+  }
+
+  QString filename = QFileInfo(m_CaptureFile).fileName();
+
+  if(status != ReplayStatus::Succeeded)
+  {
+    QString text = tr("Couldn't open file '%1' for export\n").arg(filename);
+    QString message = local->ErrorString();
+    if(message.isEmpty())
+      text += tr("%1").arg(ToQStr(status));
+    else
+      text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+    RDDialog::critical(m_MainWindow, tr("Error opening file"), text);
+
+    if(local)
+      local->Shutdown();
+    return;
+  }
+
+  float progress = 0.0f;
+
+  LambdaThread *th = new LambdaThread([this, file, sdfile, ext, exportfile, &progress, &status]() {
+    status = file->Convert(exportfile.c_str(), ext.toUtf8().data(), sdfile,
+                           [&progress](float p) { progress = p; });
+  });
+  th->start();
+  // wait a few ms before popping up a progress bar
+  th->wait(500);
+  if(th->isRunning())
+  {
+    ShowProgressDialog(m_MainWindow,
+                       tr("Exporting %1 to %2, please wait...").arg(filename).arg(QString(fmt.name)),
+                       [th]() { return !th->isRunning(); }, [&progress]() { return progress; });
+  }
+  th->deleteLater();
+
+  QString message = file->ErrorString();
+  if(local)
+    local->Shutdown();
+
+  if(status != ReplayStatus::Succeeded)
+  {
+    QString text = tr("Couldn't convert file '%1'\n").arg(filename);
+    if(message.isEmpty())
+      text += tr("%1").arg(ToQStr(status));
+    else
+      text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+    RDDialog::critical(m_MainWindow, tr("Error converting capture"), text);
   }
 }
 

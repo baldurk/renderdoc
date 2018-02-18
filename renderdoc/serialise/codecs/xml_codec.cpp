@@ -289,6 +289,9 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
     }
   }
 
+  if(progress)
+    progress(StructuredProgress(0.1f));
+
   // write all other sections
   for(int i = 0; i < file.NumSections(); i++)
   {
@@ -340,6 +343,9 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
     delete reader;
   }
 
+  if(progress)
+    progress(StructuredProgress(0.2f));
+
   pugi::xml_node xChunks = xRoot.append_child("chunks");
 
   xChunks.append_attribute("version") = version;
@@ -382,6 +388,9 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
       for(size_t o = 0; o < chunk->data.children.size(); o++)
         Obj2XML(xChunk, *chunk->data.children[o]);
     }
+
+    if(progress)
+      progress(StructuredProgress(0.2f + 0.8f * (float(c) / float(chunks.size()))));
   }
 
   xml_file_writer writer(filename);
@@ -712,8 +721,7 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
 
   for(size_t i = 0; i < buffers.size(); i++)
   {
-    mz_zip_writer_add_mem(&zip, GetBufferName(i).c_str(), buffers[i]->data(), buffers[i]->size(),
-                          MZ_BEST_COMPRESSION);
+    mz_zip_writer_add_mem(&zip, GetBufferName(i).c_str(), buffers[i]->data(), buffers[i]->size(), 2);
 
     if(progress)
       progress(BufferProgress(float(i) / float(buffers.size())));
@@ -729,13 +737,17 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
   return ReplayStatus::Succeeded;
 }
 
-static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers,
+static bool ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers,
                         RENDERDOC_ProgressCallback progress)
 {
-  std::string zipFile = filename + ".zip";
+  std::string zipFile = filename;
+  zipFile.erase(zipFile.size() - 4);    // remove the .xml, leave only the .zip
 
   if(!FileIO::exists(zipFile.c_str()))
-    return;
+  {
+    RDCERR("Expected to file zip for %s at %s", filename.c_str(), zipFile.c_str());
+    return false;
+  }
 
   mz_zip_archive zip;
   memset(&zip, 0, sizeof(zip));
@@ -780,13 +792,22 @@ static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffe
   }
 
   mz_zip_reader_end(&zip);
+
+  return true;
 }
 
 ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc,
                         SDFile &structData, RENDERDOC_ProgressCallback progress)
 {
   if(filename)
-    ZIP2Buffers(filename, structData.buffers, progress);
+  {
+    bool success = ZIP2Buffers(filename, structData.buffers, progress);
+    if(!success)
+    {
+      RDCERR("Couldn't load zip to go with %s", filename);
+      return ReplayStatus::FileCorrupted;
+    }
+  }
 
   uint64_t len = reader.GetSize();
   char *buf = new char[(size_t)len + 1];
@@ -814,16 +835,20 @@ ReplayStatus exportXMLOnly(const char *filename, const RDCFile &rdc, const SDFil
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }
 
-static ConversionRegistration XMLZIPConversionRegistration("zip.xml", R"(XML+ZIP capture
+static ConversionRegistration XMLZIPConversionRegistration(
+    &importXMLZ, &exportXMLZ,
+    {
+        "zip.xml", "XML+ZIP capture",
+        R"(Stores the structured data in an xml tree, with large buffer data stored in indexed blobs in
+similarly named zip file.)",
+        true,
+    });
 
-Stores the structured data in an xml tree, with large buffer data stored in indexed blobs in
-similarly named zip file.
-)",
-                                                           &importXMLZ, &exportXMLZ);
-
-static ConversionRegistration XMLOnlyConversionRegistration("xml", R"(XML capture
-
-Stores the structured data in an xml tree, with large buffer data omitted - that makes it easier to
-work with but it cannot then be imported.
-)",
-                                                            &exportXMLOnly);
+static ConversionRegistration XMLOnlyConversionRegistration(
+    &exportXMLOnly,
+    {
+        "xml", "XML capture",
+        R"(Stores the structured data in an xml tree, with large buffer data omitted - that makes it
+easier to work with but it cannot then be imported.)",
+        false,
+    });

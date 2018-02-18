@@ -282,7 +282,7 @@ struct ThumbCommand : public Command
     bytebuf buf;
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-    ReplayStatus st = file->OpenFile(filename.c_str(), "rdc");
+    ReplayStatus st = file->OpenFile(filename.c_str(), "rdc", NULL);
     if(st == ReplayStatus::Succeeded)
     {
       buf = file->GetThumbnail(type, maxsize).data;
@@ -591,7 +591,7 @@ struct ReplayCommand : public Command
 
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      if(file->OpenFile(filename.c_str(), "rdc") != ReplayStatus::Succeeded)
+      if(file->OpenFile(filename.c_str(), "rdc", NULL) != ReplayStatus::Succeeded)
       {
         std::cerr << "Couldn't load '" << filename << "'." << std::endl;
         return 1;
@@ -657,7 +657,9 @@ struct ConvertCommand : public Command
     {
       std::cout << "Available formats:" << std::endl;
       for(CaptureFileFormat f : m_Formats)
-        std::cout << "'" << (std::string)f.name << "': " << (std::string)f.description << std::endl;
+        std::cout << "'" << (std::string)f.name << "': " << (std::string)f.name << std::endl
+                  << std::endl
+                  << (std::string)f.description << std::endl;
       return 0;
     }
 
@@ -687,11 +689,11 @@ struct ConvertCommand : public Command
       for(CaptureFileFormat f : m_Formats)
       {
         string extension = ".";
-        extension += f.name;
+        extension += f.extension;
 
         if(infile.find(extension.c_str()) != string::npos)
         {
-          infmt = f.name;
+          infmt = f.extension;
           break;
         }
       }
@@ -710,11 +712,11 @@ struct ConvertCommand : public Command
       for(CaptureFileFormat f : m_Formats)
       {
         string extension = ".";
-        extension += f.name;
+        extension += f.extension;
 
         if(outfile.find(extension.c_str()) != string::npos)
         {
-          outfmt = f.name;
+          outfmt = f.extension;
           break;
         }
       }
@@ -729,7 +731,7 @@ struct ConvertCommand : public Command
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-    ReplayStatus st = file->OpenFile(infile.c_str(), infmt.c_str());
+    ReplayStatus st = file->OpenFile(infile.c_str(), infmt.c_str(), NULL);
 
     if(st != ReplayStatus::Succeeded)
     {
@@ -738,7 +740,7 @@ struct ConvertCommand : public Command
       return 1;
     }
 
-    st = file->Convert(outfile.c_str(), outfmt.c_str(), NULL);
+    st = file->Convert(outfile.c_str(), outfmt.c_str(), NULL, NULL);
 
     if(st != ReplayStatus::Succeeded)
     {
@@ -956,7 +958,7 @@ struct EmbeddedSectionCommand : public Command
 
     ICaptureFile *capfile = RENDERDOC_OpenCaptureFile();
 
-    ReplayStatus status = capfile->OpenFile(rdc.c_str(), "");
+    ReplayStatus status = capfile->OpenFile(rdc.c_str(), "", NULL);
 
     if(status != ReplayStatus::Succeeded)
     {

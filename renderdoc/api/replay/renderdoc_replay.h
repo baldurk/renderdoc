@@ -1486,10 +1486,13 @@ empty or unrecognised.
 
 :param str filename: The filename of the file to open.
 :param str filetype: The format of the given file.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value if an import step occurs. Can be ``None`` if no progress is desired.
 :return: The status of the open operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus OpenFile(const char *filename, const char *filetype) = 0;
+  virtual ReplayStatus OpenFile(const char *filename, const char *filetype,
+                                RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Initialises the file handle from a raw memory buffer.
 
@@ -1499,10 +1502,13 @@ For the :paramref:`OpenBuffer.filetype` parameter, see :meth:`OpenFile`.
 
 :param bytes buffer: The buffer containing the data to process.
 :param str filetype: The format of the given file.
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value if an import step occurs. Can be ``None`` if no progress is desired.
 :return: The status of the open operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype) = 0;
+  virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype,
+                                  RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(When a capture file is opened, an exclusive lock is held on the file on disk. This
 makes it impossible to copy the file to another location at the user's request. Calling this
@@ -1525,12 +1531,16 @@ representation back to native RDC.
 
 :param str filename: The filename to save to.
 :param str filetype: The format to convert to.
+:param SDFile file: An optional :class:`SDFile` with the structured data to source from. This is
+  useful in case the format specifies that it doesn't need buffers, and you already have a
+  :class:`ReplayController` open with the structured data. This saves the need to load the file
+  again. If ``None`` then structured data will be fetched if not already present and used.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the conversion. Can be ``None`` if no progress is desired.
 :return: The status of the conversion operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus Convert(const char *filename, const char *filetype,
+  virtual ReplayStatus Convert(const char *filename, const char *filetype, const SDFile *file,
                                RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the human-readable error string for the last error received.

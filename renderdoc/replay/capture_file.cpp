@@ -112,8 +112,10 @@ public:
   CaptureFile();
   virtual ~CaptureFile();
 
-  ReplayStatus OpenFile(const char *filename, const char *filetype);
-  ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype);
+  ReplayStatus OpenFile(const char *filename, const char *filetype,
+                        RENDERDOC_ProgressCallback progress);
+  ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype,
+                          RENDERDOC_ProgressCallback progress);
   bool CopyFileTo(const char *filename);
   rdcstr ErrorString() { return m_ErrorString; }
   void Shutdown() { delete this; }
@@ -125,7 +127,7 @@ public:
   void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
                    uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData);
 
-  ReplayStatus Convert(const char *filename, const char *filetype,
+  ReplayStatus Convert(const char *filename, const char *filetype, const SDFile *file,
                        RENDERDOC_ProgressCallback progress);
 
   rdcarray<CaptureFileFormat> GetCaptureFileFormats()
@@ -135,16 +137,8 @@ public:
 
   const SDFile &GetStructuredData()
   {
-    if(m_StructuredData.chunks.empty() && m_RDC && m_RDC->SectionIndex(SectionType::FrameCapture) >= 0)
-    {
-      // decompile to structured data on demand.
-      StructuredProcessor proc = RenderDoc::Inst().GetStructuredProcessor(m_RDC->GetDriver());
-
-      if(proc)
-        proc(m_RDC, m_StructuredData);
-      else
-        RDCERR("Can't get structured data for driver %s", m_RDC->GetDriverName().c_str());
-    }
+    // decompile to structured data on demand.
+    InitStructuredData();
 
     return m_StructuredData;
   }
@@ -182,6 +176,8 @@ public:
 private:
   ReplayStatus Init();
 
+  void InitStructuredData(RENDERDOC_ProgressCallback progress = RENDERDOC_ProgressCallback());
+
   RDCFile *m_RDC = NULL;
   Callstack::StackResolver *m_Resolver = NULL;
 
@@ -201,7 +197,8 @@ CaptureFile::~CaptureFile()
   SAFE_DELETE(m_Resolver);
 }
 
-ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype)
+ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
+                                   RENDERDOC_ProgressCallback progress)
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
 
@@ -213,7 +210,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype)
       StreamReader reader(FileIO::fopen(filename, "rb"));
       delete m_RDC;
       m_RDC = new RDCFile;
-      ret = importer(filename, reader, m_RDC, m_StructuredData, NULL);
+      ret = importer(filename, reader, m_RDC, m_StructuredData, progress);
     }
 
     if(ret != ReplayStatus::Succeeded)
@@ -228,15 +225,22 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype)
     if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
       RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
 
+    if(progress)
+      progress(0.0f);
+
     delete m_RDC;
     m_RDC = new RDCFile;
     m_RDC->Open(filename);
+
+    if(progress)
+      progress(1.0f);
   }
 
   return Init();
 }
 
-ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype)
+ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype,
+                                     RENDERDOC_ProgressCallback progress)
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
 
@@ -249,7 +253,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
     {
       StreamReader reader(vec);
       m_RDC = new RDCFile;
-      ret = importer(NULL, reader, m_RDC, m_StructuredData, NULL);
+      ret = importer(NULL, reader, m_RDC, m_StructuredData, progress);
     }
 
     if(ret != ReplayStatus::Succeeded)
@@ -264,8 +268,14 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
     if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
       RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
 
+    if(progress)
+      progress(0.0f);
+
     m_RDC = new RDCFile;
     m_RDC->Open(vec);
+
+    if(progress)
+      progress(1.0f);
   }
 
   return Init();
@@ -325,6 +335,23 @@ ReplayStatus CaptureFile::Init()
   return ReplayStatus::InternalError;
 }
 
+void CaptureFile::InitStructuredData(RENDERDOC_ProgressCallback progress /*= RENDERDOC_ProgressCallback()*/)
+{
+  if(m_StructuredData.chunks.empty() && m_RDC && m_RDC->SectionIndex(SectionType::FrameCapture) >= 0)
+  {
+    StructuredProcessor proc = RenderDoc::Inst().GetStructuredProcessor(m_RDC->GetDriver());
+
+    RenderDoc::Inst().SetProgressCallback<LoadProgress>(progress);
+
+    if(proc)
+      proc(m_RDC, m_StructuredData);
+    else
+      RDCERR("Can't get structured data for driver %s", m_RDC->GetDriverName().c_str());
+
+    RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
+  }
+}
+
 rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC || m_RDC->ErrorCode() != ContainerError::NoError)
@@ -377,7 +404,7 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
   free((void *)th.pixels);
 }
 
-ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype,
+ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, const SDFile *file,
                                   RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC)
@@ -386,10 +413,30 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype,
     return ReplayStatus::FileCorrupted;
   }
 
+  // make sure progress is valid so we don't have to check it everywhere
+  if(!progress)
+    progress = [](float) {};
+
+  // we have two separate steps that can take time - fetching the structured data, and then
+  // exporting or writing to RDC
+  RENDERDOC_ProgressCallback fetchProgress = [progress](float p) { progress(p * 0.5f); };
+  RENDERDOC_ProgressCallback exportProgress = [progress](float p) { progress(0.5f + p * 0.5f); };
+
   CaptureExporter exporter = RenderDoc::Inst().GetCaptureExporter(filetype);
 
   if(exporter)
-    return exporter(filename, *m_RDC, GetStructuredData(), progress);
+  {
+    if(file)
+    {
+      return exporter(filename, *m_RDC, *file, exportProgress);
+    }
+    else
+    {
+      InitStructuredData(fetchProgress);
+
+      return exporter(filename, *m_RDC, GetStructuredData(), exportProgress);
+    }
+  }
 
   if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
     RDCWARN("Converting file to unrecognised filetype '%s' - treating as 'rdc'", filetype);
@@ -419,17 +466,23 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype,
 
   if(frameCaptureIndex == -1)
   {
+    if(file == NULL)
+    {
+      InitStructuredData(fetchProgress);
+      file = &m_StructuredData;
+    }
+
     SectionProperties frameCapture;
     frameCapture.flags = SectionFlags::ZstdCompressed;
     frameCapture.type = SectionType::FrameCapture;
     frameCapture.name = ToStr(frameCapture.type);
-    frameCapture.version = GetStructuredData().version;
+    frameCapture.version = file->version;
 
     StreamWriter *writer = output.WriteSection(frameCapture);
 
     WriteSerialiser ser(writer, Ownership::Nothing);
 
-    ser.WriteStructuredFile(GetStructuredData(), progress);
+    ser.WriteStructuredFile(*file, exportProgress);
 
     writer->Finish();
 

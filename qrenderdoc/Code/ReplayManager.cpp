@@ -369,7 +369,7 @@ void ReplayManager::ReopenCaptureFile(const QString &path)
 {
   if(!m_CaptureFile)
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
-  m_CaptureFile->OpenFile(path.toUtf8().data(), "rdc");
+  m_CaptureFile->OpenFile(path.toUtf8().data(), "rdc", NULL);
 }
 
 uint32_t ReplayManager::ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
@@ -423,7 +423,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile,
   {
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
 
-    m_CreateStatus = m_CaptureFile->OpenFile(capturefile.toUtf8().data(), "rdc");
+    m_CreateStatus = m_CaptureFile->OpenFile(capturefile.toUtf8().data(), "rdc", NULL);
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
       std::tie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(progress);

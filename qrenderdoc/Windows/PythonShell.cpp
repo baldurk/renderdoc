@@ -183,6 +183,15 @@ struct CaptureContextInvoker : ICaptureContext
     InvokeVoidFunction(&ICaptureContext::RecompressCapture);
   }
   virtual void CloseCapture() override { InvokeVoidFunction(&ICaptureContext::CloseCapture); }
+  virtual bool ImportCapture(const CaptureFileFormat &fmt, const rdcstr &importfile,
+                             const rdcstr &rdcfile) override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::ImportCapture, fmt, importfile, rdcfile);
+  }
+  virtual void ExportCapture(const CaptureFileFormat &fmt, const rdcstr &exportfile) override
+  {
+    InvokeVoidFunction(&ICaptureContext::ExportCapture, fmt, exportfile);
+  }
   virtual void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                           uint32_t eventId, bool force = false) override
   {

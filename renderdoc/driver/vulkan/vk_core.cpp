@@ -1552,7 +1552,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     // only set progress after we've initialised the debug manager, to prevent progress jumping
     // backwards.
-    if(m_DebugManager)
+    if(m_DebugManager || IsStructuredExporting(m_State))
     {
       RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
                                     float(offsetEnd) / float(reader->GetSize()));

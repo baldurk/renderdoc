@@ -1006,6 +1006,30 @@ time.
   DOCUMENT("Close the currently open capture file.");
   virtual void CloseCapture() = 0;
 
+  DOCUMENT(R"(Imports a capture file from a non-native format, via conversion to temporary rdc.
+
+This converts the file to a specified temporary .rdc and loads it, closing any existing capture.
+
+The capture must be available locally, if it's not this function will fail.
+
+:param CaptureFileFormat fmt: The capture file format to import from.
+:param str importfile: The path to import from.
+:param str rdcfile: The temporary path to save the rdc file to.
+:return: ``True`` if the import operation was successful and the capture was loaded.
+:rtype: ``bool``
+)");
+  virtual bool ImportCapture(const CaptureFileFormat &fmt, const rdcstr &importfile,
+                             const rdcstr &rdcfile) = 0;
+
+  DOCUMENT(R"(Exports the current capture file to a given path with a specified capture file format.
+
+The capture must be available locally, if it's not this function will fail.
+
+:param CaptureFileFormat fmt: The capture file format to export to.
+:param str exportfile: The path to export the capture file to.
+)");
+  virtual void ExportCapture(const CaptureFileFormat &fmt, const rdcstr &exportfile) = 0;
+
   DOCUMENT(R"(Move the current replay to a new event in the capture.
 
 :param list exclude: A list of :class:`CaptureViewer` to exclude from being notified of this, to stop

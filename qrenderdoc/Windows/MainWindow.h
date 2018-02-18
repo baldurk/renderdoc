@@ -162,8 +162,8 @@ private:
 
   bool eventFilter(QObject *watched, QEvent *event) override;
 
-  void importCapture(QString ext, QString title);
-  void exportCapture(QString ext, QString title);
+  void importCapture(const CaptureFileFormat &fmt);
+  void exportCapture(const CaptureFileFormat &fmt);
 
   QString dragFilename(const QMimeData *mimeData);
 

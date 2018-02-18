@@ -73,7 +73,9 @@ public:
   bool SaveCaptureTo(const rdcstr &captureFile) override;
   void RecompressCapture() override;
   void CloseCapture() override;
-
+  bool ImportCapture(const CaptureFileFormat &fmt, const rdcstr &importfile,
+                     const rdcstr &rdcfile) override;
+  void ExportCapture(const CaptureFileFormat &fmt, const rdcstr &exportfile) override;
   void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                   uint32_t eventId, bool force = false) override;
 

@@ -312,8 +312,6 @@ class IReplayDriver;
 class StreamReader;
 class RDCFile;
 
-class RDCFile;
-
 typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, IRemoteDriver **driver);
 typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **driver);
 
@@ -430,10 +428,9 @@ public:
 
   void RegisterStructuredProcessor(RDCDriver driver, StructuredProcessor provider);
 
-  void RegisterCaptureExporter(const char *filetype, const char *description,
-                               CaptureExporter exporter);
-  void RegisterCaptureImportExporter(const char *filetype, const char *description,
-                                     CaptureImporter importer, CaptureExporter exporter);
+  void RegisterCaptureExporter(CaptureExporter exporter, CaptureFileFormat description);
+  void RegisterCaptureImportExporter(CaptureImporter importer, CaptureExporter exporter,
+                                     CaptureFileFormat description);
 
   StructuredProcessor GetStructuredProcessor(RDCDriver driver);
 
@@ -584,7 +581,7 @@ private:
 
   std::map<RDCDriver, StructuredProcessor> m_StructProcesssors;
 
-  std::map<std::string, std::string> m_ImportExportFormats;
+  std::vector<CaptureFileFormat> m_ImportExportFormats;
   std::map<std::string, CaptureImporter> m_Importers;
   std::map<std::string, CaptureExporter> m_Exporters;
 
@@ -674,13 +671,13 @@ struct StructuredProcessRegistration
 
 struct ConversionRegistration
 {
-  ConversionRegistration(const char *filetype, const char *description, CaptureImporter importer,
-                         CaptureExporter exporter)
+  ConversionRegistration(CaptureImporter importer, CaptureExporter exporter,
+                         CaptureFileFormat description)
   {
-    RenderDoc::Inst().RegisterCaptureImportExporter(filetype, description, importer, exporter);
+    RenderDoc::Inst().RegisterCaptureImportExporter(importer, exporter, description);
   }
-  ConversionRegistration(const char *filetype, const char *description, CaptureExporter exporter)
+  ConversionRegistration(CaptureExporter exporter, CaptureFileFormat description)
   {
-    RenderDoc::Inst().RegisterCaptureExporter(filetype, description, exporter);
+    RenderDoc::Inst().RegisterCaptureExporter(exporter, description);
   }
 };

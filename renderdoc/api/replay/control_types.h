@@ -536,34 +536,48 @@ struct CaptureFileFormat
   DOCUMENT("");
   bool operator==(const CaptureFileFormat &o) const
   {
-    return name == o.name && description == o.description && openSupported == o.openSupported &&
+    return extension == o.extension && name == o.name && description == o.description &&
+           requiresBuffers == o.requiresBuffers && openSupported == o.openSupported &&
            convertSupported == o.convertSupported;
   }
   bool operator<(const CaptureFileFormat &o) const
   {
+    if(!(extension == o.extension))
+      return extension < o.extension;
     if(!(name == o.name))
       return name < o.name;
     if(!(description == o.description))
       return description < o.description;
+    if(!(requiresBuffers == o.requiresBuffers))
+      return requiresBuffers < o.requiresBuffers;
     if(!(openSupported == o.openSupported))
       return openSupported < o.openSupported;
     if(!(convertSupported == o.convertSupported))
       return convertSupported < o.convertSupported;
     return false;
   }
-  DOCUMENT("The name of the format as a single minimal string, e.g. ``rdc``.");
+  DOCUMENT("The file of the format as a single minimal string, e.g. ``rdc``.");
+  rdcstr extension;
+
+  DOCUMENT("A human readable short phrase naming the file format.");
   rdcstr name;
 
-  DOCUMENT("A human readable description of the file format, e.g. ``RenderDoc native capture``.");
+  DOCUMENT("A human readable long-form description of the file format.");
   rdcstr description;
+
+  DOCUMENT(R"(Indicates whether exporting to this format requires buffers or just structured data.
+If it doesn't require buffers then it can be exported directly from an opened capture, which by
+default has structured data but no buffers available.
+)");
+  bool requiresBuffers;
 
   DOCUMENT(R"(Indicates whether or not files in this format can be opened and processed as
 structured data.
 )");
-  bool openSupported = false;
+  bool openSupported;
 
   DOCUMENT("Indicates whether captures or structured data can be saved out in this format.");
-  bool convertSupported = true;
+  bool convertSupported;
 };
 
 DECLARE_REFLECTION_STRUCT(CaptureFileFormat);
