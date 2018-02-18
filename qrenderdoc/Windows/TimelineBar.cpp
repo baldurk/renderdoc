@@ -143,6 +143,7 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
     GUIInvoke::call([this, usage]() {
       for(const EventUsage &u : usage)
         m_UsageEvents << u;
+      qSort(m_UsageEvents);
       viewport()->update();
     });
   });
@@ -162,6 +163,7 @@ void TimelineBar::HighlightHistory(ResourceId id, const rdcarray<PixelModificati
 
     for(const PixelModification &mod : history)
       m_HistoryEvents << mod;
+    qSort(m_HistoryEvents);
   }
 
   viewport()->update();
@@ -315,32 +317,36 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
       // history events get first crack at any selection, if they exist
       if(!m_HistoryEvents.isEmpty())
       {
-        auto it = std::find_if(m_HistoryEvents.begin(), m_HistoryEvents.end(),
-                               [this, eid](const PixelModification &mod) {
-                                 if(mod.eventId == eid)
-                                   return true;
-
-                                 return false;
-                               });
+        PixelModification search = {eid};
+        auto it = std::lower_bound(m_HistoryEvents.begin(), m_HistoryEvents.end(), search);
 
         if(it != m_HistoryEvents.end())
-          m_Ctx.SetEventID({}, eid, eid);
+        {
+          // lower_bound will have returned the next highest hit. Check if there is one below, and
+          // if it's closer.
+          if(it != m_HistoryEvents.begin() && (eid - (it - 1)->eventId) < (it->eventId - eid))
+            it--;
+
+          m_Ctx.SetEventID({}, it->eventId, it->eventId);
+        }
 
         return;
       }
 
       if(!m_UsageEvents.isEmpty())
       {
-        auto it = std::find_if(m_UsageEvents.begin(), m_UsageEvents.end(),
-                               [this, eid](const EventUsage &use) {
-                                 if(use.eventId == eid)
-                                   return true;
-
-                                 return false;
-                               });
+        EventUsage search(eid, ResourceUsage::Unused);
+        auto it = std::lower_bound(m_UsageEvents.begin(), m_UsageEvents.end(), search);
 
         if(it != m_UsageEvents.end())
-          m_Ctx.SetEventID({}, eid, eid);
+        {
+          // lower_bound will have returned the next highest hit. Check if there is one below, and
+          // if it's closer.
+          if(it != m_UsageEvents.begin() && (eid - (it - 1)->eventId) < (it->eventId - eid))
+            it--;
+
+          m_Ctx.SetEventID({}, it->eventId, it->eventId);
+        }
       }
 
       return;
@@ -383,7 +389,8 @@ void TimelineBar::mouseMoveEvent(QMouseEvent *e)
 
       layout();
     }
-    else if(!m_Draws.isEmpty() && m_dataArea.contains(e->localPos()))
+    else if(!m_Draws.isEmpty() && m_dataArea.contains(e->localPos()) &&
+            !m_highlightingRect.contains(e->localPos()))
     {
       uint32_t eid = eventAt(x);
       if(m_Draws.contains(eid) && eid != m_Ctx.CurEvent())
