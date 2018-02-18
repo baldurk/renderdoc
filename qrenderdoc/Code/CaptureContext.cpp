@@ -1107,19 +1107,28 @@ void CaptureContext::RemoveBookmark(uint32_t EID)
 
 void CaptureContext::SaveChanges()
 {
+  bool success = true;
+
   if(m_CaptureMods & CaptureModifications::Renames)
-    SaveRenames();
+    success &= SaveRenames();
 
   if(m_CaptureMods & CaptureModifications::Bookmarks)
-    SaveBookmarks();
+    success &= SaveBookmarks();
 
   if(m_CaptureMods & CaptureModifications::Notes)
-    SaveNotes();
+    success &= SaveNotes();
+
+  if(!success)
+  {
+    RDDialog::critical(m_MainWindow, tr("Can't save file"),
+                       tr("Error saving file.\n"
+                          "Check for permissions and that it's not open elsewhere"));
+  }
 
   m_CaptureMods = CaptureModifications::NoModifications;
 }
 
-void CaptureContext::SaveRenames()
+bool CaptureContext::SaveRenames()
 {
   QVariantMap resources;
   for(ResourceId id : m_CustomNames.keys())
@@ -1136,7 +1145,7 @@ void CaptureContext::SaveRenames()
   props.type = SectionType::ResourceRenames;
   props.version = 1;
 
-  Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
+  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }
 
 void CaptureContext::LoadRenames(const QString &data)
@@ -1167,7 +1176,7 @@ void CaptureContext::LoadRenames(const QString &data)
   }
 }
 
-void CaptureContext::SaveBookmarks()
+bool CaptureContext::SaveBookmarks()
 {
   QVariantList bookmarks;
   for(const EventBookmark &mark : m_Bookmarks)
@@ -1188,7 +1197,7 @@ void CaptureContext::SaveBookmarks()
   props.type = SectionType::Bookmarks;
   props.version = 1;
 
-  Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
+  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }
 
 void CaptureContext::LoadBookmarks(const QString &data)
@@ -1213,7 +1222,7 @@ void CaptureContext::LoadBookmarks(const QString &data)
   }
 }
 
-void CaptureContext::SaveNotes()
+bool CaptureContext::SaveNotes()
 {
   QVariantMap root;
   for(const QString &key : m_Notes.keys())
@@ -1227,7 +1236,7 @@ void CaptureContext::SaveNotes()
 
   ANALYTIC_SET(UIFeatures.CaptureComments, true);
 
-  Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
+  return Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }
 
 void CaptureContext::LoadNotes(const QString &data)

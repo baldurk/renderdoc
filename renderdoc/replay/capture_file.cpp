@@ -167,7 +167,7 @@ public:
   int FindSectionByType(SectionType type);
   SectionProperties GetSectionProperties(int index);
   bytebuf GetSectionContents(int index);
-  void WriteSection(const SectionProperties &props, const bytebuf &contents);
+  bool WriteSection(const SectionProperties &props, const bytebuf &contents);
 
   bool HasCallstacks();
   bool InitResolver(RENDERDOC_ProgressCallback progress);
@@ -715,17 +715,19 @@ bytebuf CaptureFile::GetSectionContents(int index)
   return ret;
 }
 
-void CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &contents)
+bool CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &contents)
 {
   StreamWriter *writer = m_RDC->WriteSection(props);
   if(!writer)
-    return;
+    return false;
 
   writer->Write(contents.data(), contents.size());
 
   writer->Finish();
 
   delete writer;
+
+  return true;
 }
 
 bool CaptureFile::HasCallstacks()

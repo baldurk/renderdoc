@@ -1273,8 +1273,10 @@ or name).
 
 :param SectionProperties props: The properties of the section to be written.
 :param bytes contents: The raw contents of the section.
+:return: ``True`` if the section was written successfully, ``False`` otherwise.
+:rtype: ``bool``
 )");
-  virtual void WriteSection(const SectionProperties &props, const bytebuf &contents) = 0;
+  virtual bool WriteSection(const SectionProperties &props, const bytebuf &contents) = 0;
 
   DOCUMENT(R"(Query if callstacks are available.
 

@@ -270,13 +270,13 @@ private:
 
   void SaveChanges();
 
-  void SaveRenames();
+  bool SaveRenames();
   void LoadRenames(const QString &data);
 
-  void SaveBookmarks();
+  bool SaveBookmarks();
   void LoadBookmarks(const QString &data);
 
-  void SaveNotes();
+  bool SaveNotes();
   void LoadNotes(const QString &data);
 
   void CacheResources();

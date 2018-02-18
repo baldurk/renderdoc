@@ -695,6 +695,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
+      bool success = false;
+
       if(rdc)
       {
         StreamWriter *sectionWriter = rdc->WriteSection(props);
@@ -703,7 +705,15 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
         {
           sectionWriter->Write(contents.data(), contents.size());
           delete sectionWriter;
+
+          success = true;
         }
+      }
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_WriteSection);
+        SERIALISE_ELEMENT(success);
       }
     }
     else if(type == eRemoteServer_CloseLog)
@@ -1640,10 +1650,10 @@ public:
     return contents;
   }
 
-  void WriteSection(const SectionProperties &props, const bytebuf &contents)
+  bool WriteSection(const SectionProperties &props, const bytebuf &contents)
   {
     if(!Connected())
-      return;
+      return false;
 
     {
       WRITE_DATA_SCOPE();
@@ -1651,6 +1661,26 @@ public:
       SERIALISE_ELEMENT(props);
       SERIALISE_ELEMENT(contents);
     }
+
+    bool success = false;
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_WriteSection)
+      {
+        SERIALISE_ELEMENT(success);
+      }
+      else
+      {
+        RDCERR("Unexpected response to has write section request");
+      }
+
+      ser.EndChunk();
+    }
+
+    return success;
   }
 
   bool HasCallstacks()
