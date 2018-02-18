@@ -498,7 +498,8 @@ QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const
   {
     return opt->rect;
   }
-  else if(element == QStyle::SE_RadioButtonIndicator || element == QStyle::SE_CheckBoxIndicator)
+  else if(element == QStyle::SE_RadioButtonIndicator || element == QStyle::SE_CheckBoxIndicator ||
+          element == QStyle::SE_ItemViewItemCheckIndicator)
   {
     QRect ret = opt->rect;
 
@@ -506,7 +507,7 @@ QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const
 
     int extra = ret.height() - Constants::CheckHeight;
 
-    ret.setTop((ret.height() - Constants::CheckHeight) / 2);
+    ret.setTop(ret.top() + extra / 2);
     ret.setHeight(Constants::CheckHeight);
 
     return ret;
@@ -739,6 +740,12 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
 
   if(metric == PM_TabBarTabHSpace)
     return Constants::TabMargin;
+
+  if(metric == PM_IndicatorWidth)
+    return Constants::CheckWidth + Constants::CheckMargin;
+
+  if(metric == PM_IndicatorHeight)
+    return Constants::CheckHeight + Constants::CheckMargin;
 
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
