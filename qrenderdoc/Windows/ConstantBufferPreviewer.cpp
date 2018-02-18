@@ -49,11 +49,11 @@ ConstantBufferPreviewer::ConstantBufferPreviewer(ICaptureContext &ctx, const Sha
   ui->splitter->setSizes({1, 0});
   ui->splitter->handle(1)->setEnabled(false);
 
+  ui->variables->setColumns({tr("Name"), tr("Value"), tr("Type")});
   {
-    ui->variables->setColumns({tr("Name"), tr("Value"), tr("Type")});
-    ui->variables->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    ui->variables->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->variables->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui->variables->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->variables->header()->setSectionResizeMode(1, QHeaderView::Interactive);
+    ui->variables->header()->setSectionResizeMode(2, QHeaderView::Interactive);
   }
 
   ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
@@ -105,6 +105,8 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   QString entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_stage);
   const ShaderReflection *reflection = m_Ctx.CurPipelineState().GetShaderReflection(m_stage);
 
+  bool wasEmpty = ui->variables->topLevelItemCount() == 0;
+
   updateLabels();
 
   if(reflection == NULL || m_slot >= reflection->constantBlocks.size())
@@ -115,18 +117,32 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
 
   if(!m_formatOverride.empty())
   {
-    m_Ctx.Replay().AsyncInvoke([this, offs, size](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, offs, size, wasEmpty](IReplayController *r) {
       bytebuf data = r->GetBufferData(m_cbuffer, offs, size);
       rdcarray<ShaderVariable> vars = applyFormatOverride(data);
-      GUIInvoke::call([this, vars] { setVariables(vars); });
+      GUIInvoke::call([this, vars, wasEmpty] {
+        setVariables(vars);
+        if(wasEmpty)
+        {
+          for(int i = 0; i < 3; i++)
+            ui->variables->resizeColumnToContents(i);
+        }
+      });
     });
   }
   else
   {
-    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, wasEmpty](IReplayController *r) {
       rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
           m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
-      GUIInvoke::call([this, vars] { setVariables(vars); });
+      GUIInvoke::call([this, vars, wasEmpty] {
+        setVariables(vars);
+        if(wasEmpty)
+        {
+          for(int i = 0; i < 3; i++)
+            ui->variables->resizeColumnToContents(i);
+        }
+      });
     });
   }
 }
