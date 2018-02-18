@@ -56,6 +56,7 @@ public:
   void setPinnedColumns(int numColumns);
   int pinnedColumns() const { return m_pinnedColumns; }
 protected:
+  void keyPressEvent(QKeyEvent *e) override;
   void paintEvent(QPaintEvent *e) override;
   void updateGeometries() override;
   void scrollContentsBy(int dx, int dy) override;
