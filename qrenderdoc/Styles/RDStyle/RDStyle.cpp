@@ -70,7 +70,7 @@ static const int MenuBarMinimumWidth = 80;
 
 static const int TabWidgetBorder = 1;
 static const int TabMargin = 4;
-static const int TabMinWidth = 120;
+static const int TabMinWidth = 75;
 static const int TabMaxWidth = 250;
 
 static const int ItemHeaderMargin = 4;
