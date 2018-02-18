@@ -146,6 +146,8 @@ void RDHeaderView::cacheSections()
   if(m_pinnedColumns >= m_sections.count())
     m_pinnedWidth = m_pinnedColumns;
 
+  QHeaderView::initializeSections();
+
   QStyleOptionHeader opt;
   initStyleOption(&opt);
 
