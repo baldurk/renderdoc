@@ -80,17 +80,6 @@ ConstantBufferPreviewer *ConstantBufferPreviewer::has(ShaderStage stage, uint32_
   return NULL;
 }
 
-ConstantBufferPreviewer *ConstantBufferPreviewer::getOne()
-{
-  for(ConstantBufferPreviewer *c : m_Previews)
-  {
-    if(ToolWindowManager::managerOf(c))
-      return c;
-  }
-
-  return NULL;
-}
-
 void ConstantBufferPreviewer::OnCaptureLoaded()
 {
   OnCaptureClosed();

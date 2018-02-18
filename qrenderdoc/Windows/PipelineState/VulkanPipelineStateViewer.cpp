@@ -2153,7 +2153,7 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
 
   IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx);
 
-  m_Ctx.AddDockWindow(prev->Widget(), DockReference::RightOf, this, 0.3f);
+  m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }
 
 void VulkanPipelineStateViewer::on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column)

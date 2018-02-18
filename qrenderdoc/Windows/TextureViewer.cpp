@@ -3480,7 +3480,7 @@ void TextureViewer::on_pixelHistory_clicked()
 
   IPixelHistoryView *hist = m_Ctx.ViewPixelHistory(texptr->resourceId, x, y, m_TexDisplay);
 
-  m_Ctx.AddDockWindow(hist->Widget(), DockReference::RightOf, this, 0.3f);
+  m_Ctx.AddDockWindow(hist->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 
   // we use this pointer to ensure that the history viewer is still visible (and hasn't been closed)
   // by the time we want to set the results.

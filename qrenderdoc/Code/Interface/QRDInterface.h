@@ -878,10 +878,10 @@ a new dock window or moving an existing dock window.
   window and using that as the main area, then adding to the left of that. In the default layout
   this is where the event browser is placed.
 
-.. data:: ConstantBufferArea
+.. data:: TransientPopupArea
 
-  The new dock window is docked with other constant buffer views, if they exist, or to the right
-  of the existing window if there are none open.
+  The new dock window is docked with other similar transient views like constant buffer or pixel
+  history windows, if they exist, or else docked to the right of the main window.
 )");
 enum class DockReference : int
 {
@@ -902,7 +902,7 @@ enum class DockReference : int
   // extra values here
   MainToolArea,
   LeftToolArea,
-  ConstantBufferArea,
+  TransientPopupArea,
 };
 
 DOCUMENT(R"(Details any changes that have been made to a capture in the UI which can be saved to

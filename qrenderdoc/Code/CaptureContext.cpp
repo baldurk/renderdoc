@@ -1857,16 +1857,32 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
     return;
   }
 
-  if(ref == DockReference::ConstantBufferArea)
+  if(ref == DockReference::TransientPopupArea)
   {
-    if(ConstantBufferPreviewer::getOne())
+    if(qobject_cast<ConstantBufferPreviewer *>(newWindow))
     {
       ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
 
-      manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(
-                                            ToolWindowManager::AddTo,
-                                            manager->areaOf(ConstantBufferPreviewer::getOne())));
-      return;
+      ConstantBufferPreviewer *cb = manager->findChild<ConstantBufferPreviewer *>();
+      if(cb)
+      {
+        manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                                           manager->areaOf(cb)));
+        return;
+      }
+    }
+
+    if(qobject_cast<PixelHistoryView *>(newWindow))
+    {
+      ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
+
+      PixelHistoryView *hist = manager->findChild<PixelHistoryView *>();
+      if(hist)
+      {
+        manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                                           manager->areaOf(hist)));
+        return;
+      }
     }
 
     ref = DockReference::RightOf;

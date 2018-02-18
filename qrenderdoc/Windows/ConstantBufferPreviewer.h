@@ -46,7 +46,6 @@ public:
   ~ConstantBufferPreviewer();
 
   static ConstantBufferPreviewer *has(ShaderStage stage, uint32_t slot, uint32_t idx);
-  static ConstantBufferPreviewer *getOne();
 
   // IConstantBufferPreviewer
   QWidget *Widget() override { return this; }

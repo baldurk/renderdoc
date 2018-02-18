@@ -1922,7 +1922,7 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
 
   IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.idx, 0);
 
-  m_Ctx.AddDockWindow(prev->Widget(), DockReference::RightOf, this, 0.3f);
+  m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }
 
 void D3D12PipelineStateViewer::on_iaLayouts_itemActivated(RDTreeWidgetItem *item, int column)
