@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>279</width>
+    <width>281</width>
     <height>298</height>
    </rect>
   </property>
@@ -364,8 +364,7 @@
         </property>
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png
-         </iconset>
+          <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -459,7 +458,7 @@
    <item>
     <widget class="RDTreeWidget" name="events">
      <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
+      <enum>QFrame::Box</enum>
      </property>
      <property name="frameShadow">
       <enum>QFrame::Plain</enum>
