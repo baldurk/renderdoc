@@ -698,7 +698,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       // advance past the first text to draw the key
       highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
 
-      text = lit(" Reads, ");
+      text = lit(" Reads ( ");
       p.drawText(highlightLabel, text, to);
       highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
 
@@ -707,7 +707,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       p.drawPath(path);
       highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
 
-      text = lit(" Writes, ");
+      text = lit(" ), Writes ( ");
       p.drawText(highlightLabel, text, to);
       highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
 
@@ -716,7 +716,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       p.drawPath(path);
       highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
 
-      text = lit(" Read/Write, ");
+      text = lit(" ), Read/Write ( ");
       p.drawText(highlightLabel, text, to);
       highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
 
@@ -727,7 +727,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
       if(m_Ctx.CurPipelineState().SupportsBarriers())
       {
-        text = lit(" Barriers, ");
+        text = lit(" ) Barriers ( ");
         p.drawText(highlightLabel, text, to);
         highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
 
@@ -737,7 +737,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
         highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
       }
 
-      text = lit(" and Clears ");
+      text = lit(" ), and Clears ( ");
       p.drawText(highlightLabel, text, to);
       highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
 
@@ -745,6 +745,9 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       p.fillPath(path, colors[ClearUsage]);
       p.drawPath(path);
       highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
+
+      text = lit(" )");
+      p.drawText(highlightLabel, text, to);
     }
 
     PipRanges pipranges[UsageCount];
