@@ -2168,6 +2168,11 @@ string SPVModule::Disassemble(const string &entryPoint)
 
   retDisasm = StringFormat::Fmt("SPIR-V %u.%u:\n\n", moduleVersion.major, moduleVersion.minor);
 
+  if(moduleVersion.major != 1 || moduleVersion.minor != 0)
+  {
+    return retDisasm + "Unsupported version";
+  }
+
   GeneratorID *gen = NULL;
 
   uint32_t toolid = (generator & 0xffff0000) >> 16;
@@ -4565,15 +4570,15 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
   uint32_t packedVersion = spirv[1];
 
+  // Bytes: 0 | major | minor | 0
+  module.moduleVersion.major = uint8_t((packedVersion & 0x00ff0000) >> 16);
+  module.moduleVersion.minor = uint8_t((packedVersion & 0x0000ff00) >> 8);
+
   if(packedVersion != spv::Version)
   {
     RDCERR("Unsupported SPIR-V version: %08x", spirv[1]);
     return;
   }
-
-  // Bytes: 0 | major | minor | 0
-  module.moduleVersion.major = uint8_t((packedVersion & 0x00ff0000) >> 16);
-  module.moduleVersion.minor = uint8_t((packedVersion & 0x0000ff00) >> 8);
 
   module.spirv.assign(spirv, spirv + spirvLength);
 
