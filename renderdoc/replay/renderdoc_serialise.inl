@@ -321,11 +321,12 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
   SERIALISE_MEMBER(columns);
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
+
   SERIALISE_MEMBER(displayAsHex);
+  SERIALISE_MEMBER(isStruct);
+  SERIALISE_MEMBER(rowMajor);
 
   SERIALISE_MEMBER(value.u64v);
-
-  SERIALISE_MEMBER(isStruct);
 
   SERIALISE_MEMBER(members);
 

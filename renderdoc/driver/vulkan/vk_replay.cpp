@@ -1414,6 +1414,7 @@ void VulkanReplay::FillCBufferVariables(rdcarray<ShaderConstant> invars,
       var.name = basename;
       var.rows = var.columns = 0;
       var.type = VarType::Float;
+      var.rowMajor = rowMajor;
 
       vector<ShaderVariable> varmembers;
 
@@ -1425,6 +1426,7 @@ void VulkanReplay::FillCBufferVariables(rdcarray<ShaderConstant> invars,
           vr.name = StringFormat::Fmt("%s[%u]", basename.c_str(), i);
           vr.rows = vr.columns = 0;
           vr.type = VarType::Float;
+          vr.rowMajor = rowMajor;
 
           vector<ShaderVariable> mems;
 
@@ -1465,6 +1467,7 @@ void VulkanReplay::FillCBufferVariables(rdcarray<ShaderConstant> invars,
       outvars[outIdx].type = invars[v].type.descriptor.type;
       outvars[outIdx].isStruct = false;
       outvars[outIdx].columns = cols;
+      outvars[outIdx].rowMajor = rowMajor;
 
       size_t elemByteSize = 4;
       if(outvars[outIdx].type == VarType::Double)
@@ -1541,6 +1544,7 @@ void VulkanReplay::FillCBufferVariables(rdcarray<ShaderConstant> invars,
           varmembers[e].type = invars[v].type.descriptor.type;
           varmembers[e].isStruct = false;
           varmembers[e].columns = cols;
+          varmembers[e].rowMajor = rowMajor;
 
           size_t rowDataOffset = dataOffset;
 

@@ -281,7 +281,7 @@ bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
 
     // different size or type? can't update
     if(a.rows != b.rows || a.columns != b.columns || a.displayAsHex != b.displayAsHex ||
-       a.isStruct != b.isStruct || a.type != b.type)
+       a.isStruct != b.isStruct || a.rowMajor != b.rowMajor || a.type != b.type)
       return false;
 
     // update this node's value column

@@ -1748,9 +1748,8 @@ void GLReplay::SavePipelineState()
   pipe.hints.polySmoothingEnabled = rs.Enabled[GLRenderState::eEnabled_PolySmooth];
 }
 
-void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
-                                uint32_t offs, uint32_t matStride, const bytebuf &data,
-                                ShaderVariable &outVar)
+void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, uint32_t offs,
+                                uint32_t matStride, const bytebuf &data, ShaderVariable &outVar)
 {
   const byte *bufdata = data.empty() ? NULL : &data[offs];
   size_t datasize = data.size() - offs;
@@ -1768,7 +1767,7 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
       uint32_t majorsize = outVar.columns;
       uint32_t minorsize = outVar.rows;
 
-      if(rowMajor)
+      if(outVar.rowMajor)
       {
         majorsize = outVar.rows;
         minorsize = outVar.columns;
@@ -1803,7 +1802,7 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
     }
   }
 
-  if(!rowMajor)
+  if(!outVar.rowMajor)
   {
     if(outVar.type != VarType::Double)
     {
@@ -1839,6 +1838,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
     var.rows = desc.rows;
     var.columns = desc.columns;
     var.type = desc.type;
+    var.rowMajor = desc.rowMajorStorage;
 
     if(!variables[i].type.members.empty())
     {
@@ -1902,8 +1902,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 
         if(desc.elements == 0)
         {
-          FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false, values[0],
-                           values[1], data, var);
+          FillCBufferValue(gl, prog, bufferBacked, values[0], values[1], data, var);
         }
         else
         {
@@ -1913,8 +1912,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
             ShaderVariable el = var;
             el.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
 
-            FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
-                             values[0] + values[2] * a, values[1], data, el);
+            FillCBufferValue(gl, prog, bufferBacked, values[0] + values[2] * a, values[1], data, el);
 
             el.isStruct = false;
 

@@ -485,6 +485,7 @@ void D3D12DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
       var.name = basename;
       var.rows = var.columns = 0;
       var.type = VarType::Float;
+      var.rowMajor = false;
 
       std::vector<ShaderVariable> varmembers;
 
@@ -505,6 +506,7 @@ void D3D12DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
             vr.name = basename + buf;
             vr.rows = vr.columns = 0;
             vr.type = VarType::Float;
+            vr.rowMajor = false;
 
             std::vector<ShaderVariable> mems;
 
@@ -621,6 +623,7 @@ void D3D12DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
       outvars[outIdx].type = type;
       outvars[outIdx].isStruct = false;
       outvars[outIdx].columns = cols;
+      outvars[outIdx].rowMajor = !columnMajor;
 
       ShaderVariable &var = outvars[outIdx];
 
@@ -732,6 +735,7 @@ void D3D12DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
           (*out)[outIdx + r].type = type;
           (*out)[outIdx + r].isStruct = false;
           (*out)[outIdx + r].columns = regLen;
+          (*out)[outIdx + r].rowMajor = !columnMajor;
 
           size_t totalSize = 0;
 

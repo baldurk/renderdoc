@@ -237,9 +237,8 @@ public:
 
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
 private:
-  void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
-                        uint32_t offs, uint32_t matStride, const bytebuf &data,
-                        ShaderVariable &outVar);
+  void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, uint32_t offs,
+                        uint32_t matStride, const bytebuf &data, ShaderVariable &outVar);
   void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, std::string prefix,
                             const rdcarray<ShaderConstant> &variables,
                             std::vector<ShaderVariable> &outvars, const bytebuf &data);

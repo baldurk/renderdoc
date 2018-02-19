@@ -840,7 +840,12 @@ QString TypeString(const ShaderVariable &v)
   if(v.rows == 1)
     return QFormatStr("%1%2").arg(typeStr).arg(v.columns);
   else
-    return QFormatStr("%1%2x%3").arg(typeStr).arg(v.rows).arg(v.columns);
+    return QFormatStr("%1%2x%3 (%4)")
+        .arg(typeStr)
+        .arg(v.rows)
+        .arg(v.columns)
+        .arg(v.rowMajor ? QApplication::tr("row major", "FormatElement")
+                        : QApplication::tr("column major", "FormatElement"));
 }
 
 template <typename el>
