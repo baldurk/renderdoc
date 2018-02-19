@@ -57,14 +57,20 @@ private:
   Q_OBJECT
 
   int m_TooltipMargin = 0;
+  QWidget *mouseListener;
 
 public:
-  explicit RDTipLabel();
+  explicit RDTipLabel(QWidget *listener = NULL);
 
   int tipMargin() { return m_TooltipMargin; }
 protected:
   void paintEvent(QPaintEvent *);
+  void mousePressEvent(QMouseEvent *);
+  void mouseReleaseEvent(QMouseEvent *);
+  void mouseDoubleClickEvent(QMouseEvent *);
   void resizeEvent(QResizeEvent *);
+
+  void sendListenerEvent(QMouseEvent *e);
 };
 
 class RDTreeView : public QTreeView

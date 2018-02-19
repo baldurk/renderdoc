@@ -67,7 +67,7 @@ void RDTreeViewDelegate::initStyleOption(QStyleOptionViewItem *option, const QMo
   }
 }
 
-RDTipLabel::RDTipLabel() : QLabel(NULL)
+RDTipLabel::RDTipLabel(QWidget *listener) : QLabel(NULL), mouseListener(listener)
 {
   int margin = style()->pixelMetric(QStyle::PM_ToolTipLabelFrameWidth, NULL, this);
   int opacity = style()->styleHint(QStyle::SH_ToolTipLabel_Opacity, NULL, this);
@@ -94,6 +94,32 @@ void RDTipLabel::paintEvent(QPaintEvent *ev)
   QLabel::paintEvent(ev);
 }
 
+void RDTipLabel::mousePressEvent(QMouseEvent *e)
+{
+  if(mouseListener)
+    sendListenerEvent(e);
+}
+
+void RDTipLabel::sendListenerEvent(QMouseEvent *e)
+{
+  QMouseEvent *duplicate =
+      new QMouseEvent(e->type(), mouseListener->mapFromGlobal(e->globalPos()), e->windowPos(),
+                      e->globalPos(), e->button(), e->buttons(), e->modifiers(), e->source());
+  QCoreApplication::postEvent(mouseListener, duplicate);
+}
+
+void RDTipLabel::mouseReleaseEvent(QMouseEvent *e)
+{
+  if(mouseListener)
+    sendListenerEvent(e);
+}
+
+void RDTipLabel::mouseDoubleClickEvent(QMouseEvent *e)
+{
+  if(mouseListener)
+    sendListenerEvent(e);
+}
+
 void RDTipLabel::resizeEvent(QResizeEvent *e)
 {
   QStyleHintReturnMask frameMask;
@@ -112,7 +138,7 @@ RDTreeView::RDTreeView(QWidget *parent) : QTreeView(parent)
   m_delegate = new RDTreeViewDelegate(this);
   QTreeView::setItemDelegate(m_delegate);
 
-  m_ElidedTooltip = new RDTipLabel();
+  m_ElidedTooltip = new RDTipLabel(viewport());
   m_ElidedTooltip->hide();
 }
 
