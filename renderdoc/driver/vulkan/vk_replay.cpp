@@ -1489,12 +1489,12 @@ void VulkanReplay::FillCBufferVariables(rdcarray<ShaderConstant> invars,
           {
             uint32_t tmp[16] = {0};
 
-            for(uint32_t r = 0; r < rows; r++)
+            for(uint32_t c = 0; c < cols; c++)
             {
-              size_t srcoffs = 4 * elemByteSize * r;
-              size_t dstoffs = cols * elemByteSize * r;
+              size_t srcoffs = 4 * elemByteSize * c;
+              size_t dstoffs = rows * elemByteSize * c;
               memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
-                     RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * cols));
+                     RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * rows));
             }
 
             // transpose

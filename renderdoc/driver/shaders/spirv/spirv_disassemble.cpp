@@ -536,7 +536,7 @@ struct SPVTypeData
       }
       else if(type == eMatrix)
       {
-        name = StringFormat::Fmt("%s%ux%u", baseType->GetName().c_str(), vectorSize, matrixSize);
+        name = StringFormat::Fmt("%s%ux%u", baseType->GetName().c_str(), matrixSize, vectorSize);
       }
       else if(type == ePointer)
       {
@@ -3512,7 +3512,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     else
       RDCERR("Unexpected base type of constant variable %u", type->baseType->type);
 
-    outConst.type.descriptor.rowMajorStorage = false;
+    outConst.type.descriptor.rowMajorStorage = (type->type == SPVTypeData::eVector);
 
     for(size_t d = 0; d < decorations.size(); d++)
     {
