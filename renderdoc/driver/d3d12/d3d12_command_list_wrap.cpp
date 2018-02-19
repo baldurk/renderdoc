@@ -224,8 +224,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       if(rerecord)
       {
         ID3D12GraphicsCommandList *list = NULL;
-        HRESULT hr = m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid,
-                                                  (void **)&list);
+        HRESULT hr =
+            m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
+                                         __uuidof(ID3D12GraphicsCommandList), (void **)&list);
 
         if(FAILED(hr))
         {
@@ -270,7 +271,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       if(!GetResourceManager()->HasLiveResource(BakedCommandList))
       {
         ID3D12GraphicsCommandList *list = NULL;
-        m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid, (void **)&list);
+        m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
+                                     __uuidof(ID3D12GraphicsCommandList), (void **)&list);
 
         m_pDevice->AddResource(BakedCommandList, ResourceType::CommandBuffer, "Baked Command List");
         m_pDevice->GetReplay()->GetResourceDesc(BakedCommandList).initialisationChunks.clear();
@@ -309,9 +311,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
           }
 
           ID3D12GraphicsCommandList *list = NULL;
-          m_pDevice->CreateCommandList(nodeMask, type,
-                                       m_Cmd->m_CrackedAllocators[GetResID(pAllocator)],
-                                       pInitialState, riid, (void **)&list);
+          m_pDevice->CreateCommandList(
+              nodeMask, type, m_Cmd->m_CrackedAllocators[GetResID(pAllocator)], pInitialState,
+              __uuidof(ID3D12GraphicsCommandList), (void **)&list);
 
           RDCASSERT(m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.empty());
           m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.push_back(list);

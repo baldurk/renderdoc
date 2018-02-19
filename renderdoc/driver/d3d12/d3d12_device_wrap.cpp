@@ -234,8 +234,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
   if(IsReplayingAndReading())
   {
     ID3D12GraphicsCommandList *list = NULL;
-    HRESULT hr =
-        CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState, guid, (void **)&list);
+    HRESULT hr = CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState,
+                                   __uuidof(ID3D12GraphicsCommandList), (void **)&list);
 
     if(FAILED(hr))
     {
@@ -268,13 +268,14 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     return m_pDevice->CreateCommandList(nodeMask, type, Unwrap(pCommandAllocator),
                                         Unwrap(pInitialState), riid, NULL);
 
-  if(riid != __uuidof(ID3D12GraphicsCommandList))
+  if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList))
     return E_NOINTERFACE;
 
   ID3D12GraphicsCommandList *real = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice->CreateCommandList(nodeMask, type, Unwrap(pCommandAllocator),
-                                                         Unwrap(pInitialState), riid, (void **)&real));
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateCommandList(
+                          nodeMask, type, Unwrap(pCommandAllocator), Unwrap(pInitialState),
+                          __uuidof(ID3D12GraphicsCommandList), (void **)&real));
 
   if(SUCCEEDED(ret))
   {
@@ -315,7 +316,12 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     // during replay, the caller is responsible for calling AddLiveResource as this function
     // can be called from ID3D12GraphicsCommandList::Reset serialising
 
-    *ppCommandList = (ID3D12GraphicsCommandList *)wrapped;
+    if(riid == __uuidof(ID3D12GraphicsCommandList))
+      *ppCommandList = (ID3D12GraphicsCommandList *)wrapped;
+    else if(riid == __uuidof(ID3D12CommandList))
+      *ppCommandList = (ID3D12CommandList *)wrapped;
+    else
+      RDCERR("Unexpected riid! %s", ToStr(riid).c_str());
   }
 
   return ret;
