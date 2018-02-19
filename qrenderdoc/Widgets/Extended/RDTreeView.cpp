@@ -263,26 +263,29 @@ void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
     for(int i = 0, count = model()->columnCount(); i < count; i++)
     {
       QRect r = visualRect(model()->index(index.row(), i, index.parent()));
+
+      if(r.width() <= 0)
+        r.moveLeft(r.left() + r.width());
+      if(r.height() <= 0)
+        r.moveTop(r.top() + r.height());
+
       r = r.intersected(intersectrect);
 
-      // draw bottom and right of the rect
-      if(r.width() > 0 && r.height() > 0)
+      if(treePosition() == i)
       {
-        if(treePosition() == i)
+        int depth = 1;
+        QModelIndex idx = index;
+        while(idx.parent().isValid())
         {
-          int depth = 1;
-          QModelIndex idx = index;
-          while(idx.parent().isValid())
-          {
-            depth++;
-            idx = idx.parent();
-          }
-          r.setLeft(r.left() - indentation() * depth);
+          depth++;
+          idx = idx.parent();
         }
-
-        painter->drawLine(r.bottomLeft(), r.bottomRight());
-        painter->drawLine(r.topRight(), r.bottomRight());
+        r.setLeft(r.left() - indentation() * depth);
       }
+
+      // draw bottom and right of the rect
+      painter->drawLine(r.bottomLeft(), r.bottomRight());
+      painter->drawLine(r.topRight(), r.bottomRight());
     }
 
     painter->setPen(p);
@@ -331,7 +334,7 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
   else
   {
     // draw only the expand item, not the branches
-    QRect primitive(0, rect.top(), indentation(), rect.height());
+    QRect primitive(0, rect.top(), qMin(rect.width(), indentation()), rect.height());
 
     // if root isn't decorated, skip
     if(!rootIsDecorated() && !index.parent().isValid())
