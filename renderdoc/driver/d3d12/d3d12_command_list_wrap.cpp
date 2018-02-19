@@ -443,18 +443,40 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
           // unwrap it
           D3D12_RESOURCE_BARRIER &b = filtered.back();
 
+          ID3D12Resource *res1 = NULL, *res2 = NULL;
+
           if(b.Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
           {
+            res1 = b.Transition.pResource;
             b.Transition.pResource = Unwrap(b.Transition.pResource);
           }
           else if(b.Type == D3D12_RESOURCE_BARRIER_TYPE_ALIASING)
           {
+            res1 = b.Aliasing.pResourceBefore;
+            res2 = b.Aliasing.pResourceAfter;
             b.Aliasing.pResourceBefore = Unwrap(b.Aliasing.pResourceBefore);
             b.Aliasing.pResourceAfter = Unwrap(b.Aliasing.pResourceAfter);
           }
           else if(b.Type == D3D12_RESOURCE_BARRIER_TYPE_UAV)
           {
+            res1 = b.UAV.pResource;
             b.UAV.pResource = Unwrap(b.UAV.pResource);
+          }
+
+          if(IsLoading(m_State) && (res1 || res2))
+          {
+            BakedCmdListInfo &cmdinfo = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID];
+
+            if(res1)
+            {
+              cmdinfo.resourceUsage.push_back(std::make_pair(
+                  GetResID(res1), EventUsage(cmdinfo.curEventID, ResourceUsage::Barrier)));
+            }
+            if(res2)
+            {
+              cmdinfo.resourceUsage.push_back(std::make_pair(
+                  GetResID(res2), EventUsage(cmdinfo.curEventID, ResourceUsage::Barrier)));
+            }
           }
         }
       }
