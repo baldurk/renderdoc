@@ -903,11 +903,11 @@ QString VarString(const ShaderVariable &v)
   for(int i = 0; i < (int)v.rows; i++)
   {
     if(i > 0)
-      ret += lit(", ");
+      ret += lit("\n");
     ret += lit("{") + RowString(v, i) + lit("}");
   }
 
-  return lit("{ ") + ret + lit(" }");
+  return ret;
 }
 
 QString RowTypeString(const ShaderVariable &v)

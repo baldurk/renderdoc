@@ -211,6 +211,9 @@
          <property name="selectionMode">
           <enum>QAbstractItemView::ContiguousSelection</enum>
          </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
          <property name="allColumnsShowFocus">
           <bool>true</bool>
          </property>
