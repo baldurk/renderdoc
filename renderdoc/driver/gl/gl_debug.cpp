@@ -1430,9 +1430,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
   gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, sizeof(uint32_t) * 4, &reset);
 
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 1, DebugData.pickVBBuf);
-  gl.glBindBufferRange(
-      eGL_SHADER_STORAGE_BUFFER, 2, DebugData.pickIBBuf, (GLintptr)cfg.position.indexByteOffset,
-      (GLsizeiptr)(cfg.position.indexByteOffset + sizeof(uint32_t) * cfg.position.numIndices));
+  gl.glBindBufferRange(eGL_SHADER_STORAGE_BUFFER, 2, DebugData.pickIBBuf, (GLintptr)0,
+                       (GLsizeiptr)(sizeof(uint32_t) * cfg.position.numIndices));
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 3, DebugData.pickResultBuf);
 
   gl.glDispatchCompute(GLuint((cfg.position.numIndices) / 128 + 1), 1, 1);
