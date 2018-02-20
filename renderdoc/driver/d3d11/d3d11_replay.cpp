@@ -650,6 +650,10 @@ void D3D11Replay::SavePipelineState()
         refl = &shad->GetDetails();
         dst.bindpointMapping = shad->GetMapping();
       }
+      else
+      {
+        dst.bindpointMapping = ShaderBindpointMapping();
+      }
 
       dst.resourceId = rm->GetOriginalID(id);
       dst.reflection = refl;

@@ -791,556 +791,547 @@ void VulkanReplay::FileChanged()
 
 void VulkanReplay::SavePipelineState()
 {
+  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  m_VulkanPipelineState = VKPipe::State();
+
+  // General pipeline properties
+  m_VulkanPipelineState.compute.pipelineResourceId = rm->GetOriginalID(state.compute.pipeline);
+  m_VulkanPipelineState.graphics.pipelineResourceId = rm->GetOriginalID(state.graphics.pipeline);
+
+  if(state.compute.pipeline != ResourceId())
   {
-    const VulkanRenderState &state = m_pDriver->m_RenderState;
-    VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+    const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
 
-    VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+    m_VulkanPipelineState.compute.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
 
-    m_VulkanPipelineState = VKPipe::State();
+    m_VulkanPipelineState.compute.flags = p.flags;
 
-    // General pipeline properties
-    m_VulkanPipelineState.compute.pipelineResourceId = rm->GetOriginalID(state.compute.pipeline);
-    m_VulkanPipelineState.graphics.pipelineResourceId = rm->GetOriginalID(state.graphics.pipeline);
+    VKPipe::Shader &stage = m_VulkanPipelineState.computeShader;
 
-    if(state.compute.pipeline != ResourceId())
+    int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
     {
-      const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
+      stage.resourceId = rm->GetOriginalID(p.shaders[i].module);
+      stage.entryPoint = p.shaders[i].entryPoint;
 
-      m_VulkanPipelineState.compute.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
+      stage.stage = ShaderStage::Compute;
+      if(p.shaders[i].mapping)
+        stage.bindpointMapping = *p.shaders[i].mapping;
+      if(p.shaders[i].refl)
+        stage.reflection = p.shaders[i].refl;
 
-      m_VulkanPipelineState.compute.flags = p.flags;
-
-      VKPipe::Shader &stage = m_VulkanPipelineState.computeShader;
-
-      int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
+      stage.specialization.resize(p.shaders[i].specialization.size());
+      for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
       {
-        stage.resourceId = rm->GetOriginalID(p.shaders[i].module);
-        stage.entryPoint = p.shaders[i].entryPoint;
+        stage.specialization[s].specializationId = p.shaders[i].specialization[s].specID;
+        stage.specialization[s].data.assign(p.shaders[i].specialization[s].data,
+                                            p.shaders[i].specialization[s].size);
+      }
+    }
+  }
+  else
+  {
+    m_VulkanPipelineState.compute.pipelineLayoutResourceId = ResourceId();
+    m_VulkanPipelineState.compute.flags = 0;
+    m_VulkanPipelineState.computeShader = VKPipe::Shader();
+  }
 
-        stage.stage = ShaderStage::Compute;
-        if(p.shaders[i].mapping)
-          stage.bindpointMapping = *p.shaders[i].mapping;
-        if(p.shaders[i].refl)
-          stage.reflection = p.shaders[i].refl;
+  if(state.graphics.pipeline != ResourceId())
+  {
+    const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
-        stage.specialization.resize(p.shaders[i].specialization.size());
-        for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
-        {
-          stage.specialization[s].specializationId = p.shaders[i].specialization[s].specID;
-          stage.specialization[s].data.assign(p.shaders[i].specialization[s].data,
-                                              p.shaders[i].specialization[s].size);
-        }
+    m_VulkanPipelineState.graphics.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
+
+    m_VulkanPipelineState.graphics.flags = p.flags;
+
+    // Input Assembly
+    m_VulkanPipelineState.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
+    m_VulkanPipelineState.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
+    m_VulkanPipelineState.inputAssembly.primitiveRestartEnable = p.primitiveRestartEnable;
+
+    // Vertex Input
+    m_VulkanPipelineState.vertexInput.attributes.resize(p.vertexAttrs.size());
+    for(size_t i = 0; i < p.vertexAttrs.size(); i++)
+    {
+      m_VulkanPipelineState.vertexInput.attributes[i].location = p.vertexAttrs[i].location;
+      m_VulkanPipelineState.vertexInput.attributes[i].binding = p.vertexAttrs[i].binding;
+      m_VulkanPipelineState.vertexInput.attributes[i].byteOffset = p.vertexAttrs[i].byteoffset;
+      m_VulkanPipelineState.vertexInput.attributes[i].format =
+          MakeResourceFormat(p.vertexAttrs[i].format);
+    }
+
+    m_VulkanPipelineState.vertexInput.bindings.resize(p.vertexBindings.size());
+    for(size_t i = 0; i < p.vertexBindings.size(); i++)
+    {
+      m_VulkanPipelineState.vertexInput.bindings[i].byteStride = p.vertexBindings[i].bytestride;
+      m_VulkanPipelineState.vertexInput.bindings[i].vertexBufferBinding =
+          p.vertexBindings[i].vbufferBinding;
+      m_VulkanPipelineState.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
+    }
+
+    m_VulkanPipelineState.vertexInput.vertexBuffers.resize(state.vbuffers.size());
+    for(size_t i = 0; i < state.vbuffers.size(); i++)
+    {
+      m_VulkanPipelineState.vertexInput.vertexBuffers[i].resourceId =
+          rm->GetOriginalID(state.vbuffers[i].buf);
+      m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteOffset = state.vbuffers[i].offs;
+    }
+
+    // Shader Stages
+    VKPipe::Shader *stages[] = {
+        &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
+        &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
+        &m_VulkanPipelineState.fragmentShader,
+    };
+
+    for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
+    {
+      stages[i]->resourceId = rm->GetOriginalID(p.shaders[i].module);
+      stages[i]->entryPoint = p.shaders[i].entryPoint;
+
+      stages[i]->stage = StageFromIndex(i);
+      if(p.shaders[i].mapping)
+        stages[i]->bindpointMapping = *p.shaders[i].mapping;
+      if(p.shaders[i].refl)
+        stages[i]->reflection = p.shaders[i].refl;
+
+      stages[i]->specialization.resize(p.shaders[i].specialization.size());
+      for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
+      {
+        stages[i]->specialization[s].specializationId = p.shaders[i].specialization[s].specID;
+        stages[i]->specialization[s].data.assign(p.shaders[i].specialization[s].data,
+                                                 p.shaders[i].specialization[s].size);
       }
     }
 
-    if(state.graphics.pipeline != ResourceId())
+    // Tessellation
+    m_VulkanPipelineState.tessellation.numControlPoints = p.patchControlPoints;
+
+    // Viewport/Scissors
+    size_t numViewScissors = p.viewportCount;
+    m_VulkanPipelineState.viewportScissor.viewportScissors.resize(numViewScissors);
+    for(size_t i = 0; i < numViewScissors; i++)
     {
-      const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
-
-      m_VulkanPipelineState.graphics.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
-
-      m_VulkanPipelineState.graphics.flags = p.flags;
-
-      // Input Assembly
-      m_VulkanPipelineState.inputAssembly.indexBuffer.resourceId =
-          rm->GetOriginalID(state.ibuffer.buf);
-      m_VulkanPipelineState.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
-      m_VulkanPipelineState.inputAssembly.primitiveRestartEnable = p.primitiveRestartEnable;
-
-      // Vertex Input
-      m_VulkanPipelineState.vertexInput.attributes.resize(p.vertexAttrs.size());
-      for(size_t i = 0; i < p.vertexAttrs.size(); i++)
+      if(i < state.views.size())
       {
-        m_VulkanPipelineState.vertexInput.attributes[i].location = p.vertexAttrs[i].location;
-        m_VulkanPipelineState.vertexInput.attributes[i].binding = p.vertexAttrs[i].binding;
-        m_VulkanPipelineState.vertexInput.attributes[i].byteOffset = p.vertexAttrs[i].byteoffset;
-        m_VulkanPipelineState.vertexInput.attributes[i].format =
-            MakeResourceFormat(p.vertexAttrs[i].format);
-      }
-
-      m_VulkanPipelineState.vertexInput.bindings.resize(p.vertexBindings.size());
-      for(size_t i = 0; i < p.vertexBindings.size(); i++)
-      {
-        m_VulkanPipelineState.vertexInput.bindings[i].byteStride = p.vertexBindings[i].bytestride;
-        m_VulkanPipelineState.vertexInput.bindings[i].vertexBufferBinding =
-            p.vertexBindings[i].vbufferBinding;
-        m_VulkanPipelineState.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
-      }
-
-      m_VulkanPipelineState.vertexInput.vertexBuffers.resize(state.vbuffers.size());
-      for(size_t i = 0; i < state.vbuffers.size(); i++)
-      {
-        m_VulkanPipelineState.vertexInput.vertexBuffers[i].resourceId =
-            rm->GetOriginalID(state.vbuffers[i].buf);
-        m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteOffset = state.vbuffers[i].offs;
-      }
-
-      // Shader Stages
-      VKPipe::Shader *stages[] = {
-          &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
-          &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
-          &m_VulkanPipelineState.fragmentShader,
-      };
-
-      for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
-      {
-        stages[i]->resourceId = rm->GetOriginalID(p.shaders[i].module);
-        stages[i]->entryPoint = p.shaders[i].entryPoint;
-
-        stages[i]->stage = StageFromIndex(i);
-        if(p.shaders[i].mapping)
-          stages[i]->bindpointMapping = *p.shaders[i].mapping;
-        if(p.shaders[i].refl)
-          stages[i]->reflection = p.shaders[i].refl;
-
-        stages[i]->specialization.resize(p.shaders[i].specialization.size());
-        for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
-        {
-          stages[i]->specialization[s].specializationId = p.shaders[i].specialization[s].specID;
-          stages[i]->specialization[s].data.assign(p.shaders[i].specialization[s].data,
-                                                   p.shaders[i].specialization[s].size);
-        }
-      }
-
-      // Tessellation
-      m_VulkanPipelineState.tessellation.numControlPoints = p.patchControlPoints;
-
-      // Viewport/Scissors
-      size_t numViewScissors = p.viewportCount;
-      m_VulkanPipelineState.viewportScissor.viewportScissors.resize(numViewScissors);
-      for(size_t i = 0; i < numViewScissors; i++)
-      {
-        if(i < state.views.size())
-        {
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.x = state.views[i].x;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.y = state.views[i].y;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.width = state.views[i].width;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.height = state.views[i].height;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.minDepth =
-              state.views[i].minDepth;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.maxDepth =
-              state.views[i].maxDepth;
-        }
-        else
-        {
-          RDCEraseEl(m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp);
-        }
-
-        if(i < state.scissors.size())
-        {
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.x =
-              state.scissors[i].offset.x;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.y =
-              state.scissors[i].offset.y;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.width =
-              state.scissors[i].extent.width;
-          m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.height =
-              state.scissors[i].extent.height;
-        }
-        else
-        {
-          RDCEraseEl(m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor);
-        }
-      }
-
-      // Rasterizer
-      m_VulkanPipelineState.rasterizer.depthClampEnable = p.depthClampEnable;
-      m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
-      m_VulkanPipelineState.rasterizer.frontCCW = p.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-      switch(p.polygonMode)
-      {
-        case VK_POLYGON_MODE_POINT:
-          m_VulkanPipelineState.rasterizer.fillMode = FillMode::Point;
-          break;
-        case VK_POLYGON_MODE_LINE:
-          m_VulkanPipelineState.rasterizer.fillMode = FillMode::Wireframe;
-          break;
-        case VK_POLYGON_MODE_FILL:
-          m_VulkanPipelineState.rasterizer.fillMode = FillMode::Solid;
-          break;
-        default:
-          m_VulkanPipelineState.rasterizer.fillMode = FillMode::Solid;
-          RDCERR("Unexpected value for FillMode %x", p.polygonMode);
-          break;
-      }
-
-      switch(p.cullMode)
-      {
-        case VK_CULL_MODE_NONE: m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull; break;
-        case VK_CULL_MODE_FRONT_BIT:
-          m_VulkanPipelineState.rasterizer.cullMode = CullMode::Front;
-          break;
-        case VK_CULL_MODE_BACK_BIT:
-          m_VulkanPipelineState.rasterizer.cullMode = CullMode::Back;
-          break;
-        case VK_CULL_MODE_FRONT_AND_BACK:
-          m_VulkanPipelineState.rasterizer.cullMode = CullMode::FrontAndBack;
-          break;
-        default:
-          m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull;
-          RDCERR("Unexpected value for CullMode %x", p.cullMode);
-          break;
-      }
-
-      m_VulkanPipelineState.rasterizer.depthBias = state.bias.depth;
-      m_VulkanPipelineState.rasterizer.depthBiasClamp = state.bias.biasclamp;
-      m_VulkanPipelineState.rasterizer.slopeScaledDepthBias = state.bias.slope;
-      m_VulkanPipelineState.rasterizer.lineWidth = state.lineWidth;
-
-      // MSAA
-      m_VulkanPipelineState.multisample.rasterSamples = p.rasterizationSamples;
-      m_VulkanPipelineState.multisample.sampleShadingEnable = p.sampleShadingEnable;
-      m_VulkanPipelineState.multisample.minSampleShading = p.minSampleShading;
-      m_VulkanPipelineState.multisample.sampleMask = p.sampleMask;
-
-      // Color Blend
-      m_VulkanPipelineState.colorBlend.alphaToCoverageEnable = p.alphaToCoverageEnable;
-      m_VulkanPipelineState.colorBlend.alphaToOneEnable = p.alphaToOneEnable;
-
-      m_VulkanPipelineState.colorBlend.blends.resize(p.attachments.size());
-      for(size_t i = 0; i < p.attachments.size(); i++)
-      {
-        m_VulkanPipelineState.colorBlend.blends[i].enabled = p.attachments[i].blendEnable;
-
-        // due to shared structs, this is slightly duplicated - Vulkan doesn't have separate states
-        // for logic operations
-        m_VulkanPipelineState.colorBlend.blends[i].logicOperationEnabled = p.logicOpEnable;
-        m_VulkanPipelineState.colorBlend.blends[i].logicOperation = MakeLogicOp(p.logicOp);
-
-        m_VulkanPipelineState.colorBlend.blends[i].colorBlend.source =
-            MakeBlendMultiplier(p.attachments[i].blend.Source);
-        m_VulkanPipelineState.colorBlend.blends[i].colorBlend.destination =
-            MakeBlendMultiplier(p.attachments[i].blend.Destination);
-        m_VulkanPipelineState.colorBlend.blends[i].colorBlend.operation =
-            MakeBlendOp(p.attachments[i].blend.Operation);
-
-        m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.source =
-            MakeBlendMultiplier(p.attachments[i].alphaBlend.Source);
-        m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.destination =
-            MakeBlendMultiplier(p.attachments[i].alphaBlend.Destination);
-        m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.operation =
-            MakeBlendOp(p.attachments[i].alphaBlend.Operation);
-
-        m_VulkanPipelineState.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
-      }
-
-      memcpy(m_VulkanPipelineState.colorBlend.blendFactor, state.blendConst, sizeof(float) * 4);
-
-      // Depth Stencil
-      m_VulkanPipelineState.depthStencil.depthTestEnable = p.depthTestEnable;
-      m_VulkanPipelineState.depthStencil.depthWriteEnable = p.depthWriteEnable;
-      m_VulkanPipelineState.depthStencil.depthBoundsEnable = p.depthBoundsEnable;
-      m_VulkanPipelineState.depthStencil.depthFunction = MakeCompareFunc(p.depthCompareOp);
-      m_VulkanPipelineState.depthStencil.stencilTestEnable = p.stencilTestEnable;
-
-      m_VulkanPipelineState.depthStencil.frontFace.passOperation = MakeStencilOp(p.front.passOp);
-      m_VulkanPipelineState.depthStencil.frontFace.failOperation = MakeStencilOp(p.front.failOp);
-      m_VulkanPipelineState.depthStencil.frontFace.depthFailOperation =
-          MakeStencilOp(p.front.depthFailOp);
-      m_VulkanPipelineState.depthStencil.frontFace.function = MakeCompareFunc(p.front.compareOp);
-
-      m_VulkanPipelineState.depthStencil.backFace.passOperation = MakeStencilOp(p.back.passOp);
-      m_VulkanPipelineState.depthStencil.backFace.failOperation = MakeStencilOp(p.back.failOp);
-      m_VulkanPipelineState.depthStencil.backFace.depthFailOperation =
-          MakeStencilOp(p.back.depthFailOp);
-      m_VulkanPipelineState.depthStencil.backFace.function = MakeCompareFunc(p.back.compareOp);
-
-      m_VulkanPipelineState.depthStencil.minDepthBounds = state.mindepth;
-      m_VulkanPipelineState.depthStencil.maxDepthBounds = state.maxdepth;
-
-      m_VulkanPipelineState.depthStencil.frontFace.reference = state.front.ref;
-      m_VulkanPipelineState.depthStencil.frontFace.compareMask = state.front.compare;
-      m_VulkanPipelineState.depthStencil.frontFace.writeMask = state.front.write;
-
-      m_VulkanPipelineState.depthStencil.backFace.reference = state.back.ref;
-      m_VulkanPipelineState.depthStencil.backFace.compareMask = state.back.compare;
-      m_VulkanPipelineState.depthStencil.backFace.writeMask = state.back.write;
-    }
-
-    if(state.renderPass != ResourceId())
-    {
-      // Renderpass
-      m_VulkanPipelineState.currentPass.renderpass.resourceId = rm->GetOriginalID(state.renderPass);
-      m_VulkanPipelineState.currentPass.renderpass.subpass = state.subpass;
-      if(state.renderPass != ResourceId())
-      {
-        m_VulkanPipelineState.currentPass.renderpass.inputAttachments =
-            c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
-        m_VulkanPipelineState.currentPass.renderpass.colorAttachments =
-            c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
-        m_VulkanPipelineState.currentPass.renderpass.resolveAttachments =
-            c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
-        m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment =
-            c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
-      }
-
-      m_VulkanPipelineState.currentPass.framebuffer.resourceId = rm->GetOriginalID(state.framebuffer);
-
-      if(state.framebuffer != ResourceId())
-      {
-        m_VulkanPipelineState.currentPass.framebuffer.width =
-            c.m_Framebuffer[state.framebuffer].width;
-        m_VulkanPipelineState.currentPass.framebuffer.height =
-            c.m_Framebuffer[state.framebuffer].height;
-        m_VulkanPipelineState.currentPass.framebuffer.layers =
-            c.m_Framebuffer[state.framebuffer].layers;
-
-        m_VulkanPipelineState.currentPass.framebuffer.attachments.resize(
-            c.m_Framebuffer[state.framebuffer].attachments.size());
-        for(size_t i = 0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
-        {
-          ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
-
-          if(viewid != ResourceId())
-          {
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewResourceId =
-                rm->GetOriginalID(viewid);
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].imageResourceId =
-                rm->GetOriginalID(c.m_ImageView[viewid].image);
-
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewFormat =
-                MakeResourceFormat(c.m_ImageView[viewid].format);
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstMip =
-                c.m_ImageView[viewid].range.baseMipLevel;
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstSlice =
-                c.m_ImageView[viewid].range.baseArrayLayer;
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numMips =
-                c.m_ImageView[viewid].range.levelCount;
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices =
-                c.m_ImageView[viewid].range.layerCount;
-
-            memcpy(m_VulkanPipelineState.currentPass.framebuffer.attachments[i].swizzle,
-                   c.m_ImageView[viewid].swizzle, sizeof(TextureSwizzle) * 4);
-          }
-          else
-          {
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewResourceId =
-                ResourceId();
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].imageResourceId =
-                ResourceId();
-
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstMip = 0;
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstSlice = 0;
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numMips = 1;
-            m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices = 1;
-          }
-        }
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.x = state.views[i].x;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.y = state.views[i].y;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.width = state.views[i].width;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.height = state.views[i].height;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.minDepth =
+            state.views[i].minDepth;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.maxDepth =
+            state.views[i].maxDepth;
       }
       else
       {
-        m_VulkanPipelineState.currentPass.framebuffer.width = 0;
-        m_VulkanPipelineState.currentPass.framebuffer.height = 0;
-        m_VulkanPipelineState.currentPass.framebuffer.layers = 0;
+        RDCEraseEl(m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp);
       }
 
-      m_VulkanPipelineState.currentPass.renderArea.x = state.renderArea.offset.x;
-      m_VulkanPipelineState.currentPass.renderArea.y = state.renderArea.offset.y;
-      m_VulkanPipelineState.currentPass.renderArea.width = state.renderArea.extent.width;
-      m_VulkanPipelineState.currentPass.renderArea.height = state.renderArea.extent.height;
+      if(i < state.scissors.size())
+      {
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.x =
+            state.scissors[i].offset.x;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.y =
+            state.scissors[i].offset.y;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.width =
+            state.scissors[i].extent.width;
+        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.height =
+            state.scissors[i].extent.height;
+      }
+      else
+      {
+        RDCEraseEl(m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor);
+      }
     }
 
-    // Descriptor sets
-    m_VulkanPipelineState.graphics.descriptorSets.resize(state.graphics.descSets.size());
-    m_VulkanPipelineState.compute.descriptorSets.resize(state.compute.descSets.size());
+    // Rasterizer
+    m_VulkanPipelineState.rasterizer.depthClampEnable = p.depthClampEnable;
+    m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
+    m_VulkanPipelineState.rasterizer.frontCCW = p.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
+    switch(p.polygonMode)
     {
-      rdcarray<VKPipe::DescriptorSet> *dsts[] = {
-          &m_VulkanPipelineState.graphics.descriptorSets,
-          &m_VulkanPipelineState.compute.descriptorSets,
-      };
+      case VK_POLYGON_MODE_POINT:
+        m_VulkanPipelineState.rasterizer.fillMode = FillMode::Point;
+        break;
+      case VK_POLYGON_MODE_LINE:
+        m_VulkanPipelineState.rasterizer.fillMode = FillMode::Wireframe;
+        break;
+      case VK_POLYGON_MODE_FILL: m_VulkanPipelineState.rasterizer.fillMode = FillMode::Solid; break;
+      default:
+        m_VulkanPipelineState.rasterizer.fillMode = FillMode::Solid;
+        RDCERR("Unexpected value for FillMode %x", p.polygonMode);
+        break;
+    }
 
-      const vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> *srcs[] = {
-          &state.graphics.descSets, &state.compute.descSets,
-      };
+    switch(p.cullMode)
+    {
+      case VK_CULL_MODE_NONE: m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull; break;
+      case VK_CULL_MODE_FRONT_BIT:
+        m_VulkanPipelineState.rasterizer.cullMode = CullMode::Front;
+        break;
+      case VK_CULL_MODE_BACK_BIT: m_VulkanPipelineState.rasterizer.cullMode = CullMode::Back; break;
+      case VK_CULL_MODE_FRONT_AND_BACK:
+        m_VulkanPipelineState.rasterizer.cullMode = CullMode::FrontAndBack;
+        break;
+      default:
+        m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull;
+        RDCERR("Unexpected value for CullMode %x", p.cullMode);
+        break;
+    }
 
-      for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
+    m_VulkanPipelineState.rasterizer.depthBias = state.bias.depth;
+    m_VulkanPipelineState.rasterizer.depthBiasClamp = state.bias.biasclamp;
+    m_VulkanPipelineState.rasterizer.slopeScaledDepthBias = state.bias.slope;
+    m_VulkanPipelineState.rasterizer.lineWidth = state.lineWidth;
+
+    // MSAA
+    m_VulkanPipelineState.multisample.rasterSamples = p.rasterizationSamples;
+    m_VulkanPipelineState.multisample.sampleShadingEnable = p.sampleShadingEnable;
+    m_VulkanPipelineState.multisample.minSampleShading = p.minSampleShading;
+    m_VulkanPipelineState.multisample.sampleMask = p.sampleMask;
+
+    // Color Blend
+    m_VulkanPipelineState.colorBlend.alphaToCoverageEnable = p.alphaToCoverageEnable;
+    m_VulkanPipelineState.colorBlend.alphaToOneEnable = p.alphaToOneEnable;
+
+    m_VulkanPipelineState.colorBlend.blends.resize(p.attachments.size());
+    for(size_t i = 0; i < p.attachments.size(); i++)
+    {
+      m_VulkanPipelineState.colorBlend.blends[i].enabled = p.attachments[i].blendEnable;
+
+      // due to shared structs, this is slightly duplicated - Vulkan doesn't have separate states
+      // for logic operations
+      m_VulkanPipelineState.colorBlend.blends[i].logicOperationEnabled = p.logicOpEnable;
+      m_VulkanPipelineState.colorBlend.blends[i].logicOperation = MakeLogicOp(p.logicOp);
+
+      m_VulkanPipelineState.colorBlend.blends[i].colorBlend.source =
+          MakeBlendMultiplier(p.attachments[i].blend.Source);
+      m_VulkanPipelineState.colorBlend.blends[i].colorBlend.destination =
+          MakeBlendMultiplier(p.attachments[i].blend.Destination);
+      m_VulkanPipelineState.colorBlend.blends[i].colorBlend.operation =
+          MakeBlendOp(p.attachments[i].blend.Operation);
+
+      m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.source =
+          MakeBlendMultiplier(p.attachments[i].alphaBlend.Source);
+      m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.destination =
+          MakeBlendMultiplier(p.attachments[i].alphaBlend.Destination);
+      m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.operation =
+          MakeBlendOp(p.attachments[i].alphaBlend.Operation);
+
+      m_VulkanPipelineState.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
+    }
+
+    memcpy(m_VulkanPipelineState.colorBlend.blendFactor, state.blendConst, sizeof(float) * 4);
+
+    // Depth Stencil
+    m_VulkanPipelineState.depthStencil.depthTestEnable = p.depthTestEnable;
+    m_VulkanPipelineState.depthStencil.depthWriteEnable = p.depthWriteEnable;
+    m_VulkanPipelineState.depthStencil.depthBoundsEnable = p.depthBoundsEnable;
+    m_VulkanPipelineState.depthStencil.depthFunction = MakeCompareFunc(p.depthCompareOp);
+    m_VulkanPipelineState.depthStencil.stencilTestEnable = p.stencilTestEnable;
+
+    m_VulkanPipelineState.depthStencil.frontFace.passOperation = MakeStencilOp(p.front.passOp);
+    m_VulkanPipelineState.depthStencil.frontFace.failOperation = MakeStencilOp(p.front.failOp);
+    m_VulkanPipelineState.depthStencil.frontFace.depthFailOperation =
+        MakeStencilOp(p.front.depthFailOp);
+    m_VulkanPipelineState.depthStencil.frontFace.function = MakeCompareFunc(p.front.compareOp);
+
+    m_VulkanPipelineState.depthStencil.backFace.passOperation = MakeStencilOp(p.back.passOp);
+    m_VulkanPipelineState.depthStencil.backFace.failOperation = MakeStencilOp(p.back.failOp);
+    m_VulkanPipelineState.depthStencil.backFace.depthFailOperation =
+        MakeStencilOp(p.back.depthFailOp);
+    m_VulkanPipelineState.depthStencil.backFace.function = MakeCompareFunc(p.back.compareOp);
+
+    m_VulkanPipelineState.depthStencil.minDepthBounds = state.mindepth;
+    m_VulkanPipelineState.depthStencil.maxDepthBounds = state.maxdepth;
+
+    m_VulkanPipelineState.depthStencil.frontFace.reference = state.front.ref;
+    m_VulkanPipelineState.depthStencil.frontFace.compareMask = state.front.compare;
+    m_VulkanPipelineState.depthStencil.frontFace.writeMask = state.front.write;
+
+    m_VulkanPipelineState.depthStencil.backFace.reference = state.back.ref;
+    m_VulkanPipelineState.depthStencil.backFace.compareMask = state.back.compare;
+    m_VulkanPipelineState.depthStencil.backFace.writeMask = state.back.write;
+  }
+  else
+  {
+    m_VulkanPipelineState.graphics.pipelineLayoutResourceId = ResourceId();
+
+    m_VulkanPipelineState.graphics.flags = 0;
+
+    m_VulkanPipelineState.vertexInput.attributes.clear();
+    m_VulkanPipelineState.vertexInput.bindings.clear();
+    m_VulkanPipelineState.vertexInput.vertexBuffers.clear();
+
+    VKPipe::Shader *stages[] = {
+        &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
+        &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
+        &m_VulkanPipelineState.fragmentShader,
+    };
+
+    for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
+      *stages[i] = VKPipe::Shader();
+
+    m_VulkanPipelineState.viewportScissor.viewportScissors.clear();
+    m_VulkanPipelineState.colorBlend.blends.clear();
+  }
+
+  if(state.renderPass != ResourceId())
+  {
+    // Renderpass
+    m_VulkanPipelineState.currentPass.renderpass.resourceId = rm->GetOriginalID(state.renderPass);
+    m_VulkanPipelineState.currentPass.renderpass.subpass = state.subpass;
+    if(state.renderPass != ResourceId())
+    {
+      m_VulkanPipelineState.currentPass.renderpass.inputAttachments =
+          c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
+      m_VulkanPipelineState.currentPass.renderpass.colorAttachments =
+          c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
+      m_VulkanPipelineState.currentPass.renderpass.resolveAttachments =
+          c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
+      m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment =
+          c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+    }
+
+    m_VulkanPipelineState.currentPass.framebuffer.resourceId = rm->GetOriginalID(state.framebuffer);
+
+    if(state.framebuffer != ResourceId())
+    {
+      m_VulkanPipelineState.currentPass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;
+      m_VulkanPipelineState.currentPass.framebuffer.height =
+          c.m_Framebuffer[state.framebuffer].height;
+      m_VulkanPipelineState.currentPass.framebuffer.layers =
+          c.m_Framebuffer[state.framebuffer].layers;
+
+      m_VulkanPipelineState.currentPass.framebuffer.attachments.resize(
+          c.m_Framebuffer[state.framebuffer].attachments.size());
+      for(size_t i = 0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
       {
-        for(size_t i = 0; i < srcs[p]->size(); i++)
+        ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
+
+        if(viewid != ResourceId())
         {
-          ResourceId src = (*srcs[p])[i].descSet;
-          VKPipe::DescriptorSet &dst = (*dsts[p])[i];
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewResourceId =
+              rm->GetOriginalID(viewid);
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].imageResourceId =
+              rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-          ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewFormat =
+              MakeResourceFormat(c.m_ImageView[viewid].format);
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstMip =
+              c.m_ImageView[viewid].range.baseMipLevel;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstSlice =
+              c.m_ImageView[viewid].range.baseArrayLayer;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numMips =
+              c.m_ImageView[viewid].range.levelCount;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices =
+              c.m_ImageView[viewid].range.layerCount;
 
-          dst.descriptorSetResourceId = rm->GetOriginalID(src);
-          dst.layoutResourceId = rm->GetOriginalID(layoutId);
-          dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].currentBindings.size());
-          for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
+          memcpy(m_VulkanPipelineState.currentPass.framebuffer.attachments[i].swizzle,
+                 c.m_ImageView[viewid].swizzle, sizeof(TextureSwizzle) * 4);
+        }
+        else
+        {
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewResourceId = ResourceId();
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].imageResourceId = ResourceId();
+
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstMip = 0;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstSlice = 0;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numMips = 1;
+          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices = 1;
+        }
+      }
+    }
+    else
+    {
+      m_VulkanPipelineState.currentPass.framebuffer.width = 0;
+      m_VulkanPipelineState.currentPass.framebuffer.height = 0;
+      m_VulkanPipelineState.currentPass.framebuffer.layers = 0;
+    }
+
+    m_VulkanPipelineState.currentPass.renderArea.x = state.renderArea.offset.x;
+    m_VulkanPipelineState.currentPass.renderArea.y = state.renderArea.offset.y;
+    m_VulkanPipelineState.currentPass.renderArea.width = state.renderArea.extent.width;
+    m_VulkanPipelineState.currentPass.renderArea.height = state.renderArea.extent.height;
+  }
+  else
+  {
+    m_VulkanPipelineState.currentPass.renderpass.resourceId = ResourceId();
+    m_VulkanPipelineState.currentPass.renderpass.subpass = 0;
+    m_VulkanPipelineState.currentPass.renderpass.inputAttachments.clear();
+    m_VulkanPipelineState.currentPass.renderpass.colorAttachments.clear();
+    m_VulkanPipelineState.currentPass.renderpass.resolveAttachments.clear();
+    m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment = -1;
+
+    m_VulkanPipelineState.currentPass.framebuffer.resourceId = ResourceId();
+    m_VulkanPipelineState.currentPass.framebuffer.attachments.clear();
+  }
+
+  // Descriptor sets
+  m_VulkanPipelineState.graphics.descriptorSets.resize(state.graphics.descSets.size());
+  m_VulkanPipelineState.compute.descriptorSets.resize(state.compute.descSets.size());
+
+  {
+    rdcarray<VKPipe::DescriptorSet> *dsts[] = {
+        &m_VulkanPipelineState.graphics.descriptorSets, &m_VulkanPipelineState.compute.descriptorSets,
+    };
+
+    const vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> *srcs[] = {
+        &state.graphics.descSets, &state.compute.descSets,
+    };
+
+    for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
+    {
+      for(size_t i = 0; i < srcs[p]->size(); i++)
+      {
+        ResourceId src = (*srcs[p])[i].descSet;
+        VKPipe::DescriptorSet &dst = (*dsts[p])[i];
+
+        ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
+
+        dst.descriptorSetResourceId = rm->GetOriginalID(src);
+        dst.layoutResourceId = rm->GetOriginalID(layoutId);
+        dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].currentBindings.size());
+        for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
+        {
+          DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
+          const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
+
+          bool dynamicOffset = false;
+
+          dst.bindings[b].descriptorCount = layoutBind.descriptorCount;
+          dst.bindings[b].stageFlags = (ShaderStageMask)layoutBind.stageFlags;
+          switch(layoutBind.descriptorType)
           {
-            DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
-            const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
+            case VK_DESCRIPTOR_TYPE_SAMPLER: dst.bindings[b].type = BindType::Sampler; break;
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+              dst.bindings[b].type = BindType::ImageSampler;
+              break;
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+              dst.bindings[b].type = BindType::ReadOnlyImage;
+              break;
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+              dst.bindings[b].type = BindType::ReadWriteImage;
+              break;
+            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+              dst.bindings[b].type = BindType::ReadOnlyTBuffer;
+              break;
+            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+              dst.bindings[b].type = BindType::ReadWriteTBuffer;
+              break;
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+              dst.bindings[b].type = BindType::ConstantBuffer;
+              break;
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+              dst.bindings[b].type = BindType::ReadWriteBuffer;
+              break;
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+              dst.bindings[b].type = BindType::ConstantBuffer;
+              dynamicOffset = true;
+              break;
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+              dst.bindings[b].type = BindType::ReadWriteBuffer;
+              dynamicOffset = true;
+              break;
+            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+              dst.bindings[b].type = BindType::InputAttachment;
+              break;
+            default: dst.bindings[b].type = BindType::Unknown; RDCERR("Unexpected descriptor type");
+          }
 
-            bool dynamicOffset = false;
-
-            dst.bindings[b].descriptorCount = layoutBind.descriptorCount;
-            dst.bindings[b].stageFlags = (ShaderStageMask)layoutBind.stageFlags;
-            switch(layoutBind.descriptorType)
+          dst.bindings[b].binds.resize(layoutBind.descriptorCount);
+          for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
+          {
+            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             {
-              case VK_DESCRIPTOR_TYPE_SAMPLER: dst.bindings[b].type = BindType::Sampler; break;
-              case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-                dst.bindings[b].type = BindType::ImageSampler;
-                break;
-              case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                dst.bindings[b].type = BindType::ReadOnlyImage;
-                break;
-              case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                dst.bindings[b].type = BindType::ReadWriteImage;
-                break;
-              case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-                dst.bindings[b].type = BindType::ReadOnlyTBuffer;
-                break;
-              case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-                dst.bindings[b].type = BindType::ReadWriteTBuffer;
-                break;
-              case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                dst.bindings[b].type = BindType::ConstantBuffer;
-                break;
-              case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                dst.bindings[b].type = BindType::ReadWriteBuffer;
-                break;
-              case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                dst.bindings[b].type = BindType::ConstantBuffer;
-                dynamicOffset = true;
-                break;
-              case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-                dst.bindings[b].type = BindType::ReadWriteBuffer;
-                dynamicOffset = true;
-                break;
-              case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-                dst.bindings[b].type = BindType::InputAttachment;
-                break;
-              default:
-                dst.bindings[b].type = BindType::Unknown;
-                RDCERR("Unexpected descriptor type");
+              if(layoutBind.immutableSampler)
+              {
+                dst.bindings[b].binds[a].samplerResourceId = layoutBind.immutableSampler[a];
+                dst.bindings[b].binds[a].immutableSampler = true;
+              }
+              else if(info[a].imageInfo.sampler != VK_NULL_HANDLE)
+              {
+                dst.bindings[b].binds[a].samplerResourceId = GetResID(info[a].imageInfo.sampler);
+              }
+
+              if(dst.bindings[b].binds[a].samplerResourceId != ResourceId())
+              {
+                VKPipe::BindingElement &el = dst.bindings[b].binds[a];
+                const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.samplerResourceId];
+
+                ResourceId liveId = el.samplerResourceId;
+
+                el.samplerResourceId = rm->GetOriginalID(el.samplerResourceId);
+
+                // sampler info
+                el.filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
+                                       sampl.maxAnisotropy > 1.0f, sampl.compareEnable);
+                el.addressU = MakeAddressMode(sampl.address[0]);
+                el.addressV = MakeAddressMode(sampl.address[1]);
+                el.addressW = MakeAddressMode(sampl.address[2]);
+                el.mipBias = sampl.mipLodBias;
+                el.maxAnisotropy = sampl.maxAnisotropy;
+                el.compareFunction = MakeCompareFunc(sampl.compareOp);
+                el.minLOD = sampl.minLod;
+                el.maxLOD = sampl.maxLod;
+                MakeBorderColor(sampl.borderColor, (FloatVector *)el.borderColor);
+                el.unnormalized = sampl.unnormalizedCoordinates;
+              }
             }
 
-            dst.bindings[b].binds.resize(layoutBind.descriptorCount);
-            for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
+            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
             {
-              if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+              VkImageView view = info[a].imageInfo.imageView;
+
+              if(view != VK_NULL_HANDLE)
               {
-                if(layoutBind.immutableSampler)
-                {
-                  dst.bindings[b].binds[a].samplerResourceId = layoutBind.immutableSampler[a];
-                  dst.bindings[b].binds[a].immutableSampler = true;
-                }
-                else if(info[a].imageInfo.sampler != VK_NULL_HANDLE)
-                {
-                  dst.bindings[b].binds[a].samplerResourceId = GetResID(info[a].imageInfo.sampler);
-                }
+                ResourceId viewid = GetResID(view);
 
-                if(dst.bindings[b].binds[a].samplerResourceId != ResourceId())
-                {
-                  VKPipe::BindingElement &el = dst.bindings[b].binds[a];
-                  const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.samplerResourceId];
+                dst.bindings[b].binds[a].viewResourceId = rm->GetOriginalID(viewid);
+                dst.bindings[b].binds[a].resourceResourceId =
+                    rm->GetOriginalID(c.m_ImageView[viewid].image);
+                dst.bindings[b].binds[a].viewFormat =
+                    MakeResourceFormat(c.m_ImageView[viewid].format);
 
-                  ResourceId liveId = el.samplerResourceId;
-
-                  el.samplerResourceId = rm->GetOriginalID(el.samplerResourceId);
-
-                  // sampler info
-                  el.filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
-                                         sampl.maxAnisotropy > 1.0f, sampl.compareEnable);
-                  el.addressU = MakeAddressMode(sampl.address[0]);
-                  el.addressV = MakeAddressMode(sampl.address[1]);
-                  el.addressW = MakeAddressMode(sampl.address[2]);
-                  el.mipBias = sampl.mipLodBias;
-                  el.maxAnisotropy = sampl.maxAnisotropy;
-                  el.compareFunction = MakeCompareFunc(sampl.compareOp);
-                  el.minLOD = sampl.minLod;
-                  el.maxLOD = sampl.maxLod;
-                  MakeBorderColor(sampl.borderColor, (FloatVector *)el.borderColor);
-                  el.unnormalized = sampl.unnormalizedCoordinates;
-                }
+                memcpy(dst.bindings[b].binds[a].swizzle, c.m_ImageView[viewid].swizzle,
+                       sizeof(TextureSwizzle) * 4);
+                dst.bindings[b].binds[a].firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+                dst.bindings[b].binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+                dst.bindings[b].binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
+                dst.bindings[b].binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
               }
-
-              if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-              {
-                VkImageView view = info[a].imageInfo.imageView;
-
-                if(view != VK_NULL_HANDLE)
-                {
-                  ResourceId viewid = GetResID(view);
-
-                  dst.bindings[b].binds[a].viewResourceId = rm->GetOriginalID(viewid);
-                  dst.bindings[b].binds[a].resourceResourceId =
-                      rm->GetOriginalID(c.m_ImageView[viewid].image);
-                  dst.bindings[b].binds[a].viewFormat =
-                      MakeResourceFormat(c.m_ImageView[viewid].format);
-
-                  memcpy(dst.bindings[b].binds[a].swizzle, c.m_ImageView[viewid].swizzle,
-                         sizeof(TextureSwizzle) * 4);
-                  dst.bindings[b].binds[a].firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-                  dst.bindings[b].binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-                  dst.bindings[b].binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
-                  dst.bindings[b].binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
-                }
-                else
-                {
-                  dst.bindings[b].binds[a].viewResourceId = ResourceId();
-                  dst.bindings[b].binds[a].resourceResourceId = ResourceId();
-                  dst.bindings[b].binds[a].firstMip = 0;
-                  dst.bindings[b].binds[a].firstSlice = 0;
-                  dst.bindings[b].binds[a].numMips = 1;
-                  dst.bindings[b].binds[a].numSlices = 1;
-                }
-              }
-              if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
-              {
-                VkBufferView view = info[a].texelBufferView;
-
-                if(view != VK_NULL_HANDLE)
-                {
-                  ResourceId viewid = GetResID(view);
-
-                  dst.bindings[b].binds[a].viewResourceId = rm->GetOriginalID(viewid);
-                  dst.bindings[b].binds[a].resourceResourceId =
-                      rm->GetOriginalID(c.m_BufferView[viewid].buffer);
-                  dst.bindings[b].binds[a].byteOffset = c.m_BufferView[viewid].offset;
-                  if(dynamicOffset)
-                  {
-                    union
-                    {
-                      VkImageLayout l;
-                      uint32_t u;
-                    } offs;
-
-                    RDCCOMPILE_ASSERT(sizeof(VkImageLayout) == sizeof(uint32_t),
-                                      "VkImageLayout isn't 32-bit sized");
-
-                    offs.l = info[a].imageInfo.imageLayout;
-
-                    dst.bindings[b].binds[a].byteOffset += offs.u;
-                  }
-                  dst.bindings[b].binds[a].byteSize = c.m_BufferView[viewid].size;
-                }
-                else
-                {
-                  dst.bindings[b].binds[a].viewResourceId = ResourceId();
-                  dst.bindings[b].binds[a].resourceResourceId = ResourceId();
-                  dst.bindings[b].binds[a].byteOffset = 0;
-                  dst.bindings[b].binds[a].byteSize = 0;
-                }
-              }
-              if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+              else
               {
                 dst.bindings[b].binds[a].viewResourceId = ResourceId();
+                dst.bindings[b].binds[a].resourceResourceId = ResourceId();
+                dst.bindings[b].binds[a].firstMip = 0;
+                dst.bindings[b].binds[a].firstSlice = 0;
+                dst.bindings[b].binds[a].numMips = 1;
+                dst.bindings[b].binds[a].numSlices = 1;
+              }
+            }
+            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
+            {
+              VkBufferView view = info[a].texelBufferView;
 
-                if(info[a].bufferInfo.buffer != VK_NULL_HANDLE)
-                  dst.bindings[b].binds[a].resourceResourceId =
-                      rm->GetOriginalID(GetResID(info[a].bufferInfo.buffer));
+              if(view != VK_NULL_HANDLE)
+              {
+                ResourceId viewid = GetResID(view);
 
-                dst.bindings[b].binds[a].byteOffset = info[a].bufferInfo.offset;
+                dst.bindings[b].binds[a].viewResourceId = rm->GetOriginalID(viewid);
+                dst.bindings[b].binds[a].resourceResourceId =
+                    rm->GetOriginalID(c.m_BufferView[viewid].buffer);
+                dst.bindings[b].binds[a].byteOffset = c.m_BufferView[viewid].offset;
                 if(dynamicOffset)
                 {
                   union
@@ -1356,37 +1347,73 @@ void VulkanReplay::SavePipelineState()
 
                   dst.bindings[b].binds[a].byteOffset += offs.u;
                 }
-
-                dst.bindings[b].binds[a].byteSize = info[a].bufferInfo.range;
+                dst.bindings[b].binds[a].byteSize = c.m_BufferView[viewid].size;
               }
+              else
+              {
+                dst.bindings[b].binds[a].viewResourceId = ResourceId();
+                dst.bindings[b].binds[a].resourceResourceId = ResourceId();
+                dst.bindings[b].binds[a].byteOffset = 0;
+                dst.bindings[b].binds[a].byteSize = 0;
+              }
+            }
+            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+            {
+              dst.bindings[b].binds[a].viewResourceId = ResourceId();
+
+              if(info[a].bufferInfo.buffer != VK_NULL_HANDLE)
+                dst.bindings[b].binds[a].resourceResourceId =
+                    rm->GetOriginalID(GetResID(info[a].bufferInfo.buffer));
+
+              dst.bindings[b].binds[a].byteOffset = info[a].bufferInfo.offset;
+              if(dynamicOffset)
+              {
+                union
+                {
+                  VkImageLayout l;
+                  uint32_t u;
+                } offs;
+
+                RDCCOMPILE_ASSERT(sizeof(VkImageLayout) == sizeof(uint32_t),
+                                  "VkImageLayout isn't 32-bit sized");
+
+                offs.l = info[a].imageInfo.imageLayout;
+
+                dst.bindings[b].binds[a].byteOffset += offs.u;
+              }
+
+              dst.bindings[b].binds[a].byteSize = info[a].bufferInfo.range;
             }
           }
         }
       }
     }
+  }
 
-    // image layouts
+  // image layouts
+  {
+    m_VulkanPipelineState.images.resize(m_pDriver->m_ImageLayouts.size());
+    size_t i = 0;
+    for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
     {
-      m_VulkanPipelineState.images.resize(m_pDriver->m_ImageLayouts.size());
-      size_t i = 0;
-      for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
+      VKPipe::ImageData &img = m_VulkanPipelineState.images[i];
+
+      img.resourceId = rm->GetOriginalID(it->first);
+
+      img.layouts.resize(it->second.subresourceStates.size());
+      for(size_t l = 0; l < it->second.subresourceStates.size(); l++)
       {
-        VKPipe::ImageData &img = m_VulkanPipelineState.images[i];
-
-        img.resourceId = rm->GetOriginalID(it->first);
-
-        img.layouts.resize(it->second.subresourceStates.size());
-        for(size_t l = 0; l < it->second.subresourceStates.size(); l++)
-        {
-          img.layouts[l].name = ToStr(it->second.subresourceStates[l].newLayout);
-          img.layouts[l].baseMip = it->second.subresourceStates[l].subresourceRange.baseMipLevel;
-          img.layouts[l].baseLayer = it->second.subresourceStates[l].subresourceRange.baseArrayLayer;
-          img.layouts[l].numLayer = it->second.subresourceStates[l].subresourceRange.layerCount;
-          img.layouts[l].numMip = it->second.subresourceStates[l].subresourceRange.levelCount;
-        }
-
-        i++;
+        img.layouts[l].name = ToStr(it->second.subresourceStates[l].newLayout);
+        img.layouts[l].baseMip = it->second.subresourceStates[l].subresourceRange.baseMipLevel;
+        img.layouts[l].baseLayer = it->second.subresourceStates[l].subresourceRange.baseArrayLayer;
+        img.layouts[l].numLayer = it->second.subresourceStates[l].subresourceRange.layerCount;
+        img.layouts[l].numMip = it->second.subresourceStates[l].subresourceRange.levelCount;
       }
+
+      i++;
     }
   }
 }

@@ -623,6 +623,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
 
+  // clear first to ensure the spaces are default-initialised
+  dstSpaces.clear();
   dstSpaces.resize(sig->sig.numSpaces);
   D3D12Pipe::RegisterSpace *spaces = dstSpaces.data();
 
@@ -938,7 +940,7 @@ void D3D12Replay::SavePipelineState()
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  D3D12Pipe::State state;
+  D3D12Pipe::State &state = m_PipelineState;
 
   /////////////////////////////////////////////////
   // Input Assembler
@@ -1045,6 +1047,12 @@ void D3D12Replay::SavePipelineState()
         dst.bindpointMapping = sh->GetMapping();
         dst.reflection = &sh->GetDetails();
       }
+      else
+      {
+        dst.resourceId = ResourceId();
+        dst.bindpointMapping = ShaderBindpointMapping();
+        dst.reflection = NULL;
+      }
 
       if(rs.graphics.rootsig != ResourceId())
         FillRegisterSpaces(rs.graphics, dst.spaces, visibility[stage]);
@@ -1137,6 +1145,10 @@ void D3D12Replay::SavePipelineState()
 
         FillResourceView(view, desc);
       }
+      else
+      {
+        view = D3D12Pipe::View();
+      }
     }
 
     {
@@ -1150,6 +1162,10 @@ void D3D12Replay::SavePipelineState()
         view.immediate = false;
 
         FillResourceView(view, desc);
+      }
+      else
+      {
+        view = D3D12Pipe::View();
       }
     }
 
@@ -1239,8 +1255,6 @@ void D3D12Replay::SavePipelineState()
       i++;
     }
   }
-
-  m_PipelineState = state;
 }
 
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)

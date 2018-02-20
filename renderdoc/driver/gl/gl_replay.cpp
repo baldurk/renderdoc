@@ -852,9 +852,7 @@ void GLReplay::SavePipelineState()
   {
     stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
     stages[i]->reflection = NULL;
-    stages[i]->bindpointMapping.constantBlocks.clear();
-    stages[i]->bindpointMapping.readOnlyResources.clear();
-    stages[i]->bindpointMapping.readWriteResources.clear();
+    stages[i]->bindpointMapping = ShaderBindpointMapping();
   }
 
   if(curProg == 0)
@@ -937,6 +935,8 @@ void GLReplay::SavePipelineState()
     if(feedback != 0)
       pipe.transformFeedback.feedbackResourceId =
           rm->GetOriginalID(rm->GetID(FeedbackRes(ctx, feedback)));
+    else
+      pipe.transformFeedback.feedbackResourceId = ResourceId();
 
     GLint maxCount = 0;
     gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
