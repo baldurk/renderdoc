@@ -370,8 +370,8 @@ public:
   }
 
   // set from outside of the device creation interface
-  void SetLogFile(const char *logFile);
-  const char *GetLogFile() const { return m_LogFile.c_str(); }
+  void SetCaptureFileTemplate(const char *logFile);
+  const char *GetCaptureFileTemplate() const { return m_CaptureFileTemplate.c_str(); }
   const char *GetCurrentTarget() const { return m_Target.c_str(); }
   void Initialise();
   void Shutdown();
@@ -552,7 +552,7 @@ private:
   string m_LoggingFilename;
 
   string m_Target;
-  string m_LogFile;
+  string m_CaptureFileTemplate;
   string m_CurrentLogFile;
   CaptureOptions m_Options;
   uint32_t m_Overlay;

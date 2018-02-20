@@ -251,7 +251,7 @@ private:
 
       // inherit logfile and capture options
       ExecuteResult res = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, env,
-                                                      RenderDoc::Inst().GetLogFile(),
+                                                      RenderDoc::Inst().GetCaptureFileTemplate(),
                                                       RenderDoc::Inst().GetCaptureOptions(), false);
 
       if(res.status == ReplayStatus::Succeeded)

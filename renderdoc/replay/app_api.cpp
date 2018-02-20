@@ -60,15 +60,15 @@ static void UnloadCrashHandler()
   RenderDoc::Inst().UnloadCrashHandler();
 }
 
-static void SetLogFilePathTemplate(const char *logfile)
+static void SetCaptureFilePathTemplate(const char *pathtemplate)
 {
-  RDCLOG("Using logfile %s", logfile);
-  RenderDoc::Inst().SetLogFile(logfile);
+  RDCLOG("Using capture file template %s", pathtemplate);
+  RenderDoc::Inst().SetCaptureFileTemplate(pathtemplate);
 }
 
-static const char *GetLogFilePathTemplate()
+static const char *GetCaptureFilePathTemplate()
 {
-  return RenderDoc::Inst().GetLogFile();
+  return RenderDoc::Inst().GetCaptureFileTemplate();
 }
 
 static uint32_t GetNumCaptures()
@@ -76,14 +76,14 @@ static uint32_t GetNumCaptures()
   return (uint32_t)RenderDoc::Inst().GetCaptures().size();
 }
 
-static uint32_t GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp)
+static uint32_t GetCapture(uint32_t idx, char *filename, uint32_t *pathlength, uint64_t *timestamp)
 {
   vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
 
   if(idx >= (uint32_t)caps.size())
   {
-    if(logfile)
-      logfile[0] = 0;
+    if(filename)
+      filename[0] = 0;
     if(pathlength)
       *pathlength = 0;
     if(timestamp)
@@ -93,8 +93,8 @@ static uint32_t GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, ui
 
   CaptureData &c = caps[idx];
 
-  if(logfile)
-    memcpy(logfile, c.path.c_str(), sizeof(char) * (c.path.size() + 1));
+  if(filename)
+    memcpy(filename, c.path.c_str(), sizeof(char) * (c.path.size() + 1));
   if(pathlength)
     *pathlength = uint32_t(c.path.size() + 1);
   if(timestamp)
@@ -165,22 +165,22 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_1_1(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_1_2(int *major, int *minor, int *patch)
 {
   if(major)
     *major = 1;
   if(minor)
     *minor = 1;
   if(patch)
-    *patch = 1;
+    *patch = 2;
 }
 
-RENDERDOC_API_1_1_1 api_1_1_1;
-void Init_1_1_1()
+RENDERDOC_API_1_1_2 api_1_1_2;
+void Init_1_1_2()
 {
-  RENDERDOC_API_1_1_1 &api = api_1_1_1;
+  RENDERDOC_API_1_1_2 &api = api_1_1_2;
 
-  api.GetAPIVersion = &GetAPIVersion_1_1_1;
+  api.GetAPIVersion = &GetAPIVersion_1_1_2;
 
   api.SetCaptureOptionU32 = &SetCaptureOptionU32;
   api.SetCaptureOptionF32 = &SetCaptureOptionF32;
@@ -197,8 +197,8 @@ void Init_1_1_1()
   api.Shutdown = &Shutdown;
   api.UnloadCrashHandler = &UnloadCrashHandler;
 
-  api.SetLogFilePathTemplate = &SetLogFilePathTemplate;
-  api.GetLogFilePathTemplate = &GetLogFilePathTemplate;
+  api.SetCaptureFilePathTemplate = &SetCaptureFilePathTemplate;
+  api.GetCaptureFilePathTemplate = &GetCaptureFilePathTemplate;
 
   api.GetNumCaptures = &GetNumCaptures;
   api.GetCapture = &GetCapture;
@@ -241,11 +241,12 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     ret = 1;                                                       \
   }
 
-  API_VERSION_HANDLE(1_0_0, 1_1_1);
-  API_VERSION_HANDLE(1_0_1, 1_1_1);
-  API_VERSION_HANDLE(1_0_2, 1_1_1);
-  API_VERSION_HANDLE(1_1_0, 1_1_1);
-  API_VERSION_HANDLE(1_1_1, 1_1_1);
+  API_VERSION_HANDLE(1_0_0, 1_1_2);
+  API_VERSION_HANDLE(1_0_1, 1_1_2);
+  API_VERSION_HANDLE(1_0_2, 1_1_2);
+  API_VERSION_HANDLE(1_1_0, 1_1_2);
+  API_VERSION_HANDLE(1_1_1, 1_1_2);
+  API_VERSION_HANDLE(1_1_2, 1_1_2);
 
 #undef API_VERSION_HANDLE
 

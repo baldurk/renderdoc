@@ -186,7 +186,7 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureOptions(Capture
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetLogFile(const char *log)
 {
   if(log)
-    RenderDoc::Inst().SetLogFile(log);
+    RenderDoc::Inst().SetCaptureFileTemplate(log);
 }
 
 static EnvironmentModification tempEnvMod;

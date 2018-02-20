@@ -63,7 +63,7 @@ void library_loaded()
 
     if(logfile)
     {
-      RenderDoc::Inst().SetLogFile(logfile);
+      RenderDoc::Inst().SetCaptureFileTemplate(logfile);
     }
 
     RDCLOG("Loading into %s", curfile.c_str());

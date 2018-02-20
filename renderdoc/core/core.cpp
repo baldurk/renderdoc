@@ -199,7 +199,7 @@ void RenderDoc::UnloadCrashHandler()
 
 RenderDoc::RenderDoc()
 {
-  m_LogFile = "";
+  m_CaptureFileTemplate = "";
   m_MarkerIndentLevel = 0;
 
   m_CapturesActive = 0;
@@ -286,8 +286,8 @@ void RenderDoc::Initialise()
 
     FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
 
-    if(m_LogFile.empty())
-      SetLogFile(capture_filename.c_str());
+    if(m_CaptureFileTemplate.empty())
+      SetCaptureFileTemplate(capture_filename.c_str());
 
     RDCLOGFILE(m_LoggingFilename.c_str());
   }
@@ -702,7 +702,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixel
 {
   RDCFile *ret = new RDCFile;
 
-  m_CurrentLogFile = StringFormat::Fmt("%s_frame%u.rdc", m_LogFile.c_str(), frameNum);
+  m_CurrentLogFile = StringFormat::Fmt("%s_frame%u.rdc", m_CaptureFileTemplate.c_str(), frameNum);
 
   // make sure we don't stomp another capture if we make multiple captures in the same frame.
   {
@@ -712,7 +712,8 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixel
             return o.path == m_CurrentLogFile;
           }) != m_Captures.end())
     {
-      m_CurrentLogFile = StringFormat::Fmt("%s_frame%u_%d.rdc", m_LogFile.c_str(), frameNum, altnum);
+      m_CurrentLogFile =
+          StringFormat::Fmt("%s_frame%u_%d.rdc", m_CaptureFileTemplate.c_str(), frameNum, altnum);
       altnum++;
     }
   }
@@ -1043,17 +1044,18 @@ void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
   LibraryHooks::GetInstance().OptionsUpdated();
 }
 
-void RenderDoc::SetLogFile(const char *logFile)
+void RenderDoc::SetCaptureFileTemplate(const char *pathtemplate)
 {
-  if(logFile == NULL || logFile[0] == '\0')
+  if(pathtemplate == NULL || pathtemplate[0] == '\0')
     return;
 
-  m_LogFile = logFile;
+  m_CaptureFileTemplate = pathtemplate;
 
-  if(m_LogFile.length() > 4 && m_LogFile.substr(m_LogFile.length() - 4) == ".rdc")
-    m_LogFile = m_LogFile.substr(0, m_LogFile.length() - 4);
+  if(m_CaptureFileTemplate.length() > 4 &&
+     m_CaptureFileTemplate.substr(m_CaptureFileTemplate.length() - 4) == ".rdc")
+    m_CaptureFileTemplate = m_CaptureFileTemplate.substr(0, m_CaptureFileTemplate.length() - 4);
 
-  FileIO::CreateParentDirectory(m_LogFile);
+  FileIO::CreateParentDirectory(m_CaptureFileTemplate);
 }
 
 void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
