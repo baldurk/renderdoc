@@ -1022,7 +1022,7 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
     }
     else
     {
-      if((d.flags & (DrawFlags::SetMarker | DrawFlags::APICalls)) != DrawFlags::SetMarker)
+      if(!(d.flags & DrawFlags::SetMarker))
       {
         m_Draws.push_back(d.eventId);
         draws.push_back(d.eventId);

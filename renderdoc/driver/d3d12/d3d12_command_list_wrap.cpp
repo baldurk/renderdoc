@@ -96,7 +96,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
-        draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
+        draw.flags |= DrawFlags::APICalls;
 
         m_Cmd->AddDrawcall(draw, true);
 
@@ -3037,7 +3037,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
-        draw.flags = DrawFlags::SetMarker | DrawFlags::APICalls;
+        draw.flags = DrawFlags::APICalls;
 
         m_Cmd->AddDrawcall(draw, true);
       }

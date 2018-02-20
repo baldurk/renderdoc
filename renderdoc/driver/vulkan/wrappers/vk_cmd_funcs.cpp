@@ -907,7 +907,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
-        draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
+        draw.flags |= DrawFlags::APICalls;
 
         AddDrawcall(draw, true);
 
@@ -2807,7 +2807,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
-        draw.flags = DrawFlags::SetMarker | DrawFlags::APICalls;
+        draw.flags = DrawFlags::APICalls;
 
         AddDrawcall(draw, true);
       }

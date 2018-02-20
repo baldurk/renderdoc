@@ -501,8 +501,8 @@ void CaptureContext::AddFakeProfileMarkers()
   int start = 0;
   int refdraw = 0;
 
-  DrawFlags drawFlags =
-      DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::SetMarker | DrawFlags::CmdList;
+  DrawFlags drawFlags = DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::SetMarker |
+                        DrawFlags::APICalls | DrawFlags::CmdList;
 
   for(int32_t i = 1; i < draws.count(); i++)
   {

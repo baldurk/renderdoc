@@ -352,7 +352,7 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
     {
       DrawcallDescription draw;
       draw.name = "API Calls";
-      draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
+      draw.flags |= DrawFlags::APICalls;
 
       AddDrawcall(draw, true);
     }
