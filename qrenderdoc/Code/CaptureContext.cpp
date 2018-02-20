@@ -280,22 +280,34 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
 #if defined(RENDERDOC_PLATFORM_WIN32)
     m_CurWinSystem = WindowingSystem::Win32;
 #elif defined(RENDERDOC_PLATFORM_LINUX)
-    m_CurWinSystem = WindowingSystem::Xlib;
-
-    // prefer XCB, if supported
-    for(WindowingSystem sys : m_WinSystems)
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+    if(QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive))
     {
-      if(sys == WindowingSystem::XCB)
-      {
-        m_CurWinSystem = WindowingSystem::XCB;
-        break;
-      }
+      m_CurWinSystem = WindowingSystem::Wayland;
+      m_WaylandDisplay = wl_display_connect(NULL);
     }
+#endif
+#if defined(RENDERDOC_WINDOWING_XLIB) && defined(RENDERDOC_WINDOWING_XCB)
+    if(QX11Info::isPlatformX11())
+    {
+      m_CurWinSystem = WindowingSystem::Xlib;
 
-    if(m_CurWinSystem == WindowingSystem::XCB)
-      m_XCBConnection = QX11Info::connection();
-    else
-      m_X11Display = QX11Info::display();
+      // prefer XCB, if supported
+      for(WindowingSystem sys : m_WinSystems)
+      {
+        if(sys == WindowingSystem::XCB)
+        {
+          m_CurWinSystem = WindowingSystem::XCB;
+          break;
+        }
+      }
+
+      if(m_CurWinSystem == WindowingSystem::XCB)
+        m_XCBConnection = QX11Info::connection();
+      else
+        m_X11Display = QX11Info::display();
+    }
+#endif
 #endif
 
     m_StructuredFile = &r->GetStructuredFile();
@@ -1427,10 +1439,16 @@ WindowingData CaptureContext::CreateWindowingData(uintptr_t widget)
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+  if(m_CurWinSystem == WindowingSystem::Wayland)
+    return CreateWaylandWindowingData(m_WaylandDisplay, (wl_surface *)widget);
+#endif
+#if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
   if(m_CurWinSystem == WindowingSystem::XCB)
     return CreateXCBWindowingData(m_XCBConnection, (xcb_window_t)widget);
   else
     return CreateXlibWindowingData(m_X11Display, (Drawable)widget);
+#endif
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
 

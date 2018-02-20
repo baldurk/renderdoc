@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.8.12)
 
+# Add third-party CMake modules.
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/scripts/")
+
 # Configure some stuff that needs to be set really early
 if(BUILD_ANDROID)
     set(CMAKE_TOOLCHAIN_FILE
@@ -115,6 +118,7 @@ option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
+option(ENABLE_WAYLAND "Enable Wayland windowing support" OFF)
 
 if(WIN32)
     message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
@@ -247,6 +251,10 @@ elseif(UNIX)
 
     if(ENABLE_XCB)
         add_definitions(-DRENDERDOC_WINDOWING_XCB)
+    endif()
+
+    if(ENABLE_WAYLAND)
+        add_definitions(-DRENDERDOC_WINDOWING_WAYLAND)
     endif()
 endif()
 

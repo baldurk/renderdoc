@@ -657,6 +657,11 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_XLIB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_SPEC_VERSION,
     },
 #endif
+#ifdef VK_KHR_wayland_surface
+    {
+        VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_SPEC_VERSION,
+    },
+#endif
     {
         VK_NV_DEDICATED_ALLOCATION_EXTENSION_NAME, VK_NV_DEDICATED_ALLOCATION_SPEC_VERSION,
     },

@@ -34,7 +34,12 @@
 #include "ReplayManager.h"
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
+#if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
 #include <QX11Info>
+#endif
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+#include <wayland-client.h>
+#endif
 #endif
 
 class MainWindow;
@@ -343,8 +348,13 @@ private:
   WindowingSystem m_CurWinSystem = WindowingSystem::Unknown;
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
+#if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
   xcb_connection_t *m_XCBConnection = NULL;
   Display *m_X11Display = NULL;
+#endif
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+  wl_display *m_WaylandDisplay = NULL;
+#endif
 #endif
 
   QIcon *m_Icon = NULL;

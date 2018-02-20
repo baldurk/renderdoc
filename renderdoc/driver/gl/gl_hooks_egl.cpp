@@ -151,6 +151,7 @@ public:
       case WindowingSystem::Android: win = window.android.window; break;
 #elif ENABLED(RDOC_LINUX)
       case WindowingSystem::Xlib: win = window.xlib.window; break;
+      case WindowingSystem::Wayland: win = (EGLNativeWindowType)window.wayland.surface; break;
 #endif
       case WindowingSystem::Unknown:
         // allow WindowingSystem::Unknown so that internally we can create a window-less context

@@ -156,6 +156,15 @@ if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
          "DEFINES+=DISTRIBUTION_CONTACT='\\\\\"${BUILD_VERSION_DIST_CONTACT}\\\\\"'\n")
 endif()
 
+if(WAYLAND_FOUND)
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=RENDERDOC_WINDOWING_WAYLAND\n"
+         "LIBS+=-lwayland-client\n")
+else()
+    message(STATUS "Wayland libraries not found")
+endif()
+
 if(PYSIDE2_FOUND)
     # Add configuration for PySide2
     file(APPEND

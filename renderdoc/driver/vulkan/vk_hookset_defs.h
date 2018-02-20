@@ -118,11 +118,33 @@
 
 #endif
 
-#define HookInitInstance_PlatformSpecific() \
-  HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib()
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+
+#define HookInitInstance_PlatformSpecific_Wayland()                   \
+  HookInitExtension(VK_KHR_wayland_surface, CreateWaylandSurfaceKHR); \
+  HookInitExtension(VK_KHR_wayland_surface, GetPhysicalDeviceWaylandPresentationSupportKHR);
+
+#define HookDefine_PlatformSpecific_Wayland()                                                    \
+  HookDefine4(VkResult, vkCreateWaylandSurfaceKHR, VkInstance, instance,                         \
+              const VkWaylandSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
+              pAllocator, VkSurfaceKHR *, pSurface);                                             \
+  HookDefine3(VkBool32, vkGetPhysicalDeviceWaylandPresentationSupportKHR, VkPhysicalDevice,      \
+              physicalDevice, uint32_t, queueFamilyIndex, wl_display *, dpy);
+
+#else
+
+#define HookInitInstance_PlatformSpecific_Wayland()
+#define HookDefine_PlatformSpecific_Wayland()
+
+#endif
+
+#define HookInitInstance_PlatformSpecific()                                        \
+  HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib() \
+      HookInitInstance_PlatformSpecific_Wayland()
 #define HookInitDevice_PlatformSpecific()
-#define HookDefine_PlatformSpecific() \
-  HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib()
+#define HookDefine_PlatformSpecific()                                  \
+  HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib() \
+      HookDefine_PlatformSpecific_Wayland()
 
 #endif
 
@@ -271,6 +293,7 @@
 #define CheckInstanceExts()                         \
   CheckExt(VK_KHR_xlib_surface);                    \
   CheckExt(VK_KHR_xcb_surface);                     \
+  CheckExt(VK_KHR_wayland_surface);                 \
   CheckExt(VK_KHR_win32_surface);                   \
   CheckExt(VK_KHR_android_surface);                 \
   CheckExt(VK_KHR_surface);                         \

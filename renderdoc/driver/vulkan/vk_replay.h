@@ -79,13 +79,33 @@
 
 #endif
 
+#if ENABLED(RDOC_WAYLAND)
+
+#define WINDOW_HANDLE_WAYLAND \
+  struct                      \
+  {                           \
+    wl_display *display;      \
+    wl_surface *surface;      \
+  } wayland;
+
+#else
+
+#define WINDOW_HANDLE_WAYLAND \
+  struct                      \
+  {                           \
+  } wayland;
+
+#endif
+
 #define WINDOW_HANDLE_DECL \
   WINDOW_HANDLE_XLIB       \
-  WINDOW_HANDLE_XCB
+  WINDOW_HANDLE_XCB        \
+  WINDOW_HANDLE_WAYLAND
 
 #define WINDOW_HANDLE_INIT \
   RDCEraseEl(xlib);        \
-  RDCEraseEl(xcb);
+  RDCEraseEl(xcb);         \
+  RDCEraseEl(wayland);
 
 #elif ENABLED(RDOC_APPLE)
 

@@ -34,8 +34,8 @@
 #include "vk_replay.h"
 #include "vk_state.h"
 
-using std::vector;
 using std::list;
+using std::vector;
 
 class VulkanShaderCache;
 class VulkanTextRenderer;
@@ -1499,6 +1499,17 @@ public:
   VkResult vkGetRandROutputDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
                                       RROutput rrOutput, VkDisplayKHR *pDisplay);
 
+#endif
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+  // VK_KHR_wayland_surface
+  VkResult vkCreateWaylandSurfaceKHR(VkInstance instance,
+                                     const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+                                     const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
+
+  VkBool32 vkGetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                            uint32_t queueFamilyIndex,
+                                                            wl_display *dpy);
 #endif
 
   // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so

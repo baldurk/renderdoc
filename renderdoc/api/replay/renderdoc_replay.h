@@ -324,6 +324,10 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 .. data:: Android
 
   The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
+
+.. data:: Wayland
+
+  The windowing data refers to a Wayland window. See :func:`CreateWaylandWindowingData`.
 )");
 enum class WindowingSystem : uint32_t
 {
@@ -332,6 +336,7 @@ enum class WindowingSystem : uint32_t
   Xlib,
   XCB,
   Android,
+  Wayland,
 };
 
 DECLARE_REFLECTION_ENUM(WindowingSystem);
@@ -343,16 +348,20 @@ DECLARE_REFLECTION_ENUM(WindowingSystem);
 // Win32
 typedef struct HWND__ *HWND;
 
-// xlib
+// Xlib
 typedef struct _XDisplay Display;
 typedef unsigned long Drawable;
 
-// xcb
+// XCB
 struct xcb_connection_t;
 typedef uint32_t xcb_window_t;
 
-// android
+// Android
 struct ANativeWindow;
+
+// Wayland
+struct wl_display;
+struct wl_surface;
 
 // for swig bindings treat the windowing data struct as completely opaque
 #if defined(SWIG)
@@ -388,6 +397,12 @@ struct WindowingData
     {
       ANativeWindow *window;
     } android;
+
+    struct
+    {
+      wl_display *display;
+      wl_surface *surface;
+    } wayland;
   };
 };
 
@@ -459,6 +474,24 @@ inline const WindowingData CreateAndroidWindowingData(ANativeWindow *window)
 
   ret.system = WindowingSystem::Android;
   ret.android.window = window;
+
+  return ret;
+}
+
+DOCUMENT(R"(Create a :class:`WindowingData` for a Wayland ``wl_surface`` handle.
+
+:param wl_display display: The native ``wl_display`` connection used for this window.
+:param wl_surface surface: The native ``wl_surface`` handle for this window.
+:return: A :class:`WindowingData` corresponding to the given window.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateWaylandWindowingData(wl_display *display, wl_surface *surface)
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::Wayland;
+  ret.wayland.display = display;
+  ret.wayland.surface = surface;
 
   return ret;
 }
