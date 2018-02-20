@@ -372,6 +372,8 @@ void ResourceInspector::resource_doubleClicked(const QModelIndex &index)
 {
   ResourceId id = index.model()->data(index, ResourceIdRole).value<ResourceId>();
   Inspect(id);
+
+  HighlightUsage();
 }
 
 void ResourceInspector::on_viewContents_clicked()
@@ -431,4 +433,20 @@ void ResourceInspector::on_resourceUsage_doubleClicked(const QModelIndex &index)
 {
   uint32_t eid = index.model()->data(index, ResourceIdRole).value<uint32_t>();
   m_Ctx.SetEventID({}, eid, eid);
+}
+
+void ResourceInspector::enterEvent(QEvent *event)
+{
+  HighlightUsage();
+}
+
+void ResourceInspector::showEvent(QShowEvent *event)
+{
+  HighlightUsage();
+}
+
+void ResourceInspector::HighlightUsage()
+{
+  if(m_Resource != ResourceId() && m_Ctx.HasTimelineBar())
+    m_Ctx.GetTimelineBar()->HighlightResourceUsage(m_Resource);
 }

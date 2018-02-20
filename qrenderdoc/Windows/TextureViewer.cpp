@@ -662,6 +662,24 @@ TextureViewer::~TextureViewer()
   delete ui;
 }
 
+void TextureViewer::enterEvent(QEvent *event)
+{
+  HighlightUsage();
+}
+
+void TextureViewer::showEvent(QShowEvent *event)
+{
+  HighlightUsage();
+}
+
+void TextureViewer::HighlightUsage()
+{
+  TextureDescription *texptr = GetCurrentTexture();
+
+  if(texptr && m_Ctx.HasTimelineBar())
+    m_Ctx.GetTimelineBar()->HighlightResourceUsage(texptr->resourceId);
+}
+
 void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue,
                                          PixelValue &realValue)
 {
@@ -1327,8 +1345,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       RT_PickPixelsAndUpdate(r);
   });
 
-  if(m_Ctx.HasTimelineBar())
-    m_Ctx.GetTimelineBar()->HighlightResourceUsage(texptr->resourceId);
+  HighlightUsage();
 }
 
 void TextureViewer::UI_SetHistogramRange(const TextureDescription *tex, CompType typeHint)

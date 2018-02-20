@@ -68,10 +68,15 @@ public slots:
 
 private slots:
   void on_viewContents_clicked();
-
   void on_resourceUsage_doubleClicked(const QModelIndex &index);
 
+protected:
+  void enterEvent(QEvent *event) override;
+  void showEvent(QShowEvent *event) override;
+
 private:
+  void HighlightUsage();
+
   Ui::ResourceInspector *ui;
   ICaptureContext &m_Ctx;
 

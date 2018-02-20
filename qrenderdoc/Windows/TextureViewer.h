@@ -206,6 +206,10 @@ private slots:
   void channelsWidget_mouseClicked(QMouseEvent *event);
   void channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
+protected:
+  void enterEvent(QEvent *event) override;
+  void showEvent(QShowEvent *event) override;
+
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
   void RT_PickPixelsAndUpdate(IReplayController *);
@@ -222,6 +226,8 @@ private:
   void UI_SetHistogramRange(const TextureDescription *tex, CompType typeHint);
 
   void UI_UpdateChannels();
+
+  void HighlightUsage();
 
   void SetupTextureTabs();
 
