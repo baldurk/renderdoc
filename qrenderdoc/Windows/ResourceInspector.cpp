@@ -202,6 +202,7 @@ void ResourceInspector::Inspect(ResourceId id)
             RDTreeWidgetItem *item =
                 new RDTreeWidgetItem({text, ToQStr(use, m_Ctx.APIProps().pipelineType)});
             item->setData(0, ResourceIdRole, QVariant(endEID));
+            item->setData(1, ResourceIdRole, QVariant(endEID));
 
             ui->resourceUsage->addTopLevelItem(item);
           });
