@@ -1088,7 +1088,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_TextureSettings[m_TexDisplay.resourceId].minrange = ui->rangeHistogram->blackPoint();
     m_TextureSettings[m_TexDisplay.resourceId].maxrange = ui->rangeHistogram->whitePoint();
 
-    m_TextureSettings[m_TexDisplay.resourceId].typeHint = m_Following.GetTypeHint(m_Ctx);
+    if(m_TexDisplay.typeHint != CompType::Typeless)
+      m_TextureSettings[m_TexDisplay.resourceId].typeHint = m_TexDisplay.typeHint;
   }
 
   m_TexDisplay.resourceId = tex.resourceId;
