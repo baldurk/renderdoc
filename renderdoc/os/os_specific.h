@@ -60,8 +60,8 @@ bool StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOp
 bool IsGlobalHookActive();
 void StopGlobalHook();
 
-uint32_t InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                           const char *logfile, const CaptureOptions &opts, bool waitForExit);
+ExecuteResult InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
+                                const char *logfile, const CaptureOptions &opts, bool waitForExit);
 struct ProcessResult
 {
   string strStdout, strStderror;
@@ -71,9 +71,10 @@ uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdL
                        ProcessResult *result = NULL);
 uint32_t LaunchScript(const char *script, const char *workingDir, const char *args, bool internal,
                       ProcessResult *result = NULL);
-uint32_t LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                    const rdcarray<EnvironmentModification> &env, const char *logfile,
-                                    const CaptureOptions &opts, bool waitForExit);
+ExecuteResult LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
+                                         const rdcarray<EnvironmentModification> &env,
+                                         const char *logfile, const CaptureOptions &opts,
+                                         bool waitForExit);
 void *LoadModule(const char *module);
 void *GetFunctionAddress(void *module, const char *function);
 uint32_t GetCurrentPID();

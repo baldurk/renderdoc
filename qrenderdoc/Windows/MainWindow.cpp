@@ -504,22 +504,38 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
     QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());
 
-    uint32_t ret = m_Ctx.Replay().ExecuteAndInject(exe, workingDir, cmdLine, env, capturefile, opts);
+    ExecuteResult ret =
+        m_Ctx.Replay().ExecuteAndInject(exe, workingDir, cmdLine, env, capturefile, opts);
 
     GUIInvoke::call([this, exe, ret, callback]() {
-      if(ret == 0)
+
+      if(ret.status == ReplayStatus::JDWPFailure)
+      {
+        RDDialog::critical(
+            this, tr("Error connecting to debugger"),
+            tr("Error launching %1 for capture.\n\n"
+               "Something went wrong connecting to the debugger on the Android device.\n\n"
+               "This can happen if the package is not "
+               "marked as debuggable, or if another android tool such as android studio "
+               "or other tool is interfering with the debug connection.")
+                .arg(exe));
+        return;
+      }
+
+      if(ret.status != ReplayStatus::Succeeded)
       {
         RDDialog::critical(this, tr("Error kicking capture"),
-                           tr("Error launching %1 for capture.\n\nCheck diagnostic log in Help "
-                              "menu for more details.")
-                               .arg(exe));
+                           tr("Error launching %1 for capture.\n\n%2. Check the diagnostic log in "
+                              "the help menu for more details")
+                               .arg(exe)
+                               .arg(ToQStr(ret.status)));
         return;
       }
 
       LiveCapture *live = new LiveCapture(
           m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->hostname : "",
-          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : "", ret, this,
-          this);
+          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : "", ret.ident,
+          this, this);
       ShowLiveCapture(live);
       callback(live);
     });
@@ -546,20 +562,36 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
   LambdaThread *th = new LambdaThread([this, PID, env, name, opts, callback]() {
     QString capturefile = m_Ctx.TempCaptureFilename(name);
 
-    uint32_t ret = RENDERDOC_InjectIntoProcess(PID, env, capturefile.toUtf8().data(), opts, false);
+    ExecuteResult ret =
+        RENDERDOC_InjectIntoProcess(PID, env, capturefile.toUtf8().data(), opts, false);
 
     GUIInvoke::call([this, PID, ret, callback]() {
-      if(ret == 0)
+
+      if(ret.status == ReplayStatus::JDWPFailure)
       {
         RDDialog::critical(
-            this, tr("Error kicking capture"),
-            tr("Error injecting into process %1 for capture.\n\nCheck diagnostic log in "
-               "Help menu for more details.")
+            this, tr("Error connecting to debugger"),
+            tr("Error injecting into process %1 for capture.\n\n"
+               "Something went wrong connecting to the debugger on the Android device.\n\n"
+               "This can happen if the package is not "
+               "marked as debuggable, or if another android tool such as android studio "
+               "or other tool is interfering with the debug connection.")
                 .arg(PID));
         return;
       }
 
-      LiveCapture *live = new LiveCapture(m_Ctx, QString(), QString(), ret, this, this);
+      if(ret.status != ReplayStatus::Succeeded)
+      {
+        RDDialog::critical(
+            this, tr("Error kicking capture"),
+            tr("Error injecting into process %1 for capture.\n\n%2. Check the diagnostic log in "
+               "the help menu for more details")
+                .arg(PID)
+                .arg(ToQStr(ret.status)));
+        return;
+      }
+
+      LiveCapture *live = new LiveCapture(m_Ctx, QString(), QString(), ret.ident, this, this);
       ShowLiveCapture(live);
     });
   });

@@ -363,28 +363,28 @@ struct CaptureCommand : public Command
 
     rdcarray<EnvironmentModification> env;
 
-    uint32_t ident = RENDERDOC_ExecuteAndInject(
+    ExecuteResult res = RENDERDOC_ExecuteAndInject(
         executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
         cmdLine.empty() ? "" : cmdLine.c_str(), env, logFile.empty() ? "" : logFile.c_str(), opts,
         parser.exist("wait-for-exit"));
 
-    if(ident == 0)
+    if(res.status != ReplayStatus::Succeeded)
     {
-      std::cerr << "Failed to create & inject." << std::endl;
-      return 2;
+      std::cerr << "Failed to create & inject: " << ToStr(res.status) << std::endl;
+      return (int)res.status;
     }
 
     if(parser.exist("wait-for-exit"))
     {
       std::cerr << "'" << executable << "' finished executing." << std::endl;
-      ident = 0;
+      res.ident = 0;
     }
     else
     {
-      std::cerr << "Launched as ID " << ident << std::endl;
+      std::cerr << "Launched as ID " << res.ident << std::endl;
     }
 
-    return ident;
+    return res.ident;
   }
 
   std::string EscapeArgument(const std::string &arg)
@@ -430,26 +430,26 @@ struct InjectCommand : public Command
 
     RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
 
-    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, env, logFile.empty() ? "" : logFile.c_str(),
-                                                 opts, parser.exist("wait-for-exit"));
+    ExecuteResult res = RENDERDOC_InjectIntoProcess(
+        PID, env, logFile.empty() ? "" : logFile.c_str(), opts, parser.exist("wait-for-exit"));
 
-    if(ident == 0)
+    if(res.status != ReplayStatus::Succeeded)
     {
-      std::cerr << "Failed to inject." << std::endl;
-      return 2;
+      std::cerr << "Failed to inject: " << ToStr(res.status) << std::endl;
+      return (int)res.status;
     }
 
     if(parser.exist("wait-for-exit"))
     {
       std::cerr << PID << " finished executing." << std::endl;
-      ident = 0;
+      res.ident = 0;
     }
     else
     {
-      std::cerr << "Launched as ID " << ident << std::endl;
+      std::cerr << "Launched as ID " << res.ident << std::endl;
     }
 
-    return ident;
+    return res.ident;
   }
 };
 
@@ -879,10 +879,13 @@ struct CapAltBitCommand : public Command
 
     RENDERDOC_SetDebugLogFile(debuglog.c_str());
 
-    int ret = RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"), env,
-                                          parser.get<string>("log").c_str(), cmdopts, false);
+    ExecuteResult result = RENDERDOC_InjectIntoProcess(
+        parser.get<uint32_t>("pid"), env, parser.get<string>("log").c_str(), cmdopts, false);
 
-    return ret;
+    if(result.status == ReplayStatus::Succeeded)
+      return result.ident;
+
+    return (int)result.status;
   }
 };
 

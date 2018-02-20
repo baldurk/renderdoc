@@ -463,13 +463,6 @@ inline const WindowingData CreateAndroidWindowingData(ANativeWindow *window)
   return ret;
 }
 
-DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
-struct GlobalEnvironment
-{
-  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
-  Display *xlibDisplay = NULL;
-};
-
 // declare metatype/reflection for ResourceId here as the struct itself is declared before including
 // all relevant headers above
 #if defined(RENDERDOC_QT_COMPAT)
@@ -487,6 +480,27 @@ DECLARE_REFLECTION_STRUCT(ResourceId);
 #include "replay_enums.h"
 #include "shader_types.h"
 #include "vk_pipestate.h"
+
+DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
+struct GlobalEnvironment
+{
+  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
+  Display *xlibDisplay = NULL;
+};
+
+DOCUMENT("The result of executing or injecting into a program.")
+struct ExecuteResult
+{
+  DOCUMENT(
+      "The :class:`ReplayStatus` resulting from the operation, indicating success or failure.");
+  ReplayStatus status;
+  DOCUMENT(R"(The ident where the new application is listening for target control, or 0 if something
+went wrong.
+)");
+  uint32_t ident;
+};
+
+DECLARE_REFLECTION_STRUCT(ExecuteResult);
 
 // there's not a good way to document a callback, so for lack of a better place we declare these
 // here and document them immediately below. They can be linked to from anywhere by name.
@@ -1384,13 +1398,14 @@ This happens on the remote system, so all paths are relative to the remote files
   platform specific way to generate arguments.
 :param list env: Any :class:`EnvironmentModification` that should be made when running the program.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
-:return: The ident where the new application is listening for target control, or 0 if something went
-  wrong.
-:rtype: ``int``
+:return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
+  and any reason for failure, or else the ident where the new application is listening for target
+  control if everything succeeded.
+:rtype: ExecuteResult
 )");
-  virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                                    const rdcarray<EnvironmentModification> &env,
-                                    const CaptureOptions &opts) = 0;
+  virtual ExecuteResult ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+                                         const rdcarray<EnvironmentModification> &env,
+                                         const CaptureOptions &opts) = 0;
 
   DOCUMENT(R"(Take ownership over a capture file.
 
@@ -1965,11 +1980,12 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 :param list env: Any :class:`EnvironmentModification` that should be made when running the program.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :param bool waitForExit: If ``True`` this function will block until the process exits.
-:return: The ident where the new application is listening for target control, or 0 if something went
-  wrong.
-:rtype: ``int``
+:return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
+  and any reason for failure, or else the ident where the new application is listening for target
+  control if everything succeeded.
+:rtype: ExecuteResult
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                            const rdcarray<EnvironmentModification> &env, const char *logfile,
                            const CaptureOptions &opts, bool waitForExit);
@@ -1980,11 +1996,12 @@ DOCUMENT(R"(Where supported by operating system and permissions, inject into a r
 :param list env: Any :class:`EnvironmentModification` that should be made when running the program.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :param bool waitForExit: If ``True`` this function will block until the process exits.
-:return: The ident where the new application is listening for target control, or 0 if something went
-  wrong.
-:rtype: ``int``
+:return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
+  and any reason for failure, or else the ident where the new application is listening for target
+  control if everything succeeded.
+:rtype: ExecuteResult
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const char *logfile, const CaptureOptions &opts, bool waitForExit);
 

@@ -2899,6 +2899,7 @@ enum class ReplayStatus : uint32_t
   APIHardwareUnsupported,
   APIDataCorrupted,
   APIReplayFailed,
+  JDWPFailure,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayStatus);

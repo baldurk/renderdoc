@@ -49,6 +49,7 @@ std::string DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(APIDataCorrupted,
                                "Replaying the capture encountered invalid/corrupted data");
     STRINGISE_ENUM_CLASS_NAMED(APIReplayFailed, "Replaying the capture failed at the API level");
+    STRINGISE_ENUM_CLASS_NAMED(JDWPFailure, "JDWP debugger connection could not be established");
   }
   END_ENUM_STRINGISE();
 }

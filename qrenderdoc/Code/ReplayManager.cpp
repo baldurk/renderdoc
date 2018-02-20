@@ -372,12 +372,12 @@ void ReplayManager::ReopenCaptureFile(const QString &path)
   m_CaptureFile->OpenFile(path.toUtf8().data(), "rdc", NULL);
 }
 
-uint32_t ReplayManager::ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
-                                         const rdcstr &cmdLine,
-                                         const rdcarray<EnvironmentModification> &env,
-                                         const rdcstr &capturefile, CaptureOptions opts)
+ExecuteResult ReplayManager::ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
+                                              const rdcstr &cmdLine,
+                                              const rdcarray<EnvironmentModification> &env,
+                                              const rdcstr &capturefile, CaptureOptions opts)
 {
-  uint32_t ret = 0;
+  ExecuteResult ret;
 
   if(m_Remote)
   {

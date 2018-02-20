@@ -714,14 +714,15 @@ This happens either locally, or on the remote server, depending on whether a con
   the program.
 :param str capturefile: The location to save any captures, if running locally.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
-:return: The ident where the new application is listening for target control, or 0 if something went
-  wrong.
-:rtype: ``int``
+:return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
+  and any reason for failure, or else the ident where the new application is listening for target
+  control if everything succeeded.
+:rtype: ExecuteResult
 )");
-  virtual uint32_t ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
-                                    const rdcstr &cmdLine,
-                                    const rdcarray<EnvironmentModification> &env,
-                                    const rdcstr &capturefile, CaptureOptions opts) = 0;
+  virtual ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
+                                         const rdcstr &cmdLine,
+                                         const rdcarray<EnvironmentModification> &env,
+                                         const rdcstr &capturefile, CaptureOptions opts) = 0;
 
   DOCUMENT(R"(Retrieve a list of drivers that the current remote server supports.
 

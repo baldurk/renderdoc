@@ -747,12 +747,12 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
-      uint32_t ident = 0;
+      ExecuteResult ret = {};
 
       if(threadData->allowExecution)
       {
-        ident = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(),
-                                                    cmdLine.c_str(), env, "", opts, false);
+        ret = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(), cmdLine.c_str(),
+                                                  env, "", opts, false);
       }
       else
       {
@@ -762,7 +762,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       {
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_ExecuteAndInject);
-        SERIALISE_ELEMENT(ident);
+        SERIALISE_ELEMENT(ret);
       }
     }
     else if((int)type >= eReplayProxy_First && proxy)
@@ -1230,8 +1230,9 @@ public:
     return files;
   }
 
-  uint32_t ExecuteAndInject(const char *a, const char *w, const char *c,
-                            const rdcarray<EnvironmentModification> &env, const CaptureOptions &opts)
+  ExecuteResult ExecuteAndInject(const char *a, const char *w, const char *c,
+                                 const rdcarray<EnvironmentModification> &env,
+                                 const CaptureOptions &opts)
   {
     std::string app = a && a[0] ? a : "";
     std::string workingDir = w && w[0] ? w : "";
@@ -1249,7 +1250,7 @@ public:
           ok = Ping();
       });
 
-      uint32_t ret = Android::StartAndroidPackageForCapture(host, app.c_str(), opts);
+      ExecuteResult ret = Android::StartAndroidPackageForCapture(host, app.c_str(), opts);
 
       Atomic::Inc32(&done);
 
@@ -1269,7 +1270,7 @@ public:
       SERIALISE_ELEMENT(env);
     }
 
-    uint32_t ident = 0;
+    ExecuteResult ret = {};
 
     {
       READ_DATA_SCOPE();
@@ -1277,7 +1278,7 @@ public:
 
       if(type == eRemoteServer_ExecuteAndInject)
       {
-        SERIALISE_ELEMENT(ident);
+        SERIALISE_ELEMENT(ret);
       }
       else
       {
@@ -1287,7 +1288,7 @@ public:
       ser.EndChunk();
     }
 
-    return ident;
+    return ret;
   }
 
   void CopyCaptureFromRemote(const char *remotepath, const char *localpath,

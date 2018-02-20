@@ -500,8 +500,9 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   return pi;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                                    const char *logfile, const CaptureOptions &opts, bool waitForExit)
+ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
+                                         const char *logfile, const CaptureOptions &opts,
+                                         bool waitForExit)
 {
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(logfile);
 
@@ -561,7 +562,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
     DWORD err = GetLastError();
     RDCERR("Couldn't determine bitness of process, err: %08x", err);
     CloseHandle(hProcess);
-    return 0;
+    return {ReplayStatus::IncompatibleProcess, 0};
   }
 
   bool capalt = false;
@@ -580,7 +581,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
   {
     DWORD err = GetLastError();
     RDCERR("Couldn't determine bitness of self, err: %08x", err);
-    return 0;
+    return {ReplayStatus::InternalError, 0};
   }
 
   // we know we're 32-bit, so if the target process is not wow64
@@ -632,7 +633,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
       RDCERR("Can't capture x64 process with x86 renderdoc");
 
       CloseHandle(hProcess);
-      return 0;
+      return {ReplayStatus::IncompatibleProcess, 0};
     }
   }
 #else
@@ -832,7 +833,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
       RDCERR(
           "Can't spawn alternate bitness renderdoccmd - have you built 32-bit and 64-bit?\n"
           "You need to build the matching bitness for the programs you want to capture.");
-      return 0;
+      return {ReplayStatus::InternalError, 0};
     }
 
     ResumeThread(pi.hThread);
@@ -848,7 +849,12 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
 
     CloseHandle(hProcess);
 
-    return (uint32_t)exitCode;
+    if(exitCode == 0)
+      return {ReplayStatus::UnknownError, 0};
+    if(exitCode < RenderDoc_FirstTargetControlPort)
+      return {(ReplayStatus)exitCode, 0};
+
+    return {ReplayStatus::Succeeded, (uint32_t)exitCode};
   }
 
   InjectDLL(hProcess, renderdocPath);
@@ -910,7 +916,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
 
   CloseHandle(hProcess);
 
-  return controlident;
+  return {ReplayStatus::Succeeded, controlident};
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
@@ -984,11 +990,11 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
   return LaunchProcess("cmd.exe", workingDir, args.c_str(), internal, result);
 }
 
-uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                             const char *cmdLine,
-                                             const rdcarray<EnvironmentModification> &env,
-                                             const char *logfile, const CaptureOptions &opts,
-                                             bool waitForExit)
+ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
+                                                  const char *cmdLine,
+                                                  const rdcarray<EnvironmentModification> &env,
+                                                  const char *logfile, const CaptureOptions &opts,
+                                                  bool waitForExit)
 {
   void *func =
       GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "INTERNAL_SetLogFile");
@@ -997,24 +1003,24 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   {
     RDCERR("Can't find required export function in " STRINGIZE(
         RDOC_DLL_FILE) ".dll - corrupted/missing file?");
-    return 0;
+    return {ReplayStatus::InternalError, 0};
   }
 
   PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, false, NULL, NULL);
 
   if(pi.dwProcessId == 0)
-    return 0;
+    return {ReplayStatus::InjectionFailed, 0};
 
-  uint32_t ret = InjectIntoProcess(pi.dwProcessId, env, logfile, opts, false);
+  ExecuteResult ret = InjectIntoProcess(pi.dwProcessId, env, logfile, opts, false);
 
   CloseHandle(pi.hProcess);
   ResumeThread(pi.hThread);
   ResumeThread(pi.hThread);
 
-  if(ret == 0)
+  if(ret.ident == 0 || ret.status != ReplayStatus::Succeeded)
   {
     CloseHandle(pi.hThread);
-    return 0;
+    return ret;
   }
 
   if(waitForExit)

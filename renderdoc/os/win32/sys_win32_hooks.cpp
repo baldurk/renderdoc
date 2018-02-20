@@ -250,11 +250,12 @@ private:
       rdcarray<EnvironmentModification> env;
 
       // inherit logfile and capture options
-      uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, env,
-                                                   RenderDoc::Inst().GetLogFile(),
-                                                   RenderDoc::Inst().GetCaptureOptions(), false);
+      ExecuteResult res = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, env,
+                                                      RenderDoc::Inst().GetLogFile(),
+                                                      RenderDoc::Inst().GetCaptureOptions(), false);
 
-      RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
+      if(res.status == ReplayStatus::Succeeded)
+        RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, res.ident);
     }
 
     if(resume)

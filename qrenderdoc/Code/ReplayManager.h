@@ -85,9 +85,9 @@ public:
   ICaptureFile *GetCaptureFile() { return m_CaptureFile; }
   void ReopenCaptureFile(const QString &path);
   const RemoteHost *CurrentRemote() { return m_RemoteHost; }
-  uint32_t ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
-                            const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
-                            CaptureOptions opts);
+  ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
+                                 const rdcarray<EnvironmentModification> &env,
+                                 const rdcstr &capturefile, CaptureOptions opts);
 
   rdcarray<rdcstr> GetRemoteSupport();
   void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb);

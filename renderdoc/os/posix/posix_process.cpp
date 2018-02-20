@@ -404,11 +404,12 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   return childPid;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                                    const char *logfile, const CaptureOptions &opts, bool waitForExit)
+ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
+                                         const char *logfile, const CaptureOptions &opts,
+                                         bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
-  return 0;
+  return {ReplayStatus::InjectionFailed, 0};
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
@@ -472,16 +473,16 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
   return LaunchProcess("bash", workingDir, args.c_str(), internal, result);
 }
 
-uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                             const char *cmdLine,
-                                             const rdcarray<EnvironmentModification> &envList,
-                                             const char *logfile, const CaptureOptions &opts,
-                                             bool waitForExit)
+ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
+                                                  const char *cmdLine,
+                                                  const rdcarray<EnvironmentModification> &envList,
+                                                  const char *logfile, const CaptureOptions &opts,
+                                                  bool waitForExit)
 {
   if(app == NULL || app[0] == 0)
   {
     RDCERR("Invalid empty 'app'");
-    return 0;
+    return {ReplayStatus::InternalError, 0};
   }
 
   // turn environment string to a UTF-8 map
@@ -596,7 +597,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   }
 
   CleanupStringArray(envp, NULL);
-  return ret;
+  return {ret == 0 ? ReplayStatus::InjectionFailed : ReplayStatus::Succeeded, (uint32_t)ret};
 }
 
 bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)

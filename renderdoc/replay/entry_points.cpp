@@ -296,7 +296,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnregisterMemoryRegion(void
     handler->UnregisterMemoryRegion(base);
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                            const rdcarray<EnvironmentModification> &env, const char *logfile,
                            const CaptureOptions &opts, bool waitForExit)
@@ -332,7 +332,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanGlobalHook()
   return Process::CanGlobalHook();
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {

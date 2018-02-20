@@ -122,12 +122,16 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   return 0;
 }
 
-uint32_t StartAndroidPackageForCapture(const char *host, const char *package,
-                                       const CaptureOptions &opts)
+ExecuteResult StartAndroidPackageForCapture(const char *host, const char *package,
+                                            const CaptureOptions &opts)
 {
   int index = 0;
   std::string deviceID;
   Android::ExtractDeviceIDAndIndex(host, index, deviceID);
+
+  ExecuteResult ret;
+  ret.status = ReplayStatus::UnknownError;
+  ret.ident = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
 
   string packageName = basename(string(package));    // Remove leading '/' if any
 
@@ -211,21 +215,25 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package,
     if(!injected)
     {
       RDCERR("Failed to inject using JDWP");
-      return 0;
+      ret.status = ReplayStatus::JDWPFailure;
+      ret.ident = 0;
+      return ret;
     }
   }
 
-  uint32_t ret = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
+  ret.status = ReplayStatus::InjectionFailed;
+
   uint32_t elapsed = 0,
            timeout = 1000 *
                      RDCMAX(5, atoi(RenderDoc::Inst().GetConfigSetting("MaxConnectTimeout").c_str()));
   while(elapsed < timeout)
   {
     // Check if the target app has started yet and we can connect to it.
-    ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
+    ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret.ident, "testConnection", false);
     if(control)
     {
       control->Shutdown();
+      ret.status = ReplayStatus::Succeeded;
       break;
     }
 
