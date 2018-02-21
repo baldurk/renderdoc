@@ -1,11 +1,10 @@
 # Contributing to RenderDoc
-----
 
 If you're interested in contributing to RenderDoc, this is the place!
 
-For small changes like one-line fixes or minor tweaks then don't worry about reading this end-to-end. The point of this isn't to be anal about rules, so I'm happy to help to be accommodating and go back and forth to get any change ready to commit, or fix up minor issues by hand. It's a good idea to check the [commit message](#commit-messages) and [code formatting](#code-formatting) sections though.
+For small changes like one-line fixes or minor tweaks then don't worry too much about reading this end-to-end. The point of this isn't to be restrictive about rules, so I'm happy to help to be accommodating and go back and forth to get any change ready to commit, or fix up minor issues by hand. It's a good idea to check the [commit message](#commit-messages) and [code formatting](#code-formatting) sections to get an idea of what a good PR will look like, but I'll provide feedback when you open a PR on how to get it ready to merge.
 
-On the other hand regular contributors or if you have a larger amount of code that's changing, please read on as it will make life easier for everyone if you to follow along with these guidelines.
+If you're a regular contributor or if you have a larger amount of code to change, please read on as it will make life easier for everyone if you to follow along with these guidelines from the start.
 
 1. [Compiling](#compiling)
 2. [Code of Conduct](#code-of-conduct)
@@ -21,9 +20,7 @@ On the other hand regular contributors or if you have a larger amount of code th
 
 ### Windows
 
-:rotating_light: :rotating_light: Until v1.0 is close to stable, currently the dependencies to build the Qt UI are not committed to the repository. Until then, you need to download [this zip file](https://renderdoc.org/qrenderdoc_3rdparty.zip) and extract it in the root. :rotating_light: :rotating_light:
-
-The main [renderdoc.sln](renderdoc.sln) is a VS2015 solution, as of March 2017. It should also compile in VS2017, just select to update the compilers if you don't have the 2015 compilers available.
+The main [renderdoc.sln](renderdoc.sln) is a VS2015 solution. It should also compile in VS2017, just select to update the compilers if you don't have the 2015 compilers available.
 
 There are no external dependencies, all libraries/headers needed to build are included in the git checkout. On windows, the `Development` configuration is recommended for day-to-day dev. It's debuggable but not too slow. The `Release` configuration is then obviously what you should compile for any builds you'll send out to people or if you want to evaluate performance.
 
@@ -45,15 +42,18 @@ Mac support is pretty early and while it will compile, it's not usable for debug
 ### Android
 
 To build the components required to debug an Android target, first gather everything from [Dependencies](#dependencies) below, then run:
+
 ```
 mkdir build-android
 cd build-android
-cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 ..
+cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a ..
 make
 ```
-On Windows, you need to specify the 'generator' type to the cmake invocation. The exact parameter will depend on your bash shell, but options are e.g. -G "MSYS Makefiles" or -G "MinGW Makefiles", i.e.:
+
+On Windows, you need to specify the 'generator' type to the cmake invocation. The exact parameter will depend on your bash shell, but options are e.g. `-G "MSYS Makefiles"` or `-G "MinGW Makefiles"`, i.e.:
+
 ```
-cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 -G"MSYS Makefiles" ..
+cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -G "MSYS Makefiles" ..
 ```
 
 # Code of Conduct
@@ -200,7 +200,35 @@ export ANDROID_NDK=<path_to_ndk_root>
 export JAVA_HOME=<path_to_jdk_root>
 ```
 Otherwise, below are steps to acquire the tools for each platform.
-#### Ubuntu
+
+#### Windows
+
+JDK can be installed from the following [link](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+
+```
+set JAVA_HOME=<path_to_jdk_root>
+```
+
+Android NDK and SDK:
+
+```
+# Set up the Android SDK
+set ANDROID_SDK=<path_to_desired_setup>
+cd %ANDROID_SDK%
+wget https://dl.google.com/android/repository/sdk-tools-windows-3859397.zip
+unzip sdk-tools-windows-3859397.zip
+cd tools\bin
+sdkmanager --sdk_root=%ANDROID_SDK% "build-tools;26.0.1" "platforms;android-23"
+# Accept the license
+
+# Set up the Android NDK
+cd %ANDROID_SDK%
+wget http://dl.google.com/android/repository/android-ndk-r14b-windows-x86_64.zip
+unzip android-ndk-r14b-windows-x86_64.zip
+set ANDROID_NDK=%ANDROID_SDK%\android-ndk-r14b
+```
+
+#### Linux
 The Java Development Kit can be installed with:
 ```
 sudo apt-get install openjdk-8-jdk
@@ -228,13 +256,18 @@ wget http://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
 unzip android-ndk-r14b-linux-x86_64.zip
 export ANDROID_NDK=$ANDROID_SDK/android-ndk-r14b
 ```
+
 #### macOS
+
 JDK can be installed with brew:
+
 ```
 brew cask install java
 export JAVA_HOME="$(/usr/libexec/java_home)"
 ```
+
 Android NDK and SDK:
+
 ```
 # Set up Android SDK
 export ANDROID_SDK=<path_to_desired_setup>
@@ -250,28 +283,6 @@ pushd $ANDROID_SDK
 wget https://dl.google.com/android/repository/android-ndk-r14b-darwin-x86_64.zip
 unzip android-ndk-r14b-darwin-x86_64.zip
 export ANDROID_NDK=$ANDROID_SDK/android-ndk-r14b
-```
-#### Windows
-JDK can be installed from the following [link](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
-```
-set JAVA_HOME=<path_to_jdk_root>
-```
-Android NDK and SDK:
-```
-# Set up the Android SDK
-set ANDROID_SDK=<path_to_desired_setup>
-cd %ANDROID_SDK%
-wget https://dl.google.com/android/repository/sdk-tools-windows-3859397.zip
-unzip sdk-tools-windows-3859397.zip
-cd tools\bin
-sdkmanager --sdk_root=%ANDROID_SDK% "build-tools;26.0.1" "platforms;android-23"
-# Accept the license
-
-# Set up the Android NDK
-cd %ANDROID_SDK%
-wget http://dl.google.com/android/repository/android-ndk-r14b-windows-x86_64.zip
-unzip android-ndk-r14b-windows-x86_64.zip
-set ANDROID_NDK=%ANDROID_SDK%\android-ndk-r14b
 ```
 
 # Where to Start
