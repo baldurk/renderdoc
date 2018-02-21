@@ -29,6 +29,8 @@
 
 #else
 
+//#extension_nongles GL_ARB_explicit_attrib_location : require
+
 // otherwise we use a proper output
 layout (location = 0) out vec4 color_out;
 
