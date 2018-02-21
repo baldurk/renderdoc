@@ -8,7 +8,7 @@
       InstallerVersion='301' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <UI> 
-       <Error Id="25000">Please use the 64-bit installer</Error> 
+      <Error Id="25000">Please use the 64-bit installer</Error>
     </UI> 
 
     <Property Id="MajorMinorVersion">$(env.RENDERDOC_VERSION)</Property>
@@ -16,7 +16,7 @@
     <CustomAction Id="Need64BitVersion" Error="25000" /> 
 
     <InstallUISequence> 
-       <Custom Action="Need64BitVersion" Before="AppSearch">VersionNT64</Custom> 
+      <Custom Action="Need64BitVersion" Before="AppSearch">VersionNT64</Custom>
     </InstallUISequence> 
 
     <InstallExecuteSequence>
@@ -25,10 +25,10 @@
 
     <Upgrade Id="D320753C-4B18-4905-A752-E68959943E7D">
       <UpgradeVersion Minimum="0.18.0"
-                      IncludeMinimum="yes"
-                      IncludeMaximum="yes"
-                      Maximum="$(env.RENDERDOC_VERSION).0"
-                      Property="OLDERVERSIONBEINGUPGRADED" />
+        IncludeMinimum="yes"
+        IncludeMaximum="yes"
+        Maximum="$(env.RENDERDOC_VERSION).0"
+        Property="OLDERVERSIONBEINGUPGRADED" />
       <UpgradeVersion OnlyDetect="yes" Property="NEWERVERSIONDETECTED" Minimum="$(env.RENDERDOC_VERSION).0" IncludeMinimum="no" />
     </Upgrade>
 
@@ -77,7 +77,7 @@
               Key="Software\Classes\RenderDoc.RDCSettings.1\DefaultIcon" 
               Value='[#qrenderdocEXE]'
               Type="expandable" />
-            
+
           </Component>
 
           <Component Id='RenderDocCPP' Guid='2E6F718F-8BCC-4D41-9688-E99CF2F6B303'>
@@ -90,7 +90,7 @@
             <File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/symsrv.yes' />
 
             <File Id='RenderDocAPIheader' Name='renderdoc_app.h' DiskId='1' Source='dist/Release32/renderdoc_app.h' />
-            
+
             <RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
               Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
               Value='RenderDoc Thumbnail Handler' 
@@ -208,7 +208,7 @@
           </Component>
         </Directory>
       </Directory>
-     
+
       <Component Id="ImageOpenWith" Guid="1F56AF06-3E83-4D7E-85A2-6A309A55FF4F">
         <RegistryValue Root="HKLM" Id="RDCOpenWithCommand" Action="write" KeyPath='yes'
           Key="Software\Classes\Applications\qrenderdoc.exe\shell\open\command"
@@ -267,14 +267,14 @@
         <RegistryValue Root="HKLM" Id="RDCOpenWithProgidPSD" Action="write"
           Key="Software\Classes\.psd\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
       </Component>
-     
+
       <Component Id="ImageThumbnailProvider" Guid="51E29C24-61F0-4F40-AB17-D66A97B3D543">
         <RegistryValue Root="HKLM" Id="RDCProvider" Action="write" KeyPath='yes'
           Key="Software\Classes\RenderDoc.RDCCapture.1\ShellEx\{e357fccd-a995-4576-b01f-234630154e96}" 
           Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
           Type="expandable" />
       </Component>
-      
+
       <Component Id="FileExtensionRDC" Guid="5F21081F-59A8-43EE-8E95-170335FC3EF4">
         <ProgId Id='RenderDoc.RDCCapture.1' Description='RenderDoc Capture Log (.rdc)'>
           <Extension Id='rdc' />
