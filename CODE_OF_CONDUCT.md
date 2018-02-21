@@ -10,8 +10,8 @@ In the interest of fostering an open and welcoming environment, we as
 contributors and maintainers pledge to making participation in our project and
 our community a harassment-free experience for everyone, regardless of age, body
 size, disability, ethnicity, gender identity and expression, level of experience,
-nationality, personal appearance, race, religion, or sexual identity and
-orientation.
+education, socio-economic status, nationality, personal appearance, race,
+religion, or sexual identity and orientation.
 
 ## Our Standards
 
@@ -27,7 +27,7 @@ include:
 Examples of unacceptable behavior by participants include:
 
 * The use of sexualized language or imagery and unwelcome sexual attention or
-advances
+  advances
 * Trolling, insulting/derogatory comments, and personal or political attacks
 * Public or private harassment
 * Publishing others' private information, such as a physical or electronic
@@ -72,7 +72,7 @@ members of the project's leadership.
 ## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4,
-available at [http://contributor-covenant.org/version/1/4][version]
+available at https://www.contributor-covenant.org/version/1/4/code-of-conduct.html
 
-[homepage]: http://contributor-covenant.org
-[version]: http://contributor-covenant.org/version/1/4/
+[homepage]: https://www.contributor-covenant.org
+
