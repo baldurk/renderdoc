@@ -102,7 +102,7 @@ fi
 
 VERSION=`grep -E "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/api/replay/version.h | tr -dc '[0-9\n]' | tr '\n' '.' | grep -Eo '[0-9]+\.[0-9]+'`
 
-export RENDERDOC_VERSION="${VERSION}.0"
+export RENDERDOC_VERSION="${VERSION}"
 
 "$WIX/bin/candle.exe" -o dist/Installer32.wixobj scripts/installer/Installer32.wxs
 "$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc scripts/installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj

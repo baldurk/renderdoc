@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='windows-1252'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
   <Product Name='RenderDoc' Id='*' UpgradeCode='D320753C-4B18-4905-A752-E68959943E7D'
-    Language='1033' Codepage='1252' Version='$(env.RENDERDOC_VERSION)' Manufacturer='Baldur Karlsson'>
+    Language='1033' Codepage='1252' Version='$(env.RENDERDOC_VERSION).0' Manufacturer='Baldur Karlsson'>
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
       Comments='RenderDoc Homepage is http://renderdoc.org/' Platform="x64" Manufacturer='Baldur Karlsson'
@@ -11,13 +11,15 @@
       <RemoveExistingProducts After="InstallInitialize"/>
     </InstallExecuteSequence>
 
+    <Property Id="MajorMinorVersion">$(env.RENDERDOC_VERSION)</Property>
+
     <Upgrade Id="D320753C-4B18-4905-A752-E68959943E7D">
       <UpgradeVersion Minimum="0.18.0"
                       IncludeMinimum="yes"
                       IncludeMaximum="yes"
-                      Maximum="$(env.RENDERDOC_VERSION)"
+                      Maximum="$(env.RENDERDOC_VERSION).0"
                       Property="OLDERVERSIONBEINGUPGRADED" />
-      <UpgradeVersion OnlyDetect="yes" Property="NEWERVERSIONDETECTED" Minimum="$(env.RENDERDOC_VERSION)" IncludeMinimum="no" />
+      <UpgradeVersion OnlyDetect="yes" Property="NEWERVERSIONDETECTED" Minimum="$(env.RENDERDOC_VERSION).0" IncludeMinimum="no" />
     </Upgrade>
 
     <Condition Message="A later version of [ProductName] is already installed"> 
@@ -77,7 +79,7 @@
 						<File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release64/symsrv.dll' />
 						<File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release64/symsrv.yes' />
 						
-						<File Id='RenderDocAPIheader' Name='renderdoc_app.h' DiskId='1' Source='dist/Release32/renderdoc_app.h' />
+						<File Id='RenderDocAPIheader' Name='renderdoc_app.h' DiskId='1' Source='dist/Release64/renderdoc_app.h' />
             
 						<RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
 							Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
@@ -103,22 +105,21 @@
 						<File Id='RenderDocCMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release64/renderdoccmd.exe' KeyPath='yes' />
 					</Component>
 
-					<Component Id='Scintilla' Win64="yes" Guid='E1BC516F-F611-4C7B-8F3E-A459F026FC4E'>
-						<File Id='ScintillaNET' Name='ScintillaNET.dll' DiskId='1' Source='dist/Release64/ScintillaNET.dll' KeyPath='yes' />
-						<File Id='SciLexer' Name='SciLexer.dll' DiskId='1' Source='dist/Release64/SciLexer.dll' />
-						<File Id='SciLexer64' Name='SciLexer64.dll' DiskId='1' Source='dist/Release64/SciLexer64.dll' />
+					<Component Id='Qt' Win64="yes" Guid='E1BC516F-F611-4C7B-8F3E-A459F026FC4E'>
+						<File Id='Qt5Core' Name='Qt5Core.dll' DiskId='1' Source='dist/Release64/Qt5Core.dll' KeyPath='yes' />
+						<File Id='Qt5Gui' Name='Qt5Gui.dll' DiskId='1' Source='dist/Release64/Qt5Gui.dll' />
+						<File Id='Qt5Network' Name='Qt5Network.dll' DiskId='1' Source='dist/Release64/Qt5Network.dll' />
+						<File Id='Qt5Svg' Name='Qt5Svg.dll' DiskId='1' Source='dist/Release64/Qt5Svg.dll' />
+						<File Id='Qt5Widgets' Name='Qt5Widgets.dll' DiskId='1' Source='dist/Release64/Qt5Widgets.dll' />
+						<File Id='libeay32' Name='libeay32.dll' DiskId='1' Source='dist/Release64/libeay32.dll' />
+						<File Id='ssleay32' Name='ssleay32.dll' DiskId='1' Source='dist/Release64/ssleay32.dll' />
 					</Component>
 
-					<Component Id='DockingUI' Win64="yes" Guid='420997F0-93DA-4ACF-AA5D-9EDBE8D96A09'>
-						<File Id='WinFormsUIDLL' Name='WeifenLuo.WinFormsUI.Docking.dll' DiskId='1' Source='dist/Release64/WeifenLuo.WinFormsUI.Docking.dll' KeyPath='yes' />
-					</Component>
-
-					<Component Id='IronPython' Win64="yes" Guid='CE2C9D5B-9040-47C7-8E42-B79B52AE93EB'>
-						<File Id='IronPythonDLL' Name='IronPython.dll' DiskId='1' Source='dist/Release64/IronPython.dll' KeyPath='yes' />
-						<File Id='IronPythonModulesDLL' Name='IronPython.Modules.dll' DiskId='1' Source='dist/Release64/IronPython.Modules.dll' />
-						<File Id='MicrosoftScriptingDLL' Name='Microsoft.Scripting.dll' DiskId='1' Source='dist/Release64/Microsoft.Scripting.dll' />
-						<File Id='MicrosoftDynamicDLL' Name='Microsoft.Dynamic.dll' DiskId='1' Source='dist/Release32/Microsoft.Dynamic.dll' />
-						<File Id='PythonLibsZIP' Name='pythonlibs.zip' DiskId='1' Source='dist/Release64/pythonlibs.zip' />
+					<Component Id='Python' Win64="yes" Guid='CE2C9D5B-9040-47C7-8E42-B79B52AE93EB'>
+						<File Id='Python36' Name='python36.dll' DiskId='1' Source='dist/Release64/python36.dll' KeyPath='yes' />
+						<File Id='PythonLibsZIP' Name='python36.zip' DiskId='1' Source='dist/Release64/python36.zip' />
+						<File Id='CTypes' Name='_ctypes.pyd' DiskId='1' Source='dist/Release64/_ctypes.pyd' />
+						<File Id='Shiboken2' Name='shiboken2.dll' DiskId='1' Source='dist/Release64/shiboken2.dll' />
 					</Component>
 
 					<Component Id='Documentation' Win64="yes" Guid='C49ABF1D-1D73-469B-A44A-DD9470E85F19'>
@@ -126,6 +127,31 @@
 							<Shortcut Id="startmenuDocs" Directory="ProgramMenuDir" Name="RenderDoc Documentation" Icon='chm.ico' Advertise="yes" />
 						</File>
 					</Component>
+
+					<Directory Id='qtplugins' Name='qtplugins'>
+						<Directory Id='qtplugins_imageformats' Name='imageformats'>
+							<Component Id='qt_imgplugin' Win64="yes" Guid='4346BD2C-4005-47FF-BEE7-9C30978EF7E5'>
+								<File Id='qsvg' Name='qsvg.dll' DiskId='1' Source='dist/Release64/qtplugins/imageformats/qsvg.dll' KeyPath='yes' />
+							</Component>
+						</Directory>
+
+						<Directory Id='qtplugins_platform' Name='platforms'>
+							<Component Id='qt_platplugin' Win64="yes" Guid='9C12C689-DFAE-4958-8CEE-D573867B2E98'>
+								<File Id='qwindows' Name='qwindows.dll' DiskId='1' Source='dist/Release64/qtplugins/platforms/qwindows.dll' KeyPath='yes' />
+							</Component>
+						</Directory>
+					</Directory>
+
+					<Directory Id='PySide2' Name='PySide2'>
+						<Component Id='PySide2Deps' Win64="yes" Guid='A864541A-DDC3-4149-B03F-A48B7ED16DAB'>
+							<File Id='pyside2dll' Name='pyside2.dll' DiskId='1' Source='dist/Release64/PySide2/pyside2.dll' KeyPath='yes' />
+							<File Id='PS2QtCore' Name='QtCore.pyd' DiskId='1' Source='dist/Release64/PySide2/QtCore.pyd' />
+							<File Id='PS2QtGui' Name='QtGui.pyd' DiskId='1' Source='dist/Release64/PySide2/QtGui.pyd' />
+							<File Id='PS2QtWidgets' Name='QtWidgets.pyd' DiskId='1' Source='dist/Release64/PySide2/QtWidgets.pyd' />
+							<File Id='PS2utils' Name='_utils.py' DiskId='1' Source='dist/Release64/PySide2/_utils.py' />
+							<File Id='PS2init' Name='__init__.py' DiskId='1' Source='dist/Release64/PySide2/__init__.py' />
+						</Component>
+					</Directory>
 
 					<Directory Id='plugins' Name='plugins'>
 						<Directory Id='plugins_amd' Name='amd'>
@@ -136,6 +162,27 @@
 									<File Id='virtualcontextEXE' Name='VirtualContext.exe' DiskId='1' Source='dist/Release64/plugins/amd/isa/VirtualContext.exe' />
 								</Component>
 							</Directory>
+						</Directory>
+
+						<Directory Id='plugins_android' Name='android'>
+							<Component Id='android_plugin' Win64="yes" Guid='328B7D53-1323-4D9B-8966-3D8567E3723B'>
+								<File Id='APKarm32' Name='org.renderdoc.renderdoccmd.arm32.apk' DiskId='1' Source='dist/Release64/plugins/android/org.renderdoc.renderdoccmd.arm32.apk' KeyPath='yes' />
+								<File Id='APKarm64' Name='org.renderdoc.renderdoccmd.arm64.apk' DiskId='1' Source='dist/Release64/plugins/android/org.renderdoc.renderdoccmd.arm64.apk' />
+								<File Id='aapt' Name='aapt.exe' DiskId='1' Source='dist/Release64/plugins/android/aapt.exe' />
+								<File Id='adb' Name='adb.exe' DiskId='1' Source='dist/Release64/plugins/android/adb.exe' />
+								<File Id='AdbWinApi' Name='AdbWinApi.dll' DiskId='1' Source='dist/Release64/plugins/android/AdbWinApi.dll' />
+								<File Id='AdbWinUsbApi' Name='AdbWinUsbApi.dll' DiskId='1' Source='dist/Release64/plugins/android/AdbWinUsbApi.dll' />
+								<File Id='apksigner' Name='apksigner.jar' DiskId='1' Source='dist/Release64/plugins/android/apksigner.jar' />
+								<File Id='keystore' Name='renderdoc.keystore' DiskId='1' Source='dist/Release64/plugins/android/renderdoc.keystore' />
+								<File Id='zipalign' Name='zipalign.exe' DiskId='1' Source='dist/Release64/plugins/android/zipalign.exe' />
+							</Component>
+						</Directory>
+
+						<Directory Id='plugins_spirv' Name='spirv'>
+							<Component Id='spirv_plugin' Win64="yes" Guid='15566608-0D77-42D2-9B6C-D43698C4C46D'>
+								<File Id='spirvcross' Name='spirv-cross.exe' DiskId='1' Source='dist/Release64/plugins/spirv/spirv-cross.exe' KeyPath='yes' />
+								<File Id='spirvdis' Name='spirv-dis.exe' DiskId='1' Source='dist/Release64/plugins/spirv/spirv-dis.exe' />
+							</Component>
 						</Directory>
 					</Directory>
 
@@ -270,16 +317,20 @@
         <ComponentRef Id='RenderDocCPP' />
         <ComponentRef Id='RenderDocCMD' />
 
-        <ComponentRef Id='IronPython' />
+        <ComponentRef Id='Qt' />
+        <ComponentRef Id='Python' />
+        <ComponentRef Id='qt_imgplugin' />
+        <ComponentRef Id='qt_platplugin' />
+
+        <ComponentRef Id='PySide2Deps' />
 
         <ComponentRef Id='LICENSE' />
 
         <ComponentRef Id='gcn_plugin' />
+        <ComponentRef Id='android_plugin' />
+        <ComponentRef Id='spirv_plugin' />
 
         <ComponentRef Id='renderdocX86Bins' />
-
-        <ComponentRef Id='Scintilla' />
-        <ComponentRef Id='DockingUI' />
 
         <ComponentRef Id='ProgramMenuDir' />
 
