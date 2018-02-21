@@ -127,6 +127,9 @@ private slots:
   void exportData(const BufferExport &params);
   void debugVertex();
 
+protected:
+  void changeEvent(QEvent *event) override;
+
 private:
   Ui::BufferViewer *ui;
   ICaptureContext &m_Ctx;
@@ -242,6 +245,9 @@ private:
   void meshHeaderMenu(MeshDataStage stage, const QPoint &pos);
 
   void Reset();
+
+  void updateCheckerboardColours();
+
   void ClearModels();
 
   void guessPositionColumn(BufferItemModel *model);

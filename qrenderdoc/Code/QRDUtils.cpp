@@ -1142,7 +1142,12 @@ void Formatter::setParams(const PersistantConfig &config)
   *m_Font =
       config.Font_PreferMonospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont) : QFont();
 
-  m_DarkChecker = QApplication::palette().color(QPalette::Mid);
+  Formatter::setPalette(QApplication::palette());
+}
+
+void Formatter::setPalette(QPalette palette)
+{
+  m_DarkChecker = palette.color(QPalette::Mid);
   m_LightChecker = m_DarkChecker.lighter(150);
 
   RENDERDOC_SetColors(m_DarkChecker, m_LightChecker, IsDarkTheme());

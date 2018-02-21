@@ -255,7 +255,9 @@ bool PersistantConfig::SetStyle()
   {
     if(UIStyle == rdcstr(StyleData::availStyles[i].styleID))
     {
-      QApplication::setStyle(StyleData::availStyles[i].creator());
+      QStyle *style = StyleData::availStyles[i].creator();
+      Formatter::setPalette(style->standardPalette());
+      QApplication::setStyle(style);
       return true;
     }
   }

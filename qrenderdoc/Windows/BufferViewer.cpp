@@ -2793,7 +2793,11 @@ void BufferViewer::Reset()
                    &BufferViewer::render_keyRelease);
   QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
                    &BufferViewer::render_mouseWheel);
+  updateCheckerboardColours();
+}
 
+void BufferViewer::updateCheckerboardColours()
+{
   ui->render->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
 }
 
@@ -3251,6 +3255,15 @@ void BufferViewer::debugVertex()
       m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
     });
   });
+}
+
+void BufferViewer::changeEvent(QEvent *event)
+{
+  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
+  {
+    updateCheckerboardColours();
+    ui->render->update();
+  }
 }
 
 void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)

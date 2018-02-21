@@ -162,6 +162,7 @@ void RegisterMetatypeConversions();
 struct Formatter
 {
   static void setParams(const PersistantConfig &config);
+  static void setPalette(QPalette palette);
   static void shutdown();
 
   static QString Format(double f, bool hex = false);

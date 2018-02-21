@@ -672,6 +672,15 @@ void TextureViewer::showEvent(QShowEvent *event)
   HighlightUsage();
 }
 
+void TextureViewer::changeEvent(QEvent *event)
+{
+  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
+  {
+    updateBackgroundColors();
+    ui->render->update();
+  }
+}
+
 void TextureViewer::HighlightUsage()
 {
   TextureDescription *texptr = GetCurrentTexture();

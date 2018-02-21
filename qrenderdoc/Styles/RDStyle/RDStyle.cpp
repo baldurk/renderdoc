@@ -152,7 +152,7 @@ RDStyle::~RDStyle()
 {
 }
 
-void RDStyle::polish(QPalette &pal)
+void RDStyle::polishPalette(QPalette &pal) const
 {
   int h = 0, s = 0, v = 0;
 
@@ -272,6 +272,15 @@ void RDStyle::unpolish(QWidget *widget)
   QTabWidget *tabwidget = qobject_cast<QTabWidget *>(widget);
   if(tabwidget && tabwidget->inherits("ToolWindowManagerArea"))
     tabwidget->removeEventFilter(this);
+}
+
+QPalette RDStyle::standardPalette() const
+{
+  QPalette ret = RDTweakedNativeStyle::standardPalette();
+
+  polishPalette(ret);
+
+  return ret;
 }
 
 bool RDStyle::eventFilter(QObject *watched, QEvent *event)

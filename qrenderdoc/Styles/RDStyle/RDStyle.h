@@ -64,10 +64,11 @@ public:
   RDStyle(ColorScheme scheme);
   ~RDStyle();
 
-  void polish(QPalette &pal) override;
+  void polish(QPalette &pal) override { polishPalette(pal); }
   void polish(QWidget *widget) override;
   void unpolish(QWidget *widget) override;
 
+  QPalette standardPalette() const override;
   QRect subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
                        const QWidget *widget = Q_NULLPTR) const override;
   QRect subElementRect(SubElement element, const QStyleOption *option,
@@ -91,6 +92,8 @@ protected:
   ColorScheme m_Scheme = Light;
 
   QBitmap m_PartialCheckPattern;
+
+  void polishPalette(QPalette &pal) const;
 
   bool eventFilter(QObject *watched, QEvent *event) override;
 
