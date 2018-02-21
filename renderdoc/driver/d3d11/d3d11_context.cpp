@@ -889,11 +889,9 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
       if(m_DrawcallStack.size() > 1)
         m_DrawcallStack.pop_back();
     }
-    else
-    {
-      if(!m_AddedDrawcall)
-        AddEvent();
-    }
+
+    if(!m_AddedDrawcall)
+      AddEvent();
   }
 
   m_AddedDrawcall = false;

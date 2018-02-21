@@ -4105,12 +4105,11 @@ bool WrappedOpenGL::ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk)
           m_DrawcallStack.pop_back();
         break;
       }
-      default:
-      {
-        if(!m_AddedDrawcall)
-          AddEvent();
-      }
+      default: break;
     }
+
+    if(!m_AddedDrawcall)
+      AddEvent();
   }
 
   m_AddedDrawcall = false;
