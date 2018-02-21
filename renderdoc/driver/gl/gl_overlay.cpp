@@ -767,7 +767,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
         if(overlay == DebugOverlay::ClearBeforePass && i + 1 < events.size())
-          m_pDriver->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+          m_pDriver->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
       }
     }
   }
@@ -1139,7 +1139,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 
           if(i + 1 < events.size())
-            m_pDriver->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+            m_pDriver->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
         }
       }
 
@@ -1336,7 +1336,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
             m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 
             if(i + 1 < events.size())
-              m_pDriver->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+              m_pDriver->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
           }
         }
 

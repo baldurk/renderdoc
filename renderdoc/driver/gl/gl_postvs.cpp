@@ -1386,7 +1386,8 @@ void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
   {
     if(prev != passEvents[i])
     {
-      m_pDriver->ReplayLog(prev, passEvents[i], eReplay_WithoutDraw);
+      m_pDriver->ReplayLog(prev, prev, eReplay_OnlyDraw);
+      m_pDriver->ReplayLog(prev + 1, passEvents[i], eReplay_WithoutDraw);
 
       prev = passEvents[i];
     }
