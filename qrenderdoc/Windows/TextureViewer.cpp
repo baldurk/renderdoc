@@ -2569,6 +2569,10 @@ void TextureViewer::OnCaptureClosed()
   delete m_Watcher;
   m_Watcher = NULL;
 
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+  while(textureTabs->count() > 1)
+    textureTabs->removeTab(1);
+
   m_LockedTabs.clear();
 
   ui->customShader->clear();
