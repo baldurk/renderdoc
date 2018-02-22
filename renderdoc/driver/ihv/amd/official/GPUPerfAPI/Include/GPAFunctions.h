@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2014-2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2014-2017 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  GPA required public function declarations wrapped in a macro
@@ -27,6 +27,7 @@ GPA_FUNCTION_PREFIX(GPA_GetCounterCategory)
 GPA_FUNCTION_PREFIX(GPA_GetCounterDescription)
 GPA_FUNCTION_PREFIX(GPA_GetCounterDataType)
 GPA_FUNCTION_PREFIX(GPA_GetCounterUsageType)
+GPA_FUNCTION_PREFIX(GPA_GetCounterUuid)
 GPA_FUNCTION_PREFIX(GPA_GetDataTypeAsStr)
 GPA_FUNCTION_PREFIX(GPA_GetUsageTypeAsStr)
 GPA_FUNCTION_PREFIX(GPA_GetStatusAsStr)

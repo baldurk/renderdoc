@@ -889,6 +889,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           for(int i = 0; i < m_BakedCmdBufferInfo[BakedCommandBuffer].markerCount; i++)
             ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
+        if (m_DrawcallCallback)
+          m_DrawcallCallback->PreEndCommandBuffer(commandBuffer);
+
         ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
         if(m_Partial[Primary].partialParent == BakedCommandBuffer)

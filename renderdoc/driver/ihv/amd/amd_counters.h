@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2018 Baldur Karlsson
+ * Copyright (c) 2015-2017 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,9 @@
 #pragma once
 
 #include <vector>
+#include <map>
 #include "api/replay/renderdoc_replay.h"
+#include "api/replay/data_types.h"
 
 struct _GPAApi;
 
@@ -33,12 +35,19 @@ inline constexpr GPUCounter MakeAMDCounter(int index)
 {
   return GPUCounter((int)GPUCounter::FirstAMD + index);
 }
-
 class AMDCounters
 {
 public:
+  enum ApiType
+  {
+    eApiType_Dx11 = 0,
+    eApiType_Dx12 = 1,
+    eApiType_Ogl = 2,
+    eApiType_Vk = 3
+  };
+
   AMDCounters();
-  bool Init(void *pContext);
+  bool Init(ApiType apiType, void *pContext);
   ~AMDCounters();
 
   uint32_t GetNumCounters();
@@ -54,12 +63,29 @@ public:
   uint32_t BeginSession();
   void EndSesssion();
 
+  // DX11 and OGL entry points
   void BeginPass();
   void EndPass();
 
   void BeginSample(uint32_t index);
   void EndSample();
 
+  // DX12 and VK entry points
+  void BeginSampleList(void* pSampleList);
+
+  void EndSampleList(void* pSampleList);
+
+  void BeginSampleInSampleList(uint32_t sampleID, void* pSampleList);
+
+  void EndSampleInSampleList(void* pSampleList);
+
+  // Session data retrieval
+  std::vector<CounterResult> GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
+                                            const std::vector<uint32_t> &eventIDs,
+                                            const std::vector<GPUCounter> &counters);
+private:
+  _GPAApi *m_pGPUPerfAPI;
+  std::string FormatErrMessage(const char* operation, uint32_t status);
   bool IsSessionReady(uint32_t sessionIndex);
 
   uint32_t GetSampleUint32(uint32_t session, uint32_t sample, GPUCounter counter);
@@ -70,22 +96,10 @@ public:
 
   double GetSampleFloat64(uint32_t session, uint32_t sample, GPUCounter counter);
 
-private:
-  _GPAApi *m_pGPUPerfAPI;
-
-  static uint32_t GPUCounterToCounterIndex(GPUCounter counter)
-  {
-    return (uint32_t)(counter) - (uint32_t)(GPUCounter::FirstAMD);
-  }
-
   CounterDescription InternalGetCounterDescription(uint32_t index);
 
-  struct InternalCounterDescription
-  {
-    CounterDescription desc;
-    uint32_t internalIndex;
-  };
+  std::map<uint32_t, CounterDescription> EnumerateCounters();
+  std::map<uint32_t, CounterDescription> m_Counters;
 
-  std::vector<InternalCounterDescription> EnumerateCounters();
-  std::vector<InternalCounterDescription> m_Counters;
+  std::map <GPUCounter, uint32_t> m_PublicToInternalCounter;
 };

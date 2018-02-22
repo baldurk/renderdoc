@@ -12,6 +12,46 @@
 
 #include <limits.h>
 
+/// Platform specific definitions
+#ifdef _WIN32
+#include <windows.h>
+typedef HMODULE LibHandle; /// typedef for HMODULE for loading the library on windows
+typedef GUID GPA_UUID; /// typedef for Windows GUID definition
+#else
+typedef void* LibHandle; /// typedef for void* for loading the library on linux
+
+                         /// Structure for holding UUID
+typedef struct GPA_UUID
+{
+    unsigned long m_data1;    ///< first part of the UUID data
+    unsigned short m_data2;   ///< second part of the UUID data
+    unsigned short m_data3;   ///< third part of the UUID data
+    unsigned char m_data4[8]; ///< fourth part of the UUID data
+
+#ifdef __cplusplus
+    /// operator overloaded function for equality comparison
+    /// \param otherUUID the item being compared
+    /// \return true if UUIDs are equal otherwise false
+    bool operator==(const GPA_UUID& otherUUID)
+    {
+        bool isEqual = true;
+        isEqual &= m_data1 == otherUUID.m_data1;
+        isEqual &= m_data2 == otherUUID.m_data2;
+        isEqual &= m_data3 == otherUUID.m_data3;
+        isEqual &= m_data4[0] == otherUUID.m_data4[0];
+        isEqual &= m_data4[1] == otherUUID.m_data4[1];
+        isEqual &= m_data4[2] == otherUUID.m_data4[2];
+        isEqual &= m_data4[3] == otherUUID.m_data4[3];
+        isEqual &= m_data4[4] == otherUUID.m_data4[4];
+        isEqual &= m_data4[5] == otherUUID.m_data4[5];
+        isEqual &= m_data4[6] == otherUUID.m_data4[6];
+        isEqual &= m_data4[7] == otherUUID.m_data4[7];
+        return isEqual;
+    }
+#endif
+} GPA_UUID;
+#endif
+
 // Type definitions
 #ifdef _WIN32
     typedef char    gpa_int8;
@@ -51,11 +91,20 @@
     #define UNREFERENCED_PARAMETER(x)
 
     #define _strcmpi(a, b) strcasecmp(a, b)
+    #define _stricmp(a, b) strcasecmp(a, b)
 
     // for now, just use non secure version for Linux
     #define strcpy_s(dst, ndst, src) strcpy(dst, src)
     #define strcat_s(dst, ndst, src) strcat(dst, src)
     #define strtok_s(a, b, c) strtok(a, b)
+
+    #ifndef TRUE
+        #define TRUE 1
+    #endif
+
+    #ifndef FALSE
+        #define FALSE 0
+    #endif
 
 #endif // __linux__
 
@@ -120,6 +169,7 @@ typedef enum
     GPA_STATUS_OK_HANDLED = GPA_STATUS_INTERNAL,
 } GPA_Status;
 
+/// Typedef for a set of flags that can be combined into an integer
 typedef unsigned int GPA_Flags;
 
 /// Flags to pass into GPA_OpenContext()
@@ -167,7 +217,7 @@ typedef enum
 typedef enum
 {
     GPA_LOGGING_NONE = 0x00,                                                                                ///< No logging
-    GPA_LOGGING_ERROR = 0x01,                                                                               ///< Log errors 
+    GPA_LOGGING_ERROR = 0x01,                                                                               ///< Log errors
     GPA_LOGGING_MESSAGE = 0x02,                                                                             ///< Log messages
     GPA_LOGGING_ERROR_AND_MESSAGE = GPA_LOGGING_ERROR | GPA_LOGGING_MESSAGE,                                ///< Log errors and messages
     GPA_LOG_ERROR_AND_MESSAGE = GPA_LOGGING_ERROR_AND_MESSAGE,                                              ///< Log errors and messages - Backward Compatibility

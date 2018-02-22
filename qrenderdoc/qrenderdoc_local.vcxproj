@@ -1646,7 +1646,7 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
       <Visible>false</Visible>
     </Content>
     <Content Include="3rdparty\qt\$(Platform)\plugins\platforms\qwindows.dll">
-      <Link>qtplugins\platforms\qwindows.dll</Link>
+      <Link>platforms\qwindows.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>

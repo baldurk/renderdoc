@@ -149,7 +149,10 @@ void D3D11Replay::CreateResources()
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
 
   AMDCounters *counters = new AMDCounters();
-  if(counters->Init((void *)m_pDevice))
+
+  auto d3dDevice = m_pDevice->GetReal();
+
+  if(counters->Init(AMDCounters::eApiType_Dx11, (void *)d3dDevice))
   {
     m_pAMDCounters = counters;
   }
