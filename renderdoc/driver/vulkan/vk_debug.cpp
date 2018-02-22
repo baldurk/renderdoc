@@ -387,8 +387,7 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
 
 // utility macro that lets us check for VkResult failures inside the utility helpers while
 // preserving context from outside
-#define CREATE_OBJECT(obj, ...) \
-  create(driver, "Failed to create vulkan object " #obj, __LINE__, &obj, __VA_ARGS__)
+#define CREATE_OBJECT(obj, ...) create(driver, #obj, __LINE__, &obj, __VA_ARGS__)
 
 VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 {
