@@ -758,8 +758,8 @@ blocking fashion on the current thread.
   DOCUMENT(R"(Copy a capture from the local machine to the remote host.
 
 :param str localpath: The path on the local machine to copy from.
-:return: The path on the local machine where the file was saved, or empty if something went wrong.
 :param QWidget window: A handle to the window to use when showing a progress bar.
+:return: The path on the local machine where the file was saved, or empty if something went wrong.
 :rtype: ``str``
 )");
   virtual rdcstr CopyCaptureToRemote(const rdcstr &localpath, QWidget *window) = 0;
@@ -772,6 +772,17 @@ blocking fashion on the current thread.
 )");
   virtual void CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath,
                                      QWidget *window) = 0;
+
+  DOCUMENT(R"(Return the amount of time that the currently active command on the replay thread has
+been executing for.
+
+This can be used to identify if a command is long-running to display a progress bar or notification.
+
+:return: The time in seconds that the current command has been executing for, or 0.0 if no command
+  is executing.
+:rtype: ``float``
+)");
+  virtual float GetCurrentProcessingTime() = 0;
 
   DOCUMENT(R"(Make a tagged non-blocking invoke call onto the replay thread.
 

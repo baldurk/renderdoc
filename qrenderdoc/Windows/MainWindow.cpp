@@ -154,7 +154,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   QObject::connect(&m_MessageTick, &QTimer::timeout, this, &MainWindow::messageCheck);
   m_MessageTick.setSingleShot(false);
-  m_MessageTick.setInterval(500);
+  m_MessageTick.setInterval(175);
   m_MessageTick.start();
 
   m_RemoteProbeSemaphore.release();
@@ -1482,10 +1482,7 @@ void MainWindow::setCaptureHasErrors(bool errors)
     statusIcon->setPixmap(m_messageAlternate ? empty : del);
 
     QString text;
-    text = tr("%1 loaded. Capture has %2 errors, warnings or performance notes. "
-              "See the 'Errors and Warnings' window.")
-               .arg(filename)
-               .arg(m_Ctx.DebugMessages().size());
+    text = tr("%1 loaded. Capture has %2 issues.").arg(filename).arg(m_Ctx.DebugMessages().size());
     if(m_Ctx.UnreadMessageCount() > 0)
       text += tr(" %1 Unread.").arg(m_Ctx.UnreadMessageCount());
     statusText->setText(text);
@@ -1522,6 +1519,16 @@ void MainWindow::messageCheck()
 {
   if(m_Ctx.IsCaptureLoaded())
   {
+    if(m_Ctx.Replay().GetCurrentProcessingTime() >= 1.5f)
+    {
+      statusProgress->setVisible(true);
+      statusProgress->setMaximum(0);
+    }
+    else
+    {
+      statusProgress->hide();
+    }
+
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdcarray<DebugMessage> msgs = r->GetDebugMessages();
 

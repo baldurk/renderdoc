@@ -230,6 +230,12 @@ bool ReplayManager::IsRunning()
   return m_Thread && m_Thread->isRunning() && m_Running;
 }
 
+float ReplayManager::GetCurrentProcessingTime()
+{
+  QMutexLocker lock(&m_TimerLock);
+  return m_CommandTimer.isValid() ? double(m_CommandTimer.elapsed()) / 1000.0 : 0.0;
+}
+
 void ReplayManager::AsyncInvoke(const rdcstr &tag, ReplayManager::InvokeCallback m)
 {
   QString qtag(tag);
@@ -462,7 +468,19 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile,
       continue;
 
     if(cmd->method != NULL)
+    {
+      {
+        QMutexLocker lock(&m_TimerLock);
+        m_CommandTimer.start();
+      }
+
       cmd->method(m_Renderer);
+
+      {
+        QMutexLocker lock(&m_TimerLock);
+        m_CommandTimer.invalidate();
+      }
+    }
 
     // if it's a throwaway command, delete it
     if(cmd->selfdelete)
