@@ -1684,6 +1684,8 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     p->setPen(QPen(outlineBrush(opt->palette), 1.0));
 
+    QPalette::ColorRole textrole = QPalette::WindowText;
+
     QStyle::State mask = State_Enabled | State_Selected;
     if((opt->state & mask) == mask)
     {
@@ -1694,7 +1696,9 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
       QPainterPath path;
       path.addRoundedRect(rect.adjusted(1, 1, -1, -1), radius, radius);
-      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+      p->fillPath(path, opt->palette.brush(QPalette::Highlight));
+
+      textrole = QPalette::HighlightedText;
 
       if(opt->state & State_Sunken)
         p->drawPath(path);
@@ -1713,7 +1717,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
       {
         QRectF iconRect = rect;
         iconRect.setWidth(iconSize);
-        drawItemPixmap(p, iconRect.toRect(), Qt::AlignCenter | Qt::AlignTop | Qt::TextHideMnemonic,
+        drawItemPixmap(p, iconRect.toRect(), Qt::AlignCenter | Qt::AlignTop | Qt::TextShowMnemonic,
                        pix);
         rect.adjust(iconSize + Constants::MenuBarMargin, 0, 0, 0);
       }
@@ -1722,9 +1726,8 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
     if(menuitem->menuItemType == QStyleOptionMenuItem::Normal)
     {
       p->setFont(menuitem->font);
-      drawItemText(p, rect.toRect(), Qt::AlignCenter | Qt::AlignTop | Qt::TextHideMnemonic,
-                   menuitem->palette, menuitem->state & State_Enabled, menuitem->text,
-                   QPalette::WindowText);
+      drawItemText(p, rect.toRect(), Qt::AlignCenter | Qt::AlignTop | Qt::TextShowMnemonic,
+                   menuitem->palette, menuitem->state & State_Enabled, menuitem->text, textrole);
     }
 
     p->restore();
@@ -1744,6 +1747,8 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     p->setPen(QPen(outlineBrush(opt->palette), 1.0));
 
+    QPalette::ColorRole textrole = QPalette::WindowText;
+
     QStyle::State mask = State_Enabled | State_Selected;
     if((opt->state & mask) == mask)
     {
@@ -1754,7 +1759,9 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
       QPainterPath path;
       path.addRoundedRect(rect.adjusted(1, 1, -1, -1), radius, radius);
-      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+      p->fillPath(path, opt->palette.brush(QPalette::Highlight));
+
+      textrole = QPalette::HighlightedText;
 
       if(opt->state & State_Sunken)
         p->drawPath(path);
@@ -1796,20 +1803,18 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
       if(tabIndex < 0)
       {
-        drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic,
-                     menuitem->palette, menuitem->state & State_Enabled, menuitem->text,
-                     QPalette::WindowText);
+        drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic,
+                     menuitem->palette, menuitem->state & State_Enabled, menuitem->text, textrole);
       }
       else
       {
         QString title = text.left(tabIndex);
         QString shortcut = text.mid(tabIndex + 1, -1);
 
-        drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic,
-                     menuitem->palette, menuitem->state & State_Enabled, title, QPalette::WindowText);
-        drawItemText(p, rect.toRect(), Qt::AlignRight | Qt::AlignVCenter | Qt::TextHideMnemonic,
-                     menuitem->palette, menuitem->state & State_Enabled, shortcut,
-                     QPalette::WindowText);
+        drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic,
+                     menuitem->palette, menuitem->state & State_Enabled, title, textrole);
+        drawItemText(p, rect.toRect(), Qt::AlignRight | Qt::AlignVCenter | Qt::TextShowMnemonic,
+                     menuitem->palette, menuitem->state & State_Enabled, shortcut, textrole);
       }
 
       if(menuitem->menuItemType == QStyleOptionMenuItem::SubMenu)
