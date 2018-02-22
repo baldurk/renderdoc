@@ -1190,7 +1190,55 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
           QFormatStr("%1 - %2x%3").arg(i).arg(qMax(1U, tex.width >> i)).arg(qMax(1U, tex.height >> i)));
 
     ui->mipLabel->setText(tr("Mip"));
+  }
 
+  if(tex.mips == 1 && tex.msSamp <= 1)
+    ui->mipLevel->setEnabled(false);
+  else
+    ui->mipLevel->setEnabled(true);
+
+  ui->sliceFace->clear();
+
+  uint32_t numSlices = 1;
+
+  if(tex.arraysize == 1 && tex.depth <= 1)
+  {
+    ui->sliceFace->setEnabled(false);
+  }
+  else
+  {
+    ui->sliceFace->setEnabled(true);
+
+    QString cubeFaces[] = {lit("X+"), lit("X-"), lit("Y+"), lit("Y-"), lit("Z+"), lit("Z-")};
+
+    numSlices = tex.arraysize;
+
+    // for 3D textures, display the number of slices at this mip
+    if(tex.depth > 1)
+      numSlices = qMax(1u, tex.depth >> (int)ui->mipLevel->currentIndex());
+
+    for(uint32_t i = 0; i < numSlices; i++)
+    {
+      if(tex.cubemap)
+      {
+        QString name = cubeFaces[i % 6];
+        if(numSlices > 6)
+          name = QFormatStr("[%1] %2").arg(i / 6).arg(
+              cubeFaces[i % 6]);    // Front 1, Back 2, 3, 4 etc for cube arrays
+        ui->sliceFace->addItem(name);
+      }
+      else
+      {
+        ui->sliceFace->addItem(tr("Slice %1").arg(i));
+      }
+    }
+  }
+
+  // enable signals for mipLevel and sliceFace
+  ui->mipLevel->blockSignals(false);
+  ui->sliceFace->blockSignals(false);
+
+  {
     int highestMip = -1;
 
     // only switch to the selected mip for outputs, and when changing drawcall
@@ -1215,45 +1263,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_PrevHighestMip = highestMip;
   }
 
-  if(tex.mips == 1 && tex.msSamp <= 1)
-    ui->mipLevel->setEnabled(false);
-  else
-    ui->mipLevel->setEnabled(true);
-
-  ui->sliceFace->clear();
-
-  if(tex.arraysize == 1 && tex.depth <= 1)
   {
-    ui->sliceFace->setEnabled(false);
-  }
-  else
-  {
-    ui->sliceFace->setEnabled(true);
-
-    QString cubeFaces[] = {lit("X+"), lit("X-"), lit("Y+"), lit("Y-"), lit("Z+"), lit("Z-")};
-
-    uint32_t numSlices = tex.arraysize;
-
-    // for 3D textures, display the number of slices at this mip
-    if(tex.depth > 1)
-      numSlices = qMax(1u, tex.depth >> (int)ui->mipLevel->currentIndex());
-
-    for(uint32_t i = 0; i < numSlices; i++)
-    {
-      if(tex.cubemap)
-      {
-        QString name = cubeFaces[i % 6];
-        if(numSlices > 6)
-          name = QFormatStr("[%1] %2").arg(i / 6).arg(
-              cubeFaces[i % 6]);    // Front 1, Back 2, 3, 4 etc for cube arrays
-        ui->sliceFace->addItem(name);
-      }
-      else
-      {
-        ui->sliceFace->addItem(tr("Slice %1").arg(i));
-      }
-    }
-
     int firstArraySlice = -1;
     // only switch to the selected mip for outputs, and when changing drawcall
     if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && newdraw)
@@ -1271,10 +1281,6 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     m_PrevFirstArraySlice = firstArraySlice;
   }
-
-  // enable signals for mipLevel and sliceFace
-  ui->mipLevel->blockSignals(false);
-  ui->sliceFace->blockSignals(false);
 
   // because slice and mip are specially set above, we restore any per-tex settings to apply
   // even if we don't switch to a new texture.
