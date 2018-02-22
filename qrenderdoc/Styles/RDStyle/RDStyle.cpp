@@ -617,7 +617,8 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
   {
     // have a maximum size for tabs
     return size.boundedTo(QSize(Constants::TabMaxWidth, INT_MAX))
-        .expandedTo(QSize(Constants::TabMinWidth, 0));
+               .expandedTo(QSize(Constants::TabMinWidth, 0)) +
+           QSize(Constants::TabMargin * 2, 0);
   }
   else if(type == CT_CheckBox || type == CT_RadioButton)
   {
