@@ -33,7 +33,6 @@ typedef GPA_Status(*GPA_GetCounterCategoryPtrType)(gpa_uint32 index, const char*
 typedef GPA_Status(*GPA_GetCounterDescriptionPtrType)(gpa_uint32 index, const char** ppDescription);  ///< Typedef for a function pointer for GPA_GetCounterDescription
 typedef GPA_Status(*GPA_GetCounterDataTypePtrType)(gpa_uint32 index, GPA_Type* pCounterDataType);  ///< Typedef for a function pointer for GPA_GetCounterDataType
 typedef GPA_Status(*GPA_GetCounterUsageTypePtrType)(gpa_uint32 index, GPA_Usage_Type* pCounterUsageType);  ///< Typedef for a function pointer for GPA_GetCounterUsageType
-typedef GPA_Status(*GPA_GetCounterUuidPtrType)(gpa_uint32 index, GPA_UUID* pCounterUuid);  ///< Typedef for a function pointer for GPA_GetCounterUuid
 typedef GPA_Status(*GPA_GetDataTypeAsStrPtrType)(GPA_Type counterDataType, const char** ppTypeStr);  ///< Typedef for a function pointer for GPA_GetDataTypeAsStr
 typedef GPA_Status(*GPA_GetUsageTypeAsStrPtrType)(GPA_Usage_Type counterUsageType, const char** ppTypeStr);  ///< Typedef for a function pointer for GPA_GetUsageTypeAsStr
 typedef const char* (*GPA_GetStatusAsStrPtrType)(GPA_Status status);  ///< Typedef for a function pointer for GPA_GetStatusAsStr
@@ -79,8 +78,8 @@ typedef GPA_Status(*GPA_GetSampleFloat64PtrType)(gpa_uint32 sessionID, gpa_uint3
 typedef GPA_Status(*GPA_GetDeviceIDPtrType)(gpa_uint32* pDeviceID);  ///< Typedef for a function pointer for GPA_GetDeviceID
 typedef GPA_Status(*GPA_GetDeviceDescPtrType)(const char** ppDesc);  ///< Typedef for a function pointer for GPA_GetDeviceDesc
 
-typedef GPA_Status(*GPA_InternalSetDrawCallCountsPtrType)(const int iCounts);  ///< Typedef for a function pointer for GPA_InternalSetDrawCallCounts
+typedef GPA_Status(*GPA_InternalSetDrawCallCountsPtrType)(const int iCounts);  /// Typedef for a function pointer for a function to set the number of draw calls in a frame
 
-typedef GPA_Status(*GPA_GetFuncTablePtrType)(void** funcTable); ///< Typedef for a function pointer for GPA_GetFuncTable
+typedef GPA_Status(*GPA_GetFuncTablePtrType)(void** funcTable); /// Typedef for a function pointer for GPA function GPA_GetFuncTablePtrType function
 
 #endif // _GPUPERFAPI_FUNCTION_TYPES_H_

@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2012-2017 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2012-2016 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  An accessor interface for the GPA_CounterGeneratorBase class
@@ -14,7 +14,7 @@
 
 struct GPA_HardwareCounterDescExt;
 class GPA_HWInfo;
-class GPA_DerivedCounter;
+class GPA_PublicCounter;
 class GPA_CounterResultLocation;
 
 /// Types of counter
@@ -76,15 +76,10 @@ public:
     /// \return The usage of the the desired counter
     virtual GPA_Usage_Type GetCounterUsageType(gpa_uint32 index) const = 0;
 
-    /// Gets a counter's GPA_API_UUID
-    /// \param index The index of a counter, must be between 0 and the value returned from GetNumPublicCounters()
-    /// \return The counter UUID
-    virtual GPA_UUID GetCounterUuid(gpa_uint32 index) const = 0;
-
     /// Gets a public counter
     /// \param index The index of the public counter to return
     /// \return A public counter
-    virtual const GPA_DerivedCounter* GetPublicCounter(gpa_uint32 index) const = 0;
+    virtual const GPA_PublicCounter* GetPublicCounter(gpa_uint32 index) const = 0;
 
     /// Gets a hardware counter
     /// \param index The index of a hardware counter to return

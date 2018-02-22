@@ -99,7 +99,8 @@ std::string AMDCounters::FormatErrMessage(const char* operation, uint32_t status
 {
   std::ostringstream o;
   o << operation << ". " << m_pGPUPerfAPI->GPA_GetStatusAsStr((GPA_Status)status);
-  return o.str();
+  std::string err = o.str();
+  return err;
 }
 
 bool AMDCounters::Init(ApiType apiType, void *pContext)
@@ -402,23 +403,11 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
     default: desc.resultType = CompType::UInt; desc.resultByteWidth = sizeof(uint32_t);
   }
 
-  if (m_pGPUPerfAPI->GPA_GetCounterUuid)
-  {
-      status = m_pGPUPerfAPI->GPA_GetCounterUuid(internalIndex, (GPA_UUID*)&desc.uuid);
-      if (AMD_FAILED(status))
-      {
-          GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter UUID.", status).c_str());
-          return desc;
-      }
-  }
-  else
-  {
-      // C8958C90-B706-4F22-8AF5-E0A3831B2C39
-      desc.uuid.words[0] = 0xC8958C90;
-      desc.uuid.words[1] = 0xB7064F22;
-      desc.uuid.words[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
-      desc.uuid.words[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
-  }
+  // C8958C90-B706-4F22-8AF5-E0A3831B2C39
+  desc.uuid.words[0] = 0xC8958C90;
+  desc.uuid.words[1] = 0xB7064F22;
+  desc.uuid.words[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
+  desc.uuid.words[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
 
   return desc;
 }

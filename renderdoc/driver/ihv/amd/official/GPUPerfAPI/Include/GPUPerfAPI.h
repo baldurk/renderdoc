@@ -30,16 +30,51 @@
 #include "GPUPerfAPITypes.h"
 #include "GPUPerfAPIFunctionTypes.h"
 
+/// Platform specific defintions
+#ifdef _WIN32
+    #include <windows.h>
+    typedef HMODULE LibHandle; /// typedef for HMODULE for loading the library on windows
+    typedef GUID GPA_API_UUID; /// typedef for Windows GUID definition
+#else
+    typedef void* LibHandle; /// typedef for void* for loading the library on linux
+
+    /// Structure for holding UUID
+    typedef struct GPA_API_UUID
+    {
+        unsigned long data1;
+        unsigned short data2;
+        unsigned short data3;
+        unsigned char data4[8];
+
+#ifdef __cplusplus
+        /// operator overloaded function for equality comparison
+        /// \return true if UUIDs are equal otherwise false
+        bool operator==(GPA_API_UUID otherUUID)
+        {
+            bool isEqual = true;
+            isEqual &= data1 == otherUUID.data1;
+            isEqual &= data2 == otherUUID.data2;
+            isEqual &= data3 == otherUUID.data3;
+            isEqual &= data4[0] == otherUUID.data4[0];
+            isEqual &= data4[1] == otherUUID.data4[1];
+            isEqual &= data4[2] == otherUUID.data4[2];
+            isEqual &= data4[3] == otherUUID.data4[3];
+            return isEqual;
+        }
+#endif
+    }GPA_API_UUID;
+#endif
+
 /// UUID value for the version specific GPA API
 // UUID: 2696c8b4 - fd56 - 41fc - 9742 - af3c6aa34182
 // This needs to be updated if the GPA API function table changes
 #define GPA_API_3_0_UUID  { 0x2696c8b4,\
-        0xfd56,\
-        0x41fc,\
-        { 0x97, 0X42, 0Xaf, 0X3c, 0X6a, 0Xa3, 0X41, 0X82 } };
+                          0xfd56,\
+                          0x41fc,\
+                          { 0x97, 0X42, 0Xaf, 0X3c, 0X6a, 0Xa3, 0X41, 0X82 } };
 
 /// UUID value for the current GPA API
-const GPA_UUID GPA_API_CURRENT_UUID = GPA_API_3_0_UUID;
+const GPA_API_UUID GPA_API_CURRENT_UUID = GPA_API_3_0_UUID;
 
 /// \brief Register a callback function to receive log messages.
 ///
@@ -103,44 +138,37 @@ GPALIB_DECL GPA_Status GPA_GetNumCounters(gpa_uint32* pCount);
 /// \brief Get the name of a specific counter.
 ///
 /// \param index The index of the counter name to query. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param ppName The address which will hold the counter name string upon successful execution.
+/// \param ppName The address which will hold the name upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterName(gpa_uint32 index, const char** ppName);
 
 /// \brief Get category of the specified counter.
 ///
 /// \param index The index of the counter to query. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param ppCategory The address which will hold the counter category string upon successful execution.
+/// \param ppCategory The address which will hold the category string upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterCategory(gpa_uint32 index, const char** ppCategory);
 
 /// \brief Get description of the specified counter.
 ///
 /// \param index The index of the counter to query. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param ppDescription The address which will hold the description string upon successful execution.
+/// \param ppDescription The address which will hold the description upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterDescription(gpa_uint32 index, const char** ppDescription);
 
 /// \brief Get the counter data type of the specified counter.
 ///
 /// \param index The index of the counter. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param pCounterDataType The value which will hold the counter data type upon successful execution.
+/// \param pCounterDataType The value which will hold the description upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterDataType(gpa_uint32 index, GPA_Type* pCounterDataType);
 
 /// \brief Get the counter usage type of the specified counter.
 ///
 /// \param index The index of the counter. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param pCounterUsageType The value which will hold the counter usage type upon successful execution.
+/// \param pCounterUsageType The value which will hold the description upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterUsageType(gpa_uint32 index, GPA_Usage_Type* pCounterUsageType);
-
-/// \brief Get the UUID of the specified counter.
-///
-/// \param index The index of the counter. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param pCounterUuid The value which will hold the counter UUID upon successful execution.
-/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
-GPALIB_DECL GPA_Status GPA_GetCounterUuid(gpa_uint32 index, GPA_UUID* pCounterUuid);
 
 /// \brief Get a string with the name of the specified counter data type.
 ///
@@ -456,33 +484,32 @@ GPALIB_DECL GPA_Status GPA_GetDeviceDesc(const char** ppDesc);
 
 /// \brief Internal function. Pass draw call counts to GPA for internal purposes.
 ///
-/// \param iCounts the draw counts for the current frame
+/// \param iCounts[in] the draw counts for the current frame
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_InternalSetDrawCallCounts(const int iCounts);
 
 
 /// \brief Get the GPA Api function table
 ///
-/// \param[out] ppGPAFuncTable pointer to pointer of GPAApi - GPA Function table structure
+/// \param ppGPAFuncTable[out] pointer to pointer of GPAApi - GPA Function table structure
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetFuncTable(void** ppGPAFuncTable);
 
 /// Structure to hold the function table of the exported GPA APIs
 typedef struct _GPAApi
 {
-    GPA_UUID m_apiId;  ///< the GUID of the GPA API
+    GPA_API_UUID m_apiId;
 
 #define GPA_FUNCTION_PREFIX(func) func##PtrType func;
-#include "GPAFunctions.h"
+    #include "GPAFunctions.h"
 #undef GPA_FUNCTION_PREFIX
 
 #ifdef __cplusplus
-    /// constructor
     _GPAApi()
     {
         m_apiId = GPA_API_CURRENT_UUID;
 #define GPA_FUNCTION_PREFIX(func) func = nullptr;
-#include "GPAFunctions.h"
+    #include "GPAFunctions.h"
 #undef GPA_FUNCTION_PREFIX
     }
 #endif
