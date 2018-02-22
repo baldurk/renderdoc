@@ -893,7 +893,10 @@ void ToolWindowManager::updateDragPosition()
     // cursor and pick an area to map to.
     if(hoverWrapper)
     {
-      QSplitter *splitter = qobject_cast<QSplitter *>(hoverWrapper->layout()->itemAt(0)->widget());
+      QLayout *layout = hoverWrapper->layout();
+      QLayoutItem *layoutitem = layout ? layout->itemAt(0) : NULL;
+      QWidget *layoutwidget = layoutitem ? layoutitem->widget() : NULL;
+      QSplitter *splitter = qobject_cast<QSplitter *>(layoutwidget);
 
       while(splitter)
       {
