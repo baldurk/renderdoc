@@ -585,6 +585,12 @@
         <property name="decimals">
          <number>0</number>
         </property>
+        <property name="maximum">
+         <double>4294967296.0</double>
+        </property>
+        <property name="minimum">
+         <double>0.0</double>
+        </property>
        </widget>
       </item>
       <item>
