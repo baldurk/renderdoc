@@ -36,7 +36,7 @@
       NOT NEWERVERSIONDETECTED
     </Condition> 
 
-    <Media Id='1' Cabinet='renderdoc.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+    <Media Id='1' Cabinet='renderdoc.cab' EmbedCab='yes' CompressionLevel='high' DiskPrompt="CD-ROM #1" />
     <Property Id='DiskPrompt' Value="RenderDoc Installation [1]" />
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
