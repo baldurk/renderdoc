@@ -50,6 +50,8 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
 {
   ui->setupUi(this);
 
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
   auto commitLambda = [this](QKeyEvent *event) {
     if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
       on_addUpdate_clicked();
