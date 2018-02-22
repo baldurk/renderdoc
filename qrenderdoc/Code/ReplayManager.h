@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QElapsedTimer>
 #include <QMutex>
 #include <QQueue>
 #include <QSemaphore>
@@ -52,6 +53,7 @@ public:
 
   bool IsRunning();
   ReplayStatus GetCreateStatus() { return m_CreateStatus; }
+  float GetCurrentProcessingTime();
   // this tagged version is for cases when we might send a request - e.g. to pick a vertex or pixel
   // - and want to pre-empt it with a new request before the first has returned. Either because some
   // other work is taking a while or because we're sending requests faster than they can be
@@ -112,6 +114,9 @@ private:
   };
 
   void run(int proxyRenderer, const QString &capturefile, RENDERDOC_ProgressCallback progress);
+
+  QMutex m_TimerLock;
+  QElapsedTimer m_CommandTimer;
 
   QMutex m_RenderLock;
   QQueue<InvokeHandle *> m_RenderQueue;
