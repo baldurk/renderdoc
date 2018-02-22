@@ -44,13 +44,13 @@
      <x>10</x>
      <y>120</y>
      <width>558</width>
-     <height>28</height>
+     <height>32</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>28</height>
+     <height>32</height>
     </size>
    </property>
    <property name="frameShape">
@@ -230,13 +230,13 @@
      <x>490</x>
      <y>40</y>
      <width>129</width>
-     <height>28</height>
+     <height>32</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>28</height>
+     <height>32</height>
     </size>
    </property>
    <property name="frameShape">
@@ -283,13 +283,13 @@
      <x>10</x>
      <y>80</y>
      <width>221</width>
-     <height>28</height>
+     <height>32</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>28</height>
+     <height>32</height>
     </size>
    </property>
    <property name="frameShape">
@@ -419,13 +419,13 @@
      <x>330</x>
      <y>40</y>
      <width>149</width>
-     <height>28</height>
+     <height>32</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>28</height>
+     <height>32</height>
     </size>
    </property>
    <property name="frameShape">
@@ -547,7 +547,7 @@
      <x>10</x>
      <y>40</y>
      <width>299</width>
-     <height>28</height>
+     <height>32</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -559,7 +559,7 @@
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>28</height>
+     <height>32</height>
     </size>
    </property>
    <property name="frameShape">
@@ -640,7 +640,7 @@
      <x>3</x>
      <y>3</y>
      <width>696</width>
-     <height>28</height>
+     <height>32</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -652,7 +652,7 @@
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>28</height>
+     <height>32</height>
     </size>
    </property>
    <property name="frameShape">
