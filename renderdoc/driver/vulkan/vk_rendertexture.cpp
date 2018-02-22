@@ -201,7 +201,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   data->Position.x = x;
   data->Position.y = y;
-  data->HDRMul = -1.0f;
+  data->HDRMul = cfg.hdrMultiplier;
 
   int32_t tex_x = iminfo.extent.width;
   int32_t tex_y = iminfo.extent.height;
