@@ -30,7 +30,7 @@ API Support
 |                          | Windows                  | Linux                    | Android                   |
 | ------------------------ | ------------------------ | ------------------------ | ------------------------  |
 | Vulkan                   | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:        |
-| OpenGL ES                | :heavy_multiplication_x: | :heavy_check_mark:       | :heavy_check_mark:        |
+| OpenGL ES 2.0 - 3.2      | :heavy_multiplication_x: | :heavy_check_mark:       | :heavy_check_mark:        |
 | OpenGL 3.2+ Core         | :heavy_check_mark:       | :heavy_check_mark:       |  N/A                      |
 | D3D11 & D3D12            | :heavy_check_mark:       |  N/A                     |  N/A                      |
 | OpenGL 2.0 Compatibility | :heavy_multiplication_x: | :heavy_multiplication_x: |  N/A                      |
