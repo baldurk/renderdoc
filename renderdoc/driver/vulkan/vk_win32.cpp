@@ -102,16 +102,6 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
         extensionList.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
     }
 
-    if (supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == supportedExtensions.end())
-    {
-      RDCWARN("Unsupported required instance extension for AMD performance counters '%s'", VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    }
-    else
-    {
-      if (std::find(extensionList.begin(), extensionList.end(),
-        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == extensionList.end())
-        extensionList.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    }
   }
   else if(device)
   {
