@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
+#include <iterator>
+#include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
 #include "vk_core.h"
 #include "vk_replay.h"
 #include "vk_resources.h"
@@ -55,6 +59,13 @@ vector<GPUCounter> VulkanReplay::EnumerateCounters()
     ret.push_back(GPUCounter::CSInvocations);
   }
 
+  if(m_pAMDCounters)
+  {
+    for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
+    {
+      ret.push_back(MakeAMDCounter(i));
+    }
+  }
   return ret;
 }
 
@@ -62,6 +73,17 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 {
   CounterDescription desc = {};
   desc.counter = counterID;
+  /////AMD//////
+  if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
+  {
+    if(m_pAMDCounters)
+    {
+      desc = m_pAMDCounters->GetCounterDescription(counterID);
+
+      return desc;
+    }
+  }
+
   // 6839CB5B-FBD2-4550-B606-8C65157C684C
   desc.uuid.words[0] = 0x6839CB5B;
   desc.uuid.words[1] = 0xFBD24550;
@@ -176,6 +198,131 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
   return desc;
 }
 
+struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
+{
+  VulkanAMDDrawCallback(WrappedVulkan *dev, VulkanReplay *rp, uint32_t &sampleIndex,
+                        vector<uint32_t> &eventIDs)
+      : m_pDriver(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
+  {
+    m_pDriver->SetDrawcallCB(this);
+  }
+
+  virtual ~VulkanAMDDrawCallback() { m_pDriver->SetDrawcallCB(NULL); }
+
+  void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
+  {
+    m_pEventIds->push_back(eid);
+
+    VkCommandBuffer realCmdBuffer = Unwrap(cmd);
+
+    if(m_begunCommandBuffers.find(realCmdBuffer) == m_begunCommandBuffers.end())
+    {
+      m_begunCommandBuffers.insert(realCmdBuffer);
+
+      m_pReplay->GetAMDCounters()->BeginSampleList(realCmdBuffer);
+    }
+
+    m_pReplay->GetAMDCounters()->BeginSampleInSampleList(*m_pSampleId, realCmdBuffer);
+
+    ++*m_pSampleId;
+  }
+
+  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) override
+  {
+    VkCommandBuffer realCmdBuffer = Unwrap(cmd);
+
+    m_pReplay->GetAMDCounters()->EndSampleInSampleList(realCmdBuffer);
+    return false;
+  }
+
+  void PreEndCommandBuffer(VkCommandBuffer cmd) override
+  {
+    VkCommandBuffer realCmdBuffer = Unwrap(cmd);
+
+    auto iter = m_begunCommandBuffers.find(realCmdBuffer);
+
+    if(iter != m_begunCommandBuffers.end())
+    {
+      m_pReplay->GetAMDCounters()->EndSampleList(*iter);
+      m_begunCommandBuffers.erase(iter);
+    }
+  }
+
+  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) override {}
+  // we don't need to distinguish, call the Draw functions
+  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
+  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    return PostDraw(eid, cmd);
+  }
+  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    PostRedraw(eid, cmd);
+  }
+  void AliasEvent(uint32_t primary, uint32_t alias) override {}
+
+  uint32_t *m_pSampleId;
+  WrappedVulkan *m_pDriver;
+  VulkanReplay *m_pReplay;
+  vector<uint32_t> *m_pEventIds;
+  set<VkCommandBuffer> m_begunCommandBuffers;
+};
+
+void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
+                                 vector<uint32_t> *eventIDs)
+{
+  uint32_t maxEID = m_pDriver->GetMaxEID();
+
+  VulkanAMDDrawCallback cb(m_pDriver, this, *sampleIndex, *eventIDs);
+
+  // replay the events to perform all the queries
+  m_pDriver->ReplayLog(*eventStartID, maxEID, eReplay_Full);
+}
+
+vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &counters)
+{
+  m_pAMDCounters->DisableAllCounters();
+
+  // enable counters it needs
+  for(size_t i = 0; i < counters.size(); i++)
+  {
+    // This function is only called internally, and violating this assertion means our
+    // caller has invoked this method incorrectly
+    RDCASSERT((counters[i] >= (GPUCounter::FirstAMD)) && (counters[i] < (GPUCounter::FirstIntel)));
+    m_pAMDCounters->EnableCounter(counters[i]);
+  }
+
+  uint32_t sessionID = m_pAMDCounters->BeginSession();
+
+  uint32_t passCount = m_pAMDCounters->GetPassCount();
+
+  uint32_t sampleIndex = 0;
+
+  vector<uint32_t> eventIDs;
+
+  for(uint32_t i = 0; i < passCount; i++)
+  {
+    m_pAMDCounters->BeginPass();
+
+    uint32_t eventStartID = 0;
+
+    sampleIndex = 0;
+
+    eventIDs.clear();
+
+    FillTimersAMD(&eventStartID, &sampleIndex, &eventIDs);
+
+    m_pAMDCounters->EndPass();
+  }
+
+  m_pAMDCounters->EndSesssion();
+
+  return m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
+}
+
 struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
 {
   VulkanGPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool tsqp, VkQueryPool occqp,
@@ -225,6 +372,8 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
     m_AliasEvents.push_back(std::make_pair(primary, alias));
   }
 
+  void PreEndCommandBuffer(VkCommandBuffer cmd) override {}
+
   WrappedVulkan *m_pDriver;
   VulkanReplay *m_pReplay;
   VkQueryPool m_TimeStampQueryPool;
@@ -241,6 +390,31 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
 vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &counters)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
+
+  vector<GPUCounter> vkCounters;
+  std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkCounters),
+               [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
+
+  vector<CounterResult> ret;
+
+  if(m_pAMDCounters)
+  {
+    // Filter out the AMD counters
+    vector<GPUCounter> amdCounters;
+    std::copy_if(
+        counters.begin(), counters.end(), std::back_inserter(amdCounters),
+        [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
+
+    if(!amdCounters.empty())
+    {
+      ret = FetchCountersAMD(amdCounters);
+    }
+  }
+
+  if(vkCounters.empty())
+  {
+    return ret;
+  }
 
   VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
 
@@ -277,9 +451,9 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
   bool occlNeeded = false;
   bool statsNeeded = false;
 
-  for(size_t c = 0; c < counters.size(); c++)
+  for(size_t c = 0; c < vkCounters.size(); c++)
   {
-    switch(counters[c])
+    switch(vkCounters[c])
     {
       case GPUCounter::InputVerticesRead:
       case GPUCounter::IAPrimitives:
@@ -374,18 +548,16 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pipeStatsPool, NULL);
   }
 
-  vector<CounterResult> ret;
-
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
-    for(size_t c = 0; c < counters.size(); c++)
+    for(size_t c = 0; c < vkCounters.size(); c++)
     {
       CounterResult result;
 
       result.eventId = cb.m_Results[i];
-      result.counter = counters[c];
+      result.counter = vkCounters[c];
 
-      switch(counters[c])
+      switch(vkCounters[c])
       {
         case GPUCounter::EventGPUDuration:
         {
@@ -419,10 +591,10 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
 
   for(size_t i = 0; i < cb.m_AliasEvents.size(); i++)
   {
-    for(size_t c = 0; c < counters.size(); c++)
+    for(size_t c = 0; c < vkCounters.size(); c++)
     {
       CounterResult search;
-      search.counter = counters[c];
+      search.counter = vkCounters[c];
       search.eventId = cb.m_AliasEvents[i].first;
 
       // find the result we're aliasing

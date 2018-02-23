@@ -101,6 +101,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
                    VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == extensionList.end())
         extensionList.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
     }
+
   }
   else if(device)
   {

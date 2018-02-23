@@ -317,8 +317,8 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
           if(atts[dsAttach].storeOp == atts[dsAttach].stencilStoreOp)
             opDesc += "DS=" + ToHumanStr(atts[dsAttach].storeOp);
           else
-            opDesc += "D=" + ToHumanStr(atts[dsAttach].storeOp) + ", S=" +
-                      ToHumanStr(atts[dsAttach].stencilStoreOp);
+            opDesc += "D=" + ToHumanStr(atts[dsAttach].storeOp) +
+                      ", S=" + ToHumanStr(atts[dsAttach].stencilStoreOp);
         }
         else
         {
@@ -326,8 +326,8 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
           if(atts[dsAttach].loadOp == atts[dsAttach].stencilLoadOp)
             opDesc += "DS=" + ToHumanStr(atts[dsAttach].loadOp);
           else
-            opDesc += "D=" + ToHumanStr(atts[dsAttach].loadOp) + ", S=" +
-                      ToHumanStr(atts[dsAttach].stencilLoadOp);
+            opDesc += "D=" + ToHumanStr(atts[dsAttach].loadOp) +
+                      ", S=" + ToHumanStr(atts[dsAttach].stencilLoadOp);
         }
       }
     }
@@ -888,6 +888,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
           for(int i = 0; i < m_BakedCmdBufferInfo[BakedCommandBuffer].markerCount; i++)
             ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
+
+        if(m_DrawcallCallback)
+          m_DrawcallCallback->PreEndCommandBuffer(commandBuffer);
 
         ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 

@@ -227,6 +227,7 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
+
 private:
   bool m_WARP;
   bool m_Proxy;
@@ -246,6 +247,7 @@ private:
   void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
   void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
                      const DrawcallDescription &drawnode);
+  void SerializeImmediateContext();
 
   bool RenderTextureInternal(TextureDisplay cfg, bool blendAlpha);
 

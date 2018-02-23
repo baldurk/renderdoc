@@ -120,6 +120,7 @@ using std::map;
 #define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_1_BIT
 #endif
 
+class AMDCounters;
 class WrappedVulkan;
 class VulkanDebugManager;
 class VulkanResourceManager;
@@ -316,6 +317,8 @@ public:
   static bool CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                std::vector<std::string> &otherJSONs);
   static void InstallVulkanLayer(bool systemLevel);
+
+  AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 
 private:
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
@@ -576,4 +579,10 @@ private:
   D3D11Pipe::State m_D3D11State;
   D3D12Pipe::State m_D3D12State;
   GLPipe::State m_GLState;
+
+  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs);
+
+  vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
+
+  AMDCounters *m_pAMDCounters;
 };

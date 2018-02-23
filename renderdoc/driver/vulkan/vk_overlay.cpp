@@ -259,6 +259,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     // don't care
@@ -475,7 +476,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       }
 
       VkMemoryAllocateInfo allocInfo = {
-          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+          NULL,
+          mrq.size,
           m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 
@@ -1552,7 +1555,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       }
 
       VkClearRect rect = {
-          {{0, 0}, {fb.width, fb.height}}, 0, 1,
+          {{0, 0}, {fb.width, fb.height}},
+          0,
+          1,
       };
 
       vt->CmdClearAttachments(Unwrap(cmd), (uint32_t)atts.size(), &atts[0], 1, &rect);
@@ -1645,7 +1650,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       m_pDriver->vkGetImageMemoryRequirements(m_Device, quadImg, &mrq);
 
       VkMemoryAllocateInfo allocInfo = {
-          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+          NULL,
+          mrq.size,
           m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
       };
 
@@ -1714,7 +1721,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       DoPipelineBarrier(cmd, 1, &quadImBarrier);
 
       VkMemoryBarrier memBarrier = {
-          VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL, VK_ACCESS_ALL_WRITE_BITS, VK_ACCESS_ALL_READ_BITS,
+          VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+          NULL,
+          VK_ACCESS_ALL_WRITE_BITS,
+          VK_ACCESS_ALL_READ_BITS,
       };
 
       DoPipelineBarrier(cmd, 1, &memBarrier);
@@ -2010,7 +2020,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       };
 
       VkVertexInputAttributeDescription vertAttrs[] = {
-          {0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0}, {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
+          {0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
+          {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
       };
 
       VkPipelineVertexInputStateCreateInfo vi = {

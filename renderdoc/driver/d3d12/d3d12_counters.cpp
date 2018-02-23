@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
+#include <iterator>
+#include "driver/ihv/amd/amd_counters.h"
+#include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_common.h"
 #include "d3d12_device.h"
@@ -44,6 +48,14 @@ vector<GPUCounter> D3D12Replay::EnumerateCounters()
   ret.push_back(GPUCounter::PSInvocations);
   ret.push_back(GPUCounter::CSInvocations);
 
+  if(m_pAMDCounters)
+  {
+    for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
+    {
+      ret.push_back(MakeAMDCounter(i));
+    }
+  }
+
   return ret;
 }
 
@@ -51,6 +63,17 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
 {
   CounterDescription desc;
   desc.counter = counterID;
+  /////AMD//////
+  if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
+  {
+    if(m_pAMDCounters)
+    {
+      desc = m_pAMDCounters->GetCounterDescription(counterID);
+
+      return desc;
+    }
+  }
+
   // 0808CC9B-79DF-4549-81F7-85494E648F22
   desc.uuid.words[0] = 0x0808CC9B;
   desc.uuid.words[1] = 0x79DF4549;
@@ -167,6 +190,171 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
   return desc;
 }
 
+struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
+{
+  D3D12AMDDrawCallback(WrappedID3D12Device *dev, D3D12Replay *rp, uint32_t &sampleIndex,
+                       vector<uint32_t> &eventIDs)
+      : m_pDevice(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+  }
+
+  virtual ~D3D12AMDDrawCallback()
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
+  }
+
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) override
+  {
+    m_pEventIds->push_back(eid);
+
+    WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
+
+    if(m_begunCommandLists.find(pWrappedCmdList->GetReal()) == m_begunCommandLists.end())
+    {
+      m_begunCommandLists.insert(pWrappedCmdList->GetReal());
+
+      m_pReplay->GetAMDCounters()->BeginSampleList(pWrappedCmdList->GetReal());
+    }
+
+    m_pReplay->GetAMDCounters()->BeginSampleInSampleList(*m_pSampleId, pWrappedCmdList->GetReal());
+
+    ++*m_pSampleId;
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) override
+  {
+    WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
+
+    m_pReplay->GetAMDCounters()->EndSampleInSampleList(pWrappedCmdList->GetReal());
+    return false;
+  }
+
+  void PreCloseCommandList(ID3D12GraphicsCommandList *cmd) override
+  {
+    WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
+
+    auto iter = m_begunCommandLists.find(pWrappedCmdList->GetReal());
+
+    if(iter != m_begunCommandLists.end())
+    {
+      m_pReplay->GetAMDCounters()->EndSampleList(*iter);
+      m_begunCommandLists.erase(iter);
+    }
+  }
+
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) override {}
+  // we don't need to distinguish, call the Draw functions
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) override { PreDraw(eid, cmd); }
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) override
+  {
+    return PostDraw(eid, cmd);
+  }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) override
+  {
+    PostRedraw(eid, cmd);
+  }
+
+  void AliasEvent(uint32_t primary, uint32_t alias)
+  {
+    m_AliasEvents.push_back(std::make_pair(primary, alias));
+  }
+
+  uint32_t *m_pSampleId;
+  WrappedID3D12Device *m_pDevice;
+  D3D12Replay *m_pReplay;
+  vector<uint32_t> *m_pEventIds;
+  set<ID3D12GraphicsCommandList *> m_begunCommandLists;
+
+  // events which are the 'same' from being the same command buffer resubmitted
+  // multiple times in the frame. We will only get the full callback when we're
+  // recording the command buffer, and will be given the first EID. After that
+  // we'll just be told which other EIDs alias this event.
+  vector<pair<uint32_t, uint32_t> > m_AliasEvents;
+};
+
+void D3D12Replay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
+                                vector<uint32_t> *eventIDs)
+{
+  uint32_t maxEID = m_pDevice->GetQueue()->GetMaxEID();
+
+  m_pAMDDrawCallback = new D3D12AMDDrawCallback(m_pDevice, this, *sampleIndex, *eventIDs);
+
+  // replay the events to perform all the queries
+  m_pDevice->ReplayLog(*eventStartID, maxEID, eReplay_Full);
+}
+
+vector<CounterResult> D3D12Replay::FetchCountersAMD(const vector<GPUCounter> &counters)
+{
+  m_pAMDCounters->DisableAllCounters();
+
+  // enable counters it needs
+  for(size_t i = 0; i < counters.size(); i++)
+  {
+    // This function is only called internally, and violating this assertion means our
+    // caller has invoked this method incorrectly
+    RDCASSERT((counters[i] >= (GPUCounter::FirstAMD)) && (counters[i] < (GPUCounter::FirstIntel)));
+    m_pAMDCounters->EnableCounter(counters[i]);
+  }
+
+  uint32_t sessionID = m_pAMDCounters->BeginSession();
+
+  uint32_t passCount = m_pAMDCounters->GetPassCount();
+
+  uint32_t sampleIndex = 0;
+
+  vector<uint32_t> eventIDs;
+
+  for(uint32_t i = 0; i < passCount; i++)
+  {
+    m_pAMDCounters->BeginPass();
+
+    uint32_t eventStartID = 0;
+
+    sampleIndex = 0;
+
+    eventIDs.clear();
+
+    FillTimersAMD(&eventStartID, &sampleIndex, &eventIDs);
+
+    m_pAMDCounters->EndPass();
+  }
+
+  m_pAMDCounters->EndSesssion();
+
+  vector<CounterResult> ret =
+      m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
+
+  for(size_t i = 0; i < m_pAMDDrawCallback->m_AliasEvents.size(); i++)
+  {
+    for(size_t c = 0; c < counters.size(); c++)
+    {
+      CounterResult search;
+      search.counter = counters[c];
+      search.eventId = m_pAMDDrawCallback->m_AliasEvents[i].first;
+
+      // find the result we're aliasing
+      auto it = std::find(ret.begin(), ret.end(), search);
+      if(it != ret.end())
+      {
+        // duplicate the result and append
+        CounterResult aliased = *it;
+        aliased.eventId = m_pAMDDrawCallback->m_AliasEvents[i].second;
+        ret.push_back(aliased);
+      }
+      else
+      {
+        RDCERR("Expected to find alias-target result for EID %u counter %u, but didn't",
+               search.eventId, search.counter);
+      }
+    }
+  }
+
+  SAFE_DELETE(m_pAMDDrawCallback);
+
+  return std::move(ret);
+}
+
 struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
 {
   D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *tqh,
@@ -214,6 +402,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { PostRedraw(eid, cmd); }
+  void PreCloseCommandList(ID3D12GraphicsCommandList *cmd){};
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     m_AliasEvents.push_back(std::make_pair(primary, alias));
@@ -241,6 +430,36 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
   uint32_t maxEID = m_pDevice->GetQueue()->GetMaxEID();
 
   vector<CounterResult> ret;
+  if(counters.empty())
+  {
+    RDCERR("No counters specified to FetchCounters");
+    return ret;
+  }
+
+  SCOPED_TIMER("Fetch Counters, counters to fetch %u", counters.size());
+
+  vector<GPUCounter> d3dCounters;
+  std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
+               [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
+
+  if(m_pAMDCounters)
+  {
+    // Filter out the AMD counters
+    vector<GPUCounter> amdCounters;
+    std::copy_if(
+        counters.begin(), counters.end(), std::back_inserter(amdCounters),
+        [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
+
+    if(!amdCounters.empty())
+    {
+      ret = FetchCountersAMD(amdCounters);
+    }
+  }
+
+  if(d3dCounters.empty())
+  {
+    return ret;
+  }
 
   D3D12_HEAP_PROPERTIES heapProps;
   heapProps.Type = D3D12_HEAP_TYPE_READBACK;

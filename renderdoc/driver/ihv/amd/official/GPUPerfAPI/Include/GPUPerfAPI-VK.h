@@ -11,8 +11,6 @@
 #ifndef _GPUPERFAPI_VK_H_
 #define _GPUPERFAPI_VK_H_
 
-#include <vulkan/vulkan.h>
-
 /// The struct that should be supplied to GPA_OpenContext().
 /// The instance, physicalDevice, and device should be set prior to
 /// calling OpenContext() to reflect the Vulkan objects on which profiling

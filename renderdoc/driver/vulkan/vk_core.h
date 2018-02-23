@@ -34,8 +34,8 @@
 #include "vk_replay.h"
 #include "vk_state.h"
 
-using std::vector;
 using std::list;
+using std::vector;
 
 class VulkanShaderCache;
 class VulkanTextRenderer;
@@ -170,6 +170,9 @@ struct VulkanDrawcallCallback
   virtual void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
   virtual bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
   virtual void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
+
+  // called immediately before the command buffer is ended
+  virtual void PreEndCommandBuffer(VkCommandBuffer cmd) = 0;
 
   // if a command buffer is recorded once and submitted N > 1 times, then the same
   // drawcall will have several EIDs that refer to it. We'll only do the full
@@ -329,11 +332,9 @@ private:
   VkDebugReportCallbackEXT m_DbgMsgCallback;    // the instance's dbg msg callback handle
   VkPhysicalDevice m_PhysicalDevice;            // the physical device we created m_Device with
   VkDevice m_Device;                            // the device used for our own command buffer work
-  PhysicalDeviceData
-      m_PhysicalDeviceData;    // the data about the physical device used for the above device;
-  uint32_t
-      m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
-  VkQueue m_Queue;         // the queue used for our own command buffer work
+  PhysicalDeviceData m_PhysicalDeviceData;    // the data about the physical device used for the above device;
+  uint32_t m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
+  VkQueue m_Queue;              // the queue used for our own command buffer work
 
   // the physical devices. At capture time this is trivial, just the enumerated devices.
   // At replay time this is re-ordered from the real list to try and match

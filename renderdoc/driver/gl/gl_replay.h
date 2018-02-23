@@ -30,9 +30,10 @@
 #include "replay/replay_driver.h"
 #include "gl_common.h"
 
-using std::pair;
 using std::map;
+using std::pair;
 
+class AMDCounters;
 class WrappedOpenGL;
 struct GLCounterContext;
 
@@ -236,6 +237,7 @@ public:
   void SetReplayData(GLWindowingData data);
 
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
+
 private:
   void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, uint32_t offs,
                         uint32_t matStride, const bytebuf &data, ShaderVariable &outVar);
@@ -424,6 +426,14 @@ private:
   D3D11Pipe::State m_D3D11State;
   D3D12Pipe::State m_D3D12State;
   VKPipe::State m_VKState;
+
+  // AMD counter instance
+  AMDCounters *m_pAMDCounters;
+
+  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs,
+                     const DrawcallDescription &drawnode);
+
+  vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 };
 
 const GLHookSet &GetRealGLFunctions();

@@ -26,6 +26,8 @@
 #include <float.h>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "data/glsl_shaders.h"
+#include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -307,9 +309,13 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
   const VkPipelineColorBlendAttachmentState colAttach = {
       info.blendEnable,
       // colour blending
-      info.srcBlend, info.dstBlend, VK_BLEND_OP_ADD,
+      info.srcBlend,
+      info.dstBlend,
+      VK_BLEND_OP_ADD,
       // alpha blending
-      info.srcBlend, info.dstBlend, VK_BLEND_OP_ADD,
+      info.srcBlend,
+      info.dstBlend,
+      VK_BLEND_OP_ADD,
       // write mask
       0xf,
   };
@@ -402,7 +408,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
   // we need just one descriptor for MS<->Array
   VkDescriptorPoolSize poolTypes[] = {
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2}, {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
   };
 
   VkDescriptorPoolCreateInfo poolInfo = {
@@ -447,7 +454,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   };
 
   VkSampleCountFlagBits sampleCounts[] = {
-      VK_SAMPLE_COUNT_2_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_16_BIT,
+      VK_SAMPLE_COUNT_2_BIT,
+      VK_SAMPLE_COUNT_4_BIT,
+      VK_SAMPLE_COUNT_8_BIT,
+      VK_SAMPLE_COUNT_16_BIT,
   };
 
   RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthMS2ArrayPipe) == ARRAY_COUNT(formats),
@@ -631,7 +641,9 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
       m_pDriver->vkFreeMemory(m_Device, m_Custom.TexMem, NULL);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -654,7 +666,11 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          1,
+          0,
+          1,
       },
   };
 
@@ -1392,6 +1408,20 @@ void VulkanReplay::CreateResources()
       });
 
   CREATE_OBJECT(m_MeshFetchDescSet, m_General.DescriptorPool, m_MeshFetchDescSetLayout);
+
+  GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
+                                   Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
+
+  AMDCounters *counters = new AMDCounters();
+  if(counters->Init(AMDCounters::eApiType_Vk, (void *)&context))
+  {
+    m_pAMDCounters = counters;
+  }
+  else
+  {
+    delete counters;
+    m_pAMDCounters = NULL;
+  }
 }
 
 void VulkanReplay::DestroyResources()
@@ -1407,6 +1437,8 @@ void VulkanReplay::DestroyResources()
   m_VertexPick.Destroy(m_pDriver);
   m_PixelPick.Destroy(m_pDriver);
   m_Histogram.Destroy(m_pDriver);
+
+  SAFE_DELETE(m_pAMDCounters);
 }
 
 void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
@@ -1565,7 +1597,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                       "dummy image arrays mismatched sizes");
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, 0, ~0U,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        0,
+        ~0U,
     };
 
     CREATE_OBJECT(DummySampler, VK_FILTER_NEAREST);
@@ -1668,7 +1703,11 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
              VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
             {
-                VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                0,
+                1,
+                0,
+                1,
             },
         };
 
@@ -1965,15 +2004,40 @@ void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool d
 
   Vec4f axisFrustum[] = {
       // axis marker vertices
-      Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
-      Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(1.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 1.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+      Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
 
       // frustum vertices
-      TLN, TRN, TRN, BRN, BRN, BLN, BLN, TLN,
+      TLN,
+      TRN,
+      TRN,
+      BRN,
+      BRN,
+      BLN,
+      BLN,
+      TLN,
 
-      TLN, TLF, TRN, TRF, BLN, BLF, BRN, BRF,
+      TLN,
+      TLF,
+      TRN,
+      TRF,
+      BLN,
+      BLF,
+      BRN,
+      BRF,
 
-      TLF, TRF, TRF, BRF, BRF, BLF, BLF, TLF,
+      TLF,
+      TRF,
+      TRF,
+      BRF,
+      BRF,
+      BLF,
+      BLF,
+      TLF,
   };
 
   // doesn't need to be ring'd as it's immutable
@@ -2104,7 +2168,9 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
 
   // allocate readback memory
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      NULL,
+      mrq.size,
       driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
   };
 
@@ -2124,7 +2190,11 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          0,
+          1,
+          0,
+          1,
       },
   };
 
