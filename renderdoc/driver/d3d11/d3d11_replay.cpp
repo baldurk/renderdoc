@@ -150,7 +150,7 @@ void D3D11Replay::CreateResources()
 
   AMDCounters *counters = new AMDCounters();
 
-  auto d3dDevice = m_pDevice->GetReal();
+  ID3D11Device *d3dDevice = m_pDevice->GetReal();
 
   if(counters->Init(AMDCounters::eApiType_Dx11, (void *)d3dDevice))
   {

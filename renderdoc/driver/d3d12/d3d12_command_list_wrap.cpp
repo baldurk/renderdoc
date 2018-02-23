@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "d3d12_command_list.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
+#include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 
@@ -75,7 +75,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
         for(int i = 0; i < markerCount; i++)
           D3D12MarkerRegion::End(list);
 
-        if (m_Cmd->m_DrawcallCallback)
+        if(m_Cmd->m_DrawcallCallback)
           m_Cmd->m_DrawcallCallback->PreCloseCommandList(list);
 
         list->Close();

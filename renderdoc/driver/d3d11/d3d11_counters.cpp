@@ -266,11 +266,11 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
 
 void D3D11Replay::SerializeImmediateContext()
 {
-  ID3D11Query* query = 0;
-  D3D11_QUERY_DESC desc = { D3D11_QUERY_EVENT };
+  ID3D11Query *query = 0;
+  D3D11_QUERY_DESC desc = {D3D11_QUERY_EVENT};
 
   HRESULT hr = m_pDevice->CreateQuery(&desc, &query);
-  if (FAILED(hr))
+  if(FAILED(hr))
   {
     return;
   }
@@ -284,11 +284,11 @@ void D3D11Replay::SerializeImmediateContext()
   do
   {
     hr = m_pImmediateContext->GetData(query, &completed, sizeof(BOOL), 0);
-    if (hr == S_FALSE)
+    if(hr == S_FALSE)
     {
       ::Sleep(0);
     }
-    else if (SUCCEEDED(hr) && completed)
+    else if(SUCCEEDED(hr) && completed)
     {
       break;
     }
@@ -297,11 +297,10 @@ void D3D11Replay::SerializeImmediateContext()
       // error
       break;
     }
-  } while (!completed);
+  } while(!completed);
 
   query->Release();
 }
-
 
 void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
                                 vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)

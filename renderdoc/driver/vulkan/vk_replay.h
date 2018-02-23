@@ -579,11 +579,10 @@ private:
   D3D11Pipe::State m_D3D11State;
   D3D12Pipe::State m_D3D12State;
   GLPipe::State m_GLState;
-  
+
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs);
 
   vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 
   AMDCounters *m_pAMDCounters;
-
 };

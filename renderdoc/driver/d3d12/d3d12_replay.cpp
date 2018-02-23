@@ -96,25 +96,25 @@ void D3D12Replay::CreateResources()
     m_Histogram.Init(m_pDevice, m_DebugManager);
   }
 
-  if (RenderDoc::Inst().IsReplayApp())
+  if(RenderDoc::Inst().IsReplayApp())
   {
-      AMDCounters *counters = new AMDCounters();
+    AMDCounters *counters = new AMDCounters();
 
-      auto d3dDevice = m_pDevice->GetReal();
+    auto d3dDevice = m_pDevice->GetReal();
 
-      if (counters->Init(AMDCounters::eApiType_Dx12, (void *)d3dDevice))
-      {
-          m_pAMDCounters = counters;
-      }
-      else
-      {
-          delete counters;
-          m_pAMDCounters = NULL;
-      }
+    if(counters->Init(AMDCounters::eApiType_Dx12, (void *)d3dDevice))
+    {
+      m_pAMDCounters = counters;
+    }
+    else
+    {
+      delete counters;
+      m_pAMDCounters = NULL;
+    }
   }
   else
   {
-      m_pAMDCounters = NULL;
+    m_pAMDCounters = NULL;
   }
 }
 
@@ -3256,9 +3256,7 @@ ResourceId D3D12Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
   return ResourceId();
 }
 
-void D3D12Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
-{
-}
+void D3D12Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) {}
 
 #pragma endregion
 

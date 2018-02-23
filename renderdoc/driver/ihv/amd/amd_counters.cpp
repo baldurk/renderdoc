@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Baldur Karlsson
+ * Copyright (c) 2015-2018 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <sstream>
-#include <iostream>
-#include <chrono>
-#include <thread>
 #include "amd_counters.h"
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <thread>
 #include "common/common.h"
 #include "core/plugins.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
@@ -49,30 +49,23 @@ inline bool AMD_SUCCEEDED(GPA_Status status)
   return status == GPA_STATUS_OK;
 }
 
-static void GPA_LoggingCallback(GPA_Logging_Type messageType, const char* pMessage)
+static void GPA_LoggingCallback(GPA_Logging_Type messageType, const char *pMessage)
 {
   std::string message;
 
-  switch (messageType)
+  switch(messageType)
   {
-  case GPA_LOGGING_ERROR:
-    message = "Error: ";
-    break;
-  case GPA_LOGGING_MESSAGE:
-    message = "Info: ";
-    break;
-  case GPA_LOGGING_TRACE:
-    message = "Trace: ";
-    break;
-  default:
-    break;
+    case GPA_LOGGING_ERROR: message = "Error: "; break;
+    case GPA_LOGGING_MESSAGE: message = "Info: "; break;
+    case GPA_LOGGING_TRACE: message = "Trace: "; break;
+    default: break;
   }
 
   message += "AMD: ";
 
   message.append(pMessage);
 
-  if (messageType == GPA_LOGGING_ERROR)
+  if(messageType == GPA_LOGGING_ERROR)
   {
     RDCWARN(message.c_str());
   }
@@ -91,41 +84,30 @@ static void GPA_LoggingCallback(GPA_Logging_Type messageType, const char* pMessa
 #endif
 }
 
-AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL)
-{
-}
+AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL) {}
 
-std::string AMDCounters::FormatErrMessage(const char* operation, uint32_t status)
+std::string AMDCounters::FormatErrMessage(const char *operation, uint32_t status)
 {
   std::ostringstream o;
   o << operation << ". " << m_pGPUPerfAPI->GPA_GetStatusAsStr((GPA_Status)status);
-  std::string err = o.str();
-  return err;
+  return o.str();
 }
 
 bool AMDCounters::Init(ApiType apiType, void *pContext)
 {
   std::string dllName("GPUPerfAPI");
 
-  switch (apiType)
+  switch(apiType)
   {
-  case AMDCounters::eApiType_Dx11:
-    dllName += "DX11";
-    break;
-  case AMDCounters::eApiType_Dx12:
-    dllName += "DX12";
-    break;
-  case AMDCounters::eApiType_Ogl:
-    dllName += "GL";
-    break;
-  case AMDCounters::eApiType_Vk:
-    dllName += "VK";
-    break;
-  default:
-    RDCWARN(
-      "AMD GPU performance counters could not be initialized successfully. "
-      "Unsupported API type specified");
-    return false;
+    case AMDCounters::eApiType_Dx11: dllName += "DX11"; break;
+    case AMDCounters::eApiType_Dx12: dllName += "DX12"; break;
+    case AMDCounters::eApiType_Ogl: dllName += "GL"; break;
+    case AMDCounters::eApiType_Vk: dllName += "VK"; break;
+    default:
+      RDCWARN(
+          "AMD GPU performance counters could not be initialized successfully. "
+          "Unsupported API type specified");
+      return false;
   }
 
 #if ENABLED(RDOC_WIN32)
@@ -137,8 +119,6 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   dllName = "lib" + dllName;
   dllName += ".so";
 #endif
-
-
 
   GPA_GetFuncTablePtrType getFuncTable = NULL;
 
@@ -163,23 +143,23 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   getFuncTable = (GPA_GetFuncTablePtrType)GetProcAddress(module, "GPA_GetFuncTable");
 #else
   // first try in the plugin location it will be in distributed builds
-  void* module = dlopen(LocatePluginFile("amd/counters", dllName.c_str()).c_str(), RTLD_LAZY);
+  void *module = dlopen(LocatePluginFile("amd/counters", dllName.c_str()).c_str(), RTLD_LAZY);
 
-    // if that failed then try checking for it just in the default search path
-    if(module == NULL)
-    {
-      module = dlopen(dllName.c_str(), RTLD_LAZY);
-    }
+  // if that failed then try checking for it just in the default search path
+  if(module == NULL)
+  {
+    module = dlopen(dllName.c_str(), RTLD_LAZY);
+  }
 
-    if(module == NULL)
-    {
-      RDCWARN(
-          "AMD GPU performance counters could not be initialized successfully. "
-          "Are you missing the DLLs?");
-      return false;
-    }
+  if(module == NULL)
+  {
+    RDCWARN(
+        "AMD GPU performance counters could not be initialized successfully. "
+        "Are you missing the DLLs?");
+    return false;
+  }
 
-    getFuncTable = (GPA_GetFuncTablePtrType)dlsym(module, "GPA_GetFuncTable");
+  getFuncTable = (GPA_GetFuncTablePtrType)dlsym(module, "GPA_GetFuncTable");
 #endif
 
   m_pGPUPerfAPI = new GPAApi();
@@ -190,7 +170,8 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   else
   {
     delete m_pGPUPerfAPI;
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, "Failed to get GPA function table. Invalid dynamic library?");
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        "Failed to get GPA function table. Invalid dynamic library?");
     return false;
   }
 
@@ -199,14 +180,15 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   loggingType = GPA_LOGGING_ERROR_AND_MESSAGE;
 #endif
   auto status = m_pGPUPerfAPI->GPA_RegisterLoggingCallback(loggingType, GPA_LoggingCallback);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Failed to initialize logging", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Failed to initialize logging", status).c_str());
     return false;
   }
 
   status = m_pGPUPerfAPI->GPA_Initialize();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Initialization failed", status).c_str());
     delete m_pGPUPerfAPI;
@@ -214,10 +196,12 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
     return false;
   }
 
-  status = m_pGPUPerfAPI->GPA_OpenContext(pContext, GPA_OPENCONTEXT_HIDE_SOFTWARE_COUNTERS_BIT | GPA_OPENCONTEXT_CLOCK_MODE_PEAK_BIT);
-  if (AMD_FAILED(status))
+  status = m_pGPUPerfAPI->GPA_OpenContext(
+      pContext, GPA_OPENCONTEXT_HIDE_SOFTWARE_COUNTERS_BIT | GPA_OPENCONTEXT_CLOCK_MODE_PEAK_BIT);
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Open context for counters failed", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Open context for counters failed", status).c_str());
     m_pGPUPerfAPI->GPA_Destroy();
     delete m_pGPUPerfAPI;
     m_pGPUPerfAPI = NULL;
@@ -234,13 +218,14 @@ AMDCounters::~AMDCounters()
   if(m_pGPUPerfAPI)
   {
     auto status = m_pGPUPerfAPI->GPA_CloseContext();
-    if (AMD_FAILED(status))
+    if(AMD_FAILED(status))
     {
-      GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Close context failed", status).c_str());
+      GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                          FormatErrMessage("Close context failed", status).c_str());
     }
 
     status = m_pGPUPerfAPI->GPA_Destroy();
-    if (AMD_FAILED(status))
+    if(AMD_FAILED(status))
     {
       GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Destroy failed", status).c_str());
     }
@@ -256,9 +241,10 @@ std::map<uint32_t, CounterDescription> AMDCounters::EnumerateCounters()
   gpa_uint32 num;
 
   auto status = m_pGPUPerfAPI->GPA_GetNumCounters(&num);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get number of counters", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get number of counters", status).c_str());
     return counters;
   }
 
@@ -267,14 +253,15 @@ std::map<uint32_t, CounterDescription> AMDCounters::EnumerateCounters()
     GPA_Usage_Type usageType;
 
     status = m_pGPUPerfAPI->GPA_GetCounterUsageType(i, &usageType);
-    if (AMD_FAILED(status))
+    if(AMD_FAILED(status))
     {
-      GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter usage type.", status).c_str());
+      GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                          FormatErrMessage("Get counter usage type.", status).c_str());
       return counters;
     }
 
     // Ignore percentage counters due to aggregate roll-up support
-    if (usageType == GPA_USAGE_TYPE_PERCENTAGE)
+    if(usageType == GPA_USAGE_TYPE_PERCENTAGE)
     {
       continue;
     }
@@ -297,7 +284,7 @@ uint32_t AMDCounters::GetNumCounters()
 
 CounterDescription AMDCounters::GetCounterDescription(GPUCounter counter)
 {
-    return m_Counters[m_PublicToInternalCounter[counter]];
+  return m_Counters[m_PublicToInternalCounter[counter]];
 }
 
 CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalIndex)
@@ -305,7 +292,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   CounterDescription desc = {};
   const char *tmp = NULL;
   auto status = m_pGPUPerfAPI->GPA_GetCounterName(internalIndex, &tmp);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter name.", status).c_str());
     return desc;
@@ -313,15 +300,16 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
 
   desc.name = tmp;
   status = m_pGPUPerfAPI->GPA_GetCounterDescription(internalIndex, &tmp);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter description.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter description.", status).c_str());
     return desc;
   }
 
   desc.description = tmp;
   status = m_pGPUPerfAPI->GPA_GetCounterCategory(internalIndex, &tmp);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter category.", status).c_str());
     return desc;
@@ -332,9 +320,10 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   GPA_Usage_Type usageType;
 
   status = m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter usage type.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter usage type.", status).c_str());
     return desc;
   }
 
@@ -367,9 +356,10 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   GPA_Type type;
 
   status = m_pGPUPerfAPI->GPA_GetCounterDataType(internalIndex, &type);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter data type.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter data type.", status).c_str());
     return desc;
   }
 
@@ -417,7 +407,7 @@ void AMDCounters::EnableCounter(GPUCounter counter)
   const uint32_t internalIndex = m_PublicToInternalCounter[counter];
 
   auto status = m_pGPUPerfAPI->GPA_EnableCounter(internalIndex);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Enable counter.", status).c_str());
   }
@@ -426,7 +416,7 @@ void AMDCounters::EnableCounter(GPUCounter counter)
 void AMDCounters::EnableAllCounters()
 {
   auto status = m_pGPUPerfAPI->GPA_EnableAllCounters();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Enable all counters.", status).c_str());
   }
@@ -435,7 +425,7 @@ void AMDCounters::EnableAllCounters()
 void AMDCounters::DisableAllCounters()
 {
   auto status = m_pGPUPerfAPI->GPA_DisableAllCounters();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Disable all counters.", status).c_str());
   }
@@ -445,7 +435,7 @@ uint32_t AMDCounters::GetPassCount()
 {
   gpa_uint32 numRequiredPasses = 0;
   auto status = m_pGPUPerfAPI->GPA_GetPassCount(&numRequiredPasses);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get pass count.", status).c_str());
   }
@@ -458,7 +448,7 @@ uint32_t AMDCounters::BeginSession()
   gpa_uint32 sessionID = 0;
 
   auto status = m_pGPUPerfAPI->GPA_BeginSession(&sessionID);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Begin session.", status).c_str());
   }
@@ -469,107 +459,104 @@ uint32_t AMDCounters::BeginSession()
 void AMDCounters::EndSesssion()
 {
   auto status = m_pGPUPerfAPI->GPA_EndSession();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("End session.", status).c_str());
   }
 }
 
-std::vector<CounterResult> AMDCounters::GetCounterData(
-  uint32_t sessionID,
-  uint32_t maxSampleIndex,
-  const std::vector<uint32_t> &eventIDs,
-  const std::vector<GPUCounter> &counters
-)
+std::vector<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
+                                                       const std::vector<uint32_t> &eventIDs,
+                                                       const std::vector<GPUCounter> &counters)
 {
   std::vector<CounterResult> ret;
 
   bool isReady = false;
 
-  const uint32_t timeout = 10000; // ms
+  const uint32_t timeout = 10000;    // ms
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
   do
   {
     isReady = IsSessionReady(sessionID);
-    if (!isReady)
+    if(!isReady)
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
       auto endTime = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double, std::milli> elapsedTime = endTime - startTime;
-      if (elapsedTime.count() > timeout)
+      if(elapsedTime.count() > timeout)
       {
         GPA_LoggingCallback(GPA_LOGGING_ERROR, "GetCounterData failed due to elapsed timeout.");
         return std::move(ret);
       }
     }
-  } while (!isReady);
+  } while(!isReady);
 
-  for (uint32_t s = 0; s < maxSampleIndex; s++)
+  for(uint32_t s = 0; s < maxSampleIndex; s++)
   {
-    for (size_t c = 0; c < counters.size(); c++)
+    for(size_t c = 0; c < counters.size(); c++)
     {
       const CounterDescription desc = GetCounterDescription(counters[c]);
 
-      switch (desc.resultType)
+      switch(desc.resultType)
       {
-      case CompType::UInt:
-      {
-        if (desc.resultByteWidth == sizeof(uint32_t))
+        case CompType::UInt:
         {
-          uint32_t value = GetSampleUint32(sessionID, s, counters[c]);
-
-          if (desc.unit == CounterUnit::Percentage)
+          if(desc.resultByteWidth == sizeof(uint32_t))
           {
-            value = RDCCLAMP(value, 0U, 100U);
+            uint32_t value = GetSampleUint32(sessionID, s, counters[c]);
+
+            if(desc.unit == CounterUnit::Percentage)
+            {
+              value = RDCCLAMP(value, 0U, 100U);
+            }
+
+            ret.push_back(CounterResult(eventIDs[s], counters[c], value));
+          }
+          else if(desc.resultByteWidth == sizeof(uint64_t))
+          {
+            uint64_t value = GetSampleUint64(sessionID, s, counters[c]);
+
+            if(desc.unit == CounterUnit::Percentage)
+            {
+              value = RDCCLAMP(value, (uint64_t)0, (uint64_t)100);
+            }
+
+            ret.push_back(CounterResult(eventIDs[s], counters[c], value));
+          }
+          else
+          {
+            RDCERR("Unexpected byte width %u", desc.resultByteWidth);
+          }
+        }
+        break;
+        case CompType::Float:
+        {
+          float value = GetSampleFloat32(sessionID, s, counters[c]);
+
+          if(desc.unit == CounterUnit::Percentage)
+          {
+            value = RDCCLAMP(value, 0.0f, 100.0f);
           }
 
           ret.push_back(CounterResult(eventIDs[s], counters[c], value));
         }
-        else if (desc.resultByteWidth == sizeof(uint64_t))
+        break;
+        case CompType::Double:
         {
-          uint64_t value = GetSampleUint64(sessionID, s, counters[c]);
+          double value = GetSampleFloat64(sessionID, s, counters[c]);
 
-          if (desc.unit == CounterUnit::Percentage)
+          if(desc.unit == CounterUnit::Percentage)
           {
-            value = RDCCLAMP(value, (uint64_t)0, (uint64_t)100);
+            value = RDCCLAMP(value, 0.0, 100.0);
           }
 
           ret.push_back(CounterResult(eventIDs[s], counters[c], value));
         }
-        else
-        {
-          RDCERR("Unexpected byte width %u", desc.resultByteWidth);
-        }
-      }
-      break;
-      case CompType::Float:
-      {
-        float value = GetSampleFloat32(sessionID, s, counters[c]);
-
-        if (desc.unit == CounterUnit::Percentage)
-        {
-          value = RDCCLAMP(value, 0.0f, 100.0f);
-        }
-
-        ret.push_back(CounterResult(eventIDs[s], counters[c], value));
-      }
-      break;
-      case CompType::Double:
-      {
-        double value = GetSampleFloat64(sessionID, s, counters[c]);
-
-        if (desc.unit == CounterUnit::Percentage)
-        {
-          value = RDCCLAMP(value, 0.0, 100.0);
-        }
-
-        ret.push_back(CounterResult(eventIDs[s], counters[c], value));
-      }
-      break;
-      default: RDCASSERT(0); break;
+        break;
+        default: RDCASSERT(0); break;
       };
     }
   }
@@ -582,7 +569,7 @@ bool AMDCounters::IsSessionReady(uint32_t sessionIndex)
   gpa_uint8 readyResult = 0;
 
   auto status = m_pGPUPerfAPI->GPA_IsSessionReady(&readyResult, sessionIndex);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Is session ready", status).c_str());
   }
@@ -593,7 +580,7 @@ bool AMDCounters::IsSessionReady(uint32_t sessionIndex)
 void AMDCounters::BeginPass()
 {
   auto status = m_pGPUPerfAPI->GPA_BeginPass();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Begin pass.", status).c_str());
   }
@@ -602,7 +589,7 @@ void AMDCounters::BeginPass()
 void AMDCounters::EndPass()
 {
   auto status = m_pGPUPerfAPI->GPA_EndPass();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("End pass.", status).c_str());
   }
@@ -611,7 +598,7 @@ void AMDCounters::EndPass()
 void AMDCounters::BeginSample(uint32_t index)
 {
   auto status = m_pGPUPerfAPI->GPA_BeginSample(index);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Begin sample.", status).c_str());
   }
@@ -620,45 +607,47 @@ void AMDCounters::BeginSample(uint32_t index)
 void AMDCounters::EndSample()
 {
   auto status = m_pGPUPerfAPI->GPA_EndSample();
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("End sample.", status).c_str());
   }
 }
 
-void AMDCounters::BeginSampleList(void * pSampleList)
+void AMDCounters::BeginSampleList(void *pSampleList)
 {
   auto status = m_pGPUPerfAPI->GPA_BeginSampleList(pSampleList);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("BeginSampleList.", status).c_str());
   }
 }
 
-void AMDCounters::EndSampleList(void * pSampleList)
+void AMDCounters::EndSampleList(void *pSampleList)
 {
   auto status = m_pGPUPerfAPI->GPA_EndSampleList(pSampleList);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("EndSampleList.", status).c_str());
   }
 }
 
-void AMDCounters::BeginSampleInSampleList(uint32_t sampleID, void * pSampleList)
+void AMDCounters::BeginSampleInSampleList(uint32_t sampleID, void *pSampleList)
 {
   auto status = m_pGPUPerfAPI->GPA_BeginSampleInSampleList(sampleID, pSampleList);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("BeginSampleInSampleList.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("BeginSampleInSampleList.", status).c_str());
   }
 }
 
-void AMDCounters::EndSampleInSampleList(void * pSampleList)
+void AMDCounters::EndSampleInSampleList(void *pSampleList)
 {
   auto status = m_pGPUPerfAPI->GPA_EndSampleInSampleList(pSampleList);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("EndSampleInSampleList.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("EndSampleInSampleList.", status).c_str());
   }
 }
 
@@ -668,7 +657,7 @@ uint32_t AMDCounters::GetSampleUint32(uint32_t session, uint32_t sample, GPUCoun
   uint32_t value = 0;
 
   auto status = m_pGPUPerfAPI->GPA_GetSampleUInt32(session, sample, internalIndex, &value);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get sample uint32.", status).c_str());
     return value;
@@ -677,9 +666,10 @@ uint32_t AMDCounters::GetSampleUint32(uint32_t session, uint32_t sample, GPUCoun
   // normalise units as expected
   GPA_Usage_Type usageType;
   status = m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter usage type.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter usage type.", status).c_str());
     return value;
   }
 
@@ -697,7 +687,7 @@ uint64_t AMDCounters::GetSampleUint64(uint32_t session, uint32_t sample, GPUCoun
   gpa_uint64 value = 0;
 
   auto status = m_pGPUPerfAPI->GPA_GetSampleUInt64(session, sample, internalIndex, &value);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get sample uint64.", status).c_str());
     return value;
@@ -706,9 +696,10 @@ uint64_t AMDCounters::GetSampleUint64(uint32_t session, uint32_t sample, GPUCoun
   // normalise units as expected
   GPA_Usage_Type usageType;
   status = m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter usage type.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter usage type.", status).c_str());
     return value;
   }
 
@@ -726,7 +717,7 @@ float AMDCounters::GetSampleFloat32(uint32_t session, uint32_t sample, GPUCounte
   float value = 0;
 
   auto status = m_pGPUPerfAPI->GPA_GetSampleFloat32(session, sample, internalIndex, &value);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get sample float32.", status).c_str());
     return value;
@@ -735,9 +726,10 @@ float AMDCounters::GetSampleFloat32(uint32_t session, uint32_t sample, GPUCounte
   // normalise units as expected
   GPA_Usage_Type usageType;
   status = m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter usage type.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter usage type.", status).c_str());
     return value;
   }
 
@@ -759,7 +751,7 @@ double AMDCounters::GetSampleFloat64(uint32_t session, uint32_t sample, GPUCount
   double value;
 
   auto status = m_pGPUPerfAPI->GPA_GetSampleFloat64(session, sample, internalIndex, &value);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
     GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get sample float64.", status).c_str());
     return value;
@@ -768,9 +760,10 @@ double AMDCounters::GetSampleFloat64(uint32_t session, uint32_t sample, GPUCount
   // normalise units as expected
   GPA_Usage_Type usageType;
   status = m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
-  if (AMD_FAILED(status))
+  if(AMD_FAILED(status))
   {
-    GPA_LoggingCallback(GPA_LOGGING_ERROR, FormatErrMessage("Get counter usage type.", status).c_str());
+    GPA_LoggingCallback(GPA_LOGGING_ERROR,
+                        FormatErrMessage("Get counter usage type.", status).c_str());
     return value;
   }
 

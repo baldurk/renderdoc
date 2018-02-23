@@ -29,14 +29,12 @@
 #include "gl_replay.h"
 #include "gl_resources.h"
 
-void GLReplay::PreContextInitCounters()
-{
-}
+void GLReplay::PreContextInitCounters() {}
 
 void GLReplay::PostContextInitCounters()
 {
   AMDCounters *counters = new AMDCounters();
-  if (counters->Init(AMDCounters::eApiType_Ogl, m_ReplayCtx.ctx))
+  if(counters->Init(AMDCounters::eApiType_Ogl, m_ReplayCtx.ctx))
   {
     m_pAMDCounters = counters;
   }
@@ -45,16 +43,13 @@ void GLReplay::PostContextInitCounters()
     delete counters;
     m_pAMDCounters = NULL;
   }
-
 }
 void GLReplay::PreContextShutdownCounters()
 {
   SAFE_DELETE(m_pAMDCounters);
 }
 
-void GLReplay::PostContextShutdownCounters()
-{
-}
+void GLReplay::PostContextShutdownCounters() {}
 
 vector<GPUCounter> GLReplay::EnumerateCounters()
 {
@@ -74,9 +69,9 @@ vector<GPUCounter> GLReplay::EnumerateCounters()
   ret.push_back(GPUCounter::PSInvocations);
   ret.push_back(GPUCounter::CSInvocations);
 
-  if (m_pAMDCounters)
+  if(m_pAMDCounters)
   {
-    for (uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
+    for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
     {
       ret.push_back(MakeAMDCounter(i));
     }
@@ -92,9 +87,9 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
   desc.counter = counterID;
 
   /////AMD//////
-  if (counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
+  if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
   {
-    if (m_pAMDCounters)
+    if(m_pAMDCounters)
     {
       desc = m_pAMDCounters->GetCounterDescription(counterID);
 
@@ -304,29 +299,29 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
 void GLReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
                              vector<uint32_t> *eventIDs, const DrawcallDescription &drawnode)
 {
-  if (drawnode.children.empty())
+  if(drawnode.children.empty())
     return;
 
-  for (size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < drawnode.children.size(); i++)
   {
     const DrawcallDescription &d = drawnode.children[i];
 
     FillTimersAMD(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
 
-    if (d.events.empty())
-        continue;
+    if(d.events.empty())
+      continue;
 
-    eventIDs->push_back(drawnode.eventId);
+    eventIDs->push_back(d.eventId);
 
-    m_pDriver->ReplayLog(*eventStartID, drawnode.eventId, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_WithoutDraw);
 
     m_pAMDCounters->BeginSample(*sampleIndex);
 
-    m_pDriver->ReplayLog(*eventStartID, drawnode.eventId, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_OnlyDraw);
 
     m_pAMDCounters->EndSample();
 
-    *eventStartID = drawnode.eventId + 1;
+    *eventStartID = d.eventId + 1;
     ++*sampleIndex;
   }
 }
@@ -336,7 +331,7 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
   m_pAMDCounters->DisableAllCounters();
 
   // enable counters it needs
-  for (size_t i = 0; i < counters.size(); i++)
+  for(size_t i = 0; i < counters.size(); i++)
   {
     // This function is only called internally, and violating this assertion means our
     // caller has invoked this method incorrectly
@@ -352,7 +347,7 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
 
   vector<uint32_t> eventIDs;
 
-  for (uint32_t p = 0; p < passCount; p++)
+  for(uint32_t p = 0; p < passCount; p++)
   {
     m_pAMDCounters->BeginPass();
 
@@ -386,23 +381,23 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<GPUCounter> &allCount
 
   vector<GPUCounter> counters;
   std::copy_if(allCounters.begin(), allCounters.end(), std::back_inserter(counters),
-    [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
+               [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
 
-  if (m_pAMDCounters)
+  if(m_pAMDCounters)
   {
     // Filter out the AMD counters
     vector<GPUCounter> amdCounters;
     std::copy_if(
-      allCounters.begin(), allCounters.end(), std::back_inserter(amdCounters),
-      [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
+        allCounters.begin(), allCounters.end(), std::back_inserter(amdCounters),
+        [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
 
-    if (!amdCounters.empty())
+    if(!amdCounters.empty())
     {
       ret = FetchCountersAMD(amdCounters);
     }
   }
 
-  if (counters.empty())
+  if(counters.empty())
   {
     return ret;
   }

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Baldur Karlsson
+ * Copyright (c) 2015-2018 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,9 @@
 
 #pragma once
 
-#include <vector>
 #include <map>
+#include <vector>
 #include "api/replay/renderdoc_replay.h"
-#include "api/replay/data_types.h"
 
 struct _GPAApi;
 
@@ -71,21 +70,22 @@ public:
   void EndSample();
 
   // DX12 and VK entry points
-  void BeginSampleList(void* pSampleList);
+  void BeginSampleList(void *pSampleList);
 
-  void EndSampleList(void* pSampleList);
+  void EndSampleList(void *pSampleList);
 
-  void BeginSampleInSampleList(uint32_t sampleID, void* pSampleList);
+  void BeginSampleInSampleList(uint32_t sampleID, void *pSampleList);
 
-  void EndSampleInSampleList(void* pSampleList);
+  void EndSampleInSampleList(void *pSampleList);
 
   // Session data retrieval
   std::vector<CounterResult> GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
                                             const std::vector<uint32_t> &eventIDs,
                                             const std::vector<GPUCounter> &counters);
+
 private:
   _GPAApi *m_pGPUPerfAPI;
-  std::string FormatErrMessage(const char* operation, uint32_t status);
+  std::string FormatErrMessage(const char *operation, uint32_t status);
   bool IsSessionReady(uint32_t sessionIndex);
 
   uint32_t GetSampleUint32(uint32_t session, uint32_t sample, GPUCounter counter);
@@ -101,5 +101,5 @@ private:
   std::map<uint32_t, CounterDescription> EnumerateCounters();
   std::map<uint32_t, CounterDescription> m_Counters;
 
-  std::map <GPUCounter, uint32_t> m_PublicToInternalCounter;
+  std::map<GPUCounter, uint32_t> m_PublicToInternalCounter;
 };

@@ -34,8 +34,8 @@
 #include "vk_replay.h"
 #include "vk_state.h"
 
-using std::vector;
 using std::list;
+using std::vector;
 
 class VulkanShaderCache;
 class VulkanTextRenderer;
@@ -332,11 +332,9 @@ private:
   VkDebugReportCallbackEXT m_DbgMsgCallback;    // the instance's dbg msg callback handle
   VkPhysicalDevice m_PhysicalDevice;            // the physical device we created m_Device with
   VkDevice m_Device;                            // the device used for our own command buffer work
-  PhysicalDeviceData
-      m_PhysicalDeviceData;    // the data about the physical device used for the above device;
-  uint32_t
-      m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
-  VkQueue m_Queue;         // the queue used for our own command buffer work
+  PhysicalDeviceData m_PhysicalDeviceData;    // the data about the physical device used for the above device;
+  uint32_t m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
+  VkQueue m_Queue;              // the queue used for our own command buffer work
 
   // the physical devices. At capture time this is trivial, just the enumerated devices.
   // At replay time this is re-ordered from the real list to try and match

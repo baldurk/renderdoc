@@ -227,6 +227,7 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
+
 private:
   bool m_WARP;
   bool m_Proxy;

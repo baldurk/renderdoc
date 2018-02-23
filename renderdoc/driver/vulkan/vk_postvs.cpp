@@ -1193,7 +1193,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -1334,7 +1336,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
         m_pDriver->vkGetBufferMemoryRequirements(dev, vbuffers[attr].buf, &mrq);
 
         VkMemoryAllocateInfo allocInfo = {
-            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            NULL,
+            mrq.size,
             m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
         };
 
@@ -1520,7 +1524,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        NULL,
+        mrq.size,
         m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
     };
 
@@ -1563,7 +1569,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     meshbufbarrier.size = VK_WHOLE_SIZE;
 
     VkMemoryBarrier globalbarrier = {
-        VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
+        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        NULL,
         VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT,
         VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
     };
@@ -1604,7 +1611,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
     VkBufferCopy bufcopy = {
-        0, 0, bufInfo.size,
+        0,
+        0,
+        bufInfo.size,
     };
 
     // copy to readback buffer

@@ -24,11 +24,11 @@
 
 #include <algorithm>
 #include <iterator>
+#include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
 #include "vk_core.h"
 #include "vk_replay.h"
 #include "vk_resources.h"
-#include "driver/ihv/amd/amd_counters.h"
-#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
 
 vector<GPUCounter> VulkanReplay::EnumerateCounters()
 {
@@ -59,9 +59,9 @@ vector<GPUCounter> VulkanReplay::EnumerateCounters()
     ret.push_back(GPUCounter::CSInvocations);
   }
 
-  if (m_pAMDCounters)
+  if(m_pAMDCounters)
   {
-    for (uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
+    for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
     {
       ret.push_back(MakeAMDCounter(i));
     }
@@ -74,9 +74,9 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
   CounterDescription desc = {};
   desc.counter = counterID;
   /////AMD//////
-  if (counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
+  if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
   {
-    if (m_pAMDCounters)
+    if(m_pAMDCounters)
     {
       desc = m_pAMDCounters->GetCounterDescription(counterID);
 
@@ -200,12 +200,9 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 
 struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 {
-  VulkanAMDDrawCallback(WrappedVulkan *dev, VulkanReplay *rp,
-    uint32_t &sampleIndex, vector<uint32_t> &eventIDs)
-    : m_pDriver(dev),
-    m_pReplay(rp),
-    m_pSampleId(&sampleIndex),
-    m_pEventIds(&eventIDs)
+  VulkanAMDDrawCallback(WrappedVulkan *dev, VulkanReplay *rp, uint32_t &sampleIndex,
+                        vector<uint32_t> &eventIDs)
+      : m_pDriver(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
   {
     m_pDriver->SetDrawcallCB(this);
   }
@@ -218,7 +215,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 
     VkCommandBuffer realCmdBuffer = Unwrap(cmd);
 
-    if (m_begunCommandBuffers.find(realCmdBuffer) == m_begunCommandBuffers.end())
+    if(m_begunCommandBuffers.find(realCmdBuffer) == m_begunCommandBuffers.end())
     {
       m_begunCommandBuffers.insert(realCmdBuffer);
 
@@ -244,7 +241,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 
     auto iter = m_begunCommandBuffers.find(realCmdBuffer);
 
-    if (iter != m_begunCommandBuffers.end())
+    if(iter != m_begunCommandBuffers.end())
     {
       m_pReplay->GetAMDCounters()->EndSampleList(*iter);
       m_begunCommandBuffers.erase(iter);
@@ -257,8 +254,14 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
   void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
+  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    return PostDraw(eid, cmd);
+  }
+  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    PostRedraw(eid, cmd);
+  }
   void AliasEvent(uint32_t primary, uint32_t alias) override {}
 
   uint32_t *m_pSampleId;
@@ -268,7 +271,8 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   set<VkCommandBuffer> m_begunCommandBuffers;
 };
 
-void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs)
+void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
+                                 vector<uint32_t> *eventIDs)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
@@ -283,7 +287,7 @@ vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &c
   m_pAMDCounters->DisableAllCounters();
 
   // enable counters it needs
-  for (size_t i = 0; i < counters.size(); i++)
+  for(size_t i = 0; i < counters.size(); i++)
   {
     // This function is only called internally, and violating this assertion means our
     // caller has invoked this method incorrectly
@@ -299,7 +303,7 @@ vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &c
 
   vector<uint32_t> eventIDs;
 
-  for (uint32_t i = 0; i < passCount; i++)
+  for(uint32_t i = 0; i < passCount; i++)
   {
     m_pAMDCounters->BeginPass();
 
@@ -389,25 +393,25 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
 
   vector<GPUCounter> vkCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkCounters),
-    [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
+               [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
 
   vector<CounterResult> ret;
 
-  if (m_pAMDCounters)
+  if(m_pAMDCounters)
   {
     // Filter out the AMD counters
     vector<GPUCounter> amdCounters;
     std::copy_if(
-      counters.begin(), counters.end(), std::back_inserter(amdCounters),
-      [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
+        counters.begin(), counters.end(), std::back_inserter(amdCounters),
+        [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
 
-    if (!amdCounters.empty())
+    if(!amdCounters.empty())
     {
       ret = FetchCountersAMD(amdCounters);
     }
   }
 
-  if (vkCounters.empty())
+  if(vkCounters.empty())
   {
     return ret;
   }
@@ -543,7 +547,6 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pipeStatsPool, NULL);
   }
-
 
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
