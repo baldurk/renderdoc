@@ -668,7 +668,7 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
     }
     case SDBasic::Boolean: ser.Serialise("", el->data.basic.b); break;
     case SDBasic::Character: ser.Serialise("", el->data.basic.c); break;
-    case SDBasic::ResourceId: ser.Serialise("", el->data.basic.id); break;
+    case SDBasic::Resource: ser.Serialise("", el->data.basic.id); break;
     case SDBasic::UnsignedInteger:
       if(el->type.byteSize == 1)
       {

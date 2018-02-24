@@ -1352,7 +1352,7 @@ public:
       case SDBasic::Null: RDCFATAL("Cannot call SerialiseValue for type %d!", type); break;
       case SDBasic::String: RDCFATAL("eString should be specialised!"); break;
       case SDBasic::Enum:
-      case SDBasic::ResourceId:
+      case SDBasic::Resource:
       case SDBasic::UnsignedInteger:
         if(byteSize == 1)
           current.data.basic.u = (uint64_t)(uint8_t)el;

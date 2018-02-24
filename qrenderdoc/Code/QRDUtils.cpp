@@ -682,7 +682,7 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
     // that for the best raw structured data representation instead of flattening those out to just
     // "ResourceId", and we also don't want to store two types ('fake' and 'real'), so instead we
     // check the custom string.
-    if(obj->type.basetype == SDBasic::ResourceId)
+    if(obj->type.basetype == SDBasic::Resource)
     {
       ResourceId id;
       static_assert(sizeof(id) == sizeof(obj->data.basic.u), "ResourceId is no longer uint64_t!");
@@ -714,7 +714,7 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
         case SDBasic::Null: param = lit("NULL"); break;
         case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;
         case SDBasic::String: param = obj->data.str; break;
-        case SDBasic::ResourceId:
+        case SDBasic::Resource:
         case SDBasic::Enum:
         case SDBasic::UnsignedInteger: param = Formatter::Format(obj->data.basic.u); break;
         case SDBasic::SignedInteger: param = Formatter::Format(obj->data.basic.i); break;
