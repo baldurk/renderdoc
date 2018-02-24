@@ -2,7 +2,9 @@
 
 If you're interested in contributing to RenderDoc, this is the place!
 
-For small changes like one-line fixes or minor tweaks then don't worry too much about reading this end-to-end. The point of this isn't to be restrictive about rules, so I'm happy to help to be accommodating and go back and forth to get any change ready to commit, or fix up minor issues by hand. It's a good idea to check the [commit message](#commit-messages) and [code formatting](#code-formatting) sections to get an idea of what a good PR will look like, but I'll provide feedback when you open a PR on how to get it ready to merge.
+**For those in a hurry, please just read the [commit message](#commit-messages) and [code formatting](#code-formatting) sections to get an idea of what a good PR will look like.**
+
+For small changes like one-line fixes or minor tweaks then don't worry too much about reading this end-to-end and getting every thing perfect the first time. The point of this isn't to be restrictive about rules, so I'm happy to help out with any changes needed to get your PR ready to merge. If you're unfamiliar with git and need help making any changes, feel free to ask as well!
 
 If you're a regular contributor or if you have a larger amount of code to change, please read on as it will make life easier for everyone if you to follow along with these guidelines from the start.
 
@@ -74,15 +76,25 @@ to make the change, other impacts, future work etc. Keeping the title
 to 72 characters means it will display fully in git log and github logs.
 ```
 
-Merge commits should not be included in pull requests as they just muddy the history, please rebase when bringing code up to date against latest master. Likewise commits for code formatting or compile fixes should be squashed into the relevant commits that they update, rather than left in the history.
+Merge commits should **not** be included in pull requests as they just muddy the history. Please use `git rebase` when bringing code up to date against latest `v1.x`.
+
+Likewise commits for code formatting or compile fixes should be squashed into the relevant commits that they update, rather than left in the history.
 
 ### Code formatting
 
-To make things easier for everyone, I've adopted clang-format for keeping code consistently formatted. Since clang-format can change its output depending on version number even with the same configuration options, I have fixed the version used for RenderDoc at [clang-format-3.8](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormatStyleOptions.html). This formatting is enforced by CI checks that run on PRs, so if you aren't running the same version locally it will show up there.
+To make things easier for everyone, I've adopted clang-format for keeping code consistently formatted.
+
+| :warning: |                                                                                                                                         | :warning: |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| :warning: | **Unfortunately clang-format output changes between versions even with the same config.**                                               | :warning: |
+| :warning: | **I have fixed the version used for RenderDoc at [clang-format-3.8](http://releases.llvm.org/download.html#3.8.1).**                    | :warning: |
+| :warning: | **This formatting is enforced by CI checks that run on PRs, so if you aren't running the same version locally it will show up there.**  | :warning: |
+
+If you want to format a single file, run: `clang-format -i file.cpp`. If you want to format any changes you make before you commit them, you'll need python installed and then run: `git clang-format`. To clang-format the whole codebase, you can run the bash script `scripts/clang_format_all.sh` but be sure to squash any changes into the right commits.
 
 There are instructions on how to set up git hooks or IDE integration [on the wiki](https://github.com/baldurk/renderdoc/wiki/Code-formatting-(using-clang-format)).
 
-Do not make any intermediate commits which don't follow the formatting conventions. Having several intermediate commits with mismatched formatting then a single 'reformatted code' commit at the end makes history and blames harder to read, which is an important tool for others to understand your code. It is much easier to enforce proper formatting on each commit as you go along, than to try and rebase and merge formatting changes in after the fact.
+All intermediate commits should follow the formatting conventions. Having several intermediate commits with mismatched formatting then a single 'reformatted code' commit at the end makes history harder to read, which is an important tool for others to understand your code. It is much easier to enforce proper formatting on each commit as you go along, than to try and untangle and merge formatting changes in after the fact.
 
 Since it's not covered by a pure formatting check, don't use overly modern C++ unnecessarily. Although the minimum compiler spec is now higher than it was in the past (as of March 2017) and modern features may be supported, some modern C++ constructs do not fit with the style of the rest of the code.
 
