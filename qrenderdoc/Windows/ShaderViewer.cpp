@@ -425,14 +425,17 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->outputSig->hide();
 
     ui->variables->setColumns({tr("Name"), tr("Type"), tr("Value")});
-    ui->variables->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-    ui->variables->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->variables->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->variables->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->variables->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     ui->constants->setColumns({tr("Name"), tr("Type"), tr("Value")});
-    ui->constants->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-    ui->constants->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->constants->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->constants->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->constants->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+
+    ui->variables->setTooltipElidedItems(false);
+    ui->constants->setTooltipElidedItems(false);
 
     ui->watch->setWindowTitle(tr("Watch"));
     ui->docking->addToolWindow(
@@ -1527,6 +1530,11 @@ void ShaderViewer::updateDebugging()
   }
 
   ui->watch->setUpdatesEnabled(true);
+
+  ui->constants->resizeColumnToContents(0);
+  ui->variables->resizeColumnToContents(0);
+  ui->constants->resizeColumnToContents(1);
+  ui->variables->resizeColumnToContents(1);
 
   updateVariableTooltip();
 }
