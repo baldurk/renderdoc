@@ -1337,7 +1337,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = new IABufferTag(state.IA.ibuffer.buf, draw != null ? draw.indexOffset : 0);
+                    node.Tag = new IABufferTag(state.IA.ibuffer.buf, draw != null ? draw.indexOffset * draw.indexByteWidth : 0);
 
                     if (!ibufferUsed)
                         InactiveRow(node);
@@ -1354,7 +1354,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = new IABufferTag(state.IA.ibuffer.buf, draw != null ? draw.indexOffset : 0);
+                    node.Tag = new IABufferTag(state.IA.ibuffer.buf, draw != null ? draw.indexOffset * draw.indexByteWidth : 0);
 
                     EmptyRow(node);
 
