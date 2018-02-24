@@ -585,11 +585,11 @@
         <property name="decimals">
          <number>0</number>
         </property>
-        <property name="maximum">
-         <double>4294967296.0</double>
-        </property>
         <property name="minimum">
-         <double>0.0</double>
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>4294967296.000000000000000</double>
         </property>
        </widget>
       </item>
@@ -747,7 +747,7 @@
          <string>Save these capture settings to file to load later</string>
         </property>
         <property name="text">
-         <string>Save</string>
+         <string>Save Settings</string>
         </property>
        </widget>
       </item>
@@ -763,7 +763,7 @@
          <string>Load a saved set of capture settings</string>
         </property>
         <property name="text">
-         <string>Load</string>
+         <string>Load Settings</string>
         </property>
        </widget>
       </item>
