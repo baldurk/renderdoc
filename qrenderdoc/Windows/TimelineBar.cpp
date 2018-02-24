@@ -957,7 +957,7 @@ void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
     path.addRoundedRect(r, 5, 5);
 
     p.setPen(QPen(palette().brush(QPalette::Text), 1.0));
-    p.fillPath(path, Qt::blue);
+    p.fillPath(path, d == m_Ctx.CurEvent() ? Qt::green : Qt::blue);
     p.drawPath(path);
   }
 
