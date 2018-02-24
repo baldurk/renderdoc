@@ -2711,6 +2711,8 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 
   SCOPED_LOCK(m_D3DLock);
 
+  LazyInit();
+
   RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
 
   m_State = WRITING_CAPFRAME;
