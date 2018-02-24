@@ -33,10 +33,7 @@
     </rect>
    </property>
    <property name="frameShape">
-    <enum>QFrame::Panel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Sunken</enum>
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="editTriggers">
     <set>QAbstractItemView::NoEditTriggers</set>
@@ -73,10 +70,7 @@
     </rect>
    </property>
    <property name="frameShape">
-    <enum>QFrame::Panel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Sunken</enum>
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="editTriggers">
     <set>QAbstractItemView::NoEditTriggers</set>
@@ -115,6 +109,9 @@
    <property name="contextMenuPolicy">
     <enum>Qt::PreventContextMenu</enum>
    </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
    <property name="indentation">
     <number>0</number>
    </property>
@@ -136,6 +133,9 @@
      <width>256</width>
      <height>192</height>
     </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="indentation">
     <number>0</number>
@@ -497,6 +497,9 @@
      <width>151</width>
      <height>131</height>
     </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="editTriggers">
     <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
