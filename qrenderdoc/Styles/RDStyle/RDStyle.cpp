@@ -1743,6 +1743,9 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   {
     const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
 
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
     QRectF rect = QRectF(opt->rect).adjusted(0.5, 0.5, 0.5, 0.5);
 
     p->setPen(QPen(outlineBrush(opt->palette), 1.0));
@@ -1824,6 +1827,8 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         drawPrimitive(PE_IndicatorArrowRight, &submenu, p, widget);
       }
     }
+
+    p->restore();
 
     return;
   }
