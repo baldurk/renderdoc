@@ -982,6 +982,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_EXT_debug_marker");
     }
 
+    if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) ==
+       supportedExtensions.end())
+    {
+      RDCWARN("Unsupported required instance extension for AMD performance counters '%s'",
+              VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
+    else
+    {
+      if(std::find(Extensions.begin(), Extensions.end(),
+                   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == Extensions.end())
+        Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
+
     // enable VK_EXT_debug_marker if it's available, to fetch shader disassembly
     if(supportedExtensions.find(VK_AMD_SHADER_INFO_EXTENSION_NAME) != supportedExtensions.end())
     {

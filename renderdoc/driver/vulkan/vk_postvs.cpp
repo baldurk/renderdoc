@@ -1780,6 +1780,7 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())

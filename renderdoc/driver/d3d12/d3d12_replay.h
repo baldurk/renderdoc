@@ -24,12 +24,15 @@
 
 #pragma once
 
+#include <memory>
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
 #include "d3d12_state.h"
 
+class AMDCounters;
+struct D3D12AMDDrawCallback;
 class WrappedID3D12Device;
 
 class D3D12DebugManager;
@@ -184,6 +187,7 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
+  AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 private:
   void FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
                           rdcarray<D3D12Pipe::RegisterSpace> &spaces,
@@ -392,4 +396,12 @@ private:
   D3D12DebugManager *m_DebugManager = NULL;
 
   IDXGIFactory4 *m_pFactory = NULL;
+
+  AMDCounters *m_pAMDCounters = NULL;
+
+  D3D12AMDDrawCallback *m_pAMDDrawCallback = NULL;
+
+  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs);
+
+  vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 };

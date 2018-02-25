@@ -109,6 +109,8 @@ struct D3D12DrawcallCallback
   virtual bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
   virtual void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
 
+  // called immediately before a command list is closed
+  virtual void PreCloseCommandList(ID3D12GraphicsCommandList *cmd) = 0;
   // if a command list is recorded once and submitted N > 1 times, then the same
   // drawcall will have several EIDs that refer to it. We'll only do the full
   // callbacks above for the first EID, then call this function for the others
