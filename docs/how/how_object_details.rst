@@ -1,9 +1,12 @@
 How do I view details of an object?
 ===================================
 
-.. |goarrow| image:: ../imgs/icons/GoArrow.png
+.. |goarrow| image:: ../imgs/icons/action_hover.png
+.. |link| image:: ../imgs/icons/link.png
 
 The pipeline state viewer allows you to view more details of given resources that are bound to the pipeline. The go arrow |goarrow| is a sign that more details for this resource are available.
+
+Resources that are written in **bold text** with a |link| are clickable links that lead to the :doc:`../window/resource_inspector` with more information about a given resource.
 
 Viewing Shaders
 ---------------
@@ -14,7 +17,7 @@ Each shader stage that is active on the pipeline can be expanded to see both the
 
 	Bound Shader: Box showing the currently used shader.
 
-Much of the information that is available from the shader is only available when debugging information is made available. :doc:`More details are available <how_debug_shader>`.
+Much of the information that is available from the shader is only available when debugging information is made available. :doc:`More details are available separately <how_debug_shader>`.
 
 Each file passed to the compiler for this the shader is shown with simple syntax highlighting, as well as the disassembly generated from the bytecode itself.
 
@@ -24,7 +27,7 @@ When this shader reflection information is available it will be integrated into 
 
 .. |page_white_edit| image:: ../imgs/icons/page_white_edit.png
 
-Note from here you can also :doc:`live-edit a shader <how_edit_shader>` by clicking the edit button |page_white_edit|. If debug info isn't available to provide HLSL, a basic stub function with the input & output signatures but no body will be created.
+Note from here you can also :doc:`live-edit a shader <how_edit_shader>` by clicking the edit button |page_white_edit|.
 
 Viewing Textures
 ----------------
@@ -33,18 +36,16 @@ The :doc:`../window/texture_viewer` is the primary way of viewing details of tex
 
 A texture that is bound to the pipeline as a resource or output the relevant section of the pipeline will display their dimensions and format. In each place the go arrow |goarrow| will indicate that a new locked tab can be opened up in the texture viewer.
 
-In addition to opening a new view of the texture, the timeline bar will also show the usage of this texture - a green triangle will indicate a place where the texture is read from, and a purple triangle indicates a writing operation. These triangles don't necessarily correspond 1:1 with the event - more details are available on the :doc:`../window/timeline_bar` page.
+In addition to opening a new view of the texture, the timeline bar will also show the usage of this texture - a green triangle will indicate a place where the texture is written to, and a green triangle indicates a read operation. More details are available on the :doc:`../window/timeline_bar` page.
 
 Viewing Buffers
 ---------------
 
 More details on this section are available on the :doc:`../window/buffer_viewer` page.
 
-When opened either from the input layouts or from the 'Window' menu, the buffer viewer opens up in the mesh viewer mode. This is a specialisation of the buffer viewer which will show a 3D display of the mesh represented, as well as viewing the mesh buffers at different points in the pipeline.
+When opened either from the vertex input section the pipeline state view, or from the :guilabel:`Window` menu under :guilabel:`Mesh Output`, the buffer viewer opens up in the mesh viewer mode. This is a specialisation of the buffer viewer which will show a 3D display of the mesh represented, as well as viewing the mesh buffers at different points in the pipeline.
 
-In the general case, buffers bound to the pipeline can be opened as a raw buffer viewer.
-
-This will open up a view of the buffer similar to the mesh viewer, but with a completely customisable buffer layout.
+In the general case, buffers bound to the pipeline can be opened as a raw buffer viewer. This will open up a view of the buffer similar to the mesh viewer, but with a completely customisable buffer layout.
 
 By default if the buffer is bound to the pipeline with a pre-existing structure that can be reflected from the shader then this will be the default, otherwise the default layout will be 4 32bit unsigned integers per element.
 

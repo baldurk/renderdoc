@@ -3,8 +3,6 @@ Vulkan Support
 
 This page documents the support of Vulkan in RenderDoc. This gives an overview of what RenderDoc is capable of, and primarily lists information that is relevant. You might also be interested in the :doc:`full list of features <../getting_started/features>`.
 
-The latest information and up-to-date support is always available on the `GitHub wiki <https://github.com/baldurk/renderdoc/wiki/Vulkan>`_.
-
 Vulkan capture
 --------------
 
@@ -42,10 +40,10 @@ RenderDoc has initial support for Vulkan at the launch of version 1.0, but it co
 * Shader debugging is not currently supported.
 * Mesh output of geometry/tessellation shader stages is not available.
 
-Non-windows platforms
----------------------
+Android
+-------
 
-Linux and other pltaform support follows naturally when thinking about Vulkan support. There is full support for capturing and replaying on linux, with the UI based on Qt. It is also possible to capture on another platform, and then replay on windows or windows. For more information on this see :doc:`../how/how_network_capture_replay`.
+Vulkan capture and replay on Android is natively supported. For more information on how to capture with Android see :doc:`../how/how_android_capture`.
 
 See Also
 --------

@@ -62,7 +62,7 @@ In Vulkan you can enable the ``VK_EXT_debug_marker`` extension, which is provide
   nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
   nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
   nameInfo.object = (uint64_t)tex2d; // this cast may vary by platform/compiler
-  nameInfo.pObjectName = "Example Texture";
+  nameInfo.pObjectName = "Off-screen color framebuffer";
   vkDebugMarkerSetObjectNameEXT(device, &nameInfo);
 
 When this texture is bound to the pipeline it will be listed like so:
@@ -71,14 +71,14 @@ When this texture is bound to the pipeline it will be listed like so:
 
 	Named Texture: The example texture bound with name displayed.
 
-In a similar way any other resource can be named and this will be useful throughout the rest of the analysis.
+In a similar way any other resource can be named and this will be useful throughout the rest of the analysis. If a custom name is not provided, a default name will be generated - as seen above with the Render Pass and Framebuffer objects.
 
 Texture list in Texture Viewer
 ------------------------------
 
-.. |page_white_link| image:: ../imgs/icons/page_white_link.png
+.. |page_white_stack| image:: ../imgs/icons/page_white_stack.png
 
-In the texture viewer you can open a filterable list of all textures in the capture. This can be opened with the texture list icon |page_white_link|. When clicked on this will open a sidebar on the texture viewer that lists all textures.
+In the texture viewer you can open a filterable list of all textures in the capture. This can be opened with the texture list icon |page_white_stack|. When clicked on this will open a sidebar on the texture viewer that lists all textures.
 
 .. figure:: ../imgs/Screenshots/TexList.png
 

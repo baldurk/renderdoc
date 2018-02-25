@@ -8,7 +8,7 @@ UI Elements
 
 The API Inspector is divided into two sections - the top section is the most common, detailing all of the API calls leading up to and including the current drawcall. The special case for this is the end of the frame where there may not be a final drawcall but the API Inspector lists the API calls that preceded the final flip of the backbuffer that marks the end of RenderDoc's captured frame.
 
-The bottom section is less common but shows the callstack from user code into the API entry point, if such a callstack is available and the symbols are resolved. For more information check out the page on :doc:`../how/how_capture_callstack`.
+The bottom section is less commonly used but shows the callstack from user code into the API entry point, if such a callstack is available and the symbols are resolved. For more information check out the page on :doc:`../how/how_capture_callstack`.
 
 API Calls
 ---------

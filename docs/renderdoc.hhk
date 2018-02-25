@@ -21,11 +21,11 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Capture all Processes">
-    <param name="Local" value="window/capture_log_attach.html#global-process-hook">
+    <param name="Local" value="window/capture_attach.html#global-process-hook">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Capture Options">
-    <param name="Local" value="window/capture_log_attach.html#capture-options">
+    <param name="Local" value="window/capture_attach.html#capture-options">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Code Integration">
@@ -45,7 +45,7 @@
 				<param name="Local" value="in_application_api.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Manually triggered log capture">
+				<param name="Keyword" value="Manually triggered frame capture">
 				<param name="Local" value="in_application_api.html#_CPPv214TriggerCapturev">
 		</OBJECT>
 	</UL>
@@ -87,7 +87,7 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Global Hook">
-    <param name="Local" value="window/capture_log_attach.html#global-process-hook">
+    <param name="Local" value="window/capture_attach.html#global-process-hook">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Hot-reload Shaders">
@@ -104,7 +104,7 @@
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Capture a Log">
-				<param name="Local" value="how/how_capture_log.html">
+				<param name="Local" value="how/how_capture_frame.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Debug a Shader">
@@ -129,10 +129,6 @@
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Manually trigger a capture in code">
 				<param name="Local" value="in_application_api.html#_CPPv214TriggerCapturev">
-		</OBJECT>
-		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Set up file associations">
-				<param name="Local" value="window/options_window.html#general-options">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Show a specific texture">
@@ -208,8 +204,8 @@
     <param name="Local" value="behind_scenes/opengl_support.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
-    <param name="Keyword" value="Options">
-    <param name="Local" value="window/options_window.html">
+    <param name="Keyword" value="Settings">
+    <param name="Local" value="window/settings_window.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Pixel History">
@@ -225,7 +221,7 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Preferences">
-    <param name="Local" value="window/options_window.html">
+    <param name="Local" value="window/settings_window.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Python Scripting">
@@ -257,7 +253,7 @@
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Settings">
-    <param name="Local" value="window/options_window.html">
+    <param name="Local" value="window/settings_window.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Shader Debugging">
@@ -339,8 +335,8 @@
 				<param name="Local" value="window/capture_connection.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Capture Log & Attach">
-				<param name="Local" value="window/capture_log_attach.html">
+				<param name="Keyword" value="Capturing & Attaching">
+				<param name="Local" value="window/capture_attach.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Debug Messages">
@@ -355,8 +351,8 @@
 				<param name="Local" value="window/index.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Options Window">
-				<param name="Local" value="window/options_window.html">
+				<param name="Keyword" value="Settings Window">
+				<param name="Local" value="window/settings_window.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Pipeline State">

@@ -8,23 +8,60 @@ Annotating your frame
 
 The Event Browser becomes most useful when the application has user-defined annotations of sections and subsections of the frames, to allow for a more logical and ordered browsing of the frame.
 
-Doing this is API and platform specific. Example code for D3D11 is included below, using the ``D3DPERF`` library that is exported by ``d3d9.dll``, which can still be used in D3D11. (The newer ``ID3DUserDefinedAnnotation`` API is also supported).
+Doing this is API and platform specific. Example code for D3D11 is included below, using the ``D3DPERF`` library that is exported by ``d3d9.dll``, which can still be used in D3D11:
 
 .. highlight:: c++
 .. code:: c++
 
-	D3DPERF_BeginEvent(0xffffffff, L"Start of example");
+  D3DPERF_BeginEvent(0xffffffff, L"Start of example");
 
-	D3DPERF_BeginEvent(0xff00ff00, L"Sub section");
-	// events inside the subsection
-	D3DPERF_EndEvent();
+  D3DPERF_BeginEvent(0xff00ff00, L"Sub section");
+  // events inside the subsection
+  D3DPERF_EndEvent();
 
-	// events outside the subsection
-	D3DPERF_EndEvent();
+  // events outside the subsection
+  D3DPERF_EndEvent();
+
+  // the newer ID3DUserDefinedAnnotation API is also supported
+  ID3DUserDefinedAnnotation *annot;
+  immediateContext->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void **)&annot);
+
+  annot->BeginEvent(L"Sub section 2")
+
+  annot->EndEvent();
 
 This will generate a section of the frame with a subsection that includes some events, and then some further events that are siblings of the subsection.
 
-OpenGL can make use of the ``KHR_debug`` extension, and Vulkan can use the ``VK_EXT_debug_marker`` extension.
+OpenGL can make use of the ``KHR_debug`` extension:
+
+.. highlight:: c++
+.. code:: c++
+
+  // omitted code to initialise the extension
+
+  glPushDebugGroupKHR(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Begin Section");
+
+  // contents of section here
+
+  glPopDebugGroupKHR();
+
+Vulkan can use the ``VK_EXT_debug_marker`` extension:
+
+.. highlight:: c++
+.. code:: c++
+
+  // omitted code to initialise the extension
+
+  VkCommandBuffer cmd = ...;
+
+  VkDebugMarkerMarkerInfoEXT markerInfo = {};
+  markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+  markerInfo.pMarkerName = "Begin Section";
+  vkCmdDebugMarkerBeginEXT(cmd, &markerInfo);
+
+  // contents of section here
+
+  vkCmdDebugMarkerEndEXT(cmd);
 
 Selecting available columns
 ---------------------------
@@ -33,10 +70,7 @@ By default, the columns in the event browser are EID and Name. Name cannot be re
 
 .. |timeline_marker| image:: ../imgs/icons/timeline_marker.png
 
-To select which columns should be visible, right click the header or click the |timeline_marker| select columns button.
-
-To rearrange the columns simply click and drag on the header.
-
+To select which columns should be visible, right click the header or click the |timeline_marker| select columns button. To rearrange the columns simply click and drag on the header.
 
 .. note::
 
@@ -51,13 +85,14 @@ To time the GPU duration of each drawcall, click the timer button |time|.
 
 This will automatically run a process to get the time of each drawcall and display it in the duration column, which will be added if necessary.
 
+You can configure which time unit is used for the duration column on the fly in the :doc:`settings_window`.
 
-You can configure which time unit is used for the duration column on the fly in the :doc:`options_window`.
+To examine more GPU counters than just plain duration, see :doc:`performance_counter_viewer`.
 
 Browsing the frame
 ------------------
 
-The event browser is primarily intended as a tool to browse through the frame. Events are listed as entries in the browser and the hierarchical labels mentioned above become tree nodes.
+The event browser is the primary way to browse through the frame. Events are listed as entries in the browser and the hierarchical labels mentioned above become tree nodes.
 
 .. |flag_green| image:: ../imgs/icons/flag_green.png
 
@@ -84,13 +119,15 @@ Bookmarks
 
 .. |asterisk_orange| image:: ../imgs/icons/asterisk_orange.png
 
-The |asterisk_orange| bookmark button will allow you to bookmark an event, the shortcut key is :kbd:`CTRL-B`.
+The |asterisk_orange| bookmark button will allow you to bookmark an event, the shortcut key is :kbd:`Ctrl-B`.
 
 .. figure:: ../imgs/Screenshots/BookmarksBar.png
 
 	Bookmarks bar: The bookmarks bar with several EIDs bookmarks.
 
-A list of bookmarked events will show up on a toolbar at the top of the event browser, they and the shortcut keys :kbd:`CTRL-1` to :kbd:`CTRL-0` will jump to the respective bookmarked EID. These shortcuts will work anywhere in the application.
+A list of bookmarked events will show up on a toolbar at the top of the event browser, they and the shortcut keys :kbd:`Ctrl-1` to :kbd:`Ctrl-0` will jump to the respective bookmarked EID. These shortcuts will work anywhere in the application.
+
+For more information see :doc:`../how/how_annotate_capture`.
 
 Searching and Jumping
 ---------------------
@@ -109,11 +146,11 @@ Matching events will be highlighted with a find icon |find|, and pressing enter 
 
 The find toolbar isn't dismissed until you press escape in the text box, or click the close button |cross|.
 
-.. |stepprev| image:: ../imgs/icons/stepprev.png
-.. |stepnext| image:: ../imgs/icons/stepnext.png
+.. |arrow_left| image:: ../imgs/icons/arrow_left.png
+.. |arrow_right| image:: ../imgs/icons/arrow_right.png
 
 
-You can also jump up and down between find results with the previous |stepprev| and next |stepnext| buttons.
+You can also jump up and down between find results with the previous |arrow_left| and next |arrow_right| buttons.
 
 .. figure:: ../imgs/Screenshots/FindResults.png
 

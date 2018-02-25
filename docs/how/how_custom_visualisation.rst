@@ -6,15 +6,13 @@ This page details how to set up a custom shader for visualisation. This can be u
 Introduction
 ------------
 
-The basic process of setting up the custom shader involves writing a ``.hlsl`` or ``.glsl`` file that will be compiled and used by RenderDoc. Note that the type used matches the API used, and RenderDoc will automatically list only the hlsl shaders you have if you load a log with D3D11, and vice-versa for OpenGL.
+The basic process of setting up the custom shader involves writing a ``.hlsl`` or ``.glsl`` file that will be compiled and used by RenderDoc. Note that the type used matches the API used, and RenderDoc will automatically list only the hlsl shaders you have if you load a log with D3D11 or D3D12, and glsl for OpenGL or Vulkan.
 
 There are several special global variables that can be specified and will be filled in with values by RenderDoc.
 
 Your pixel shader defines an operation that transforms the raw value from the input texture into a value that will then be displayed by the texture viewer. The usual texture viewer controls for range adaption and channels will still be available on the resulting texture.
 
-Multisampled textures will be resolved before being passed to your function. Depth and stencil textures will be bound separately and passed as multisampled resources.
-
-To set up your shader, it's recommended that you use the UI defined in the documentation for the :doc:`../window/texture_viewer`, but you can manually create a ``.hlsl`` or ``.glsl`` file in ``%APPDATA%\RenderDoc\``. The file must contain an entry point ``main()`` that returns float4, and uses any of the below inputs. These shaders are loaded when RenderDoc loads a logfile, and RenderDoc watches for any changes to the files (either externally or in the shader editor in RenderDoc) and automatically reloads them.
+To set up your shader, it's recommended that you use the UI defined in the documentation for the :doc:`../window/texture_viewer`, but you can manually create a ``.hlsl`` or ``.glsl`` file in the application storage directory ( ``%APPDATA%/qrenderdoc/`` on windows or ``~/.local/share/qrenderdoc`` elsewhere). The file must contain an entry point ``main()`` that returns ``float4``, and uses any of the below inputs. These shaders are loaded when RenderDoc loads a capture, and RenderDoc watches for any changes to the files (either externally or in the shader editor in RenderDoc) and automatically reloads them.
 
 .. note::
 
@@ -32,7 +30,7 @@ There are several pre-defined inputs that can either be taken as parameters to t
 The shader editor when using the UI can be used to insert these snippets for you, with the right type and spelling. For GLSL these snippets are inserted at the top of the file just after any ``#version`` statement.
 
 UV co-ordinates
-```````````````
+~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -62,7 +60,7 @@ You can also use the auto-generated system co-ordinates - ``SV_Position`` or ``g
 	You must bind these parameters like this in this order to ensure the linkage with the vertex shader matches.
 
 Constant Parameters
-```````````````````
+~~~~~~~~~~~~~~~~~~~
 
 There are several constant parameters available, each detailed below with the values they contain. Where possible these are bound by name as globals for convenience, but in Vulkan all variables must be contained within a single uniform buffer. The parameters correspond with the GLSL documentation but are contained within a uniform buffer at binding 0, with a structure given as so:
 
@@ -79,10 +77,10 @@ There are several constant parameters available, each detailed below with the va
 		int SelectedSample;
 	} RENDERDOC;
 
-In this way you can access the properties as ``RENDERDOC.TexDim`` insetad of ``RENDERDOC_TexDim``.
+In this way you can access the properties as ``RENDERDOC.TexDim`` instead of ``RENDERDOC_TexDim``.
 
 Texture dimensions
-``````````````````
+~~~~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -99,7 +97,7 @@ This variable will be filled out with the following values:
 * ``.w``  Number of mip levels
 
 Selected Mip level
-``````````````````
+~~~~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -111,7 +109,7 @@ Selected Mip level
 This variable will be filled out with the selected mip level in the UI.
 
 Selected Slice/Face
-```````````````````
+~~~~~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -123,7 +121,7 @@ Selected Slice/Face
 This variable will be filled out with the selected texture array slice (or cubemap face) in the UI.
 
 Selected Multisample sample
-```````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -137,7 +135,7 @@ This variable will be filled out with the selected multisample sample index as c
 So for example in a 4x MSAA texture, the valid values are ``0``, ``1``, ``2``, ``3`` to select a sample, or ``-4`` for 'average value'.
 
 Current texture type
-````````````````````
+~~~~~~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -188,7 +186,7 @@ Vulkan / GLSL
 #. 2D texture (Multisampled)
 
 Samplers (D3D11/D3D12 only)
-```````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. highlight:: c++
 .. code:: c++
@@ -199,7 +197,7 @@ Samplers (D3D11/D3D12 only)
 These samplers are provided to allow you to sample from the resource as opposed to doing straight loads. They are bound by slot and not by variable name - so this means you can name them as you wish but you must specify the register binding explicitly.
 
 Resources
-`````````
+~~~~~~~~~
 
 D3D11 or D3D12 / HLSL
 ^^^^^^^^^^^^^^^^^^^^^

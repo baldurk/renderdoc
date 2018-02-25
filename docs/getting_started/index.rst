@@ -4,8 +4,8 @@ Getting started
 .. toctree::
     :maxdepth: 1
 
+    quick_start
     faq
     gotchas_known_issues
-    quick_start
     features
     tips_tricks

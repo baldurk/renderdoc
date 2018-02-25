@@ -1,14 +1,25 @@
 FAQ
 ===
 
-Here is a list of commonly asked questions about RenderDoc. Feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20question>`__ if you have another question that isn't covered here or in this document.
+Here is a list of commonly asked questions about RenderDoc. Feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20question>`_ if you have another question that isn't covered here or in this document.
+
+What are the details of RenderDoc's Anonymous Analytics?
+--------------------------------------------------------
+
+RenderDoc has some very light anonymous analytics to allow analysis of which features and platforms are used more, to prioritise and guide future development.
+
+The complete details of the analytics can be found in the page about :doc:`../behind_scenes/analytics`, but the brief outline is that RenderDoc records data **only in the replay program** and does not record any data that is specific to any captured programs. The data recorded is primarily boolean flags indicating whether or not a given feature, API, or platform is used or not. You can see the precise list of data gathered on your current RenderDoc build in the settings menu under the :guilabel:`Anonymous Analytics` section.
+
+The analytics data is summarised and transmitted securely and anonymously to RenderDoc's server. The aggeregated statistics are available for anyone to see at `the analytics homepage <https://renderdoc.org/analytics>`_.
+
+Enabling the analytics is greatly appreciated, if you have any concerns about the data gathered you can choose to manually verify each report before it's submitted.
 
 How do I do some particular task?
 ---------------------------------
 
-Many specific tasks or functions are detailed in the "How Do I... ?" sections. These sections each take a feature or element of a workflow and explain how it fits into the program as a whole as well as any details of how it works.
+Many specific tasks or functions are detailed in the :doc:`"How Do I... ?" <../how/index>` sections. These sections each take a feature or element of a workflow and explain how it fits into the program as a whole as well as any details of how it works.
 
-If the task you have in mind isn't listed there you might find something similar, or you might find a related feature which can be used to do what you want. If the feature you want doesn't seem to exist at all you might want to check the :doc:`../behind_scenes/planned_features` to see if it's coming soon - if it's not on that list please feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20request>`__ and request it! It has often been that simple features are very quick to implement and the prioritisation and scheduling of features is fairly fluid at this stage in development.
+If the task you have in mind isn't listed there you might find something similar, or you might find a related feature which can be used to do what you want. If the feature you want doesn't seem to exist at all you might want to check the :doc:`../behind_scenes/planned_features` to see if it's coming soon - if it's not on that list please feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20request>`__ and request it! It has often been that simple features are very quick to implement and the prioritisation and scheduling of features is fairly fluid depending on user needs.
 
 Why did you make RenderDoc?
 ---------------------------
@@ -29,47 +40,49 @@ Who can I contact about bugs, feature requests, other queries?
 
 At the moment there's just me at the wheel - feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20feedback>`__ if you have anything you'd like to ask or suggest. I use a `GitHub repository <https://github.com/baldurk/renderdoc>`_ for tracking bugs and feature requests so that's the best place to file an issue.
 
-I work on RenderDoc in my spare time but I am happy to help with anything and work with you if you have any issues that need attention.
+I work on RenderDoc full time contracting for Valve Software, and I am happy to help with anything and work with you if you have any issues that need attention.
+
+In particular I'm used to working with people who have strong NDA protection over their projects - as long as you are able to spend time to diagnose the issue by running builds and debugging by suggestion, it's not a requirement to send me a repro case - which may be impossible.
 
 How can I associate RenderDoc's file extensions with the program?
 -----------------------------------------------------------------
 
-If you installed RenderDoc via the installer package rather than the zip folder, the option is available there to associate RenderDoc's file extensions with the program. Otherwise you can set them up from the :doc:`../window/options_window`.
+On Windows if you installed RenderDoc via the msi installer, the option is available there to associate RenderDoc's file extensions with the program.
 
-.. note::
+On linux the binary tarball comes with files to place under ``/usr/share`` to associate RenderDoc with files. This obviously also requires ``qrenderdoc`` to be available in your ``PATH``.
 
-  RenderDoc will elevate itself to set up these file associations, but otherwise will not hold on to administrator permissions.
+RenderDoc can be associated with ``.rdc`` and ``.cap`` files. The ``.rdc`` files are the frame capture containers generated from your application. ``.cap`` files describe the set up of a particular capture, and can be used to quickly re-launch a capture preset.
 
-RenderDoc associates .rdc and .cap with itself when desired. The .rdc files are the logfiles output when you capture inside an application. .cap files describe the set up of a particular capture, and can be used to quickly re-launch a capture preset.
-
-If .rdc files are associated with RenderDoc a thumbnail handler is set up, so that in explorer you'll get thumbnail previews for your captures.
-
-.. note::
-
-    Note that if you move the directory that RenderDoc is you will need to re-configure the file associations as the registry entries contain absolute paths.
+There is also a thumbnail handler available for ``.rdc`` so that while browsing through files you will get a thumbnail preview of the capture where available.
 
 What APIs does RenderDoc support?
 ---------------------------------
 
-Currently RenderDoc supports Vulkan, D3D11 (including D3D11.x), D3D12, and core profile OpenGL. Note OpenGL is a complex sprawling API, so see the details of what is supported in :doc:`its own page <../behind_scenes/opengl_support>`. Vulkan support has :doc:`a few notes <../behind_scenes/vulkan_support>`, as does :doc:`D3D12 <../behind_scenes/d3d12_support>`.
+Currently RenderDoc supports Vulkan 1.0, D3D11 (up to D3D11.3), D3D12, OpenGL 3.2+, and OpenGL ES 2.0 - 3.2. Note that OpenGL (and similarly OpenGL ES) is a complex & sprawling API, so see the details of what is supported in :doc:`its own page <../behind_scenes/opengl_support>`. In particular on desktop only modern GL is supported - legacy GL that is only available via the compatibility profile in OpenGL 3.2 is not supported.
 
-Future API support is at this point not clear, GLES, Metal and perhaps D3D9 all being possible. Higher priority is better operating system/platform support which is currently underway, as well as feature improvements for existing platforms and APIs.
+Vulkan support has :doc:`a few notes <../behind_scenes/vulkan_support>`, as does :doc:`D3D12 <../behind_scenes/d3d12_support>`.
+
+Future API support is at this point not clear; Metal, WebGL, and perhaps D3D9/D3D10 all being possible. Support for new APIs will be balanced against all other work such as features for existing APIs, bugfixes. So if you care strongly about support for a new API make sure to `file an issue on github <https://github.com/baldurk/renderdoc/issues>`_ or comment on an existing issue to register your interest.
 
 How can I backup or restore my settings?
 ----------------------------------------
 
-Everything RenderDoc relies upon is stored in ``%APPDATA%\RenderDoc``. You can back up and restore this directory at will as nothing stored in there is machine specific aside from things like recent file lists.
+RenderDoc stores data in two folders:
 
-Deleting this folder will also reset RenderDoc to the defaults - if you uninstall RenderDoc this folder will not be deleted.
+The UI stores data in a ``qrenderdoc`` folder underneath your OS's user settings folder. On windows this is ``%APPDATA%`` and on linux this will be somewhere in your home directory, perhaps in ``~/.local/share``. Nothing in this data is machine specific aside from paths, so you can back up and restore this directory at will.
 
-RenderDoc doesn't install any registry keys aside from those to set up file associations.
+Deleting this folder will also reset QRenderDoc to the defaults - if you uninstall RenderDoc this folder will not be deleted.
+
+The core code may save cached data in a ``renderdoc`` folder - either ``%APPDATA%/renderdoc`` or ``~/.renderdoc/`` but this doesn't contain settings, so is not important to back up.
+
+RenderDoc doesn't install any registry keys on windows aside from those required to set up file associations.
 
 Which network ports does RenderDoc use?
 ---------------------------------------
 
-RenderDoc uses TCP and UDP ports ``38920``-``38927`` consecutively for remote access and control (ie. capturing remotely) for each new program that is opened on a machine. Note that even if you initiate a capture locally these ports are still opened for listening. These are the ports that are probed on a remote host to see if a connection exists.
+RenderDoc uses TCP and UDP ports ``38920-38927`` consecutively for remote access and control (ie. capturing remotely) for each new program that is opened on a machine. Note that even if you initiate a capture locally these ports are still opened for listening. These are the ports that are probed on a remote host to see if a connection exists.
 
-RenderDoc also uses TCP and UDP ports ``39920`` for remote replay connections, for when a remote host is used to replay and analyse the log.
+RenderDoc also uses TCP and UDP ports ``39920`` for remote replay connections, for when a remote host is used to replay and analyse the capture.
 
 Where can I get the source to RenderDoc?
 ----------------------------------------
@@ -83,32 +96,32 @@ Currently RenderDoc expects Feature Level 11.0 hardware and above for D3D11. Low
 
 For OpenGL RenderDoc will only capture core profile applications, in general, and expects at minimum to be able to create a core 3.2 context which includes a few key extensions. For more details see :doc:`../behind_scenes/opengl_support`.
 
-With Vulkan, RenderDoc should fully support any Vulkan application. However replaying a Vulkan log may not work if the hardware used to capture it is different - portability of captures between hardware is not guaranteed.
+With Vulkan, RenderDoc should fully support any Vulkan application. However replaying a Vulkan capture may not work if the hardware used to capture it is different - portability of captures between hardware is not guaranteed.
 
 Why does my capture say "Failed to capture frame: Uncapped command list"?
 -------------------------------------------------------------------------
 
-At the moment on some APIs like D3D9, RenderDoc only begins capturing deferred command lists at the point that you trigger a capture. If you replay command lists that were recorded before the captured frame, RenderDoc will fail to capture the frame and try again next frame (and eventually give up after a few retries).
+On D3D11, RenderDoc only begins capturing deferred command lists at the point that you trigger a capture. If you replay command lists that were recorded before the captured frame, RenderDoc will fail to capture the frame and try again next frame (and eventually give up after a few retries).
 
-To change this behaviour, enable the ``Capture all cmd lists`` option - see :doc:`../window/capture_log_attach` for more details. This will capture all command lists recorded from the start of the program, ready for when you decide to capture a frame. This currently has a fair amount of overhead.
+To change this behaviour, enable the ``Capture all cmd lists`` option - see :doc:`../window/capture_attach` for more details. This will capture all command lists recorded from the start of the program, ready for when you decide to capture a frame. This currently has a fair amount of overhead.
 
 Why does my capture say "Failed to capture frame: Uncapped Map()/Unmap()"?
 --------------------------------------------------------------------------
 
 If you start a ``Map()`` before a ``Present()`` call then call ``Unmap()`` after the ``Present()`` during the frame RenderDoc wants to capture, RenderDoc won't have intercepted this call and so will fail to capture this frame and try again next time. This usually only invalidates the first frame you try to capture, but if you ``Map()`` many resources, and ``Unmap()`` them one by one in subsequent frames, you could hit this failed capture scenario many times in a row.
 
-Currently the only solution to this is to change the pattern of ``Map()``/``Unmap()`` such that they are contained within a frame.
+Currently the only solution to this is to change the pattern of ``Map()/Unmap()`` such that they are contained within a frame.
 
 .. _gamma-linear-display:
 
 Gamma display of linear data, or "Why doesn't my texture look right?"
 ---------------------------------------------------------------------
 
-Gamma/sRGB correctness is a rather painful subject. If we could all just agree to store everything in 32bit float data we could probably do away with it. Until that time we have to worry about displaying textures while making sure to respect sRGB.
+Gamma/sRGB correctness is a rather painful subject. If we could all just agree to store everything in 32bit float data we could probably do away with it. Until that time we have to worry about displaying textures while making sure to respect the color space it's stored in.
 
 For texture formats that explicitly specify that they contain sRGB data this isn't a problem and everything works smoothly. Note that RenderDoc shows picked texel values in linear float format, so if you pick a pixel that is 0.5, 0.5, 0.5, the actual bytes might be stored as say 186, 186, 186.
 
-For other textures it's more difficult - for starters they may actually contain sRGB data but the correction is handled by shaders so there's no markup. Or indeed the app may not be gamma-correct so the data is sRGB but uncorrected. If we display these textures in a technically correct way, such that the data is not over or under gamma-corrected, the result often looks 'wrong' or unintuitively different from expected.
+For other textures it's more difficult - for starters they may actually contain sRGB data but the correction is handled by shaders so there's no markup. Or indeed the application may not be gamma-correct so the data is sRGB but uncorrected. If we display these textures in a technically correct way, such that the data is not over or under gamma-corrected, the result often looks 'wrong' or unintuitively different from expected.
 
 Nothing is actually wrong here except perhaps that when visualising linear data it is often more convenient to "overcorrect" such that the data is perceptually linear. A good example to use is a normal map: The classic deep blue of (127,127,255) flat normals is technically incorrect as everyone is used to visualising these textures in programs that display the data as if it were sRGB (which is the convention for normal images that do not represent vectors).
 
@@ -121,13 +134,13 @@ For various tedious reasons RenderDoc's replay isn't (and in most cases can't be
 
 During capture the main impact of having RenderDoc enabled is that timings will change, and more memory (sometimes much more) will be allocated. There are also slight differences to the interception of Map() calls as they go through an intermediate buffer to be captured. Generally the only problem this can expose is that when capturing a frame, if something is timing dependent RenderDoc causes one or two very slow frames, and can cause the bug to disappear.
 
-The two primary causes of differences between the captured program and the replayed log (for better or for worse) are:
+The two primary causes of differences between the captured program and the replayed capture (for better or for worse) are:
 
 #. ``Map()`` s that use DISCARD are filled with a marker value, so any values that aren't written to the buffer will be different - in application you can get lucky and they can be previous values that were uploaded, but in replay they will be ``0xCCCCCCCC``.
 
-#. RenderDoc as an optimisation will not save or restore the contents of render targets at the start of the frame if it believes they will be entirely overwritten in the frame. This detection is typically accurate but means targets are cleared to black or full depth rather than accumulating, even if that accumulation is not intentional it may be the cause of the bug.
+#. RenderDoc will not save or restore the contents of render targets at the start of the frame if it believes they will be entirely overwritten in the frame. This detection is typically accurate but means targets are cleared to black or full depth rather than accumulating, even if that accumulation is not intentional it may be the cause of the bug.
 
-  This behaviour can be overridden by enabling 'Save all initials' in the :doc:`capture options <../how/how_capture_log>`.
+  This behaviour can be overridden by enabling 'Save all initials' in the :doc:`capture options <../how/how_capture_frame>`.
 
 I can't launch my program for capture directly. Can I capture it anyway?
 ------------------------------------------------------------------------
@@ -143,7 +156,7 @@ I'd like to use RenderDoc's texture viewer for dds files, or other images. Can I
 
 Yes you can!
 
-Simply drag in an image file, or open it via file → open. RenderDoc will open the image if it is supported, and display it as if there were a log open with only one texture.
+Simply drag in an image file, or open it via file → open. RenderDoc will open the image if it is supported, and display it as if there were a capture open with only one texture.
 
 RenderDoc supports these formats: ``.dds``, ``.hdr``, ``.exr``, ``.bmp``, ``.jpg``, ``.png``, ``.tga``, ``.gif``, ``.psd``. For ``.dds`` files RenderDoc supports all DXGI formats, compressed formats, arrays and mips - all of which will display as expected.
 
@@ -152,20 +165,20 @@ Any modifications to the image while open in RenderDoc will be refreshed in the 
 I think I might be overwriting Map() boundaries, can I check this?
 ------------------------------------------------------------------
 
-Yes RenderDoc can be configured to insert a boundary marker at the end of the memory returned from a ``Map()`` call. If this marker gets overwritten during a captured frame then a message box will pop up alerting you, and clicking Yes will break into the program in the debugger so that you can investigate the callstack.
+RenderDoc can be configured to insert a boundary marker at the end of the memory returned from a ``Map()`` call. If this marker gets overwritten during a captured frame then a message box will pop up alerting you, and clicking Yes will break into the program in the debugger so that you can investigate the callstack.
 
-To enable this behaviour, select the ``Verify Map() Writes`` option when :doc:`capturing <../window/capture_log_attach>`.
+To enable this behaviour, select the ``Verify Map() Writes`` option when :doc:`capturing <../window/capture_attach>`.
 
 Note this is only supported on D3D11 and OpenGL currently, since Vulkan and D3D12 are lower overhead and do not have the infrastructure to intercept map writes.
 
 RenderDoc is complaining about my OpenGL app in the overlay - what gives?
 -------------------------------------------------------------------------
 
-The first thing to remember is that **RenderDoc only supports Core 3.2 and above OpenGL**. If your app is using features from before 3.2 it almost certainly won't work as most functionality is not supported. A couple of things like not creating a VAO (which are required in core profile) and luminance textures (which don't exist in core profile) are allowed, but none of the fixed function pipeline will work, etc etc.
+The first thing to remember is that **RenderDoc only supports Core 3.2 and above OpenGL**. If your app is using features from before 3.2 it almost certainly won't work as most functionality is not supported. A couple of things like not creating a VAO (which is required in core profile) and using luminance textures (which don't exist in core profile) are allowed, but none of the fixed function pipeline will work, etc etc.
 
 If your app is not using the ``CreateContextAttribs`` API then RenderDoc will completely refuse to capture, and will display overlay text to this effect using the simplest fixed-function pipeline code, so it will run on any OpenGL app, even on a 1.4 context or similar.
 
-If your app did use the ``CreateContextAttribs`` API, RenderDoc will allow you to capture, but compatibility profiles will have a warning displayed in the overlay - this is because you could easily use old functionality as it is all still available in the context.
+If your app did use the ``CreateContextAttribs`` API, RenderDoc will allow you to capture, but compatibility profiles will have a warning displayed in the overlay - this is because you could easily use old functionality which is still available in the context.
 
 Can I tell via the graphics APIs if RenderDoc is present at runtime?
 --------------------------------------------------------------------
@@ -189,8 +202,6 @@ Querying an ``ID3D11Device`` for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}``
         #define GL_DEBUG_TOOL_NAME_EXT            0x678A
         #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
 
-A similar extension for Vulkan will be proposed after release.
-
 .. _unstripped-shader-info:
 
 My shaders have 'cbuffer0' and unnamed variables, how do I get proper debug info?
@@ -202,17 +213,17 @@ This optional information is generated by the compiler, but is not required for 
 
 The simplest solution is just to avoid stripping the data when using RenderDoc, but that isn't always possible. Instead RenderDoc allows you to use API-specific methods to specify where the unstripped data can be found. This means you can save the unstripped shader to a debug location and then either store this location with the shader, or specify it at runtime. On replay RenderDoc will expect the data to be available at that location and it will load it up instead.
 
-The path you specify (with the stripped shader, or at runtime) can be either absolute or relative. If it's relative, you must configure a shader search path in the :doc:`../window/options_window`.
+The path you specify (with the stripped shader, or at runtime) can be either absolute or relative. If it's relative, you must configure a shader search path in the :doc:`../window/settings_window`.
 
 The stripped shader file stored on disk can also be compressed with LZ4 to save space as often most of the size is made up for shader source text which compresses well. To do this, simply compress the contents of the file and prepend the pathname (either absolute or relative, specified in the shader blob or at runtime) with ``lz4#``.
 
 For example code using this method, check out :doc:`tips_tricks`.
 
-I want to debug a process that my program launches itself, how can I inject RenderDoc?
---------------------------------------------------------------------------------------
+I want to debug a child process that my program launches, how can I inject RenderDoc?
+-------------------------------------------------------------------------------------
 
 When launching a process in RenderDoc, by default only this process is debugged and any children it launches are not affected. This better ensures compatibility for the most common case where you are able to start the process to be debugged directly.
 
-In the case where your program launches sub-processes that you would like to debug, you can enable the ``Hook into Children`` capture option, which causes RenderDoc to recursively inject itself into all children (and grand-children, and so on). When you open a capture connection, the child processes will be displayed and you can open a connection to each child to locate the process you wish to debug.
+In the case where your program launches sub-processes that you would like to debug, you can enable the ``Capture Child Processes`` capture option, which causes RenderDoc to recursively inject itself into all children (and grand-children, and so on). When you open a capture connection, the child processes will be displayed and you can open a connection to each child to locate the process you wish to debug.
 
-There are :ref:`more details available <child-process-hook>` in the documentation for the :doc:`../window/capture_log_attach` window.
+There are :ref:`more details available <child-process-hook>` in the documentation for the :doc:`../window/capture_attach` window.

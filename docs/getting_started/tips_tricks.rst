@@ -1,54 +1,26 @@
 Tips & Tricks
 =============
 
-.. |go_arrow| image:: ../imgs/icons/GoArrow.png
+.. |go_arrow| image:: ../imgs/icons/action_hover.png
 .. |wand| image:: ../imgs/icons/wand.png
 
 This page is a random hodge-podge of different tips and tricks that might not be obvious and aren't practical to make clear in the UI - e.g. keyboard shortcuts, edge cases and suchlike.
 
-#. File associations for ``.rdc`` and ``.cap`` files can be set up in the installer or in the :doc:`../window/options_window`. These allow automatic opening of capture logs or capture settings files directly from files.
-
-   .. note::
-
-       These associations must be re-created if RenderDoc is moved to another folder.
-
-#. RenderDoc can be used as an image viewer! If you drag in or use file → open, you can open images in a variety of formats - ``.dds``, ``.hdr``, ``.exr``, ``.bmp``, ``.jpg``, ``.png``, ``.tga``, ``.gif``, ``.psd``. The image will load up in RenderDoc's texture viewer and you can use the normal controls to view it as if it were a texture in a log. Note that ``.dds`` files support all DXGI formats, compressed formats, arrays and mips - all of which will display as expected. If the file is modified, RenderDoc will reload it and display it. Note that changing the image's dimensions or format will likely cause problems.
+#. RenderDoc can be used as an image viewer! If you drag in or use file → open, you can open images in a variety of formats - ``.dds``, ``.hdr``, ``.exr``, ``.bmp``, ``.jpg``, ``.png``, ``.tga``, ``.gif``, ``.psd``. The image will load up in RenderDoc's texture viewer and you can use the normal controls to view it as if it were the only texture in a capture. Note that ``.dds`` files support all DXGI formats, compressed formats, arrays and mips - all of which will display as expected. If the file is modified, RenderDoc will reload it and display it. Note that changing the image's dimensions or format will likely cause problems.
 #. If a ``.cap`` file is saved with the "auto-start" option enabled, launching RenderDoc by opening this file will cause RenderDoc to automatically trigger a capture with the given options. This is useful for saving a common path & set of options that you regularly re-run.
 
-   For more information check out the :doc:`../window/capture_log_attach` page.
+   For more information check out the :doc:`../window/capture_attach` page.
 
-#. If you'd like to see the geometry data with each component separated out and formatted, either open "Mesh Output" under the window menu, or click the Go Arrow |go_arrow| on the input layouts in the :doc:`../window/pipeline_state`.
+#. If you'd like to see the geometry data visualised in 3D and with each component separated out and formatted, either open "Mesh Output" under the window menu, or click the Go Arrow |go_arrow| on the vertex input attributes in the :doc:`../window/pipeline_state`.
 #. Right clicking on one of the channel buttons in the texture viewer (R, G, B, A) will either select only that channel, or if it's already the only one selected it will select all of the others. This is useful e.g. to toggle between viewing RGB and alpha, or for looking at individual channels in a packed texture or render target.
 #. Similarly, right-clicking on the 'auto-fit' button |wand| will auto-fit whenever the texture or event changes, so that the visible range is maintained as you move through the frame. This can be useful if jumping between places where the visible range is very different.
    Note though that by default the range will be remembered or each texture, so once you have fitted the range once for each texture you should be able to flip back and forth more easily.
 #. You can double click on a thumbnail in the texture viewer to open a :doc:`locked texture <../how/how_view_texture>` tab
 #. You can close tabs by middle clicking on them.
-#. You can trigger a capture from code. ``renderdoc.dll`` exports an :doc:`../in_application_api` for this purpose, defined in ``renderdoc_app.h`` in the distributions:
-
-   .. highlight:: c++
-   .. code:: c++
-
-       #include "renderdoc_app.h"
-
-       RENDERDOC_API_1_0_1 *rdoc_api = NULL;
-
-       // At init
-       if(HMODULE mod = GetModuleHandleA("renderdoc.dll"))
-       {
-           pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-           int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_1, (void **)&rdoc_api);
-           assert(ret == 1);
-       }
-
-       // When you wish to trigger the capture
-       if(rdoc_api) rdoc_api->TriggerCapture();
-
-   The next ``Swap()`` after this call will begin the captured frame, and the ``Swap()`` after that will end it (barring  complications)
-
-   You can also use the ``RENDERDOC_StartFrameCapture()`` and ``RENDERDOC_EndFrameCapture()`` functions to precisely define the period to be captured. For more information look at the :doc:`../in_application_api` documentation or the ``renderdoc_app.h`` header.
-
-#. When you have right clicked to select a pixel in the texture viewer, you can perform precise refinements with the arrow keys to nudge the selection in each direction.
+#. You can trigger a capture from code. ``renderdoc.dll`` exports an :doc:`../in_application_api` for this purpose, defined in ``renderdoc_app.h`` in the distributed builds.
 #. To get API debug or error messages, enable "Enable API validation" when capturing then check out the :doc:`../window/debug_messages` window.
+#. You can annotate a capture by adding bookmarks, renaming resources, and adding comments. These can all be saved and embedded in the capture, so that when you share it with someone else.
+#. Dragging an executable onto the RenderDoc window anywhere will open the :guilabel:`Launch Executable` panel with the executable path filled in.
 #. Detecting RenderDoc from your code can either be done by trying to load and use the renderdoc :doc:`../in_application_api`, or through API specific ways:
 
    .. highlight:: c++
@@ -97,5 +69,13 @@ This page is a random hodge-podge of different tips and tricks that might not be
        D3DSetBlobPart(strippedBlob->GetBufferPointer(), strippedBlob->GetBufferSize(), D3D_BLOB_PRIVATE_DATA, 0, &path,        pathSize, &annotatedBlob);
        // use annotatedBlob instead of strippedBlob from here on
 
-#. You can hit :kbd:`Ctrl-G` to open a popup that lets you jump to a particular co-ordinate.
 #. More coming soon hopefully :).
+
+Keyboard Shortcuts
+------------------
+
+#. In the texture viewer you can hit :kbd:`Ctrl-G` to open a popup that lets you jump to a particular pixel co-ordinate.
+#. In the texture viewer, after selecting a pixel you can use the arrow keys to 'nudge' one pixel at a time in any direction to fine-tune the selection.
+#. To close a capture, press :kbd:`Ctrl-F4`. This will prompt to save if there are any unsaved changes.
+#. Anywhere in the UI, you can use :kbd:`Ctrl-Left` and :kbd:`Ctrl-Right` to jump to the previous or next drawcall.
+#. If you :doc:`add some bookmarks <../how/how_annotate_capture>` you can globally press any key from :kbd:`Ctrl-1` to :kbd:`Ctrl-0` to jump to the first 10 bookmarks.

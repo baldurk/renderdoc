@@ -1,7 +1,7 @@
 Planned future features
 =======================
 
-This is a list of all features that are planned to be added at some point. Probably none of them have timelines or estimates yet, and they are in no particular order. I just would like to add them eventually. It's mostly here for interest, and for reference if you have a new feature request - it might be on here already!
+This is a list of features that are planned to be added at some point. Probably none of them have timelines or estimates yet, and they are in no particular order. I just would like to add them eventually. It's mostly here for interest, and for reference if you have a new feature request - it might be on here already!
 
 For more detail and a more up to date list, check the `GitHub wiki <https://github.com/baldurk/renderdoc/wiki/Roadmap>`_.
 
@@ -12,10 +12,8 @@ Planned features
 
 * Debugging of all shader stages.
 * HLSL Debugging.
-* Mesh display after HS stage.
+* Mesh display after hull shader stage.
 * Perfkit/PerfHUD integration for vendor-specific detailed performance timers.
-* Multiple frames in a single capture/logfile.
-* Replacing .NET UI with the Qt UI.
 * Diffing events in a given frame.
 * Modifying the pipeline on the fly to change state.
 * Highlighting redundant state-setting.

@@ -3,6 +3,8 @@ How do I capture and replay over a network?
 
 RenderDoc supports capture and replay over a network connection. While slightly more complicated than the default workflow of doing everything on one machine, there are a number of scenarios where this can be useful.
 
+This is also the same mechanism used for Android capture and replay, except with built-in native support for supporting Android targets.
+
 If you can run the minimal RenderDoc support for capturing on a target machine such as an embedded device or devkit, the bulk of the replay work can be done on an existing machine where the UI is running.
 
 Likewise if you have a capture that you'd like to run on a different driver or hardware, you don't have to set up a full environment to run RenderDoc, you can just run the minimal remote server.
@@ -12,9 +14,9 @@ Overview
 
 RenderDoc's network support has the core concept of a "Replay Context".
 
-The idea is that by default you are in the "local" replay context. All operations happen relative to your own machine - from executables that you launch to capture, to how replays are processed and instantiated. This is the familiar process, where you browse and launch executables on a machine and all the replaying happens locally.
+By default you are in the "local" replay context. All operations happen relative to your own machine - from executables that you launch, to how replays are processed and instantiated. This is the familiar process, where you browse and launch executables on a machine and all the replaying happens locally.
 
-To use a remote machine, you define a replay context for that machine. Otherwise everything works exactly the same way, but executables are run on that machine and captures are replayed on that machine.
+To use a remote machine, you define a replay context for that machine. Everything else works exactly the same way, but executables are run on that machine and captures are replayed on that machine.
 
 Configuring Remote Hosts
 ------------------------
@@ -29,7 +31,7 @@ This manager allows you to configure both which remote hosts are available, as w
 
 To add a new host, simply type its hostname in the hostname box and click ``Add``. It will be added to the list of known remote hosts, and immediately a network lookup will happen to see if the remote server or any running RenderDoc-injected applications are alive.
 
-At minimum, this is all you must configure. However it is recommended that you configure a command which can be run on the host machine which will remotely start the remote server on that host. The reason for this is that it allows easy capture each time with zero manual extra steps.
+At minimum, this is all you must configure. However it is recommended that you configure a command which can be run on the **local** machine which will **remotely** start the remote server on that host. The reason for this is that it allows easy capture each time with zero manual extra steps.
 
 .. figure:: ../imgs/Screenshots/RemoteHostConfigure.png
 
@@ -55,7 +57,7 @@ An example for this for linux would be to use ``plink.exe`` and passwordless key
 
     plink.exe user@host DISPLAY=:0.0 renderdoccmd remoteserver -d
 
-Assuming that plink.exe is in ``PATH`` on the host machine, and ``renderdoccmd`` is on the host machine.    
+Assuming that plink.exe is in ``PATH`` on the host machine, and ``renderdoccmd`` is on the host machine.
 
 Switching to a Replay Context
 -----------------------------
@@ -81,7 +83,7 @@ Working in a remote replay context
 
 By and large, working in a remote replay context is designed to be transparent to the user. All the familiar operations and workflows will work as expected, perhaps with some small decrease in responsiveness that comes with a network connection's added latency and possible lower specifications of the target system.
 
-In the :doc:`../window/capture_log_attach` window the file and directory browsing is by definition relative to the replay context you are working in. For this reason, a custom dialog is used to display the contents of the remote filesystem instead of the default system dialog for browsing the local computer.
+In the :doc:`../window/capture_attach` window the file and directory browsing is by definition relative to the replay context you are working in. For this reason, a custom dialog is used to display the contents of the remote filesystem instead of the default system dialog for browsing the local computer.
 
 .. figure:: ../imgs/Screenshots/RemoteFileBrowse.png
 
@@ -116,7 +118,7 @@ To whitelist an IP range, add a line such as this:
 
     whitelist 192.168.0.0/16
 
-Which will allow any IP 192.168.x.x to connect. When the remote server starts, it prints the IP ranges it will allow. If no IP ranges are configured, it will by default listen to all private ranges - ``10.0.0.0/24``, ``192.168.0.0/16``, and ``172.16.0.0/12``.
+Which will allow any IP ``192.168.x.x`` to connect. When the remote server starts, it prints the IP ranges it will allow. If no IP ranges are configured, it will by default listen to all private ranges - ``10.0.0.0/24``, ``192.168.0.0/16``, and ``172.16.0.0/12``.
 
 To prevent the server from ever executing any commands regardless of whether the IP is allowed, add a line such as this:
 
@@ -132,4 +134,4 @@ See Also
 --------
 
 * :doc:`../window/capture_connection`
-* :doc:`../window/capture_log_attach`
+* :doc:`../window/capture_attach`

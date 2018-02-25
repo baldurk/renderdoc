@@ -8,29 +8,13 @@ RenderDoc wouldn't have been possible without both the tools and libraries that 
 
 The following libraries and components are incorporated into RenderDoc, listed here in no particular order. Thanks go out to the developers and contributors behind each of these libraries who generously donated their work to other free projects!
 
-* `TreeView with Columns <http://www.codeproject.com/Articles/23746/TreeView-with-Columns>`_ - Copyright 2008 by jkristia, distributed under the `CPOL license <http://www.codeproject.com/info/cpol10.aspx>`_.
-
-  An invaluable control filling a much needed niche in .NET winforms.
-
-* `DockPanel <http://dockpanelsuite.com/>`_ - Copyright 2007 Weifen Luo, distributed under the MIT license.
-
-  A mature and stable library that adds the docking and flexibility of RenderDoc's UI.
-
-* `famfamfam Silk Icon set <http://www.famfamfam.com/lab/icons/silk/>`_ - Authored by Mark James, distributed under Creative Commons Attribution 2.5.
-
-  Lending an air of professionalism and artistic quality to the UI, the Silk icon set is used throughout RenderDoc.
-
-* `Scintilla.NET <http://scintillanet.codeplex.com/>`_ - ScintillaNET Copyright 2002-2006 Garrett Serack, `Scintilla <http://www.scintilla.org/>`_ Copyright 1998-2006 Neil Hodgson, distributed under the MIT license.
-
-  Scintilla and the wrapper Scintilla.NET provide a powerful text editor for the shader viewers.
-
 * `Google Breakpad <https://chromium.googlesource.com/breakpad/breakpad/>`_ - Copyright 2006 Google Inc, distributed under the New BSD License (3 Clause).
 
-  provides a rock-solid crash handling and reporting base that help keep RenderDoc stable.
+  Crash handling and report preparation system.
 
 * `miniz <https://code.google.com/p/miniz/>`_ - Released to the Public Domain by Rich Geldreich.
 
-  Public domain zip library is used to compress the crash reports for sending.
+  Used for zip read/write in several places.
 
 * `ILM's half implementation <https://github.com/openexr/openexr/tree/master/IlmBase/Half>`_ - Copyright 2002 Industrial Light & Magic, a division of Lucas Digital Ltd. LLC, distributed under BSD license.
 
@@ -38,11 +22,11 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
 * `jpeg-compressor <https://code.google.com/p/jpeg-compressor/>`_ - Released to the Public Domain by Rich Geldreich.
 
-  Used to compress screenshots into jpg format for thumbnail previews.
+  Used for jpg reading and writing.
 
 * `lz4 <https://github.com/lz4/lz4>`_ - Copyright 2013 Yann Collet, distributed under the BSD 2-Clause license.
 
-  Compresses large data transfers (textures and buffers) when going across network connections as well as in the capture files themselves.
+  Used for fast compression where speed is more important than compression ratio.
 
 * `stb <https://github.com/nothings/stb>`_ - Released to the Public Domain by Sean Barrett.
 
@@ -51,10 +35,6 @@ The following libraries and components are incorporated into RenderDoc, listed h
 * `Source Code Pro <https://github.com/adobe-fonts/source-code-pro>`_ - Copyright 2010, 2012 Adobe Systems Incorporated, distributed under the SIL Open Font License 1.1.
 
   Font used for the in-program overlay.
-
-* `IronPython <http://ironpython.net/>`_ - Copyright IronPython Team, distributed under the Apache 2.0 license.
-
-  Used for the Python shell/integration in the UI.
 
 * `tinyexr <https://github.com/syoyo/tinyexr>`_ - Copyright 2014 Syoyo Fujita, distributed under the New BSD License (3 Clause).
 
@@ -127,7 +107,9 @@ The following libraries and components are incorporated into RenderDoc, listed h
 Thanks
 ------
 
-There have been many people who have helped in the creation of RenderDoc. Whether testing, feedback or contributing artwork and design critique everyone listed here and many more besides have been invaluable in taking RenderDoc from an idea on paper to its current state. Greets fly out to the following people, listed in no particular order.
+Screenshots in this documentation are from `Sascha Willems' Vulkan demos <https://github.com/SaschaWillems/Vulkan>`_.
+
+There have been many people who have helped in the creation of RenderDoc. Whether testing, providing feedback, or contributing artwork and design critique everyone listed here and many more besides have been invaluable in taking RenderDoc from an idea on paper to its current state. Greets fly out to the following people, listed in no particular order.
 
 * Chris Bunner, Charlie Cole, James Chilvers, Andrew Khan, Benjamin Hill, Jake Turner, Alex Weighell and the rest of the Crytek UK R&D team.
 * Colin Bonstead, Marco Corbetta, Pascal Eggert, Marcel Hatam, Sascha Hoba, Theodor Mader, Mathieu Pinard, Chris Raine, Nicolas Schulz, Tiago Sousa, Sean Tracy, Carsten Wenzel, and everyone else at the rest of the Crytek Studios.
@@ -164,6 +146,14 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Ian Elliot
 * Callan McInally
 * Gordon Selley
+* Cody Northrop
+* Dominik Baumeister
+* Adrian Bucur
+* Peter Gal
+* Janos Pantos
+* Marton Tamas
+* Nat Duca
+* Ben Clayton
 
 Contributors
 ------------
@@ -172,7 +162,7 @@ The following list highlights notable open source contributions. Many other peop
 
 * Michael Vance - Implemented a sophisticated frame statistics system for D3D11 around binding and draw API calls.
 * Matthäus G. Chajdas - Converted this documentation from sandcastle to sphinx.
-* Michael Rennie - Added support for Android platform capture.
+* Michael Rennie, Peter Gal, and Janos Pantos at Samsung - Added support for Android platform capture as well as Vulkan and OpenGL ES support.
 * Adrian Bucur - Added custom SPIR-V disassembler support.
 * James Fulop - Updated the vertex picking algorithm.
 * Balazs Torok - Implemented the RenderDoc in-application overlay for D3D9.

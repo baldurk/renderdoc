@@ -1,18 +1,18 @@
 Capture Connection
 ==================
 
-The Live capture window opens up when you launch a capture of a program, as well as when you attach to an existing program.
+The capture connection window opens up when you launch a capture of a program, as well as when you attach to an existing program.
 
 Attaching to an existing instance
 ---------------------------------
 
-After you've launched a program through RenderDoc and its hooks are added you can freely disconnect (by closing the live capture window) or close the main UI. You can then connect to this again later, either from the same computer or another computer connecting over the network. For more information, see the page about :doc:`network capture and replay <../how/how_network_capture_replay>`.
+After you've launched a program through RenderDoc and its hooks are added you can freely disconnect (by closing the capture connection window) or close the main UI. You can then connect to this again later, either from the same computer or another computer connecting over the network. For more information, see the page about :doc:`network capture and replay <../how/how_network_capture_replay>`.
 
-To connect to an existing hooked program, select Attach to Running Instance from the File menu. This opens up the remote host management window that allows you to select a remote host to connect to. localhost is always in the list, but you can add and remove other hosts.
+To connect to an existing hooked program, select :guilabel:`File` → :guilabel:`Attach to Running Instance`. This opens up the remote host management window that allows you to select a remote host to connect to. localhost is always in the list, but you can add and remove other hosts.
 
 .. warning::
 
-	Please note that none of the connections RenderDoc makes or uses are encrypted or authenticated/protected, so if this is a concern you should look into securing the connections by hand.
+	Please note that none of the connections RenderDoc makes or uses are encrypted or authenticated/protected, so if this is a concern you should look into securing the connections manually.
 
 .. figure:: ../imgs/Screenshots/RemoteHostManager.png
 
@@ -22,18 +22,18 @@ When the window opens, when you add a new host, or when you click refresh then t
 
 Once a host has been scanned, if any instances are found then that host can be expanded to see the list, and details are listed about each instance. The name is OS-dependent but is usually the executable name. The API name is listed, as well as the username of any user that is already connected.
 
-When you click connect, a live capture window will be opened up - just the same as the window that is automatically opened when you start a program. Any captures that have already been made before you connect will then populate.
+When you click connect, a capture connection window will be opened up - just the same as the window that is automatically opened when you start a program. Any captures that have already been made before you connect will then populate.
 
 .. note::
 
-	If you connect to a running instance, any existing user will be kicked off. Just seeing the instances running on a host will not.
+	If you connect to a running instance, any existing user will be disconnected. Just seeing the instances running on a host will not.
 
 For more information about specifically a network capture-and-replay workflow, please see :doc:`../how/how_network_capture_replay`.
 
 Capture Connection window
 -------------------------
 
-When a capture is launched (or attached to) the connection window is opened in the main UI. If you end up only taking one capture and closing the program afterwards the connection window will automatically close - likewise if you take no captures at all. These cases don't need the management options the connection window provides.
+When a capture is launched (or attached to) the connection window is opened in the main UI. If you end up only taking one capture and closing the program afterwards the connection window will automatically close and open that capture. Similarly if you don't take any captures at all the window will close when the program exits. These cases don't need the management options the connection window provides.
 
 While a program is running, a couple of tools are available for triggering specific captures, which can be used as well as the keystroke capture triggers in the application.
 
@@ -41,9 +41,9 @@ While a program is running, a couple of tools are available for triggering speci
 
 	Connection Window: Tools for triggering specific frame captures.
 
-Firstly you can trigger a capture, with an optional delay in seconds, and for an arbitrary number of frames. When you click ``Trigger Capture`` the delay will count down, and then the application will capture the selected number of sequential frames into separate captures. By default the delay is 0 seconds and only one frame is captured.
+Firstly you can trigger a capture, with an optional delay in seconds, and for an arbitrary number of frames. When you click :guilabel:`Trigger Capture` the delay will count down, and then the application will capture the selected number of sequential frames into separate captures. By default the delay is 0 seconds and only one frame is captured.
 
-Next you can trigger a specific frame number, if you know that a bug will happen at a given point.
+Next you can queue a capture at a specific frame number, if you know that a bug will happen at a given point.
 
 .. note::
 
@@ -55,7 +55,7 @@ During running or after the application has closed, all captures will appear as 
 
 	Connection Window: Viewing multiple captures taken in a program.
 
-In this example we have a connection window open to the CascadedShadowMaps11 sample from the DirectX SDK. Two captures have been made and we can see their thumbnails to help distinguish between them. This is visible at any point, regardless of whether you have close the program or not - you can simply switch back to RenderDoc while it's running.
+In this example we have a connection window open to the debugmarker sample from Sascha Willms' Vulkan examples. Three captures have been made and we can see their thumbnails to help distinguish between them. This is visible at any point, regardless of whether you have close the program or not - you can simply switch back to RenderDoc while it's running.
 
 .. note::
 
@@ -74,7 +74,7 @@ You can press F2 or single click on a selected capture (not double click) to ren
 Child Processes
 ---------------
 
-RenderDoc is able to automatically inject into any child processes started by the initial process launched from the UI. To do this simply check "Hook into Children" in the :doc:`capture_log_attach`.
+RenderDoc is able to automatically inject into any child processes started by the initial process launched from the UI. To do this simply check :guilabel:`Capture Child Processes` when :doc:`capture_attach`.
 
 
 RenderDoc has a particular handling of child processes to help you navigate to the process of interest. Whenever a child process is launched, the UI is notified and a list of processes is displayed in a box on the capture connection window. You can double click on any of these entries to open up a new connection to that process, in a new window.
@@ -86,4 +86,4 @@ See Also
 --------
 
 * :doc:`../how/how_network_capture_replay`
-* :doc:`capture_log_attach`
+* :doc:`capture_attach`

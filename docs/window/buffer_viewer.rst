@@ -1,7 +1,7 @@
 Buffer Viewer/Mesh Output
 =========================
 
-The buffer viewer has two reasonably distinct modes - the first rather specialised to show meshes and mesh data as it passes through the pipeline. The other shows a raw arbitrary buffer with a custom (and arbitrary) formatting.
+The buffer viewer has two reasonably distinct modes - the first rather specialised to show meshes and the mesh data as it passes through the pipeline. The other shows a raw arbitrary buffer with a custom (and arbitrary) formatting.
 
 Mesh Viewer
 -----------
@@ -10,9 +10,9 @@ The Mesh Viewer shows both the mesh data as well as a visual representation of t
 
 .. |arrow_join| image:: ../imgs/icons/arrow_join.png
 
-Each distinct point has a display that shows the mesh data, the format of which is pulled from the relevant stage of the pipeline - shader input or output, or input layout. You can choose to sync these views |arrow_join| as well as specify an offset which will stay consistent, so that you can see the same row as you move between different events.
+Each vertex has a display that shows the mesh data, the format of which is pulled from the relevant stage of the pipeline - shader input or output, or vertex input attributes. You can choose to sync these views |arrow_join| as well as specify an offset which will stay consistent, so that you can see the same row as you move between different events.
 
-Below this is a 3D view which will show one stage at any given time, and can be switched with the tabs above it. There are two control schemes for viewing the 3D mesh - Arcball which is the default for pre-transform (VS in), and WASD controls which is the default for post-transform (VS out). You can switch between these at any time with the dropdown on the toolbar above the mesh view.
+Below this is a 3D view which will show one stage at any given time, and can be switched with the tabs above it. There are two control schemes for viewing the 3D mesh - Arcball which is the default for pre-transform (VS input), and WASD controls which is the default for post-transform (VS output). You can switch between these at any time with the dropdown on the toolbar above the mesh view.
 
 .. note::
 
@@ -45,11 +45,11 @@ Mesh Preview
 
 In the 3D Mesh preview, you have the option to display the mesh with some solid shading modes, not just as a wireframe mesh. When solid shading you can toggle the wireframe on and off.
 
-* Solid Colour simply displays a solid colour for each triangle.
+* Solid Color simply displays a solid color for each triangle.
 * Flat Shaded will perform basic flat lighting calculations based on triangle normals to give a better idea of the topology of the mesh.
 * Secondary will display the selected secondary mesh element.
 
-To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as colour, or alpha as greyscale.
+To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as color, or alpha as greyscale.
 
 The selection will be remembered as long as the mesh format stays consistent between draws.
 
@@ -57,15 +57,15 @@ You can also use this if the position data isn't detected in your inputs and you
 
 .. figure:: ../imgs/Screenshots/SolidPreview.png
 
-	Preview: Previewing the uv co-ordinates as colour on the mesh.
+	Preview: Previewing the uv co-ordinates as color on the mesh.
 
 When displaying the post-projection output - typically the VS output, but possibly tessellation/geometry output - you can select how much data to display.
 
-The dropdown above the mesh view will let you choose ``Only this draw``, ``Show previous instances``, ``Show all instances``, or ``Show whole pass``.
+The dropdown above the mesh view will let you choose to show :guilabel:`this draw`, :guilabel:`previous instances` as well, :guilabel:`all instances` in the drawcall, or the :guilabel:`whole pass` up to this point.
 
 These let you narrow or expand the mesh outputs displayed. At minimum you will see the current draw - a specific instance, if the drawcall is an instanced draw. You can also display other instances in the same drawcall (either up to the selected instance, or all instances before or after the selected instance). Finally you can opt to display all other meshes up to the current draw in the same notional render pass.
 
-The current draw is always dark tinted, instances within the same draw have a lighter red colour, and other drawcalls in the pass will be light grey.
+The current draw is always dark tinted, instances within the same draw have a lighter red color, and other drawcalls in the pass will be light grey.
 
 Raw Buffer Viewer
 -----------------

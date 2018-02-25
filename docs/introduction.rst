@@ -1,20 +1,12 @@
 Introduction
 ============
 
-.. |renderdoc_logo| image:: imgs/logo.png
-
-|renderdoc_logo|
-
-Welcome to RenderDoc - a graphics debugger currently available for Vulkan, D3D11, D3D12, and OpenGL development on windows.
-
-This document serves primarily as reference guide, introductory document and explanation of which features are available in RenderDoc and how to best use them.
-
-The latest information and discussion is always available on the `GitHub wiki <https://github.com/baldurk/renderdoc/wiki>`_.
+.. include:: include/intro_header_inc.rst
 
 License
 -------
 
-RenderDoc is released under the MIT license, so there are no restrictions on your use of it either commercial or non-commercial. This includes the source release available on `GitHub <https://github.com/baldurk/renderdoc>`_.
+RenderDoc is released under the MIT license, so there are no restrictions on your use of it either commercially or non-commercially. This includes the source release available on `GitHub <https://github.com/baldurk/renderdoc>`_.
 
 Details of the licenses of third party software used in RenderDoc are included in the LICENSE file in the RenderDoc directory as well as in the :doc:`credits_acknowledgements`.
 
@@ -47,7 +39,7 @@ Contact info, Feedback, Bug reports
 
 If you want to get in touch with any feature requests, suggestions, comments etc then feel free to contact me: `Contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20feedback>`_.
 
-Bug reports can be submitted directly via email, or also on the `GitHub issues list <https://github.com/baldurk/renderdoc/issues>`_ where you can also find the full source code.
+Bug reports can be submitted directly `via email <mailto:baldurk@baldurk.org?subject=RenderDoc%20bug>`_, or also on the `GitHub issues list <https://github.com/baldurk/renderdoc/issues>`_ where you can also find the full source code.
 
 The `Builds page <https://renderdoc.org/builds>`_ always has the latest stable build downloads, as well as builds made from the source code each night for the bleeding edge. Stable releases update every month or so and are the typical releases to stick to for the most reliable experience.
 

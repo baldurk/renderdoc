@@ -3,6 +3,10 @@ How do I debug a shader?
 
 This page goes into detail about how to set up your captures for debugging shaders, as well as how to debug a shader and what controls are available.
 
+.. warning::
+
+   Shader debugging is currently only supported in D3D11. On other APIs the debug options listed below will either be hidden or disabled.
+
 Including debug info in shaders
 -------------------------------
 
@@ -17,7 +21,7 @@ Vertex debugging is invoked from the mesh viewer. With the mesh viewer open you 
 
 When a vertex is selected in the mesh data for the vertex input it will be highlighted along with the primitive it is part of in the mesh display, provided the display is in vertex input mode.
 
-Either right click and choose debug vertex from the context menu, or click on the debug icon in the toolbar.
+Right click and choose debug vertex from the context menu.
 
 .. figure:: ../imgs/Screenshots/VertexDebug.png
 
@@ -63,33 +67,35 @@ When debugging, at the moment the controls are fairly basic.
 
 	Shader controls: Controls for stepping through shaders.
 
-.. |runfwd| image:: ../imgs/icons/runfwd.png
-.. |runback| image:: ../imgs/icons/runback.png
+.. |runfwd| image:: ../imgs/icons/control_end_blue.png
+.. |runback| image:: ../imgs/icons/control_start_blue.png
 
-The toolbar at the top gives controls for the program flow through the shader. |runfwd| Run and |runback| Run Backward simply run from the current position all the way through to the end or start of the program respectively.
+The toolbar at the top gives controls for the program flow through the shader.
 
-The keyboard shortcuts for these controls are :kbd:`F5` and :kbd:`Shift-F5` respectively.
+|runfwd| Run and |runback| Run Backward simply run from the current position all the way through to the end or start of the program respectively. The keyboard shortcuts for these controls are :kbd:`F5` and :kbd:`Shift-F5` respectively.
 
 You can set a breakpoint by pressing :kbd:`F9` (this will also remove a breakpoint that is already there). When running in each direction or to cursor (see below) if execution hits a breakpoint it will stop.
 
-.. |runsample| image:: ../imgs/icons/runsample.png
+.. |runsample| image:: ../imgs/icons/control_sample_blue.png
 
-This button will run to the next texture load, gather or sample operation, and stop as if a breakpoint had been placed on that instruction.
+|runsample| will run to the next texture load, gather or sample operation, and stop as if a breakpoint had been placed on that instruction.
 
-.. |runnaninf| image:: ../imgs/icons/runnaninf.png
+.. |runnaninf| image:: ../imgs/icons/control_nan_blue.png
 
-This button will run to the next operation that generates either a NaN or infinity value instead of a floating point value. This will not apply to operations that produce integer results which may be NaN/infinity when interpreted as float.
+|runnaninf| will run to the next operation that generates either a NaN or infinity value instead of a floating point value. This will not apply to operations that produce integer results which may be NaN/infinity when interpreted as float.
 
-.. |stepnext| image:: ../imgs/icons/stepnext.png
-.. |stepprev| image:: ../imgs/icons/stepprev.png
+.. |stepnext| image:: ../imgs/icons/control_play_blue.png
+.. |stepprev| image:: ../imgs/icons/control_reverse_blue.png
 
-The other controls allow for single stepping and limited running. |stepnext| Step forward will execute the current instruction and continue to the next - this includes following any flow control statements such as jumps, loops, etc.
+|stepnext| Step forward will execute the current instruction and continue to the next - this includes following any flow control statements such as jumps, loops, etc.
 
-|stepprev| Step backwards will jump back to whichever instruction lead to the current instruction. This does not necessarily mean the previous instruction in the program as it could be the destination of a jump. Stepping forwards and stepping backwards will always reverse each other. The shortcuts for these commands are :kbd:`F10` and :kbd:`Shift-F10`
+|stepprev| Step backwards will jump back to whichever instruction lead to the current instruction. This does not necessarily mean the previous instruction in the program as it could be the destination of a jump. Stepping forwards and stepping backwards will always reverse each other.
 
-.. |runcursor| image:: ../imgs/icons/runcursor.png
+The shortcuts for these commands are :kbd:`F10` and :kbd:`Shift-F10`
 
-The final control is to |runcursor| Run to the cursor. This will perform in a similar fashion to the "Run" command, but when it reaches the line that the cursor highlights it will stop and pause execution. It will also stop if it reaches the end of the shader.
+.. |runcursor| image:: ../imgs/icons/control_cursor_blue.png
+
+|runcursor| will run to the cursor. This will perform in a similar fashion to the "Run" command, but when it reaches the line that the cursor highlights it will stop and pause execution. It will also stop if it reaches the end of the shader. The shortcut for this is :kbd:`Ctrl-F10`
 
 
 .. note::
@@ -98,13 +104,10 @@ The final control is to |runcursor| Run to the cursor. This will perform in a si
 
 Hovering over a register in either the disassembly or in the view windows will open a tooltip showing the value in different interpretations.
 
-There is also a toggle available to control the 'default' interpretation of temporary register values - float or int. Since registers are typeless typically they are interpreted as float values, but with this toggle you can toggle them to be interpreted as integers.
+There is also a toggle available to control the 'default' interpretation of temporary register values - float or int. D3D registers are typeless but typically they are interpreted as float values. With this toggle you can toggle them to be interpreted as integers by default instead.
 
 Debugging Displays
 ------------------
-
-Currently there is only a very basic display when debugging shaders.
-
 
 There are two windows that display different types of registers. The constants window will display input and constant buffer registers that are immutable throughout execution. This will also list registers for resources and samplers (with basic format information).
 
