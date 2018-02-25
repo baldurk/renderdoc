@@ -1068,10 +1068,10 @@ Only happens if the capture is not in the recent files list.</string>
              <string>Maximum time to try connecting to the target app.</string>
             </property>
             <property name="decimals">
-             <number>2</number>
+             <number>0</number>
             </property>
             <property name="maximum">
-             <double>100.000000000000000</double>
+             <double>120.000000000000000</double>
             </property>
            </widget>
           </item>
