@@ -622,6 +622,74 @@ void GLReplay::InitDebugData()
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
+  // try to identify the GPU we're running on.
+  {
+    const char *vendor = (const char *)gl.glGetString(eGL_VENDOR);
+    const char *renderer = (const char *)gl.glGetString(eGL_RENDERER);
+
+    // we're just doing substring searches, so combine both for ease.
+    std::string combined = (vendor ? vendor : "");
+    combined += " ";
+    combined += (renderer ? renderer : "");
+
+    // make lowercase, for case-insensitive matching, and add preceding/trailing space for easier
+    // 'word' matching
+    combined = " " + strlower(combined) + " ";
+
+    RDCDEBUG("Identifying vendor from '%s'", combined.c_str());
+
+    struct pattern
+    {
+      const char *search;
+      GPUVendor vendor;
+    } patterns[] = {
+        {" arm ", GPUVendor::ARM},
+        {" mali ", GPUVendor::ARM},
+        {" mali-", GPUVendor::ARM},
+        {" amd ", GPUVendor::AMD},
+        {"advanced micro devices", GPUVendor::AMD},
+        {"ati technologies", GPUVendor::AMD},
+        {"radeon", GPUVendor::AMD},
+        {"broadcom", GPUVendor::Broadcom},
+        {"imagination", GPUVendor::Imagination},
+        {"powervr", GPUVendor::Imagination},
+        {"intel", GPUVendor::Intel},
+        {"geforce", GPUVendor::nVidia},
+        {"quadro", GPUVendor::nVidia},
+        {"nouveau", GPUVendor::nVidia},
+        {"nvidia", GPUVendor::nVidia},
+        {"adreno", GPUVendor::Qualcomm},
+        {"qualcomm", GPUVendor::Qualcomm},
+        {"vivante", GPUVendor::Verisilicon},
+        {"llvmpipe", GPUVendor::Software},
+        {"softpipe", GPUVendor::Software},
+        {"bluestacks", GPUVendor::Software},
+    };
+
+    for(const pattern &p : patterns)
+    {
+      if(combined.find(p.search) != std::string::npos)
+      {
+        if(m_Vendor == GPUVendor::Unknown)
+        {
+          m_Vendor = p.vendor;
+        }
+        else
+        {
+          // either we already found this with another pattern, or we've identified two patterns and
+          // it's ambiguous. Keep the first one we found, arbitrarily, but print a warning.
+          if(m_Vendor != p.vendor)
+          {
+            RDCWARN("Already identified '%s' as %s, but now identified as %s", combined.c_str(),
+                    ToStr(m_Vendor).c_str(), ToStr(p.vendor).c_str());
+          }
+        }
+      }
+    }
+
+    RDCDEBUG("Identified GPU vendor '%s'", ToStr(m_Vendor).c_str());
+  }
+
   // these below need to be made on the replay context, as they are context-specific (not shared)
   // and will be used on the replay context.
 

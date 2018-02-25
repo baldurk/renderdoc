@@ -231,6 +231,8 @@ private:
   bool m_WARP;
   bool m_Proxy;
 
+  GPUVendor m_Vendor = GPUVendor::Unknown;
+
   D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
   void BuildShader(std::string source, std::string entry, const ShaderCompileFlags &compileFlags,

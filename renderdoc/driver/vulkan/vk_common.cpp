@@ -27,10 +27,6 @@
 #include "vk_manager.h"
 #include "vk_resources.h"
 
-const uint32_t AMD_PCI_ID = 0x1002;
-const uint32_t NV_PCI_ID = 0x10DE;
-const uint32_t QUALCOMM_PCI_ID = 0x5143;
-
 // utility struct for firing one-shot command buffers to begin/end markers
 struct ScopedCommandBuffer
 {
@@ -1578,14 +1574,11 @@ INSTANTIATE_SERIALISE_TYPE(VkInitParams);
 
 VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 {
-  if(physProps.vendorID == AMD_PCI_ID)
-    m_Vendor = AMD;
-  else if(physProps.vendorID == NV_PCI_ID)
-    m_Vendor = NV;
-  else if(physProps.vendorID == QUALCOMM_PCI_ID)
-    m_Vendor = QUALCOMM;
-  else
-    m_Vendor = UNKNOWN;
+  m_Vendor = GPUVendorFromPCIVendor(physProps.vendorID);
+
+  // add non-PCI vendor IDs
+  if(physProps.vendorID == 0x10002)
+    m_Vendor = GPUVendor::Verisilicon;
 
   m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
   m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
@@ -1594,7 +1587,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   // nvidia uses its own version packing:
   //   10 |  8  |        8       |       6
   // major|minor|secondary_branch|tertiary_branch
-  if(IsNV())
+  if(m_Vendor == GPUVendor::nVidia)
   {
     m_Major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
     m_Minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;
@@ -1605,7 +1598,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
     m_Patch = (secondary << 8) | tertiary;
   }
 
-  if(IsNV())
+  if(m_Vendor == GPUVendor::nVidia)
   {
     // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
     // and disabling texelFetch works as a workaround.
@@ -1618,7 +1611,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 // using the AMD official driver, but there's not a great other way to distinguish it from
 // the RADV open source driver.
 #if ENABLED(RDOC_WIN32)
-  if(IsAMD())
+  if(m_Vendor == GPUVendor::AMD)
   {
     // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
     // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
@@ -1636,7 +1629,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 
 // same as above, only affects the AMD official driver
 #if ENABLED(RDOC_WIN32)
-  if(IsAMD())
+  if(m_Vendor == GPUVendor::AMD)
   {
     // not fixed yet
     amdStorageMSAABrokenDriver = true;
@@ -1644,5 +1637,5 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 #endif
 
   // not fixed yet
-  qualcommLeakingUBOOffsets = IsQualcomm();
+  qualcommLeakingUBOOffsets = m_Vendor == GPUVendor::Qualcomm;
 }

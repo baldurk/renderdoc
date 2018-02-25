@@ -1237,6 +1237,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
+    APIProps.vendor = GetDriverVersion().Vendor();
+
     m_ShaderCache = new VulkanShaderCache(this);
 
     m_DebugManager = new VulkanDebugManager(this);

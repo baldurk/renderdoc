@@ -83,6 +83,26 @@ void D3D12Replay::CreateResources()
       RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
     }
 
+    if(m_pFactory)
+    {
+      LUID luid = m_pDevice->GetAdapterLuid();
+
+      IDXGIAdapter *pDXGIAdapter;
+      hr = m_pFactory->EnumAdapterByLuid(luid, __uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't get DXGI adapter by LUID from D3D device");
+      }
+      else
+      {
+        DXGI_ADAPTER_DESC desc = {};
+        pDXGIAdapter->GetDesc(&desc);
+
+        m_Vendor = GPUVendorFromPCIVendor(desc.VendorId);
+      }
+    }
+
     m_DebugManager = new D3D12DebugManager(m_pDevice);
 
     CreateSOBuffers();
@@ -128,6 +148,7 @@ APIProperties D3D12Replay::GetAPIProperties()
 
   ret.pipelineType = GraphicsAPI::D3D12;
   ret.localRenderer = GraphicsAPI::D3D12;
+  ret.vendor = m_Vendor;
   ret.degraded = false;
   ret.shadersMutable = false;
 

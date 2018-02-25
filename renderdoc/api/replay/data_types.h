@@ -1074,6 +1074,9 @@ different to the above, and lets the UI make decisions e.g. to flip rendering of
 )");
   GraphicsAPI localRenderer = GraphicsAPI::D3D11;
 
+  DOCUMENT("The :class:`GPUVendor` of the active GPU being used.");
+  GPUVendor vendor = GPUVendor::Unknown;
+
   DOCUMENT(R"(``True`` if the capture was loaded successfully but running in a degraded mode - e.g.
 with software rendering, or with some functionality disabled due to lack of support.
 )");

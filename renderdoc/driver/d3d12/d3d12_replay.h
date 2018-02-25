@@ -262,6 +262,8 @@ private:
 
   bool m_Proxy;
 
+  GPUVendor m_Vendor = GPUVendor::Unknown;
+
   vector<ID3D12Resource *> m_ProxyResources;
 
   struct OutputWindow

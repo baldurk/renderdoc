@@ -143,6 +143,7 @@ APIProperties GLReplay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::OpenGL;
   ret.localRenderer = GraphicsAPI::OpenGL;
   ret.degraded = m_Degraded;
+  ret.vendor = m_Vendor;
   ret.shadersMutable = true;
 
   return ret;

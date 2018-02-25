@@ -425,6 +425,7 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
 {
   SERIALISE_MEMBER(pipelineType);
   SERIALISE_MEMBER(localRenderer);
+  SERIALISE_MEMBER(vendor);
   SERIALISE_MEMBER(degraded);
   SERIALISE_MEMBER(shadersMutable);
 
@@ -434,7 +435,7 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
   SERIALISE_MEMBER(MultiGPU);
   SERIALISE_MEMBER(D3D12Bundle);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(20);
 }
 
 template <typename SerialiserType>

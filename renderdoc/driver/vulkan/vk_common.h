@@ -178,16 +178,10 @@ struct GPUBuffer
 // in vk_<platform>.cpp
 extern const char *VulkanLibraryName;
 
-extern const uint32_t AMD_PCI_ID;
-extern const uint32_t NV_PCI_ID;
-extern const uint32_t QUALCOMM_PCI_ID;
-
 class VkDriverInfo
 {
 public:
-  bool IsAMD() { return m_Vendor == AMD; }
-  bool IsNV() { return m_Vendor == NV; }
-  bool IsQualcomm() { return m_Vendor == QUALCOMM; }
+  GPUVendor Vendor() { return m_Vendor; }
   uint32_t Major() { return m_Major; }
   uint32_t Minor() { return m_Minor; }
   uint32_t Patch() { return m_Patch; }
@@ -206,13 +200,7 @@ public:
   // rendering on other descriptor sets that don't use offsets at all.
   bool QualcommLeakingUBOOffsets() { return qualcommLeakingUBOOffsets; }
 private:
-  enum
-  {
-    AMD,
-    NV,
-    QUALCOMM,
-    UNKNOWN,
-  } m_Vendor;
+  GPUVendor m_Vendor;
 
   uint32_t m_Major, m_Minor, m_Patch;
 

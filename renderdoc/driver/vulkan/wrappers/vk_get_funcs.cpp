@@ -165,7 +165,7 @@ void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
   // allow for this. The variability isn't quite clear, but for now we assume aligning size to
   // alignment * 4 should be sufficient (adding on a fixed padding won't help the problem as it
   // won't remove the variability, nor will adding then aligning for the same reason).
-  if(GetDriverVersion().IsAMD() && pMemoryRequirements->size > 0)
+  if(GetDriverVersion().Vendor() == GPUVendor::AMD && pMemoryRequirements->size > 0)
   {
     VkMemoryRequirements &memreq = *pMemoryRequirements;
 
@@ -247,7 +247,7 @@ void WrappedVulkan::vkGetImageMemoryRequirements2KHR(VkDevice device,
   // allow for this. The variability isn't quite clear, but for now we assume aligning size to
   // alignment * 4 should be sufficient (adding on a fixed padding won't help the problem as it
   // won't remove the variability, nor will adding then aligning for the same reason).
-  if(GetDriverVersion().IsAMD() && pMemoryRequirements->memoryRequirements.size > 0)
+  if(GetDriverVersion().Vendor() == GPUVendor::AMD && pMemoryRequirements->memoryRequirements.size > 0)
   {
     VkMemoryRequirements &memreq = pMemoryRequirements->memoryRequirements;
 

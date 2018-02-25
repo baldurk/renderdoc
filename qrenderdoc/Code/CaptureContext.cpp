@@ -168,6 +168,11 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
   ANALYTIC_SET(CaptureFeatures.MultiGPU, m_APIProps.MultiGPU);
   ANALYTIC_SET(CaptureFeatures.D3D12Bundle, m_APIProps.D3D12Bundle);
 
+  if(m_APIProps.vendor != GPUVendor::Unknown)
+  {
+    ANALYTIC_ADDUNIQ(GPUVendors, ToQStr(m_APIProps.vendor));
+  }
+
   m_MainWindow->setProgress(-1.0f);
 
   if(m_CaptureLoaded)

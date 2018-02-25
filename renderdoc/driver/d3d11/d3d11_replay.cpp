@@ -93,6 +93,14 @@ void D3D11Replay::CreateResources()
     IDXGIAdapter *pDXGIAdapter;
     hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
 
+    DXGI_ADAPTER_DESC desc = {};
+    pDXGIAdapter->GetDesc(&desc);
+
+    m_Vendor = GPUVendorFromPCIVendor(desc.VendorId);
+
+    if(m_WARP)
+      m_Vendor = GPUVendor::Software;
+
     if(FAILED(hr))
     {
       RDCERR("Couldn't get DXGI adapter from DXGI device");
@@ -450,6 +458,7 @@ APIProperties D3D11Replay::GetAPIProperties()
 
   ret.pipelineType = GraphicsAPI::D3D11;
   ret.localRenderer = GraphicsAPI::D3D11;
+  ret.vendor = m_Vendor;
   ret.degraded = m_WARP;
   ret.shadersMutable = false;
 

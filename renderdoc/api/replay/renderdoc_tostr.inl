@@ -770,6 +770,25 @@ std::string DoStringise(const DebugOverlay &el)
 }
 
 template <>
+std::string DoStringise(const GPUVendor &el)
+{
+  BEGIN_ENUM_STRINGISE(GPUVendor)
+  {
+    STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(ARM);
+    STRINGISE_ENUM_CLASS(AMD);
+    STRINGISE_ENUM_CLASS(Broadcom);
+    STRINGISE_ENUM_CLASS(Imagination);
+    STRINGISE_ENUM_CLASS(Intel);
+    STRINGISE_ENUM_CLASS(nVidia);
+    STRINGISE_ENUM_CLASS(Qualcomm);
+    STRINGISE_ENUM_CLASS(Verisilicon);
+    STRINGISE_ENUM_CLASS(Software);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const GraphicsAPI &el)
 {
   BEGIN_ENUM_STRINGISE(GraphicsAPI)

@@ -1207,6 +1207,79 @@ enum class QualityHint : uint32_t
 
 DECLARE_REFLECTION_ENUM(QualityHint);
 
+DOCUMENT(R"(Identifies a GPU vendor.
+
+.. data:: Unknown
+
+  A GPU from an unknown vendor
+
+.. data:: ARM
+
+  An ARM GPU
+
+.. data:: AMD
+
+  An AMD GPU
+
+.. data:: Broadcom
+
+  A Broadcom GPU
+
+.. data:: Imagination
+
+  An Imagination GPU
+
+.. data:: Intel
+
+  An Intel GPU
+
+.. data:: nVidia
+
+  An nVidia GPU
+
+.. data:: Qualcomm
+
+  A Qualcomm  GPU
+
+.. data:: Verisilicon
+
+  A Verisilicon or Vivante GPU
+
+.. data:: Software
+
+  A software-rendering emulated GPU
+)");
+enum class GPUVendor : uint32_t
+{
+  Unknown,
+  ARM,
+  AMD,
+  Broadcom,
+  Imagination,
+  Intel,
+  nVidia,
+  Qualcomm,
+  Verisilicon,
+  Software,
+};
+
+DECLARE_REFLECTION_ENUM(GPUVendor);
+
+constexpr GPUVendor GPUVendorFromPCIVendor(uint32_t vendorID)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return vendorID == 0x13B5 ? GPUVendor::ARM
+       : vendorID == 0x1002 ? GPUVendor::AMD
+       : vendorID == 0x1010 ? GPUVendor::Imagination
+       : vendorID == 0x8086 ? GPUVendor::Intel
+       : vendorID == 0x10DE ? GPUVendor::nVidia
+       : vendorID == 0x5143 ? GPUVendor::Qualcomm
+       : GPUVendor::Unknown;
+  // clang-format on
+}
+
 DOCUMENT(R"(Identifies a Graphics API.
 
 .. data:: D3D11

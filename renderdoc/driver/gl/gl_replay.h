@@ -365,6 +365,8 @@ private:
 
   bool m_Degraded;
 
+  GPUVendor m_Vendor = GPUVendor::Unknown;
+
   HighlightCache m_HighlightCache;
 
   // eventId -> data
