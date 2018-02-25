@@ -193,7 +193,7 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
       }
     });
 
-    if(newCapture && m_Notes.contains(lit("comments")))
+    if(newCapture && m_Notes.contains(lit("comments")) && m_Config.Comments_ShowOnLoad)
     {
       if(!HasCommentView())
         ShowCommentView();

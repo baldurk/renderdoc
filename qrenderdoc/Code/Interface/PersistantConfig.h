@@ -201,7 +201,7 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColorEventRow, true)                 \
                                                                                            \
-  CONFIG_SETTING_VAL(public, bool, bool, Comments_ShowOnLoad, false)                       \
+  CONFIG_SETTING_VAL(public, bool, bool, Comments_ShowOnLoad, true)                        \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                            \
                                                                                            \
