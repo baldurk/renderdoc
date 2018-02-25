@@ -40,6 +40,11 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
       STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
   m_commentsEditor->setTabWidth(4);
 
+  m_commentsEditor->setWrapMode(SC_WRAP_WORD);
+  m_commentsEditor->setWrapVisualFlags(SC_WRAPVISUALFLAG_MARGIN);
+
+  m_commentsEditor->setMarginWidthN(0, sptr_t(30.0 * devicePixelRatioF()));
+
   ConfigureSyntax(m_commentsEditor, SCLEX_NULL);
 
   QObject::connect(m_commentsEditor, &ScintillaEdit::modified, [this](int type, int, int, int,
