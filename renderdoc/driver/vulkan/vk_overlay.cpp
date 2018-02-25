@@ -259,6 +259,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     // don't care

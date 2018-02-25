@@ -1,4 +1,6 @@
 set(sources
+    amd_counters.cpp
+    amd_counters.h
     amd_isa.cpp
     amd_isa.h
     amd_isa_devices.cpp

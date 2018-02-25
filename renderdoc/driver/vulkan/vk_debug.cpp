@@ -26,6 +26,8 @@
 #include <float.h>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "data/glsl_shaders.h"
+#include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -1393,6 +1395,20 @@ void VulkanReplay::CreateResources()
       });
 
   CREATE_OBJECT(m_MeshFetchDescSet, m_General.DescriptorPool, m_MeshFetchDescSetLayout);
+
+  GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
+                                   Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
+
+  AMDCounters *counters = new AMDCounters();
+  if(counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
+  {
+    m_pAMDCounters = counters;
+  }
+  else
+  {
+    delete counters;
+    m_pAMDCounters = NULL;
+  }
 }
 
 void VulkanReplay::DestroyResources()
@@ -1408,6 +1424,8 @@ void VulkanReplay::DestroyResources()
   m_VertexPick.Destroy(m_pDriver);
   m_PixelPick.Destroy(m_pDriver);
   m_Histogram.Destroy(m_pDriver);
+
+  SAFE_DELETE(m_pAMDCounters);
 }
 
 void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)

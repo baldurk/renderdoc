@@ -34,8 +34,8 @@
 #include "vk_replay.h"
 #include "vk_state.h"
 
-using std::vector;
 using std::list;
+using std::vector;
 
 class VulkanShaderCache;
 class VulkanTextRenderer;
@@ -170,6 +170,9 @@ struct VulkanDrawcallCallback
   virtual void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
   virtual bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
   virtual void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
+
+  // called immediately before the command buffer is ended
+  virtual void PreEndCommandBuffer(VkCommandBuffer cmd) = 0;
 
   // if a command buffer is recorded once and submitted N > 1 times, then the same
   // drawcall will have several EIDs that refer to it. We'll only do the full
