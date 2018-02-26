@@ -10,7 +10,8 @@ sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev l
 
 # check last 100 commits are all correctly sized. First line must be no
 # longer than 72 characters, so it fits in git log and github history
-if git log --oneline | head -n 100 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
+# We don't check HEAD since in pull requests this is an invisible 'merge' commit.
+if git log --oneline HEAD~100..HEAD~1 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
   echo "***************************************************";
   echo "*** Some of your commit messages summaries are  ***";
   echo "*** longer than 72 characters.                  ***";
@@ -22,7 +23,7 @@ if git log --oneline | head -n 100 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
   echo "***                                             ***";
   echo "*** Commit messages:                            ***";
   echo;
-  git log --oneline | head -n 100 | cut -d ' ' -f2- | grep '.\{73\}'
+  git log --oneline HEAD~100..HEAD~1 | cut -d ' ' -f2- | grep '.\{73\}'
   echo;
   echo "***************************************************";
   exit 1;
