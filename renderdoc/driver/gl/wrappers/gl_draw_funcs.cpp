@@ -518,7 +518,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
       draw.vertexOffset = 0;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
 
@@ -658,7 +658,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
       draw.vertexOffset = 0;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
 
@@ -1599,7 +1599,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
       draw.vertexOffset = 0;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
