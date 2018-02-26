@@ -1105,6 +1105,15 @@ void MainWindow::PopulateRecentCaptureSettings()
   ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Capture_Settings_History);
 }
 
+void MainWindow::on_action_Clear_Reported_Bugs_triggered()
+{
+  ui->menu_Reported_Bugs->clear();
+  ui->menu_Reported_Bugs->setEnabled(false);
+
+  m_Ctx.Config().CrashReport_ReportedBugs.clear();
+  m_Ctx.Config().Save();
+}
+
 void MainWindow::PopulateReportedBugs()
 {
   ui->menu_Reported_Bugs->clear();

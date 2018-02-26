@@ -139,6 +139,7 @@ private slots:
   void on_action_Resource_Inspector_triggered();
   void on_action_Send_Error_Report_triggered();
   void on_action_Check_for_Updates_triggered();
+  void on_action_Clear_Reported_Bugs_triggered();
 
   // manual slots
   void saveLayout_triggered();
