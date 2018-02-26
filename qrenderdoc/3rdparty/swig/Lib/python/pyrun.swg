@@ -511,6 +511,7 @@ SwigPyObject_type(void) {
 
 SWIGRUNTIMEINLINE int
 SwigPyObject_Check(PyObject *op) {
+  if (op == NULL) return 0;
 #ifdef SWIGPYTHON_BUILTIN
   PyTypeObject *target_tp = SwigPyObject_type();
   if (PyType_IsSubtype(op->ob_type, target_tp))
