@@ -175,7 +175,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   const DrawcallDescription *drawcall = m_pDevice->GetDrawcall(eventId);
 
-  if(drawcall->numIndices == 0)
+  if(drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
   DXBC::DXBCFile *dxbcVS = vs->GetDXBC();

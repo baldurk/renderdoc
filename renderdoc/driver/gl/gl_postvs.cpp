@@ -164,7 +164,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
 
-  if(drawcall->numIndices == 0)
+  if(drawcall->numIndices == 0 ||
+     ((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances == 0))
   {
     // draw is 0 length, nothing to do
     m_PostVSData[eventId] = GLPostVSData();
