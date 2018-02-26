@@ -74,6 +74,9 @@ struct Vec4u
 
 #define OPENGL 1
 
+#define FONT_UBOS
+#define HISTOGRAM_UBOS
+
 #ifdef GL_ES
 #define OPENGL_ES 1
 #endif
@@ -95,23 +98,6 @@ precision PRECISION int;
 #endif
 
 #endif
-
-BINDING(2) uniform HistogramUBOData
-{
-  uint HistogramChannels;
-  float HistogramMin;
-  float HistogramMax;
-  uint HistogramFlags;
-
-  float HistogramSlice;
-  int HistogramMip;
-  int HistogramSample;
-  int HistogramNumSamples;
-
-  vec3 HistogramTextureResolution;
-  float Padding3;
-}
-INST_NAME(histogram_minmax);
 
 BINDING(0) uniform MeshUBOData
 {
@@ -135,6 +121,32 @@ BINDING(0) uniform OutlineUBOData
   vec3 padding;
 }
 INST_NAME(outline);
+
+BINDING(0) uniform TexDisplayUBOData
+{
+  vec2 Position;
+  float Scale;
+  float HDRMul;
+
+  vec4 Channels;
+
+  float RangeMinimum;
+  float InverseRangeSize;
+  int MipLevel;
+  int FlipY;
+
+  vec3 TextureResolutionPS;
+  int OutputDisplayFormat;
+
+  vec2 OutputRes;
+  int RawOutput;
+  float Slice;
+
+  int SampleIdx;
+  float MipShift;
+  vec2 Padding;
+}
+INST_NAME(texdisplay);
 
 BINDING(0) uniform FontUBOData
 {
@@ -166,6 +178,11 @@ BINDING(0) uniform MeshPickUBOData
 }
 INST_NAME(meshpick);
 
+// the ARM driver is buggy and crashes if we declare UBOs that don't correspond to descriptors,
+// even if they are completely unused. So we need to #define out these global UBOs
+
+#if defined(FONT_UBOS) || defined(__cplusplus)
+
 struct FontGlyphData
 {
   vec4 posdata;
@@ -189,31 +206,28 @@ BINDING(2) uniform StringUBOData
 }
 INST_NAME(str);
 
-BINDING(0) uniform TexDisplayUBOData
+#endif
+
+#if defined(HISTOGRAM_UBOS) || defined(__cplusplus)
+
+BINDING(2) uniform HistogramUBOData
 {
-  vec2 Position;
-  float Scale;
-  float HDRMul;
+  uint HistogramChannels;
+  float HistogramMin;
+  float HistogramMax;
+  uint HistogramFlags;
 
-  vec4 Channels;
+  float HistogramSlice;
+  int HistogramMip;
+  int HistogramSample;
+  int HistogramNumSamples;
 
-  float RangeMinimum;
-  float InverseRangeSize;
-  int MipLevel;
-  int FlipY;
-
-  vec3 TextureResolutionPS;
-  int OutputDisplayFormat;
-
-  vec2 OutputRes;
-  int RawOutput;
-  float Slice;
-
-  int SampleIdx;
-  float MipShift;
-  vec2 Padding;
+  vec3 HistogramTextureResolution;
+  float Padding3;
 }
-INST_NAME(texdisplay);
+INST_NAME(histogram_minmax);
+
+#endif
 
 // some constants available to both C++ and GLSL for configuring display
 #define CUBEMAP_FACE_POS_X 0

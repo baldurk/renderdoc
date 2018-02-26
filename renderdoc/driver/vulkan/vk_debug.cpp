@@ -2238,6 +2238,7 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
       defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
       defines += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
+      defines += "#define HISTOGRAM_UBOS\n";
 
       GenerateGLSLShader(sources, eShaderVulkan, defines, GetEmbeddedResource(glsl_histogram_comp),
                          430);
