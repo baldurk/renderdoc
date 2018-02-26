@@ -45,8 +45,6 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
   m_pDevice = wrapper;
   m_pImmediateContext = wrapper->GetImmediateContext();
 
-  m_pDevice->InternalRef();
-
   m_pDevice->GetShaderCache()->SetCaching(true);
 
   // create things needed both during capture and replay
@@ -69,8 +67,6 @@ D3D11DebugManager::~D3D11DebugManager()
     elem.Release();
     m_ShaderItemCache.pop_back();
   }
-
-  m_pDevice->InternalRelease();
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -139,25 +135,35 @@ void D3D11DebugManager::InitCommonResources()
 
   CopyMSToArrayPS =
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
+  m_pDevice->InternalRef();
   CopyArrayToMSPS =
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
+  m_pDevice->InternalRef();
   FloatCopyMSToArrayPS =
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
+  m_pDevice->InternalRef();
   FloatCopyArrayToMSPS =
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
+  m_pDevice->InternalRef();
   DepthCopyMSToArrayPS =
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
+  m_pDevice->InternalRef();
   DepthCopyArrayToMSPS =
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
+  m_pDevice->InternalRef();
 
   std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
   displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
   displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
 
   MSArrayCopyVS = shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+  m_pDevice->InternalRef();
 
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
+  {
     PublicCBuffers[i] = MakeCBuffer(sizeof(float) * 4 * 100);
+    m_pDevice->InternalRef();
+  }
 
   publicCBufIdx = 0;
 }
@@ -248,17 +254,29 @@ void D3D11DebugManager::ShutdownResources()
   SAFE_RELEASE(PredicateDSV);
 
   SAFE_RELEASE(CopyMSToArrayPS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(CopyArrayToMSPS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(FloatCopyMSToArrayPS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(FloatCopyArrayToMSPS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(DepthCopyMSToArrayPS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(DepthCopyArrayToMSPS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(PixelHistoryUnusedCS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(PixelHistoryCopyCS);
+  m_pDevice->InternalRelease();
+
+  SAFE_RELEASE(MSArrayCopyVS);
+  m_pDevice->InternalRelease();
 
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
   {
     SAFE_RELEASE(PublicCBuffers[i]);
+    m_pDevice->InternalRelease();
   }
 }
 

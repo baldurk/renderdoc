@@ -26,6 +26,9 @@
 
 #include "driver/dx/official/d3d11_4.h"
 
+class WrappedID3D11Device;
+class WrappedID3D11DeviceContext;
+
 class D3D11TextRenderer
 {
 public:
@@ -47,8 +50,8 @@ private:
   int m_width = 1, m_height = 1;
   float m_supersamplingX = 1.0f, m_supersamplingY = 1.0f;
 
-  ID3D11Device *m_pDevice = NULL;
-  ID3D11DeviceContext *m_pImmediateContext = NULL;
+  WrappedID3D11Device *m_pDevice = NULL;
+  WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
 
   void RenderTextInternal(float x, float y, const char *text);
 

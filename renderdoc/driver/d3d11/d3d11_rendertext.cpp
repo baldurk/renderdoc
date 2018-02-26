@@ -37,7 +37,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D11TextRenderer));
 
   m_pDevice = wrapper;
-  m_pDevice->GetImmediateContext(&m_pImmediateContext);
+  m_pImmediateContext = m_pDevice->GetImmediateContext();
 
   HRESULT hr = S_OK;
 
@@ -60,6 +60,8 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   if(FAILED(hr))
     RDCERR("Failed to create font blendstate HRESULT: %s", ToStr(hr).c_str());
 
+  m_pDevice->InternalRef();
+
   D3D11_SAMPLER_DESC sampDesc;
   RDCEraseEl(sampDesc);
 
@@ -74,6 +76,8 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
 
   if(FAILED(hr))
     RDCERR("Failed to create linear sampler state HRESULT: %s", ToStr(hr).c_str());
+
+  m_pDevice->InternalRef();
 
   D3D11_TEXTURE2D_DESC desc;
   RDCEraseEl(desc);
@@ -130,12 +134,16 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   if(FAILED(hr))
     RDCERR("Failed to create debugTex HRESULT: %s", ToStr(hr).c_str());
 
+  m_pDevice->InternalRef();
+
   delete[] buf;
 
   hr = m_pDevice->CreateShaderResourceView(debugTex, NULL, &Tex);
 
   if(FAILED(hr))
     RDCERR("Failed to create Tex HRESULT: %s", ToStr(hr).c_str());
+
+  m_pDevice->InternalRef();
 
   SAFE_RELEASE(debugTex);
 
@@ -154,6 +162,8 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
 
   if(FAILED(hr))
     RDCERR("Failed to create font GlyphData HRESULT: %s", ToStr(hr).c_str());
+
+  m_pDevice->InternalRef();
 
   for(int i = 0; i < numChars; i++)
   {
@@ -188,11 +198,15 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   if(FAILED(hr))
     RDCERR("Failed to create font CBuffer HRESULT: %s", ToStr(hr).c_str());
 
+  m_pDevice->InternalRef();
+
   cbufDesc.ByteWidth = (2 + FONT_MAX_CHARS) * sizeof(uint32_t) * 4;
   hr = m_pDevice->CreateBuffer(&cbufDesc, NULL, &CharBuffer);
 
   if(FAILED(hr))
     RDCERR("Failed to create font CharBuffer HRESULT: %s", ToStr(hr).c_str());
+
+  m_pDevice->InternalRef();
 
   std::string fullhlsl = "";
   {
@@ -207,7 +221,9 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   shaderCache->SetCaching(true);
 
   VS = shaderCache->MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0");
+  m_pDevice->InternalRef();
   PS = shaderCache->MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
+  m_pDevice->InternalRef();
 
   shaderCache->SetCaching(false);
 }
@@ -215,15 +231,21 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
 D3D11TextRenderer::~D3D11TextRenderer()
 {
   SAFE_RELEASE(Tex);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(LinearSampler);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(BlendState);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(CBuffer);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(GlyphData);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(CharBuffer);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(VS);
+  m_pDevice->InternalRelease();
   SAFE_RELEASE(PS);
-
-  SAFE_RELEASE(m_pImmediateContext);
+  m_pDevice->InternalRelease();
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);

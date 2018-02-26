@@ -759,6 +759,8 @@ WrappedOpenGL::~WrappedOpenGL()
 
   SAFE_DELETE(m_FrameReader);
 
+  GetResourceManager()->ClearReferencedResources();
+
   GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
   GetResourceManager()->ReleaseCurrentResource(m_ContextResourceID);
 

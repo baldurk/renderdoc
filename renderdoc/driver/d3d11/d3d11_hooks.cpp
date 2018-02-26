@@ -306,7 +306,13 @@ private:
       RDCDEBUG("created wrapped device.");
 
       *ppDevice = wrap;
-      wrap->GetImmediateContext(ppImmediateContext);
+
+      if(ppImmediateContext)
+      {
+        if(*ppImmediateContext)
+          (*ppImmediateContext)->Release();
+        wrap->GetImmediateContext(ppImmediateContext);
+      }
 
       if(ppSwapChain && *ppSwapChain)
         *ppSwapChain = new WrappedIDXGISwapChain4(

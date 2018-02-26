@@ -242,6 +242,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   m_CachedStateObjects.clear();
 
+  GetResourceManager()->ClearReferencedResources();
+
   SAFE_RELEASE(m_pDevice1);
   SAFE_RELEASE(m_pDevice2);
   SAFE_RELEASE(m_pDevice3);
