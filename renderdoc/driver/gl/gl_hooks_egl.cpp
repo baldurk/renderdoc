@@ -435,7 +435,9 @@ bool EGLHook::CreateHooks(const char *libName)
     PosixHookLibrary("libGLESv2.so.2", NULL);
     PosixHookLibrary("libGLESv3.so", NULL);
 
+#if ENABLED(RDOC_ANDROID)
     return true;
+#endif
   }
 
   bool success = PopulateHooks();
