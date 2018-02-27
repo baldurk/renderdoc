@@ -1421,6 +1421,15 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       m_ModelVSOut->primRestart = m_ModelVSIn->primRestart;
     }
   }
+  else
+  {
+    QString errors;
+    QList<FormatElement> cols = FormatElement::ParseFormatString(m_Format, 0, true, errors);
+
+    ClearModels();
+
+    m_ModelVSIn->columns = cols;
+  }
 
   EnableCameraGuessControls();
 
