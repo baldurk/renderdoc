@@ -1733,7 +1733,6 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkClearValue &el)
 {
   SERIALISE_MEMBER(color);
-  SERIALISE_MEMBER(depthStencil);
 }
 
 template <typename SerialiserType>
