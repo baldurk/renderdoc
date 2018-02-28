@@ -162,6 +162,17 @@
                   <File Id='virtualcontextEXE' Name='VirtualContext.exe' DiskId='1' Source='dist/Release64/plugins/amd/isa/VirtualContext.exe' />
                 </Component>
               </Directory>
+
+              <Directory Id='plugins_amd_counters' Name='counters'>
+                <Component Id='gpa_plugin' Win64="yes" Guid='F248EE26-5919-4F9B-8727-6C2CEFA0DC2C'>
+                  <File Id='GPUPerfAPICountersx64' Name='GPUPerfAPICounters-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/counters/GPUPerfAPICounters-x64.dll' KeyPath='yes' />
+                  <File Id='GPUPerfAPIDX11x64' Name='GPUPerfAPIDX11-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/counters/GPUPerfAPIDX11-x64.dll' />
+                  <File Id='GPUPerfAPIDX12x64' Name='GPUPerfAPIDX12-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/counters/GPUPerfAPIDX12-x64.dll' />
+                  <File Id='GPUPerfAPIDXGetAMDDeviceInfox64' Name='GPUPerfAPIDXGetAMDDeviceInfo-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/counters/GPUPerfAPIDXGetAMDDeviceInfo-x64.dll' />
+                  <File Id='GPUPerfAPIGLx64' Name='GPUPerfAPIGL-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/counters/GPUPerfAPIGL-x64.dll' />
+                  <File Id='GPUPerfAPIVKx64' Name='GPUPerfAPIVK-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/counters/GPUPerfAPIVK-x64.dll' />
+                </Component>
+              </Directory>
             </Directory>
 
             <Directory Id='plugins_android' Name='android'>
@@ -327,6 +338,7 @@
         <ComponentRef Id='LICENSE' />
 
         <ComponentRef Id='gcn_plugin' />
+        <ComponentRef Id='gpa_plugin' />
         <ComponentRef Id='android_plugin' />
         <ComponentRef Id='spirv_plugin' />
 
