@@ -50,10 +50,8 @@ vector<GPUCounter> D3D11Replay::EnumerateCounters()
 
   if(m_pAMDCounters)
   {
-    for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
-    {
-      ret.push_back(MakeAMDCounter(i));
-    }
+    vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
+    ret.insert(ret.end(), amdCounters.begin(), amdCounters.end());
   }
 
   return ret;
@@ -65,7 +63,7 @@ CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
   desc.counter = counterID;
 
   /////AMD//////
-  if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
+  if(IsAMDCounter(counterID))
   {
     if(m_pAMDCounters)
     {
@@ -244,7 +242,7 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
 
     m_pDevice->ReplayLog(ctx.eventStart, d.eventId, eReplay_WithoutDraw);
 
-    m_pImmediateContext->Flush();
+    SerializeImmediateContext();
 
     if(timer->stats)
       m_pImmediateContext->Begin(timer->stats);
@@ -262,6 +260,44 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
 
     ctx.eventStart = d.eventId + 1;
   }
+}
+
+void D3D11Replay::SerializeImmediateContext()
+{
+  ID3D11Query *query = 0;
+  D3D11_QUERY_DESC desc = {D3D11_QUERY_EVENT};
+
+  HRESULT hr = m_pDevice->CreateQuery(&desc, &query);
+  if(FAILED(hr))
+  {
+    return;
+  }
+
+  BOOL completed = FALSE;
+
+  m_pImmediateContext->End(query);
+
+  m_pImmediateContext->Flush();
+
+  do
+  {
+    hr = m_pImmediateContext->GetData(query, &completed, sizeof(BOOL), 0);
+    if(hr == S_FALSE)
+    {
+      ::Sleep(0);
+    }
+    else if(SUCCEEDED(hr) && completed)
+    {
+      break;
+    }
+    else
+    {
+      // error
+      break;
+    }
+  } while(!completed);
+
+  query->Release();
 }
 
 void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
@@ -283,7 +319,7 @@ void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
 
     m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
 
-    m_pImmediateContext->Flush();
+    SerializeImmediateContext();
 
     m_pAMDCounters->BeginSample(sampleIndex);
 
@@ -307,7 +343,7 @@ vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &co
   {
     // This function is only called internally, and violating this assertion means our
     // caller has invoked this method incorrectly
-    RDCASSERT((counters[i] >= (GPUCounter::FirstAMD)) && (counters[i] < (GPUCounter::FirstIntel)));
+    RDCASSERT(IsAMDCounter(counters[i]));
     m_pAMDCounters->EnableCounter(counters[i]);
   }
 
@@ -336,83 +372,7 @@ vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &co
 
   m_pAMDCounters->EndSesssion();
 
-  bool isReady = false;
-
-  do
-  {
-    isReady = m_pAMDCounters->IsSessionReady(sessionID);
-  } while(!isReady);
-
-  for(uint32_t s = 0; s < sampleIndex; s++)
-  {
-    for(size_t c = 0; c < counters.size(); c++)
-    {
-      const CounterDescription desc = m_pAMDCounters->GetCounterDescription(counters[c]);
-
-      switch(desc.resultType)
-      {
-        case CompType::UInt:
-        {
-          if(desc.resultByteWidth == sizeof(uint32_t))
-          {
-            uint32_t value = m_pAMDCounters->GetSampleUint32(sessionID, s, counters[c]);
-
-            if(desc.unit == CounterUnit::Percentage)
-            {
-              value = RDCCLAMP(value, 0U, 100U);
-            }
-
-            ret.push_back(CounterResult(eventIDs[s], counters[c], value));
-          }
-          else if(desc.resultByteWidth == sizeof(uint64_t))
-          {
-            uint64_t value = m_pAMDCounters->GetSampleUint64(sessionID, s, counters[c]);
-
-            if(desc.unit == CounterUnit::Percentage)
-            {
-              value = RDCCLAMP(value, 0ULL, 100ULL);
-            }
-
-            ret.push_back(
-
-                CounterResult(eventIDs[s], counters[c], value));
-          }
-          else
-          {
-            RDCERR("Unexpected byte width %u", desc.resultByteWidth);
-          }
-        }
-        break;
-        case CompType::Float:
-        {
-          float value = m_pAMDCounters->GetSampleFloat32(sessionID, s, counters[c]);
-
-          if(desc.unit == CounterUnit::Percentage)
-          {
-            value = RDCCLAMP(value, 0.0f, 100.0f);
-          }
-
-          ret.push_back(CounterResult(eventIDs[s], counters[c], value));
-        }
-        break;
-        case CompType::Double:
-        {
-          double value = m_pAMDCounters->GetSampleFloat64(sessionID, s, counters[c]);
-
-          if(desc.unit == CounterUnit::Percentage)
-          {
-            value = RDCCLAMP(value, 0.0, 100.0);
-          }
-
-          ret.push_back(CounterResult(eventIDs[s], counters[c], value));
-        }
-        break;
-        default: RDCASSERT(0); break;
-      };
-    }
-  }
-
-  return ret;
+  return m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
 }
 
 vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &counters)
@@ -429,15 +389,14 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
 
   vector<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
-               [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
+               [](const GPUCounter &c) { return !IsAMDCounter(c); });
 
   if(m_pAMDCounters)
   {
     // Filter out the AMD counters
     vector<GPUCounter> amdCounters;
-    std::copy_if(
-        counters.begin(), counters.end(), std::back_inserter(amdCounters),
-        [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
+    std::copy_if(counters.begin(), counters.end(), std::back_inserter(amdCounters),
+                 [](const GPUCounter &c) { return IsAMDCounter(c); });
 
     if(!amdCounters.empty())
     {

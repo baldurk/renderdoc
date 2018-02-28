@@ -24,9 +24,8 @@
     typedef unsigned short   gpa_uint16;
     typedef unsigned int     gpa_uint32;
     typedef unsigned __int64 gpa_uint64;
-#endif // _WIN32
 
-#ifdef __linux__
+#elif defined(__linux__)
 
     #ifndef GPALIB_DECL
         #ifdef __cplusplus
@@ -57,7 +56,18 @@
     #define strcat_s(dst, ndst, src) strcat(dst, src)
     #define strtok_s(a, b, c) strtok(a, b)
 
-#endif // __linux__
+#else
+    typedef int8_t   gpa_int8;
+    typedef int16_t  gpa_int16;
+    typedef int32_t  gpa_int32;
+    typedef int64_t  gpa_int64;
+    typedef float    gpa_float32;
+    typedef double   gpa_float64;
+    typedef uint8_t  gpa_uint8;
+    typedef uint16_t gpa_uint16;
+    typedef uint32_t gpa_uint32;
+    typedef uint64_t gpa_uint64;
+#endif
 
 // Limit definitions
 /// macro for max int8

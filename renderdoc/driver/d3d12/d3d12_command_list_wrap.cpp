@@ -75,6 +75,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
         for(int i = 0; i < markerCount; i++)
           D3D12MarkerRegion::End(list);
 
+        if(m_Cmd->m_DrawcallCallback)
+          m_Cmd->m_DrawcallCallback->PreCloseCommandList(list);
+
         list->Close();
 
         if(m_Cmd->m_Partial[D3D12CommandData::Primary].partialParent == CommandList)
