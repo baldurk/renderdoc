@@ -135,6 +135,11 @@ DOCUMENT(R"(Bitfield flags that could be applied to a type.
 
   Special flag to indicate that this is array was a fixed-size real array, rather than a complex
   container type or a pointer & length.
+
+.. data:: Union
+
+  Special flag to indicate that this is structure is stored as a union, meaning all children share
+  the same memory and some external flag indicates which element is valid.
 )");
 enum class SDTypeFlags : uint32_t
 {
@@ -144,6 +149,7 @@ enum class SDTypeFlags : uint32_t
   Nullable = 0x4,
   NullString = 0x8,
   FixedArray = 0x10,
+  Union = 0x20,
 };
 
 BITMASK_OPERATORS(SDTypeFlags);

@@ -1719,6 +1719,8 @@ void DoSerialise(SerialiserType &ser, VkImageResolve &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkClearColorValue &el)
 {
+  SERIALISE_MEMBER(float32);
+  SERIALISE_MEMBER(int32);
   SERIALISE_MEMBER(uint32);
 }
 

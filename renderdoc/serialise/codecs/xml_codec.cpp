@@ -205,6 +205,12 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
   if(child.type.flags & SDTypeFlags::NullString)
     obj.append_attribute("nullstring") = true;
 
+  if(child.type.flags & SDTypeFlags::FixedArray)
+    obj.append_attribute("fixedarray") = true;
+
+  if(child.type.flags & SDTypeFlags::Union)
+    obj.append_attribute("union") = true;
+
   if(child.type.basetype == SDBasic::Chunk)
   {
     RDCFATAL("Nested chunks!");
@@ -426,6 +432,12 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
 
   if(obj.attribute("nullable"))
     ret->type.flags |= SDTypeFlags::Nullable;
+
+  if(obj.attribute("fixedarray"))
+    ret->type.flags |= SDTypeFlags::FixedArray;
+
+  if(obj.attribute("union"))
+    ret->type.flags |= SDTypeFlags::Union;
 
   if(obj.attribute("typename"))
     ret->type.name = obj.attribute("typename").as_string();

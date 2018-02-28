@@ -195,6 +195,8 @@ public:
 
       SDObject &obj = *m_StructureStack.back();
       obj.type.byteSize = sizeof(T);
+      if(std::is_union<T>::value)
+        obj.type.flags |= SDTypeFlags::Union;
     }
 
     SerialiseDispatch<Serialiser, T>::Do(*this, el);
@@ -553,6 +555,8 @@ public:
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
         obj.type.byteSize = sizeof(T);
+        if(std::is_union<T>::value)
+          obj.type.flags |= SDTypeFlags::Union;
 
         // Check against the serialised count here - on read if we don't have the right size this
         // means we won't read past the provided data.
@@ -684,6 +688,8 @@ public:
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
         obj.type.byteSize = sizeof(T);
+        if(std::is_union<T>::value)
+          obj.type.flags |= SDTypeFlags::Union;
 
         SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
 
@@ -1118,6 +1124,8 @@ public:
         SDObject &nullable = *parent.data.children.back();
 
         nullable.type.flags |= SDTypeFlags::Nullable;
+        if(std::is_union<T>::value)
+          nullable.type.flags |= SDTypeFlags::Union;
       }
       else
       {
@@ -1129,6 +1137,8 @@ public:
         nullable.type.basetype = SDBasic::Null;
         nullable.type.byteSize = 0;
         nullable.type.flags |= SDTypeFlags::Nullable;
+        if(std::is_union<T>::value)
+          nullable.type.flags |= SDTypeFlags::Union;
       }
     }
     else
