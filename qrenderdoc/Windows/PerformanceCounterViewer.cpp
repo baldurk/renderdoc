@@ -265,6 +265,10 @@ void PerformanceCounterViewer::OnCaptureClosed()
 {
   ui->captureCounters->setEnabled(false);
   ui->saveCSV->setEnabled(false);
+
+  ui->counterResults->clearContents();
+  ui->counterResults->setRowCount(0);
+  ui->counterResults->setColumnCount(1);
 }
 
 void PerformanceCounterViewer::OnCaptureLoaded()
