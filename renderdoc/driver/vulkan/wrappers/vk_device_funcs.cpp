@@ -162,6 +162,19 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
   AddRequiredExtensions(true, params.Extensions, supportedExtensions);
 
+  if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) ==
+     supportedExtensions.end())
+  {
+    RDCWARN("Unsupported required instance extension for AMD performance counters '%s'",
+            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+  }
+  else
+  {
+    if(std::find(params.Extensions.begin(), params.Extensions.end(),
+                 VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == params.Extensions.end())
+      params.Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+  }
+
   // verify that extensions & layers are supported
   for(size_t i = 0; i < params.Layers.size(); i++)
   {
@@ -980,19 +993,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     {
       Extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
       RDCLOG("Enabling VK_EXT_debug_marker");
-    }
-
-    if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) ==
-       supportedExtensions.end())
-    {
-      RDCWARN("Unsupported required instance extension for AMD performance counters '%s'",
-              VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    }
-    else
-    {
-      if(std::find(Extensions.begin(), Extensions.end(),
-                   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == Extensions.end())
-        Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     }
 
     // enable VK_EXT_debug_marker if it's available, to fetch shader disassembly
