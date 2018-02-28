@@ -86,7 +86,6 @@ public:
 
 private:
   _GPAApi *m_pGPUPerfAPI;
-  std::string FormatErrMessage(const char *operation, uint32_t status);
   bool IsSessionReady(uint32_t sessionIndex);
 
   uint32_t GetSampleUint32(uint32_t session, uint32_t sample, GPUCounter counter);
