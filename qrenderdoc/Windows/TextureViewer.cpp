@@ -1971,7 +1971,12 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
 
     int arrayLen = resArray != NULL ? resArray->count() : 1;
 
-    for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
+    // it's too expensive in bindless-type cases to create a thumbnail for every array element, so
+    // for now we create one just for the first element and add an array size indicator to the slot
+    // name
+    // for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
+    int arrayIdx = 0;
+
     {
       ResourceId id = resArray != NULL ? resArray->at(arrayIdx).resourceId : ResourceId();
       CompType typeHint = resArray != NULL ? resArray->at(arrayIdx).typeHint : CompType::Typeless;
@@ -2002,7 +2007,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
                              .arg(idx);
 
       if(arrayLen > 1)
-        slotName += QFormatStr("[%1]").arg(arrayIdx);
+        slotName += QFormatStr(" Arr[%1]").arg(arrayLen);
 
       if(copy)
         slotName = tr("SRC");
