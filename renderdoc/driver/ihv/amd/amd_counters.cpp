@@ -55,6 +55,9 @@ static void GPA_LoggingCallback(GPA_Logging_Type messageType, const char *pMessa
 #define GPA_ERROR(text, status) \
   RDCERR(text ". %s", m_pGPUPerfAPI->GPA_GetStatusAsStr((GPA_Status)status));
 
+#define GPA_WARNING(text, status) \
+  RDCWARN(text ". %s", m_pGPUPerfAPI->GPA_GetStatusAsStr((GPA_Status)status));
+
 AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL)
 {
 }
@@ -146,7 +149,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
       pContext, GPA_OPENCONTEXT_HIDE_SOFTWARE_COUNTERS_BIT | GPA_OPENCONTEXT_CLOCK_MODE_PEAK_BIT);
   if(AMD_FAILED(status))
   {
-    GPA_ERROR("Open context for counters failed", status);
+    GPA_WARNING("Open context for counters failed", status);
     m_pGPUPerfAPI->GPA_Destroy();
     delete m_pGPUPerfAPI;
     m_pGPUPerfAPI = NULL;
