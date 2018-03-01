@@ -362,7 +362,7 @@ DOCUMENT("Describes a texture to save and how to map it to the destination file 
 struct TextureSave
 {
   DOCUMENT("The :class:`ResourceId` of the texture to save.");
-  ResourceId id;
+  ResourceId resourceId;
 
   DOCUMENT("An optional :class:`CompType` hint to use when saving a typeless texture.");
   CompType typeHint = CompType::Typeless;

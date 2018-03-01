@@ -399,11 +399,11 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint
 bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path)
 {
   TextureSave sd = saveData;    // mutable copy
-  ResourceId liveid = m_pDevice->GetLiveID(sd.id);
+  ResourceId liveid = m_pDevice->GetLiveID(sd.resourceId);
 
   if(liveid == ResourceId())
   {
-    RDCERR("Couldn't get Live ID for %llu getting texture data", sd.id);
+    RDCERR("Couldn't get Live ID for %llu getting texture data", sd.resourceId);
     return false;
   }
 

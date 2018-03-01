@@ -3388,7 +3388,7 @@ void TextureViewer::on_saveTex_clicked()
     return;
 
   // overwrite save params with current texture display settings
-  m_SaveConfig.id = m_TexDisplay.resourceId;
+  m_SaveConfig.resourceId = m_TexDisplay.resourceId;
   m_SaveConfig.typeHint = m_TexDisplay.typeHint;
   m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
   m_SaveConfig.mip = (int)m_TexDisplay.mip;
@@ -3417,7 +3417,7 @@ void TextureViewer::on_saveTex_clicked()
         [this, &id](IReplayController *r) { id = m_Output->GetCustomShaderTexID(); });
 
     if(id != ResourceId())
-      m_SaveConfig.id = id;
+      m_SaveConfig.resourceId = id;
   }
 
   const ResourceId overlayTexID = m_Output->GetDebugOverlayTexID();
@@ -3430,7 +3430,7 @@ void TextureViewer::on_saveTex_clicked()
 
   if(saveDialog.saveOverlayInstead())
   {
-    m_SaveConfig.id = overlayTexID;
+    m_SaveConfig.resourceId = overlayTexID;
   }
 
   if(res)
