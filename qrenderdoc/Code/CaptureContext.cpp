@@ -160,7 +160,9 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
 
+#if defined(RELEASE)
   ANALYTIC_ADDAVG(Performance.LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
+#endif
 
   ANALYTIC_SET(CaptureFeatures.ShaderLinkage, m_APIProps.ShaderLinkage);
   ANALYTIC_SET(CaptureFeatures.YUVTextures, m_APIProps.YUVTextures);
