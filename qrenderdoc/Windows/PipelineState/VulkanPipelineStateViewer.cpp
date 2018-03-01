@@ -666,7 +666,7 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
           bindset,
           slotname,
           descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
-          descriptor.resourceResourceId,
+          descriptor.samplerResourceId,
           addressing,
           filter + lit(", ") + lod,
           QString()};
