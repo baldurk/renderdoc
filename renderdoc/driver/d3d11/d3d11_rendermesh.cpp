@@ -225,10 +225,10 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
     // we source all data from the first instanced value in the instanced case, so make sure we
     // offset correctly here.
-    if(cfg.position.instanced)
+    if(cfg.position.instanced && cfg.position.instStepRate)
       offs[0] += cfg.position.vertexByteStride * (cfg.curInstance / cfg.position.instStepRate);
 
-    if(cfg.second.instanced)
+    if(cfg.second.instanced && cfg.second.instStepRate)
       offs[1] += cfg.second.vertexByteStride * (cfg.curInstance / cfg.second.instStepRate);
 
     {
