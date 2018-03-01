@@ -95,7 +95,7 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   for(int i = 0; i < 5; i++)
   {
     Process::ProcessResult pidOutput =
-        adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", packageName.c_str()));
+        adbExecCommand(deviceID, StringFormat::Fmt("shell ps -A | grep %s", packageName.c_str()));
 
     std::string output = trim(pidOutput.strStdout);
     size_t space = output.find_first_of("\t ");
