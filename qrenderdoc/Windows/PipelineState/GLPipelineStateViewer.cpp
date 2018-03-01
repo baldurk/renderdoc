@@ -1852,23 +1852,23 @@ void GLPipelineStateViewer::setState()
   ui->stencils->clear();
   if(state.stencilState.stencilEnable)
   {
-    ui->stencils->addTopLevelItem(
-        new RDTreeWidgetItem({tr("Front"), ToQStr(state.stencilState.frontFace.function),
-                              ToQStr(state.stencilState.frontFace.failOperation),
-                              ToQStr(state.stencilState.frontFace.depthFailOperation),
-                              ToQStr(state.stencilState.frontFace.passOperation),
-                              Formatter::Format(state.stencilState.frontFace.writeMask, true),
-                              Formatter::Format(state.stencilState.frontFace.compareMask, true),
-                              Formatter::Format(state.stencilState.frontFace.reference, true)}));
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+        {tr("Front"), ToQStr(state.stencilState.frontFace.function),
+         ToQStr(state.stencilState.frontFace.failOperation),
+         ToQStr(state.stencilState.frontFace.depthFailOperation),
+         ToQStr(state.stencilState.frontFace.passOperation),
+         Formatter::Format((uint8_t)state.stencilState.frontFace.writeMask, true),
+         Formatter::Format((uint8_t)state.stencilState.frontFace.compareMask, true),
+         Formatter::Format((uint8_t)state.stencilState.frontFace.reference, true)}));
 
-    ui->stencils->addTopLevelItem(
-        new RDTreeWidgetItem({tr("Back"), ToQStr(state.stencilState.backFace.function),
-                              ToQStr(state.stencilState.backFace.failOperation),
-                              ToQStr(state.stencilState.backFace.depthFailOperation),
-                              ToQStr(state.stencilState.backFace.passOperation),
-                              Formatter::Format(state.stencilState.backFace.writeMask, true),
-                              Formatter::Format(state.stencilState.backFace.compareMask, true),
-                              Formatter::Format(state.stencilState.backFace.reference, true)}));
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+        {tr("Back"), ToQStr(state.stencilState.backFace.function),
+         ToQStr(state.stencilState.backFace.failOperation),
+         ToQStr(state.stencilState.backFace.depthFailOperation),
+         ToQStr(state.stencilState.backFace.passOperation),
+         Formatter::Format((uint8_t)state.stencilState.backFace.writeMask, true),
+         Formatter::Format((uint8_t)state.stencilState.backFace.compareMask, true),
+         Formatter::Format((uint8_t)state.stencilState.backFace.reference, true)}));
   }
   else
   {
