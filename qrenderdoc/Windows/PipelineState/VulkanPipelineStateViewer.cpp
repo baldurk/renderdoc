@@ -1271,19 +1271,21 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
 {
   ShaderReflection *shaderDetails = stage.reflection;
 
-  shader->setText(
-      QFormatStr("%1: %2").arg(ToQStr(pipe.pipelineResourceId)).arg(ToQStr(stage.resourceId)));
+  QString shText =
+      QFormatStr("%1: %2").arg(ToQStr(pipe.pipelineResourceId)).arg(ToQStr(stage.resourceId));
 
   if(shaderDetails != NULL)
   {
     QString entryFunc = shaderDetails->entryPoint;
-    if(!shaderDetails->debugInfo.files.isEmpty() || entryFunc != lit("main"))
-      shader->setText(entryFunc + lit("()"));
+
+    if(entryFunc != lit("main"))
+      shText += lit(": ") + entryFunc + lit("()");
 
     if(!shaderDetails->debugInfo.files.isEmpty())
-      shader->setText(entryFunc + lit("() - ") +
-                      QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName());
+      shText += lit(" - ") + QFileInfo(shaderDetails->debugInfo.files[0].filename).fileName();
   }
+
+  shader->setText(shText);
 
   int vs = 0;
 
