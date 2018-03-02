@@ -2544,9 +2544,10 @@ void TextureViewer::Reset()
 
   ui->statusText->setText(QString());
   ui->renderContainer->setWindowTitle(tr("Current"));
-  ui->zoomOption->setCurrentText(QString());
   ui->mipLevel->clear();
   ui->sliceFace->clear();
+
+  UI_SetScale(1.0f);
 
   ui->channels->setCurrentIndex(0);
   ui->overlay->setCurrentIndex(0);
