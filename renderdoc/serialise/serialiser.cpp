@@ -308,7 +308,11 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint3
       }
 
       if(c & ChunkDuration)
+      {
+        if(m_ChunkMetadata.durationMicro < 0)
+          m_ChunkMetadata.durationMicro = 0;
         m_Write->Write(m_ChunkMetadata.durationMicro);
+      }
 
       if(c & ChunkTimestamp)
       {
