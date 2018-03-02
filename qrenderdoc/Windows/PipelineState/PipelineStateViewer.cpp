@@ -717,14 +717,14 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
                                      const ShaderReflection *shaderDetails,
                                      const QString &entryFunc, const rdcstrpairs &files)
 {
-  ANALYTIC_SET(UIFeatures.ShaderEditing, true);
-
   IShaderViewer *sv = m_Ctx.EditShader(
       false, entryFunc, files,
       // save callback
       [entryFunc, shaderType, id, shaderDetails](ICaptureContext *ctx, IShaderViewer *viewer,
                                                  const rdcstrpairs &updatedfiles) {
         QString compileSource = updatedfiles[0].second;
+
+        ANALYTIC_SET(UIFeatures.ShaderEditing, true);
 
         // try and match up #includes against the files that we have. This isn't always
         // possible as fxc only seems to include the source for files if something in
