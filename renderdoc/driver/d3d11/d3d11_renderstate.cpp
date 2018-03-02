@@ -190,6 +190,10 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
       ctx->MarkResourceReferenced(GetIDForResource(sh->ConstantBuffers[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
 
+    for(UINT i = 0; i < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; i++)
+      ctx->MarkResourceReferenced(GetIDForResource(sh->Samplers[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
+
     for(UINT i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
     {
       if(sh->SRVs[i])
@@ -223,6 +227,15 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
     ctx->MarkResourceReferenced(GetIDForResource(SO.Buffers[i]),
                                 initial ? eFrameRef_Unknown : eFrameRef_Write);
+
+  ctx->MarkResourceReferenced(GetIDForResource(RS.State),
+                              initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+  ctx->MarkResourceReferenced(GetIDForResource(OM.BlendState),
+                              initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+  ctx->MarkResourceReferenced(GetIDForResource(OM.DepthStencilState),
+                              initial ? eFrameRef_Unknown : eFrameRef_Read);
 
   for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
