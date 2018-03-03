@@ -637,7 +637,7 @@ struct ConvertCommand : public Command
   {
     cmdline::oneof_reader<string> formatOptions;
     for(CaptureFileFormat f : m_Formats)
-      formatOptions.add(f.name);
+      formatOptions.add((std::string(f.extension) + " - ") + f.name.c_str());
 
     parser.add<string>("filename", 'f', "The file to convert from.", false);
     parser.add<string>("output", 'o', "The file to convert to.", false);
