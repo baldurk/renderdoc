@@ -5354,14 +5354,17 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
         draw.copySource = srcOrigID;
         draw.copyDestination = dstOrigID;
 
-        if(dstLiveID == srcLiveID)
+        if(m_CurEventID)
         {
-          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
-        }
-        else
-        {
-          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
-          m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          if(dstLiveID == srcLiveID)
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+          }
+          else
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+            m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          }
         }
       }
 
@@ -5504,14 +5507,17 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
         draw.copySource = srcOrigID;
         draw.copyDestination = dstOrigID;
 
-        if(dstLiveID == srcLiveID)
+        if(m_CurEventID)
         {
-          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
-        }
-        else
-        {
-          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
-          m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          if(dstLiveID == srcLiveID)
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+          }
+          else
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+            m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          }
         }
       }
 
@@ -6017,14 +6023,17 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
         draw.copySource = srcOrigID;
         draw.copyDestination = dstOrigID;
 
-        if(dstLiveID == srcLiveID)
+        if(m_CurEventID)
         {
-          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Resolve));
-        }
-        else
-        {
-          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
-          m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
+          if(dstLiveID == srcLiveID)
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Resolve));
+          }
+          else
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
+            m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
+          }
         }
       }
 
