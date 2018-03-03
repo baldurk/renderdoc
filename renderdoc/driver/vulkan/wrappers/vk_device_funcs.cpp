@@ -27,6 +27,20 @@
 #include "../vk_rendertext.h"
 #include "../vk_shader_cache.h"
 
+// intercept and overwrite the application info if present. We must use the same appinfo on
+// capture and replay, and the safer default is not to replay as if we were the original app but
+// with a slightly different workload. So instead we trample what the app reported and put in our
+// own info.
+static VkApplicationInfo renderdocAppInfo = {
+    VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    NULL,
+    "RenderDoc Capturing App",
+    VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
+    "RenderDoc",
+    VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
+    VK_API_VERSION_1_0,
+};
+
 // vk_dispatchtables.cpp
 void InitDeviceTable(VkDevice dev, PFN_vkGetDeviceProcAddr gpa);
 void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
@@ -95,9 +109,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 {
   m_InitParams = params;
   m_SectionVersion = sectionVersion;
-
-  params.AppName = string("RenderDoc @ ") + params.AppName;
-  params.EngineName = string("RenderDoc @ ") + params.EngineName;
 
   // PORTABILITY verify that layers/extensions are available
   StripUnwantedLayers(params.Layers);
@@ -211,21 +222,11 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   for(size_t i = 0; i < params.Extensions.size(); i++)
     extscstr[i] = params.Extensions[i].c_str();
 
-  VkApplicationInfo appinfo = {
-      VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      NULL,
-      params.AppName.c_str(),
-      params.AppVersion,
-      params.EngineName.c_str(),
-      params.EngineVersion,
-      VK_API_VERSION_1_0,
-  };
-
   VkInstanceCreateInfo instinfo = {
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       NULL,
       0,
-      &appinfo,
+      &renderdocAppInfo,
       (uint32_t)params.Layers.size(),
       layerscstr,
       (uint32_t)params.Extensions.size(),
@@ -406,6 +407,9 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   }
 
   modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
+
+  if(modifiedCreateInfo.pApplicationInfo)
+    modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
 
   VkResult ret = createFunc(&modifiedCreateInfo, pAllocator, pInstance);
 
