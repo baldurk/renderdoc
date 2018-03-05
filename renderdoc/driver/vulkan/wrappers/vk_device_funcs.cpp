@@ -191,7 +191,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   {
     if(supportedLayers.find(params.Layers[i]) == supportedLayers.end())
     {
-      RDCERR("Log requires layer '%s' which is not supported", params.Layers[i].c_str());
+      RDCERR("Capture requires layer '%s' which is not supported", params.Layers[i].c_str());
       return ReplayStatus::APIHardwareUnsupported;
     }
   }
@@ -200,7 +200,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   {
     if(supportedExtensions.find(params.Extensions[i]) == supportedExtensions.end())
     {
-      RDCERR("Log requires extension '%s' which is not supported", params.Extensions[i].c_str());
+      RDCERR("Capture requires extension '%s' which is not supported", params.Extensions[i].c_str());
       return ReplayStatus::APIHardwareUnsupported;
     }
   }
@@ -496,8 +496,11 @@ void WrappedVulkan::Shutdown()
     GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
 
   // destroy the pool
-  ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.cmdpool), NULL);
-  GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.cmdpool);
+  if(m_Device && m_InternalCmds.cmdpool)
+  {
+    ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.cmdpool), NULL);
+    GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.cmdpool);
+  }
 
   for(size_t i = 0; i < m_InternalCmds.freesems.size(); i++)
   {
@@ -521,7 +524,8 @@ void WrappedVulkan::Shutdown()
   SAFE_DELETE(m_DebugManager);
   SAFE_DELETE(m_ShaderCache);
 
-  if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgMsgCallback != VK_NULL_HANDLE)
+  if(m_Instance && ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT &&
+     m_DbgMsgCallback != VK_NULL_HANDLE)
     ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgMsgCallback, NULL);
 
   // need to store the unwrapped device and instance to destroy the
@@ -529,8 +533,8 @@ void WrappedVulkan::Shutdown()
   VkInstance inst = Unwrap(m_Instance);
   VkDevice dev = Unwrap(m_Device);
 
-  const VkLayerDispatchTable *vt = ObjDisp(m_Device);
-  const VkLayerInstanceDispatchTable *vit = ObjDisp(m_Instance);
+  const VkLayerDispatchTable *vt = m_Device != VK_NULL_HANDLE ? ObjDisp(m_Device) : NULL;
+  const VkLayerInstanceDispatchTable *vit = m_Instance != VK_NULL_HANDLE ? ObjDisp(m_Instance) : NULL;
 
   // this destroys the wrapped objects for the devices and instances
   m_ResourceManager->Shutdown();
@@ -551,8 +555,10 @@ void WrappedVulkan::Shutdown()
   m_QueueFamilies.clear();
 
   // finally destroy device then instance
-  vt->DestroyDevice(dev, NULL);
-  vit->DestroyInstance(inst, NULL);
+  if(vt)
+    vt->DestroyDevice(dev, NULL);
+  if(vit)
+    vit->DestroyInstance(inst, NULL);
 }
 
 void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *pAllocator)
@@ -628,7 +634,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     {
       VkDriverInfo capturedVersion(physProps);
 
-      RDCLOG("Captured log describes physical device %u:", PhysicalDeviceIndex);
+      RDCLOG("Capture describes physical device %u:", PhysicalDeviceIndex);
       RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
              capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
              physProps.vendorID, physProps.deviceID);
@@ -1027,7 +1033,16 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       extArray = new const char *[createInfo.enabledExtensionCount];
 
       for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
+      {
+        if(supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
+        {
+          m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+          RDCERR("Capture requires extension '%s' which is not supported", Extensions[i].c_str());
+          return false;
+        }
+
         extArray[i] = Extensions[i].c_str();
+      }
 
       createInfo.ppEnabledExtensionNames = extArray;
     }

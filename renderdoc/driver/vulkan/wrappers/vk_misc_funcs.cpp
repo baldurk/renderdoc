@@ -190,8 +190,8 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
     return true;
 
   // MULTIDEVICE need to get the actual device that created this object
-  VkDevice dev = GetDev();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  VkDevice dev = m_Device;
+  const VkLayerDispatchTable *vt = m_Device != VK_NULL_HANDLE ? ObjDisp(dev) : NULL;
 
   WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
   WrappedVkDispRes *disp = (WrappedVkDispRes *)res;

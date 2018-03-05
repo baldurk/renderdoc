@@ -355,9 +355,12 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(VkBuffer buf, MemorySc
 
 void WrappedVulkan::FreeAllMemory(MemoryScope scope)
 {
-  VkDevice d = GetDev();
-
   std::vector<MemoryAllocation> &allocList = m_MemoryBlocks[(size_t)scope];
+
+  if(allocList.empty())
+    return;
+
+  VkDevice d = GetDev();
 
   for(MemoryAllocation alloc : allocList)
   {

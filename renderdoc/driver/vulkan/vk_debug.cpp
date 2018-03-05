@@ -1414,7 +1414,8 @@ void VulkanReplay::DestroyResources()
 {
   ClearPostVSCache();
 
-  m_pDriver->vkDestroyDescriptorSetLayout(m_pDriver->GetDev(), m_MeshFetchDescSetLayout, NULL);
+  if(m_MeshFetchDescSetLayout)
+    m_pDriver->vkDestroyDescriptorSetLayout(m_pDriver->GetDev(), m_MeshFetchDescSetLayout, NULL);
 
   m_General.Destroy(m_pDriver);
   m_TexRender.Destroy(m_pDriver);
@@ -1458,6 +1459,9 @@ void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool des
 
 void VulkanReplay::GeneralMisc::Destroy(WrappedVulkan *driver)
 {
+  if(DescriptorPool == VK_NULL_HANDLE)
+    return;
+
   driver->vkDestroyDescriptorPool(driver->GetDev(), DescriptorPool, NULL);
   driver->vkDestroySampler(driver->GetDev(), PointSampler, NULL);
 }
@@ -1720,6 +1724,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
 void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
 {
+  if(DescSetLayout == VK_NULL_HANDLE)
+    return;
+
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), PipeLayout, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), Pipeline, NULL);
@@ -1866,6 +1873,9 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
 void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
 {
+  if(ImageMem == VK_NULL_HANDLE)
+    return;
+
   driver->vkFreeMemory(driver->GetDev(), ImageMem, NULL);
   driver->vkDestroyImage(driver->GetDev(), Image, NULL);
   driver->vkDestroyImageView(driver->GetDev(), ImageView, NULL);
@@ -1952,6 +1962,9 @@ void VulkanReplay::CheckerboardRendering::Init(WrappedVulkan *driver, VkDescript
 
 void VulkanReplay::CheckerboardRendering::Destroy(WrappedVulkan *driver)
 {
+  if(DescSetLayout == VK_NULL_HANDLE)
+    return;
+
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), PipeLayout, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), Pipeline, NULL);
@@ -2020,6 +2033,9 @@ void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool d
 
 void VulkanReplay::MeshRendering::Destroy(WrappedVulkan *driver)
 {
+  if(DescSetLayout == VK_NULL_HANDLE)
+    return;
+
   UBO.Destroy();
   BBoxVB.Destroy();
   AxisFrustumVB.Destroy();
@@ -2079,6 +2095,9 @@ void VulkanReplay::VertexPicking::Init(WrappedVulkan *driver, VkDescriptorPool d
 
 void VulkanReplay::VertexPicking::Destroy(WrappedVulkan *driver)
 {
+  if(DescSetLayout == VK_NULL_HANDLE)
+    return;
+
   UBO.Destroy();
   IB.Destroy();
   IBUpload.Destroy();
@@ -2192,6 +2211,9 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
 
 void VulkanReplay::PixelPicking::Destroy(WrappedVulkan *driver)
 {
+  if(Image == VK_NULL_HANDLE)
+    return;
+
   driver->vkDestroyImage(driver->GetDev(), Image, NULL);
   driver->vkFreeMemory(driver->GetDev(), ImageMem, NULL);
   driver->vkDestroyImageView(driver->GetDev(), ImageView, NULL);
@@ -2325,6 +2347,9 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
 void VulkanReplay::HistogramMinMax::Destroy(WrappedVulkan *driver)
 {
+  if(m_HistogramDescSetLayout == VK_NULL_HANDLE)
+    return;
+
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), m_HistogramDescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), m_HistogramPipeLayout, NULL);
 

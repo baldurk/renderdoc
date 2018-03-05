@@ -111,6 +111,9 @@ public:
 
   void Deallocate(void *p)
   {
+    if(p == NULL)
+      return;
+
     SCOPED_LOCK(m_Lock);
 
     // try immediate pool
