@@ -1219,7 +1219,7 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
       return;
   }
 
-  if(!forceCheck && checkDue)
+  if(!forceCheck && !checkDue)
   {
     if(callback)
       callback(UpdateResult::Toosoon);
