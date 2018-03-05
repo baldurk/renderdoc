@@ -270,6 +270,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
                   break;
                 }
               }
+              m_Ctx.Config().Save();
               PopulateReportedBugs();
             }
           });
@@ -1158,14 +1159,12 @@ void MainWindow::PopulateReportedBugs()
 
   if(unread)
   {
-    if(!m_Ctx.Config().CheckUpdate_UpdateAvailable)
-      ui->menu_Help->setIcon(Icons::bug());
+    ui->menu_Help->setIcon(Icons::bug());
     ui->menu_Reported_Bugs->setIcon(Icons::bug());
   }
   else
   {
-    if(!m_Ctx.Config().CheckUpdate_UpdateAvailable)
-      ui->menu_Help->setIcon(QIcon());
+    ui->menu_Help->setIcon(QIcon());
     ui->menu_Reported_Bugs->setIcon(QIcon());
   }
 }
