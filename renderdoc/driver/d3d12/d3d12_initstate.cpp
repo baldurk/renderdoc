@@ -441,7 +441,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         desc.MipLevels = 1;
         desc.SampleDesc.Count = 1;
         desc.SampleDesc.Quality = 0;
-        desc.Width = ContentsLength;
+        desc.Width = RDCMAX(ContentsLength, 64ULL);
 
         ID3D12Resource *copySrc = NULL;
         HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
@@ -692,7 +692,10 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
 
         if(copyDst->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         {
-          list->CopyBufferRegion(copyDst, 0, copySrc, 0, copySrc->GetDesc().Width);
+          D3D12_RESOURCE_DESC srcDesc = copySrc->GetDesc();
+          D3D12_RESOURCE_DESC dstDesc = copyDst->GetDesc();
+
+          list->CopyBufferRegion(copyDst, 0, copySrc, 0, RDCMIN(srcDesc.Width, dstDesc.Width));
         }
         else
         {
