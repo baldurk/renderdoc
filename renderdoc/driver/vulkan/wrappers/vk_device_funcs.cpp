@@ -26,6 +26,7 @@
 #include "../vk_debug.h"
 #include "../vk_rendertext.h"
 #include "../vk_shader_cache.h"
+#include "api/replay/version.h"
 
 // intercept and overwrite the application info if present. We must use the same appinfo on
 // capture and replay, and the safer default is not to replay as if we were the original app but
