@@ -497,7 +497,7 @@ void WrappedVulkan::Shutdown()
     GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
 
   // destroy the pool
-  if(m_Device && m_InternalCmds.cmdpool)
+  if(m_Device != VK_NULL_HANDLE && m_InternalCmds.cmdpool != VK_NULL_HANDLE)
   {
     ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.cmdpool), NULL);
     GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.cmdpool);

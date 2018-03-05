@@ -1414,7 +1414,7 @@ void VulkanReplay::DestroyResources()
 {
   ClearPostVSCache();
 
-  if(m_MeshFetchDescSetLayout)
+  if(m_MeshFetchDescSetLayout != VK_NULL_HANDLE)
     m_pDriver->vkDestroyDescriptorSetLayout(m_pDriver->GetDev(), m_MeshFetchDescSetLayout, NULL);
 
   m_General.Destroy(m_pDriver);
