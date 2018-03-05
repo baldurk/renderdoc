@@ -191,10 +191,13 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
       if(item->checkState(0) == Qt::Checked)
       {
         // Add
-        QListWidgetItem *listItem = new QListWidgetItem(ui->enabledCounters);
-        listItem->setText(item->text(0));
-        listItem->setData(CounterIdRole, d);
-        m_SelectedCounters.insert((GPUCounter)d.toUInt(), listItem);
+        if(!m_SelectedCounters.contains((GPUCounter)d.toUInt()))
+        {
+          QListWidgetItem *listItem = new QListWidgetItem(ui->enabledCounters);
+          listItem->setText(item->text(0));
+          listItem->setData(CounterIdRole, d);
+          m_SelectedCounters.insert((GPUCounter)d.toUInt(), listItem);
+        }
       }
       else
       {
