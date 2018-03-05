@@ -74,6 +74,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qrenderdoc_module", "qrende
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "version", "renderdoc\renderdoc_version.vcxproj", "{257FD75C-4D17-4A23-A754-23BFD85887A0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderdocui_stub", "qrenderdoc\renderdocui_stub.vcxproj", "{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Development|x64 = Development|x64
@@ -242,6 +244,14 @@ Global
 		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x64.Build.0 = Release|x64
 		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x86.ActiveCfg = Release|Win32
 		{257FD75C-4D17-4A23-A754-23BFD85887A0}.Release|x86.Build.0 = Release|Win32
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Development|x64.ActiveCfg = Development|x64
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Development|x64.Build.0 = Development|x64
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Development|x86.ActiveCfg = Development|Win32
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Development|x86.Build.0 = Development|Win32
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Release|x64.ActiveCfg = Release|x64
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Release|x64.Build.0 = Release|x64
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Release|x86.ActiveCfg = Release|Win32
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -273,5 +283,6 @@ Global
 		{A8998B2D-652A-47F8-955B-5654B222B4EB} = {A0E6051E-4374-42E0-9F3C-28DFC64A1029}
 		{61157930-78C3-4355-8B49-4CC91B98F17B} = {A0E6051E-4374-42E0-9F3C-28DFC64A1029}
 		{257FD75C-4D17-4A23-A754-23BFD85887A0} = {B5A783D9-AEB9-420D-8E77-D4D930F8D88C}
+		{37955C79-D91D-423F-8C6C-8F5BCF4F28D4} = {B5A783D9-AEB9-420D-8E77-D4D930F8D88C}
 	EndGlobalSection
 EndGlobal
