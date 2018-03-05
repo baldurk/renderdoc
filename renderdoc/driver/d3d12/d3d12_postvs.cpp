@@ -362,7 +362,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
       view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
-      view.SizeInBytes = m_SOBufferSize;
+      view.SizeInBytes = m_SOBufferSize - 64;
       list->SOSetTargets(0, 1, &view);
 
       list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -476,7 +476,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
       view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
-      view.SizeInBytes = m_SOBufferSize;
+      view.SizeInBytes = m_SOBufferSize - 64;
       list->SOSetTargets(0, 1, &view);
 
       list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -824,7 +824,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
-    view.SizeInBytes = m_SOBufferSize;
+    view.SizeInBytes = m_SOBufferSize - 64;
     // draws with multiple instances must be replayed one at a time so we can record the number of
     // primitives from each drawcall, as due to expansion this can vary per-instance.
     if(drawcall->numInstances > 1)
@@ -843,7 +843,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
-      view.SizeInBytes = m_SOBufferSize;
+      view.SizeInBytes = m_SOBufferSize - 64;
 
       // do a dummy draw to make sure we have enough space in the output buffer
       list->SOSetTargets(0, 1, &view);
@@ -896,10 +896,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         CreateSOBuffers();
       }
 
-      view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
-      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
-      view.SizeInBytes = m_SOBufferSize;
-
       GetDebugManager()->ResetDebugAlloc();
 
       // now do the actual stream out
@@ -935,8 +931,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       }
 
       // reserve space for enough 'buffer filled size' locations
-      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() +
-                            AlignUp(uint64_t(drawcall->numInstances * sizeof(UINT64)), 64ULL);
+      UINT64 SizeCounterBytes = AlignUp(uint64_t(drawcall->numInstances * sizeof(UINT64)), 64ULL);
+      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + SizeCounterBytes;
+      view.SizeInBytes = m_SOBufferSize - SizeCounterBytes;
 
       // do incremental draws to get the output size. We have to do this O(N^2) style because
       // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N instances
@@ -991,7 +988,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
         view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
         view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
-        view.SizeInBytes = m_SOBufferSize;
+        view.SizeInBytes = m_SOBufferSize - 64;
 
         list->SOSetTargets(0, 1, &view);
 
