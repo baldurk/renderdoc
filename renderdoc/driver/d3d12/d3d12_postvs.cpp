@@ -121,7 +121,7 @@ void D3D12Replay::CreateSOBuffers()
   counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
   counterDesc.Format = DXGI_FORMAT_R32_UINT;
   counterDesc.Buffer.FirstElement = 0;
-  counterDesc.Buffer.NumElements = 4;
+  counterDesc.Buffer.NumElements = UINT(m_SOBufferSize / sizeof(UINT));
 
   m_pDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
                                        GetDebugManager()->GetCPUHandle(STREAM_OUT_UAV));
@@ -915,12 +915,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
         list->ResourceBarrier(1, &sobarr);
 
-        D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
-        counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-        counterDesc.Format = DXGI_FORMAT_R32_UINT;
-        counterDesc.Buffer.FirstElement = 0;
-        counterDesc.Buffer.NumElements = 4;
-
         UINT zeroes[4] = {0, 0, 0, 0};
         list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
                                            GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV),
@@ -1072,12 +1066,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     list->DiscardResource(m_SOBuffer, NULL);
     list->ResourceBarrier(1, &sobarr);
-
-    D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
-    counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    counterDesc.Format = DXGI_FORMAT_R32_UINT;
-    counterDesc.Buffer.FirstElement = 0;
-    counterDesc.Buffer.NumElements = 4;
 
     UINT zeroes[4] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(STREAM_OUT_UAV),
