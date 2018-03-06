@@ -1310,7 +1310,14 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 #if defined(Q_OS_WIN32)
 
   std::wstring wideExe = QDir::toNativeSeparators(fullExecutablePath).toStdWString();
-  std::wstring wideParams = params.join(QLatin1Char(' ')).toStdWString();
+  std::wstring wideParams;
+
+  for(QString p : params)
+  {
+    wideParams += L"\"";
+    wideParams += p.toStdWString();
+    wideParams += L"\" ";
+  }
 
   SHELLEXECUTEINFOW info = {};
   info.cbSize = sizeof(info);
