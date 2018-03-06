@@ -241,6 +241,9 @@ struct UpgradeCommand : public Command
   {
     wstring wide_path = conv(parser.get<string>("path"));
 
+    if(wide_path.back() != '\\' && wide_path.back() != '/')
+      wide_path += L'\\';
+
     // Wait for UI to exit
     Sleep(3000);
 
