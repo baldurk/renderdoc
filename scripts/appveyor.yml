@@ -2,7 +2,6 @@ version: '{build}'
 
 branches:
   only:
-  - v0.x
   - v1.x
   - ci-test
 
