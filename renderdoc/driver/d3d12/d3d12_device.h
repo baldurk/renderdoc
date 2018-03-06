@@ -376,7 +376,6 @@ public:
 
   void RemoveQueue(WrappedID3D12CommandQueue* queue);
 
-
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
 
