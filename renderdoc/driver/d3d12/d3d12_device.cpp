@@ -47,7 +47,7 @@ void WrappedID3D12Device::RemoveQueue(WrappedID3D12CommandQueue* queue)
   if (it != m_Queues.end())
     m_Queues.erase(it);
   else
-    RDCERR("Unknown wrapped queue %llu being remvoed", queue);
+    RDCERR("Unknown wrapped queue %p being remvoed", queue);
 }
 
 std::string WrappedID3D12Device::GetChunkName(uint32_t idx)
