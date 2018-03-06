@@ -49,6 +49,9 @@ class Chunk;
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f);
 
+// this becomes non-NULL when we should capture.
+extern RENDERDOC_API_1_1_1 *ConverterAPI;
+
 struct ICrashHandler
 {
   virtual ~ICrashHandler() {}

@@ -3448,7 +3448,7 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
 // defined in gl_replay_<platform>.cpp
 ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
-static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);
+DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);
 
 #endif
 
@@ -3457,6 +3457,6 @@ static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateR
 // defined in gl_replay_egl.cpp
 ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
-static DriverRegistration GLESDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);
+DriverRegistration GLESDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);
 
 #endif

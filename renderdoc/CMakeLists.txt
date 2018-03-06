@@ -305,7 +305,7 @@ list(APPEND renderdoc_objects
     $<TARGET_OBJECTS:rdoc>
     ${data_objects})
 
-add_library(renderdoc SHARED ${renderdoc_objects})
+add_library(renderdoc STATIC ${renderdoc_objects})
 target_compile_definitions(renderdoc ${RDOC_DEFINITIONS})
 target_include_directories(renderdoc ${RDOC_INCLUDES})
 target_link_libraries(renderdoc ${RDOC_LIBRARIES})

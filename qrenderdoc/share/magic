@@ -1,7 +1,0 @@
-# Magic local data for file(1) command. Format is described in magic(5).
-# This can be added to ~/.magic or /etc/magic or anywhere else magic
-# data is sourced from.
-
-# RenderDoc
-0 string  RDOC  RenderDoc Capture File
-!:mime  application/x-renderdoc-capture

@@ -71,21 +71,14 @@ typedef uint32_t bool32;
 
 #if defined(RENDERDOC_PLATFORM_WIN32)
 
-#ifdef RENDERDOC_EXPORTS
-#define RENDERDOC_API __declspec(dllexport)
-#else
-#define RENDERDOC_API __declspec(dllimport)
-#endif
+#define RENDERDOC_API
+
 #define RENDERDOC_CC __cdecl
 
 #elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
     defined(RENDERDOC_PLATFORM_ANDROID)
 
-#ifdef RENDERDOC_EXPORTS
-#define RENDERDOC_API __attribute__((visibility("default")))
-#else
 #define RENDERDOC_API
-#endif
 
 #define RENDERDOC_CC
 
@@ -180,12 +173,6 @@ struct GlobalEnvironment
 };
 
 // needs to be declared up here for reference in basic_types
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
-typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(const void *mem);
-
-extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz);
-typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
 
 #include "basic_types.h"
 

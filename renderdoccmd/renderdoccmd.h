@@ -24,37 +24,7 @@
 
 #pragma once
 
-#include <replay/renderdoc_replay.h>
-#include "3rdparty/cmdline/cmdline.h"
+#include <api/replay/renderdoc_replay.h>
 
-struct Command
-{
-  Command(const GlobalEnvironment &env) { m_Env = env; }
-  virtual ~Command() {}
-  virtual void AddOptions(cmdline::parser &parser) = 0;
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts) = 0;
-  virtual const char *Description() = 0;
-
-  virtual bool IsInternalOnly() = 0;
-  virtual bool IsCaptureCommand() = 0;
-
-  GlobalEnvironment m_Env;
-};
-
-extern bool usingKillSignal;
-extern volatile uint32_t killSignal;
-
-void add_version_line(const std::string &str);
-
-void add_command(const std::string &name, Command *cmd);
-void add_alias(const std::string &alias, const std::string &command);
-
-int renderdoccmd(const GlobalEnvironment &env, int argc, char **argv);
-int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv);
-
-void readCapOpts(const std::string &str, CaptureOptions *opts);
-
-// these must be defined in platform .cpps
-void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
-                            uint32_t height);
-void Daemonise();
+int renderdoccmd(int argc, char **argv);
+int renderdoccmd(std::vector<std::string> &argv);

@@ -1,6 +1,0 @@
-?package(local.renderdoc):needs="x11" section="Applications/Programming" \
-	title="RenderDoc" \
-	command="qrenderdoc" \
-	icon="/usr/share/pixmaps/renderdoc-icon-32x32.xpm" \
-	icon16x16="/usr/share/pixmaps/renderdoc-icon-16x16.xpm" \
-	icon32x32="/usr/share/pixmaps/renderdoc-icon-32x32.xpm"

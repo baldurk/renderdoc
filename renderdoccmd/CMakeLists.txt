@@ -1,5 +1,5 @@
 set(sources renderdoccmd.cpp)
-set(includes PRIVATE ${CMAKE_SOURCE_DIR}/renderdoc/api)
+set(includes PRIVATE ${CMAKE_SOURCE_DIR}/renderdoc)
 set(libraries PRIVATE renderdoc)
 
 if(APPLE)
@@ -37,6 +37,18 @@ elseif(UNIX)
     # Make sure that for the target executable we don't throw away
     # any shared libraries.
     set(LINKER_FLAGS "-Wl,--no-as-needed")
+
+    if(ENABLE_GL)
+      set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--undefined,GLDriverRegistration")
+    endif()
+
+    if(ENABLE_GLES)
+      set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--undefined,GLESDriverRegistration")
+    endif()
+
+    if(ENABLE_VULKAN)
+      set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--undefined,VkDriverRegistration")
+    endif()
 endif()
 
 if(ANDROID)
@@ -48,13 +60,13 @@ else()
     set(CMAKE_INSTALL_RPATH "$ORIGIN/:$ORIGIN/../lib/")
     set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}")
 
-    add_executable(renderdoccmd ${sources})
+    add_executable(rdcconvert ${sources})
 endif()
 
-target_include_directories(renderdoccmd ${includes})
-target_link_libraries(renderdoccmd ${libraries})
+target_include_directories(rdcconvert ${includes})
+target_link_libraries(rdcconvert ${libraries})
 
-install (TARGETS renderdoccmd DESTINATION bin)
+install (TARGETS rdcconvert DESTINATION bin)
 
 if(ANDROID)
     if(NOT DEFINED ENV{JAVA_HOME})

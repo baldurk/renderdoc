@@ -424,16 +424,6 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *
   return true;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem)
-{
-  rdctype::array<char>::deallocate(mem);
-}
-
-extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
-{
-  return rdctype::array<char>::allocate((size_t)sz);
-}
-
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
                                                                                 uint32_t nextIdent)
 {

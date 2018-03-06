@@ -1981,6 +1981,13 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev);
 
+extern "C" __declspec(dllexport) HRESULT __cdecl RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
+    __in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+    __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels,
+    UINT SDKVersion, __in_opt CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc,
+    __out_opt IDXGISwapChain **ppSwapChain, __out_opt ID3D11Device **ppDevice,
+    __out_opt D3D_FEATURE_LEVEL *pFeatureLevel, __out_opt ID3D11DeviceContext **ppImmediateContext);
+
 ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D11 replay device");
@@ -2014,18 +2021,6 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
     RDCERR("Failed to load d3dcompiler_??.dll");
     return ReplayStatus::APIInitFailed;
   }
-
-  typedef HRESULT(__cdecl * PFN_RENDERDOC_CREATE_DEVICE_AND_SWAP_CHAIN)(
-      __in_opt IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
-      __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels, UINT,
-      __in_opt CONST DXGI_SWAP_CHAIN_DESC *, __out_opt IDXGISwapChain **, __out_opt ID3D11Device **,
-      __out_opt D3D_FEATURE_LEVEL *, __out_opt ID3D11DeviceContext **);
-
-  PFN_RENDERDOC_CREATE_DEVICE_AND_SWAP_CHAIN createDevice =
-      (PFN_RENDERDOC_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
-          GetModuleHandleA("renderdoc.dll"), "RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain");
-
-  RDCASSERT(createDevice);
 
   ID3D11Device *device = NULL;
 
@@ -2080,8 +2075,9 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
 
   // check for feature level 11 support - passing NULL feature level array implicitly checks for
   // 11_0 before others
-  hr = createDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION, NULL, NULL,
-                    NULL, &maxFeatureLevel, NULL);
+  hr = RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL,
+                                                      0, D3D11_SDK_VERSION, NULL, NULL, NULL,
+                                                      &maxFeatureLevel, NULL);
 
   bool warpFallback = false;
 
@@ -2099,7 +2095,7 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
   hr = E_FAIL;
   for(;;)
   {
-    hr = createDevice(
+    hr = RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
         /*pAdapter=*/NULL, driverType, /*Software=*/NULL, flags,
         /*pFeatureLevels=*/featureLevelArray, /*nFeatureLevels=*/numFeatureLevels, D3D11_SDK_VERSION,
         /*pSwapChainDesc=*/NULL, (IDXGISwapChain **)NULL, (ID3D11Device **)&device,

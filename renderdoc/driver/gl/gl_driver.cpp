@@ -4515,6 +4515,9 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   GLMarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal:  Replay %d (%d): %u->%u",
                                         (int)replayType, (int)partial, startEventID, endEventID));
 
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->StartFrameCapture(GetCtx(), NULL);
+
   m_ReplayEventCount = 0;
 
   if(replayType == eReplay_Full)
@@ -4529,6 +4532,9 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   // make sure to end any unbalanced replay events if we stopped in the middle of a frame
   for(int i = 0; i < m_ReplayEventCount; i++)
     GLMarkerRegion::End();
+
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->EndFrameCapture(GetCtx(), NULL);
 
   GLMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }

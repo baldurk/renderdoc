@@ -837,7 +837,8 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
     if(context->m_DrawcallStack.size() > 1)
       context->m_DrawcallStack.pop_back();
   }
-  else if(context->m_State == READING)
+
+  if(context->m_State == READING)
   {
     if(!m_AddedDrawcall)
       context->AddEvent(m_pSerialiser->GetDebugStr());

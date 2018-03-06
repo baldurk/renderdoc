@@ -26,6 +26,7 @@
 #include "core/core.h"
 #include <time.h>
 #include <algorithm>
+#include "3rdparty/tinyfiledialogs/tinyfiledialogs.h"
 #include "api/replay/version.h"
 #include "common/common.h"
 #include "common/dds_readwrite.h"
@@ -1148,4 +1149,135 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
   {
     RDCERR("Removing FrameCapturer for unknown window!");
   }
+}
+
+static RENDERDOC_API_1_1_1 *checkAPI(void *handle)
+{
+  if(handle)
+  {
+    pRENDERDOC_GetAPI getapi =
+        (pRENDERDOC_GetAPI)Process::GetFunctionAddress(handle, "RENDERDOC_GetAPI");
+
+    if(getapi)
+    {
+      RENDERDOC_API_1_1_1 *ret = NULL;
+      getapi(eRENDERDOC_API_Version_1_1_1, (void **)&ret);
+
+      int major = 0, minor = 0, patch = 0;
+      ret->GetAPIVersion(&major, &minor, &patch);
+
+      uint64_t combined = 0;
+      combined |= uint64_t(major & 0xffff) << 32;
+      combined |= uint64_t(minor & 0xffff) << 16;
+      combined |= uint64_t(patch & 0xffff) << 0;
+
+      uint64_t ver1_1_1 = (1ULL << 32) | (1ULL << 16) | (1ULL << 0);
+
+      // only capture in new renderdoc, above API 1.1.1
+      if(combined <= ver1_1_1)
+        return NULL;
+
+      time_t t = time(NULL);
+      tm now;
+
+#if ENABLED(RDOC_WIN32)
+      localtime_s(&now, &t);
+#else
+      now = *localtime(&t);
+#endif
+
+      std::string path;
+      FileIO::GetExecutableFilename(path);
+      path = dirname(path) + StringFormat::Fmt("/converted_%04d.%02d.%02d_%02d.%02d.rdc",
+                                               1900 + now.tm_year, now.tm_mon + 1, now.tm_mday,
+                                               now.tm_hour, now.tm_min);
+
+      ret->SetLogFilePathTemplate(path.c_str());
+
+      return ret;
+    }
+  }
+
+  return NULL;
+}
+
+RENDERDOC_API_1_1_1 *RENDERDOC_LoadConverter()
+{
+  RenderDoc::Inst().SetReplayApp(true);
+
+  RenderDoc::Inst().Initialise();
+
+#if ENABLED(RDOC_LINUX)
+  XInitThreads();
+
+  GlobalEnvironment env;
+  env.xlibDisplay = XOpenDisplay(NULL);
+
+  RenderDoc::Inst().ProcessGlobalEnvironment(env, {});
+#endif
+
+  const char *modulename =
+#if ENABLED(RDOC_WIN32)
+      "renderdoc.dll";
+#else
+      "librenderdoc.so";
+#endif
+
+  // try to locate the module in the default search path
+  void *handle = Process::LoadModule(modulename);
+
+  RENDERDOC_API_1_1_1 *api = checkAPI(handle);
+
+  if(api)
+    return api;
+
+#if ENABLED(RDOC_WIN32)
+  // check in the registry @ HKLM\SOFTWARE\Classes\RenderDoc.RDCCapture.1\DefaultIcon
+  HKEY key = NULL;
+  LSTATUS ret =
+      RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Classes\\RenderDoc.RDCCapture.1\\DefaultIcon", 0,
+                    KEY_READ, &key);
+
+  if(ret == ERROR_SUCCESS)
+  {
+    std::wstring exepath;
+
+    DWORD sz = 0;
+    ret = RegGetValueW(key, NULL, NULL, RRF_RT_ANY, NULL, NULL, &sz);
+    if(ret == ERROR_MORE_DATA || ret == ERROR_SUCCESS)
+    {
+      exepath.resize(sz / sizeof(wchar_t));
+      ret = RegGetValueW(key, NULL, NULL, RRF_RT_ANY, NULL, (void *)&exepath[0], &sz);
+
+      if(ret == ERROR_SUCCESS)
+      {
+        std::string installpath = dirname(StringFormat::Wide2UTF8(exepath));
+
+        handle = Process::LoadModule((installpath + "/renderdoc.dll").c_str());
+      }
+    }
+  }
+
+  if(key)
+    RegCloseKey(key);
+
+  api = checkAPI(handle);
+
+  if(api)
+    return api;
+#endif
+
+  modulename = tinyfd_openFileDialog("Locate renderdoc module", modulename, 0, NULL, NULL, 0);
+
+  handle = Process::LoadModule(modulename);
+
+  api = checkAPI(handle);
+
+  if(api)
+    return api;
+
+  tinyfd_messageBox("Coulnd't locate renderdoc module",
+                    "Couldn't locate compatible 1.0+ renderdoc module", "ok", "error", 1);
+
+  return NULL;
 }

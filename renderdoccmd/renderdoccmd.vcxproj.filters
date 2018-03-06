@@ -3,9 +3,6 @@
   <ItemGroup>
     <ClCompile Include="renderdoccmd.cpp" />
     <ClCompile Include="renderdoccmd_win32.cpp" />
-    <ClCompile Include="..\renderdoc\3rdparty\miniz\miniz.c">
-      <Filter>3rdparty</Filter>
-    </ClCompile>
     <ClCompile Include="renderdoccmd_linux.cpp" />
     <ClCompile Include="renderdoccmd_android.cpp" />
     <ClCompile Include="renderdoccmd_apple.cpp" />
@@ -17,20 +14,11 @@
     <ClInclude Include="targetver.h">
       <Filter>Resources</Filter>
     </ClInclude>
-    <ClInclude Include="..\renderdoc\3rdparty\miniz\miniz.h">
-      <Filter>3rdparty</Filter>
-    </ClInclude>
     <ClInclude Include="renderdoccmd.h" />
-    <ClInclude Include="3rdparty\cmdline\cmdline.h">
-      <Filter>3rdparty</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Resources">
       <UniqueIdentifier>{3979a11e-8029-4886-a51e-a2a9bb91d69f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rdparty">
-      <UniqueIdentifier>{a8ca84b9-239b-4640-95e9-f9bd141ef465}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

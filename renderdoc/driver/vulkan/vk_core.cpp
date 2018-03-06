@@ -2367,6 +2367,11 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   VkMarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal: RenderDoc Replay %d (%d): %u->%u",
                                         (int)replayType, (int)partial, startEventID, endEventID));
 
+#define RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(inst) (*((void **)(inst)))
+
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->StartFrameCapture(NULL, NULL);
+
   {
     if(!partial)
     {
@@ -2495,6 +2500,9 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     SubmitCmds();
 #endif
   }
+
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->EndFrameCapture(NULL, NULL);
 
   VkMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }

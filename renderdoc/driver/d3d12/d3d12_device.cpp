@@ -2523,6 +2523,9 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       GetQueue(), StringFormat::Fmt("!!!!RenderDoc Internal: RenderDoc Replay %d (%d): %u->%u",
                                     (int)replayType, (int)partial, startEventID, endEventID));
 
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->StartFrameCapture(m_pDevice, NULL);
+
   {
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
@@ -2572,6 +2575,9 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     FlushLists(true);
 #endif
   }
+
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->EndFrameCapture(m_pDevice, NULL);
 
   D3D12MarkerRegion::Set(GetQueue(), "!!!!RenderDoc Internal: Done replay");
 

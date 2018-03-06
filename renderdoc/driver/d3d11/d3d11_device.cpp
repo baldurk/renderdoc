@@ -2481,6 +2481,9 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   m_ReplayEventCount = 0;
 
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->StartFrameCapture(m_pDevice, NULL);
+
   if(replayType == eReplay_Full)
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
   else if(replayType == eReplay_WithoutDraw)
@@ -2493,6 +2496,9 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   // make sure to end any unbalanced replay events if we stopped in the middle of a frame
   for(int i = 0; i < m_ReplayEventCount; i++)
     D3D11MarkerRegion::End();
+
+  if(ConverterAPI && replayType != eReplay_OnlyDraw)
+    ConverterAPI->EndFrameCapture(m_pDevice, NULL);
 
   D3D11MarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }

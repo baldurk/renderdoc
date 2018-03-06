@@ -61,83 +61,8 @@ END
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(1252)
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION RENDERDOC_VERSION_MAJOR,RENDERDOC_VERSION_MINOR,0,0
- PRODUCTVERSION RENDERDOC_VERSION_MAJOR,RENDERDOC_VERSION_MINOR,0,0
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x40004L
- FILETYPE 0x2L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "080904b0"
-        BEGIN
-            VALUE "CompanyName", "Baldur Karlsson"
-            VALUE "FileDescription", "Core DLL for RenderDoc - https://renderdoc.org/"
-            VALUE "FileVersion", MAJOR_MINOR_VERSION_STRING ".0.0"
-            VALUE "InternalName", "renderdoc.dll"
-            VALUE "LegalCopyright", "Copyright © 2016 Baldur Karlsson"
-            VALUE "OriginalFilename", "renderdoc.dll"
-            VALUE "ProductName", "RenderDoc"
-            VALUE "ProductVersion", FULL_VERSION_STRING
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x809, 1200
-    END
-END
-
 #endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
-
-RESOURCE_debugdisplay_hlsl TYPE_EMBED   "hlsl/debugdisplay.hlsl"
-RESOURCE_debugtext_hlsl    TYPE_EMBED   "hlsl/debugtext.hlsl"
-RESOURCE_debugcommon_hlsl  TYPE_EMBED   "hlsl/debugcommon.hlsl"
-RESOURCE_histogram_hlsl    TYPE_EMBED   "hlsl/histogram.hlsl"
-RESOURCE_debugcbuffers_h   TYPE_EMBED   "hlsl/debugcbuffers.h"
-RESOURCE_multisample_hlsl  TYPE_EMBED   "hlsl/multisample.hlsl"
-RESOURCE_mesh_hlsl         TYPE_EMBED   "hlsl/mesh.hlsl"
-
-RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
-
-RESOURCE_glsl_blit_vert         TYPE_EMBED   "glsl/blit.vert"
-RESOURCE_glsl_checkerboard_frag TYPE_EMBED   "glsl/checkerboard.frag"
-RESOURCE_glsl_texdisplay_frag   TYPE_EMBED   "glsl/texdisplay.frag"
-RESOURCE_glsl_text_vert         TYPE_EMBED   "glsl/text.vert"
-RESOURCE_glsl_text_frag         TYPE_EMBED   "glsl/text.frag"
-RESOURCE_glsl_fixedcol_frag     TYPE_EMBED   "glsl/fixedcol.frag"
-RESOURCE_glsl_mesh_vert         TYPE_EMBED   "glsl/mesh.vert"
-RESOURCE_glsl_mesh_geom         TYPE_EMBED   "glsl/mesh.geom"
-RESOURCE_glsl_mesh_frag         TYPE_EMBED   "glsl/mesh.frag"
-RESOURCE_glsl_minmaxtile_comp   TYPE_EMBED   "glsl/minmaxtile.comp"
-RESOURCE_glsl_minmaxresult_comp TYPE_EMBED   "glsl/minmaxresult.comp"
-RESOURCE_glsl_histogram_comp    TYPE_EMBED   "glsl/histogram.comp"
-RESOURCE_glsl_outline_frag      TYPE_EMBED   "glsl/outline.frag"
-RESOURCE_glsl_debuguniforms_h   TYPE_EMBED   "glsl/debuguniforms.h"
-RESOURCE_glsl_gl_texsample_h    TYPE_EMBED   "glsl/gl_texsample.h"
-RESOURCE_glsl_vk_texsample_h    TYPE_EMBED   "glsl/vk_texsample.h"
-RESOURCE_glsl_quadresolve_frag  TYPE_EMBED   "glsl/quadresolve.frag"
-RESOURCE_glsl_quadwrite_frag    TYPE_EMBED   "glsl/quadwrite.frag"
-RESOURCE_glsl_mesh_comp         TYPE_EMBED   "glsl/mesh.comp"
-RESOURCE_glsl_array2ms_comp     TYPE_EMBED   "glsl/array2ms.comp"
-RESOURCE_glsl_ms2array_comp     TYPE_EMBED   "glsl/ms2array.comp"
-RESOURCE_glsl_trisize_geom      TYPE_EMBED   "glsl/trisize.geom"
-RESOURCE_glsl_trisize_frag      TYPE_EMBED   "glsl/trisize.frag"
-RESOURCE_glsl_deptharr2ms_frag  TYPE_EMBED   "glsl/deptharr2ms.frag"
-RESOURCE_glsl_depthms2arr_frag  TYPE_EMBED   "glsl/depthms2arr.frag"
-RESOURCE_glsl_gles_texsample_h  TYPE_EMBED   "glsl/gles_texsample.h"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
