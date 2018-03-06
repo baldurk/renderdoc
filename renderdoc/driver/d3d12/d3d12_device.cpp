@@ -39,12 +39,12 @@
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
-void WrappedID3D12Device::RemoveQueue(WrappedID3D12CommandQueue* queue)
+void WrappedID3D12Device::RemoveQueue(WrappedID3D12CommandQueue *queue)
 {
   auto it = std::remove_if(m_Queues.begin(), m_Queues.end(),
-                           [queue](const WrappedID3D12CommandQueue* q) {return q == queue; });
+                           [queue](const WrappedID3D12CommandQueue *q) { return q == queue; });
 
-  if (it != m_Queues.end())
+  if(it != m_Queues.end())
     m_Queues.erase(it);
   else
     RDCERR("Unknown wrapped queue %p being remvoed", queue);
