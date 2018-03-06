@@ -20,9 +20,9 @@ To install on windows run the appropriate installer for your OS ([64-bit](https:
 Screenshots
 --------------
 
-| [ ![Texture view](https://renderdoc.org/fp/ts_screen1.jpg) ](https://renderdoc.org/fp/screen1.jpg) | [ ![Pixel history & shader debug](https://renderdoc.org/fp/ts_screen2.jpg) ](https://renderdoc.org/fp/screen2.png) |
+| [ ![Texture view](https://renderdoc.org/fp/ts_screen1.jpg?2) ](https://renderdoc.org/fp/screen1.jpg) | [ ![Pixel history & shader debug](https://renderdoc.org/fp/ts_screen2.jpg?2) ](https://renderdoc.org/fp/screen2.png) |
 | --- | --- |
-| [ ![Mesh viewer](https://renderdoc.org/fp/ts_screen3.jpg) ](https://renderdoc.org/fp/screen3.png) | [ ![Pipeline viewer & constants](https://renderdoc.org/fp/ts_screen4.jpg) ](https://renderdoc.org/fp/screen4.png) |
+| [ ![Mesh viewer](https://renderdoc.org/fp/ts_screen3.jpg?2) ](https://renderdoc.org/fp/screen3.png) | [ ![Pipeline viewer & constants](https://renderdoc.org/fp/ts_screen4.jpg?2) ](https://renderdoc.org/fp/screen4.png) |
 
 API Support
 --------------
