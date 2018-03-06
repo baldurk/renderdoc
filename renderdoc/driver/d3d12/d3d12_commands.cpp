@@ -178,6 +178,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+  m_pDevice->RemoveQueue(this);
 
   for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
     SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
