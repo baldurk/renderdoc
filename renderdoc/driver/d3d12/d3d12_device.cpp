@@ -1945,13 +1945,13 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
   if(IsReplayingAndReading() && pResource)
   {
     ResourceId origId = GetResourceManager()->GetOriginalID(GetResID(pResource));
-    m_ResourceNames[origId] = Name;
+    m_ResourceNames[origId] = Name ? Name : "";
 
     ResourceDescription &descr = GetReplay()->GetResourceDesc(origId);
-    descr.SetCustomName(Name);
+    descr.SetCustomName(Name ? Name : "");
     AddResourceCurChunk(descr);
 
-    pResource->SetName(StringFormat::UTF82Wide(Name).c_str());
+    pResource->SetName(StringFormat::UTF82Wide(Name ? Name : "").c_str());
   }
 
   return true;

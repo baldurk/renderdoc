@@ -182,7 +182,7 @@ template <class T>
 inline void SetDebugName(T *pObj, const char *name)
 {
   if(pObj)
-    pObj->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(name), name);
+    pObj->SetPrivateData(WKPDID_D3DDebugObjectName, name ? (UINT)strlen(name) : 0, name);
 }
 
 template <class T>
