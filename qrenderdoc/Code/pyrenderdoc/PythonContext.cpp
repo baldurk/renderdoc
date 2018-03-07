@@ -221,6 +221,8 @@ void PythonContext::GlobalInit()
 
   Py_SetProgramName(program_name);
 
+  Py_IgnoreEnvironmentFlag = 1;
+
   Py_Initialize();
 
   PyEval_InitThreads();
