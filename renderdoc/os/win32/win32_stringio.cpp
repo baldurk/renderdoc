@@ -648,11 +648,19 @@ std::string logfile_readall(const char *filename)
   {
     DWORD len = GetFileSize(h, NULL);
 
-    ret.resize(len);
+    if(len == INVALID_FILE_SIZE)
+    {
+      DWORD err = GetLastError();
+      ret = StringFormat::Fmt("Failed to read logfile, GetFileSize() threw %u", err);
+    }
+    else
+    {
+      ret.resize(len);
 
-    DWORD dummy = len;
+      DWORD dummy = len;
 
-    ReadFile(h, &ret[0], len, &dummy, NULL);
+      ReadFile(h, &ret[0], len, &dummy, NULL);
+    }
 
     CloseHandle(h);
   }
