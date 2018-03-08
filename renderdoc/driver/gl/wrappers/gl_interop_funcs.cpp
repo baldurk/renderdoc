@@ -380,6 +380,7 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
     }
 
     SERIALISE_ELEMENT_ARRAY(Contents, length);
+    SERIALISE_ELEMENT(length);
 
     SERIALISE_CHECK_READ_ERRORS();
 
@@ -436,8 +437,10 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
     uint32_t size = (uint32_t)GetByteSize(width, height, depth, fmt, type);
 
     int mips = 0;
-    if(IsReplayingAndReading())
+    if(!IsStructuredExporting(m_State))
       mips = GetNumMips(gl, textype, tex, width, height, depth);
+
+    SERIALISE_ELEMENT(mips).Hidden();
 
     byte *scratchBuf = NULL;
 
