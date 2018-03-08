@@ -5330,23 +5330,15 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
 
     if(IsLoading(m_State))
     {
-      std::string dstName = GetDebugName(pDstResource);
-      std::string srcName = GetDebugName(pSrcResource);
-
       ResourceId dstLiveID = GetIDForResource(pDstResource);
       ResourceId srcLiveID = GetIDForResource(pSrcResource);
       ResourceId dstOrigID = GetResourceManager()->GetOriginalID(dstLiveID);
       ResourceId srcOrigID = GetResourceManager()->GetOriginalID(srcLiveID);
 
-      if(dstName == "")
-        dstName = ToStr(dstOrigID);
-      if(srcName == "")
-        srcName = ToStr(srcOrigID);
-
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = "CopySubresourceRegion(" + dstName + ", " + srcName + ")";
+      draw.name = "CopySubresourceRegion(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
       draw.flags |= DrawFlags::Copy;
 
       if(pDstResource && pSrcResource)
@@ -5483,23 +5475,15 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
 
     if(IsLoading(m_State))
     {
-      std::string dstName = GetDebugName(pDstResource);
-      std::string srcName = GetDebugName(pSrcResource);
-
       ResourceId dstLiveID = GetIDForResource(pDstResource);
       ResourceId srcLiveID = GetIDForResource(pSrcResource);
       ResourceId dstOrigID = GetResourceManager()->GetOriginalID(dstLiveID);
       ResourceId srcOrigID = GetResourceManager()->GetOriginalID(srcLiveID);
 
-      if(dstName == "")
-        dstName = ToStr(dstOrigID);
-      if(srcName == "")
-        srcName = ToStr(srcOrigID);
-
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = "CopyResource(" + dstName + ", " + srcName + ")";
+      draw.name = "CopyResource(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
       draw.flags |= DrawFlags::Copy;
 
       if(pDstResource && pSrcResource)
@@ -5999,23 +5983,15 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
 
     if(IsLoading(m_State))
     {
-      std::string dstName = GetDebugName(pDstResource);
-      std::string srcName = GetDebugName(pSrcResource);
-
       ResourceId dstLiveID = GetIDForResource(pDstResource);
       ResourceId srcLiveID = GetIDForResource(pSrcResource);
       ResourceId dstOrigID = GetResourceManager()->GetOriginalID(dstLiveID);
       ResourceId srcOrigID = GetResourceManager()->GetOriginalID(srcLiveID);
 
-      if(dstName == "")
-        dstName = ToStr(dstOrigID);
-      if(srcName == "")
-        srcName = ToStr(srcOrigID);
-
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = "ResolveSubresource(" + dstName + ", " + srcName + ")";
+      draw.name = "ResolveSubresource(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
       draw.flags |= DrawFlags::Resolve;
 
       if(pDstResource && pSrcResource)
@@ -6106,15 +6082,12 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(SerialiserType &ser,
             EventUsage(m_CurEventID, ResourceUsage::GenMips, view->GetResourceID()));
       }
 
-      std::string resName = GetDebugName(pShaderResourceView);
-
-      if(resName == "")
-        resName = ToStr(GetResourceManager()->GetOriginalID(GetIDForResource(pShaderResourceView)));
-
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = "GenerateMips(" + resName + ")";
+      draw.name =
+          "GenerateMips(" +
+          ToStr(GetResourceManager()->GetOriginalID(GetIDForResource(pShaderResourceView))) + ")";
       draw.flags |= DrawFlags::GenMips;
 
       AddDrawcall(draw, true);

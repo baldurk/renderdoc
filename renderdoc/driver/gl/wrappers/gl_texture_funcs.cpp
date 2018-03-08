@@ -741,7 +741,7 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt(
-          "%s(%llu)", ToStr(gl_CurChunk).c_str(),
+          "%s(%s)", ToStr(gl_CurChunk).c_str(),
           ToStr(GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(texture))).c_str());
       draw.flags |= DrawFlags::GenMips;
 
@@ -884,7 +884,7 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
       ResourceId dstid = GetResourceManager()->GetID(dstName);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%llu, %llu)", ToStr(gl_CurChunk).c_str(),
+      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
                                     ToStr(GetResourceManager()->GetOriginalID(srcid)).c_str(),
                                     ToStr(GetResourceManager()->GetOriginalID(dstid)).c_str());
       draw.flags |= DrawFlags::Copy;
