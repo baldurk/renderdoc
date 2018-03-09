@@ -210,8 +210,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     std::vector<std::string> sources;
     GenerateGLSLShader(sources, shaderType, "", GetEmbeddedResource(glsl_fixedcol_frag), glslVer,
                        false);
-    RDCLOG("Sources:\n\n%s\n\n%s\n\n%s\n\n%s\n\n", sources[0].c_str(), sources[1].c_str(),
-           sources[2].c_str(), sources[3].c_str());
     DebugData.fixedcolFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
   }
 
