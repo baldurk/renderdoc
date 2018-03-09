@@ -16,7 +16,11 @@ if(STATIC_QRENDERDOC)
 endif()
 
 if(NOT APPLE)
-    set(SWIG_FLAGS "-DSWIGWORDSIZE64")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64-bit
+        set(SWIG_FLAGS "-DSWIGWORDSIZE64")
+    else() # 32-bit
+        set(SWIG_FLAGS "-DSWIGWORDSIZE32")
+    endif()
 endif()
 
 if(QRENDERDOC_NO_CXX11_REGEX)
