@@ -700,7 +700,7 @@ void GLReplay::InitDebugData()
 
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-  gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
+  gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize, NULL,
                           eGL_DYNAMIC_READ);
   gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);

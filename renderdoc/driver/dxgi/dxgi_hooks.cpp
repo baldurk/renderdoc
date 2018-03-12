@@ -54,7 +54,7 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
   unsigned int m_iRefcount = 0;
 
   // IDXGraphicsAnalysis
-  void BeginCapture()
+  void STDMETHODCALLTYPE BeginCapture()
   {
     void *dev = NULL, *wnd = NULL;
     RenderDoc::Inst().GetActiveWindow(dev, wnd);
@@ -62,7 +62,7 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
     RenderDoc::Inst().StartFrameCapture(dev, wnd);
   }
 
-  void EndCapture()
+  void STDMETHODCALLTYPE EndCapture()
   {
     void *dev = NULL, *wnd = NULL;
     RenderDoc::Inst().GetActiveWindow(dev, wnd);

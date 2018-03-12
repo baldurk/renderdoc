@@ -376,8 +376,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         DebugData.feedbackBufferSize *= 2;
       RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
               DebugData.feedbackBufferSize);
-      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
-                              eGL_DYNAMIC_READ);
+      if(DebugData.feedbackBufferSize > INTPTR_MAX)
+      {
+        RDCERR("Too much data generated");
+        DebugData.feedbackBufferSize = INTPTR_MAX;
+      }
+      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                              NULL, eGL_DYNAMIC_READ);
     }
 
     // need to rebind this here because of an AMD bug that seems to ignore the buffer
@@ -490,8 +495,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         DebugData.feedbackBufferSize *= 2;
       RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
               DebugData.feedbackBufferSize);
-      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
-                              eGL_DYNAMIC_READ);
+      if(DebugData.feedbackBufferSize > INTPTR_MAX)
+      {
+        RDCERR("Too much data generated");
+        DebugData.feedbackBufferSize = INTPTR_MAX;
+      }
+      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                              NULL, eGL_DYNAMIC_READ);
     }
 
     // need to rebind this here because of an AMD bug that seems to ignore the buffer
@@ -1041,8 +1051,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           DebugData.feedbackBufferSize *= 2;
         RDCWARN("Conservatively resizing xfb buffer from %llu to %llu for output", oldSize,
                 DebugData.feedbackBufferSize);
-        gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
-                                eGL_DYNAMIC_READ);
+        if(DebugData.feedbackBufferSize > INTPTR_MAX)
+        {
+          RDCERR("Too much data generated");
+          DebugData.feedbackBufferSize = INTPTR_MAX;
+        }
+        gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                                NULL, eGL_DYNAMIC_READ);
       }
 
       GLenum idxType = eGL_UNSIGNED_BYTE;
