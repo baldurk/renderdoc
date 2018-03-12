@@ -503,6 +503,12 @@ public:
     return dev == m_ActiveWindow.dev && wnd == m_ActiveWindow.wnd;
   }
 
+  void GetActiveWindow(void *&dev, void *&wnd)
+  {
+    dev = m_ActiveWindow.dev;
+    wnd = m_ActiveWindow.wnd;
+  }
+
   void TriggerCapture(uint32_t numFrames) { m_Cap = numFrames; }
   uint32_t GetOverlayBits() { return m_Overlay; }
   void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }

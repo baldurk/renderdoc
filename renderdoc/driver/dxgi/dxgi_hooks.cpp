@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/core.h"
 #include "hooks/hooks.h"
 #include "dxgi_wrapped.h"
 
@@ -30,6 +31,45 @@
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
+typedef HRESULT(WINAPI *PFN_GET_DEBUG_INTERFACE)(REFIID, void **);
+typedef HRESULT(WINAPI *PFN_GET_DEBUG_INTERFACE1)(UINT, REFIID, void **);
+
+MIDL_INTERFACE("9F251514-9D4D-4902-9D60-18988AB7D4B5")
+IDXGraphicsAnalysis : public IUnknown
+{
+  virtual void STDMETHODCALLTYPE BeginCapture() = 0;
+  virtual void STDMETHODCALLTYPE EndCapture() = 0;
+};
+
+struct RenderDocAnalysis : IDXGraphicsAnalysis
+{
+  // IUnknown boilerplate
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    InterlockedIncrement(&m_iRefcount);
+    return m_iRefcount;
+  }
+  ULONG STDMETHODCALLTYPE Release() { return InterlockedDecrement(&m_iRefcount); }
+  unsigned int m_iRefcount = 0;
+
+  // IDXGraphicsAnalysis
+  void BeginCapture()
+  {
+    void *dev = NULL, *wnd = NULL;
+    RenderDoc::Inst().GetActiveWindow(dev, wnd);
+
+    RenderDoc::Inst().StartFrameCapture(dev, wnd);
+  }
+
+  void EndCapture()
+  {
+    void *dev = NULL, *wnd = NULL;
+    RenderDoc::Inst().GetActiveWindow(dev, wnd);
+
+    RenderDoc::Inst().EndFrameCapture(dev, wnd);
+  }
+};
 
 class DXGIHook : LibraryHook
 {
@@ -47,8 +87,10 @@ public:
 
     success &= CreateDXGIFactory.Initialize("CreateDXGIFactory", DLL_NAME, CreateDXGIFactory_hook);
     success &= CreateDXGIFactory1.Initialize("CreateDXGIFactory1", DLL_NAME, CreateDXGIFactory1_hook);
-    // don't mind if this doesn't succeed
+    // don't mind if these dosn't succeed
     CreateDXGIFactory2.Initialize("CreateDXGIFactory2", DLL_NAME, CreateDXGIFactory2_hook);
+    GetDebugInterface.Initialize("DXGIGetDebugInterface", DLL_NAME, DXGIGetDebugInterface_hook);
+    GetDebugInterface1.Initialize("DXGIGetDebugInterface1", DLL_NAME, DXGIGetDebugInterface1_hook);
 
     if(!success)
       return false;
@@ -132,9 +174,13 @@ private:
   bool m_HasHooks;
   bool m_EnabledHooks;
 
+  RenderDocAnalysis m_RenderDocAnalysis;
+
   Hook<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory;
   Hook<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory1;
   Hook<PFN_CREATE_DXGI_FACTORY2> CreateDXGIFactory2;
+  Hook<PFN_GET_DEBUG_INTERFACE> GetDebugInterface;
+  Hook<PFN_GET_DEBUG_INTERFACE1> GetDebugInterface1;
 
   static HRESULT WINAPI CreateDXGIFactory_hook(__in REFIID riid, __out void **ppFactory)
   {
@@ -170,6 +216,42 @@ private:
       RefCountDXGIObject::HandleWrap(riid, ppFactory);
 
     return ret;
+  }
+
+  static HRESULT WINAPI DXGIGetDebugInterface_hook(REFIID riid, void **ppDebug)
+  {
+    if(ppDebug)
+      *ppDebug = NULL;
+
+    if(riid == __uuidof(IDXGraphicsAnalysis))
+    {
+      dxgihooks.m_RenderDocAnalysis.AddRef();
+      *ppDebug = &dxgihooks.m_RenderDocAnalysis;
+      return S_OK;
+    }
+
+    if(dxgihooks.GetDebugInterface())
+      return dxgihooks.GetDebugInterface()(riid, ppDebug);
+    else
+      return E_NOINTERFACE;
+  }
+
+  static HRESULT WINAPI DXGIGetDebugInterface1_hook(UINT Flags, REFIID riid, void **ppDebug)
+  {
+    if(ppDebug)
+      *ppDebug = NULL;
+
+    if(riid == __uuidof(IDXGraphicsAnalysis))
+    {
+      dxgihooks.m_RenderDocAnalysis.AddRef();
+      *ppDebug = &dxgihooks.m_RenderDocAnalysis;
+      return S_OK;
+    }
+
+    if(dxgihooks.GetDebugInterface1())
+      return dxgihooks.GetDebugInterface1()(Flags, riid, ppDebug);
+    else
+      return E_NOINTERFACE;
   }
 };
 
