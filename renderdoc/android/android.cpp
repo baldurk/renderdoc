@@ -263,7 +263,10 @@ bool InstallRenderDocServer(const std::string &deviceID)
   std::vector<ABI> abis = GetSupportedABIs(deviceID);
 
   if(abis.empty())
+  {
+    RDCERR("Couldn't determine supported ABIs for %s", deviceID.c_str());
     return false;
+  }
 
   // Check known paths for RenderDoc server
   std::string exePath;
@@ -330,13 +333,16 @@ bool InstallRenderDocServer(const std::string &deviceID)
   }
 
   // Ensure installation succeeded. We should have as many lines as abis we installed
-  std::string adbCheck =
-      adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE).strStdout;
+  Process::ProcessResult adbCheck =
+      adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE);
 
-  if(adbCheck.empty())
+  if(adbCheck.strStdout.empty())
+  {
+    RDCERR("Couldn't find any installed APKs. stderr: %s", adbCheck.strStderror.c_str());
     return false;
+  }
 
-  size_t lines = adbCheck.find('\n') == std::string::npos ? 1 : 2;
+  size_t lines = adbCheck.strStdout.find('\n') == std::string::npos ? 1 : 2;
 
   if(lines != abis.size())
     RDCWARN("Installation of some apks failed!");
@@ -515,7 +521,10 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   {
     // If server is not detected or has been removed due to incompatibility, install it
     if(!Android::InstallRenderDocServer(deviceID))
+    {
+      RDCERR("Failed to install RenderDoc server app");
       return;
+    }
   }
 
   // stop all servers of any ABI
