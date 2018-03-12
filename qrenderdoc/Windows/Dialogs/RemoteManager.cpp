@@ -187,8 +187,6 @@ void RemoteManager::addHost(RemoteHost *host)
   ui->refreshOne->setEnabled(false);
   ui->refreshAll->setEnabled(false);
 
-  m_Lookups.release();
-
   refreshHost(node);
 
   updateLookupsStatus();
@@ -205,12 +203,17 @@ void RemoteManager::runRemoteServer(RDTreeWidgetItem *node)
   RemoteHost *host = getRemoteHost(node);
 
   if(!host)
+  {
+    m_Lookups.acquire();
     return;
+  }
 
   host->Launch();
 
   // now refresh this host
   refreshHost(node);
+
+  m_Lookups.acquire();
 }
 
 void RemoteManager::refreshHost(RDTreeWidgetItem *node)
@@ -219,6 +222,8 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
 
   if(!host)
     return;
+
+  m_Lookups.release();
 
   // this function looks up the remote connections and for each one open
   // queries it for the API, target (usually executable name) and if any user is already connected
@@ -629,6 +634,7 @@ void RemoteManager::on_connect_clicked()
       ui->refreshOne->setEnabled(false);
       ui->refreshAll->setEnabled(false);
 
+      // hold a ref for running the remote server
       m_Lookups.release();
 
       LambdaThread *th = new LambdaThread([this, node]() { runRemoteServer(node); });
