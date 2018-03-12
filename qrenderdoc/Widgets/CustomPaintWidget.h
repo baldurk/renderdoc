@@ -76,6 +76,7 @@ protected:
   QPaintEngine *paintEngine() const override { return m_Ctx ? NULL : QWidget::paintEngine(); }
   ICaptureContext *m_Ctx;
   IReplayOutput *m_Output;
+  QString m_Tag;
   QColor m_Dark;
   QColor m_Light;
 };

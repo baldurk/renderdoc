@@ -33,6 +33,7 @@ CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
   m_Output = NULL;
   setAttribute(Qt::WA_OpaquePaintEvent);
   setMouseTracking(true);
+  m_Tag = QFormatStr("custompaint%1").arg((uintptr_t) this);
 }
 
 CustomPaintWidget::CustomPaintWidget(ICaptureContext *c, QWidget *parent) : QWidget(parent)
@@ -43,6 +44,7 @@ CustomPaintWidget::CustomPaintWidget(ICaptureContext *c, QWidget *parent) : QWid
   if(c)
     setAttribute(Qt::WA_PaintOnScreen);
   setMouseTracking(true);
+  m_Tag = QFormatStr("custompaint%1").arg((uintptr_t) this);
 }
 
 CustomPaintWidget::~CustomPaintWidget()
@@ -89,7 +91,7 @@ void CustomPaintWidget::paintEvent(QPaintEvent *e)
   if(m_Ctx)
   {
     if(m_Output != NULL)
-      m_Ctx->Replay().AsyncInvoke([this](IReplayController *r) { m_Output->Display(); });
+      m_Ctx->Replay().AsyncInvoke(m_Tag, [this](IReplayController *r) { m_Output->Display(); });
   }
   else if(m_Dark == m_Light)
   {

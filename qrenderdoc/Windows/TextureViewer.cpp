@@ -943,19 +943,10 @@ void TextureViewer::UI_UpdateStatusText()
 
     if(m_TexDisplay.customShaderId != ResourceId())
       statusText += lit(")");
-
-    // PixelPicked = true;
   }
   else
   {
     statusText += tr(" - Right click to pick a pixel");
-
-    if(m_Output != NULL)
-    {
-      m_Ctx.Replay().AsyncInvoke([this](IReplayController *) { m_Output->DisablePixelContext(); });
-    }
-
-    // PixelPicked = false;
   }
 
   // try and keep status text consistent by sticking to the high water mark

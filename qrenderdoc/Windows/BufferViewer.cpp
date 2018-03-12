@@ -2705,8 +2705,9 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayController *)
   {
     m_Config.cam = m_CurrentCamera->camera();
     m_Output->SetMeshDisplay(m_Config);
-    m_Output->Display();
   }
+
+  GUIInvoke::call([this]() { ui->render->update(); });
 }
 
 RDTableView *BufferViewer::tableForStage(MeshDataStage stage)
