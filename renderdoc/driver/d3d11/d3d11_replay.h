@@ -303,7 +303,7 @@ private:
 
   HighlightCache m_HighlightCache;
 
-  uint32_t m_SOBufferSize = 32 * 1024 * 1024;
+  uint64_t m_SOBufferSize = 32 * 1024 * 1024;
   ID3D11Buffer *m_SOBuffer = NULL;
   ID3D11Buffer *m_SOStagingBuffer = NULL;
   std::vector<ID3D11Query *> m_SOStatsQueries;

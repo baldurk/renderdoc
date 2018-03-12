@@ -62,8 +62,14 @@ void D3D11Replay::CreateSOBuffers()
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
 
+  if(m_SOBufferSize > 0xFFFFFFFFULL)
+  {
+    RDCERR("Can't resize stream-out buffer to larger than 4GB, needed %llu bytes.", m_SOBufferSize);
+    m_SOBufferSize = 0xFFFFFFFFULL;
+  }
+
   D3D11_BUFFER_DESC bufferDesc = {
-      m_SOBufferSize, D3D11_USAGE_DEFAULT, D3D11_BIND_STREAM_OUTPUT, 0, 0, 0};
+      (uint32_t)m_SOBufferSize, D3D11_USAGE_DEFAULT, D3D11_BIND_STREAM_OUTPUT, 0, 0, 0};
 
   hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOBuffer);
 
@@ -307,17 +313,20 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
       SAFE_RELEASE(idxBuf);
 
-      uint32_t outputSize = stride * drawcall->numIndices;
+      uint64_t outputSize = stride * uint64_t(drawcall->numIndices);
       if(drawcall->flags & DrawFlags::Instanced)
         outputSize *= drawcall->numInstances;
 
       if(m_SOBufferSize < outputSize)
       {
-        int oldSize = m_SOBufferSize;
+        uint64_t oldSize = m_SOBufferSize;
         while(m_SOBufferSize < outputSize)
           m_SOBufferSize *= 2;
-        RDCWARN("Resizing stream-out buffer from %d to %d", oldSize, m_SOBufferSize);
+        RDCWARN("Resizing stream-out buffer from %llu to %llu", oldSize, m_SOBufferSize);
         CreateSOBuffers();
+
+        if(!m_SOStagingBuffer)
+          return;
       }
 
       m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
@@ -419,17 +428,19 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
       m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
       SAFE_RELEASE(idxBuf);
 
-      uint32_t outputSize = stride * (uint32_t)indices.size();
+      uint64_t outputSize = stride * uint64_t(indices.size());
       if(drawcall->flags & DrawFlags::Instanced)
         outputSize *= drawcall->numInstances;
 
       if(m_SOBufferSize < outputSize)
       {
-        int oldSize = m_SOBufferSize;
+        uint64_t oldSize = m_SOBufferSize;
         while(m_SOBufferSize < outputSize)
           m_SOBufferSize *= 2;
-        RDCWARN("Resizing stream-out buffer from %d to %d", oldSize, m_SOBufferSize);
+        RDCWARN("Resizing stream-out buffer from %llu to %llu", oldSize, m_SOBufferSize);
         CreateSOBuffers();
+        if(!m_SOStagingBuffer)
+          return;
       }
 
       m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
@@ -762,13 +773,15 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
                                           sizeof(D3D11_QUERY_DATA_SO_STATISTICS), 0);
       } while(hr == S_FALSE);
 
-      if(m_SOBufferSize < stride * (uint32_t)numPrims.PrimitivesStorageNeeded * 3)
+      if(m_SOBufferSize < stride * numPrims.PrimitivesStorageNeeded * 3)
       {
-        int oldSize = m_SOBufferSize;
-        while(m_SOBufferSize < stride * (uint32_t)numPrims.PrimitivesStorageNeeded * 3)
+        uint64_t oldSize = m_SOBufferSize;
+        while(m_SOBufferSize < stride * numPrims.PrimitivesStorageNeeded * 3)
           m_SOBufferSize *= 2;
-        RDCWARN("Resizing stream-out buffer from %d to %d", oldSize, m_SOBufferSize);
+        RDCWARN("Resizing stream-out buffer from %llu to %llu", oldSize, m_SOBufferSize);
         CreateSOBuffers();
+        if(!m_SOStagingBuffer)
+          return;
         continue;
       }
 
@@ -871,14 +884,19 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
       return;
     }
 
-    D3D11_BUFFER_DESC bufferDesc = {stride * (uint32_t)numPrims.NumPrimitivesWritten * 3,
-                                    D3D11_USAGE_IMMUTABLE,
-                                    D3D11_BIND_VERTEX_BUFFER,
-                                    0,
-                                    0,
-                                    0};
+    uint64_t bytesWritten = stride * numPrims.NumPrimitivesWritten * 3;
 
-    if(bufferDesc.ByteWidth >= m_SOBufferSize)
+    if(bytesWritten > 0xFFFFFFFFULL)
+    {
+      RDCERR("More than 4GB of data generated, cannot create output buffer large enough.");
+      bytesWritten = 0xFFFFFFFFULL;
+    }
+
+    D3D11_BUFFER_DESC bufferDesc = {
+        (uint32_t)bytesWritten, D3D11_USAGE_IMMUTABLE, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0,
+    };
+
+    if(bytesWritten >= m_SOBufferSize)
     {
       RDCERR("Generated output data too large: %08x", bufferDesc.ByteWidth);
 

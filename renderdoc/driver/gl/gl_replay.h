@@ -346,7 +346,7 @@ private:
     GLuint feedbackObj;
     std::vector<GLuint> feedbackQueries;
     GLuint feedbackBuffer;
-    uint32_t feedbackBufferSize = 32 * 1024 * 1024;
+    uint64_t feedbackBufferSize = 32 * 1024 * 1024;
 
     GLuint pickPixelTex;
     GLuint pickPixelFBO;
