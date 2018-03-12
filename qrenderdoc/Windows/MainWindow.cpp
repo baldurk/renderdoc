@@ -380,7 +380,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     QKeySequence ks = a->shortcut();
     if(!ks.isEmpty())
     {
-      m_GlobalShortcutCallbacks[ks] = [a]() {
+      m_GlobalShortcutCallbacks[ks] = [a](QWidget *) {
         if(a->isEnabled())
           a->trigger();
       };
@@ -1942,7 +1942,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
         // then use that callback
         if(widgets.contains(focus))
         {
-          callbacks[focus]();
+          callbacks[focus](focus);
           event->accept();
           return true;
         }
@@ -1952,10 +1952,12 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
       }
     }
 
+    focus = QApplication::focusWidget();
+
     // if we didn't find matches or no such shortcut is registered, try global shortcuts
     if(m_GlobalShortcutCallbacks.contains(pressed))
     {
-      m_GlobalShortcutCallbacks[pressed]();
+      m_GlobalShortcutCallbacks[pressed](focus);
       event->accept();
       return true;
     }

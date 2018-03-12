@@ -23,12 +23,17 @@
  ******************************************************************************/
 
 #include "EventBrowser.h"
+#include <QAbstractSpinBox>
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QMenu>
 #include <QShortcut>
+#include <QTextEdit>
 #include <QTimer>
 #include "3rdparty/flowlayout/FlowLayout.h"
+#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
@@ -58,6 +63,21 @@ enum
   COL_DURATION,
   COL_COUNT,
 };
+
+static bool textEditControl(QWidget *sender)
+{
+  if(qobject_cast<QLineEdit *>(sender) || qobject_cast<QTextEdit *>(sender) ||
+     qobject_cast<QAbstractSpinBox *>(sender) || qobject_cast<ScintillaEditBase *>(sender))
+  {
+    return true;
+  }
+
+  QComboBox *combo = qobject_cast<QComboBox *>(sender);
+  if(combo && combo->isEditable())
+    return true;
+
+  return false;
+}
 
 EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::EventBrowser), m_Ctx(ctx)
@@ -133,19 +153,33 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   for(int i = 0; i < 10; i++)
   {
     ctx.GetMainWindow()->RegisterShortcut(QKeySequence(keys[i] | Qt::ControlModifier).toString(),
-                                          NULL, [this, i]() { jumpToBookmark(i); });
+                                          NULL, [this, i](QWidget *) { jumpToBookmark(i); });
   }
 
   ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Left | Qt::ControlModifier).toString(),
-                                        NULL, [this]() { on_stepPrev_clicked(); });
+                                        NULL, [this](QWidget *sender) {
+                                          // don't apply this shortcut if we're in a text edit type
+                                          // control
+                                          if(textEditControl(sender))
+                                            return;
 
-  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier).toString(),
-                                        NULL, [this]() { on_stepNext_clicked(); });
+                                          on_stepPrev_clicked();
+                                        });
+
+  ctx.GetMainWindow()->RegisterShortcut(
+      QKeySequence(Qt::Key_Right | Qt::ControlModifier).toString(), NULL, [this](QWidget *sender) {
+        // don't apply this shortcut if we're in a text edit type
+        // control
+        if(textEditControl(sender))
+          return;
+
+        on_stepNext_clicked();
+      });
 
   ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->findStrip,
-                                        [this]() { on_HideFindJump(); });
+                                        [this](QWidget *) { on_HideFindJump(); });
   ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->jumpStrip,
-                                        [this]() { on_HideFindJump(); });
+                                        [this](QWidget *) { on_HideFindJump(); });
 
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events, &RDTreeWidget::customContextMenuRequested, this,

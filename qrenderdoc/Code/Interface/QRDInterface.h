@@ -98,13 +98,16 @@ DECLARE_REFLECTION_STRUCT(CaptureSettings);
 
 DOCUMENT(R"(The main parent window of the application.
 
-.. function:: ShortcutCallback()
+.. function:: ShortcutCallback(QWidget focusWidget)
 
   Not a member function - the signature for any ``ShortcutCallback`` callbacks.
+
+  :param QWidget focusWidget: The widget with focus at the time this shortcut was detected. May be
+     ``None``.
 )");
 struct IMainWindow
 {
-  typedef std::function<void()> ShortcutCallback;
+  typedef std::function<void(QWidget *focusWidget)> ShortcutCallback;
 
   DOCUMENT(
       "Retrieves the QWidget for this :class:`MainWindow` if PySide2 is available, or otherwise a "

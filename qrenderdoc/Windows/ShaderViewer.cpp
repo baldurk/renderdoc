@@ -246,7 +246,7 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
     });
 
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
-                                            [this]() { on_refresh_clicked(); });
+                                            [this](QWidget *) { on_refresh_clicked(); });
     ui->refresh->setToolTip(ui->refresh->toolTip() +
                             lit(" (%1)").arg(QKeySequence(QKeySequence::Refresh).toString()));
 

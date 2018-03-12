@@ -34,6 +34,8 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 
   extern "C" QWidget *QWidgetFromPy(PyObject *widget);
   extern "C" PyObject *QWidgetToPy(QWidget *widget);
+
+  DECLARE_STRINGISE_TYPE(QWidget);
 %}
 
 %typemap(in) QWidget * {
