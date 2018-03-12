@@ -2615,9 +2615,13 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
 void BufferViewer::ScrollToRow(BufferItemModel *model, int row)
 {
+  int hs = model->view->horizontalScrollBar()->value();
+
   model->view->scrollTo(model->index(row, 0), QAbstractItemView::PositionAtTop);
   model->view->clearSelection();
   model->view->selectRow(row);
+
+  model->view->horizontalScrollBar()->setValue(hs);
 }
 
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
@@ -3283,6 +3287,11 @@ void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
 
   RDTableView *views[] = {ui->vsinData, ui->vsoutData, ui->gsoutData};
 
+  int horizScrolls[ARRAY_COUNT(views)] = {0};
+
+  for(size_t i = 0; i < ARRAY_COUNT(views); i++)
+    horizScrolls[i] = views[i]->horizontalScrollBar()->value();
+
   if(primary == NULL)
   {
     for(RDTableView *table : views)
@@ -3313,6 +3322,9 @@ void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
     if(scroll)
       table->verticalScrollBar()->setValue(primary->verticalScrollBar()->value());
   }
+
+  for(size_t i = 0; i < ARRAY_COUNT(views); i++)
+    views[i]->horizontalScrollBar()->setValue(horizScrolls[i]);
 }
 
 void BufferViewer::UpdateHighlightVerts()
