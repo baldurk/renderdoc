@@ -110,6 +110,15 @@ std::string GetPathForPackage(const std::string &deviceID, const std::string &pa
 {
   std::string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
 
+  // if there are multiple slices, the path will be returned on many lines. Take only the first
+  // line, assuming all of the apks are in the same directory
+  if(pkgPath.find("\n") != std::string::npos)
+  {
+    std::vector<std::string> lines;
+    split(pkgPath, lines, '\n');
+    pkgPath = lines[0];
+  }
+
   if(pkgPath.empty() || pkgPath.find("package:") != 0 || pkgPath.find("base.apk") == std::string::npos)
     return pkgPath;
 
