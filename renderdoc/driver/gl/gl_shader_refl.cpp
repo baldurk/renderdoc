@@ -1913,6 +1913,12 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl,
                          ShaderBindpointMapping &mapping)
 {
+  if(!refl)
+  {
+    mapping = ShaderBindpointMapping();
+    return;
+  }
+
   // in case of bugs, we readback into this array instead of
   GLint dummyReadback[32];
 
