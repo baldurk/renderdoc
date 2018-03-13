@@ -100,6 +100,18 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
     std::string output = trim(pidOutput.strStdout);
     size_t space = output.find_first_of("\t ");
 
+    // if we didn't get a response, try without the -A as some android devices don't support that
+    // parameter
+    if(output.empty() || output.find(packageName) == std::string::npos || space == std::string::npos)
+    {
+      pidOutput =
+          adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", packageName.c_str()));
+
+      output = trim(pidOutput.strStdout);
+      space = output.find_first_of("\t ");
+    }
+
+    // if we still didn't get a response, sleep and try again next time
     if(output.empty() || output.find(packageName) == std::string::npos || space == std::string::npos)
     {
       Threading::Sleep(200);
