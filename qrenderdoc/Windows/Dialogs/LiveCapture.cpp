@@ -1033,7 +1033,7 @@ void LiveCapture::connectionClosed()
     {
       // raise the texture viewer if it exists, instead of falling back to most likely the capture
       // executable dialog which is not useful.
-      if(m_Ctx.HasTextureViewer())
+      if(ui->captures->count() == 1 && m_Ctx.HasTextureViewer())
         m_Ctx.ShowTextureViewer();
       selfClose();
       return;
