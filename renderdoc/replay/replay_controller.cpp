@@ -961,6 +961,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       ddsData.subdata = &subdata[0];
       ddsData.cubemap = td.cubemap && numSlices == 6;
 
+      if(singleSlice)
+        ddsData.depth = ddsData.slices = 1;
+
       success = write_dds_to_file(f, ddsData);
     }
     else if(sd.destType == FileType::BMP)
