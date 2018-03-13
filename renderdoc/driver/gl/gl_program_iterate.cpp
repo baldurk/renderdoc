@@ -862,8 +862,6 @@ template <typename SerialiserType>
 void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
                               GLuint prog)
 {
-  char Name[128] = {0};
-
   std::vector<ProgramBinding> InputBindings;
   std::vector<ProgramBinding> OutputBindings;
 
