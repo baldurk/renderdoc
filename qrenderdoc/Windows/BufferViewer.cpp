@@ -2336,6 +2336,9 @@ void BufferViewer::configureMeshColumns()
 
       for(const BoundVBuffer &vb : VBs)
       {
+        if(vb.byteStride == 0)
+          continue;
+
         BufferDescription *buf = m_Ctx.GetBuffer(vb.resourceId);
         if(buf)
         {
