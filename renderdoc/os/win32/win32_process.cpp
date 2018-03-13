@@ -861,11 +861,12 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
 
   uintptr_t loc = FindRemoteDLL(pid, CONCAT(L, STRINGIZE(RDOC_DLL_FILE)) L".dll");
 
-  uint32_t controlident = 0;
+  ExecuteResult result = {ReplayStatus::Succeeded, 0};
 
   if(loc == 0)
   {
     RDCERR("Can't locate " STRINGIZE(RDOC_DLL_FILE) ".dll in remote PID %d", pid);
+    result.status = ReplayStatus::InjectionFailed;
   }
   else
   {
@@ -882,8 +883,8 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
     InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
                        sizeof(CaptureOptions));
 
-    InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &controlident,
-                       sizeof(controlident));
+    InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &result.ident,
+                       sizeof(result.ident));
 
     if(!env.empty())
     {
@@ -916,7 +917,7 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
 
   CloseHandle(hProcess);
 
-  return {ReplayStatus::Succeeded, controlident};
+  return result;
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
