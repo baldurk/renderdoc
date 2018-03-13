@@ -1486,6 +1486,7 @@ void MainWindow::setCaptureHasErrors(bool errors)
   {
     const QPixmap &del = Pixmaps::del(this);
     QPixmap empty(del.width(), del.height());
+    empty.setDevicePixelRatio(del.devicePixelRatio());
     empty.fill(Qt::transparent);
     statusIcon->setPixmap(m_messageAlternate ? empty : del);
 
