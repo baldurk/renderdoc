@@ -234,15 +234,12 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 // mesh, not jumping back and forth much between meshes.
 struct HighlightCache
 {
-  HighlightCache() : EID(0), buf(), offs(0), stage(MeshDataStage::Unknown), idxData(false) {}
+  HighlightCache() : cacheKey(0), idxData(false) {}
   IRemoteDriver *driver = NULL;
 
-  uint32_t EID;
-  ResourceId buf;
-  uint64_t offs;
-  MeshDataStage stage;
-  bool idxData;
+  uint64_t cacheKey;
 
+  bool idxData;
   bytebuf vertexData;
   std::vector<uint32_t> indices;
 

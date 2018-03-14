@@ -290,20 +290,44 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
   return ret;
 }
 
+uint64_t inthash(uint64_t val, uint64_t seed)
+{
+  return (seed << 5) + seed + val; /* hash * 33 + c */
+}
+
+uint64_t inthash(ResourceId id, uint64_t seed)
+{
+  uint64_t val = 0;
+  memcpy(&val, &id, sizeof(val));
+  return (seed << 5) + seed + val; /* hash * 33 + c */
+}
+
 void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &cfg)
 {
-  if(EID != eventId || cfg.type != stage || cfg.position.vertexResourceId != buf ||
-     cfg.position.vertexByteOffset != offs)
+  std::string ident;
+
+  uint64_t newKey = 5381;
+
+  // hash all the properties of cfg that we use
+  newKey = inthash(eventId, newKey);
+  newKey = inthash(cfg.position.indexByteStride, newKey);
+  newKey = inthash(cfg.position.numIndices, newKey);
+  newKey = inthash((uint64_t)cfg.type, newKey);
+  newKey = inthash((uint64_t)cfg.position.baseVertex, newKey);
+  newKey = inthash((uint64_t)cfg.position.topology, newKey);
+  newKey = inthash(cfg.position.vertexByteOffset, newKey);
+  newKey = inthash(cfg.position.vertexByteStride, newKey);
+  newKey = inthash(cfg.position.indexResourceId, newKey);
+  newKey = inthash(cfg.position.vertexResourceId, newKey);
+
+  if(cacheKey != newKey)
   {
-    EID = eventId;
-    buf = cfg.position.vertexResourceId;
-    offs = cfg.position.vertexByteOffset;
-    stage = cfg.type;
+    cacheKey = newKey;
 
     uint32_t bytesize = cfg.position.indexByteStride;
     uint64_t maxIndex = cfg.position.numIndices - 1;
 
-    if(cfg.position.indexByteStride == 0 || stage == MeshDataStage::GSOut)
+    if(cfg.position.indexByteStride == 0 || cfg.type == MeshDataStage::GSOut)
     {
       indices.clear();
       idxData = false;
