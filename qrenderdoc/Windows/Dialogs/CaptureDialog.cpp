@@ -1024,10 +1024,23 @@ void CaptureDialog::TriggerCapture()
               live->QueueCapture((int)ui->queuedFrame->value(), (int)ui->numFrames->value());
           });
     }
+    else
+    {
+      RDDialog::critical(this, tr("No process selected"),
+                         tr("No process is selected to inject from the list above."));
+    }
   }
   else
   {
-    QString exe = ui->exePath->text();
+    QString exe = ui->exePath->text().trimmed();
+
+    if(exe.isEmpty())
+    {
+      RDDialog::critical(this, tr("No executable selected"),
+                         tr("No program selected to launch, click browse next to 'Executable Path' "
+                            "above to select the program to launch."));
+      return;
+    }
 
     // for non-remote captures, check the executable locally
     if(!m_Ctx.Replay().CurrentRemote())
