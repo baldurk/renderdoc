@@ -699,6 +699,10 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
               // remove the array item, and get the iterator to the next item to process
               it = resArray.erase(it);
 
+              // if we're now pointing at the end of the vector, save that, as the iterator will be
+              // invalid after we push back below.
+              bool last = (it == resArray.end());
+
               string rname = desc.name;
               uint32_t arraySize = desc.bindCount;
 
@@ -710,6 +714,10 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
                 resArray.push_back(desc);
                 desc.reg++;
               }
+
+              // if we just expanded the last item, break out of the loop
+              if(last)
+                break;
 
               continue;
             }
