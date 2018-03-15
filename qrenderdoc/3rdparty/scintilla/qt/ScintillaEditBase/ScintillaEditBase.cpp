@@ -57,7 +57,7 @@ ScintillaEditBase::ScintillaEditBase(QWidget *parent)
 	setAutoFillBackground(false);
 	setFrameStyle(QFrame::NoFrame);
 	setFocusPolicy(Qt::StrongFocus);
-	setAttribute(Qt::WA_StaticContents);
+	//setAttribute(Qt::WA_StaticContents);
 	viewport()->setAutoFillBackground(false);
 	setAttribute(Qt::WA_KeyCompression);
 	setAttribute(Qt::WA_InputMethodEnabled);
