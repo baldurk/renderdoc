@@ -478,6 +478,10 @@ void TextureViewer::UI_UpdateCachedTexture()
     id = m_TexDisplay.resourceId;
 
   m_CachedTexture = m_Ctx.GetTexture(id);
+
+  ui->debugPixelContext->setEnabled(m_Ctx.CurPipelineState().IsCaptureD3D11() &&
+                                    m_CachedTexture != NULL);
+  ui->pixelHistory->setEnabled(m_Ctx.CurPipelineState().IsCaptureD3D11() && m_CachedTexture != NULL);
 }
 
 TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
