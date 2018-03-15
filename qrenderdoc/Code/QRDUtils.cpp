@@ -117,7 +117,7 @@ struct RichResourceText
     {
       if(v.userType() == qMetaTypeId<ResourceId>())
       {
-        QString resname = ctx.GetResourceName(v.value<ResourceId>());
+        QString resname = QString(ctx.GetResourceName(v.value<ResourceId>())).toHtmlEscaped();
         html += lit("<td><b>%1</b></td><td><img src=':/link.png'></td>").arg(resname);
         text += resname;
 
@@ -127,7 +127,7 @@ struct RichResourceText
       }
       else
       {
-        html += lit("<td>%1</td>").arg(v.toString());
+        html += lit("<td>%1</td>").arg(v.toString().toHtmlEscaped());
         text += v.toString();
 
         // this only generates one block
