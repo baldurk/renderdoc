@@ -348,9 +348,71 @@ void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
   }
 }
 
+static void FlushGPU(WrappedID3D11Device *pDevice, WrappedID3D11DeviceContext *pImmediateContext)
+{
+  ID3D11Query *pAPIQuery = NULL;
+  D3D11_QUERY_DESC queryDesc;
+  queryDesc.Query = D3D11_QUERY_EVENT;
+  queryDesc.MiscFlags = 0;
+  if(FAILED(pDevice->CreateQuery(&queryDesc, &pAPIQuery)))
+  {
+    return;
+  }
+
+  HRESULT hr;
+  pImmediateContext->Flush();
+  pImmediateContext->End(pAPIQuery);
+  pImmediateContext->Flush();
+  if(S_OK != (hr = pImmediateContext->GetData(pAPIQuery, NULL, 0, D3D11_ASYNC_GETDATA_DONOTFLUSH)))
+  {
+    do
+    {
+      if(FAILED(hr))
+      {
+        return;
+      }
+      ::Sleep(0);    // Give up time slice
+    } while(S_OK !=
+            (hr = pImmediateContext->GetData(pAPIQuery, NULL, 0, D3D11_ASYNC_GETDATA_DONOTFLUSH)));
+  }
+
+  if(pAPIQuery)
+    pAPIQuery->Release();
+}
+
 void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
                                vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
 {
+  if(drawnode.children.empty())
+    return;
+
+  for(size_t i = 0; i < drawnode.children.size(); i++)
+  {
+    const DrawcallDescription &d = drawnode.children[i];
+
+    FillTimersNV(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+
+    if(d.events.empty() || (!(drawnode.children[i].flags & DrawFlags::Drawcall) &&
+                            !(drawnode.children[i].flags & DrawFlags::Dispatch)))
+      continue;
+
+    eventIDs.push_back(d.eventId);
+
+    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
+
+    FlushGPU(m_pDevice, m_pImmediateContext);
+
+    m_pNVCounters->BeginSample(sampleIndex);
+
+    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
+
+    FlushGPU(m_pDevice, m_pImmediateContext);
+
+    m_pNVCounters->EndSample(sampleIndex);
+
+    eventStartID = d.eventId + 1;
+    sampleIndex++;
+  }
 }
 
 vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &counters)
@@ -398,7 +460,36 @@ vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &co
 
 vector<CounterResult> D3D11Replay::FetchCountersNV(const vector<GPUCounter> &counters)
 {
+  const FrameRecord &frameRecord = m_pDevice->GetFrameRecord();
+  const FrameStatistics &frameStats = frameRecord.frameInfo.stats;
+
+  const uint32_t objectsCount = frameStats.draws.calls + frameStats.dispatches.calls + 1;
+
   vector<CounterResult> ret;
+
+  if(m_pNVCounters->PrepareExperiment(counters, objectsCount))
+  {
+    FlushGPU(m_pDevice, m_pImmediateContext);
+
+    uint32_t passCount = m_pNVCounters->BeginExperiment();
+    uint32_t sampleIndex = 0;
+    vector<uint32_t> eventIDs;
+
+    for(uint32_t passIdx = 0; passIdx < passCount; ++passIdx)
+    {
+      m_pNVCounters->BeginPass(passIdx);
+
+      uint32_t eventStartID = 0;
+      sampleIndex = 0;
+      eventIDs.clear();
+
+      FillTimersNV(eventStartID, sampleIndex, eventIDs, m_pImmediateContext->GetRootDraw());
+
+      m_pNVCounters->EndPass(passIdx);
+    }
+
+    m_pNVCounters->EndExperiment(eventIDs, ret);
+  }
   return ret;
 }
 
