@@ -26,6 +26,7 @@
 #include "d3d11_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/nv/nv_counters.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
@@ -156,20 +157,30 @@ void D3D11Replay::CreateResources()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
 
-  AMDCounters *counters = new AMDCounters();
+  AMDCounters *pAMDCounters = new AMDCounters();
+  NVCounters *pNVCounters = new NVCounters();
 
   ID3D11Device *d3dDevice = m_pDevice->GetReal();
 
-  if(counters->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
+  if(pAMDCounters->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
   {
-    m_pAMDCounters = counters;
+    m_pAMDCounters = pAMDCounters;
   }
   else
   {
-    delete counters;
+    delete pAMDCounters;
     m_pAMDCounters = NULL;
   }
 
+  if(pNVCounters->Init(d3dDevice))
+  {
+    m_pNVCounters = pNVCounters;
+  }
+  else
+  {
+    delete pNVCounters;
+    m_pNVCounters = NULL;
+  }
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 }
 
@@ -187,6 +198,7 @@ void D3D11Replay::DestroyResources()
   m_PixelHistory.Release();
 
   SAFE_DELETE(m_pAMDCounters);
+  SAFE_DELETE(m_pNVCounters);
 
   ShutdownStreamOut();
   ClearPostVSCache();
