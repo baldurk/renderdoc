@@ -1,0 +1,53 @@
+================================================================================
+NVIDIA PERFKIT FOR Windows XP, Windows 7, Windows 8 and Windows 8.1.
+================================================================================
+
+Version 4.4.0 of NVIDIA PerfKit for Windows.
+
+================================================================================
+Driver Instrumentation
+================================================================================
+
+NVIDIA PerfKit SDK provides low level access to GPU hardware performance
+counters and DirectX/OpenGL device driver counters. In order to access the 
+driver counters, aggregate and simexp counters data, the Windows driver 
+instrumentation must be enabled by the user.
+
+On Windows platforms this is performed by setting a system level driver
+state that can be read when the Windows driver is firstly loaded into 
+the instrumented process.
+
+Enabling driver instrumentation adds a minimal CPU overhead to the driver. 
+
+================================================================================
+Running an Instrumented Application
+================================================================================
+
+The standard method to run an application using NvPmApi.Core.dll is
+
+# enable NVIDIA GL driver instrumentation
+NvPerfKitControl inst=enable
+
+# set PATH to include path to NvPmApi.Core.dll, <arch> is either x86 or x64
+set PATH=%PATH%;PerfKit-4.4.0/bin/<arch>/
+
+# run the application
+NvPmApiQuery
+
+================================================================================
+Set instrumentation state
+================================================================================
+NvPerfKitControl is used to set instrumentation state for Windows.
+Run it directly without any option, it prints the current instrumentation state.
+To enable instrumentation, run with "inst=enable",
+to disable instrumentation, run with "inst=disable".
+
+================================================================================
+Support
+================================================================================
+
+Additional information and downloads can be found at
+
+http://developer.nvidia.com/nvidia-perfkit
+
+Support issues can be mailed to PerfKit@nvidia.com.

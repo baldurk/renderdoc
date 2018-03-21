@@ -1,0 +1,174 @@
+================================================================================
+CONTENTS
+================================================================================
+
+-- Release Highlights
+-- Supported NVIDIA Display Drivers
+-- Supported NVIDIA Hardware
+-- Supported Operating Systems
+-- New Features
+-- Known Issues
+-- Revision History
+-- More Information
+
+================================================================================
+Release Highlights
+================================================================================
+
+* New compute counters have been added for the Kepler architecture to enable
+profiling of DirectCompute applications. See New Features section for the list
+changes.
+
+================================================================================
+Supported NVIDIA Display Drivers
+================================================================================
+
+319.xx and above are supported. 326.xx is recommended.
+
+================================================================================
+Supported NVIDIA Hardware
+================================================================================
+
+PerfKit supports the NVIDIA GPUs listed below:
+* GeForce 6XX and 7XX Series (Kepler Family)
+* GeForce 4XX and 5XX Series (Fermi Family)
+* GeForce 2XX, 9, and 8 Series
+
+PerfKit may or may not be available on other NVIDIA GPUs.
+The full list of supported NVIDIA GPUs can be found at
+https://developer.nvidia.com/nsight-visual-studio-edition-supported-gpus-full-list
+
+================================================================================
+Supported Operating Systems
+================================================================================
+
+PerfKit supports
+* Microsoft Windows Vista
+* Microsoft Windows 7
+* Microsoft Windows 8
+
+================================================================================
+New Features
+================================================================================
+
+KEPLER COMPUTE COUNTERS
+
+This release add significant improvements to the coverage and accuracy of
+the compute counters.
+
+These changes have not been made for the Fermi architecture.
+
+SM Counters
+* Renamed many of the counters.
+* SM column indicates the counter is available per _vsm#
+* GPU column indicates the counter is available as a total for the GPU
+    
+New Counter Name                    Old Counter Name                    SM      GPU
+-------------------------------------------------------------------------------------
+sm_active_cycles[_vsm#]             active_cycles_q                     Y       Y
+sm_active_warps[_vsm#]              active_warps_q                      Y       Y
+sm_branches_taken[_vsm#]            branches_q                          Y       Y
+sm_divergent_branches[_vsm#]        divergent_branches_q                Y       Y
+sm_ctas_launched[_vsm#]             ctas_launched                       Y       Y
+sm_inst_executed[_vsm#]             inst_executed_q                     Y       Y
+sm_inst_issued[_vsm#]               inst_issued_q                       Y       Y
+sm_pmevent_##[_vsm#]                pmevent_##_q                        Y       Y
+sm_warps_launched[_vsm#]            warps_launched_q                    Y       Y
+threads_launched[_gpc#_tpc#]        threads_launched_q                  Y       Y
+
+L1 Counters
+
+* Added many new L1/L2 counters.
+* Added GPU and SM (per L1) values for some of the existing counters.
+
+l1_atoms_bytes
+l1_atoms_transactions
+l1_global_load_bytes
+l1_global_load_hitrate
+l1_global_load_transactions
+l1_global_load_transactions_hit[_vsm#]
+l1_global_load_transactions_miss[_vsm#]
+l1_global_load_uncached_transactions[_vsm#]
+l1_global_store_bytes
+l1_global_store_transactions[_vsm#]
+l1_global_uncached_load_bytes
+l1_hitrate
+l1_local_load_bytes
+l1_local_load_hitrate
+l1_local_load_transactions
+l1_local_load_transactions_hit[_vsm#]
+l1_local_load_transactions_miss[_vsm#]
+l1_local_store_bytes
+l1_local_store_hitrate
+l1_local_store_transactions
+l1_local_store_transactions_hit[_vsm#]
+l1_local_store_transactions_miss[_vsm#]
+l1_reds_bytes
+l1_reds_transactions
+l1_shared_bank_conflicts
+l1_shared_load_bytes
+l1_shared_load_transactions[_vsm#]
+l1_shared_store_bytes
+l1_shared_store_transactions[_vsm#]
+l2_hitrate
+l2_read_bytes_{atomic, l1, tex}
+l2_read_sectors_{atomic, l1, tex}
+l2_slice#_read_hit_sectors{_atomic, l1, tex,}_fb#
+l2_slice#_read_hit_sysmem_sectors_fb#
+l2_slice#_read_hit_vidmem_sectors_fb#
+l2_slice#_read_sectors{_atomic, l1, tex,}_fb#
+l2_slice#_read_sysmem_sectors_fb#
+l2_slice#_read_vidmem_sectors_fb#
+l2_slice#_write_sectors{_atomic, l1, tex,}_fb#
+l2_slice#_write_sysmem_sectors_fb#
+l2_slice#_write_vidmem_sectors_fb#
+l2_write_bytes_{atomic, l1, tex}
+l2_{read, write}_hitrate
+l2_{read, write}_sectors_{atomic, l1, tex}
+l2_{read, write}_{sysmem, vidmem}_bytes
+
+Texture Counters
+
+* Added GPU and per texture unit versions of the counters. Counters with the
+  suffix _gpc#_tpc# provide values for all texture units.
+
+GRAPHICS COUNTERS
+
+* Two sets of counters have been renamed. These counters are now collected
+  from SMs improving the accuracy. These changes were made to both Kepler
+  and Fermi.
+
+New Counter Name                    Old Counter Name                    SM      GPU
+-------------------------------------------------------------------------------------
+inst_executed_{SHADER_TYPE}[_vsm]   {SHADER_TYPE}_instruction_count     Y       Y
+inst_executed_{SHADER_TYPE}[_ratio] {SHADER_TYPE}_instruction_rate      Y       Y
+
+================================================================================
+Known Issues
+================================================================================
+
+* NVPMAPI does not support devices in SLI configuration. When in SLI configuration
+NVPMAPI may return counters from the wrong device.
+
+* NVPMAPI is not thread safe.
+
+================================================================================
+Revision History
+================================================================================
+
+PerfKit 3.x versioning scheme follows the NVIDIA Nsight Visual Studio Edition
+versioning scheme. PerfKit SDK previously used a different version scheme that
+ended with version 6.x.
+
+2013/08     PerfKit 3.1.0
+2013/09     PerfKit 3.2.0
+
+================================================================================
+More Information
+================================================================================
+
+Additional information and downloads can be found at
+
+http://developer.nvidia.com/nvidia-perfkit
+
+Support issues can be mailed to PerfKit@nvidia.com.
