@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="official\PerfKit\include\NvPmApi.h">
+      <Filter>official\PerfKit\include</Filter>
+    </ClInclude>
+    <ClInclude Include="nv_counters.h">
+      <Filter>Counters</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="official">
+      <UniqueIdentifier>{4573e5d0-aa55-4c18-8467-2da46af59c23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\PerfKit">
+      <UniqueIdentifier>{1be7ed6c-c292-4f4b-87b3-412b5a9f22ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\PerfKit\include">
+      <UniqueIdentifier>{368e0d68-5160-4abe-921f-467132b1aa99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Counters">
+      <UniqueIdentifier>{630ba7bc-f1cd-4dd7-ba0d-5e4d689be9fd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="nv_counters.cpp">
+      <Filter>Counters</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

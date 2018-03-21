@@ -1,0 +1,363 @@
+================================================================================
+CONTENTS
+================================================================================
+
+-- Release Highlights
+-- Supported NVIDIA Display Drivers and Tegra Images
+-- Supported NVIDIA Hardware
+-- Supported Operating Systems
+-- New Features
+-- Known Issues
+-- Revision History
+-- More Information
+
+================================================================================
+Release Highlights
+================================================================================
+4.4.0
+* Adds support for Maxwell gm200 based GPUs including GeForce Titan X
+
+4.3.0
+* Adds support for Nvidia Tegra X1 32-bit and 64-bit devices
+
+4.2.3
+* The PerfKit SDK directory structure has new <arch> subdirectory under
+bin, lib, and samples bin so that 32-bit and 64-bit libraries and binaries
+can be shipped in one package.
+
+4.2.2
+* Adds support for Maxwell gm206 based GPUs including the GeForce GTX 960.
+
+4.2.1
+* Adds QNX support for Jetson Pro (Tegra K1) Pro platform.
+* On Microsoft Windows NvPerfKitControl can now be used in place of NvInstEnabler.
+* On Microsoft Windows NvPmSampleOGL and NvPmSampleDX replace the previous
+samples.
+
+4.1.1
+* Adds Android KitKat and Lollipop support for Tegra K1 32-bit and 64-bit devices.
+* Adds NvPerfKitControl to control driver instrumentation and set gpu clock rate
+as sysmax, promax and restore on Android platform.
+
+4.1.0
+* Adds support for Vibrante 3.0 Linux 1.0a for Jetson Pro (Tegra K1) platform.
+* Adds support for Linux4Tegra rel21 for Jetson TK1 (Tegra K1) platform.
+* Adds support for new Maxwell gm204 based GPUs including GeForce GTX970
+and GTX980.
+* On Microsoft Windows adds initial support for NVIDIA Optimus and Microsoft
+Hybrid systems.
+* On Microsoft Windows removes dependency on Nvda.NvDebugApi.dll.
+
+4.0.1
+* Adds support for Vibrante 3.0 Linux for Jetson Pro (Tegra K1) platform.
+
+4.0.0
+* Added support for Maxwell architecture including GeForce 830M, 840M, 850M,
+860M, 745, 750, and 750 Ti.
+* Removed support for all Tesla architecture based GPUs.
+* Added new functions to the API to support
+  1. counters with floating point data types
+  2. overflow indicator for counters
+  3. counter enumeration function supporting user data
+
+================================================================================
+Supported NVIDIA Display Drivers and Tegra Images
+================================================================================
+
+* On Windows NVIDIA
+  r334.89 is recommended for 4.0.0.
+  r343.98 is recommended for 4.1.0.
+  r346.xx or greater is recommended for 4.2.0.
+  r347.74 or greater is recommended for 4.4.0.
+
+* Vibrante 3.0-Linux Alpha3 on Jetson Pro TK1 platform.
+* L4T rel21 and rel22 on Jetson TK1 platform.
+* QNX rel23 on Jetson Pro TK1 platform.
+
+================================================================================
+Supported NVIDIA Hardware
+================================================================================
+
+PerfKit supports the NVIDIA GPUs listed below:
+* GeForce 8XX Series, GTX9XX, and GTX TITAN X (Maxwell Architecture)
+* GeForce 6XX and 7XX Series                  (Kepler Architecture)
+* GeForce 4XX and 5XX Series                  (Fermi Architecture)
+
+PerfKit supports the NVIDIA Tegra Platforms listed below:
+* NVIDIA Jetson Pro (K1)
+* NVIDIA Jetson TK1
+* NVIDIA Shield Tablet
+
+PerfKit may or may not be available on other NVIDIA GPUs including Quadro and
+Telsa. The full list of supported NVIDIA GPUs can be found at
+https://developer.nvidia.com/nsight-visual-studio-edition-supported-gpus-full-list
+
+================================================================================
+Supported Operating Systems
+================================================================================
+
+PerfKit supports
+* Microsoft Windows Vista
+* Microsoft Windows 7
+* Microsoft Windows 8
+* Microsoft Windows 8.1
+* Vibrante Linux 3.0a3
+* Linux4Tegra rel21
+* Android KitKat
+* Android Lollipop
+* QNX 6.60
+
+================================================================================
+New Features in 4.2.1
+================================================================================
+
+NEW PLATFORMS
+
+Adds support for QNX on NVIDIA Jetson Pro (Tegra TK1).
+
+MAXWELL ARCHITECTURE SUPPORT
+
+    New Counters                  Gpu Family
+    ----------------------------------------------------------------------------
+    l2_hitrate                    Maxwell           COMPUTE
+    tex_cache_sector_misses       Maxwell           COMPUTE
+
+BUG FIXES
+* CPU usage of NvInstEnabler.exe on Microsoft Windows should be reduced.
+
+================================================================================
+New Features in 4.1
+================================================================================
+
+NEW PLATFORMS
+
+Adds support for Android KitKat and L on NVIDIA Shield Tablet and other
+Tegra TK1 32-bit and 64-bit devices.
+
+Adds support for NVIDIA Vibrante Linux on NVIDIA Jetson Pro.
+
+Adds support for NVIDIA Linux4Tegra on NVIDIA Jetson TK1.
+
+MICROSOFT WINDOWS
+
+PerfKit 4.1.0 for Windows now consists of only NvPmApi.Core.dll. The dependency
+on Nvda.NvDebugApi.dll has been removed.
+
+TEGRA
+
+PerfKit for Tegra contains a new OpenGL ES sample named NvPmSample. The sample
+works on Android, Vibrante3.0 and Linux4Tegra releases. The sample provides an example
+of how to implement both real-time mode and experiment mode for different types
+of OpenGL ES workloads.
+
+MAXWELL ARCHITETURE SUPPORT
+
+Perfkit 4.1.0 adds support for gm204.
+
+FERMI/KEPLER/MAXWELL ARCHITECTURE SUPPORT
+
+    Renamed Counters
+    ----------------------------------------------------------------------------
+    Old Name                New Name
+    tex*_cache_texel_queries tex*_cache_tex_queries_gpc*_tpc*
+
+    New Counters
+    ----------------------------------------------------------------------------
+    fb_read_bytes                                   COMPUTE
+    fb_read_sectors                                 COMPUTE
+    fb_write_bytes                                  COMPUTE
+    fb_write_sectors                                COMPUTE
+
+================================================================================
+New Features in 4.0
+================================================================================
+
+COUNTER DATA TYPES
+
+NVPMAPI previously only supported UINT64 data type for raw counters,
+aggregate counters, and simplified experiments. This release adds support
+for double precision floating point counters.
+  - The function NVPMGetCounterAttribute and attribute NVPMA_COUNTER_VALUE_TYPE
+    can be used to query the type of a counter. The supported types are
+    NVPM_VALUE_TYPE_{UINT64, FLOAT64}.
+  - The legacy functions NVPMSample, NVPMGetCounterValueByName, and
+    NVPMGetCounterValue will only return functions as UINT64. New counters of
+    type FLOAT64 will be cast to UINT64 and returned.
+  - The new functions NVPMGetCounterValueUint64 and NVPMGetCounterValueFloat64
+    should be used to query counter values. If the function is used to query
+    the value of a counter with a different type the error
+    NVPM_INCORRECT_VALUE_TYPE will be returned.
+  - The structure NVPMSampleValueEx has been extended to support both UINT64
+    and FLOAT64 data types. The counter type is passed through the ulFlags
+    member.
+
+COUNTER OVERFLOW
+
+The majority of GPU hardware counters are 32-bit and can overflow on long
+draw calls or long compute dispatches. The new functions
+NVPMGetCounterValueUint64 and NVPMGetCounterValueFloat64 have an output
+parameter pOverflow that is set to 1 if the counter overflowed.
+NVPMSampleValueEx indicates overflow for each counter using the flag
+NVPMSampleValueEx.ulFlags & NVPMSAMPLEEX_FLAG_OVERFLOW.
+
+ENHANCED COUNTER ENUMERATION
+
+The new function NVPMEnumCountersByContextUserData accepts a void* pUserData
+parameter that is passed to each callback simplifying enumeration of counter
+data.
+
+MAXWELL ARCHITECTURE SUPPORT
+
+Perfkit 4.0 adds support for gm107 and gm108 chips. In many cases the same
+counters are maintained between Kepler and Maxwell.
+
+TESLA ARCHITECTURE SUPPORT (REMOVED)
+
+Tesla architecture (not Tesla brand) GPUs have been removed from PerfKit.
+Please use PerfKit 3.2.2 if you need support for Tesla architecture based GPUs.
+
+FERMI ARCHITECTURE SUPPORT
+
+    Removed Counters
+    ----------------------------------------------------------------------------
+    crop_busy
+    rop_busy
+    zrop_busy
+    fb_read_req_subp*_fb*
+
+    Renamed Counters
+    ----------------------------------------------------------------------------
+    Old Name                New Name
+    elapsed_cycles_gpc0     elapsed_cycles
+    ia_l2_read_bytes        l2_read_bytes_ia
+    l2_fb_read_bytes        l2_read_bytes_vidmem
+    l2_fb_write_bytes       l2_write_bytes_vidmem
+    rop_l2_read_bytes       l2_read_bytes_rop
+    rop_l2_write_bytes      l2_write_bytes_rop
+    tex_l2_read_bytes       l2_read_bytes_tex
+    tex_l2_requests         l2_read_sectors_tex
+
+    New Counters
+    ----------------------------------------------------------------------------
+    l2_read_bytes_mem
+    l2_read_bytes_sysmem
+    l2_write_bytes_mem
+    l2_write_bytes_sysmem
+
+    Counter Domain Changes
+    ----------------------------------------------------------------------------
+                                                    Old         New
+    elapsed_cycles                                  BOTH        COMPUTE
+    inst_executed_cs_vsm0                           BOTH        COMPUTE
+    fb_subp*_{read, write}_sectors_fb*              BOTH        COMPUTE
+    l1_local_load_transaction_miss*                 BOTH        COMPUTE
+    l2_slice*_read_sectors_tex_fb*                  BOTH        COMPUTE
+    tex*_bank_conflicts_gpc*_tpc*                   BOTH        COMPUTE
+    tex*_cache_sector_{misses, queries}_gpc*_tpc*   BOTH        COMPUTE
+
+KEPLER ARCHITECTURE SUPPORT
+
+    Removed Counters
+    ----------------------------------------------------------------------------
+    crop_busy
+    cta_launched                        // use sm_ctas_launched
+    cta_launched_vsm*                   // use sm_ctas_launched_vsm*
+    elapsed_cycles_gpc*
+    elapsed_cycles_gpc*_tpc*
+    inst_executed_{shader_type}_vsm*
+    rop_busy
+    sm_inst_executed_lsu_red_vsm*
+    tex_l2_read_bytes                   // use l2_read_bytes_tex
+    tex_l2_requests                     // use l2_read_sectors_tex
+    zrop_busy
+
+    Renamed Counters
+    ----------------------------------------------------------------------------
+    Old Name                New Name
+    elapsed_cycles_gpc0     elapsed_cycles
+    ia_l2_read_bytes        l2_read_bytes_ia
+    l2_fb_read_bytes        l2_read_bytes_vidmem
+    l2_fb_write_bytes       l2_write_bytes_vidmem
+    rop_l2_read_bytes       l2_read_bytes_rop
+    rop_l2_write_bytes      l2_write_bytes_rop
+    l2_read_sysmem_bytes    l2_read_bytes_sysmem
+    l2_read_vidmem_bytes    l2_read_bytes_vidmem
+    l2_write_sysmem_bytes   l2_write_bytes_sysmem
+    l2_write_vidmem_bytes   l2_write_bytes_vidmem
+
+    New Counters
+    ----------------------------------------------------------------------------
+    l1_atoms_transactions_per_request
+    l1_global_load_transactions_per_request
+    l1_global_store_transactions_per_request
+    l1_local_load_transactions_per_request
+    l1_local_store_transactions_per_request
+    l1_reds_transactions_per_request
+    l1_shared_load_transactions_per_request
+    l1_shared_store_transactions_per_request
+    l2_read_bytes
+    l2_read_bytes_mem
+    l2_read_sectors
+    l2_write_bytes
+    l2_write_bytes_mem
+    l2_write_sectors
+    sm_active_warps_vsm*
+    sm_executed_ipc
+    sm_issued_ipc
+
+    Counter Domain Changes
+    ----------------------------------------------------------------------------
+                                                    Old         New
+    elapsed_cycles                                  BOTH        COMPUTE
+    fb_subp*_{read, write}_sectors_fb*              BOTH        COMPUTE
+    l1_local_load_transaction_miss*                 BOTH        COMPUTE
+    l2_read_sectors_tex                             COMPUTE     BOTH
+    l2_slice*_read_sectors_tex_fb*                  BOTH        COMPUTE
+    sm_active_cycles_vsm*                           BOTH        COMPUTE
+    tex*_bank_conflicts_gpc*_tpc*                   BOTH        COMPUTE
+    tex*_cache_sector_{misses, queries}_gpc*_tpc*   BOTH        COMPUTE
+    tex*_ldg*                                       BOTH        COMPUTE
+
+================================================================================
+Known Issues
+================================================================================
+
+* NVPMAPI does not support devices in SLI configuration. When in SLI
+configuration NVPMAPI may return counters from the wrong device.
+
+* Maxwell gm20x devices may require running the application as Administrator or
+root (sudo) in order to be correctly profiled. It will be fixed in new drivers
+in future.
+
+================================================================================
+Revision History
+================================================================================
+
+PerfKit 3.x/4.x version scheme follows the NVIDIA Nsight Visual Studio Edition
+version. PerfKit SDK previously used a different version scheme that ended with
+version 6.x.
+
+2015/03     Perfkit 4.4.0
+2015/02     PerfKit 4.3.0
+2015/01     PerfKit 4.2.3
+2015/01     PerfKit 4.2.2
+2015/01     PerfKit 4.2.1
+2014/12     PerfKit 4.2.0
+2014/10     PerfKit 4.1.1
+2014/09     PerfKit 4.1.0
+2014/07     PerfKit 4.0.1
+2014/04     PerfKit 4.0.0
+2013/12     PerfKit 3.2.2
+2013/11     PerfKit 3.2.1
+2013/09     PerfKit 3.2.0
+2013/08     PerfKit 3.1.0
+
+================================================================================
+More Information
+================================================================================
+
+Additional information and downloads can be found at
+
+http://developer.nvidia.com/nvidia-perfkit
+
+Support issues can be mailed to PerfKit@nvidia.com.
