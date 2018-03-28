@@ -837,6 +837,14 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
     }
   }
 
+  for(auto it = ctxdata.windows.begin(); it != ctxdata.windows.end();)
+  {
+    void *wndHandle = it->first;
+    it++;
+
+    ctxdata.UnassociateWindow(wndHandle);
+  }
+
   m_ContextData.erase(contextHandle);
 }
 
