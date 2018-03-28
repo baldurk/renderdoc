@@ -157,28 +157,28 @@ void D3D11Replay::CreateResources()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
 
-  AMDCounters *pAMDCounters = new AMDCounters();
-  NVCounters *pNVCounters = new NVCounters();
+  AMDCounters *countersAMD = new AMDCounters();
+  NVCounters *countersNV = new NVCounters();
 
   ID3D11Device *d3dDevice = m_pDevice->GetReal();
 
-  if(pAMDCounters->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
+  if(countersAMD->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
   {
-    m_pAMDCounters = pAMDCounters;
+    m_pAMDCounters = countersAMD;
   }
   else
   {
-    delete pAMDCounters;
+    delete countersAMD;
     m_pAMDCounters = NULL;
   }
 
-  if(pNVCounters->Init(d3dDevice))
+  if(countersNV->Init(d3dDevice))
   {
-    m_pNVCounters = pNVCounters;
+    m_pNVCounters = countersNV;
   }
   else
   {
-    delete pNVCounters;
+    delete countersNV;
     m_pNVCounters = NULL;
   }
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
