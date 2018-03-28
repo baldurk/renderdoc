@@ -348,38 +348,6 @@ void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
   }
 }
 
-static void FlushGPU(WrappedID3D11Device *pDevice, WrappedID3D11DeviceContext *pImmediateContext)
-{
-  ID3D11Query *pAPIQuery = NULL;
-  D3D11_QUERY_DESC queryDesc;
-  queryDesc.Query = D3D11_QUERY_EVENT;
-  queryDesc.MiscFlags = 0;
-  if(FAILED(pDevice->CreateQuery(&queryDesc, &pAPIQuery)))
-  {
-    return;
-  }
-
-  HRESULT hr;
-  pImmediateContext->Flush();
-  pImmediateContext->End(pAPIQuery);
-  pImmediateContext->Flush();
-  if(S_OK != (hr = pImmediateContext->GetData(pAPIQuery, NULL, 0, D3D11_ASYNC_GETDATA_DONOTFLUSH)))
-  {
-    do
-    {
-      if(FAILED(hr))
-      {
-        return;
-      }
-      ::Sleep(0);    // Give up time slice
-    } while(S_OK !=
-            (hr = pImmediateContext->GetData(pAPIQuery, NULL, 0, D3D11_ASYNC_GETDATA_DONOTFLUSH)));
-  }
-
-  if(pAPIQuery)
-    pAPIQuery->Release();
-}
-
 void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
                                vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
 {
@@ -400,13 +368,13 @@ void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
 
     m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
 
-    FlushGPU(m_pDevice, m_pImmediateContext);
+    SerializeImmediateContext();
 
     m_pNVCounters->BeginSample(sampleIndex);
 
     m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
 
-    FlushGPU(m_pDevice, m_pImmediateContext);
+    SerializeImmediateContext();
 
     m_pNVCounters->EndSample(sampleIndex);
 
@@ -469,7 +437,7 @@ vector<CounterResult> D3D11Replay::FetchCountersNV(const vector<GPUCounter> &cou
 
   if(m_pNVCounters->PrepareExperiment(counters, objectsCount))
   {
-    FlushGPU(m_pDevice, m_pImmediateContext);
+    SerializeImmediateContext();
 
     uint32_t passCount = m_pNVCounters->BeginExperiment();
     uint32_t sampleIndex = 0;
