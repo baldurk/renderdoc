@@ -166,4 +166,7 @@ CaptureOptions::CaptureOptions()
   saveAllInitials = false;
   captureAllCmdLists = false;
   debugOutputMute = true;
+  queueCapturing = false;
+  queueCaptureStartFrame = 0;
+  queueCaptureNumFrames = 1;
 }

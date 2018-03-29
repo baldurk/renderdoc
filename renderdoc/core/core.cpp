@@ -1042,6 +1042,15 @@ void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
   m_Options = opts;
 
   LibraryHooks::GetInstance().OptionsUpdated();
+
+  if(opts.queueCapturing)
+  {
+    for(uint32_t i = 0; i < opts.queueCaptureNumFrames; ++i)
+    {
+      QueueCapture(opts.queueCaptureStartFrame + i);
+    }
+    TriggerCapture(opts.queueCaptureNumFrames);
+  }
 }
 
 void RenderDoc::SetCaptureFileTemplate(const char *pathtemplate)

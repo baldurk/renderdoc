@@ -900,10 +900,12 @@ struct EmbeddedSectionCommand : public Command
   {
     parser.set_footer("<capture.rdc>");
     parser.add<std::string>("section", 's', "The embedded section name.");
-    parser.add<std::string>("file", 'f', m_Extract ? "The file to write the section contents to."
-                                                   : "The file to read the section contents from.");
-    parser.add("no-clobber", 'n', m_Extract ? "Don't overwrite the file if it already exists."
-                                            : "Don't overwrite the section if it already exists.");
+    parser.add<std::string>("file", 'f',
+                            m_Extract ? "The file to write the section contents to."
+                                      : "The file to read the section contents from.");
+    parser.add("no-clobber", 'n',
+               m_Extract ? "Don't overwrite the file if it already exists."
+                         : "Don't overwrite the section if it already exists.");
 
     if(!m_Extract)
     {
@@ -1218,6 +1220,13 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
               "Capturing Option: Save all initial resource contents at frame start.");
       cmd.add("opt-capture-all-cmd-lists", 0,
               "Capturing Option: In D3D11, record all command lists from application start.");
+      cmd.add("opt-capture-queue-capturing", 0,
+              "Capturing Option: Automatically start capturing from a certain frame.");
+      cmd.add<int>("opt-capture-queue-start-frame", 0,
+                   "Capturing Option: Specify the frame number where queue-capturing starts.",
+                   false, 0);
+      cmd.add<int>("opt-capture-queue-num-frames", 0,
+                   "Capturing Option: Specify the number of frames to be queue-captured.", false, 1);
     }
 
     cmd.parse_check(argv, true);
@@ -1249,8 +1258,17 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
         opts.saveAllInitials = true;
       if(cmd.exist("opt-capture-all-cmd-lists"))
         opts.captureAllCmdLists = true;
+      if(cmd.exist("opt-capture-queue-capturing"))
+        opts.queueCapturing = true;
 
       opts.delayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
+      if(opts.queueCapturing)
+      {
+        if(cmd.exist("opt-capture-queue-start-frame"))
+          opts.queueCaptureStartFrame = (uint32_t)cmd.get<int>("opt-capture-queue-start-frame");
+        if(cmd.exist("opt-capture-queue-num-frames"))
+          opts.queueCaptureNumFrames = (uint32_t)cmd.get<int>("opt-capture-queue-num-frames");
+      }
     }
 
     if(cmd.exist("help"))
