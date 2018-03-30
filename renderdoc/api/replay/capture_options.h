@@ -207,6 +207,30 @@ Default - enabled
 ``False`` - API debugging is displayed as normal.
 )");
   bool debugOutputMute;
+
+  DOCUMENT(R"(Enable queue capturing
+
+Default - disabled
+
+``True`` - Enable RenderDoc to start capturing a number of frames in a row.
+
+``False`` - Capture will be triggered by users.
+)");
+  bool queueCapturing;
+
+  DOCUMENT(R"(The frame from which queue-capturing starts.
+
+Default - 0
+
+)");
+  uint32_t queueCaptureStartFrame;
+
+  DOCUMENT(R"(The number of frames to be queue-captured.
+
+Default - 0
+
+)");
+  uint32_t queueCaptureNumFrames;
 };
 
 DECLARE_REFLECTION_STRUCT(CaptureOptions);

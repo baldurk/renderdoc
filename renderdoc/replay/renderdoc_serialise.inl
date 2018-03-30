@@ -112,8 +112,11 @@ void DoSerialise(SerialiserType &ser, CaptureOptions &el)
   SERIALISE_MEMBER(saveAllInitials);
   SERIALISE_MEMBER(captureAllCmdLists);
   SERIALISE_MEMBER(debugOutputMute);
+  SERIALISE_MEMBER(queueCapturing);
+  SERIALISE_MEMBER(queueCaptureStartFrame);
+  SERIALISE_MEMBER(queueCaptureNumFrames);
 
-  SIZE_CHECK(20);
+  SIZE_CHECK(28);
 }
 
 template <typename SerialiserType>
