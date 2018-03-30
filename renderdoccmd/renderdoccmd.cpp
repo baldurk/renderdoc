@@ -900,12 +900,10 @@ struct EmbeddedSectionCommand : public Command
   {
     parser.set_footer("<capture.rdc>");
     parser.add<std::string>("section", 's', "The embedded section name.");
-    parser.add<std::string>("file", 'f',
-                            m_Extract ? "The file to write the section contents to."
-                                      : "The file to read the section contents from.");
-    parser.add("no-clobber", 'n',
-               m_Extract ? "Don't overwrite the file if it already exists."
-                         : "Don't overwrite the section if it already exists.");
+    parser.add<std::string>("file", 'f', m_Extract ? "The file to write the section contents to."
+                                                   : "The file to read the section contents from.");
+    parser.add("no-clobber", 'n', m_Extract ? "Don't overwrite the file if it already exists."
+                                            : "Don't overwrite the section if it already exists.");
 
     if(!m_Extract)
     {
