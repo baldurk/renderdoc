@@ -168,7 +168,7 @@ void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
 {
   SERIALISE_TIME_CALL(m_Real.glBindSampler(unit, sampler));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -216,7 +216,7 @@ void WrappedOpenGL::glBindSamplers(GLuint first, GLsizei count, const GLuint *sa
 {
   SERIALISE_TIME_CALL(m_Real.glBindSamplers(first, count, samplers));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);

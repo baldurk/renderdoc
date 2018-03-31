@@ -196,7 +196,7 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
 {
   SERIALISE_TIME_CALL(m_Real.glDebugMessageInsert(source, type, id, severity, length, buf));
 
-  if(IsActiveCapturing(m_State) && type == eGL_DEBUG_TYPE_MARKER)
+  if(IsActiveCapturing(m_State) && IsCapturingContext() && type == eGL_DEBUG_TYPE_MARKER)
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -209,7 +209,7 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
 
 void WrappedOpenGL::glPushGroupMarkerEXT(GLsizei length, const GLchar *marker)
 {
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -221,7 +221,7 @@ void WrappedOpenGL::glPushGroupMarkerEXT(GLsizei length, const GLchar *marker)
 
 void WrappedOpenGL::glPopGroupMarkerEXT()
 {
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -263,7 +263,7 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
 
 void WrappedOpenGL::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 {
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -281,7 +281,7 @@ void WrappedOpenGL::glFrameTerminatorGREMEDY()
 
 void WrappedOpenGL::glStringMarkerGREMEDY(GLsizei len, const void *string)
 {
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -329,7 +329,7 @@ void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, c
 {
   SERIALISE_TIME_CALL(m_Real.glPushDebugGroup(source, id, length, message));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -364,7 +364,7 @@ void WrappedOpenGL::glPopDebugGroup()
 {
   SERIALISE_TIME_CALL(m_Real.glPopDebugGroup());
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();

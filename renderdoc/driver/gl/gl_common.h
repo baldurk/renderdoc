@@ -57,6 +57,11 @@ struct GLWindowingData
     wnd = NULL;
   }
 
+  bool operator==(GLWindowingData data) const
+  {
+    return DC == data.DC && ctx == data.ctx && wnd == data.wnd;
+  }
+
   void SetCtx(void *c) { ctx = (HGLRC)c; }
   HDC DC;
   HGLRC ctx;
@@ -90,6 +95,11 @@ struct GLWindowingData
     dpy = NULL;
     ctx = NULL;
     wnd = 0;
+  }
+
+  bool operator==(GLWindowingData data) const
+  {
+    return dpy == data.dpy && ctx == data.ctx && wnd == data.wnd;
   }
 
   void SetCtx(void *c) { ctx = (GLContextPtr)c; }
@@ -141,6 +151,7 @@ struct GLWindowingData
     wnd = 0;
   }
 
+  bool operator==(GLWindowingData data) const { return ctx == data.ctx && wnd == data.wnd; }
   void SetCtx(void *c) { ctx = (void *)c; }
   void *ctx;
   void *wnd;
@@ -163,6 +174,11 @@ struct GLWindowingData
     egl_ctx = 0;
     egl_dpy = 0;
     egl_wnd = 0;
+  }
+
+  bool operator==(GLWindowingData data) const
+  {
+    return egl_ctx == data.egl_ctx && egl_dpy == data.egl_dpy && egl_wnd == data.egl_wnd;
   }
 
   void SetCtx(void *c) { egl_ctx = (void *)c; }

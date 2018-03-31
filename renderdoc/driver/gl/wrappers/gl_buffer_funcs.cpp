@@ -234,7 +234,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 
   size_t idx = BufferIdx(target);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     Chunk *chunk = NULL;
 
@@ -665,7 +665,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
     // the frame record so we can 'update' the buffer as it goes in the frame.
     // if we haven't created the buffer at all, it could be a mid-frame create and we
     // should place it in the resource record, to happen before the frame.
-    if(IsActiveCapturing(m_State) && record->HasDataPtr())
+    if(IsActiveCapturing(m_State) && IsCapturingContext() && record->HasDataPtr())
     {
       // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
       m_ContextRecord->AddChunk(chunk);
@@ -805,7 +805,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
     // the frame record so we can 'update' the buffer as it goes in the frame.
     // if we haven't created the buffer at all, it could be a mid-frame create and we
     // should place it in the resource record, to happen before the frame.
-    if(IsActiveCapturing(m_State) && record->HasDataPtr())
+    if(IsActiveCapturing(m_State) && IsCapturingContext() && record->HasDataPtr())
     {
       // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
       m_ContextRecord->AddChunk(chunk);
@@ -872,7 +872,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 
     Chunk *chunk = scope.Get();
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(record->GetResourceID());
@@ -925,7 +925,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 
     Chunk *chunk = scope.Get();
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(record->GetResourceID());
@@ -1006,7 +1006,7 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 
     Chunk *chunk = scope.Get();
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(writerecord->GetResourceID());
@@ -1068,7 +1068,7 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 
     Chunk *chunk = scope.Get();
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(writerecord->GetResourceID());
@@ -1128,7 +1128,7 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
-    if(buffer && IsActiveCapturing(m_State))
+    if(buffer && IsActiveCapturing(m_State) && IsCapturingContext())
     {
       FrameRefType refType = eFrameRef_Read;
 
@@ -1179,13 +1179,13 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
     if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
              target == eGL_ATOMIC_COUNTER_BUFFER))
     {
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(r->GetResourceID());
       else
         GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
     }
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1238,7 +1238,7 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
-    if(buffer && IsActiveCapturing(m_State))
+    if(buffer && IsActiveCapturing(m_State) && IsCapturingContext())
     {
       FrameRefType refType = eFrameRef_Read;
 
@@ -1289,13 +1289,13 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
     if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
              target == eGL_ATOMIC_COUNTER_BUFFER))
     {
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(r->GetResourceID());
       else
         GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
     }
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1364,7 +1364,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       FrameRefType refType = eFrameRef_Read;
 
@@ -1438,7 +1438,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
       }
     }
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1544,7 +1544,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
       cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       FrameRefType refType = eFrameRef_Read;
 
@@ -1621,7 +1621,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
       }
     }
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1982,7 +1982,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
         record->Map.ptr = ptr = record->GetShadowPtr(0) + offset;
         record->Map.status = GLResourceRecord::Mapped_Write;
       }
-      else if(IsActiveCapturing(m_State))
+      else if(IsActiveCapturing(m_State) && IsCapturingContext())
       {
         byte *shadow = (byte *)record->GetShadowPtr(0);
 
@@ -2276,7 +2276,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
     auto status = record->Map.status;
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_MissingTracks.insert(record->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
@@ -2488,7 +2488,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
     m_Real.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
   }
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     if(record)
     {
@@ -2780,7 +2780,7 @@ void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLui
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glTransformFeedbackBufferBase(ser, xfb, index, buffer);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
@@ -2836,7 +2836,7 @@ void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLu
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glTransformFeedbackBufferRange(ser, xfb, index, buffer, offset, size);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
@@ -2891,7 +2891,7 @@ void WrappedOpenGL::glBindTransformFeedback(GLenum target, GLuint id)
     }
   }
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -2925,7 +2925,7 @@ void WrappedOpenGL::glBeginTransformFeedback(GLenum primitiveMode)
   SERIALISE_TIME_CALL(m_Real.glBeginTransformFeedback(primitiveMode));
   m_ActiveFeedback = true;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -2950,7 +2950,7 @@ void WrappedOpenGL::glPauseTransformFeedback()
 {
   SERIALISE_TIME_CALL(m_Real.glPauseTransformFeedback());
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -2975,7 +2975,7 @@ void WrappedOpenGL::glResumeTransformFeedback()
 {
   SERIALISE_TIME_CALL(m_Real.glResumeTransformFeedback());
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -3002,7 +3002,7 @@ void WrappedOpenGL::glEndTransformFeedback()
   SERIALISE_TIME_CALL(m_Real.glEndTransformFeedback());
   m_ActiveFeedback = false;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -3098,9 +3098,9 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -3131,9 +3131,9 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -3224,9 +3224,9 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -3257,9 +3257,9 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -3350,9 +3350,9 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -3383,9 +3383,9 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -3439,7 +3439,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint att
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3467,7 +3467,7 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3528,7 +3528,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribFormatEXT(GLuint vaobj, GLuint attr
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3559,7 +3559,7 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3617,7 +3617,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint att
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3647,7 +3647,7 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3704,7 +3704,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint att
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3734,7 +3734,7 @@ void WrappedOpenGL::glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3798,7 +3798,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint ind
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3826,7 +3826,7 @@ void WrappedOpenGL::glVertexAttribDivisor(GLuint index, GLuint divisor)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3882,7 +3882,7 @@ void WrappedOpenGL::glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3910,7 +3910,7 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3965,7 +3965,7 @@ void WrappedOpenGL::glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -3993,7 +3993,7 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -4162,7 +4162,7 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
     }
   }
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -4223,9 +4223,9 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -4291,9 +4291,9 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -4324,9 +4324,9 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-      if(IsActiveCapturing(m_State) && bufrecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
@@ -4434,7 +4434,7 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -4445,7 +4445,7 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
         r->AddChunk(scope.Get());
       }
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
       {
         for(GLsizei i = 0; i < count; i++)
         {
@@ -4478,7 +4478,7 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -4490,7 +4490,7 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
         r->AddChunk(scope.Get());
       }
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
       {
         for(GLsizei i = 0; i < count; i++)
         {
@@ -4547,7 +4547,7 @@ void WrappedOpenGL::glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bi
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -4575,7 +4575,7 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
-      if(IsActiveCapturing(m_State) && varecord)
+      if(IsActiveCapturing(m_State) && IsCapturingContext() && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -4859,7 +4859,7 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(SerialiserType &ser, GLuint index, 
   {                                                                               \
     SERIALISE_TIME_CALL(m_Real.CONCAT(glVertexAttrib, suffix)(index, ARRAYLIST)); \
                                                                                   \
-    if(IsActiveCapturing(m_State))                                                \
+    if(IsActiveCapturing(m_State) && IsCapturingContext())                        \
     {                                                                             \
       USE_SCRATCH_SERIALISER();                                                   \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                        \
@@ -4919,7 +4919,7 @@ ATTRIB_FUNC(4, 4Nub, Attrib_N, GLubyte, GLubyte x, GLubyte y, GLubyte z, GLubyte
   {                                                                                        \
     m_Real.CONCAT(glVertexAttrib, suffix)(index, value);                                   \
                                                                                            \
-    if(IsActiveCapturing(m_State))                                                         \
+    if(IsActiveCapturing(m_State) && IsCapturingContext())                                 \
     {                                                                                      \
       USE_SCRATCH_SERIALISER();                                                            \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                 \
@@ -4983,7 +4983,7 @@ ATTRIB_FUNC(4, 4Nusv, Attrib_N, GLushort)
   {                                                                                            \
     m_Real.CONCAT(CONCAT(glVertexAttribP, count), suffix)(index, type, normalized, value);     \
                                                                                                \
-    if(IsActiveCapturing(m_State))                                                             \
+    if(IsActiveCapturing(m_State) && IsCapturingContext())                                     \
     {                                                                                          \
       USE_SCRATCH_SERIALISER();                                                                \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                     \
