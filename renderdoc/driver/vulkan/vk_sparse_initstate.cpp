@@ -712,14 +712,19 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VkInitialCont
     VkDeviceMemory dstMem =
         GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info.memDataOffs[i].memory);
 
-    VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
+    ResourceId id = GetResID(dstMem);
 
-    VkDeviceSize size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
+    VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
+
+    VkDeviceSize size = m_CreationInfo.m_Memory[id].size;
 
     // fill the whole memory from the given offset
     VkBufferCopy region = {info.memDataOffs[i].memOffs, 0, size};
 
-    ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    if(dstBuf != VK_NULL_HANDLE)
+      ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    else
+      RDCERR("Whole memory buffer not present for %llu", id);
   }
 
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -843,15 +848,20 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VkInitialConten
     VkDeviceMemory dstMem =
         GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info.memDataOffs[i].memory);
 
+    ResourceId id = GetResID(dstMem);
+
     // since this is short lived it isn't wrapped. Note that we want
     // to cache this up front, so it will then be wrapped
-    VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
-    VkDeviceSize size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
+    VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
+    VkDeviceSize size = m_CreationInfo.m_Memory[id].size;
 
     // fill the whole memory from the given offset
     VkBufferCopy region = {info.memDataOffs[i].memOffs, 0, size};
 
-    ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    if(dstBuf != VK_NULL_HANDLE)
+      ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    else
+      RDCERR("Whole memory buffer not present for %llu", id);
   }
 
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));

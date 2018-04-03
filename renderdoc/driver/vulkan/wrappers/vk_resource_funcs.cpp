@@ -197,16 +197,28 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
 
-      RDCASSERT(mrq.size <= AllocateInfo.allocationSize, mrq.size, AllocateInfo.allocationSize);
+      // check that this allocation type can actually be bound to a buffer. Allocations that can't
+      // be used with buffers we can just skip and leave wholeMemBuf as NULL.
+      if((1 << AllocateInfo.memoryTypeIndex) & mrq.memoryTypeBits)
+      {
+        RDCASSERT(mrq.size <= AllocateInfo.allocationSize, mrq.size, AllocateInfo.allocationSize);
 
-      ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
+        ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
 
-      ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
+        ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
 
-      // register as a live-only resource, so it is cleaned up properly
-      GetResourceManager()->AddLiveResource(bufid, buf);
+        // register as a live-only resource, so it is cleaned up properly
+        GetResourceManager()->AddLiveResource(bufid, buf);
 
-      m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
+        m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
+      }
+      else
+      {
+        RDCWARN("Can't create buffer covering memory allocation %llu", Memory);
+        ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
+
+        m_CreationInfo.m_Memory[live].wholeMemBuf = VK_NULL_HANDLE;
+      }
     }
 
     AddResource(Memory, ResourceType::Memory, "Memory");

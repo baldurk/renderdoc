@@ -1491,7 +1491,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
 
     VkBufferCopy region = {0, dstMemOffs, datasize};
 
-    ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    if(dstBuf != VK_NULL_HANDLE)
+      ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    else
+      RDCERR("Whole memory buffer not present for %llu", id);
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
