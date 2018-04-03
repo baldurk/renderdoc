@@ -380,7 +380,8 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
     {
       QMessageBox::StandardButton elevate = RDDialog::question(
           this, tr("System layer install"),
-          tr("Do you want to elevate permissions to install the layer at a system level?"),
+          tr("Do you want to elevate permissions to install the layer at a system level?\n\n"
+             "If you click 'No', the layer will be installed at a per-user level."),
           RDDialog::YesNoCancel);
 
       if(elevate == QMessageBox::Yes)
