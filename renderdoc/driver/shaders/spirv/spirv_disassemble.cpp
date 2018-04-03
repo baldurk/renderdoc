@@ -4238,19 +4238,23 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
         res.name = inst->str.empty() ? StringFormat::Fmt("res%u", inst->id) : inst->str;
 
-        if(type->multisampled)
-          res.resType = type->arrayed ? TextureType::Texture2DMSArray : TextureType::Texture2DMS;
-        else if(type->texdim == spv::Dim1D)
-          res.resType = type->arrayed ? TextureType::Texture1DArray : TextureType::Texture1D;
-        else if(type->texdim == spv::Dim2D)
-          res.resType = type->arrayed ? TextureType::Texture2DArray : TextureType::Texture2D;
-        else if(type->texdim == spv::DimCube)
-          res.resType = type->arrayed ? TextureType::TextureCubeArray : TextureType::TextureCube;
-        else if(type->texdim == spv::Dim3D)
+        SPVTypeData *imageType = type;
+        if(imageType->type == SPVTypeData::eSampledImage)
+          imageType = type->baseType;
+
+        if(imageType->multisampled)
+          res.resType = imageType->arrayed ? TextureType::Texture2DMSArray : TextureType::Texture2DMS;
+        else if(imageType->texdim == spv::Dim1D)
+          res.resType = imageType->arrayed ? TextureType::Texture1DArray : TextureType::Texture1D;
+        else if(imageType->texdim == spv::Dim2D)
+          res.resType = imageType->arrayed ? TextureType::Texture2DArray : TextureType::Texture2D;
+        else if(imageType->texdim == spv::DimCube)
+          res.resType = imageType->arrayed ? TextureType::TextureCubeArray : TextureType::TextureCube;
+        else if(imageType->texdim == spv::Dim3D)
           res.resType = TextureType::Texture3D;
-        else if(type->texdim == spv::DimRect)
+        else if(imageType->texdim == spv::DimRect)
           res.resType = TextureType::TextureRect;
-        else if(type->texdim == spv::DimBuffer)
+        else if(imageType->texdim == spv::DimBuffer)
           res.resType = TextureType::Buffer;
 
         bool sepSampler = (type->type == SPVTypeData::eSampler);
