@@ -1362,7 +1362,7 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 
   // if none of the graphical options, then look for sudo and either
   const QString termEmulator[] = {
-      lit("x-terminal-emulator"), lit("gnome-terminal"), lit("knosole"), lit("xterm"),
+      lit("x-terminal-emulator"), lit("gnome-terminal"), lit("konsole"), lit("xterm"),
   };
 
   for(const QString &sudo : graphicalSudo)
