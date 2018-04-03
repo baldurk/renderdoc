@@ -303,10 +303,10 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->blends->setHeader(header);
 
-    ui->blends->setColumns({tr("Slot"), tr("Logic"), tr("Enabled"), tr("Col Src"), tr("Col Dst"),
-                            tr("Col Op"), tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"),
-                            tr("Logic Op"), tr("Write Mask")});
-    header->setColumnStretchHints({-1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1});
+    ui->blends->setColumns({tr("Slot"), tr("Enabled"), tr("Col Src"), tr("Col Dst"), tr("Col Op"),
+                            tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"), tr("Logic Op"),
+                            tr("Write Mask")});
+    header->setColumnStretchHints({-1, 1, 2, 2, 2, 2, 2, 2, 2, 1});
 
     ui->blends->setClearSelectionOnFocusLoss(true);
     ui->blends->setInstantTooltips(true);
@@ -1638,7 +1638,6 @@ void D3D11PipelineStateViewer::setState()
 
         node = new RDTreeWidgetItem(
             {i, blend.enabled ? tr("True") : tr("False"),
-             blend.logicOperationEnabled ? tr("True") : tr("False"),
 
              ToQStr(blend.colorBlend.source), ToQStr(blend.colorBlend.destination),
              ToQStr(blend.colorBlend.operation),
@@ -1646,7 +1645,7 @@ void D3D11PipelineStateViewer::setState()
              ToQStr(blend.alphaBlend.source), ToQStr(blend.alphaBlend.destination),
              ToQStr(blend.alphaBlend.operation),
 
-             ToQStr(blend.logicOperation),
+             blend.logicOperationEnabled ? ToQStr(blend.logicOperation) : tr("Disabled"),
 
              QFormatStr("%1%2%3%4")
                  .arg((blend.writeMask & 0x1) == 0 ? lit("_") : lit("R"))
