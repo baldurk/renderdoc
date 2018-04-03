@@ -1375,6 +1375,16 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
           VK_WHOLE_SIZE,
       };
 
+      if((m_pDriver->GetFormatProperties(attrDesc.format).bufferFeatures &
+          VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT) == 0)
+      {
+        RDCERR(
+            "Format %s doesn't support texel buffers! Replacing with safe but broken format, for "
+            "now. This will require a CPU readback and unpack to properly fix.",
+            ToStr(attrDesc.format).c_str());
+        info.format = VK_FORMAT_R8G8B8A8_UNORM;
+      }
+
       m_pDriver->vkCreateBufferView(dev, &info, NULL, &vbuffers[attr].view);
 
       attrIsInstanced.resize(RDCMAX(attrIsInstanced.size(), size_t(attr + 1)));
