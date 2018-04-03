@@ -134,8 +134,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   };
 
   RDTreeWidget *uavs[] = {
-      ui->vsResources, ui->hsResources, ui->dsResources,
-      ui->gsResources, ui->psResources, ui->csResources,
+      ui->vsUAVs, ui->hsUAVs, ui->dsUAVs, ui->gsUAVs, ui->psUAVs, ui->csUAVs,
   };
 
   RDTreeWidget *samplers[] = {
@@ -1769,11 +1768,11 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(stage->reflection)
     {
-      const rdcarray<ShaderResource> &resArray = view.space == D3D12ViewTag::SRV
+      const rdcarray<ShaderResource> &resArray = view.type == D3D12ViewTag::SRV
                                                      ? stage->reflection->readOnlyResources
                                                      : stage->reflection->readWriteResources;
 
-      const rdcarray<Bindpoint> &bindArray = view.space == D3D12ViewTag::SRV
+      const rdcarray<Bindpoint> &bindArray = view.type == D3D12ViewTag::SRV
                                                  ? stage->bindpointMapping.readOnlyResources
                                                  : stage->bindpointMapping.readWriteResources;
 
