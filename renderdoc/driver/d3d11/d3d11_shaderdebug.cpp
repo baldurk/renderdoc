@@ -1135,11 +1135,28 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     nextreg = dxbc->m_InputSig[i].regIndex + 1;
 
     if(dxbc->m_InputSig[i].compType == CompType::Float)
+    {
+      // if we're packed with ints on either side, we must be nointerpolation
+      bool nointerp = false;
+      for(size_t j = 0; j < dxbc->m_InputSig.size(); j++)
+      {
+        if(dxbc->m_InputSig[i].regIndex == dxbc->m_InputSig[j].regIndex &&
+           dxbc->m_InputSig[j].compType != CompType::Float)
+        {
+          nointerp = true;
+          break;
+        }
+      }
+
+      if(nointerp)
+        extractHlsl += "nointerpolation ";
+
       extractHlsl += "float";
+    }
     else if(dxbc->m_InputSig[i].compType == CompType::SInt)
-      extractHlsl += "int";
+      extractHlsl += "nointerpolation int";
     else if(dxbc->m_InputSig[i].compType == CompType::UInt)
-      extractHlsl += "uint";
+      extractHlsl += "nointerpolation uint";
     else
       RDCERR("Unexpected input signature type: %d", dxbc->m_InputSig[i].compType);
 
