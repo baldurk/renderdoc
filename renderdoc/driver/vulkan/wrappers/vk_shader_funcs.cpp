@@ -525,8 +525,8 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
           VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
           record->AddParent(baserecord);
 
-          RDCLOG("Creating pipeline %llu base is %llu", record->GetResourceID(),
-                 baserecord->GetResourceID());
+          RDCDEBUG("Creating pipeline %llu base is %llu", record->GetResourceID(),
+                   baserecord->GetResourceID());
         }
         else if(pCreateInfos[i].basePipelineIndex != -1 && pCreateInfos[i].basePipelineIndex < (int)i)
         {
