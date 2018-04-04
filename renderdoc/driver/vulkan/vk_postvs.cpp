@@ -933,7 +933,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           std::vector<uint32_t> words = {outs[o].privatePtrID, readPtr, patchData.outputs[o].ID};
 
           for(uint32_t idx : patchData.outputs[o].accessChain)
-            words.push_back(outs[idx].constID);
+          {
+            if(idxs[idx] == 0)
+              idxs[idx] = editor.AddConstantImmediate<uint32_t>(idx);
+
+            words.push_back(idxs[idx]);
+          }
 
           // type *readPtr = globalvar.globalsub...;
           ops.push_back(SPIRVOperation(spv::OpAccessChain, words));
