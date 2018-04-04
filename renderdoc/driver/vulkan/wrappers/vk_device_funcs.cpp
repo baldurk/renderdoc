@@ -1261,9 +1261,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(
         ~0U, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-    for(size_t i = 0; i < m_PhysicalDevices.size(); i++)
+    for(size_t i = 0; i < m_ReplayPhysicalDevices.size(); i++)
     {
-      if(physicalDevice == m_PhysicalDevices[i])
+      if(physicalDevice == m_ReplayPhysicalDevices[i])
       {
         m_PhysicalDeviceData.memIdxMap = m_MemIdxMaps[i];
         break;
