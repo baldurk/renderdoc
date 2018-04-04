@@ -176,6 +176,11 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   if(RDCLib.size() < installedPath.size() || RDCLib.substr(0, installedPath.size()) != installedPath)
     RDCLib.clear();
 
+  // some versions of adb/android also don't print any error message at all! Look to see if the
+  // wildcard glob is still present.
+  if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) != std::string::npos)
+    RDCLib.clear();
+
   bool injectLibraries = true;
 
   if(RDCLib.empty())
