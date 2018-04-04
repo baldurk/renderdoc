@@ -96,6 +96,10 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
   }
 }
 
+%typemap(out) rdcpair {
+  $result = ConvertToPy(($1_ltype&)$1);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // inserted code to include C++ conversion header
 
