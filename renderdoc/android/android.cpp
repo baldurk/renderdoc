@@ -435,7 +435,7 @@ bool CheckAndroidServerVersion(const string &deviceID)
   // Compare the server's versionCode and versionName with the host's for compatibility
   std::string hostVersionCode =
       string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + string(STRINGIZE(RENDERDOC_VERSION_MINOR));
-  std::string hostVersionName = RENDERDOC_STABLE_BUILD ? MAJOR_MINOR_VERSION_STRING : GitVersionHash;
+  std::string hostVersionName = GitVersionHash;
 
   // False positives will hurt us, so check for explicit matches
   if((hostVersionCode == versionCode) && (hostVersionName == versionName))
