@@ -57,6 +57,38 @@ inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
   obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
 }
 
+#define PIX_EVENT_UNICODE_VERSION 0
+#define PIX_EVENT_ANSI_VERSION 1
+#define PIX_EVENT_PIX3BLOB_VERSION 2
+
+std::string PIX3DecodeEventString(const UINT64 *pData);
+
+inline std::string DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
+{
+  std::string MarkerText = "";
+
+  if(Metadata == PIX_EVENT_UNICODE_VERSION)
+  {
+    const wchar_t *w = (const wchar_t *)pData;
+    MarkerText = StringFormat::Wide2UTF8(std::wstring(w, w + Size));
+  }
+  else if(Metadata == PIX_EVENT_ANSI_VERSION)
+  {
+    const char *c = (const char *)pData;
+    MarkerText = string(c, c + Size);
+  }
+  else if(Metadata == PIX_EVENT_PIX3BLOB_VERSION)
+  {
+    MarkerText = PIX3DecodeEventString((UINT64 *)pData);
+  }
+  else
+  {
+    RDCERR("Unexpected/unsupported Metadata value %u in marker text", Metadata);
+  }
+
+  return MarkerText;
+}
+
 TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim);
 TextureType MakeTextureDim(D3D12_RTV_DIMENSION dim);
 TextureType MakeTextureDim(D3D12_DSV_DIMENSION dim);
@@ -572,5 +604,8 @@ enum class D3D12Chunk : uint32_t
   Resource_Unmap,
   Resource_WriteToSubresource,
   List_IndirectSubCommand,
+  Queue_BeginEvent,
+  Queue_SetMarker,
+  Queue_EndEvent,
   Max,
 };

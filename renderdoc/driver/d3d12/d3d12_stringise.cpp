@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1083, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1086, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -157,6 +157,9 @@ std::string DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(Resource_Unmap, "ID3D12Resource::Unmap");
     STRINGISE_ENUM_CLASS_NAMED(Resource_WriteToSubresource, "ID3D12Resource::WriteToSubresource");
     STRINGISE_ENUM_CLASS_NAMED(List_IndirectSubCommand, "Indirect Sub-command");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_BeginEvent, "ID3D12CommandQueue::BeginEvent");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_SetMarker, "ID3D12CommandQueue::SetMarker");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_EndEvent, "ID3D12CommandQueue::EndEvent");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

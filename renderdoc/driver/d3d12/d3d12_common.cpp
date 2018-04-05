@@ -503,3 +503,176 @@ ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility)
 
   return ShaderStageMask::Vertex;
 }
+
+// from PIXEventsCommon.h of winpixeventruntime
+enum PIXEventType
+{
+  ePIXEvent_EndEvent = 0x000,
+  ePIXEvent_BeginEvent_VarArgs = 0x001,
+  ePIXEvent_BeginEvent_NoArgs = 0x002,
+  ePIXEvent_SetMarker_VarArgs = 0x007,
+  ePIXEvent_SetMarker_NoArgs = 0x008,
+
+  ePIXEvent_EndEvent_OnContext = 0x010,
+  ePIXEvent_BeginEvent_OnContext_VarArgs = 0x011,
+  ePIXEvent_BeginEvent_OnContext_NoArgs = 0x012,
+  ePIXEvent_SetMarker_OnContext_VarArgs = 0x017,
+  ePIXEvent_SetMarker_OnContext_NoArgs = 0x018,
+};
+
+inline void PIX3DecodeEventInfo(const UINT64 BlobData, UINT64 &Timestamp, PIXEventType &EventType)
+{
+  static const UINT64 PIXEventsBlockEndMarker = 0x00000000000FFF80;
+
+  static const UINT64 PIXEventsTypeReadMask = 0x00000000000FFC00;
+  static const UINT64 PIXEventsTypeWriteMask = 0x00000000000003FF;
+  static const UINT64 PIXEventsTypeBitShift = 10;
+
+  static const UINT64 PIXEventsTimestampReadMask = 0xFFFFFFFFFFF00000;
+  static const UINT64 PIXEventsTimestampWriteMask = 0x00000FFFFFFFFFFF;
+  static const UINT64 PIXEventsTimestampBitShift = 20;
+
+  Timestamp = (BlobData >> PIXEventsTimestampBitShift) & PIXEventsTimestampWriteMask;
+  EventType = PIXEventType((BlobData >> PIXEventsTypeBitShift) & PIXEventsTypeWriteMask);
+}
+
+inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64 &Alignment, UINT64 &CopyChunkSize,
+                                 bool &IsANSI, bool &IsShortcut)
+{
+  static const UINT64 PIXEventsStringAlignmentWriteMask = 0x000000000000000F;
+  static const UINT64 PIXEventsStringAlignmentReadMask = 0xF000000000000000;
+  static const UINT64 PIXEventsStringAlignmentBitShift = 60;
+
+  static const UINT64 PIXEventsStringCopyChunkSizeWriteMask = 0x000000000000001F;
+  static const UINT64 PIXEventsStringCopyChunkSizeReadMask = 0x0F80000000000000;
+  static const UINT64 PIXEventsStringCopyChunkSizeBitShift = 55;
+
+  static const UINT64 PIXEventsStringIsANSIWriteMask = 0x0000000000000001;
+  static const UINT64 PIXEventsStringIsANSIReadMask = 0x0040000000000000;
+  static const UINT64 PIXEventsStringIsANSIBitShift = 54;
+
+  static const UINT64 PIXEventsStringIsShortcutWriteMask = 0x0000000000000001;
+  static const UINT64 PIXEventsStringIsShortcutReadMask = 0x0020000000000000;
+  static const UINT64 PIXEventsStringIsShortcutBitShift = 53;
+
+  Alignment = (BlobData >> PIXEventsStringAlignmentBitShift) & PIXEventsStringAlignmentWriteMask;
+  CopyChunkSize =
+      (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
+  IsANSI = (BlobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIWriteMask;
+  IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
+}
+
+const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, std::string &DecodedString)
+{
+  UINT64 alignment;
+  UINT64 copyChunkSize;
+  bool isANSI;
+  bool isShortcut;
+  PIX3DecodeStringInfo(*pData, alignment, copyChunkSize, isANSI, isShortcut);
+  ++pData;
+
+  UINT totalStringBytes = 0;
+  if(isANSI)
+  {
+    const char *c = (const char *)pData;
+    UINT formatStringByteCount = UINT(strlen((const char *)pData));
+    DecodedString = std::string(c, c + formatStringByteCount);
+    totalStringBytes = formatStringByteCount + 1;
+  }
+  else
+  {
+    const wchar_t *w = (const wchar_t *)pData;
+    UINT formatStringByteCount = UINT(wcslen((const wchar_t *)pData));
+    DecodedString = StringFormat::Wide2UTF8(std::wstring(w, w + formatStringByteCount));
+    totalStringBytes = (formatStringByteCount + 1) * sizeof(wchar_t);
+  }
+
+  UINT64 byteChunks = ((totalStringBytes + copyChunkSize - 1) / copyChunkSize) * copyChunkSize;
+  UINT64 stringQWordCount = (byteChunks + 7) / 8;
+  pData += stringQWordCount;
+
+  return pData;
+}
+
+string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
+{
+  std::string finalString;
+  std::string formatPart;
+  size_t lastFind = 0;
+
+  for(size_t found = Format.find_first_of("%"); found != std::string::npos;)
+  {
+    finalString += Format.substr(lastFind, found - lastFind);
+
+    size_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
+    if(endOfFormat == std::string::npos)
+    {
+      finalString += "<FORMAT_ERROR>";
+      break;
+    }
+
+    formatPart = Format.substr(found, (endOfFormat - found) + 1);
+
+    // strings
+    if(formatPart.back() == 's')
+    {
+      std::string stringParam;
+      pData = PIX3DecodeStringParam(pData, stringParam);
+      finalString += stringParam;
+    }
+    // numerical values
+    else
+    {
+      static const UINT MAX_CHARACTERS_FOR_VALUE = 32;
+      char formattedValue[MAX_CHARACTERS_FOR_VALUE];
+      StringFormat::snprintf(formattedValue, MAX_CHARACTERS_FOR_VALUE, formatPart.c_str(), *pData);
+      finalString += formattedValue;
+      ++pData;
+    }
+
+    lastFind = endOfFormat + 1;
+    found = Format.find_first_of("%", lastFind);
+  }
+
+  finalString += Format.substr(lastFind);
+
+  return finalString;
+}
+
+std::string PIX3DecodeEventString(const UINT64 *pData)
+{
+  // event header
+  UINT64 timestamp;
+  PIXEventType eventType;
+  PIX3DecodeEventInfo(*pData, timestamp, eventType);
+  ++pData;
+
+  // convert setmarker event types to beginevent event types because they're identical and it makes
+  // for easier processing.
+  if(eventType == ePIXEvent_SetMarker_NoArgs)
+    eventType = ePIXEvent_BeginEvent_NoArgs;
+
+  if(eventType == ePIXEvent_SetMarker_VarArgs)
+    eventType = ePIXEvent_BeginEvent_VarArgs;
+
+  if(eventType != ePIXEvent_BeginEvent_NoArgs && eventType != ePIXEvent_BeginEvent_VarArgs)
+  {
+    RDCERR("Unexpected/unsupported PIX3Event %u type in PIXDecodeMarkerEventString", eventType);
+    return "";
+  }
+
+  // color
+  // UINT64 color = *pData;
+  ++pData;
+
+  // format string
+  std::string formatString;
+  pData = PIX3DecodeStringParam(pData, formatString);
+
+  if(eventType == ePIXEvent_BeginEvent_NoArgs)
+    return formatString;
+
+  // sprintf remaining args
+  formatString = PIX3SprintfParams(formatString, pData);
+  return formatString;
+}

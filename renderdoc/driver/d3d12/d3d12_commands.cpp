@@ -296,6 +296,9 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       ret =
           Serialise_CopyTileMappings(ser, NULL, NULL, NULL, NULL, NULL, D3D12_TILE_MAPPING_FLAGS(0));
       break;
+    case D3D12Chunk::Queue_BeginEvent: ret = Serialise_BeginEvent(ser, 0, NULL, 0); break;
+    case D3D12Chunk::Queue_SetMarker: ret = Serialise_SetMarker(ser, 0, NULL, 0); break;
+    case D3D12Chunk::Queue_EndEvent: ret = Serialise_EndEvent(ser); break;
 
     case D3D12Chunk::List_Close: ret = m_ReplayList->Serialise_Close(ser); break;
     case D3D12Chunk::List_Reset: ret = m_ReplayList->Serialise_Reset(ser, NULL, NULL); break;
@@ -496,6 +499,10 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     if(chunk == D3D12Chunk::List_Reset || chunk == D3D12Chunk::List_Close)
     {
       // don't add these events - they will be handled when inserted in-line into queue submit
+    }
+    else if(chunk == D3D12Chunk::Queue_EndEvent)
+    {
+      // also ignore, this just pops the drawcall stack
     }
     else
     {

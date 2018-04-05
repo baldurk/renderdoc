@@ -532,21 +532,145 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   }
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12CommandQueue::Serialise_SetMarker(SerialiserType &ser, UINT Metadata,
+                                                    const void *pData, UINT Size)
+{
+  std::string MarkerText = "";
+
+  if(ser.IsWriting() && pData && Size)
+    MarkerText = DecodeMarkerString(Metadata, pData, Size);
+
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
+  SERIALISE_ELEMENT(MarkerText);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    D3D12MarkerRegion::Set(m_pReal, MarkerText);
+
+    if(IsLoading(m_State))
+    {
+      DrawcallDescription draw;
+      draw.name = MarkerText;
+      draw.flags |= DrawFlags::SetMarker;
+
+      m_Cmd.AddEvent();
+      m_Cmd.AddDrawcall(draw, false);
+    }
+  }
+
+  return true;
+}
+
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::SetMarker(UINT Metadata, const void *pData,
                                                             UINT Size)
 {
-  m_pReal->SetMarker(Metadata, pData, Size);
+  SERIALISE_TIME_CALL(m_pReal->SetMarker(Metadata, pData, Size));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_SetMarker);
+    Serialise_SetMarker(ser, Metadata, pData, Size);
+
+    m_QueueRecord->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT Metadata,
+                                                     const void *pData, UINT Size)
+{
+  std::string MarkerText = "";
+
+  if(ser.IsWriting() && pData && Size)
+    MarkerText = DecodeMarkerString(Metadata, pData, Size);
+
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
+  SERIALISE_ELEMENT(MarkerText);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    D3D12MarkerRegion::Begin(m_pReal, MarkerText);
+
+    if(IsLoading(m_State))
+    {
+      DrawcallDescription draw;
+      draw.name = MarkerText;
+      draw.flags |= DrawFlags::PushMarker;
+
+      m_Cmd.AddEvent();
+      m_Cmd.AddDrawcall(draw, false);
+
+      // now push the drawcall stack
+      m_Cmd.GetDrawcallStack().push_back(&m_Cmd.GetDrawcallStack().back()->children.back());
+    }
+  }
+
+  return true;
 }
 
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::BeginEvent(UINT Metadata, const void *pData,
                                                              UINT Size)
 {
-  m_pReal->BeginEvent(Metadata, pData, Size);
+  SERIALISE_TIME_CALL(m_pReal->BeginEvent(Metadata, pData, Size));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_BeginEvent);
+    Serialise_BeginEvent(ser, Metadata, pData, Size);
+
+    m_QueueRecord->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12CommandQueue::Serialise_EndEvent(SerialiserType &ser)
+{
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    D3D12MarkerRegion::End(m_pReal);
+
+    if(IsLoading(m_State))
+    {
+      if(m_Cmd.GetDrawcallStack().size() > 1)
+        m_Cmd.GetDrawcallStack().pop_back();
+
+      // Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall
+      // stack.
+    }
+  }
+
+  return true;
 }
 
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::EndEvent()
 {
-  m_pReal->EndEvent();
+  SERIALISE_TIME_CALL(m_pReal->EndEvent());
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_EndEvent);
+    Serialise_EndEvent(ser);
+
+    m_QueueRecord->AddChunk(scope.Get());
+  }
 }
 
 template <typename SerialiserType>
@@ -652,6 +776,13 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, CopyTileMapping
                                 D3D12_TILE_MAPPING_FLAGS Flags);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, ExecuteCommandLists,
                                 UINT NumCommandLists, ID3D12CommandList *const *ppCommandLists);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, SetMarker, UINT Metadata,
+                                const void *pData, UINT Size);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, BeginEvent, UINT Metadata,
+                                const void *pData, UINT Size);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, EndEvent);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, Wait, ID3D12Fence *pFence,
+                                UINT64 Value);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, Signal, ID3D12Fence *pFence,
                                 UINT64 Value);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, Wait, ID3D12Fence *pFence,
