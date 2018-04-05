@@ -620,6 +620,39 @@ struct ReplayCommand : public Command
   }
 };
 
+struct formats_reader
+{
+  formats_reader()
+  {
+    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
+
+    for(const CaptureFileFormat &f : tmp->GetCaptureFileFormats())
+    {
+      exts.push_back(f.extension);
+      names.push_back(f.name);
+    }
+
+    tmp->Shutdown();
+  }
+  std::string operator()(const std::string &s)
+  {
+    if(std::find(exts.begin(), exts.end(), s) == exts.end())
+      throw cmdline::cmdline_error("'" + s + "' is not one of the accepted values");
+    return s;
+  }
+  std::string description() const
+  {
+    std::string ret = "Options are:";
+    for(size_t i = 0; i < exts.size(); i++)
+      ret += "\n  * " + exts[i] + " - " + names[i];
+    return ret;
+  }
+
+private:
+  std::vector<std::string> exts;
+  std::vector<std::string> names;
+};
+
 struct ConvertCommand : public Command
 {
   rdcarray<CaptureFileFormat> m_Formats;
@@ -635,16 +668,12 @@ struct ConvertCommand : public Command
 
   virtual void AddOptions(cmdline::parser &parser)
   {
-    cmdline::oneof_reader<string> formatOptions;
-    for(CaptureFileFormat f : m_Formats)
-      formatOptions.add((std::string(f.extension) + " - ") + f.name.c_str());
-
     parser.add<string>("filename", 'f', "The file to convert from.", false);
     parser.add<string>("output", 'o', "The file to convert to.", false);
     parser.add<string>("input-format", 'i', "The format of the input file.", false, "",
-                       formatOptions);
+                       formats_reader());
     parser.add<string>("convert-format", 'c', "The format of the output file.", false, "",
-                       formatOptions);
+                       formats_reader());
     parser.add("list-formats", '\0', "Print a list of target formats.");
     parser.stop_at_rest(true);
   }
@@ -657,9 +686,9 @@ struct ConvertCommand : public Command
     {
       std::cout << "Available formats:" << std::endl;
       for(CaptureFileFormat f : m_Formats)
-        std::cout << "'" << (std::string)f.name << "': " << (std::string)f.name << std::endl
-                  << std::endl
-                  << (std::string)f.description << std::endl;
+        std::cout << "'" << (std::string)f.extension << "': " << (std::string)f.name << std::endl
+                  << " * " << (std::string)f.description << std::endl
+                  << std::endl;
       return 0;
     }
 
@@ -682,6 +711,13 @@ struct ConvertCommand : public Command
 
     std::string infmt = parser.get<string>("input-format");
     std::string outfmt = parser.get<string>("convert-format");
+
+    // sort the formats by the length of the extension, so we check the longest ones first. This
+    // means that .zip.xml will get chosen before just .xml
+    std::sort(m_Formats.begin(), m_Formats.end(),
+              [](const CaptureFileFormat &a, const CaptureFileFormat &b) {
+                return a.extension.size() > b.extension.size();
+              });
 
     if(infmt.empty())
     {
