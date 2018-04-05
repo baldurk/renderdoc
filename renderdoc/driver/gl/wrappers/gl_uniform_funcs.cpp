@@ -338,7 +338,7 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
   {                                                                                              \
     SERIALISE_TIME_CALL(m_Real.CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCARGPASS, ARRAYLIST)); \
                                                                                                  \
-    if(IsActiveCapturing(m_State))                                                               \
+    if(IsActiveCapturing(m_State) && IsCapturingContext())                                       \
     {                                                                                            \
       USE_SCRATCH_SERIALISER();                                                                  \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                       \
@@ -442,7 +442,7 @@ UNIFORM_FUNC(4, d, GLdouble, GLdouble v0, GLdouble v1, GLdouble v2, GLdouble v3)
     SERIALISE_TIME_CALL(                                                                          \
         m_Real.CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCARGPASS, count, value)); \
                                                                                                   \
-    if(IsActiveCapturing(m_State))                                                                \
+    if(IsActiveCapturing(m_State) && IsCapturingContext())                                        \
     {                                                                                             \
       USE_SCRATCH_SERIALISER();                                                                   \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                        \
@@ -524,7 +524,7 @@ UNIFORM_FUNC(4, d, GLdouble)
     SERIALISE_TIME_CALL(                                                                     \
         m_Real.CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCARGPASS, count, transpose, value)); \
                                                                                              \
-    if(IsActiveCapturing(m_State))                                                           \
+    if(IsActiveCapturing(m_State) && IsCapturingContext())                                   \
     {                                                                                        \
       USE_SCRATCH_SERIALISER();                                                              \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                   \

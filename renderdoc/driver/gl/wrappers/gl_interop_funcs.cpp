@@ -174,7 +174,7 @@ BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObj
   BOOL ret;
   SERIALISE_TIME_CALL(ret = m_Real.wglDXLockObjectsNV(hDevice, count, unwrapped));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     for(GLint i = 0; i < count; i++)
     {

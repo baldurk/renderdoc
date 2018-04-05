@@ -47,7 +47,7 @@ void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
 {
   SERIALISE_TIME_CALL(m_Real.glBlendFunc(sfactor, dfactor));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -78,7 +78,7 @@ void WrappedOpenGL::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
 {
   SERIALISE_TIME_CALL(m_Real.glBlendFunci(buf, src, dst));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -111,7 +111,7 @@ void WrappedOpenGL::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLflo
 {
   SERIALISE_TIME_CALL(m_Real.glBlendColor(red, green, blue, alpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -146,7 +146,7 @@ void WrappedOpenGL::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GL
 {
   SERIALISE_TIME_CALL(m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -183,7 +183,7 @@ void WrappedOpenGL::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum d
   SERIALISE_TIME_CALL(
       m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -212,7 +212,7 @@ void WrappedOpenGL::glBlendEquation(GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glBlendEquation(mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -242,7 +242,7 @@ void WrappedOpenGL::glBlendEquationi(GLuint buf, GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glBlendEquationi(buf, mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -273,7 +273,7 @@ void WrappedOpenGL::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
 {
   SERIALISE_TIME_CALL(m_Real.glBlendEquationSeparate(modeRGB, modeAlpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -305,7 +305,7 @@ void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum 
 {
   SERIALISE_TIME_CALL(m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -335,7 +335,7 @@ void WrappedOpenGL::glBlendBarrierKHR()
 
   SERIALISE_TIME_CALL(m_Real.glBlendBarrierKHR());
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -351,7 +351,7 @@ void WrappedOpenGL::glBlendBarrier()
 
   SERIALISE_TIME_CALL(m_Real.glBlendBarrier());
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -380,7 +380,7 @@ void WrappedOpenGL::glLogicOp(GLenum opcode)
 {
   SERIALISE_TIME_CALL(m_Real.glLogicOp(opcode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -411,7 +411,7 @@ void WrappedOpenGL::glStencilFunc(GLenum func, GLint ref, GLuint mask)
 {
   SERIALISE_TIME_CALL(m_Real.glStencilFunc(func, ref, mask));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -444,7 +444,7 @@ void WrappedOpenGL::glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, G
 {
   SERIALISE_TIME_CALL(m_Real.glStencilFuncSeparate(face, func, ref, mask));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -473,7 +473,7 @@ void WrappedOpenGL::glStencilMask(GLuint mask)
 {
   SERIALISE_TIME_CALL(m_Real.glStencilMask(mask));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -503,7 +503,7 @@ void WrappedOpenGL::glStencilMaskSeparate(GLenum face, GLuint mask)
 {
   SERIALISE_TIME_CALL(m_Real.glStencilMaskSeparate(face, mask));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -534,7 +534,7 @@ void WrappedOpenGL::glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
 {
   SERIALISE_TIME_CALL(m_Real.glStencilOp(fail, zfail, zpass));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -567,7 +567,7 @@ void WrappedOpenGL::glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail
 {
   SERIALISE_TIME_CALL(m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -600,7 +600,7 @@ void WrappedOpenGL::glClearColor(GLclampf red, GLclampf green, GLclampf blue, GL
 {
   SERIALISE_TIME_CALL(m_Real.glClearColor(red, green, blue, alpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -629,7 +629,7 @@ void WrappedOpenGL::glClearStencil(GLint stencil)
 {
   SERIALISE_TIME_CALL(m_Real.glClearStencil(stencil));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -661,7 +661,7 @@ void WrappedOpenGL::glClearDepth(GLdouble depth)
 {
   SERIALISE_TIME_CALL(m_Real.glClearDepth(depth));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -675,7 +675,7 @@ void WrappedOpenGL::glClearDepthf(GLfloat depth)
 {
   SERIALISE_TIME_CALL(m_Real.glClearDepthf(depth));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -704,7 +704,7 @@ void WrappedOpenGL::glDepthFunc(GLenum func)
 {
   SERIALISE_TIME_CALL(m_Real.glDepthFunc(func));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -733,7 +733,7 @@ void WrappedOpenGL::glDepthMask(GLboolean flag)
 {
   SERIALISE_TIME_CALL(m_Real.glDepthMask(flag));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -761,7 +761,7 @@ void WrappedOpenGL::glDepthRange(GLdouble nearVal, GLdouble farVal)
 {
   SERIALISE_TIME_CALL(m_Real.glDepthRange(nearVal, farVal));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -789,7 +789,7 @@ void WrappedOpenGL::glDepthRangef(GLfloat nearVal, GLfloat farVal)
 {
   SERIALISE_TIME_CALL(m_Real.glDepthRangef(nearVal, farVal));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -824,7 +824,7 @@ void WrappedOpenGL::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble
 {
   SERIALISE_TIME_CALL(m_Real.glDepthRangeIndexed(index, nearVal, farVal));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -838,7 +838,7 @@ void WrappedOpenGL::glDepthRangeIndexedfOES(GLuint index, GLfloat nearVal, GLflo
 {
   SERIALISE_TIME_CALL(m_Real.glDepthRangeIndexedfOES(index, nearVal, farVal));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -883,7 +883,7 @@ void WrappedOpenGL::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdoub
 {
   SERIALISE_TIME_CALL(m_Real.glDepthRangeArrayv(first, count, v));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -897,7 +897,7 @@ void WrappedOpenGL::glDepthRangeArrayfvOES(GLuint first, GLsizei count, const GL
 {
   SERIALISE_TIME_CALL(m_Real.glDepthRangeArrayfvOES(first, count, v));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLdouble *dv = new GLdouble[count * 2];
     for(GLsizei i = 0; i < count * 2; ++i)
@@ -933,7 +933,7 @@ void WrappedOpenGL::glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal)
 {
   SERIALISE_TIME_CALL(m_Real.glDepthBoundsEXT(nearVal, farVal));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -963,7 +963,7 @@ void WrappedOpenGL::glClipControl(GLenum origin, GLenum depth)
 {
   SERIALISE_TIME_CALL(m_Real.glClipControl(origin, depth));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -992,7 +992,7 @@ void WrappedOpenGL::glProvokingVertex(GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glProvokingVertex(mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1021,7 +1021,7 @@ void WrappedOpenGL::glPrimitiveRestartIndex(GLuint index)
 {
   SERIALISE_TIME_CALL(m_Real.glPrimitiveRestartIndex(index));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1050,7 +1050,7 @@ void WrappedOpenGL::glDisable(GLenum cap)
 {
   SERIALISE_TIME_CALL(m_Real.glDisable(cap));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     // Skip some compatibility caps purely for the sake of avoiding debug message spam.
     // We don't explicitly support compatibility, but where it's trivial we try and support it.
@@ -1090,7 +1090,7 @@ void WrappedOpenGL::glEnable(GLenum cap)
 {
   SERIALISE_TIME_CALL(m_Real.glEnable(cap));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1120,7 +1120,7 @@ void WrappedOpenGL::glDisablei(GLenum cap, GLuint index)
 {
   SERIALISE_TIME_CALL(m_Real.glDisablei(cap, index));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1150,7 +1150,7 @@ void WrappedOpenGL::glEnablei(GLenum cap, GLuint index)
 {
   SERIALISE_TIME_CALL(m_Real.glEnablei(cap, index));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1179,7 +1179,7 @@ void WrappedOpenGL::glFrontFace(GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glFrontFace(mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1208,7 +1208,7 @@ void WrappedOpenGL::glCullFace(GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glCullFace(mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1238,7 +1238,7 @@ void WrappedOpenGL::glHint(GLenum target, GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glHint(target, mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1272,7 +1272,7 @@ void WrappedOpenGL::glColorMask(GLboolean red, GLboolean green, GLboolean blue, 
 {
   SERIALISE_TIME_CALL(m_Real.glColorMask(red, green, blue, alpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1308,7 +1308,7 @@ void WrappedOpenGL::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLb
 {
   SERIALISE_TIME_CALL(m_Real.glColorMaski(buf, red, green, blue, alpha));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1338,7 +1338,7 @@ void WrappedOpenGL::glSampleMaski(GLuint maskNumber, GLbitfield mask)
 {
   SERIALISE_TIME_CALL(m_Real.glSampleMaski(maskNumber, mask));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1368,7 +1368,7 @@ void WrappedOpenGL::glSampleCoverage(GLfloat value, GLboolean invert)
 {
   SERIALISE_TIME_CALL(m_Real.glSampleCoverage(value, invert));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1397,7 +1397,7 @@ void WrappedOpenGL::glMinSampleShading(GLfloat value)
 {
   SERIALISE_TIME_CALL(m_Real.glMinSampleShading(value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1428,7 +1428,7 @@ void WrappedOpenGL::glRasterSamplesEXT(GLuint samples, GLboolean fixedsampleloca
 {
   SERIALISE_TIME_CALL(m_Real.glRasterSamplesEXT(samples, fixedsamplelocations));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1458,7 +1458,7 @@ void WrappedOpenGL::glPatchParameteri(GLenum pname, GLint value)
 {
   SERIALISE_TIME_CALL(m_Real.glPatchParameteri(pname, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1489,7 +1489,7 @@ void WrappedOpenGL::glPatchParameterfv(GLenum pname, const GLfloat *values)
 {
   SERIALISE_TIME_CALL(m_Real.glPatchParameterfv(pname, values));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1518,7 +1518,7 @@ void WrappedOpenGL::glLineWidth(GLfloat width)
 {
   SERIALISE_TIME_CALL(m_Real.glLineWidth(width));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1547,7 +1547,7 @@ void WrappedOpenGL::glPointSize(GLfloat size)
 {
   SERIALISE_TIME_CALL(m_Real.glPointSize(size));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1588,7 +1588,7 @@ void WrappedOpenGL::glPointParameteri(GLenum pname, GLint param)
 {
   SERIALISE_TIME_CALL(m_Real.glPointParameteri(pname, param));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1619,7 +1619,7 @@ void WrappedOpenGL::glPointParameteriv(GLenum pname, const GLint *params)
 {
   SERIALISE_TIME_CALL(m_Real.glPointParameteriv(pname, params));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1649,7 +1649,7 @@ void WrappedOpenGL::glPointParameterf(GLenum pname, GLfloat param)
 {
   SERIALISE_TIME_CALL(m_Real.glPointParameterf(pname, param));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1680,7 +1680,7 @@ void WrappedOpenGL::glPointParameterfv(GLenum pname, const GLfloat *params)
 {
   SERIALISE_TIME_CALL(m_Real.glPointParameterfv(pname, params));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1713,7 +1713,7 @@ void WrappedOpenGL::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
   SERIALISE_TIME_CALL(m_Real.glViewport(x, y, width, height));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1745,7 +1745,7 @@ void WrappedOpenGL::glViewportArrayv(GLuint index, GLuint count, const GLfloat *
 {
   SERIALISE_TIME_CALL(m_Real.glViewportArrayv(index, count, v));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1789,7 +1789,7 @@ void WrappedOpenGL::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
 {
   SERIALISE_TIME_CALL(m_Real.glScissor(x, y, width, height));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1821,7 +1821,7 @@ void WrappedOpenGL::glScissorArrayv(GLuint first, GLsizei count, const GLint *v)
 {
   SERIALISE_TIME_CALL(m_Real.glScissorArrayv(first, count, v));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1863,7 +1863,7 @@ void WrappedOpenGL::glPolygonMode(GLenum face, GLenum mode)
 {
   SERIALISE_TIME_CALL(m_Real.glPolygonMode(face, mode));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1893,7 +1893,7 @@ void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
 {
   SERIALISE_TIME_CALL(m_Real.glPolygonOffset(factor, units));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1925,7 +1925,7 @@ void WrappedOpenGL::glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLflo
 {
   SERIALISE_TIME_CALL(m_Real.glPolygonOffsetClampEXT(factor, units, clamp));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1964,7 +1964,7 @@ void WrappedOpenGL::glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat m
 {
   SERIALISE_TIME_CALL(m_Real.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);

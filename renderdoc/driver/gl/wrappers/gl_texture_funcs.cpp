@@ -246,7 +246,7 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
   if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
     return;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     Chunk *chunk = NULL;
 
@@ -261,7 +261,7 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
     m_ContextRecord->AddChunk(chunk);
     GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
   }
-  else if(IsBackgroundCapturing(m_State))
+  else if(IsCaptureMode(m_State))
   {
     m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), texture))].curType =
         TextureTarget(target);
@@ -351,7 +351,7 @@ void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *te
 {
   SERIALISE_TIME_CALL(m_Real.glBindTextures(first, count, textures));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -407,7 +407,7 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
   if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
     return;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     Chunk *chunk = NULL;
 
@@ -422,7 +422,7 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
     m_ContextRecord->AddChunk(chunk);
     GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
   }
-  else if(IsBackgroundCapturing(m_State))
+  else if(IsCaptureMode(m_State))
   {
     m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), texture))].curType =
         TextureTarget(target);
@@ -490,7 +490,7 @@ void WrappedOpenGL::glBindTextureUnit(GLuint unit, GLuint texture)
   if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
     return;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -544,7 +544,7 @@ void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level,
 {
   SERIALISE_TIME_CALL(m_Real.glBindImageTexture(unit, texture, level, layered, layer, access, format));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     Chunk *chunk = NULL;
 
@@ -606,7 +606,7 @@ void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuin
 {
   SERIALISE_TIME_CALL(m_Real.glBindImageTextures(first, count, textures));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -769,7 +769,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 
   CoherentMapImplicitBarrier();
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -780,7 +780,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
     m_MissingTracks.insert(record->GetResourceID());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
   }
-  else if(IsBackgroundCapturing(m_State))
+  else if(IsCaptureMode(m_State))
   {
     GetResourceManager()->MarkDirtyResource(record->GetResourceID());
   }
@@ -923,7 +923,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
                                                 dstName, dstTarget, dstLevel, dstX, dstY, dstZ,
                                                 srcWidth, srcHeight, srcDepth));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLResourceRecord *srcrecord =
         GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
@@ -948,7 +948,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
     GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(), eFrameRef_Read);
     GetResourceManager()->MarkResourceFrameReferenced(srcrecord->GetResourceID(), eFrameRef_Read);
   }
-  else if(IsBackgroundCapturing(m_State))
+  else if(IsCaptureMode(m_State))
   {
     GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), dstName));
   }
@@ -999,7 +999,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, 
   {
     GetResourceManager()->MarkDirtyResource(record->GetResourceID());
   }
-  else if(IsActiveCapturing(m_State))
+  else if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1104,7 +1104,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, 
   {
     GetResourceManager()->MarkDirtyResource(record->GetResourceID());
   }
-  else if(IsActiveCapturing(m_State))
+  else if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1218,7 +1218,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, 
     GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     m_MissingTracks.insert(record->GetResourceID());
   }
-  else if(IsActiveCapturing(m_State))
+  else if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1342,7 +1342,7 @@ void WrappedOpenGL::Common_glTextureParameteriEXT(GLResourceRecord *record, GLen
   SCOPED_SERIALISE_CHUNK(gl_CurChunk);
   Serialise_glTextureParameteriEXT(ser, record->Resource.name, target, pname, param);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -1444,7 +1444,7 @@ void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLe
   SCOPED_SERIALISE_CHUNK(gl_CurChunk);
   Serialise_glTextureParameterivEXT(ser, record->Resource.name, target, pname, params);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -1549,7 +1549,7 @@ void WrappedOpenGL::Common_glTextureParameterIivEXT(GLResourceRecord *record, GL
   SCOPED_SERIALISE_CHUNK(gl_CurChunk);
   Serialise_glTextureParameterIivEXT(ser, record->Resource.name, target, pname, params);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -1654,7 +1654,7 @@ void WrappedOpenGL::Common_glTextureParameterIuivEXT(GLResourceRecord *record, G
   SCOPED_SERIALISE_CHUNK(gl_CurChunk);
   Serialise_glTextureParameterIuivEXT(ser, record->Resource.name, target, pname, params);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -1757,7 +1757,7 @@ void WrappedOpenGL::Common_glTextureParameterfEXT(GLResourceRecord *record, GLen
   SCOPED_SERIALISE_CHUNK(gl_CurChunk);
   Serialise_glTextureParameterfEXT(ser, record->Resource.name, target, pname, param);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -1859,7 +1859,7 @@ void WrappedOpenGL::Common_glTextureParameterfvEXT(GLResourceRecord *record, GLe
   SCOPED_SERIALISE_CHUNK(gl_CurChunk);
   Serialise_glTextureParameterfvEXT(ser, record->Resource.name, target, pname, params);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -1938,7 +1938,7 @@ void WrappedOpenGL::glPixelStorei(GLenum pname, GLint param)
 
   // except for capturing frames we ignore this and embed the relevant
   // parameters in the chunks that reference them.
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1972,7 +1972,7 @@ void WrappedOpenGL::glActiveTexture(GLenum texture)
 
   GetCtxData().m_TextureUnit = texture - eGL_TEXTURE0;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     Chunk *chunk = NULL;
 
@@ -2130,7 +2130,7 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
       // illegal to re-type textures
       record->VerifyDataType(target);
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(record->GetResourceID());
       else if(fromunpackbuf)
         GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -2369,7 +2369,7 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
       // illegal to re-type textures
       record->VerifyDataType(target);
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(record->GetResourceID());
       else if(fromunpackbuf)
         GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -2592,7 +2592,7 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
       // illegal to re-type textures
       record->VerifyDataType(target);
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(record->GetResourceID());
       else if(fromunpackbuf)
         GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -2817,7 +2817,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage1DEXT(ResourceId texId, GLenu
       // illegal to re-type textures
       record->VerifyDataType(target);
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(record->GetResourceID());
       else if(fromunpackbuf)
         GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -3169,7 +3169,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
       // illegal to re-type textures
       record->VerifyDataType(target);
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(record->GetResourceID());
       else if(fromunpackbuf)
         GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -3408,7 +3408,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
       // illegal to re-type textures
       record->VerifyDataType(target);
 
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
         m_MissingTracks.insert(record->GetResourceID());
       else if(fromunpackbuf)
         GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -3560,7 +3560,18 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
   if(IsProxyTarget(target) || internalformat == 0)
     return;
 
-  if(IsBackgroundCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
+  {
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glCopyTextureImage1DEXT(ser, record->Resource.name, target, level, internalformat, x,
+                                      y, width, border);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    m_MissingTracks.insert(record->GetResourceID());
+    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+  }
+  else if(IsCaptureMode(m_State))
   {
     // add a fake teximage1D chunk to create the texture properly on live (as we won't replay this
     // copy chunk).
@@ -3579,17 +3590,6 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
 
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     }
-  }
-  else if(IsActiveCapturing(m_State))
-  {
-    USE_SCRATCH_SERIALISER();
-    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glCopyTextureImage1DEXT(ser, record->Resource.name, target, level, internalformat, x,
-                                      y, width, border);
-
-    m_ContextRecord->AddChunk(scope.Get());
-    m_MissingTracks.insert(record->GetResourceID());
-    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
   }
 
   if(level == 0)
@@ -3716,7 +3716,18 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
   if(IsProxyTarget(target) || internalformat == 0)
     return;
 
-  if(IsBackgroundCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
+  {
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glCopyTextureImage2DEXT(ser, record->Resource.name, target, level, internalformat, x,
+                                      y, width, height, border);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    m_MissingTracks.insert(record->GetResourceID());
+    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+  }
+  else if(IsCaptureMode(m_State))
   {
     // add a fake teximage1D chunk to create the texture properly on live (as we won't replay this
     // copy chunk).
@@ -3735,17 +3746,6 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
 
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     }
-  }
-  else if(IsActiveCapturing(m_State))
-  {
-    USE_SCRATCH_SERIALISER();
-    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glCopyTextureImage2DEXT(ser, record->Resource.name, target, level, internalformat, x,
-                                      y, width, height, border);
-
-    m_ContextRecord->AddChunk(scope.Get());
-    m_MissingTracks.insert(record->GetResourceID());
-    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
   }
 
   if(level == 0)
@@ -4727,7 +4727,7 @@ void WrappedOpenGL::Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLen
     Serialise_glTextureSubImage1DEXT(ser, record->Resource.name, target, level, xoffset, width,
                                      format, type, pixels);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -4938,7 +4938,7 @@ void WrappedOpenGL::Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLen
     Serialise_glTextureSubImage2DEXT(ser, record->Resource.name, target, level, xoffset, yoffset,
                                      width, height, format, type, pixels);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -5157,7 +5157,7 @@ void WrappedOpenGL::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLen
     Serialise_glTextureSubImage3DEXT(ser, record->Resource.name, target, level, xoffset, yoffset,
                                      zoffset, width, height, depth, format, type, pixels);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -5357,7 +5357,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *re
     Serialise_glCompressedTextureSubImage1DEXT(ser, record->Resource.name, target, level, xoffset,
                                                width, format, imageSize, pixels);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -5569,7 +5569,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *re
     Serialise_glCompressedTextureSubImage2DEXT(ser, record->Resource.name, target, level, xoffset,
                                                yoffset, width, height, format, imageSize, pixels);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -5785,7 +5785,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *re
                                                yoffset, zoffset, width, height, depth, format,
                                                imageSize, pixels);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -5959,7 +5959,7 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
     Serialise_glTextureBufferRangeEXT(ser, record->Resource.name, target, internalformat, buffer,
                                       offset, size);
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -6133,7 +6133,7 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
 
     Chunk *chunk = scope.Get();
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(record->GetResourceID());

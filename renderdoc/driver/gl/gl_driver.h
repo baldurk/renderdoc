@@ -132,6 +132,8 @@ private:
 
   std::vector<GLWindowingData> m_LastContexts;
 
+  GLWindowingData m_CapturingContext;
+
 public:
   enum
   {
@@ -595,6 +597,7 @@ public:
   void RegisterContext(GLWindowingData winData, void *shareContext, bool core, bool attribsCreate);
   void DeleteContext(void *contextHandle);
   void ActivateContext(GLWindowingData winData);
+  bool IsCapturingContext() const;
   void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
   void SwapBuffers(void *windowHandle);
   void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
@@ -2222,7 +2225,6 @@ public:
     m_GL = gl;
     m_GL->SetDebugMsgContext(buf);
   }
-
   ~ScopedDebugContext() { m_GL->SetDebugMsgContext(""); }
 private:
   WrappedOpenGL *m_GL;

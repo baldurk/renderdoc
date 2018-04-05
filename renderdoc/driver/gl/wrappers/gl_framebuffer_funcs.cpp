@@ -1406,7 +1406,7 @@ void WrappedOpenGL::glFramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
 {
   SERIALISE_TIME_CALL(m_Real.glFramebufferReadBufferEXT(framebuffer, buf));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1435,7 +1435,7 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *readrecord = GetCtxData().m_ReadFramebufferRecord;
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1477,7 +1477,7 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 
   SERIALISE_TIME_CALL(m_Real.glBindFramebuffer(target, framebuffer));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1530,7 +1530,7 @@ void WrappedOpenGL::glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
 {
   SERIALISE_TIME_CALL(m_Real.glFramebufferDrawBufferEXT(framebuffer, buf));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1559,7 +1559,7 @@ void WrappedOpenGL::glDrawBuffer(GLenum buf)
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1611,7 +1611,7 @@ void WrappedOpenGL::glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, c
 {
   SERIALISE_TIME_CALL(m_Real.glFramebufferDrawBuffersEXT(framebuffer, n, bufs));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1640,7 +1640,7 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1930,7 +1930,7 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
                                                     srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask,
                                                     filter));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -1955,7 +1955,7 @@ void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLi
   SERIALISE_TIME_CALL(m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1,
                                                dstY1, mask, filter));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLuint readFramebuffer = 0, drawFramebuffer = 0;
 

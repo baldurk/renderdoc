@@ -98,7 +98,7 @@ GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
   GetResourceManager()->RegisterSync(GetCtx(), sync, name, id);
   GLResource res = SyncRes(GetCtx(), name);
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     Chunk *chunk = NULL;
 
@@ -144,7 +144,7 @@ GLenum WrappedOpenGL::glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 t
   GLenum ret;
   SERIALISE_TIME_CALL(ret = m_Real.glClientWaitSync(sync, flags, timeout));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -179,7 +179,7 @@ void WrappedOpenGL::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
   SERIALISE_TIME_CALL(m_Real.glWaitSync(sync, flags, timeout));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -345,7 +345,7 @@ void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
     RDCLOG("Query already active %s", ToStr(target).c_str());
   m_ActiveQueries[QueryIdx(target)][0] = true;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -380,7 +380,7 @@ void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
   SERIALISE_TIME_CALL(m_Real.glBeginQueryIndexed(target, index, id));
   m_ActiveQueries[QueryIdx(target)][index] = true;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -416,7 +416,7 @@ void WrappedOpenGL::glEndQuery(GLenum target)
   SERIALISE_TIME_CALL(m_Real.glEndQuery(target));
   m_ActiveQueries[QueryIdx(target)][0] = false;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -448,7 +448,7 @@ void WrappedOpenGL::glEndQueryIndexed(GLenum target, GLuint index)
   SERIALISE_TIME_CALL(m_Real.glEndQueryIndexed(target, index));
   m_ActiveQueries[QueryIdx(target)][index] = false;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -481,7 +481,7 @@ void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
 
   m_ActiveConditional = true;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -509,7 +509,7 @@ void WrappedOpenGL::glEndConditionalRender()
   SERIALISE_TIME_CALL(m_Real.glEndConditionalRender());
   m_ActiveConditional = false;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -537,7 +537,7 @@ void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
 {
   SERIALISE_TIME_CALL(m_Real.glQueryCounter(query, target));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);

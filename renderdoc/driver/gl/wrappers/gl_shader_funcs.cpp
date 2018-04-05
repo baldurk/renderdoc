@@ -991,7 +991,7 @@ void WrappedOpenGL::glUniformSubroutinesuiv(GLenum shadertype, GLsizei count, co
 {
   SERIALISE_TIME_CALL(m_Real.glUniformSubroutinesuiv(shadertype, count, indices));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1157,7 +1157,7 @@ void WrappedOpenGL::glUseProgram(GLuint program)
 
   GetCtxData().m_Program = program;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -1298,7 +1298,7 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 
     Chunk *chunk = scope.Get();
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       m_ContextRecord->AddChunk(chunk);
     }
@@ -1497,7 +1497,7 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
 
   GetCtxData().m_ProgramPipeline = pipeline;
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);

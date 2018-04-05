@@ -124,7 +124,7 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 
   SERIALISE_TIME_CALL(m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -231,7 +231,7 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
   SERIALISE_TIME_CALL(m_Real.glDispatchComputeGroupSizeARB(
       num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -301,7 +301,7 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 
   SERIALISE_TIME_CALL(m_Real.glDispatchComputeIndirect(indirect));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     ser.SetDrawChunk();
@@ -347,7 +347,7 @@ void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
 
   SERIALISE_TIME_CALL(m_Real.glMemoryBarrier(barriers));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -383,7 +383,7 @@ void WrappedOpenGL::glMemoryBarrierByRegion(GLbitfield barriers)
 
   SERIALISE_TIME_CALL(m_Real.glMemoryBarrierByRegion(barriers));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -410,7 +410,7 @@ void WrappedOpenGL::glTextureBarrier()
 
   SERIALISE_TIME_CALL(m_Real.glTextureBarrier());
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
@@ -466,7 +466,7 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 
   SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedback(mode, id));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -535,7 +535,7 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
 
   SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedbackInstanced(mode, id, instancecount));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -603,7 +603,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
 
   SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedbackStream(mode, id, stream));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -676,7 +676,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
 
   SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -741,7 +741,7 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
                                                                        const void *&indices)
 {
   PUSH_CURRENT_CHUNK;
-  RDCASSERT(IsActiveCapturing(m_State));
+  RDCASSERT(IsActiveCapturing(m_State) && IsCapturingContext());
   ContextData &cd = GetCtxData();
 
   GLint idxbuf = 0;
@@ -904,7 +904,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 
   SERIALISE_TIME_CALL(m_Real.glDrawArrays(mode, first, count));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     const void *indices = NULL;
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
@@ -983,7 +983,7 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 
   SERIALISE_TIME_CALL(m_Real.glDrawArraysIndirect(mode, indirect));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -1051,7 +1051,7 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 
   SERIALISE_TIME_CALL(m_Real.glDrawArraysInstanced(mode, first, count, instancecount));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     const void *indices = NULL;
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
@@ -1128,7 +1128,7 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
   SERIALISE_TIME_CALL(
       m_Real.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     const void *indices = NULL;
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
@@ -1219,7 +1219,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 
   SERIALISE_TIME_CALL(m_Real.glDrawElements(mode, count, type, indices));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1303,7 +1303,7 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
 
   SERIALISE_TIME_CALL(m_Real.glDrawElementsIndirect(mode, type, indirect));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -1378,7 +1378,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 
   SERIALISE_TIME_CALL(m_Real.glDrawRangeElements(mode, start, end, count, type, indices));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1462,7 +1462,7 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
   SERIALISE_TIME_CALL(
       m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1540,7 +1540,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 
   SERIALISE_TIME_CALL(m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1618,7 +1618,7 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 
   SERIALISE_TIME_CALL(m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1702,7 +1702,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
   SERIALISE_TIME_CALL(m_Real.glDrawElementsInstancedBaseInstance(mode, count, type, indices,
                                                                  instancecount, baseinstance));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1787,7 +1787,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
   SERIALISE_TIME_CALL(m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices,
                                                                instancecount, basevertex));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -1873,7 +1873,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
   SERIALISE_TIME_CALL(m_Real.glDrawElementsInstancedBaseVertexBaseInstance(
       mode, count, type, indices, instancecount, basevertex, baseinstance));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
 
@@ -2004,7 +2004,7 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
 
   SERIALISE_TIME_CALL(m_Real.glMultiDrawArrays(mode, first, count, drawcount));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -2154,7 +2154,7 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 
   SERIALISE_TIME_CALL(m_Real.glMultiDrawElements(mode, count, type, indices, drawcount));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -2311,7 +2311,7 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
   SERIALISE_TIME_CALL(
       m_Real.glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -2497,7 +2497,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 
   SERIALISE_TIME_CALL(m_Real.glMultiDrawArraysIndirect(mode, indirect, drawcount, stride));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -2695,7 +2695,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 
   SERIALISE_TIME_CALL(m_Real.glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -2893,7 +2893,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, const void *i
   SERIALISE_TIME_CALL(
       m_Real.glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3101,7 +3101,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
   SERIALISE_TIME_CALL(m_Real.glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount,
                                                                  maxdrawcount, stride));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3206,7 +3206,7 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 
   SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3233,7 +3233,7 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
 
   SERIALISE_TIME_CALL(m_Real.glClearBufferfv(buffer, drawbuffer, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLuint framebuffer = 0;
     if(GetCtxData().m_DrawFramebufferRecord)
@@ -3332,7 +3332,7 @@ void WrappedOpenGL::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer,
 
   SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3350,7 +3350,7 @@ void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint
 
   SERIALISE_TIME_CALL(m_Real.glClearBufferiv(buffer, drawbuffer, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLuint framebuffer = 0;
     if(GetCtxData().m_DrawFramebufferRecord)
@@ -3437,7 +3437,7 @@ void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer
 
   SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3455,7 +3455,7 @@ void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLui
 
   SERIALISE_TIME_CALL(m_Real.glClearBufferuiv(buffer, drawbuffer, value));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLuint framebuffer = 0;
     if(GetCtxData().m_DrawFramebufferRecord)
@@ -3561,7 +3561,7 @@ void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
   SERIALISE_TIME_CALL(
       m_Real.glClearNamedFramebufferfi(framebuffer, buffer, drawbuffer, depth, stencil));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3579,7 +3579,7 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 
   SERIALISE_TIME_CALL(m_Real.glClearBufferfi(buffer, drawbuffer, depth, stencil));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     GLuint framebuffer = 0;
     if(GetCtxData().m_DrawFramebufferRecord)
@@ -3684,7 +3684,7 @@ void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalform
 
   SERIALISE_TIME_CALL(m_Real.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3715,7 +3715,7 @@ void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLen
 
     if(record)
     {
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
       {
         USE_SCRATCH_SERIALISER();
 
@@ -3828,7 +3828,7 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
   SERIALISE_TIME_CALL(m_Real.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size,
                                                           format, type, data));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -3870,7 +3870,7 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
 
     if(record)
     {
-      if(IsActiveCapturing(m_State))
+      if(IsActiveCapturing(m_State) && IsCapturingContext())
       {
         USE_SCRATCH_SERIALISER();
 
@@ -4029,7 +4029,7 @@ void WrappedOpenGL::glClear(GLbitfield mask)
 
   SERIALISE_TIME_CALL(m_Real.glClear(mask));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -4128,7 +4128,7 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
 
   SERIALISE_TIME_CALL(m_Real.glClearTexImage(texture, level, format, type, data));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 
@@ -4244,7 +4244,7 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
   SERIALISE_TIME_CALL(m_Real.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width,
                                                 height, depth, format, type, data));
 
-  if(IsActiveCapturing(m_State))
+  if(IsActiveCapturing(m_State) && IsCapturingContext())
   {
     USE_SCRATCH_SERIALISER();
 

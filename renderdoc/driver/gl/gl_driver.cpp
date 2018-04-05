@@ -908,7 +908,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
   if(winData.ctx)
   {
     // if we're capturing, we need to serialise out the changed state vector
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
       // where
@@ -1056,6 +1056,12 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     if(ctxdata.attribsCreate)
       FirstFrame(ctxdata.ctx, (void *)winData.wnd);
   }
+}
+
+bool WrappedOpenGL::IsCapturingContext() const
+{
+  GLWindowingData active_ctx = m_ActiveContexts[Threading::GetCurrentID()];
+  return m_CapturingContext == active_ctx;
 }
 
 void WrappedOpenGL::WindowSize(void *windowHandle, uint32_t w, uint32_t h)
@@ -1420,7 +1426,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     }
   }
 
-  if(IsActiveCapturing(m_State) && m_AppControlledCapture)
+  if(IsActiveCapturing(m_State) && m_AppControlledCapture && IsCapturingContext())
     m_BackbufferImages[windowHandle] = SaveBackbufferImage();
 
   RenderDoc::Inst().AddActiveDriver(GetDriverType(), true);
@@ -1433,7 +1439,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     return;
 
   // kill any current capture that isn't application defined
-  if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
+  if(IsActiveCapturing(m_State) && !m_AppControlledCapture && IsCapturingContext())
     RenderDoc::Inst().EndFrameCapture(ctxdata.ctx, windowHandle);
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
@@ -1599,7 +1605,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
 bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 {
-  if(!IsActiveCapturing(m_State))
+  if(!IsActiveCapturing(m_State) && IsCapturingContext())
     return true;
 
   SCOPED_LOCK(GetGLLock());
@@ -2057,6 +2063,7 @@ void WrappedOpenGL::QueuePrepareInitialState(GLResource res)
 void WrappedOpenGL::AttemptCapture()
 {
   m_State = CaptureState::ActiveCapturing;
+  m_CapturingContext = m_ActiveContexts[Threading::GetCurrentID()];
 
   m_DebugMessages.clear();
 
@@ -2114,6 +2121,7 @@ void WrappedOpenGL::BeginCaptureFrame()
 void WrappedOpenGL::FinishCapture()
 {
   m_State = CaptureState::BackgroundCapturing;
+  m_CapturingContext = GLWindowingData();
 
   m_DebugMessages.clear();
 
@@ -2222,7 +2230,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
         RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
     }
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) && IsCapturingContext())
     {
       DebugMessage msg;
 
