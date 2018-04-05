@@ -1491,7 +1491,8 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
   if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
     GetCtxData().m_DrawFramebufferRecord =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-  else
+
+  if(target == eGL_READ_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
     GetCtxData().m_ReadFramebufferRecord =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 }
