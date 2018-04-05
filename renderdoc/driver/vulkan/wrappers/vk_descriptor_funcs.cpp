@@ -183,6 +183,8 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(DescriptorPool, pool);
+
+      m_CreationInfo.m_DescSetPool[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
     }
 
     AddResource(DescriptorPool, ResourceType::Pool, "Descriptor Pool");
@@ -392,10 +394,48 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
-      return false;
+      RDCWARN(
+          "Failed to allocate descriptor set %llu from pool %llu on replay. Assuming pool was "
+          "reset and re-used mid-capture, so overflowing.",
+          DescriptorSet, GetResourceManager()->GetOriginalID(GetResID(AllocateInfo.descriptorPool)));
+
+      VulkanCreationInfo::DescSetPool &poolInfo =
+          m_CreationInfo.m_DescSetPool[GetResID(AllocateInfo.descriptorPool)];
+
+      if(poolInfo.overflow.empty())
+      {
+        RDCLOG("Creating first overflow pool");
+        poolInfo.CreateOverflow(device, GetResourceManager());
+      }
+
+      // first try and use the most recent overflow pool
+      unwrapped.descriptorPool = Unwrap(poolInfo.overflow.back());
+
+      ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), &unwrapped, &descset);
+
+      // if we got an error, maybe the latest overflow pool is full. Try to create a new one and use
+      // that
+      if(ret != VK_SUCCESS)
+      {
+        RDCLOG("Creating new overflow pool, last pool failed with %s", ToStr(ret).c_str());
+        poolInfo.CreateOverflow(device, GetResourceManager());
+
+        unwrapped.descriptorPool = Unwrap(poolInfo.overflow.back());
+
+        ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), &unwrapped, &descset);
+
+        if(ret != VK_SUCCESS)
+        {
+          RDCERR("Failed on resource serialise-creation, even after trying overflow, VkResult: %s",
+                 ToStr(ret).c_str());
+          return false;
+        }
+      }
     }
-    else
+
+    // if we got here we must have succeeded
+    RDCASSERTEQUAL(ret, VK_SUCCESS);
+
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), descset);
       GetResourceManager()->AddLiveResource(DescriptorSet, descset);
@@ -411,6 +451,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
     AddResource(DescriptorSet, ResourceType::ShaderBinding, "Descriptor Set");
     DerivedResource(device, DescriptorSet);
     DerivedResource(AllocateInfo.pSetLayouts[0], DescriptorSet);
+    DerivedResource(AllocateInfo.descriptorPool, DescriptorSet);
   }
 
   return true;

@@ -632,3 +632,36 @@ void VulkanCreationInfo::ShaderModule::Reflection::Init(VulkanResourceManager *r
     }
   }
 }
+
+void VulkanCreationInfo::DescSetPool::Init(VulkanResourceManager *resourceMan,
+                                           VulkanCreationInfo &info,
+                                           const VkDescriptorPoolCreateInfo *pCreateInfo)
+{
+  maxSets = pCreateInfo->maxSets;
+  poolSizes.assign(pCreateInfo->pPoolSizes, pCreateInfo->pPoolSizes + pCreateInfo->poolSizeCount);
+}
+
+void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
+                                                     VulkanResourceManager *resourceMan)
+{
+  VkDescriptorPoolCreateInfo poolInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      NULL,
+      0,
+      maxSets,
+      (uint32_t)poolSizes.size(),
+      &poolSizes[0],
+  };
+
+  VkDescriptorPool pool;
+
+  VkResult ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), &poolInfo, NULL, &pool);
+  RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+  ResourceId poolid = resourceMan->WrapResource(Unwrap(device), pool);
+
+  // register as a live-only resource, so it is cleaned up properly
+  resourceMan->AddLiveResource(poolid, pool);
+
+  overflow.push_back(pool);
+}

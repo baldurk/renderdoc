@@ -369,6 +369,20 @@ struct VulkanCreationInfo
   };
   map<ResourceId, ShaderModule> m_ShaderModule;
 
+  struct DescSetPool
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkDescriptorPoolCreateInfo *pCreateInfo);
+
+    uint32_t maxSets;
+    std::vector<VkDescriptorPoolSize> poolSizes;
+
+    void CreateOverflow(VkDevice device, VulkanResourceManager *resourceMan);
+
+    std::vector<VkDescriptorPool> overflow;
+  };
+  map<ResourceId, DescSetPool> m_DescSetPool;
+
   map<ResourceId, string> m_Names;
   map<ResourceId, SwapchainInfo> m_SwapChain;
   map<ResourceId, DescSetLayout> m_DescSetLayout;
