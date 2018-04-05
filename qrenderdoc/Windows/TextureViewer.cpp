@@ -659,7 +659,9 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 TextureViewer::~TextureViewer()
 {
   if(m_Output)
-    m_Output->Shutdown();
+  {
+    m_Ctx.Replay().BlockInvoke([this](IReplayController *r) { m_Output->Shutdown(); });
+  }
 
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
