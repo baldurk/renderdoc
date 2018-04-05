@@ -335,6 +335,11 @@ ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::Release()
   return 1;
 }
 
+HRESULT STDMETHODCALLTYPE DummyID3D11Debug::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice->QueryInterface(riid, ppvObject);
+}
+
 ULONG STDMETHODCALLTYPE DummyID3D11Debug::AddRef()
 {
   m_pDevice->AddRef();

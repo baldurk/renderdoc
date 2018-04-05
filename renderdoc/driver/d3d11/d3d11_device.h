@@ -276,7 +276,7 @@ struct DummyID3D11Debug : public ID3D11Debug
   DummyID3D11Debug() : m_pDevice(NULL) {}
   //////////////////////////////
   // implement IUnknown
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
   ULONG STDMETHODCALLTYPE AddRef();
   ULONG STDMETHODCALLTYPE Release();
 
