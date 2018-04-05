@@ -439,7 +439,6 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t 
     if(m_RenderData.meshDisplay.showPrevInstances)
     {
       firstInst = 0;
-      maxInst = RDCMAX(1U, m_RenderData.meshDisplay.curInstance);
     }
 
     if(m_RenderData.meshDisplay.showAllInstances)
