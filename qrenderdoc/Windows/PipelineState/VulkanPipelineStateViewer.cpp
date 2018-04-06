@@ -2098,7 +2098,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
     {
       format += lit("// members skipped as they are fixed size:\n");
       for(int i = 0; i < shaderRes.variableType.members.count() - 1; i++)
-        format += QFormatStr("%1 %2;\n")
+        format += QFormatStr("// %1 %2;\n")
                       .arg(shaderRes.variableType.members[i].type.descriptor.name)
                       .arg(shaderRes.variableType.members[i].name);
     }
