@@ -3110,7 +3110,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
 
   m_CurrentPipelineState->CacheViewportPartial();
 
-  if(IsCaptureMode(m_State))
+  if(IsActiveCapturing(m_State))
   {
     // make sure to mark resources referenced even if the OM state is invalid, so they aren't
     // eliminated from the capture (which might make this combination valid on replay without some
@@ -3411,7 +3411,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.DepthView, pDepthStencilView);
     }
 
-    if(IsCaptureMode(m_State))
+    if(IsActiveCapturing(m_State))
     {
       // make sure to mark resources referenced if the OM state is invalid, so they aren't
       // eliminated from the
@@ -3449,6 +3449,21 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0,
                                              D3D11_1_UAV_SLOT_COUNT);
       m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+    }
+
+    if(IsActiveCapturing(m_State))
+    {
+      // make sure to mark resources referenced if the OM state is invalid, so they aren't
+      // eliminated from the
+      // log (which might make this combination valid on replay without some of the targets!)
+      for(UINT i = 0; i < NumUAVs; i++)
+      {
+        if(UAVs && UAVs[i])
+        {
+          MarkResourceReferenced(GetIDForResource(UAVs[i]), eFrameRef_Read);
+          MarkResourceReferenced(GetViewResourceResID(UAVs[i]), eFrameRef_Read);
+        }
+      }
     }
   }
 
@@ -5280,6 +5295,20 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
         }
         m_ContextRecord->UnlockChunks();
 
+        // clear the references, and delete the resource records so they aren't kept around forever
+        for(ResourceId id : m_DeferredReferences)
+        {
+          D3D11ResourceRecord *deferredRecord =
+              m_pDevice->GetResourceManager()->GetResourceRecord(id);
+          if(deferredRecord)
+            deferredRecord->Delete(m_pDevice->GetResourceManager());
+        }
+
+        m_DeferredReferences.clear();
+
+        // clear the dirty marks
+        m_DeferredDirty.clear();
+
         // It's now 'successful' again, being empty
         m_SuccessfulCapture = true;
       }
@@ -5304,6 +5333,16 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
 
       // still need to propagate up dirty resources to the immediate context
       wrapped->SwapDirtyResources(m_DeferredDirty);
+
+      // clear the references and decref the resource records
+      for(ResourceId id : m_DeferredReferences)
+      {
+        D3D11ResourceRecord *deferredRecord = m_pDevice->GetResourceManager()->GetResourceRecord(id);
+        if(deferredRecord)
+          deferredRecord->Delete(m_pDevice->GetResourceManager());
+      }
+
+      m_DeferredReferences.clear();
 
       RDCDEBUG(
           "Deferred Context %llu not capturing at the moment, Produced unsuccessful command list "
