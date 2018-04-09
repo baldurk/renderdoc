@@ -1227,12 +1227,27 @@ void GLReplay::SavePipelineState()
           pipe.samplers[unit].filter =
               MakeFilter((GLenum)minf, (GLenum)magf, shadow, pipe.samplers[unit].maxAnisotropy);
 
-          gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
-          gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.samplers[unit].minLOD);
-          if(!IsGLES)
-            gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.samplers[unit].mipLODBias);
+          if(samp != 0)
+            gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
           else
+            gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
+
+          if(samp != 0)
+            gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MIN_LOD, &pipe.samplers[unit].minLOD);
+          else
+            gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.samplers[unit].minLOD);
+
+          if(!IsGLES)
+          {
+            if(samp != 0)
+              gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_LOD_BIAS, &pipe.samplers[unit].mipLODBias);
+            else
+              gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.samplers[unit].mipLODBias);
+          }
+          else
+          {
             pipe.samplers[unit].mipLODBias = 0.0f;
+          }
         }
         else
         {
