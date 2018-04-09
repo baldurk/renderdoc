@@ -1058,6 +1058,17 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     {
       ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB;
     }
+    else if(fmt.compByteWidth == 8)
+    {
+      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+        ret = VK_FORMAT_R64G64B64A64_SFLOAT;
+      else if(fmt.compType == CompType::SInt)
+        ret = VK_FORMAT_R64G64B64A64_SINT;
+      else if(fmt.compType == CompType::UInt)
+        ret = VK_FORMAT_R64G64B64A64_UINT;
+      else
+        RDCERR("Unrecognised component type");
+    }
     else if(fmt.compByteWidth == 4)
     {
       if(fmt.compType == CompType::Float)
@@ -1116,6 +1127,17 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     {
       ret = VK_FORMAT_R8G8B8_SRGB;
     }
+    else if(fmt.compByteWidth == 8)
+    {
+      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+        ret = VK_FORMAT_R64G64B64_SFLOAT;
+      else if(fmt.compType == CompType::SInt)
+        ret = VK_FORMAT_R64G64B64_SINT;
+      else if(fmt.compType == CompType::UInt)
+        ret = VK_FORMAT_R64G64B64_UINT;
+      else
+        RDCERR("Unrecognised component type");
+    }
     else if(fmt.compByteWidth == 4)
     {
       if(fmt.compType == CompType::Float)
@@ -1170,7 +1192,18 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 2)
   {
-    if(fmt.compByteWidth == 4)
+    if(fmt.compByteWidth == 8)
+    {
+      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+        ret = VK_FORMAT_R64G64_SFLOAT;
+      else if(fmt.compType == CompType::SInt)
+        ret = VK_FORMAT_R64G64_SINT;
+      else if(fmt.compType == CompType::UInt)
+        ret = VK_FORMAT_R64G64_UINT;
+      else
+        RDCERR("Unrecognised component type");
+    }
+    else if(fmt.compByteWidth == 4)
     {
       if(fmt.compType == CompType::Float)
         ret = VK_FORMAT_R32G32_SFLOAT;
@@ -1224,7 +1257,18 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 1)
   {
-    if(fmt.compByteWidth == 4)
+    if(fmt.compByteWidth == 8)
+    {
+      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+        ret = VK_FORMAT_R64_SFLOAT;
+      else if(fmt.compType == CompType::SInt)
+        ret = VK_FORMAT_R64_SINT;
+      else if(fmt.compType == CompType::UInt)
+        ret = VK_FORMAT_R64_UINT;
+      else
+        RDCERR("Unrecognised component type");
+    }
+    else if(fmt.compByteWidth == 4)
     {
       if(fmt.compType == CompType::Float)
         ret = VK_FORMAT_R32_SFLOAT;
