@@ -250,9 +250,9 @@ struct HighlightCache
                                vector<FloatVector> &adjacentPrimVertices,
                                vector<FloatVector> &inactiveVertices);
 
-  static FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
-                                     bool &valid);
+  static FloatVector InterpretVertex(const byte *data, uint32_t vert, uint32_t vertexByteStride,
+                                     const ResourceFormat &fmt, const byte *end, bool &valid);
 
-  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
-                              bool useidx, bool &valid);
+  FloatVector InterpretVertex(const byte *data, uint32_t vert, const MeshDisplay &cfg,
+                              const byte *end, bool useidx, bool &valid);
 };

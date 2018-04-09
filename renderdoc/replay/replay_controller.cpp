@@ -39,17 +39,17 @@
 #include "strings/string_utils.h"
 #include "tinyexr/tinyexr.h"
 
-float ConvertComponent(const ResourceFormat &fmt, byte *data)
+float ConvertComponent(const ResourceFormat &fmt, const byte *data)
 {
   if(fmt.compByteWidth == 8)
   {
     // we just downcast
-    uint64_t *u64 = (uint64_t *)data;
-    int64_t *i64 = (int64_t *)data;
+    const uint64_t *u64 = (const uint64_t *)data;
+    const int64_t *i64 = (const int64_t *)data;
 
     if(fmt.compType == CompType::Double || fmt.compType == CompType::Float)
     {
-      return float(*(double *)u64);
+      return float(*(const double *)u64);
     }
     else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
     {
@@ -62,12 +62,12 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
   }
   else if(fmt.compByteWidth == 4)
   {
-    uint32_t *u32 = (uint32_t *)data;
-    int32_t *i32 = (int32_t *)data;
+    const uint32_t *u32 = (const uint32_t *)data;
+    const int32_t *i32 = (const int32_t *)data;
 
     if(fmt.compType == CompType::Float || fmt.compType == CompType::Depth)
     {
-      return *(float *)u32;
+      return *(const float *)u32;
     }
     else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
     {
@@ -81,7 +81,7 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
   else if(fmt.compByteWidth == 3 && fmt.compType == CompType::Depth)
   {
     // 24-bit depth is a weird edge case we need to assemble it by hand
-    uint8_t *u8 = (uint8_t *)data;
+    const uint8_t *u8 = (const uint8_t *)data;
 
     uint32_t depth = 0;
     depth |= uint32_t(u8[1]);
@@ -92,8 +92,8 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
   }
   else if(fmt.compByteWidth == 2)
   {
-    uint16_t *u16 = (uint16_t *)data;
-    int16_t *i16 = (int16_t *)data;
+    const uint16_t *u16 = (const uint16_t *)data;
+    const int16_t *i16 = (const int16_t *)data;
 
     if(fmt.compType == CompType::Float)
     {
@@ -126,8 +126,8 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
   }
   else if(fmt.compByteWidth == 1)
   {
-    uint8_t *u8 = (uint8_t *)data;
-    int8_t *i8 = (int8_t *)data;
+    const uint8_t *u8 = (const uint8_t *)data;
+    const int8_t *i8 = (const int8_t *)data;
 
     if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
     {

@@ -1318,7 +1318,38 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
       // is not a multiple of the minimum texel buffer offset for at least some of the buffers if
       // not all of them, so we simplify the code here by *always* reading back the vertex buffer
       // data and uploading a compacted version.
-      uint32_t elemSize = GetByteSize(1, 1, 1, attrDesc.format, 0);
+
+      // we also need to handle the case where the format is not natively supported as a texel
+      // buffer, which requires us to then pick a supported format that's wider (so contains the
+      // same precision) but does support texel buffers, and expand to that.
+      VkFormat origFormat = attrDesc.format;
+      VkFormat expandedFormat = attrDesc.format;
+
+      if((m_pDriver->GetFormatProperties(attrDesc.format).bufferFeatures &
+          VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT) == 0)
+      {
+        // Our selection is simple. For integer formats, the 4-component version is spec-required to
+        // be supported, so we can expand to that and just pad/upcast the data directly.
+        // Likewise for float formats, the 4-component 32-bit float version is required to be
+        // supported, and can represent any other float format (e.g. R16_SNORM can't be represented
+        // by R16_SFLOAT but can be represented by R32_SFLOAT. Same for R16_*SCALED. Fortunately
+        // there is no R32_SNORM or R32_*SCALED).
+        // So we pick one of three formats depending on the base type of the original format.
+        //
+        // Note: This does not handle double format inputs, which must have special handling.
+
+        if(IsUIntFormat(origFormat))
+          expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
+        else if(IsSIntFormat(origFormat))
+          expandedFormat = VK_FORMAT_R32G32B32A32_SINT;
+        else
+          expandedFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+      }
+
+      uint32_t elemSize = GetByteSize(1, 1, 1, expandedFormat, 0);
+
+      // used for interpreting the original data, if we're upcasting
+      ResourceFormat fmt = MakeResourceFormat(origFormat);
 
       {
         VkBufferCreateInfo bufInfo = {
@@ -1359,11 +1390,92 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
           const byte *src = origVBBegin;
           byte *dst = compactedData;
           const byte *dstEnd = dst + bufInfo.size;
-          while(src < origVBEnd && dst < dstEnd)
+
+          // fast memcpy compaction case for natively supported texel buffer formats
+          if(origFormat == expandedFormat)
           {
-            memcpy(dst, src, elemSize);
-            dst += elemSize;
-            src += stride;
+            while(src < origVBEnd && dst < dstEnd)
+            {
+              memcpy(dst, src, elemSize);
+              dst += elemSize;
+              src += stride;
+            }
+          }
+          else
+          {
+            uint32_t zero = 0;
+
+            // upcasting path
+            if(IsUIntFormat(expandedFormat))
+            {
+              while(src < origVBEnd && dst < dstEnd)
+              {
+                uint32_t val = 0;
+
+                uint8_t c = 0;
+                for(; c < fmt.compCount; c++)
+                {
+                  if(fmt.compByteWidth == 1)
+                    val = *src;
+                  else if(fmt.compByteWidth == 2)
+                    val = *(uint16_t *)src;
+                  else if(fmt.compByteWidth == 4)
+                    val = *(uint32_t *)src;
+
+                  memcpy(dst, &val, sizeof(uint32_t));
+                  dst += sizeof(uint32_t);
+                }
+
+                for(; c < 4; c++)
+                {
+                  memcpy(dst, &zero, sizeof(uint32_t));
+                  dst += sizeof(uint32_t);
+                }
+
+                src += stride;
+              }
+            }
+            else if(IsSIntFormat(expandedFormat))
+            {
+              while(src < origVBEnd && dst < dstEnd)
+              {
+                int32_t val = 0;
+
+                uint8_t c = 0;
+                for(; c < fmt.compCount; c++)
+                {
+                  if(fmt.compByteWidth == 1)
+                    val = *(int8_t *)src;
+                  else if(fmt.compByteWidth == 2)
+                    val = *(int16_t *)src;
+                  else if(fmt.compByteWidth == 4)
+                    val = *(int32_t *)src;
+
+                  memcpy(dst, &val, sizeof(int32_t));
+                  dst += sizeof(int32_t);
+                }
+
+                for(; c < 4; c++)
+                {
+                  memcpy(dst, &zero, sizeof(uint32_t));
+                  dst += sizeof(uint32_t);
+                }
+
+                src += stride;
+              }
+            }
+            else
+            {
+              while(src < origVBEnd && dst < dstEnd)
+              {
+                bool valid = false;
+                FloatVector vec = HighlightCache::InterpretVertex(src, 0, 0, fmt, origVBEnd, valid);
+
+                memcpy(dst, &vec, sizeof(FloatVector));
+                dst += sizeof(FloatVector);
+                src += stride;
+              }
+            }
           }
         }
 
@@ -1375,18 +1487,19 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
           NULL,
           0,
           vbuffers[attr].buf,
-          attrDesc.format,
+          expandedFormat,
           0,
           VK_WHOLE_SIZE,
       };
 
-      if((m_pDriver->GetFormatProperties(attrDesc.format).bufferFeatures &
+      if((m_pDriver->GetFormatProperties(expandedFormat).bufferFeatures &
           VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT) == 0)
       {
         RDCERR(
-            "Format %s doesn't support texel buffers! Replacing with safe but broken format, for "
-            "now. This will require a CPU readback and unpack to properly fix.",
-            ToStr(attrDesc.format).c_str());
+            "Format %s doesn't support texel buffers, and no suitable upcasting format was found! "
+            "Replacing with safe but broken format to avoid crashes, but vertex data will be "
+            "wrong.",
+            ToStr(origFormat).c_str());
         info.format = VK_FORMAT_R8G8B8A8_UNORM;
       }
 

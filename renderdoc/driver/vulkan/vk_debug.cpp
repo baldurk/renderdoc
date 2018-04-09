@@ -1016,7 +1016,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
     // Instead we grab min and max above, and convert every vertex in that range. This might
     // slightly over-estimate but not as bad as 0-max or the whole buffer.
     for(uint32_t idx = minIndex; idx <= maxIndex; idx++)
-      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
+      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg.position.vertexByteStride,
+                                                    cfg.position.format, dataEnd, valid);
 
     m_VertexPick.VBUpload.Unmap();
   }

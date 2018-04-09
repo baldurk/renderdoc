@@ -1487,7 +1487,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     // Instead we grab min and max above, and convert every vertex in that range. This might
     // slightly over-estimate but not as bad as 0-max or the whole buffer.
     for(uint32_t idx = minIndex; idx <= maxIndex; idx++)
-      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
+      vbData[idx] = HighlightCache::InterpretVertex(data, idx, cfg.position.vertexByteStride,
+                                                    cfg.position.format, dataEnd, valid);
 
     gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickVBBuf);
     gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, (maxIndex + 1) * sizeof(Vec4f), vbData.data());

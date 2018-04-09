@@ -203,8 +203,8 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 #undef IDX_VALUE
 }
 
-FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
-                                            byte *end, bool useidx, bool &valid)
+FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, const MeshDisplay &cfg,
+                                            const byte *end, bool useidx, bool &valid)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -219,19 +219,19 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
     vert = indices[vert];
   }
 
-  return HighlightCache::InterpretVertex(data, vert, cfg, end, valid);
+  return HighlightCache::InterpretVertex(data, vert, cfg.position.vertexByteStride,
+                                         cfg.position.format, end, valid);
 }
 
-FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
-                                            byte *end, bool &valid)
+FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
+                                            uint32_t vertexByteStride, const ResourceFormat &fmt,
+                                            const byte *end, bool &valid)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
-  data += vert * cfg.position.vertexByteStride;
+  data += vert * vertexByteStride;
 
   float *out = &ret.x;
-
-  const ResourceFormat &fmt = cfg.position.format;
 
   if(fmt.type == ResourceFormatType::R10G10B10A2)
   {
@@ -241,7 +241,7 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
       return ret;
     }
 
-    Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
+    Vec4f v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
     ret.x = v.x;
     ret.y = v.y;
     ret.z = v.z;
@@ -256,7 +256,7 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
       return ret;
     }
 
-    Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
+    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
     ret.x = v.x;
     ret.y = v.y;
     ret.z = v.z;
