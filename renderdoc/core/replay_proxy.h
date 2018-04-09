@@ -597,11 +597,15 @@ private:
   struct ShaderReflKey
   {
     ShaderReflKey() {}
-    ShaderReflKey(ResourceId i, ShaderEntryPoint e) : id(i), entry(e) {}
+    ShaderReflKey(uint32_t eid, ResourceId i, ShaderEntryPoint e) : eventId(eid), id(i), entry(e) {}
+    uint32_t eventId;
     ResourceId id;
     ShaderEntryPoint entry;
     bool operator<(const ShaderReflKey &o) const
     {
+      if(eventId != o.eventId)
+        return eventId < o.eventId;
+
       if(id != o.id)
         return id < o.id;
 
@@ -637,7 +641,7 @@ private:
   // The previous windowing data, so we can detect changes and recreate the window
   WindowingData m_PreviewWindowingData;
 
-  uint32_t m_PreviewEvent = 0;
+  uint32_t m_EventID = 0;
 
   bool m_IsErrored = false;
 

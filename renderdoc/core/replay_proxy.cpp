@@ -822,7 +822,8 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
   const ReplayProxyPacket packet = eReplayProxy_GetShader;
   ShaderReflection *ret = NULL;
 
-  ShaderReflKey key(id, entry);
+  // only consider eventID part of the key on APIs where shaders are mutable
+  ShaderReflKey key(m_APIProps.shadersMutable ? m_EventID : 0, id, entry);
 
   if(retser.IsReading() && m_ShaderReflectionCache.find(key) != m_ShaderReflectionCache.end())
     return m_ShaderReflectionCache[key];
@@ -1300,21 +1301,13 @@ void ReplayProxy::Proxied_ReplayLog(ParamSerialiser &paramser, ReturnSerialiser 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
     m_Remote->ReplayLog(endEventID, replayType);
 
-  if(m_RemoteServer)
-    m_PreviewEvent = endEventID;
-
   if(retser.IsReading())
   {
     m_TextureProxyCache.clear();
     m_BufferProxyCache.clear();
-
-    if(m_APIProps.shadersMutable)
-    {
-      for(auto it = m_ShaderReflectionCache.begin(); it != m_ShaderReflectionCache.end(); ++it)
-        delete it->second;
-      m_ShaderReflectionCache.clear();
-    }
   }
+
+  m_EventID = endEventID;
 }
 
 void ReplayProxy::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -1916,7 +1909,7 @@ void ReplayProxy::RefreshPreviewWindow()
 
     m_Replay->RenderCheckerboard();
 
-    const DrawcallDescription *curDraw = FindDraw(m_FrameRecord.drawcallList, m_PreviewEvent);
+    const DrawcallDescription *curDraw = FindDraw(m_FrameRecord.drawcallList, m_EventID);
 
     if(curDraw)
     {
