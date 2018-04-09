@@ -821,10 +821,11 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
 {
   const ReplayProxyPacket packet = eReplayProxy_GetShader;
   ShaderReflection *ret = NULL;
-
+  ShaderReflection *resultShaderInfo = NULL;
   ShaderReflKey key(id, entry);
 
-  if(retser.IsReading() && m_ShaderReflectionCache.find(key) != m_ShaderReflectionCache.end())
+  if(retser.IsReading() && !m_APIProps.shadersMutable &&
+     m_ShaderReflectionCache.find(key) != m_ShaderReflectionCache.end())
     return m_ShaderReflectionCache[key];
 
   {
@@ -847,12 +848,16 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
     // serialised pointer here into our cache
     if(ser.IsReading())
     {
-      m_ShaderReflectionCache[key] = ret;
+      resultShaderInfo = ret;
+      if(!m_APIProps.shadersMutable)
+      {
+        m_ShaderReflectionCache[key] = ret;
+      }
       ret = NULL;
     }
   }
 
-  return m_ShaderReflectionCache[key];
+  return resultShaderInfo;
 }
 
 ShaderReflection *ReplayProxy::GetShader(ResourceId id, ShaderEntryPoint entry)
@@ -1307,13 +1312,6 @@ void ReplayProxy::Proxied_ReplayLog(ParamSerialiser &paramser, ReturnSerialiser 
   {
     m_TextureProxyCache.clear();
     m_BufferProxyCache.clear();
-
-    if(m_APIProps.shadersMutable)
-    {
-      for(auto it = m_ShaderReflectionCache.begin(); it != m_ShaderReflectionCache.end(); ++it)
-        delete it->second;
-      m_ShaderReflectionCache.clear();
-    }
   }
 }
 
