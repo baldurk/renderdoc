@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "dxbc_inspect.h"
+#include <algorithm>
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
 #include "serialise/serialiser.h"
@@ -2526,6 +2527,32 @@ SPDBChunk::SPDBChunk(void *chunk)
   }
 
   delete[] pages;
+
+  // Sort files according to the order they come in the Names array, this seems to be more reliable
+  // about placing the main file first.
+  std::sort(Files.begin(), Files.end(), [&Names](const std::pair<std::string, std::string> &a,
+                                                 const std::pair<std::string, std::string> &b) {
+    // any entries that aren't found in Names at all (like @cmdline that we add) will be sorted to
+    // the end.
+    size_t aIdx = ~0U, bIdx = ~0U;
+
+    size_t i = 0;
+    for(auto it = Names.begin(); it != Names.end(); ++it)
+    {
+      if(it->second == a.first)
+        aIdx = i;
+      if(it->second == b.first)
+        bIdx = i;
+
+      i++;
+    }
+
+    // if neither were found, sort by filename
+    if(aIdx == bIdx)
+      return a.first < b.first;
+
+    return aIdx < bIdx;
+  });
 
   m_HasDebugInfo = true;
 }
