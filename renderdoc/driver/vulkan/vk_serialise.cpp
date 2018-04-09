@@ -102,7 +102,7 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
       {
         // It can be OK for a resource to have no live equivalent if the capture decided its not
         // needed, which some APIs do fairly often.
-        RDCWARN("Capture may be missing reference to %s resource.", TypeName<type>());
+        RDCWARN("Capture may be missing reference to %s resource (%llu).", TypeName<type>(), id);
       }
     }
   }
