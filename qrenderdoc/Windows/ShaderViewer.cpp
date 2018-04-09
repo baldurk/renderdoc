@@ -1162,12 +1162,21 @@ void ShaderViewer::addFileList()
   QListWidget *list = new QListWidget(this);
   list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   list->setSelectionMode(QAbstractItemView::SingleSelection);
-  QObject::connect(list, &QListWidget::currentRowChanged,
-                   [this](int idx) { ToolWindowManager::raiseToolWindow(m_Scintillas[idx]); });
+  QObject::connect(list, &QListWidget::currentRowChanged, [this](int idx) {
+    QWidget *raiseWidget = m_Scintillas[idx];
+    if(m_Scintillas[idx] == m_DisassemblyView)
+      raiseWidget = m_DisassemblyFrame;
+    ToolWindowManager::raiseToolWindow(raiseWidget);
+  });
   list->setWindowTitle(tr("File List"));
 
   for(ScintillaEdit *s : m_Scintillas)
-    list->addItem(s->windowTitle());
+  {
+    if(s == m_DisassemblyView)
+      list->addItem(m_DisassemblyFrame->windowTitle());
+    else
+      list->addItem(s->windowTitle());
+  }
 
   ui->docking->addToolWindow(
       list, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
