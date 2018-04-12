@@ -135,6 +135,12 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
     barrier.image = Unwrap(
         GetResourceManager()->GetCurrentHandle<VkImage>(m_CreationInfo.m_ImageView[view].image));
 
+    // When an imageView of a depth/stencil image is used as a depth/stencil framebuffer attachment,
+    // the aspectMask is ignored and both depth and stencil image subresources are used.
+    VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[m_CreationInfo.m_ImageView[view].image];
+    if(IsDepthAndStencilFormat(c.format))
+      barrier.subresourceRange.aspectMask = (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+
     barrier.newLayout = atts[i].layout;
 
     // search back from this subpass to see which layout it was in before. If it's
