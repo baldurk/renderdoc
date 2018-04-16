@@ -85,6 +85,46 @@ std::string GetDefaultActivityForPackage(const std::string &deviceID, const std:
     }
   }
 
+  // when failed to find default activiy with cmd package on Android 6.0
+  // try using pm dump like in this example:
+  // $ adb shell pm dump com.android.gles3jni
+  // DUMP OF SERVICE package:
+  //  Activity Resolver Table:
+  //    Non-Data Actions:
+  //        android.intent.action.MAIN:
+  //          d97b36a com.android.gles3jni/.GLES3JNIActivity filter fa39fb9
+  // ...
+
+  activity = adbExecCommand(deviceID, StringFormat::Fmt("shell pm dump %s", packageName.c_str()));
+
+  lines.clear();
+  split(activity.strStdout, lines, '\n');
+
+  size_t numOfLines = lines.size();
+  const char *intentFilter = "android.intent.action.MAIN:";
+  size_t intentFilterSize = strlen(intentFilter);
+
+  for(size_t idx = 0; idx < numOfLines; idx++)
+  {
+    std::string line = trim(lines[idx]);
+    if(!strncmp(line.c_str(), intentFilter, intentFilterSize) && idx + 1 < numOfLines)
+    {
+      std::string activityName = trim(lines[idx + 1]);
+      size_t startPos = activityName.find("/");
+      if(startPos == std::string::npos)
+      {
+        RDCWARN("Failed to find default activity");
+        return "";
+      }
+      size_t endPos = activityName.find(" ", startPos + 1);
+      if(endPos == std::string::npos)
+      {
+        endPos = activityName.length();
+      }
+      return activityName.substr(startPos + 1, endPos - startPos - 1);
+    }
+  }
+
   RDCERR("Didn't find default activity in adb output");
   return "";
 }
