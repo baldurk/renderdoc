@@ -573,10 +573,9 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   // application is well behaved. If not, we just leak.
 
   ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance), NULL);
-  GetResourceManager()->ReleaseWrappedResource(m_Instance);
-
   RenderDoc::Inst().RemoveDeviceFrameCapturer(LayerDisp(m_Instance));
 
+  GetResourceManager()->ReleaseWrappedResource(m_Instance);
   m_Instance = VK_NULL_HANDLE;
 }
 
