@@ -100,11 +100,13 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="amd_isa_win32.cpp" />
+    <ClCompile Include="amd_rgp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd_counters.h" />
     <ClInclude Include="amd_isa.h" />
     <ClInclude Include="amd_isa_devices.h" />
+    <ClInclude Include="amd_rgp.h" />
     <ClInclude Include="official\DXExt\AmdDxExt.h" />
     <ClInclude Include="official\DXExt\AmdDxExtApi.h" />
     <ClInclude Include="official\DXExt\AmdDxExtIface.h" />

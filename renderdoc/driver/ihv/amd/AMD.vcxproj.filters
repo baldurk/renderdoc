@@ -25,6 +25,9 @@
     <Filter Include="official\RGA\Common">
       <UniqueIdentifier>{47a6fd91-f76e-4faa-9e5c-4bb899be9796}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RGP">
+      <UniqueIdentifier>{9977fd12-32d0-49d3-b20d-c38b0df2dc95}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="amd_counters.cpp">
@@ -41,6 +44,9 @@
     </ClCompile>
     <ClCompile Include="amd_isa_devices.cpp">
       <Filter>ISA</Filter>
+    </ClCompile>
+    <ClCompile Include="amd_rgp.cpp">
+      <Filter>RGP</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -107,5 +113,6 @@
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-VK.h">
       <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
+    <ClInclude Include="amd_rgp.h" />
   </ItemGroup>
 </Project>
