@@ -44,6 +44,8 @@ public:
   explicit SettingsDialog(ICaptureContext &ctx, QWidget *parent = 0);
   ~SettingsDialog();
 
+  void focusItem(QString item);
+
 private slots:
   // automatic slots
 
@@ -66,6 +68,8 @@ private slots:
 
   // core
   void on_chooseSearchPaths_clicked();
+  void on_ExternalTool_RadeonGPUProfiler_textEdited(const QString &rgp);
+  void on_browseRGPPath_clicked();
 
   // texture viewer
   void on_TextureViewer_PerTexSettings_toggled(bool checked);

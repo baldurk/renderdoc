@@ -155,6 +155,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   ui->deleteDisasm->setEnabled(false);
 
+  ui->ExternalTool_RadeonGPUProfiler->setText(m_Ctx.Config().ExternalTool_RadeonGPUProfiler);
+
   ui->Android_SDKPath->setText(m_Ctx.Config().Android_SDKPath);
   ui->Android_JDKPath->setText(m_Ctx.Config().Android_JDKPath);
   ui->Android_MaxConnectTimeout->setValue(m_Ctx.Config().Android_MaxConnectTimeout);
@@ -243,6 +245,23 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 SettingsDialog::~SettingsDialog()
 {
   delete ui;
+}
+
+void SettingsDialog::focusItem(QString item)
+{
+  for(int i = 0; i < ui->tabWidget->count(); i++)
+  {
+    QWidget *w = ui->tabWidget->widget(i)->findChild<QWidget *>(item);
+
+    if(w)
+    {
+      ui->tabWidget->setCurrentIndex(i);
+      w->setFocus(Qt::MouseFocusReason);
+      return;
+    }
+  }
+
+  qCritical() << "Couldn't find" << item << "to focus on settings dialog";
 }
 
 void SettingsDialog::on_pages_itemSelectionChanged()
@@ -421,6 +440,29 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
   if(res)
     m_Ctx.Config().SetConfigSetting(lit("shader.debug.searchPaths"),
                                     list.getItems().join(QLatin1Char(';')));
+}
+
+void SettingsDialog::on_ExternalTool_RadeonGPUProfiler_textEdited(const QString &rgp)
+{
+  if(QFileInfo::exists(rgp) || rgp.isEmpty())
+    m_Ctx.Config().ExternalTool_RadeonGPUProfiler = rgp;
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_browseRGPPath_clicked()
+{
+  QString rgp = RDDialog::getExecutableFileName(
+      this, tr("Locate RGP executable"),
+      QFileInfo(m_Ctx.Config().ExternalTool_RadeonGPUProfiler).absoluteDir().path());
+
+  if(!rgp.isEmpty())
+  {
+    ui->ExternalTool_RadeonGPUProfiler->setText(rgp);
+    m_Ctx.Config().ExternalTool_RadeonGPUProfiler = rgp;
+  }
+
+  m_Ctx.Config().Save();
 }
 
 // texture viewer

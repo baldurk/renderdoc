@@ -51,7 +51,10 @@
     </property>
     <addaction name="action_Resolve_Symbols"/>
     <addaction name="action_Recompress_Capture"/>
+    <addaction name="separator"/>
     <addaction name="action_Start_Replay_Loop"/>
+    <addaction name="action_Create_RGP_Profile"/>
+    <addaction name="action_Open_RGP_Profile"/>
     <addaction name="separator"/>
     <addaction name="action_Settings"/>
     <addaction name="action_Manage_Remote_Servers"/>
@@ -451,6 +454,16 @@
   <action name="action_Check_for_Updates">
    <property name="text">
     <string>Check for updates</string>
+   </property>
+  </action>
+  <action name="action_Create_RGP_Profile">
+   <property name="text">
+    <string>Create new RGP Profile</string>
+   </property>
+  </action>
+  <action name="action_Open_RGP_Profile">
+   <property name="text">
+    <string>Open RGP Profile</string>
    </property>
   </action>
  </widget>

@@ -587,6 +587,7 @@
     <ClCompile Include="Code\pyrenderdoc\PythonContext.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="Code\Resources.cpp" />
+    <ClCompile Include="Code\RGPInterop.cpp" />
     <ClCompile Include="Code\ScintillaSyntax.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RDStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RDTweakedNativeStyle.cpp" />
@@ -949,6 +950,7 @@
     <ClInclude Include="$(IntDir)generated\ui_ThumbnailStrip.h" />
     <ClInclude Include="$(IntDir)generated\ui_VirtualFileDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_VulkanPipelineStateViewer.h" />
+    <ClInclude Include="Code\RGPInterop.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Code\CaptureContext.h" />
     <ClInclude Include="Styles\StyleData.h" />

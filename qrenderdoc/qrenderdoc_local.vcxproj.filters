@@ -705,6 +705,7 @@
     <ClCompile Include="Code\Interface\SPIRVDisassembler.cpp">
       <Filter>Code\Interface</Filter>
     </ClCompile>
+    <ClCompile Include="Code\RGPInterop.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1055,6 +1056,7 @@
     <ClInclude Include="Code\pyrenderdoc\interface_check.h">
       <Filter>Code\pyrenderdoc</Filter>
     </ClInclude>
+    <ClInclude Include="Code\RGPInterop.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Code\pyrenderdoc\pyconversion.h">

@@ -978,6 +978,36 @@ struct EventBookmark
 
 DECLARE_REFLECTION_STRUCT(EventBookmark);
 
+struct IRGPInterop
+{
+  DOCUMENT(R"(Return true if the given :data:`eventId <renderdoc.APIEvent.eventId>` has and
+equivalent in RGP.
+
+:param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
+:return: ``True`` if there is an equivalent. This only confirms the equivalent exists, not that it
+  will be selectable in all cases.
+:rtype: bool
+)");
+  virtual bool HasRGPEvent(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Select the given :data:`eventId <renderdoc.APIEvent.eventId>` equivalent in RGP.
+
+:param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
+:return: ``True`` if the selection request succeeded. This only confirms the request was sent, not
+  that the event was selected in RGP.
+:rtype: bool
+)");
+  virtual bool SelectRGPEvent(uint32_t eventId) = 0;
+
+  DOCUMENT("");
+  virtual ~IRGPInterop() = default;
+
+protected:
+  IRGPInterop() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IRGPInterop);
+
 DOCUMENT("The capture context that the python script is running in.")
 struct ICaptureContext
 {
@@ -1318,30 +1348,36 @@ considered out of date
 )");
   virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) = 0;
 
-  DOCUMENT(R"(Creates a mapping from eventId to/from RGP linearId for the current capture.
+  DOCUMENT(R"(Sets the path to the RGP profile to use with :meth:`GetRGPInterop`, launches RGP and
+opens an interop connection. This function will block (with a progress dialog) until either an
+error is encountered or else the connection is successfully established.
 
-Does nothing if no capture is loaded.
+This could be newly created, or extracted from an embedded section in the RDC.
 
-:param int version: The version of mapping to use, determining which events are counted.
+The connection is automatically closed when the capture is closed. If OpenRGPProfile is called
+again, any previous connection will be closed.
+
+:param str filename: The filename of the extracted temporary RGP capture on disk.
+:return: Whether RGP launched successfully.
+:rtype: ``bool``
 )");
-  virtual void CreateRGPMapping(uint32_t version) = 0;
+  virtual bool OpenRGPProfile(const rdcstr &filename) = 0;
 
-  DOCUMENT(R"(Get the RGP linearId from an :data:`eventId <renderdoc.APIEvent.eventId>`.
+  DOCUMENT(R"(Returns the current interop handle for RGP.
 
-:param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
-:return: The linearId, or ``0`` if no linearId corresponds to this event.
-:rtype: int
+This may return ``None`` in several cases:
+
+- if there is no capture loaded
+- if no RGP profile has been associated with the current capture yet (See :meth:`OpenRGPProfile`)
+- if RGP failed to launch or connect.
+
+The handle returned is invalidated when the capture is closed, or if :meth:`OpenRGPProfile` is
+called.
+
+:return: The RGP interop connection handle.
+:rtype: RGPInterop
 )");
-  virtual uint32_t GetRGPIdFromEventId(uint32_t eventId) = 0;
-
-  DOCUMENT(R"(Get the :data:`eventId <renderdoc.APIEvent.eventId>` from an RGP linearId.
-
-:param int RGPId: The RGP linearId to query for.
-:return: The :data:`eventId <renderdoc.APIEvent.eventId>`, or ``0`` if no eventId can be found
-  corresponding to this linearId.
-:rtype: int
-)");
-  virtual uint32_t GetEventIdFromRGPId(uint32_t RGPId) = 0;
+  virtual IRGPInterop *GetRGPInterop() = 0;
 
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.SDFile` for the currently open capture.
 

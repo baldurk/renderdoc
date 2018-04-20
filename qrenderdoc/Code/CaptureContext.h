@@ -116,19 +116,8 @@ public:
   const DrawcallDescription *CurDrawcall() override { return GetDrawcall(CurEvent()); }
   const DrawcallDescription *GetFirstDrawcall() override { return m_FirstDrawcall; };
   const DrawcallDescription *GetLastDrawcall() override { return m_LastDrawcall; };
-  void CreateRGPMapping(uint32_t version) override;
-  uint32_t GetRGPIdFromEventId(uint32_t eventId) override
-  {
-    if(eventId >= m_Event2RGP.size())
-      return 0;
-    return m_Event2RGP[eventId];
-  }
-  uint32_t GetEventIdFromRGPId(uint32_t RGPId) override
-  {
-    if(RGPId >= m_RGP2Event.size())
-      return 0;
-    return m_RGP2Event[RGPId];
-  }
+  bool OpenRGPProfile(const rdcstr &filename) override;
+  IRGPInterop *GetRGPInterop() override { return m_RGP; }
   const rdcarray<DrawcallDescription> &CurDrawcalls() override { return m_Drawcalls; }
   ResourceDescription *GetResource(ResourceId id) override { return m_Resources[id]; }
   const rdcarray<ResourceDescription> &GetResources() override { return m_ResourceList; }
@@ -261,9 +250,6 @@ private:
   rdcarray<DebugMessage> m_DebugMessages;
   int m_UnreadMessageCount = 0;
 
-  void CreateRGPMapping(const QStringList &eventNames,
-                        const rdcarray<DrawcallDescription> &drawcalls);
-
   bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
   bool ContainsMarker(const rdcarray<DrawcallDescription> &m_Drawcalls);
   void AddFakeProfileMarkers();
@@ -318,8 +304,7 @@ private:
   DrawcallDescription *m_FirstDrawcall = NULL;
   DrawcallDescription *m_LastDrawcall = NULL;
 
-  rdcarray<uint32_t> m_Event2RGP;
-  rdcarray<uint32_t> m_RGP2Event;
+  IRGPInterop *m_RGP = NULL;
 
   QMap<ResourceId, TextureDescription *> m_Textures;
   rdcarray<TextureDescription> m_TextureList;

@@ -927,6 +927,8 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
   QAction expandAll(tr("&Expand All"), this);
   QAction collapseAll(tr("&Collapse All"), this);
   QAction selectCols(tr("&Select Columns..."), this);
+  QAction rgpSelect(tr("Select &RGP Event"), this);
+  rgpSelect.setIcon(Icons::connect());
 
   contextMenu.addAction(&expandAll);
   contextMenu.addAction(&collapseAll);
@@ -946,6 +948,14 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
                    [this, item]() { ui->events->collapseAllItems(item); });
 
   QObject::connect(&selectCols, &QAction::triggered, this, &EventBrowser::on_colSelect_clicked);
+
+  IRGPInterop *rgp = m_Ctx.GetRGPInterop();
+  if(rgp && rgp->HasRGPEvent(m_Ctx.CurEvent()))
+  {
+    contextMenu.addAction(&rgpSelect);
+    QObject::connect(&rgpSelect, &QAction::triggered,
+                     [this, rgp]() { rgp->SelectRGPEvent(m_Ctx.CurEvent()); });
+  }
 
   RDDialog::show(&contextMenu, ui->events->viewport()->mapToGlobal(pos));
 }

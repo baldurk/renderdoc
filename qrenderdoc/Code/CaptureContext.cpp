@@ -40,6 +40,7 @@
 #include "Windows/DebugMessageView.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
+#include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
 #include "Windows/PerformanceCounterViewer.h"
@@ -52,6 +53,7 @@
 #include "Windows/TextureViewer.h"
 #include "Windows/TimelineBar.h"
 #include "QRDUtils.h"
+#include "RGPInterop.h"
 
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
                                bool temp, PersistantConfig &cfg)
@@ -829,8 +831,8 @@ void CaptureContext::CloseCapture()
   if(!m_CaptureLoaded)
     return;
 
-  m_RGP2Event.clear();
-  m_Event2RGP.clear();
+  delete m_RGP;
+  m_RGP = NULL;
 
   m_Config.CrashReport_LastOpenedCapture = QString();
 
@@ -1257,102 +1259,75 @@ void CaptureContext::LoadNotes(const QString &data)
   }
 }
 
-void CaptureContext::CreateRGPMapping(uint32_t version)
+bool CaptureContext::OpenRGPProfile(const rdcstr &filename)
 {
-  m_RGP2Event.clear();
-  m_Event2RGP.clear();
+  delete m_RGP;
+  m_RGP = NULL;
 
   if(!m_CaptureLoaded)
-    return;
+  {
+    RDDialog::critical(m_MainWindow, tr("Error opening RGP"),
+                       tr("Can't open RGP profile with no capture open"));
+    return false;
+  }
 
   if(!m_StructuredFile)
   {
-    qCritical() << "Capture not loaded correctly - no structured data";
-    return;
+    RDDialog::critical(m_MainWindow, tr("Error opening RGP"),
+                       tr("Open capture has no structured data - can't initialise RGP interop."));
+    return false;
   }
 
-  if(version != 0)
+  if(filename.isEmpty() || !QFileInfo(filename).exists())
   {
-    qCritical() << "Unsupported version" << version;
-    return;
+    RDDialog::critical(m_MainWindow, tr("Error opening RGP"),
+                       tr("Invalid filename specified to open as RGP Profile\n%1\n"
+                          "Please restart RenderDoc and try again.")
+                           .arg(QString(filename)));
+    return false;
   }
 
-  QStringList eventNames;
+  QString RGPPath = m_Config.ExternalTool_RadeonGPUProfiler;
 
-  if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
+  while(!QFileInfo(RGPPath).exists())
   {
-    eventNames << lit("vkCmdDispatch") << lit("vkCmdDispatchIndirect") << lit("vkCmdDraw")
-               << lit("vkCmdDrawIndexed") << lit("vkCmdDrawIndirect")
-               << lit("vkCmdDrawIndexedIndirect") << lit("vkCmdClearColorImage")
-               << lit("vkCmdClearDepthStencilImage") << lit("vkCmdClearAttachments")
-               << lit("vkCmdPipelineBarrier") << lit("vkCmdCopyBuffer") << lit("vkCmdCopyImage")
-               << lit("vkCmdBlitImage") << lit("vkCmdCopyBufferToImage")
-               << lit("vkCmdCopyImageToBuffer") << lit("vkCmdUpdateBuffer")
-               << lit("vkCmdFillBuffer") << lit("vkCmdResolveImage") << lit("vkCmdResetQueryPool")
-               << lit("vkCmdCopyQueryPoolResults") << lit("vkCmdWaitEvents");
+    QMessageBox::StandardButton res = RDDialog::question(
+        m_MainWindow, tr("Error opening RGP"),
+        tr("Path to RGP is incorrectly configured\n\nOpen settings window to configure path?"),
+        QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+    if(res == QMessageBox::Cancel || res == QMessageBox::No)
+      return false;
+
+    SettingsDialog settings(*this, m_MainWindow);
+    settings.focusItem(lit("ExternalTool_RadeonGPUProfiler"));
+    RDDialog::show(&settings);
+
+    RGPPath = m_Config.ExternalTool_RadeonGPUProfiler;
   }
-  else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
+
+  // Make sure the version of RGP specified supports interop. If not, bail.
+  // Some older versions of RGP don't have command line support and will crash
+  if(!RGPInterop::RGPSupportsInterop(RGPPath))
   {
-    // these names must match those in DoStringise(const D3D12Chunk &el) for the chunks
-    eventNames << lit("ID3D12GraphicsCommandList::Dispatch")
-               << lit("ID3D12GraphicsCommandList::DrawInstanced")
-               << lit("ID3D12GraphicsCommandList::DrawIndexedInstanced")
-               << lit("ID3D12GraphicsCommandList::ClearDepthStencilView")
-               << lit("ID3D12GraphicsCommandList::ClearRenderTargetView")
-               << lit("ID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat")
-               << lit("ID3D12GraphicsCommandList::ClearUnorderedAccessViewUint")
-               << lit("ID3D12GraphicsCommandList::ResourceBarrier")
-               << lit("ID3D12GraphicsCommandList::CopyTextureRegion")
-               << lit("ID3D12GraphicsCommandList::CopyBufferRegion")
-               << lit("ID3D12GraphicsCommandList::CopyResource")
-               << lit("ID3D12GraphicsCommandList::CopyTiles")
-               << lit("ID3D12GraphicsCommandList::ResolveSubresource")
-               << lit("ID3D12GraphicsCommandList::ResolveSubresourceRegion")
-               << lit("ID3D12GraphicsCommandList::DiscardResource")
-               << lit("ID3D12GraphicsCommandList::ResolveQueryData")
-               << lit("ID3D12GraphicsCommandList::ExecuteIndirect")
-               << lit("ID3D12GraphicsCommandList::ExecuteBundle");
+    QMessageBox::StandardButton res = RDDialog::question(
+        m_MainWindow, tr("RGP Version"),
+        tr("This version of RGP does not support interop. Please download RGP v1.2 or newer."),
+        QMessageBox::Ok);
+    return false;
   }
 
-  // if we don't have any event names, this API doesn't have a mapping.
-  if(eventNames.isEmpty())
-    return;
+  QString portStr = QString::number(RGPInterop::Port);
 
-  m_Event2RGP.resize(m_LastDrawcall->eventId + 1);
-
-  // linearId 0 is invalid, so map to eventId 0.
-  // the first real event will be linearId 1
-  m_RGP2Event.push_back(0);
-
-  // iterate over all draws depth-first, to enumerate events
-  CreateRGPMapping(eventNames, m_Drawcalls);
-}
-
-void CaptureContext::CreateRGPMapping(const QStringList &eventNames,
-                                      const rdcarray<DrawcallDescription> &drawcalls)
-{
-  const SDFile &file = *m_StructuredFile;
-
-  for(const DrawcallDescription &draw : drawcalls)
+  if(!QProcess::startDetached(RGPPath, QStringList() << QString(filename) << portStr))
   {
-    for(const APIEvent &ev : draw.events)
-    {
-      if(ev.chunkIndex == 0 || ev.chunkIndex >= file.chunks.size())
-        continue;
-
-      const SDChunk *chunk = file.chunks[ev.chunkIndex];
-
-      if(eventNames.contains(chunk->name, Qt::CaseSensitive))
-      {
-        m_Event2RGP[ev.eventId] = (uint32_t)m_RGP2Event.size();
-        m_RGP2Event.push_back(ev.eventId);
-      }
-    }
-
-    // if we have children, step into them first before going to our next sibling
-    if(!draw.children.empty())
-      CreateRGPMapping(eventNames, draw.children);
+    RDDialog::critical(m_MainWindow, tr("Error opening RGP"), tr("Failed to launch RGP."));
+    return false;
   }
+
+  m_RGP = new RGPInterop(*this);
+
+  return true;
 }
 
 rdcstr CaptureContext::GetResourceName(ResourceId id)

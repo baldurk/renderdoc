@@ -231,6 +231,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, DegradedCapture_LastUpdate,           \
                      rdcdatetime(2015, 01, 01))                                            \
                                                                                            \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, ExternalTool_RadeonGPUProfiler, "")          \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, Tips_HasSeenFirst, false)                         \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
@@ -519,6 +521,10 @@ For more information about some of these settings that are user-facing see
 
   A date containing the last time that the user was warned about captures being loaded in degraded
   support. This prevents the user being spammed if their hardware is low spec.
+
+.. data:: ExternalTool_RadeonGPUProfiler
+
+  The path to the executable of the external Radeon GPU Profiler tool.
 
 .. data:: Tips_HasSeenFirst
 
