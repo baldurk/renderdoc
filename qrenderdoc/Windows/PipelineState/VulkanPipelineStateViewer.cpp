@@ -1074,6 +1074,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           {
             samplerNode = new RDTreeWidgetItem({
                 QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+                QString(),
             });
 
             setEmptyRow(node);
