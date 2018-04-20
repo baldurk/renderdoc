@@ -2309,7 +2309,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   });
 
   for(size_t i = 0; i < permutation.size(); i++)
-    refl->readOnlyResources[i].bindPoint = (int)permutation[i].first;
+    refl->readOnlyResources[permutation[i].first].bindPoint = (int)i;
 
   permutation.resize(mapping->readWriteResources.size());
   for(size_t i = 0; i < mapping->readWriteResources.size(); i++)
@@ -2322,7 +2322,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   });
 
   for(size_t i = 0; i < permutation.size(); i++)
-    refl->readWriteResources[i].bindPoint = (int)permutation[i].first;
+    refl->readWriteResources[permutation[i].first].bindPoint = (int)i;
 
   permutation.resize(mapping->constantBlocks.size());
   for(size_t i = 0; i < mapping->constantBlocks.size(); i++)
@@ -2335,5 +2335,5 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   });
 
   for(size_t i = 0; i < permutation.size(); i++)
-    refl->constantBlocks[i].bindPoint = (int)permutation[i].first;
+    refl->constantBlocks[permutation[i].first].bindPoint = (int)i;
 }
