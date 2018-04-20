@@ -356,6 +356,8 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, MeshDataStage stage)
 
   instID = RDCMIN(instID, draw->numInstances - 1);
 
+  m_pDevice->InitPostVSBuffers(draw->eventId);
+
   return m_pDevice->GetPostVSBuffers(draw->eventId, instID, stage);
 }
 
