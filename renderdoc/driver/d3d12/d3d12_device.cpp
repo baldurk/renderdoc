@@ -26,6 +26,7 @@
 #include "core/core.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/ihv/amd/amd_rgp.h"
 #include "driver/ihv/amd/official/DXExt/AmdExtD3D.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
@@ -2691,6 +2692,14 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       GetQueue(), StringFormat::Fmt("!!!!RenderDoc Internal: RenderDoc Replay %d (%d): %u->%u",
                                     (int)replayType, (int)partial, startEventID, endEventID));
 
+  if(!partial)
+  {
+    ID3D12GraphicsCommandList *beginList = GetNewList();
+    D3D12MarkerRegion::Set(beginList, AMDRGPControl::GetBeginMarker());
+    beginList->Close();
+    ExecuteLists();
+  }
+
   {
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
@@ -2746,6 +2755,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   // ensure all UAV writes have finished before subsequent work
   ID3D12GraphicsCommandList *list = GetNewList();
+  D3D12MarkerRegion::Set(list, AMDRGPControl::GetEndMarker());
 
   D3D12_RESOURCE_BARRIER uavBarrier = {};
   uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;

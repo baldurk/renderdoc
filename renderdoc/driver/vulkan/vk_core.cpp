@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_core.h"
+#include "driver/ihv/amd/amd_rgp.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
 #include "serialise/rdcfile.h"
@@ -1743,6 +1744,9 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     m_LastEventID = ~0U;
   }
 
+  if(!partial)
+    AddFrameTerminator(AMDRGPControl::GetBeginTag());
+
   uint64_t startOffset = ser.GetReader()->GetOffset();
 
   for(;;)
@@ -1808,6 +1812,9 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
     }
   }
+
+  if(!partial)
+    AddFrameTerminator(AMDRGPControl::GetEndTag());
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
@@ -2362,6 +2369,36 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
   }
 
   return true;
+}
+
+void WrappedVulkan::AddFrameTerminator(uint64_t queueMarkerTag)
+{
+  VkCommandBuffer cmdBuffer = GetNextCmd();
+  VkResult vkr = VK_SUCCESS;
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  vkr = ObjDisp(cmdBuffer)->BeginCommandBuffer(Unwrap(cmdBuffer), &beginInfo);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  vkr = ObjDisp(cmdBuffer)->EndCommandBuffer(Unwrap(cmdBuffer));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkDebugMarkerObjectTagInfoEXT tagInfo = {VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT, NULL};
+  tagInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT;
+  tagInfo.object = uint64_t(Unwrap(cmdBuffer));
+  tagInfo.tagName = queueMarkerTag;
+  tagInfo.tagSize = 0;
+  tagInfo.pTag = NULL;
+
+  // check for presence of the queue marker extension
+  if(ObjDisp(m_Device)->DebugMarkerSetObjectTagEXT)
+  {
+    vkr = ObjDisp(m_Device)->DebugMarkerSetObjectTagEXT(Unwrap(m_Device), &tagInfo);
+  }
+
+  SubmitCmds();
 }
 
 void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
