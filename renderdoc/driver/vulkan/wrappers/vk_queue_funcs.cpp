@@ -652,8 +652,9 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         record->bakedCommands->AddResourceReferences(GetResourceManager());
         record->bakedCommands->AddReferencedIDs(refdIDs);
 
-        // ref the parent command buffer by itself, this will pull in the cmd buffer pool
-        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+        // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
+        GetResourceManager()->MarkResourceFrameReferenced(
+            record->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
 
         for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
         {
@@ -661,7 +662,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               GetResourceManager());
           record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddReferencedIDs(refdIDs);
           GetResourceManager()->MarkResourceFrameReferenced(
-              record->bakedCommands->cmdInfo->subcmds[sub]->GetResourceID(), eFrameRef_Read);
+              record->bakedCommands->cmdInfo->subcmds[sub]->cmdInfo->allocRecord->GetResourceID(),
+              eFrameRef_Read);
 
           record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddRef();
         }

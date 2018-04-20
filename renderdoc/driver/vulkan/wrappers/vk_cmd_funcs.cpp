@@ -517,9 +517,10 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         }
 
         // a bit of a hack, we make a parallel resource record with the same lifetime as the command
-        // buffer and make it a parent, so it will hold onto our allocation chunk and not try to
-        // record it (and throw it away with baked commands that are unused), then it'll be pulled
-        // into the capture.
+        // buffer, so it will hold onto our allocation chunk & pool parent.
+        // It will be pulled into the capture explicitly, since the command buffer record itself is
+        // used directly for recording in-progress commands, and we can't pull that in since it
+        // might be partially recorded at the time of a submit of a previously baked list.
         VkResourceRecord *allocRecord =
             GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
         allocRecord->SpecialResource = true;
@@ -529,7 +530,7 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->bakedCommands = NULL;
 
         record->pool = GetRecord(pAllocateInfo->commandPool);
-        record->AddParent(record->pool);
+        allocRecord->AddParent(record->pool);
 
         {
           record->pool->LockChunks();
