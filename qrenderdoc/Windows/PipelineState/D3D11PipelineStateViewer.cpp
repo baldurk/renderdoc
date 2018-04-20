@@ -980,9 +980,9 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RD
         filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
 
       if(s.filter.filter == FilterFunction::Comparison)
-        filter = QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
+        filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
       else if(s.filter.filter != FilterFunction::Normal)
-        filter = QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
+        filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {slotname, s.resourceId, addressing, filter,
