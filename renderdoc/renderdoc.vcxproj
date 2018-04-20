@@ -78,9 +78,10 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>ws2_32.lib;kernel32.lib;user32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tdh.lib;ws2_32.lib;kernel32.lib;user32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectDir)os\win32\comexport.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <DelayLoadDLLs>tdh.dll</DelayLoadDLLs>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -535,6 +536,9 @@
     </ProjectReference>
     <ProjectReference Include="driver\ihv\nv\NV.vcxproj">
       <Project>{40349ad9-5558-4df4-84e2-11934de90a11}</Project>
+    </ProjectReference>
+    <ProjectReference Include="driver\ihv\amd\AMD_RGP.vcxproj">
+      <Project>{b33f8ffd-3c04-4779-9c3b-e2858387971b}</Project>
     </ProjectReference>
     <ProjectReference Include="driver\vulkan\renderdoc_vulkan.vcxproj">
       <Project>{88c5dac6-30a0-4cfd-af51-540a977d1f3f}</Project>

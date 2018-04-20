@@ -1,0 +1,234 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Development|Win32">
+      <Configuration>Development</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64">
+      <Configuration>Development</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B33F8FFD-3C04-4779-9C3B-E2858387971B}</ProjectGuid>
+    <RootNamespace>AMD_RGP</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
+    <TargetName>driver_$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\obj\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)official\RGP\ADL\include;$(ProjectDir)official\RGP\DevDriverComponents\inc;$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GPUOPEN_CLIENT_INTERFACE_MAJOR_VERSION=27;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;AGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level4</WarningLevel>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4100;4201;4324;4189;4127;4996</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Development'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="official\RGP\Common\DriverToolsDefinitions.h" />
+    <ClInclude Include="official\RGP\Common\Version.h" />
+    <ClInclude Include="official\RGP\DevDriverAPI\ADLGetDriverVersion.h" />
+    <ClInclude Include="official\RGP\DevDriverAPI\DevDriverAPI.h" />
+    <ClInclude Include="official\RGP\DevDriverAPI\RGPClientInProcessModel.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\baseProtocolClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\baseProtocolServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\ddPlatform.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\ddTransferManager.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\ddUriInterface.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\devDriverClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\devDriverServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\gpuopen.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\msgChannel.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\msgTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\posix\ddPosixPlatform.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocolClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocolServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocolSession.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddGpuCrashDumpClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddGpuCrashDumpProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddGpuCrashDumpServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddTransferClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddTransferProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddTransferServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddURIClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddURIProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddURIService.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\driverControlClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\driverControlProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\driverControlServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\etwClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\etwProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\etwServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\loggingClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\loggingProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\loggingServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\rgpClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\rgpProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\rgpServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\settingsClient.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\settingsProtocol.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\settingsServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\systemProtocols.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\typemap.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashBase.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashFunc.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashMap.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashSet.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\memory.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\queue.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\sharedptr.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\template.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\vector.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\win\ddWinPlatform.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\clientmanagers\abstractClientManager.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\clientmanagers\listenerClientManager.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\ddListenerURIService.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\hostMsgTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\listenerCore.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\listenerServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\routerCore.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\abstractListenerTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\hostTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\socketTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\winPipeTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transportThread.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\ddClientURIService.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\ddSocket.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\messageChannel.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\netMsgTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\protocols\ddURIServer.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\session.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\sessionManager.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\socketMsgTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\d3d12EtwDxgkParser.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\d3d12EtwEventParser.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\ddWinEtwServerSession.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\ddWinPipeMsgTransport.h" />
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\traceSession.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="official\RGP\DevDriverAPI\ADLGetDriverVersion.cpp" />
+    <ClCompile Include="official\RGP\DevDriverAPI\DevDriverAPI.cpp" />
+    <ClCompile Include="official\RGP\DevDriverAPI\RGPClientInProcessModel.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\clientmanagers\listenerClientManager.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\ddListenerURIService.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\hostMsgTransport.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\listenerCore.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\listenerServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\routerCore.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transports\hostTransport.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transports\socketTransport.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transports\winPipeTransport.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transportThread.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\baseProtocolClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\baseProtocolServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\ddClientURIService.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\ddTransferManager.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\devDriverClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\devDriverServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\posix\ddPosixPlatform.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\posix\ddPosixSocket.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddGpuCrashDumpClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddGpuCrashDumpServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddTransferClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddTransferServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddURIClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddURIServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\driverControlClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\driverControlServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\etwClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\etwServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\loggingClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\loggingServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\rgpClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\rgpServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\settingsClient.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\settingsServer.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\session.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\sessionManager.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\socketMsgTransport.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\ddWinPipeMsgTransport.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\ddWinPlatform.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\ddWinSocket.cpp" />
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\traceSession.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="official\RGP\DevDriverComponents\src\messageChannel.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

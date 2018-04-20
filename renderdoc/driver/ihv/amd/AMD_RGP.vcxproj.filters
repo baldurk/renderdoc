@@ -1,0 +1,431 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{e8f4dcfb-b6d9-4fb8-aa7b-c7ad46b29f83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents">
+      <UniqueIdentifier>{7f0cc2e2-a45e-4957-a1c5-9ec2ae66396b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\src">
+      <UniqueIdentifier>{29abae8a-3a0f-4f0b-8092-d88ab3d9a1a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\src\win">
+      <UniqueIdentifier>{d97a3063-2945-4ad3-a616-0eda2e187f23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\src\protocols">
+      <UniqueIdentifier>{ec03dc9f-8299-40a4-a6b4-004e85687996}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\src\posix">
+      <UniqueIdentifier>{ec3413de-c35d-4612-95ad-c48adbd42355}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\listener">
+      <UniqueIdentifier>{793454d9-d39b-41a2-9c57-61bdc79a2553}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\listener\transports">
+      <UniqueIdentifier>{295905ef-9b24-4585-8a52-d43804268cd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\listener\clientmanagers">
+      <UniqueIdentifier>{8749e3f4-7d31-434d-8ef2-1bbc47f94507}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\inc">
+      <UniqueIdentifier>{8a4afd3f-72db-4f2a-88da-222e6665577a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\inc\posix">
+      <UniqueIdentifier>{26f16d97-2b0c-4333-a1e4-8877e79ce5d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\inc\protocols">
+      <UniqueIdentifier>{5af13bf5-c069-4995-ba85-adf7ec337eed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\inc\util">
+      <UniqueIdentifier>{8d594f6c-17a7-42e8-a89c-0d41552283de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverComponents\inc\win">
+      <UniqueIdentifier>{09408f6a-a584-4caf-941f-9f442edd2214}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DevDriverAPI">
+      <UniqueIdentifier>{7c0f2f8e-70c5-4d99-8396-0311df7e9f75}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\protocols\ddURIServer.h">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\ddWinPipeMsgTransport.h">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\traceSession.h">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\d3d12EtwDxgkParser.h">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\d3d12EtwEventParser.h">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\win\ddWinEtwServerSession.h">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\ddClientURIService.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\messageChannel.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\netMsgTransport.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\session.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\sessionManager.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\socketMsgTransport.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\ddListenerURIService.h">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\hostMsgTransport.h">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\listenerCore.h">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\listenerServer.h">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\routerCore.h">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transportThread.h">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\socketTransport.h">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\winPipeTransport.h">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\abstractListenerTransport.h">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\transports\hostTransport.h">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\clientmanagers\listenerClientManager.h">
+      <Filter>DevDriverComponents\listener\clientmanagers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\listener\clientmanagers\abstractClientManager.h">
+      <Filter>DevDriverComponents\listener\clientmanagers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\ddPlatform.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\ddTransferManager.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\devDriverClient.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\devDriverServer.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\gpuopen.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\msgChannel.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\msgTransport.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocolClient.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocolServer.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocolSession.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\baseProtocolClient.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\baseProtocolServer.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\posix\ddPosixPlatform.h">
+      <Filter>DevDriverComponents\inc\posix</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddTransferClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddTransferServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddURIClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddURIService.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\driverControlClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\driverControlProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\driverControlServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\etwClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\etwProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\etwServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\loggingClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\loggingProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\loggingServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\rgpClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\rgpProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\rgpServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\settingsClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\settingsProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\settingsServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\systemProtocols.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\typemap.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddGpuCrashDumpClient.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddGpuCrashDumpProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddGpuCrashDumpServer.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashMap.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashSet.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\memory.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\queue.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\sharedptr.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\template.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\vector.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashBase.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\util\hashFunc.h">
+      <Filter>DevDriverComponents\inc\util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\win\ddWinPlatform.h">
+      <Filter>DevDriverComponents\inc\win</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\Common\Version.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\Common\DriverToolsDefinitions.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\ddUriInterface.h">
+      <Filter>DevDriverComponents\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddTransferProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\inc\protocols\ddURIProtocol.h">
+      <Filter>DevDriverComponents\inc\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverComponents\src\ddSocket.h">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverAPI\DevDriverAPI.h">
+      <Filter>DevDriverAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverAPI\RGPClientInProcessModel.h">
+      <Filter>DevDriverAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGP\DevDriverAPI\ADLGetDriverVersion.h">
+      <Filter>DevDriverAPI</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\posix\ddPosixPlatform.cpp">
+      <Filter>DevDriverComponents\src\posix</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\posix\ddPosixSocket.cpp">
+      <Filter>DevDriverComponents\src\posix</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddURIServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\driverControlClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\driverControlServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\etwClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\etwServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\loggingClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\loggingServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\rgpClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\rgpServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\settingsClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\settingsServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddGpuCrashDumpClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddGpuCrashDumpServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddTransferClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddTransferServer.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\protocols\ddURIClient.cpp">
+      <Filter>DevDriverComponents\src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\ddWinPipeMsgTransport.cpp">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\ddWinPlatform.cpp">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\ddWinSocket.cpp">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\win\traceSession.cpp">
+      <Filter>DevDriverComponents\src\win</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\baseProtocolServer.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\ddClientURIService.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\ddTransferManager.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\devDriverClient.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\devDriverServer.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\session.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\sessionManager.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\socketMsgTransport.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\src\baseProtocolClient.cpp">
+      <Filter>DevDriverComponents\src</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\ddListenerURIService.cpp">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\hostMsgTransport.cpp">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\listenerCore.cpp">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\listenerServer.cpp">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\routerCore.cpp">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transportThread.cpp">
+      <Filter>DevDriverComponents\listener</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transports\socketTransport.cpp">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transports\winPipeTransport.cpp">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\transports\hostTransport.cpp">
+      <Filter>DevDriverComponents\listener\transports</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverComponents\listener\clientmanagers\listenerClientManager.cpp">
+      <Filter>DevDriverComponents\listener\clientmanagers</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverAPI\DevDriverAPI.cpp">
+      <Filter>DevDriverAPI</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverAPI\RGPClientInProcessModel.cpp">
+      <Filter>DevDriverAPI</Filter>
+    </ClCompile>
+    <ClCompile Include="official\RGP\DevDriverAPI\ADLGetDriverVersion.cpp">
+      <Filter>DevDriverAPI</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="official\RGP\DevDriverComponents\src\messageChannel.inl">
+      <Filter>DevDriverComponents\src</Filter>
+    </None>
+  </ItemGroup>
+</Project>
