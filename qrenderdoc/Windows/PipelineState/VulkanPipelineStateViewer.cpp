@@ -926,8 +926,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       RDTreeWidgetItem *node = NULL;
       RDTreeWidgetItem *samplerNode = NULL;
 
-      if(bindType == BindType::ReadWriteBuffer || bindType == BindType::ReadOnlyTBuffer ||
-         bindType == BindType::ReadWriteTBuffer)
+      if(bindType == BindType::ReadWriteBuffer)
       {
         if(!isbuf)
         {
@@ -942,7 +941,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         {
           QString range = lit("-");
           if(descriptorBind != NULL)
-            range = QFormatStr("%1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
+            range =
+                QFormatStr("Viewing bytes %1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
 
           node = new RDTreeWidgetItem({
               QString(), bindset, slotname, ToQStr(bindType),
@@ -958,6 +958,26 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(!usedSlot)
             setInactiveRow(node);
         }
+      }
+      else if(bindType == BindType::ReadOnlyTBuffer || bindType == BindType::ReadWriteTBuffer)
+      {
+        QString range = lit("-");
+        if(descriptorBind != NULL)
+          range = QFormatStr("bytes %1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
+
+        node = new RDTreeWidgetItem({
+            QString(), bindset, slotname, ToQStr(bindType),
+            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(), format, range,
+            QString(),
+        });
+
+        node->setTag(tag);
+
+        if(!filledSlot)
+          setEmptyRow(node);
+
+        if(!usedSlot)
+          setInactiveRow(node);
       }
       else if(bindType == BindType::Sampler)
       {

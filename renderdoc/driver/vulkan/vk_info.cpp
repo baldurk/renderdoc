@@ -507,6 +507,7 @@ void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,
                                           const VkBufferViewCreateInfo *pCreateInfo)
 {
   buffer = GetResID(pCreateInfo->buffer);
+  format = pCreateInfo->format;
   offset = pCreateInfo->offset;
   size = pCreateInfo->range;
 }

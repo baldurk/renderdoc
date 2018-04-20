@@ -288,6 +288,7 @@ struct VulkanCreationInfo
               const VkBufferViewCreateInfo *pCreateInfo);
 
     ResourceId buffer;
+    VkFormat format;
     uint64_t offset;
     uint64_t size;
   };

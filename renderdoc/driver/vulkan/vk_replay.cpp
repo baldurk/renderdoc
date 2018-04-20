@@ -1332,6 +1332,8 @@ void VulkanReplay::SavePipelineState()
                 dst.bindings[b].binds[a].resourceResourceId =
                     rm->GetOriginalID(c.m_BufferView[viewid].buffer);
                 dst.bindings[b].binds[a].byteOffset = c.m_BufferView[viewid].offset;
+                dst.bindings[b].binds[a].viewFormat =
+                    MakeResourceFormat(c.m_BufferView[viewid].format);
                 if(dynamicOffset)
                 {
                   union
