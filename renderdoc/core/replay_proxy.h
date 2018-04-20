@@ -149,6 +149,7 @@ public:
   {
     return ReplayStatus::Succeeded;
   }
+  AMDRGPControl *GetRGPControl() { return NULL; }
   vector<WindowingSystem> GetSupportedWindowSystems()
   {
     if(m_Proxy)

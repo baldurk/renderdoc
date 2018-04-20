@@ -196,6 +196,8 @@ public:
   void ReplayLoop(WindowingData window, ResourceId texid);
   void CancelReplayLoop();
 
+  rdcstr CreateRGPProfile(WindowingData window);
+
   ReplayOutput *CreateOutput(WindowingData window, ReplayOutputType type);
 
   void ShutdownOutput(IReplayOutput *output);

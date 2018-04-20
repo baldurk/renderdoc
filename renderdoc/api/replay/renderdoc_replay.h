@@ -747,6 +747,14 @@ function must be called from another thread.
 )");
   virtual void ReplayLoop(WindowingData window, ResourceId texid) = 0;
 
+  DOCUMENT(R"(Uses the given output window to create an RGP Profile.
+
+:param WindowingData window: A :class:`WindowingData` describing the native window.
+:return: The path to the created RGP profile, or empty on failure
+:rtype: str
+)");
+  virtual rdcstr CreateRGPProfile(WindowingData window) = 0;
+
   DOCUMENT("Cancels a replay loop begun in :meth:`ReplayLoop`. Does nothing if no loop is active.");
   virtual void CancelReplayLoop() = 0;
 

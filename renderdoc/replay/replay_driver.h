@@ -73,6 +73,8 @@ DECLARE_REFLECTION_STRUCT(GetTextureDataParams);
 
 class RDCFile;
 
+class AMDRGPControl;
+
 // these two interfaces define what an API driver implementation must provide
 // to the replay. At minimum it must implement IRemoteDriver which contains
 // all of the functionality that cannot be achieved elsewhere. An IReplayDriver
@@ -173,6 +175,8 @@ public:
   virtual bool IsRemoteProxy() = 0;
 
   virtual vector<WindowingSystem> GetSupportedWindowSystems() = 0;
+
+  virtual AMDRGPControl *GetRGPControl() = 0;
 
   virtual uint64_t MakeOutputWindow(WindowingData window, bool depth) = 0;
   virtual void DestroyOutputWindow(uint64_t id) = 0;

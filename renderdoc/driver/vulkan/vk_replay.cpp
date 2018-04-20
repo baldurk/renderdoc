@@ -24,6 +24,7 @@
 
 #include "vk_replay.h"
 #include <float.h>
+#include "driver/ihv/amd/amd_rgp.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
@@ -65,6 +66,8 @@ VulkanResourceManager *VulkanReplay::GetResourceManager()
 
 void VulkanReplay::Shutdown()
 {
+  SAFE_DELETE(m_RGP);
+
   m_pDriver->Shutdown();
   delete m_pDriver;
 }
@@ -77,6 +80,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.localRenderer = GraphicsAPI::Vulkan;
   ret.degraded = false;
   ret.shadersMutable = false;
+  ret.RGPCapture = m_RGP != NULL && m_RGP->DriverSupportsInterop();
 
   return ret;
 }
@@ -3467,11 +3471,18 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   InitReplayTables(module);
 
+  AMDRGPControl *rgp = new AMDRGPControl();
+
+  if(!rgp->Initialised())
+    SAFE_DELETE(rgp);
+
   WrappedVulkan *vk = new WrappedVulkan();
   ReplayStatus status = vk->Initialise(initParams, ver);
 
   if(status != ReplayStatus::Succeeded)
   {
+    SAFE_DELETE(rgp);
+
     delete vk;
     return status;
   }
@@ -3479,6 +3490,7 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   RDCLOG("Created device.");
   VulkanReplay *replay = vk->GetReplay();
   replay->SetProxy(rdc == NULL);
+  replay->SetRGP(rgp);
 
   *driver = (IReplayDriver *)replay;
 

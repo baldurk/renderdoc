@@ -176,6 +176,7 @@ class VulkanReplay : public IReplayDriver
 public:
   VulkanReplay();
 
+  void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }
   void SetProxy(bool p) { m_Proxy = p; }
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
@@ -221,6 +222,7 @@ public:
 
   vector<WindowingSystem> GetSupportedWindowSystems();
 
+  AMDRGPControl *GetRGPControl() { return m_RGP; }
   uint64_t MakeOutputWindow(WindowingData window, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
@@ -585,6 +587,7 @@ private:
   vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 
   AMDCounters *m_pAMDCounters = NULL;
+  AMDRGPControl *m_RGP = NULL;
 
   VulkanAMDDrawCallback *m_pAMDDrawCallback = NULL;
 };

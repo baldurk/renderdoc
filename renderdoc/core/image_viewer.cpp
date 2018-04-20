@@ -74,6 +74,7 @@ public:
   {
     return m_Proxy->GetSupportedWindowSystems();
   }
+  AMDRGPControl *GetRGPControl() { return NULL; }
   uint64_t MakeOutputWindow(WindowingData window, bool depth)
   {
     return m_Proxy->MakeOutputWindow(window, depth);

@@ -140,6 +140,7 @@ public:
     return ret;
   }
 
+  AMDRGPControl *GetRGPControl() { return NULL; }
   uint64_t MakeOutputWindow(WindowingData window, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
