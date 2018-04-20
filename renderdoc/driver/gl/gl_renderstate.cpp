@@ -286,9 +286,14 @@ byte *PixelUnpackState::Unpack(byte *pixels, GLsizei width, GLsizei height, GLsi
   size_t align = 1;
   // "If the number of bits per element is not 1, 2, 4, or 8 times the number of
   // bits in a GL ubyte, then k = nl for all values of a"
-  // ie. alignment is only used for pixel formats of those pixel sizes.
-  if(pixelSize == 1 || pixelSize == 2 || pixelSize == 4 || pixelSize == 8)
+  // ie. alignment is only used for pixel formats with N-byte elements.
+  if(basetype == eGL_UNSIGNED_BYTE || basetype == eGL_BYTE || basetype == eGL_UNSIGNED_SHORT ||
+     basetype == eGL_SHORT || basetype == eGL_UNSIGNED_INT || basetype == eGL_INT ||
+     basetype == eGL_HALF_FLOAT || basetype == eGL_FLOAT || basetype == eGL_UNSIGNED_INT_8_8_8_8 ||
+     basetype == eGL_UNSIGNED_INT_8_8_8_8_REV)
+  {
     align = RDCMAX(align, (size_t)alignment);
+  }
 
   byte *dest = ret;
 
