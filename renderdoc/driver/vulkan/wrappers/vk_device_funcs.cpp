@@ -234,6 +234,9 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
       extscstr,
   };
 
+  if(params.APIVersion >= VK_API_VERSION_1_0)
+    renderdocAppInfo.apiVersion = params.APIVersion;
+
   m_Instance = VK_NULL_HANDLE;
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
@@ -241,10 +244,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   InstanceDeviceInfo extInfo;
 
 #undef CheckExt
-#define CheckExt(name)                                    \
-  if(!strcmp(instinfo.ppEnabledExtensionNames[i], #name)) \
-  {                                                       \
-    extInfo.ext_##name = true;                            \
+#define CheckExt(name, ver)                                                                          \
+  if(!strcmp(instinfo.ppEnabledExtensionNames[i], #name) || (int)renderdocAppInfo.apiVersion >= ver) \
+  {                                                                                                  \
+    extInfo.ext_##name = true;                                                                       \
   }
 
   for(uint32_t i = 0; i < instinfo.enabledExtensionCount; i++)
@@ -409,8 +412,14 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
 
+  // override applicationInfo with RenderDoc's, but preserve apiVersion
   if(modifiedCreateInfo.pApplicationInfo)
+  {
     modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
+
+    if(modifiedCreateInfo.pApplicationInfo->apiVersion >= VK_API_VERSION_1_0)
+      renderdocAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
+  }
 
   VkResult ret = createFunc(&modifiedCreateInfo, pAllocator, pInstance);
 
@@ -430,11 +439,17 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   record->instDevInfo = new InstanceDeviceInfo();
 
+  record->instDevInfo->vulkanVersion = VK_API_VERSION_1_0;
+
+  if(renderdocAppInfo.apiVersion > VK_API_VERSION_1_0)
+    record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
+
 #undef CheckExt
-#define CheckExt(name)                                              \
-  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], #name)) \
-  {                                                                 \
-    record->instDevInfo->ext_##name = true;                         \
+#define CheckExt(name, ver)                                           \
+  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], #name) || \
+     record->instDevInfo->vulkanVersion >= ver)                       \
+  {                                                                   \
+    record->instDevInfo->ext_##name = true;                           \
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
@@ -1207,10 +1222,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     InstanceDeviceInfo extInfo;
 
 #undef CheckExt
-#define CheckExt(name)                                      \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name)) \
-  {                                                         \
-    extInfo.ext_##name = true;                              \
+#define CheckExt(name, ver)                                   \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name) || \
+     (int)renderdocAppInfo.apiVersion >= ver)                 \
+  {                                                           \
+    extInfo.ext_##name = true;                                \
   }
 
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
@@ -1507,7 +1523,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       record->instDevInfo = new InstanceDeviceInfo();
 
 #undef CheckExt
-#define CheckExt(name) \
+#define CheckExt(name, ver) \
   record->instDevInfo->ext_##name = GetRecord(m_Instance)->instDevInfo->ext_##name;
 
       // inherit extension enablement from instance, that way GetDeviceProcAddress can check
@@ -1515,10 +1531,11 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       CheckInstanceExts();
 
 #undef CheckExt
-#define CheckExt(name)                                      \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name)) \
-  {                                                         \
-    record->instDevInfo->ext_##name = true;                 \
+#define CheckExt(name, ver)                                    \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name) ||  \
+     GetRecord(m_Instance)->instDevInfo->vulkanVersion >= ver) \
+  {                                                            \
+    record->instDevInfo->ext_##name = true;                    \
   }
 
       for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)

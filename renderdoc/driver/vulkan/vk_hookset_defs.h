@@ -26,6 +26,12 @@
 
 #include "official/vk_layer.h"
 
+// extensions made core in 1.1
+#define VK11 VK_MAKE_VERSION(1, 1, 0)
+
+// extensions that are not core in any version
+#define VKXX VK_MAKE_VERSION(999, 999, 0)
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
 #define HookInitInstance_PlatformSpecific()                       \
@@ -268,40 +274,40 @@
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
-#define CheckInstanceExts()                         \
-  CheckExt(VK_KHR_xlib_surface);                    \
-  CheckExt(VK_KHR_xcb_surface);                     \
-  CheckExt(VK_KHR_win32_surface);                   \
-  CheckExt(VK_KHR_android_surface);                 \
-  CheckExt(VK_KHR_surface);                         \
-  CheckExt(VK_EXT_debug_report);                    \
-  CheckExt(VK_KHR_display);                         \
-  CheckExt(VK_NV_external_memory_capabilities);     \
-  CheckExt(VK_KHR_get_physical_device_properties2); \
-  CheckExt(VK_EXT_display_surface_counter);         \
-  CheckExt(VK_EXT_direct_mode_display);             \
-  CheckExt(VK_EXT_acquire_xlib_display);            \
-  CheckExt(VK_KHR_external_memory_capabilities);    \
-  CheckExt(VK_KHR_external_semaphore_capabilities);
+#define CheckInstanceExts()                               \
+  CheckExt(VK_KHR_xlib_surface, VKXX);                    \
+  CheckExt(VK_KHR_xcb_surface, VKXX);                     \
+  CheckExt(VK_KHR_win32_surface, VKXX);                   \
+  CheckExt(VK_KHR_android_surface, VKXX);                 \
+  CheckExt(VK_KHR_surface, VKXX);                         \
+  CheckExt(VK_EXT_debug_report, VKXX);                    \
+  CheckExt(VK_KHR_display, VKXX);                         \
+  CheckExt(VK_NV_external_memory_capabilities, VKXX);     \
+  CheckExt(VK_KHR_get_physical_device_properties2, VK11); \
+  CheckExt(VK_EXT_display_surface_counter, VKXX);         \
+  CheckExt(VK_EXT_direct_mode_display, VKXX);             \
+  CheckExt(VK_EXT_acquire_xlib_display, VKXX);            \
+  CheckExt(VK_KHR_external_memory_capabilities, VK11);    \
+  CheckExt(VK_KHR_external_semaphore_capabilities, VK11);
 
-#define CheckDeviceExts()                    \
-  CheckExt(VK_EXT_debug_marker);             \
-  CheckExt(VK_KHR_swapchain);                \
-  CheckExt(VK_KHR_display_swapchain);        \
-  CheckExt(VK_NV_external_memory);           \
-  CheckExt(VK_NV_external_memory_win32);     \
-  CheckExt(VK_NV_win32_keyed_mutex);         \
-  CheckExt(VK_KHR_maintenance1);             \
-  CheckExt(VK_EXT_display_control);          \
-  CheckExt(VK_KHR_external_memory);          \
-  CheckExt(VK_KHR_external_memory_win32);    \
-  CheckExt(VK_KHR_external_memory_fd);       \
-  CheckExt(VK_KHR_external_semaphore);       \
-  CheckExt(VK_KHR_external_semaphore_win32); \
-  CheckExt(VK_KHR_external_semaphore_fd);    \
-  CheckExt(VK_KHR_get_memory_requirements2); \
-  CheckExt(VK_AMD_shader_info);              \
-  CheckExt(VK_KHR_push_descriptor);
+#define CheckDeviceExts()                          \
+  CheckExt(VK_EXT_debug_marker, VKXX);             \
+  CheckExt(VK_KHR_swapchain, VKXX);                \
+  CheckExt(VK_KHR_display_swapchain, VKXX);        \
+  CheckExt(VK_NV_external_memory, VKXX);           \
+  CheckExt(VK_NV_external_memory_win32, VKXX);     \
+  CheckExt(VK_NV_win32_keyed_mutex, VKXX);         \
+  CheckExt(VK_KHR_maintenance1, VK11);             \
+  CheckExt(VK_EXT_display_control, VKXX);          \
+  CheckExt(VK_KHR_external_memory, VK11);          \
+  CheckExt(VK_KHR_external_memory_win32, VKXX);    \
+  CheckExt(VK_KHR_external_memory_fd, VKXX);       \
+  CheckExt(VK_KHR_external_semaphore, VK11);       \
+  CheckExt(VK_KHR_external_semaphore_win32, VKXX); \
+  CheckExt(VK_KHR_external_semaphore_fd, VKXX);    \
+  CheckExt(VK_KHR_get_memory_requirements2, VK11); \
+  CheckExt(VK_AMD_shader_info, VKXX);              \
+  CheckExt(VK_KHR_push_descriptor, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                \
   HookInitExtension(VK_KHR_surface, DestroySurfaceKHR);                                             \

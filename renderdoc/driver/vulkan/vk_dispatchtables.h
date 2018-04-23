@@ -39,7 +39,7 @@ void InitReplayTables(void *vulkanModule);
 struct InstanceDeviceInfo
 {
 #undef CheckExt
-#define CheckExt(name) ext_##name = false;
+#define CheckExt(name, ver) ext_##name = false;
   InstanceDeviceInfo()
   {
     CheckDeviceExts();
@@ -47,7 +47,9 @@ struct InstanceDeviceInfo
   }
 
 #undef CheckExt
-#define CheckExt(name) bool ext_##name;
+#define CheckExt(name, ver) bool ext_##name;
+
+  int vulkanVersion = VK_API_VERSION_1_0;
 
   CheckDeviceExts();
   CheckInstanceExts();
