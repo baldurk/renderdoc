@@ -156,8 +156,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="official\vk_layer.h" />
+    <ClInclude Include="official\vk_layer_dispatch_table.h" />
     <ClInclude Include="official\vk_platform.h" />
     <ClInclude Include="official\vulkan.h" />
+    <ClInclude Include="official\vulkan_android.h" />
+    <ClInclude Include="official\vulkan_core.h" />
+    <ClInclude Include="official\vulkan_ios.h" />
+    <ClInclude Include="official\vulkan_macos.h" />
+    <ClInclude Include="official\vulkan_mir.h" />
+    <ClInclude Include="official\vulkan_vi.h" />
+    <ClInclude Include="official\vulkan_wayland.h" />
+    <ClInclude Include="official\vulkan_win32.h" />
+    <ClInclude Include="official\vulkan_xcb.h" />
+    <ClInclude Include="official\vulkan_xlib.h" />
+    <ClInclude Include="official\vulkan_xlib_xrandr.h" />
     <ClInclude Include="precompiled.h" />
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_core.h" />

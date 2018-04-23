@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <android/native_window.h>
 #include "vk_core.h"
 #include "vk_replay.h"
 

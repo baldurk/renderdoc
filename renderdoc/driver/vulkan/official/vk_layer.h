@@ -144,6 +144,7 @@ typedef enum VkChainType {
     VK_CHAIN_TYPE_UNKNOWN = 0,
     VK_CHAIN_TYPE_ENUMERATE_INSTANCE_EXTENSION_PROPERTIES = 1,
     VK_CHAIN_TYPE_ENUMERATE_INSTANCE_LAYER_PROPERTIES = 2,
+    VK_CHAIN_TYPE_ENUMERATE_INSTANCE_VERSION = 3,
 } VkChainType;
 
 typedef struct VkChainHeader {
@@ -176,6 +177,18 @@ typedef struct VkEnumerateInstanceLayerPropertiesChain {
     }
 #endif
 } VkEnumerateInstanceLayerPropertiesChain;
+
+typedef struct VkEnumerateInstanceVersionChain {
+    VkChainHeader header;
+    VkResult(VKAPI_PTR *pfnNextLayer)(const struct VkEnumerateInstanceVersionChain *, uint32_t *);
+    const struct VkEnumerateInstanceVersionChain *pNextLink;
+
+#if defined(__cplusplus)
+    inline VkResult CallDown(uint32_t *pApiVersion) const {
+        return pfnNextLayer(pNextLink, pApiVersion);
+    }
+#endif
+} VkEnumerateInstanceVersionChain;
 
 #ifdef __cplusplus
 }

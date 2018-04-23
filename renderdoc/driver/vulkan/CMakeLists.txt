@@ -36,8 +36,20 @@ set(sources
     vk_stringise.cpp
     vk_layer.cpp
     official/vk_layer.h
+    official/vk_layer_dispatch_table.h
     official/vk_platform.h
     official/vulkan.h
+    official/vulkan_android.h
+    official/vulkan_core.h
+    official/vulkan_ios.h
+    official/vulkan_macos.h
+    official/vulkan_mir.h
+    official/vulkan_vi.h
+    official/vulkan_wayland.h
+    official/vulkan_win32.h
+    official/vulkan_xcb.h
+    official/vulkan_xlib.h
+    official/vulkan_xlib_xrandr.h
     wrappers/vk_cmd_funcs.cpp
     wrappers/vk_descriptor_funcs.cpp
     wrappers/vk_device_funcs.cpp
