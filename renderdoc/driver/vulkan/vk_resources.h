@@ -67,9 +67,9 @@ enum VkResourceType
   eResEvent,
   eResQueryPool,
   eResSemaphore,
-
   eResSwapchain,
-  eResSurface
+  eResSurface,
+  eResDescUpdateTemplate,
 };
 
 DECLARE_REFLECTION_ENUM(VkResourceType);
@@ -548,6 +548,19 @@ struct WrappedVkSurfaceKHR : WrappedVkNonDispRes
     TypeEnum = eResSurface,
   };
 };
+struct WrappedVkDescriptorUpdateTemplateKHR : WrappedVkNonDispRes
+{
+  WrappedVkDescriptorUpdateTemplateKHR(VkDescriptorUpdateTemplateKHR obj, ResourceId objId)
+      : WrappedVkNonDispRes(obj, objId)
+  {
+  }
+  typedef VkDescriptorUpdateTemplateKHR InnerType;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorUpdateTemplateKHR);
+  enum
+  {
+    TypeEnum = eResDescUpdateTemplate,
+  };
+};
 
 // VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
 // The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
@@ -645,6 +658,7 @@ UNWRAP_NONDISP_HELPER(VkFramebuffer)
 UNWRAP_NONDISP_HELPER(VkCommandPool)
 UNWRAP_NONDISP_HELPER(VkSwapchainKHR)
 UNWRAP_NONDISP_HELPER(VkSurfaceKHR)
+UNWRAP_NONDISP_HELPER(VkDescriptorUpdateTemplateKHR)
 
 // VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
 // The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
@@ -955,6 +969,8 @@ struct AttachmentInfo
   VkImageMemoryBarrier barrier;
 };
 
+struct DescUpdateTemplate;
+
 struct VkResourceRecord : public ResourceRecord
 {
 public:
@@ -1068,7 +1084,8 @@ public:
     CmdBufferRecordingInfo *cmdInfo;               // only for command buffers
     AttachmentInfo *imageAttachments;              // only for framebuffers and render passes
     PipelineLayoutData *pipeLayoutInfo;            // only for pipeline layouts
-    DescriptorSetData *descInfo;    // only for descriptor sets and descriptor set layouts
+    DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
+    DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates
   };
 
   VkResourceRecord *bakedCommands;

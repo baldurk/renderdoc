@@ -695,3 +695,145 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
 
   overflow.push_back(pool);
 }
+
+void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+                              const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo)
+{
+  updates.insert(updates.begin(), pCreateInfo->pDescriptorUpdateEntries,
+                 pCreateInfo->pDescriptorUpdateEntries + pCreateInfo->descriptorUpdateEntryCount);
+
+  dataByteSize = 0;
+
+  texelBufferViewCount = 0;
+  bufferInfoCount = 0;
+  imageInfoCount = 0;
+
+  for(const VkDescriptorUpdateTemplateEntryKHR &entry : updates)
+  {
+    uint32_t entrySize = 4;
+
+    if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+       entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+    {
+      entrySize = sizeof(VkBufferView);
+
+      texelBufferViewCount += entry.descriptorCount;
+    }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+    {
+      entrySize = sizeof(VkDescriptorImageInfo);
+
+      imageInfoCount += entry.descriptorCount;
+    }
+    else
+    {
+      entrySize = sizeof(VkDescriptorBufferInfo);
+
+      bufferInfoCount += entry.descriptorCount;
+    }
+
+    dataByteSize =
+        RDCMAX(dataByteSize, entry.offset + entry.stride * entry.descriptorCount + entrySize);
+  }
+
+  if(pCreateInfo->templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
+  {
+    if(IsCaptureMode(resourceMan->GetState()))
+    {
+      layout = *GetRecord(pCreateInfo->descriptorSetLayout)->descInfo->layout;
+    }
+    else
+    {
+      layout = info.m_DescSetLayout[GetResID(pCreateInfo->descriptorSetLayout)];
+    }
+  }
+  else
+  {
+    if(IsCaptureMode(resourceMan->GetState()))
+    {
+      layout = GetRecord(pCreateInfo->pipelineLayout)->pipeLayoutInfo->layouts[pCreateInfo->set];
+    }
+    else
+    {
+      const std::vector<ResourceId> &descSetLayouts =
+          info.m_PipelineLayout[GetResID(pCreateInfo->pipelineLayout)].descSetLayouts;
+
+      layout = info.m_DescSetLayout[descSetLayouts[pCreateInfo->set]];
+    }
+  }
+}
+
+void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication &application)
+{
+  application.bufView.reserve(texelBufferViewCount);
+  application.bufInfo.reserve(bufferInfoCount);
+  application.imgInfo.reserve(imageInfoCount);
+
+  for(const VkDescriptorUpdateTemplateEntryKHR &entry : updates)
+  {
+    VkWriteDescriptorSet write = {};
+
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = VK_NULL_HANDLE;    // set externally for non-push descriptor template updates.
+    write.dstBinding = entry.dstBinding;
+    write.dstArrayElement = entry.dstArrayElement;
+    write.descriptorType = entry.descriptorType;
+    write.descriptorCount = entry.descriptorCount;
+
+    const byte *src = (const byte *)pData + entry.offset;
+
+    if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+       entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+    {
+      size_t idx = application.bufView.size();
+
+      application.bufView.resize(idx + entry.descriptorCount);
+
+      for(uint32_t d = 0; d < entry.descriptorCount; d++)
+      {
+        memcpy(&application.bufView[idx + d], src, sizeof(VkBufferView));
+        src += entry.stride;
+      }
+
+      write.pTexelBufferView = &application.bufView[idx];
+    }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+    {
+      size_t idx = application.imgInfo.size();
+
+      application.imgInfo.resize(idx + entry.descriptorCount);
+
+      for(uint32_t d = 0; d < entry.descriptorCount; d++)
+      {
+        memcpy(&application.imgInfo[idx + d], src, sizeof(VkDescriptorImageInfo));
+        src += entry.stride;
+      }
+
+      write.pImageInfo = &application.imgInfo[idx];
+    }
+    else
+    {
+      size_t idx = application.bufInfo.size();
+
+      application.bufInfo.resize(idx + entry.descriptorCount);
+
+      for(uint32_t d = 0; d < entry.descriptorCount; d++)
+      {
+        memcpy(&application.bufInfo[idx + d], src, sizeof(VkDescriptorBufferInfo));
+        src += entry.stride;
+      }
+
+      write.pBufferInfo = &application.bufInfo[idx];
+    }
+
+    application.writes.push_back(write);
+  }
+}

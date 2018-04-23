@@ -1635,8 +1635,31 @@ public:
                               VkShaderInfoTypeAMD infoType, size_t *pInfoSize, void *pInfo);
 
   // VK_KHR_push_descriptor
+  void ApplyPushDescriptorWrites(VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount,
+                                 const VkWriteDescriptorSet *pDescriptorWrites);
+
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer commandBuffer,
                                 VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout,
                                 uint32_t set, uint32_t descriptorWriteCount,
                                 const VkWriteDescriptorSet *pDescriptorWrites);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetWithTemplateKHR,
+                                VkCommandBuffer commandBuffer,
+                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                VkPipelineLayout layout, uint32_t set, const void *pData);
+
+  // VK_KHR_descriptor_update_template
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorUpdateTemplateKHR, VkDevice device,
+                                const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyDescriptorUpdateTemplateKHR, VkDevice device,
+                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                const VkAllocationCallbacks *pAllocator);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkUpdateDescriptorSetWithTemplateKHR, VkDevice device,
+                                VkDescriptorSet descriptorSet,
+                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                const void *pData);
 };

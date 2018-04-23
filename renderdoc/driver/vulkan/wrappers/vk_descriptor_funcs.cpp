@@ -76,6 +76,18 @@ VkDescriptorSetAllocateInfo WrappedVulkan::UnwrapInfo(const VkDescriptorSetAlloc
 }
 
 template <>
+VkDescriptorUpdateTemplateCreateInfoKHR WrappedVulkan::UnwrapInfo(
+    const VkDescriptorUpdateTemplateCreateInfoKHR *info)
+{
+  VkDescriptorUpdateTemplateCreateInfoKHR ret = *info;
+
+  ret.pipelineLayout = Unwrap(ret.pipelineLayout);
+  ret.descriptorSetLayout = Unwrap(ret.descriptorSetLayout);
+
+  return ret;
+}
+
+template <>
 VkWriteDescriptorSet WrappedVulkan::UnwrapInfo(const VkWriteDescriptorSet *writeDesc)
 {
   VkWriteDescriptorSet ret = *writeDesc;
@@ -977,33 +989,19 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
   {
     for(uint32_t i = 0; i < writeCount; i++)
     {
-      VkResourceRecord *record = GetRecord(pDescriptorWrites[i].dstSet);
+      const VkWriteDescriptorSet &descWrite = pDescriptorWrites[i];
+
+      VkResourceRecord *record = GetRecord(descWrite.dstSet);
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
 
-      RDCASSERT(pDescriptorWrites[i].dstBinding < record->descInfo->descBindings.size());
+      RDCASSERT(descWrite.dstBinding < record->descInfo->descBindings.size());
 
-      DescriptorSetSlot **binding = &record->descInfo->descBindings[pDescriptorWrites[i].dstBinding];
+      DescriptorSetSlot **binding = &record->descInfo->descBindings[descWrite.dstBinding];
 
-      const DescSetLayout::Binding *layoutBinding = &layout.bindings[pDescriptorWrites[i].dstBinding];
+      const DescSetLayout::Binding *layoutBinding = &layout.bindings[descWrite.dstBinding];
 
-      FrameRefType ref = eFrameRef_Write;
-
-      switch(layoutBinding->descriptorType)
-      {
-        case VK_DESCRIPTOR_TYPE_SAMPLER:
-        case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-        case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: ref = eFrameRef_Read; break;
-        case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: ref = eFrameRef_Write; break;
-        default: RDCERR("Unexpected descriptor type");
-      }
+      FrameRefType ref = GetRefType(layoutBinding->descriptorType);
 
       // We need to handle the cases where these bindings are stale:
       // ie. image handle 0xf00baa is allocated
@@ -1021,9 +1019,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       // This is handled by RemoveBindFrameRef silently dropping id == ResourceId()
 
       // start at the dstArrayElement
-      uint32_t curIdx = pDescriptorWrites[i].dstArrayElement;
+      uint32_t curIdx = descWrite.dstArrayElement;
 
-      for(uint32_t d = 0; d < pDescriptorWrites[i].descriptorCount; d++, curIdx++)
+      for(uint32_t d = 0; d < descWrite.descriptorCount; d++, curIdx++)
       {
         // roll over onto the next binding, on the assumption that it is the same
         // type and there is indeed a next binding at all. See spec language:
@@ -1045,98 +1043,34 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         DescriptorSetSlot &bind = (*binding)[curIdx];
 
-        if(bind.texelBufferView != VK_NULL_HANDLE)
-        {
-          record->RemoveBindFrameRef(GetResID(bind.texelBufferView));
+        bind.RemoveBindRefs(record);
 
-          VkResourceRecord *viewRecord = GetRecord(bind.texelBufferView);
-          if(viewRecord && viewRecord->baseResource != ResourceId())
-            record->RemoveBindFrameRef(viewRecord->baseResource);
-        }
-        if(bind.imageInfo.imageView != VK_NULL_HANDLE)
+        if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+           descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          record->RemoveBindFrameRef(GetResID(bind.imageInfo.imageView));
-
-          VkResourceRecord *viewRecord = GetRecord(bind.imageInfo.imageView);
-          if(viewRecord)
-          {
-            record->RemoveBindFrameRef(viewRecord->baseResource);
-            if(viewRecord->baseResourceMem != ResourceId())
-              record->RemoveBindFrameRef(viewRecord->baseResourceMem);
-          }
+          bind.texelBufferView = descWrite.pTexelBufferView[d];
         }
-        if(bind.imageInfo.sampler != VK_NULL_HANDLE)
+        else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                descWrite.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+                descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+                descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+                descWrite.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
         {
-          record->RemoveBindFrameRef(GetResID(bind.imageInfo.sampler));
-        }
-        if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
-        {
-          record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
-
-          VkResourceRecord *bufRecord = GetRecord(bind.bufferInfo.buffer);
-          if(bufRecord && bufRecord->baseResource != ResourceId())
-            record->RemoveBindFrameRef(bufRecord->baseResource);
-        }
-
-        // NULL everything out now so that we don't accidentally reference an object
-        // that was removed already
-        bind.texelBufferView = VK_NULL_HANDLE;
-        bind.bufferInfo.buffer = VK_NULL_HANDLE;
-        bind.imageInfo.imageView = VK_NULL_HANDLE;
-        bind.imageInfo.sampler = VK_NULL_HANDLE;
-
-        if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
-           pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
-        {
-          bind.texelBufferView = pDescriptorWrites[i].pTexelBufferView[d];
-        }
-        else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-                pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-                pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-                pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
-                pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
-        {
-          bind.imageInfo = pDescriptorWrites[i].pImageInfo[d];
+          bind.imageInfo = descWrite.pImageInfo[d];
 
           // ignore descriptors not part of the write, by NULL'ing out those members
           // as they might not even point to a valid object
-          if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+          if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
             bind.imageInfo.imageView = VK_NULL_HANDLE;
-          else if(pDescriptorWrites[i].descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+          else if(descWrite.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             bind.imageInfo.sampler = VK_NULL_HANDLE;
         }
         else
         {
-          bind.bufferInfo = pDescriptorWrites[i].pBufferInfo[d];
+          bind.bufferInfo = descWrite.pBufferInfo[d];
         }
 
-        if(bind.texelBufferView != VK_NULL_HANDLE)
-        {
-          record->AddBindFrameRef(GetResID(bind.texelBufferView), eFrameRef_Read,
-                                  GetRecord(bind.texelBufferView)->sparseInfo != NULL);
-          if(GetRecord(bind.texelBufferView)->baseResource != ResourceId())
-            record->AddBindFrameRef(GetRecord(bind.texelBufferView)->baseResource, ref);
-        }
-        if(bind.imageInfo.imageView != VK_NULL_HANDLE)
-        {
-          record->AddBindFrameRef(GetResID(bind.imageInfo.imageView), eFrameRef_Read,
-                                  GetRecord(bind.imageInfo.imageView)->sparseInfo != NULL);
-          record->AddBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResource, ref);
-          if(GetRecord(bind.imageInfo.imageView)->baseResourceMem != ResourceId())
-            record->AddBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResourceMem,
-                                    eFrameRef_Read);
-        }
-        if(bind.imageInfo.sampler != VK_NULL_HANDLE)
-        {
-          record->AddBindFrameRef(GetResID(bind.imageInfo.sampler), eFrameRef_Read);
-        }
-        if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
-        {
-          record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), eFrameRef_Read,
-                                  GetRecord(bind.bufferInfo.buffer)->sparseInfo != NULL);
-          if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
-            record->AddBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource, ref);
-        }
+        bind.AddBindRefs(record, ref);
       }
     }
 
@@ -1167,23 +1101,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       const DescSetLayout::Binding *srclayoutBinding =
           &srclayout.bindings[pDescriptorCopies[i].srcBinding];
 
-      FrameRefType ref = eFrameRef_Write;
-
-      switch(dstlayoutBinding->descriptorType)
-      {
-        case VK_DESCRIPTOR_TYPE_SAMPLER:
-        case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-        case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: ref = eFrameRef_Read; break;
-        case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: ref = eFrameRef_Write; break;
-        default: RDCERR("Unexpected descriptor type");
-      }
+      FrameRefType ref = GetRefType(dstlayoutBinding->descriptorType);
 
       // allow roll-over between consecutive bindings. See above in the plain write case for more
       // explanation
@@ -1209,59 +1127,317 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         DescriptorSetSlot &bind = (*dstbinding)[curDstIdx];
 
-        if(bind.texelBufferView != VK_NULL_HANDLE)
-        {
-          dstrecord->RemoveBindFrameRef(GetResID(bind.texelBufferView));
-          if(GetRecord(bind.texelBufferView)->baseResource != ResourceId())
-            dstrecord->RemoveBindFrameRef(GetRecord(bind.texelBufferView)->baseResource);
-        }
-        if(bind.imageInfo.imageView != VK_NULL_HANDLE)
-        {
-          dstrecord->RemoveBindFrameRef(GetResID(bind.imageInfo.imageView));
-          dstrecord->RemoveBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResource);
-          if(GetRecord(bind.imageInfo.imageView)->baseResourceMem != ResourceId())
-            dstrecord->RemoveBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResourceMem);
-        }
-        if(bind.imageInfo.sampler != VK_NULL_HANDLE)
-        {
-          dstrecord->RemoveBindFrameRef(GetResID(bind.imageInfo.sampler));
-        }
-        if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
-        {
-          dstrecord->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
-          if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
-            dstrecord->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
-        }
-
+        bind.RemoveBindRefs(dstrecord);
         bind = (*srcbinding)[curSrcIdx];
+        bind.AddBindRefs(dstrecord, ref);
+      }
+    }
+  }
+}
 
-        if(bind.texelBufferView != VK_NULL_HANDLE)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplateKHR(
+    SerialiserType &ser, VkDevice device, const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
+  SERIALISE_ELEMENT_LOCAL(DescriptorUpdateTemplate, GetResID(*pDescriptorUpdateTemplate))
+      .TypedAs("VkDescriptorUpdateTemplateKHR");
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkDescriptorUpdateTemplateKHR templ = VK_NULL_HANDLE;
+
+    VkResult ret = ObjDisp(device)->CreateDescriptorUpdateTemplateKHR(Unwrap(device), &CreateInfo,
+                                                                      NULL, &templ);
+
+    if(ret != VK_SUCCESS)
+    {
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
+    }
+    else
+    {
+      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), templ);
+      GetResourceManager()->AddLiveResource(DescriptorUpdateTemplate, templ);
+
+      m_CreationInfo.m_DescUpdateTemplate[live].Init(GetResourceManager(), m_CreationInfo,
+                                                     &CreateInfo);
+    }
+
+    AddResource(DescriptorUpdateTemplate, ResourceType::StateObject, "Descriptor Update Template");
+    DerivedResource(device, DescriptorUpdateTemplate);
+    if(CreateInfo.pipelineLayout != VK_NULL_HANDLE)
+      DerivedResource(CreateInfo.pipelineLayout, DescriptorUpdateTemplate);
+    if(CreateInfo.descriptorSetLayout != VK_NULL_HANDLE)
+      DerivedResource(CreateInfo.descriptorSetLayout, DescriptorUpdateTemplate);
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplateKHR(
+    VkDevice device, const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate)
+{
+  VkDescriptorUpdateTemplateCreateInfoKHR unwrapped = UnwrapInfo(pCreateInfo);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorUpdateTemplateKHR(
+                          Unwrap(device), &unwrapped, pAllocator, pDescriptorUpdateTemplate));
+
+  if(ret == VK_SUCCESS)
+  {
+    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pDescriptorUpdateTemplate);
+
+    if(IsCaptureMode(m_State))
+    {
+      Chunk *chunk = NULL;
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateDescriptorUpdateTemplateKHR);
+        Serialise_vkCreateDescriptorUpdateTemplateKHR(ser, device, pCreateInfo, NULL,
+                                                      pDescriptorUpdateTemplate);
+
+        chunk = scope.Get();
+      }
+
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pDescriptorUpdateTemplate);
+      record->AddChunk(chunk);
+
+      record->descTemplateInfo = new DescUpdateTemplate();
+      record->descTemplateInfo->Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, *pDescriptorUpdateTemplate);
+
+      m_CreationInfo.m_DescUpdateTemplate[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+    }
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplateKHR(
+    SerialiserType &ser, VkDevice device, VkDescriptorSet descriptorSet,
+    VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, const void *pData)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(descriptorSet);
+  SERIALISE_ELEMENT(descriptorUpdateTemplate);
+
+  // we can't serialise pData as-is, since we need to decode to ResourceId for references, etc. The
+  // sensible way to do this is to decode the data into a series of writes and serialise that.
+  DescUpdateTemplateApplication apply;
+
+  if(IsCaptureMode(m_State))
+  {
+    // decode while capturing.
+    GetRecord(descriptorUpdateTemplate)->descTemplateInfo->Apply(pData, apply);
+  }
+
+  SERIALISE_ELEMENT(apply.writes).Named("Decoded Writes");
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    for(VkWriteDescriptorSet &writeDesc : apply.writes)
+    {
+      writeDesc.dstSet = descriptorSet;
+      ReplayDescriptorSetWrite(device, writeDesc);
+    }
+  }
+
+  return true;
+}
+
+// see vkUpdateDescriptorSets for more verbose comments, the concepts are the same here except we
+// apply from a template & user memory instead of arrays of VkWriteDescriptorSet/VkCopyDescriptorSet
+void WrappedVulkan::vkUpdateDescriptorSetWithTemplateKHR(
+    VkDevice device, VkDescriptorSet descriptorSet,
+    VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, const void *pData)
+{
+  SCOPED_DBG_SINK();
+
+  DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;
+
+  {
+    // allocate the whole blob of memory
+    byte *memory = GetTempMemory(tempInfo->dataByteSize);
+
+    // iterate the entries, copy the descriptor data and unwrap
+    for(const VkDescriptorUpdateTemplateEntryKHR &entry : tempInfo->updates)
+    {
+      byte *dst = memory + entry.offset;
+      const byte *src = (const byte *)pData + entry.offset;
+
+      if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+         entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+      {
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
         {
-          dstrecord->AddBindFrameRef(GetResID(bind.texelBufferView), eFrameRef_Read,
-                                     GetRecord(bind.texelBufferView)->sparseInfo != NULL);
-          if(GetRecord(bind.texelBufferView)->baseResource != ResourceId())
-            dstrecord->AddBindFrameRef(GetRecord(bind.texelBufferView)->baseResource, ref);
+          memcpy(dst, src, sizeof(VkBufferView));
+
+          VkBufferView *bufView = (VkBufferView *)dst;
+
+          *bufView = Unwrap(*bufView);
+
+          dst += entry.stride;
+          src += entry.stride;
         }
-        if(bind.imageInfo.imageView != VK_NULL_HANDLE)
+      }
+      else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+      {
+        bool hasSampler = (entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                           entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        bool hasImage = (entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+                         entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+                         entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+                         entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
+
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
         {
-          dstrecord->AddBindFrameRef(GetResID(bind.imageInfo.imageView), eFrameRef_Read,
-                                     GetRecord(bind.imageInfo.imageView)->sparseInfo != NULL);
-          dstrecord->AddBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResource, ref);
-          if(GetRecord(bind.imageInfo.imageView)->baseResourceMem != ResourceId())
-            dstrecord->AddBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResourceMem,
-                                       eFrameRef_Read);
+          memcpy(dst, src, sizeof(VkDescriptorImageInfo));
+
+          VkDescriptorImageInfo *info = (VkDescriptorImageInfo *)dst;
+
+          if(hasSampler)
+            info->sampler = Unwrap(info->sampler);
+          if(hasImage)
+            info->imageView = Unwrap(info->imageView);
+
+          dst += entry.stride;
+          src += entry.stride;
         }
-        if(bind.imageInfo.sampler != VK_NULL_HANDLE)
+      }
+      else
+      {
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
         {
-          dstrecord->AddBindFrameRef(GetResID(bind.imageInfo.sampler), ref);
+          memcpy(dst, src, sizeof(VkDescriptorBufferInfo));
+
+          VkDescriptorBufferInfo *info = (VkDescriptorBufferInfo *)dst;
+
+          info->buffer = Unwrap(info->buffer);
+
+          dst += entry.stride;
+          src += entry.stride;
         }
-        if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+      }
+    }
+
+    SERIALISE_TIME_CALL(ObjDisp(device)->UpdateDescriptorSetWithTemplateKHR(
+        Unwrap(device), Unwrap(descriptorSet), Unwrap(descriptorUpdateTemplate), memory));
+  }
+
+  bool capframe = false;
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = IsActiveCapturing(m_State);
+  }
+
+  if(capframe)
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSetWithTemplateKHR);
+    Serialise_vkUpdateDescriptorSetWithTemplateKHR(ser, device, descriptorSet,
+                                                   descriptorUpdateTemplate, pData);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+
+    // mark the destination set and template as referenced
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorSet), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate),
+                                                      eFrameRef_Read);
+  }
+
+  // need to track descriptor set contents whether capframing or idle
+  if(IsCaptureMode(m_State))
+  {
+    for(const VkDescriptorUpdateTemplateEntryKHR &entry : tempInfo->updates)
+    {
+      VkResourceRecord *record = GetRecord(descriptorSet);
+      RDCASSERT(record->descInfo && record->descInfo->layout);
+      const DescSetLayout &layout = *record->descInfo->layout;
+
+      RDCASSERT(entry.dstBinding < record->descInfo->descBindings.size());
+
+      DescriptorSetSlot **binding = &record->descInfo->descBindings[entry.dstBinding];
+
+      const DescSetLayout::Binding *layoutBinding = &layout.bindings[entry.dstBinding];
+
+      FrameRefType ref = GetRefType(layoutBinding->descriptorType);
+
+      // start at the dstArrayElement
+      uint32_t curIdx = entry.dstArrayElement;
+
+      for(uint32_t d = 0; d < entry.descriptorCount; d++, curIdx++)
+      {
+        // roll over onto the next binding, on the assumption that it is the same
+        // type and there is indeed a next binding at all. See spec language:
+        //
+        // If the dstBinding has fewer than descriptorCount array elements remaining starting from
+        // dstArrayElement, then the remainder will be used to update the subsequent binding -
+        // dstBinding+1 starting at array element zero. This behavior applies recursively, with the
+        // update affecting consecutive bindings as needed to update all descriptorCount
+        // descriptors. All consecutive bindings updated via a single VkWriteDescriptorSet structure
+        // must have identical descriptorType and stageFlags, and must all either use immutable
+        // samplers or must all not use immutable samplers.
+
+        if(curIdx >= layoutBinding->descriptorCount)
         {
-          dstrecord->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), eFrameRef_Read,
-                                     GetRecord(bind.bufferInfo.buffer)->sparseInfo != NULL);
-          if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
-            dstrecord->AddBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource, ref);
+          layoutBinding++;
+          binding++;
+          curIdx = 0;
         }
+
+        const byte *src = (const byte *)pData + entry.offset + entry.stride * d;
+
+        DescriptorSetSlot &bind = (*binding)[curIdx];
+
+        bind.RemoveBindRefs(record);
+
+        if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+           entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+        {
+          bind.texelBufferView = *(VkBufferView *)src;
+        }
+        else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+                entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+                entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+                entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+        {
+          bind.imageInfo = *(VkDescriptorImageInfo *)src;
+
+          // ignore descriptors not part of the write, by NULL'ing out those members
+          // as they might not even point to a valid object
+          if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+            bind.imageInfo.imageView = VK_NULL_HANDLE;
+          else if(entry.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            bind.imageInfo.sampler = VK_NULL_HANDLE;
+        }
+        else
+        {
+          bind.bufferInfo = *(VkDescriptorBufferInfo *)src;
+        }
+
+        bind.AddBindRefs(record, ref);
       }
     }
   }
@@ -1286,3 +1462,13 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSets, VkDevice device,
                                 const VkWriteDescriptorSet *pDescriptorWrites,
                                 uint32_t descriptorCopyCount,
                                 const VkCopyDescriptorSet *pDescriptorCopies);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorUpdateTemplateKHR, VkDevice device,
+                                const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSetWithTemplateKHR, VkDevice device,
+                                VkDescriptorSet descriptorSet,
+                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                const void *pData);

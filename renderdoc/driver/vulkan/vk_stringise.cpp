@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1099, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1102, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -131,6 +131,9 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkRegisterDisplayEventEXT);
     STRINGISE_ENUM_CLASS_NAMED(vkCmdIndirectSubCommand, "Indirect sub-command");
     STRINGISE_ENUM_CLASS(vkCmdPushDescriptorSetKHR);
+    STRINGISE_ENUM_CLASS(vkCmdPushDescriptorSetWithTemplateKHR);
+    STRINGISE_ENUM_CLASS(vkCreateDescriptorUpdateTemplateKHR);
+    STRINGISE_ENUM_CLASS(vkUpdateDescriptorSetWithTemplateKHR);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -1668,6 +1671,17 @@ std::string DoStringise(const VkPresentModeKHR &el)
     STRINGISE_ENUM(VK_PRESENT_MODE_FIFO_RELAXED_KHR)
     STRINGISE_ENUM(VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR)
     STRINGISE_ENUM(VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkDescriptorUpdateTemplateType &el)
+{
+  BEGIN_ENUM_STRINGISE(VkDescriptorUpdateTemplateType);
+  {
+    STRINGISE_ENUM(VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
+    STRINGISE_ENUM(VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR)
   }
   END_ENUM_STRINGISE();
 }

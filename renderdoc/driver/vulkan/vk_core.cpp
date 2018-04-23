@@ -573,6 +573,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME, VK_KHR_DEDICATED_ALLOCATION_SPEC_VERSION,
     },
+    {
+        VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,
+        VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_SPEC_VERSION,
+    },
 #ifdef VK_KHR_display
     {
         VK_KHR_DISPLAY_EXTENSION_NAME, VK_KHR_DISPLAY_SPEC_VERSION,
@@ -2232,6 +2236,19 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdPushDescriptorSetKHR:
       return Serialise_vkCmdPushDescriptorSetKHR(
           ser, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_GRAPHICS, VK_NULL_HANDLE, 0, 0, NULL);
+      break;
+
+    case VulkanChunk::vkCmdPushDescriptorSetWithTemplateKHR:
+      return Serialise_vkCmdPushDescriptorSetWithTemplateKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
+                                                             VK_NULL_HANDLE, 0, NULL);
+      break;
+
+    case VulkanChunk::vkCreateDescriptorUpdateTemplateKHR:
+      return Serialise_vkCreateDescriptorUpdateTemplateKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
+      break;
+    case VulkanChunk::vkUpdateDescriptorSetWithTemplateKHR:
+      return Serialise_vkUpdateDescriptorSetWithTemplateKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
+                                                            VK_NULL_HANDLE, NULL);
       break;
 
     default:

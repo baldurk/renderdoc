@@ -110,6 +110,7 @@ DESTROY_IMPL(VkCommandPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
+DESTROY_IMPL(VkDescriptorUpdateTemplateKHR, DestroyDescriptorUpdateTemplateKHR)
 
 #undef DESTROY_IMPL
 
@@ -379,6 +380,13 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
       VkSemaphore real = nondisp->real.As<VkSemaphore>();
       GetResourceManager()->ReleaseWrappedResource(VkSemaphore(handle));
       vt->DestroySemaphore(Unwrap(dev), real, NULL);
+      break;
+    }
+    case eResDescUpdateTemplate:
+    {
+      VkDescriptorUpdateTemplateKHR real = nondisp->real.As<VkDescriptorUpdateTemplateKHR>();
+      GetResourceManager()->ReleaseWrappedResource(VkDescriptorUpdateTemplateKHR(handle));
+      vt->DestroyDescriptorUpdateTemplateKHR(Unwrap(dev), real, NULL);
       break;
     }
   }
@@ -1141,6 +1149,8 @@ static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64
     case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT: return GetRecord((VkSurfaceKHR)object);
     case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT: return GetRecord((VkSwapchainKHR)object);
     case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT: return GetRecord((VkCommandPool)object);
+    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT:
+      return GetRecord((VkDescriptorUpdateTemplateKHR)object);
     case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT:
@@ -1149,7 +1159,6 @@ static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64
     case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_KHR_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT: break;
   }

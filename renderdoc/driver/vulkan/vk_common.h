@@ -59,6 +59,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
+#include "core/resource_manager.h"
 #include "official/vulkan.h"
 #include "serialise/serialiser.h"
 #include "vk_dispatchtables.h"
@@ -316,6 +317,10 @@ struct MemoryAllocation
 // Writing is unambiguously during capture mode, so we don't have to check both in that case.
 #define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
+struct VkResourceRecord;
+
+FrameRefType GetRefType(VkDescriptorType descType);
+
 // the possible contents of a descriptor set slot,
 // taken from the VkWriteDescriptorSet
 struct DescriptorSetSlot
@@ -323,6 +328,9 @@ struct DescriptorSetSlot
   VkDescriptorBufferInfo bufferInfo;
   VkDescriptorImageInfo imageInfo;
   VkBufferView texelBufferView;
+
+  void RemoveBindRefs(VkResourceRecord *record);
+  void AddBindRefs(VkResourceRecord *record, FrameRefType ref);
 };
 
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);
@@ -440,6 +448,9 @@ enum class VulkanChunk : uint32_t
   vkRegisterDisplayEventEXT,
   vkCmdIndirectSubCommand,
   vkCmdPushDescriptorSetKHR,
+  vkCmdPushDescriptorSetWithTemplateKHR,
+  vkCreateDescriptorUpdateTemplateKHR,
+  vkUpdateDescriptorSetWithTemplateKHR,
   Max,
 };
 
@@ -476,7 +487,8 @@ DECLARE_REFLECTION_ENUM(VulkanChunk);
   SERIALISE_HANDLE(VkFramebuffer)         \
   SERIALISE_HANDLE(VkCommandPool)         \
   SERIALISE_HANDLE(VkSwapchainKHR)        \
-  SERIALISE_HANDLE(VkSurfaceKHR)
+  SERIALISE_HANDLE(VkSurfaceKHR)          \
+  SERIALISE_HANDLE(VkDescriptorUpdateTemplateKHR)
 
 #define SERIALISE_HANDLE(type) DECLARE_REFLECTION_STRUCT(type)
 
@@ -581,6 +593,8 @@ DECLARE_REFLECTION_STRUCT(VkImageBlit);
 DECLARE_REFLECTION_STRUCT(VkImageResolve);
 DECLARE_REFLECTION_STRUCT(VkSwapchainCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDebugMarkerMarkerInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateEntryKHR);
+DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateCreateInfoKHR);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -600,6 +614,7 @@ DECLARE_DESERIALISE_TYPE(VkComputePipelineCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDescriptorPoolCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
@@ -664,3 +679,4 @@ DECLARE_REFLECTION_ENUM(VkSurfaceTransformFlagBitsKHR);
 DECLARE_REFLECTION_ENUM(VkCompositeAlphaFlagBitsKHR);
 DECLARE_REFLECTION_ENUM(VkColorSpaceKHR);
 DECLARE_REFLECTION_ENUM(VkPresentModeKHR);
+DECLARE_REFLECTION_ENUM(VkDescriptorUpdateTemplateType);

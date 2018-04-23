@@ -197,6 +197,14 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
 }
 
 template <typename SerialiserType>
+static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, void *&pNext)
+{
+  const void *tmpNext = pNext;
+  SerialiseNext(ser, sType, tmpNext);
+  pNext = (void *)tmpNext;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkAllocationCallbacks &el)
 {
   RDCERR("Serialising VkAllocationCallbacks - this should always be a NULL optional element");
@@ -1877,6 +1885,58 @@ void DoSerialise(SerialiserType &ser, ImageLayouts &el)
   SERIALISE_MEMBER(format);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntryKHR &el)
+{
+  SERIALISE_MEMBER(dstBinding);
+  SERIALISE_MEMBER(dstArrayElement);
+  SERIALISE_MEMBER(descriptorCount);
+  SERIALISE_MEMBER(descriptorType);
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(stride);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(descriptorUpdateEntryCount);
+  SERIALISE_MEMBER_ARRAY(pDescriptorUpdateEntries, descriptorUpdateEntryCount);
+  SERIALISE_MEMBER(templateType);
+
+  if(el.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
+  {
+    SERIALISE_MEMBER(descriptorSetLayout);
+  }
+  else
+  {
+    SERIALISE_MEMBER_EMPTY(descriptorSetLayout);
+  }
+
+  if(el.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR)
+  {
+    SERIALISE_MEMBER(pipelineBindPoint);
+    SERIALISE_MEMBER(pipelineLayout);
+    SERIALISE_MEMBER(set);
+  }
+  else
+  {
+    SERIALISE_MEMBER_EMPTY(pipelineBindPoint);
+    SERIALISE_MEMBER_EMPTY(pipelineLayout);
+    SERIALISE_MEMBER_EMPTY(set);
+  }
+}
+
+template <>
+void Deserialise(const VkDescriptorUpdateTemplateCreateInfoKHR &el)
+{
+  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  delete[] el.pDescriptorUpdateEntries;
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -1974,6 +2034,7 @@ INSTANTIATE_SERIALISE_TYPE(VkImageBlit);
 INSTANTIATE_SERIALISE_TYPE(VkImageResolve);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

@@ -2939,6 +2939,98 @@ void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
   }
 }
 
+void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineLayout layout, uint32_t set,
+                                              uint32_t descriptorWriteCount,
+                                              const VkWriteDescriptorSet *pDescriptorWrites)
+{
+  ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[set];
+
+  const std::vector<ResourceId> &descSetLayouts =
+      m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
+
+  const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
+
+  std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
+  ResourceId prevLayout = m_DescriptorSetState[setId].layout;
+
+  if(prevLayout == ResourceId())
+  {
+    desclayout.CreateBindingsArray(bindings);
+  }
+  else if(prevLayout != descSetLayouts[set])
+  {
+    desclayout.UpdateBindingsArray(m_CreationInfo.m_DescSetLayout[prevLayout], bindings);
+  }
+
+  m_DescriptorSetState[setId].layout = descSetLayouts[set];
+
+  // update our local tracking
+  for(uint32_t i = 0; i < descriptorWriteCount; i++)
+  {
+    const VkWriteDescriptorSet &writeDesc = pDescriptorWrites[i];
+
+    RDCASSERT(writeDesc.dstBinding < bindings.size());
+
+    DescriptorSetSlot **bind = &bindings[writeDesc.dstBinding];
+    const DescSetLayout::Binding *layoutBinding = &desclayout.bindings[writeDesc.dstBinding];
+    uint32_t curIdx = writeDesc.dstArrayElement;
+
+    if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+       writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+    {
+      for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+      {
+        // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+        // explanation
+        if(curIdx >= layoutBinding->descriptorCount)
+        {
+          layoutBinding++;
+          bind++;
+          curIdx = 0;
+        }
+
+        (*bind)[curIdx].texelBufferView = writeDesc.pTexelBufferView[d];
+      }
+    }
+    else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+            writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+            writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+            writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+    {
+      for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+      {
+        // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+        // explanation
+        if(curIdx >= layoutBinding->descriptorCount)
+        {
+          layoutBinding++;
+          bind++;
+          curIdx = 0;
+        }
+
+        (*bind)[curIdx].imageInfo = writeDesc.pImageInfo[d];
+      }
+    }
+    else
+    {
+      for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+      {
+        // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+        // explanation
+        if(curIdx >= layoutBinding->descriptorCount)
+        {
+          layoutBinding++;
+          bind++;
+          curIdx = 0;
+        }
+
+        (*bind)[curIdx].bufferInfo = writeDesc.pBufferInfo[d];
+      }
+    }
+  }
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
                                                         VkCommandBuffer commandBuffer,
@@ -3014,92 +3106,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
       // without worrying about overlap. We just need to check that we're in the record range so
       // that we don't pull in descriptor updates after the point in the command buffer we're
       // recording to
-      {
-        const std::vector<ResourceId> &descSetLayouts =
-            m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
-
-        const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
-
-        for(uint32_t i = 0; i < descriptorWriteCount; i++)
-        {
-          const VkWriteDescriptorSet &writeDesc = pDescriptorWrites[i];
-
-          // update our local tracking
-          std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
-          ResourceId prevLayout = m_DescriptorSetState[setId].layout;
-
-          if(prevLayout == ResourceId())
-          {
-            desclayout.CreateBindingsArray(bindings);
-          }
-          else if(prevLayout != descSetLayouts[set])
-          {
-            desclayout.UpdateBindingsArray(m_CreationInfo.m_DescSetLayout[prevLayout], bindings);
-          }
-
-          m_DescriptorSetState[setId].layout = descSetLayouts[set];
-
-          RDCASSERT(writeDesc.dstBinding < bindings.size());
-
-          DescriptorSetSlot **bind = &bindings[writeDesc.dstBinding];
-          const DescSetLayout::Binding *layoutBinding = &desclayout.bindings[writeDesc.dstBinding];
-          uint32_t curIdx = writeDesc.dstArrayElement;
-
-          if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
-             writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
-          {
-            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
-            {
-              // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
-              // explanation
-              if(curIdx >= layoutBinding->descriptorCount)
-              {
-                layoutBinding++;
-                bind++;
-                curIdx = 0;
-              }
-
-              (*bind)[curIdx].texelBufferView = writeDesc.pTexelBufferView[d];
-            }
-          }
-          else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-                  writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-                  writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-                  writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
-                  writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
-          {
-            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
-            {
-              // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
-              // explanation
-              if(curIdx >= layoutBinding->descriptorCount)
-              {
-                layoutBinding++;
-                bind++;
-                curIdx = 0;
-              }
-
-              (*bind)[curIdx].imageInfo = writeDesc.pImageInfo[d];
-            }
-          }
-          else
-          {
-            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
-            {
-              // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
-              // explanation
-              if(curIdx >= layoutBinding->descriptorCount)
-              {
-                layoutBinding++;
-                bind++;
-                curIdx = 0;
-              }
-
-              (*bind)[curIdx].bufferInfo = writeDesc.pBufferInfo[d];
-            }
-          }
-        }
-      }
+      ApplyPushDescriptorWrites(layout, set, descriptorWriteCount, pDescriptorWrites);
 
       // now unwrap everything in-place to save on temp allocs.
       VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)pDescriptorWrites;
@@ -3240,23 +3247,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
     {
       const VkWriteDescriptorSet &write = pDescriptorWrites[i];
 
-      FrameRefType ref = eFrameRef_Write;
-
-      switch(write.descriptorType)
-      {
-        case VK_DESCRIPTOR_TYPE_SAMPLER:
-        case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-        case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: ref = eFrameRef_Read; break;
-        case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: ref = eFrameRef_Write; break;
-        default: RDCERR("Unexpected descriptor type");
-      }
+      FrameRefType ref = GetRefType(write.descriptorType);
 
       for(uint32_t d = 0; d < write.descriptorCount; d++)
       {
@@ -3301,6 +3292,218 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
     }
   }
 }
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, VkPipelineLayout layout, uint32_t set,
+    const void *pData)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(descriptorUpdateTemplate);
+  SERIALISE_ELEMENT(layout);
+  SERIALISE_ELEMENT(set);
+
+  // we can't serialise pData as-is, since we need to decode to ResourceId for references, etc. The
+  // sensible way to do this is to decode the data into a series of writes and serialise that.
+  DescUpdateTemplateApplication apply;
+
+  if(IsCaptureMode(m_State))
+  {
+    // decode while capturing.
+    GetRecord(descriptorUpdateTemplate)->descTemplateInfo->Apply(pData, apply);
+  }
+
+  SERIALISE_ELEMENT(apply.writes).Named("Decoded Writes");
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[set];
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        {
+          std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
+              (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==
+               VK_PIPELINE_BIND_POINT_GRAPHICS)
+                  ? m_RenderState.graphics.descSets
+                  : m_RenderState.compute.descSets;
+
+          // expand as necessary
+          if(descsets.size() < set + 1)
+            descsets.resize(set + 1);
+
+          descsets[set].descSet = setId;
+        }
+
+        // actual replay of the command will happen below
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+    else
+    {
+      // track while reading, as we need to track resource usage
+      std::vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+          (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==
+           VK_PIPELINE_BIND_POINT_GRAPHICS)
+              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
+              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
+
+      // expand as necessary
+      if(descsets.size() < set + 1)
+        descsets.resize(set + 1);
+
+      // we use a 'special' ID for the push descriptor at this index, since there's no actual
+      // allocated object corresponding to it.
+      descsets[set].descSet = setId;
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+    {
+      VkPipelineBindPoint bindPoint =
+          m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint;
+
+      // since we version push descriptors per-command buffer, we can safely update them always
+      // without worrying about overlap. We just need to check that we're in the record range so
+      // that we don't pull in descriptor updates after the point in the command buffer we're
+      // recording to
+      ApplyPushDescriptorWrites(layout, set, (uint32_t)apply.writes.size(), apply.writes.data());
+
+      ObjDisp(commandBuffer)
+          ->CmdPushDescriptorSetKHR(Unwrap(commandBuffer), bindPoint, Unwrap(layout), set,
+                                    (uint32_t)apply.writes.size(), apply.writes.data());
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
+    VkCommandBuffer commandBuffer, VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+    VkPipelineLayout layout, uint32_t set, const void *pData)
+{
+  SCOPED_DBG_SINK();
+
+  // since it's relatively expensive to walk the memory, we gather frame references at the same time
+  // as unwrapping
+  std::vector<std::pair<ResourceId, FrameRefType> > frameRefs;
+
+  {
+    DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;
+
+    // allocate the whole blob of memory
+    byte *memory = GetTempMemory(tempInfo->dataByteSize);
+
+    // iterate the entries, copy the descriptor data and unwrap
+    for(const VkDescriptorUpdateTemplateEntryKHR &entry : tempInfo->updates)
+    {
+      byte *dst = memory + entry.offset;
+      const byte *src = (const byte *)pData + entry.offset;
+
+      FrameRefType ref = GetRefType(entry.descriptorType);
+
+      if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+         entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+      {
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
+        {
+          memcpy(dst, src, sizeof(VkBufferView));
+
+          VkBufferView *bufView = (VkBufferView *)dst;
+
+          frameRefs.push_back(std::make_pair(GetResID(*bufView), eFrameRef_Read));
+          if(GetRecord(*bufView)->baseResource != ResourceId())
+            frameRefs.push_back(std::make_pair(GetRecord(*bufView)->baseResource, ref));
+
+          *bufView = Unwrap(*bufView);
+        }
+      }
+      else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+              entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+      {
+        bool hasSampler = (entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                           entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        bool hasImage = (entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+                         entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+                         entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+                         entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
+
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
+        {
+          memcpy(dst, src, sizeof(VkDescriptorImageInfo));
+
+          VkDescriptorImageInfo *info = (VkDescriptorImageInfo *)dst;
+
+          if(hasSampler)
+          {
+            frameRefs.push_back(std::make_pair(GetResID(info->sampler), eFrameRef_Read));
+            info->sampler = Unwrap(info->sampler);
+          }
+          if(hasImage)
+          {
+            frameRefs.push_back(std::make_pair(GetResID(info->imageView), eFrameRef_Read));
+            if(GetRecord(info->imageView)->baseResource != ResourceId())
+              frameRefs.push_back(std::make_pair(GetRecord(info->imageView)->baseResource, ref));
+            info->imageView = Unwrap(info->imageView);
+          }
+        }
+      }
+      else
+      {
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
+        {
+          memcpy(dst, src, sizeof(VkDescriptorBufferInfo));
+
+          VkDescriptorBufferInfo *info = (VkDescriptorBufferInfo *)dst;
+
+          frameRefs.push_back(std::make_pair(GetResID(info->buffer), eFrameRef_Read));
+          if(GetRecord(info->buffer)->baseResource != ResourceId())
+            frameRefs.push_back(std::make_pair(GetRecord(info->buffer)->baseResource, ref));
+
+          info->buffer = Unwrap(info->buffer);
+        }
+      }
+    }
+
+    SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                            ->CmdPushDescriptorSetWithTemplateKHR(Unwrap(commandBuffer),
+                                                                  Unwrap(descriptorUpdateTemplate),
+                                                                  Unwrap(layout), set, memory));
+  }
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdPushDescriptorSetWithTemplateKHR);
+    Serialise_vkCmdPushDescriptorSetWithTemplateKHR(ser, commandBuffer, descriptorUpdateTemplate,
+                                                    layout, set, pData);
+
+    record->AddChunk(scope.Get());
+    for(size_t i = 0; i < frameRefs.size(); i++)
+      record->MarkResourceFrameReferenced(frameRefs[i].first, frameRefs[i].second);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkCommandPool *pCommandPool);
@@ -3393,3 +3596,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer
                                 VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout,
                                 uint32_t set, uint32_t descriptorWriteCount,
                                 const VkWriteDescriptorSet *pDescriptorWrites);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetWithTemplateKHR,
+                                VkCommandBuffer commandBuffer,
+                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                VkPipelineLayout layout, uint32_t set, const void *pData);

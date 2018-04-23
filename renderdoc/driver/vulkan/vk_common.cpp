@@ -1683,3 +1683,97 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   // not fixed yet
   qualcommLeakingUBOOffsets = m_Vendor == GPUVendor::Qualcomm;
 }
+
+FrameRefType GetRefType(VkDescriptorType descType)
+{
+  switch(descType)
+  {
+    case VK_DESCRIPTOR_TYPE_SAMPLER:
+    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return eFrameRef_Read; break;
+    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return eFrameRef_Write; break;
+    default: RDCERR("Unexpected descriptor type");
+  }
+
+  return eFrameRef_Read;
+}
+
+void DescriptorSetSlot::RemoveBindRefs(VkResourceRecord *record)
+{
+  if(texelBufferView != VK_NULL_HANDLE)
+  {
+    record->RemoveBindFrameRef(GetResID(texelBufferView));
+
+    VkResourceRecord *viewRecord = GetRecord(texelBufferView);
+    if(viewRecord && viewRecord->baseResource != ResourceId())
+      record->RemoveBindFrameRef(viewRecord->baseResource);
+  }
+  if(imageInfo.imageView != VK_NULL_HANDLE)
+  {
+    record->RemoveBindFrameRef(GetResID(imageInfo.imageView));
+
+    VkResourceRecord *viewRecord = GetRecord(imageInfo.imageView);
+    if(viewRecord)
+    {
+      record->RemoveBindFrameRef(viewRecord->baseResource);
+      if(viewRecord->baseResourceMem != ResourceId())
+        record->RemoveBindFrameRef(viewRecord->baseResourceMem);
+    }
+  }
+  if(imageInfo.sampler != VK_NULL_HANDLE)
+  {
+    record->RemoveBindFrameRef(GetResID(imageInfo.sampler));
+  }
+  if(bufferInfo.buffer != VK_NULL_HANDLE)
+  {
+    record->RemoveBindFrameRef(GetResID(bufferInfo.buffer));
+
+    VkResourceRecord *bufRecord = GetRecord(bufferInfo.buffer);
+    if(bufRecord && bufRecord->baseResource != ResourceId())
+      record->RemoveBindFrameRef(bufRecord->baseResource);
+  }
+
+  // NULL everything out now so that we don't accidentally reference an object
+  // that was removed already
+  texelBufferView = VK_NULL_HANDLE;
+  bufferInfo.buffer = VK_NULL_HANDLE;
+  imageInfo.imageView = VK_NULL_HANDLE;
+  imageInfo.sampler = VK_NULL_HANDLE;
+}
+
+void DescriptorSetSlot::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
+{
+  if(texelBufferView != VK_NULL_HANDLE)
+  {
+    record->AddBindFrameRef(GetResID(texelBufferView), eFrameRef_Read,
+                            GetRecord(texelBufferView)->sparseInfo != NULL);
+    if(GetRecord(texelBufferView)->baseResource != ResourceId())
+      record->AddBindFrameRef(GetRecord(texelBufferView)->baseResource, ref);
+  }
+  if(imageInfo.imageView != VK_NULL_HANDLE)
+  {
+    record->AddBindFrameRef(GetResID(imageInfo.imageView), eFrameRef_Read,
+                            GetRecord(imageInfo.imageView)->sparseInfo != NULL);
+    record->AddBindFrameRef(GetRecord(imageInfo.imageView)->baseResource, ref);
+    if(GetRecord(imageInfo.imageView)->baseResourceMem != ResourceId())
+      record->AddBindFrameRef(GetRecord(imageInfo.imageView)->baseResourceMem, eFrameRef_Read);
+  }
+  if(imageInfo.sampler != VK_NULL_HANDLE)
+  {
+    record->AddBindFrameRef(GetResID(imageInfo.sampler), eFrameRef_Read);
+  }
+  if(bufferInfo.buffer != VK_NULL_HANDLE)
+  {
+    record->AddBindFrameRef(GetResID(bufferInfo.buffer), eFrameRef_Read,
+                            GetRecord(bufferInfo.buffer)->sparseInfo != NULL);
+    if(GetRecord(bufferInfo.buffer)->baseResource != ResourceId())
+      record->AddBindFrameRef(GetRecord(bufferInfo.buffer)->baseResource, ref);
+  }
+}

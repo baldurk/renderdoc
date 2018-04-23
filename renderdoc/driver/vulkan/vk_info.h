@@ -79,6 +79,35 @@ struct DescSetLayout
   bool operator!=(const DescSetLayout &other) const { return !(*this == other); }
 };
 
+struct DescUpdateTemplateApplication
+{
+  std::vector<VkDescriptorBufferInfo> bufInfo;
+  std::vector<VkDescriptorImageInfo> imgInfo;
+  std::vector<VkBufferView> bufView;
+
+  std::vector<VkWriteDescriptorSet> writes;
+};
+
+struct DescUpdateTemplate
+{
+  void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+            const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo);
+
+  void Apply(const void *pData, DescUpdateTemplateApplication &application);
+
+  DescSetLayout layout;
+
+  VkPipelineBindPoint bindPoint;
+
+  size_t dataByteSize;
+
+  uint32_t texelBufferViewCount;
+  uint32_t bufferInfoCount;
+  uint32_t imageInfoCount;
+
+  std::vector<VkDescriptorUpdateTemplateEntryKHR> updates;
+};
+
 struct VulkanCreationInfo
 {
   struct Pipeline
@@ -390,4 +419,5 @@ struct VulkanCreationInfo
   map<ResourceId, string> m_Names;
   map<ResourceId, SwapchainInfo> m_SwapChain;
   map<ResourceId, DescSetLayout> m_DescSetLayout;
+  map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;
 };

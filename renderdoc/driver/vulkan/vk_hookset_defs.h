@@ -307,7 +307,8 @@
   CheckExt(KHR_external_semaphore_fd, VKXX);    \
   CheckExt(KHR_get_memory_requirements2, VK11); \
   CheckExt(AMD_shader_info, VKXX);              \
-  CheckExt(KHR_push_descriptor, VKXX);
+  CheckExt(KHR_push_descriptor, VKXX);          \
+  CheckExt(KHR_descriptor_update_template, VK11);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -370,6 +371,11 @@
   HookInitExtension(KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2KHR); \
   HookInitExtension(AMD_shader_info, GetShaderInfoAMD);                                  \
   HookInitExtension(KHR_push_descriptor, CmdPushDescriptorSetKHR);                       \
+  HookInitExtension(KHR_descriptor_update_template, CreateDescriptorUpdateTemplateKHR);  \
+  HookInitExtension(KHR_descriptor_update_template, DestroyDescriptorUpdateTemplateKHR); \
+  HookInitExtension(KHR_descriptor_update_template, UpdateDescriptorSetWithTemplateKHR); \
+  HookInitExtension(KHR_push_descriptor &&KHR_descriptor_update_template,                \
+                    CmdPushDescriptorSetWithTemplateKHR);                                \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -786,6 +792,19 @@
   HookDefine6(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer, commandBuffer,                       \
               VkPipelineBindPoint, pipelineBindPoint, VkPipelineLayout, layout, uint32_t, set,       \
               uint32_t, descriptorWriteCount, const VkWriteDescriptorSet *, pDescriptorWrites);      \
+  HookDefine4(VkResult, vkCreateDescriptorUpdateTemplateKHR, VkDevice, device,                       \
+              const VkDescriptorUpdateTemplateCreateInfoKHR *, pCreateInfo,                          \
+              const VkAllocationCallbacks *, pAllocator, VkDescriptorUpdateTemplateKHR *,            \
+              pDescriptorUpdateTemplate);                                                            \
+  HookDefine3(void, vkDestroyDescriptorUpdateTemplateKHR, VkDevice, device,                          \
+              VkDescriptorUpdateTemplateKHR, descriptorUpdateTemplate,                               \
+              const VkAllocationCallbacks *, pAllocator);                                            \
+  HookDefine4(void, vkUpdateDescriptorSetWithTemplateKHR, VkDevice, device, VkDescriptorSet,         \
+              descriptorSet, VkDescriptorUpdateTemplateKHR, descriptorUpdateTemplate,                \
+              const void *, pData);                                                                  \
+  HookDefine5(void, vkCmdPushDescriptorSetWithTemplateKHR, VkCommandBuffer, commandBuffer,           \
+              VkDescriptorUpdateTemplateKHR, descriptorUpdateTemplate, VkPipelineLayout, layout,     \
+              uint32_t, set, const void *, pData);                                                   \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
