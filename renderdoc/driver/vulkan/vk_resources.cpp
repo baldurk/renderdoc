@@ -833,6 +833,9 @@ VkResourceRecord::~VkResourceRecord()
 
   if(resType == eResDescriptorSetLayout || resType == eResDescriptorSet)
     SAFE_DELETE(descInfo);
+
+  if(resType == eResPipelineLayout)
+    SAFE_DELETE(pipeLayoutInfo);
 }
 
 void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings)

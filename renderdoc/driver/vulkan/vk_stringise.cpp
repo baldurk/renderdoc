@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1098, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1099, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -130,6 +130,7 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkRegisterDeviceEventEXT);
     STRINGISE_ENUM_CLASS(vkRegisterDisplayEventEXT);
     STRINGISE_ENUM_CLASS_NAMED(vkCmdIndirectSubCommand, "Indirect sub-command");
+    STRINGISE_ENUM_CLASS(vkCmdPushDescriptorSetKHR);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

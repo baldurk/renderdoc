@@ -186,6 +186,7 @@ class WrappedVulkan : public IFrameCapturer
 private:
   friend class VulkanReplay;
   friend class VulkanDebugManager;
+  friend struct VulkanRenderState;
   friend class VulkanShaderCache;
 
   struct ScopedDebugMessageSink
@@ -473,6 +474,8 @@ private:
 
     std::vector<std::pair<ResourceId, ImageRegionState> > imgbarriers;
 
+    ResourceId pushDescriptorID[64];
+
     VulkanDrawcallTreeNode *draw;    // the root draw to copy from when submitting
     uint32_t eventCount;             // how many events are in this cmd buffer, for quick skipping
     uint32_t curEventID;             // current event ID while reading or executing
@@ -586,14 +589,18 @@ private:
   // need it on replay too
   struct DescriptorSetInfo
   {
-    ~DescriptorSetInfo()
+    ~DescriptorSetInfo() { clear(); }
+    ResourceId layout;
+    vector<DescriptorSetSlot *> currentBindings;
+
+    void clear()
     {
+      layout = ResourceId();
+
       for(size_t i = 0; i < currentBindings.size(); i++)
         delete[] currentBindings[i];
       currentBindings.clear();
     }
-    ResourceId layout;
-    vector<DescriptorSetSlot *> currentBindings;
   };
 
   // capture-side data
@@ -1626,4 +1633,10 @@ public:
   // VK_AMD_shader_info
   VkResult vkGetShaderInfoAMD(VkDevice device, VkPipeline pipeline, VkShaderStageFlagBits shaderStage,
                               VkShaderInfoTypeAMD infoType, size_t *pInfoSize, void *pInfo);
+
+  // VK_KHR_push_descriptor
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer commandBuffer,
+                                VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout,
+                                uint32_t set, uint32_t descriptorWriteCount,
+                                const VkWriteDescriptorSet *pDescriptorWrites);
 };

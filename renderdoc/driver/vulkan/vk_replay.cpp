@@ -1194,7 +1194,18 @@ void VulkanReplay::SavePipelineState()
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
 
-        dst.descriptorSetResourceId = rm->GetOriginalID(src);
+        // push descriptors don't have a real descriptor set backing them
+        if(c.m_DescSetLayout[layoutId].flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR)
+        {
+          dst.descriptorSetResourceId = ResourceId();
+          dst.pushDescriptor = true;
+        }
+        else
+        {
+          dst.descriptorSetResourceId = rm->GetOriginalID(src);
+          dst.pushDescriptor = false;
+        }
+
         dst.layoutResourceId = rm->GetOriginalID(layoutId);
         dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].currentBindings.size());
         for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)

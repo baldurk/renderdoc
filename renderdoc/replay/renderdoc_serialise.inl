@@ -1765,10 +1765,11 @@ void DoSerialise(SerialiserType &ser, VKPipe::DescriptorSet &el)
 {
   SERIALISE_MEMBER(layoutResourceId);
   SERIALISE_MEMBER(descriptorSetResourceId);
+  SERIALISE_MEMBER(pushDescriptor);
 
   SERIALISE_MEMBER(bindings);
 
-  SIZE_CHECK(32);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>

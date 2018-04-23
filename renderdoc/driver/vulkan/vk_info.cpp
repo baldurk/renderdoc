@@ -30,6 +30,8 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 {
   dynamicCount = 0;
 
+  flags = pCreateInfo->flags;
+
   // descriptor set layouts can be sparse, such that only three bindings exist
   // but they are at 0, 5 and 10.
   // We assume here that while the layouts may be sparse that's mostly to allow
@@ -63,13 +65,40 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   }
 }
 
-void DescSetLayout::CreateBindingsArray(vector<DescriptorSetSlot *> &descBindings)
+void DescSetLayout::CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBindings) const
 {
   descBindings.resize(bindings.size());
   for(size_t i = 0; i < bindings.size(); i++)
   {
     descBindings[i] = new DescriptorSetSlot[bindings[i].descriptorCount];
     memset(descBindings[i], 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+  }
+}
+
+void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
+                                        std::vector<DescriptorSetSlot *> &descBindings) const
+{
+  // if we have fewer bindings now, delete the orphaned bindings arrays
+  for(size_t i = bindings.size(); i < prevLayout.bindings.size(); i++)
+    SAFE_DELETE_ARRAY(descBindings[i]);
+
+  // resize to the new number of bindings
+  descBindings.resize(bindings.size());
+
+  // re-allocate slots and move any previous bindings that overlapped over.
+  for(size_t i = 0; i < bindings.size(); i++)
+  {
+    // allocate new slot array
+    DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
+
+    // copy over any previous bindings that overlapped
+    memcpy(newSlots, descBindings[i],
+           sizeof(DescriptorSetSlot) *
+               RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
+
+    // delete old array, and assign the new one
+    SAFE_DELETE_ARRAY(descBindings[i]);
+    descBindings[i] = newSlots;
   }
 }
 

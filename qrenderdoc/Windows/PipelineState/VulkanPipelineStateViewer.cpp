@@ -769,9 +769,11 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::Unknown;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
+  bool pushDescriptor = false;
 
   if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
   {
+    pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
     bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
@@ -816,6 +818,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     RDTreeWidgetItem *parentNode = resources->invisibleRootItem();
 
     QString setname = QString::number(bindset);
+
+    if(pushDescriptor)
+      setname = tr("Push ") + setname;
 
     QString slotname = QString::number(bind);
     if(shaderRes && !shaderRes->name.isEmpty())
@@ -931,7 +936,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(!isbuf)
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
               QString(),
           });
 
@@ -945,7 +950,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                 QFormatStr("Viewing bytes %1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
 
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType),
+              QString(), setname, slotname, ToQStr(bindType),
               descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
               tr("%1 bytes").arg(len), range, QString(),
           });
@@ -966,7 +971,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           range = QFormatStr("bytes %1 - %2").arg(descriptorBind->byteOffset).arg(descriptorLen);
 
         node = new RDTreeWidgetItem({
-            QString(), bindset, slotname, ToQStr(bindType),
+            QString(), setname, slotname, ToQStr(bindType),
             descriptorBind ? descriptorBind->resourceResourceId : ResourceId(), format, range,
             QString(),
         });
@@ -984,7 +989,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
               QString(),
           });
 
@@ -992,8 +997,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         }
         else
         {
-          node =
-              new RDTreeWidgetItem(makeSampler(QString::number(bindset), slotname, *descriptorBind));
+          node = new RDTreeWidgetItem(makeSampler(setname, slotname, *descriptorBind));
 
           if(!filledSlot)
             setEmptyRow(node);
@@ -1014,7 +1018,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->resourceResourceId == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
               QString(),
           });
 
@@ -1055,7 +1059,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             dim += QFormatStr(", %1x MSAA").arg(samples);
 
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, typeName, descriptorBind->resourceResourceId, dim,
+              QString(), setname, slotname, typeName, descriptorBind->resourceResourceId, dim,
               format, QString(),
           });
 
@@ -1073,7 +1077,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
           {
             samplerNode = new RDTreeWidgetItem({
-                QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+                QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
                 QString(),
             });
 
@@ -1151,8 +1155,11 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
+  bool pushDescriptor = false;
+
   if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
   {
+    pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
     bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
@@ -1182,6 +1189,9 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     RDTreeWidgetItem *parentNode = ubos->invisibleRootItem();
 
     QString setname = QString::number(bindset);
+
+    if(pushDescriptor)
+      setname = tr("Push ") + setname;
 
     QString slotname = QString::number(bind);
     if(cblock != NULL && !cblock->name.isEmpty())
@@ -2581,6 +2591,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
       QString setname = QString::number(bindMap.bindset);
 
+      if(set.pushDescriptor)
+        setname = tr("Push ") + setname;
+
       QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
 
       for(uint32_t a = 0; a < bind.descriptorCount; a++)
@@ -2642,6 +2655,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           set.bindings[sh.bindpointMapping.readOnlyResources[i].bind];
 
       QString setname = QString::number(bindMap.bindset);
+
+      if(set.pushDescriptor)
+        setname = tr("Push ") + setname;
 
       QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
 
@@ -2755,6 +2771,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           set.bindings[sh.bindpointMapping.readWriteResources[i].bind];
 
       QString setname = QString::number(bindMap.bindset);
+
+      if(set.pushDescriptor)
+        setname = tr("Push ") + setname;
 
       QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
 

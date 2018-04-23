@@ -624,6 +624,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_MAINTENANCE1_EXTENSION_NAME, VK_KHR_MAINTENANCE1_SPEC_VERSION,
     },
     {
+        VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, VK_KHR_PUSH_DESCRIPTOR_SPEC_VERSION,
+    },
+    {
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
     },
@@ -2226,6 +2229,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return true;
       break;
 
+    case VulkanChunk::vkCmdPushDescriptorSetKHR:
+      return Serialise_vkCmdPushDescriptorSetKHR(
+          ser, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_GRAPHICS, VK_NULL_HANDLE, 0, 0, NULL);
+      break;
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
@@ -2865,7 +2873,6 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
         DescriptorSetInfo &descset = m_DescriptorSetState[descSets[bindset].descSet];
         DescSetLayout &layout = c.m_DescSetLayout[descset.layout];
 
-        ResourceId origId = GetResourceManager()->GetOriginalID(descSets[bindset].descSet);
         ResourceId layoutId = GetResourceManager()->GetOriginalID(descset.layout);
 
         if(layout.bindings.empty())

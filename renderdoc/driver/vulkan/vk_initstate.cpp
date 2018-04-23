@@ -55,20 +55,29 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     VkInitialContents initialContents(type, VkInitialContents::DescriptorSet);
 
-    for(size_t i = 0; i < layout.bindings.size(); i++)
-      initialContents.numDescriptors += layout.bindings[i].descriptorCount;
-
-    initialContents.descriptorSlots = new DescriptorSetSlot[initialContents.numDescriptors];
-    RDCEraseMem(initialContents.descriptorSlots,
-                sizeof(DescriptorSetSlot) * initialContents.numDescriptors);
-
-    uint32_t e = 0;
-    for(size_t i = 0; i < layout.bindings.size(); i++)
+    if((layout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
     {
-      for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
+      for(size_t i = 0; i < layout.bindings.size(); i++)
+        initialContents.numDescriptors += layout.bindings[i].descriptorCount;
+
+      initialContents.descriptorSlots = new DescriptorSetSlot[initialContents.numDescriptors];
+      RDCEraseMem(initialContents.descriptorSlots,
+                  sizeof(DescriptorSetSlot) * initialContents.numDescriptors);
+
+      uint32_t e = 0;
+      for(size_t i = 0; i < layout.bindings.size(); i++)
       {
-        initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+        for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
+        {
+          initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+        }
       }
+    }
+    else
+    {
+      RDCERR("Push descriptor set with initial contents! Should never have been marked dirty");
+      initialContents.numDescriptors = 0;
+      initialContents.descriptorSlots = NULL;
     }
 
     GetResourceManager()->SetInitialContents(id, initialContents);
@@ -564,6 +573,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
       const DescSetLayout &layout =
           m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[liveid].layout];
+
+      if(layout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR)
+      {
+        RDCERR("Push descriptor set with initial contents!");
+        return true;
+      }
 
       VkInitialContents initialContents(type, VkInitialContents::DescriptorSet);
 

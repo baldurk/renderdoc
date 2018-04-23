@@ -246,11 +246,8 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
           }
         }
 
-        ObjDisp(cmd)->CmdBindDescriptorSets(
-            Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i, 1,
-            UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(
-                graphics.descSets[i].descSet)),
-            descLayout.dynamicCount, dynamicOffsets);
+        BindDescriptorSet(descLayout, cmd, layout, VK_PIPELINE_BIND_POINT_GRAPHICS, (uint32_t)i,
+                          dynamicOffsets);
 
         if(graphics.descSets[i].offsets.size() < descLayout.dynamicCount)
           SAFE_DELETE_ARRAY(dynamicOffsets);
@@ -315,15 +312,108 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
           }
         }
 
-        ObjDisp(cmd)->CmdBindDescriptorSets(
-            Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(layout), (uint32_t)i, 1,
-            UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(
-                compute.descSets[i].descSet)),
-            descLayout.dynamicCount, dynamicOffsets);
+        BindDescriptorSet(descLayout, cmd, layout, VK_PIPELINE_BIND_POINT_COMPUTE, (uint32_t)i,
+                          dynamicOffsets);
 
         if(compute.descSets[i].offsets.size() < descLayout.dynamicCount)
           SAFE_DELETE_ARRAY(dynamicOffsets);
       }
+    }
+  }
+}
+
+void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
+                                          VkPipelineLayout layout, VkPipelineBindPoint bindPoint,
+                                          uint32_t setIndex, uint32_t *dynamicOffsets)
+{
+  ResourceId descSet = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+                           ? graphics.descSets[setIndex].descSet
+                           : compute.descSets[setIndex].descSet;
+
+  if((descLayout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
+  {
+    ObjDisp(cmd)->CmdBindDescriptorSets(
+        Unwrap(cmd), bindPoint, Unwrap(layout), (uint32_t)setIndex, 1,
+        UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(descSet)),
+        descLayout.dynamicCount, dynamicOffsets);
+  }
+  else
+  {
+    // this isn't a real descriptor set, it's a push descriptor, so we need to push the
+    // current state.
+    std::vector<VkWriteDescriptorSet> writes;
+
+    WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[descSet];
+
+    for(size_t b = 0; b < descLayout.bindings.size(); b++)
+    {
+      VkWriteDescriptorSet push = {};
+
+      // skip if this binding isn't used
+      if(descLayout.bindings[b].descriptorCount == 0)
+        continue;
+
+      push.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      // push.dstSet; // unused for push descriptors
+      push.dstBinding = (uint32_t)b;
+      push.dstArrayElement = 0;
+      push.descriptorType = descLayout.bindings[b].descriptorType;
+      push.descriptorCount = descLayout.bindings[b].descriptorCount;
+
+      DescriptorSetSlot *slots = setInfo.currentBindings[b];
+
+      if(push.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+         push.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+      {
+        VkBufferView *dst = new VkBufferView[push.descriptorCount];
+
+        for(uint32_t a = 0; a < push.descriptorCount; a++)
+          dst[a] = Unwrap(slots[a].texelBufferView);
+
+        push.pTexelBufferView = dst;
+      }
+      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+              push.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+              push.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+              push.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+              push.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+      {
+        VkDescriptorImageInfo *dst = new VkDescriptorImageInfo[push.descriptorCount];
+
+        for(uint32_t a = 0; a < push.descriptorCount; a++)
+        {
+          dst[a] = slots[a].imageInfo;
+          dst[a].sampler = Unwrap(dst[a].sampler);
+          dst[a].imageView = Unwrap(dst[a].imageView);
+        }
+
+        push.pImageInfo = dst;
+      }
+      else
+      {
+        VkDescriptorBufferInfo *dst = new VkDescriptorBufferInfo[push.descriptorCount];
+
+        for(uint32_t a = 0; a < push.descriptorCount; a++)
+        {
+          dst[a] = slots[a].bufferInfo;
+          dst[a].buffer = Unwrap(dst[a].buffer);
+        }
+
+        push.pBufferInfo = dst;
+      }
+
+      writes.push_back(push);
+    }
+
+    ObjDisp(cmd)->CmdPushDescriptorSetKHR(Unwrap(cmd), bindPoint, Unwrap(layout), setIndex,
+                                          (uint32_t)writes.size(), writes.data());
+
+    // delete dynamically allocated arrays
+    for(VkWriteDescriptorSet &push : writes)
+    {
+      SAFE_DELETE_ARRAY(push.pImageInfo);
+      SAFE_DELETE_ARRAY(push.pBufferInfo);
+      SAFE_DELETE_ARRAY(push.pTexelBufferView);
     }
   }
 }

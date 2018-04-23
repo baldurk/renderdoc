@@ -300,7 +300,8 @@
   CheckExt(VK_KHR_external_semaphore_win32); \
   CheckExt(VK_KHR_external_semaphore_fd);    \
   CheckExt(VK_KHR_get_memory_requirements2); \
-  CheckExt(VK_AMD_shader_info);
+  CheckExt(VK_AMD_shader_info);              \
+  CheckExt(VK_KHR_push_descriptor);
 
 #define HookInitVulkanInstanceExts()                                                                \
   HookInitExtension(VK_KHR_surface, DestroySurfaceKHR);                                             \
@@ -363,6 +364,7 @@
   HookInitExtension(VK_KHR_get_memory_requirements2, GetImageMemoryRequirements2KHR);       \
   HookInitExtension(VK_KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2KHR); \
   HookInitExtension(VK_AMD_shader_info, GetShaderInfoAMD);                                  \
+  HookInitExtension(VK_KHR_push_descriptor, CmdPushDescriptorSetKHR);                       \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -776,6 +778,9 @@
   HookDefine6(VkResult, vkGetShaderInfoAMD, VkDevice, device, VkPipeline, pipeline,                  \
               VkShaderStageFlagBits, shaderStage, VkShaderInfoTypeAMD, infoType, size_t *,           \
               pInfoSize, void *, pInfo);                                                             \
+  HookDefine6(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer, commandBuffer,                       \
+              VkPipelineBindPoint, pipelineBindPoint, VkPipelineLayout, layout, uint32_t, set,       \
+              uint32_t, descriptorWriteCount, const VkWriteDescriptorSet *, pDescriptorWrites);      \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

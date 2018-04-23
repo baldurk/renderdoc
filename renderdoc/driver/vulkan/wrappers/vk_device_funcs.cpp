@@ -1248,6 +1248,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
 
+    RDCASSERT(m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets <
+                  ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID),
+              m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets);
+
     for(int i = VK_FORMAT_BEGIN_RANGE + 1; i < VK_FORMAT_END_RANGE; i++)
       ObjDisp(physicalDevice)
           ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i),

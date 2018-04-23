@@ -439,6 +439,7 @@ enum class VulkanChunk : uint32_t
   vkRegisterDeviceEventEXT,
   vkRegisterDisplayEventEXT,
   vkCmdIndirectSubCommand,
+  vkCmdPushDescriptorSetKHR,
   Max,
 };
 

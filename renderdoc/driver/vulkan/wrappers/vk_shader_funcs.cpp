@@ -180,10 +180,14 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(VkDevice device,
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pPipelineLayout);
       record->AddChunk(chunk);
 
+      record->pipeLayoutInfo = new PipelineLayoutData();
+
       for(uint32_t i = 0; i < pCreateInfo->setLayoutCount; i++)
       {
         VkResourceRecord *layoutrecord = GetRecord(pCreateInfo->pSetLayouts[i]);
         record->AddParent(layoutrecord);
+
+        record->pipeLayoutInfo->layouts.push_back(*layoutrecord->descInfo->layout);
       }
     }
     else

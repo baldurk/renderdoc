@@ -35,7 +35,9 @@ struct DescSetLayout
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
             const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-  void CreateBindingsArray(vector<DescriptorSetSlot *> &descBindings);
+  void CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBindings) const;
+  void UpdateBindingsArray(const DescSetLayout &prevLayout,
+                           std::vector<DescriptorSetSlot *> &descBindings) const;
 
   struct Binding
   {
@@ -71,6 +73,7 @@ struct DescSetLayout
   vector<Binding> bindings;
 
   uint32_t dynamicCount;
+  VkDescriptorSetLayoutCreateFlags flags;
 
   bool operator==(const DescSetLayout &other) const;
   bool operator!=(const DescSetLayout &other) const { return !(*this == other); }

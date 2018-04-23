@@ -516,10 +516,15 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
         capframe = IsActiveCapturing(m_State);
       }
 
-      if(capframe)
-        GetResourceManager()->MarkPendingDirty(id);
-      else
-        GetResourceManager()->MarkDirtyResource(id);
+      // only mark descriptor set as dirty if it's not a push descriptor layout
+      if((layoutRecord->descInfo->layout->flags &
+          VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
+      {
+        if(capframe)
+          GetResourceManager()->MarkPendingDirty(id);
+        else
+          GetResourceManager()->MarkDirtyResource(id);
+      }
 
       record->descInfo = new DescriptorSetData();
       record->descInfo->layout = layoutRecord->descInfo->layout;

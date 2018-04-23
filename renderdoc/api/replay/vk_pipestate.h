@@ -218,7 +218,8 @@ struct DescriptorSet
   bool operator==(const DescriptorSet &o) const
   {
     return layoutResourceId == o.layoutResourceId &&
-           descriptorSetResourceId == o.descriptorSetResourceId && bindings == o.bindings;
+           descriptorSetResourceId == o.descriptorSetResourceId &&
+           pushDescriptor == o.pushDescriptor && bindings == o.bindings;
   }
   bool operator<(const DescriptorSet &o) const
   {
@@ -226,6 +227,8 @@ struct DescriptorSet
       return layoutResourceId < o.layoutResourceId;
     if(!(descriptorSetResourceId == o.descriptorSetResourceId))
       return descriptorSetResourceId < o.descriptorSetResourceId;
+    if(!(pushDescriptor == o.pushDescriptor))
+      return pushDescriptor < o.pushDescriptor;
     if(!(bindings == o.bindings))
       return bindings < o.bindings;
     return false;
@@ -234,6 +237,8 @@ struct DescriptorSet
   ResourceId layoutResourceId;
   DOCUMENT("The :class:`ResourceId` of the descriptor set object.");
   ResourceId descriptorSetResourceId;
+  DOCUMENT("Indicates if this is a virtual 'push' descriptor set.");
+  bool pushDescriptor = false;
 
   DOCUMENT(R"(A list of :class:`VKDescriptorBinding` with the bindings within this set.
 This list is indexed by the binding, so it may be sparse (some entries do not contain any elements).

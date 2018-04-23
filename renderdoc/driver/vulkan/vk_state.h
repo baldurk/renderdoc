@@ -30,6 +30,7 @@
 struct VulkanCreationInfo;
 class VulkanResourceManager;
 class WrappedVulkan;
+struct DescSetLayout;
 
 struct VulkanRenderState
 {
@@ -45,6 +46,10 @@ struct VulkanRenderState
   void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
   void EndRenderPass(VkCommandBuffer cmd);
   void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
+
+  void BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
+                         VkPipelineLayout layout, VkPipelineBindPoint bindPoint, uint32_t setIndex,
+                         uint32_t *dynamicOffsets);
 
   // dynamic state
   vector<VkViewport> views;

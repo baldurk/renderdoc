@@ -919,6 +919,11 @@ struct DescriptorSetData
   map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
 };
 
+struct PipelineLayoutData
+{
+  std::vector<DescSetLayout> layouts;
+};
+
 struct MemMapState
 {
   MemMapState()
@@ -1062,6 +1067,7 @@ public:
     MemMapState *memMapState;                      // only for device memory
     CmdBufferRecordingInfo *cmdInfo;               // only for command buffers
     AttachmentInfo *imageAttachments;              // only for framebuffers and render passes
+    PipelineLayoutData *pipeLayoutInfo;            // only for pipeline layouts
     DescriptorSetData *descInfo;    // only for descriptor sets and descriptor set layouts
   };
 
