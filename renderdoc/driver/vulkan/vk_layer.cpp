@@ -256,16 +256,21 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateInstanceE
                                                           pProperties);
 }
 
+#undef CheckExt
+#define CheckExt(name, ver)            \
+  bool name = instDevInfo->ext_##name; \
+  (void)name;
+
 #undef HookInit
 #define HookInit(function)                            \
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
 #undef HookInitExtension
-#define HookInitExtension(ext, function)                       \
+#define HookInitExtension(cond, function)                      \
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))))          \
   {                                                            \
-    if(instDevInfo->ext_##ext)                                 \
+    if(cond)                                                   \
       return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function); \
   }
 
@@ -287,6 +292,8 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
     return NULL;
 
   InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
+
+  CheckDeviceExts();
 
   HookInitVulkanDeviceExts();
 
@@ -320,12 +327,15 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 
   InstanceDeviceInfo *instDevInfo = GetRecord(instance)->instDevInfo;
 
+  CheckInstanceExts();
+  CheckDeviceExts();
+
   HookInitVulkanInstanceExts();
 
 // GetInstanceProcAddr must also unconditionally return all device functions
 
 #undef HookInitExtension
-#define HookInitExtension(ext, function)              \
+#define HookInitExtension(cond, function)             \
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 

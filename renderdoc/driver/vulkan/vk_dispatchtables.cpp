@@ -74,12 +74,19 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
 
   instance = Unwrap(instance);
 
+#undef CheckExt
+#define CheckExt(name, ver)     \
+  bool name = info->ext_##name; \
+  (void)name;
+
 #undef HookInitExtension
-#define HookInitExtension(ext, func) \
-  if(info->ext_##ext)                \
-  {                                  \
-    InstanceGPA(func);               \
+#define HookInitExtension(cond, func) \
+  if(cond)                            \
+  {                                   \
+    InstanceGPA(func);                \
   }
+
+  CheckInstanceExts();
 
   InstanceGPA(EnumerateDeviceExtensionProperties);
   InstanceGPA(EnumerateDeviceLayerProperties);
@@ -100,11 +107,13 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
   device = Unwrap(device);
 
 #undef HookInitExtension
-#define HookInitExtension(ext, func) \
-  if(info->ext_##ext)                \
-  {                                  \
-    DeviceGPA(func);                 \
+#define HookInitExtension(cond, func) \
+  if(cond)                            \
+  {                                   \
+    DeviceGPA(func);                  \
   }
+
+  CheckDeviceExts();
 
   HookInitVulkanDeviceExts();
 }

@@ -244,10 +244,11 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   InstanceDeviceInfo extInfo;
 
 #undef CheckExt
-#define CheckExt(name, ver)                                                                          \
-  if(!strcmp(instinfo.ppEnabledExtensionNames[i], #name) || (int)renderdocAppInfo.apiVersion >= ver) \
-  {                                                                                                  \
-    extInfo.ext_##name = true;                                                                       \
+#define CheckExt(name, ver)                                       \
+  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || \
+     (int)renderdocAppInfo.apiVersion >= ver)                     \
+  {                                                               \
+    extInfo.ext_##name = true;                                    \
   }
 
   for(uint32_t i = 0; i < instinfo.enabledExtensionCount; i++)
@@ -445,11 +446,11 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
 
 #undef CheckExt
-#define CheckExt(name, ver)                                           \
-  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], #name) || \
-     record->instDevInfo->vulkanVersion >= ver)                       \
-  {                                                                   \
-    record->instDevInfo->ext_##name = true;                           \
+#define CheckExt(name, ver)                                                 \
+  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
+     record->instDevInfo->vulkanVersion >= ver)                             \
+  {                                                                         \
+    record->instDevInfo->ext_##name = true;                                 \
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
@@ -1222,11 +1223,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     InstanceDeviceInfo extInfo;
 
 #undef CheckExt
-#define CheckExt(name, ver)                                   \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name) || \
-     (int)renderdocAppInfo.apiVersion >= ver)                 \
-  {                                                           \
-    extInfo.ext_##name = true;                                \
+#define CheckExt(name, ver)                                         \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
+     (int)renderdocAppInfo.apiVersion >= ver)                       \
+  {                                                                 \
+    extInfo.ext_##name = true;                                      \
   }
 
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
@@ -1531,11 +1532,11 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       CheckInstanceExts();
 
 #undef CheckExt
-#define CheckExt(name, ver)                                    \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name) ||  \
-     GetRecord(m_Instance)->instDevInfo->vulkanVersion >= ver) \
-  {                                                            \
-    record->instDevInfo->ext_##name = true;                    \
+#define CheckExt(name, ver)                                         \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
+     GetRecord(m_Instance)->instDevInfo->vulkanVersion >= ver)      \
+  {                                                                 \
+    record->instDevInfo->ext_##name = true;                         \
   }
 
       for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)

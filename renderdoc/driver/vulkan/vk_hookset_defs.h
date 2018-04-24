@@ -274,103 +274,102 @@
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
-#define CheckInstanceExts()                               \
-  CheckExt(VK_KHR_xlib_surface, VKXX);                    \
-  CheckExt(VK_KHR_xcb_surface, VKXX);                     \
-  CheckExt(VK_KHR_win32_surface, VKXX);                   \
-  CheckExt(VK_KHR_android_surface, VKXX);                 \
-  CheckExt(VK_KHR_surface, VKXX);                         \
-  CheckExt(VK_EXT_debug_report, VKXX);                    \
-  CheckExt(VK_KHR_display, VKXX);                         \
-  CheckExt(VK_NV_external_memory_capabilities, VKXX);     \
-  CheckExt(VK_KHR_get_physical_device_properties2, VK11); \
-  CheckExt(VK_EXT_display_surface_counter, VKXX);         \
-  CheckExt(VK_EXT_direct_mode_display, VKXX);             \
-  CheckExt(VK_EXT_acquire_xlib_display, VKXX);            \
-  CheckExt(VK_KHR_external_memory_capabilities, VK11);    \
-  CheckExt(VK_KHR_external_semaphore_capabilities, VK11);
+#define CheckInstanceExts()                            \
+  CheckExt(KHR_xlib_surface, VKXX);                    \
+  CheckExt(KHR_xcb_surface, VKXX);                     \
+  CheckExt(KHR_win32_surface, VKXX);                   \
+  CheckExt(KHR_android_surface, VKXX);                 \
+  CheckExt(KHR_surface, VKXX);                         \
+  CheckExt(EXT_debug_report, VKXX);                    \
+  CheckExt(KHR_display, VKXX);                         \
+  CheckExt(NV_external_memory_capabilities, VKXX);     \
+  CheckExt(KHR_get_physical_device_properties2, VK11); \
+  CheckExt(EXT_display_surface_counter, VKXX);         \
+  CheckExt(EXT_direct_mode_display, VKXX);             \
+  CheckExt(EXT_acquire_xlib_display, VKXX);            \
+  CheckExt(KHR_external_memory_capabilities, VK11);    \
+  CheckExt(KHR_external_semaphore_capabilities, VK11);
 
-#define CheckDeviceExts()                          \
-  CheckExt(VK_EXT_debug_marker, VKXX);             \
-  CheckExt(VK_KHR_swapchain, VKXX);                \
-  CheckExt(VK_KHR_display_swapchain, VKXX);        \
-  CheckExt(VK_NV_external_memory, VKXX);           \
-  CheckExt(VK_NV_external_memory_win32, VKXX);     \
-  CheckExt(VK_NV_win32_keyed_mutex, VKXX);         \
-  CheckExt(VK_KHR_maintenance1, VK11);             \
-  CheckExt(VK_EXT_display_control, VKXX);          \
-  CheckExt(VK_KHR_external_memory, VK11);          \
-  CheckExt(VK_KHR_external_memory_win32, VKXX);    \
-  CheckExt(VK_KHR_external_memory_fd, VKXX);       \
-  CheckExt(VK_KHR_external_semaphore, VK11);       \
-  CheckExt(VK_KHR_external_semaphore_win32, VKXX); \
-  CheckExt(VK_KHR_external_semaphore_fd, VKXX);    \
-  CheckExt(VK_KHR_get_memory_requirements2, VK11); \
-  CheckExt(VK_AMD_shader_info, VKXX);              \
-  CheckExt(VK_KHR_push_descriptor, VKXX);
+#define CheckDeviceExts()                       \
+  CheckExt(EXT_debug_marker, VKXX);             \
+  CheckExt(KHR_swapchain, VKXX);                \
+  CheckExt(KHR_display_swapchain, VKXX);        \
+  CheckExt(NV_external_memory, VKXX);           \
+  CheckExt(NV_external_memory_win32, VKXX);     \
+  CheckExt(NV_win32_keyed_mutex, VKXX);         \
+  CheckExt(KHR_maintenance1, VK11);             \
+  CheckExt(EXT_display_control, VKXX);          \
+  CheckExt(KHR_external_memory, VK11);          \
+  CheckExt(KHR_external_memory_win32, VKXX);    \
+  CheckExt(KHR_external_memory_fd, VKXX);       \
+  CheckExt(KHR_external_semaphore, VK11);       \
+  CheckExt(KHR_external_semaphore_win32, VKXX); \
+  CheckExt(KHR_external_semaphore_fd, VKXX);    \
+  CheckExt(KHR_get_memory_requirements2, VK11); \
+  CheckExt(AMD_shader_info, VKXX);              \
+  CheckExt(KHR_push_descriptor, VKXX);
 
-#define HookInitVulkanInstanceExts()                                                                \
-  HookInitExtension(VK_KHR_surface, DestroySurfaceKHR);                                             \
-  HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                            \
-  HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfaceCapabilitiesKHR);                       \
-  HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfaceFormatsKHR);                            \
-  HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfacePresentModesKHR);                       \
-  HookInitExtension(VK_EXT_debug_report, CreateDebugReportCallbackEXT);                             \
-  HookInitExtension(VK_EXT_debug_report, DestroyDebugReportCallbackEXT);                            \
-  HookInitExtension(VK_EXT_debug_report, DebugReportMessageEXT);                                    \
-  HookInitExtension(VK_KHR_display, GetPhysicalDeviceDisplayPropertiesKHR);                         \
-  HookInitExtension(VK_KHR_display, GetPhysicalDeviceDisplayPlanePropertiesKHR);                    \
-  HookInitExtension(VK_KHR_display, GetDisplayPlaneSupportedDisplaysKHR);                           \
-  HookInitExtension(VK_KHR_display, GetDisplayModePropertiesKHR);                                   \
-  HookInitExtension(VK_KHR_display, CreateDisplayModeKHR);                                          \
-  HookInitExtension(VK_KHR_display, GetDisplayPlaneCapabilitiesKHR);                                \
-  HookInitExtension(VK_KHR_display, CreateDisplayPlaneSurfaceKHR);                                  \
-  HookInitExtension(VK_NV_external_memory_capabilities,                                             \
-                    GetPhysicalDeviceExternalImageFormatPropertiesNV);                              \
-  HookInitExtension(VK_KHR_get_physical_device_properties2, GetPhysicalDeviceFeatures2KHR);         \
-  HookInitExtension(VK_KHR_get_physical_device_properties2, GetPhysicalDeviceProperties2KHR);       \
-  HookInitExtension(VK_KHR_get_physical_device_properties2, GetPhysicalDeviceFormatProperties2KHR); \
-  HookInitExtension(VK_KHR_get_physical_device_properties2,                                         \
-                    GetPhysicalDeviceImageFormatProperties2KHR);                                    \
-  HookInitExtension(VK_KHR_get_physical_device_properties2,                                         \
-                    GetPhysicalDeviceQueueFamilyProperties2KHR);                                    \
-  HookInitExtension(VK_KHR_get_physical_device_properties2, GetPhysicalDeviceMemoryProperties2KHR); \
-  HookInitExtension(VK_KHR_get_physical_device_properties2,                                         \
-                    GetPhysicalDeviceSparseImageFormatProperties2KHR);                              \
-  HookInitExtension(VK_EXT_direct_mode_display, ReleaseDisplayEXT);                                 \
-  HookInitExtension(VK_EXT_display_surface_counter, GetPhysicalDeviceSurfaceCapabilities2EXT);      \
-  HookInitExtension(VK_KHR_external_memory_capabilities,                                            \
-                    GetPhysicalDeviceExternalBufferPropertiesKHR);                                  \
-  HookInitExtension(VK_KHR_external_semaphore_capabilities,                                         \
-                    GetPhysicalDeviceExternalSemaphorePropertiesKHR);                               \
+#define HookInitVulkanInstanceExts()                                                                 \
+  HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceCapabilitiesKHR);                           \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceFormatsKHR);                                \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfacePresentModesKHR);                           \
+  HookInitExtension(EXT_debug_report, CreateDebugReportCallbackEXT);                                 \
+  HookInitExtension(EXT_debug_report, DestroyDebugReportCallbackEXT);                                \
+  HookInitExtension(EXT_debug_report, DebugReportMessageEXT);                                        \
+  HookInitExtension(KHR_display, GetPhysicalDeviceDisplayPropertiesKHR);                             \
+  HookInitExtension(KHR_display, GetPhysicalDeviceDisplayPlanePropertiesKHR);                        \
+  HookInitExtension(KHR_display, GetDisplayPlaneSupportedDisplaysKHR);                               \
+  HookInitExtension(KHR_display, GetDisplayModePropertiesKHR);                                       \
+  HookInitExtension(KHR_display, CreateDisplayModeKHR);                                              \
+  HookInitExtension(KHR_display, GetDisplayPlaneCapabilitiesKHR);                                    \
+  HookInitExtension(KHR_display, CreateDisplayPlaneSurfaceKHR);                                      \
+  HookInitExtension(NV_external_memory_capabilities,                                                 \
+                    GetPhysicalDeviceExternalImageFormatPropertiesNV);                               \
+  HookInitExtension(KHR_get_physical_device_properties2, GetPhysicalDeviceFeatures2KHR);             \
+  HookInitExtension(KHR_get_physical_device_properties2, GetPhysicalDeviceProperties2KHR);           \
+  HookInitExtension(KHR_get_physical_device_properties2, GetPhysicalDeviceFormatProperties2KHR);     \
+  HookInitExtension(KHR_get_physical_device_properties2,                                             \
+                    GetPhysicalDeviceImageFormatProperties2KHR);                                     \
+  HookInitExtension(KHR_get_physical_device_properties2,                                             \
+                    GetPhysicalDeviceQueueFamilyProperties2KHR);                                     \
+  HookInitExtension(KHR_get_physical_device_properties2, GetPhysicalDeviceMemoryProperties2KHR);     \
+  HookInitExtension(KHR_get_physical_device_properties2,                                             \
+                    GetPhysicalDeviceSparseImageFormatProperties2KHR);                               \
+  HookInitExtension(EXT_direct_mode_display, ReleaseDisplayEXT);                                     \
+  HookInitExtension(EXT_display_surface_counter, GetPhysicalDeviceSurfaceCapabilities2EXT);          \
+  HookInitExtension(KHR_external_memory_capabilities, GetPhysicalDeviceExternalBufferPropertiesKHR); \
+  HookInitExtension(KHR_external_semaphore_capabilities,                                             \
+                    GetPhysicalDeviceExternalSemaphorePropertiesKHR);                                \
   HookInitInstance_PlatformSpecific()
 
-#define HookInitVulkanDeviceExts()                                                          \
-  HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectTagEXT);                       \
-  HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectNameEXT);                      \
-  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerBeginEXT);                           \
-  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerEndEXT);                             \
-  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerInsertEXT);                          \
-  HookInitExtension(VK_KHR_swapchain, CreateSwapchainKHR);                                  \
-  HookInitExtension(VK_KHR_swapchain, DestroySwapchainKHR);                                 \
-  HookInitExtension(VK_KHR_swapchain, GetSwapchainImagesKHR);                               \
-  HookInitExtension(VK_KHR_swapchain, AcquireNextImageKHR);                                 \
-  HookInitExtension(VK_KHR_swapchain, QueuePresentKHR);                                     \
-  HookInitExtension(VK_KHR_display_swapchain, CreateSharedSwapchainsKHR);                   \
-  HookInitExtension(VK_KHR_maintenance1, TrimCommandPoolKHR);                               \
-  HookInitExtension(VK_EXT_display_control, DisplayPowerControlEXT);                        \
-  HookInitExtension(VK_EXT_display_control, RegisterDeviceEventEXT);                        \
-  HookInitExtension(VK_EXT_display_control, RegisterDisplayEventEXT);                       \
-  HookInitExtension(VK_EXT_display_control, GetSwapchainCounterEXT);                        \
-  HookInitExtension(VK_KHR_external_memory_fd, GetMemoryFdKHR);                             \
-  HookInitExtension(VK_KHR_external_memory_fd, GetMemoryFdPropertiesKHR);                   \
-  HookInitExtension(VK_KHR_external_semaphore_fd, ImportSemaphoreFdKHR);                    \
-  HookInitExtension(VK_KHR_external_semaphore_fd, GetSemaphoreFdKHR);                       \
-  HookInitExtension(VK_KHR_get_memory_requirements2, GetBufferMemoryRequirements2KHR);      \
-  HookInitExtension(VK_KHR_get_memory_requirements2, GetImageMemoryRequirements2KHR);       \
-  HookInitExtension(VK_KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2KHR); \
-  HookInitExtension(VK_AMD_shader_info, GetShaderInfoAMD);                                  \
-  HookInitExtension(VK_KHR_push_descriptor, CmdPushDescriptorSetKHR);                       \
+#define HookInitVulkanDeviceExts()                                                       \
+  HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectTagEXT);                       \
+  HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectNameEXT);                      \
+  HookInitExtension(EXT_debug_marker, CmdDebugMarkerBeginEXT);                           \
+  HookInitExtension(EXT_debug_marker, CmdDebugMarkerEndEXT);                             \
+  HookInitExtension(EXT_debug_marker, CmdDebugMarkerInsertEXT);                          \
+  HookInitExtension(KHR_swapchain, CreateSwapchainKHR);                                  \
+  HookInitExtension(KHR_swapchain, DestroySwapchainKHR);                                 \
+  HookInitExtension(KHR_swapchain, GetSwapchainImagesKHR);                               \
+  HookInitExtension(KHR_swapchain, AcquireNextImageKHR);                                 \
+  HookInitExtension(KHR_swapchain, QueuePresentKHR);                                     \
+  HookInitExtension(KHR_display_swapchain, CreateSharedSwapchainsKHR);                   \
+  HookInitExtension(KHR_maintenance1, TrimCommandPoolKHR);                               \
+  HookInitExtension(EXT_display_control, DisplayPowerControlEXT);                        \
+  HookInitExtension(EXT_display_control, RegisterDeviceEventEXT);                        \
+  HookInitExtension(EXT_display_control, RegisterDisplayEventEXT);                       \
+  HookInitExtension(EXT_display_control, GetSwapchainCounterEXT);                        \
+  HookInitExtension(KHR_external_memory_fd, GetMemoryFdKHR);                             \
+  HookInitExtension(KHR_external_memory_fd, GetMemoryFdPropertiesKHR);                   \
+  HookInitExtension(KHR_external_semaphore_fd, ImportSemaphoreFdKHR);                    \
+  HookInitExtension(KHR_external_semaphore_fd, GetSemaphoreFdKHR);                       \
+  HookInitExtension(KHR_get_memory_requirements2, GetBufferMemoryRequirements2KHR);      \
+  HookInitExtension(KHR_get_memory_requirements2, GetImageMemoryRequirements2KHR);       \
+  HookInitExtension(KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2KHR); \
+  HookInitExtension(AMD_shader_info, GetShaderInfoAMD);                                  \
+  HookInitExtension(KHR_push_descriptor, CmdPushDescriptorSetKHR);                       \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
