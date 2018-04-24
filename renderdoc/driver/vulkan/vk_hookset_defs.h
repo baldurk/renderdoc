@@ -290,25 +290,26 @@
   CheckExt(KHR_external_memory_capabilities, VK11);    \
   CheckExt(KHR_external_semaphore_capabilities, VK11);
 
-#define CheckDeviceExts()                       \
-  CheckExt(EXT_debug_marker, VKXX);             \
-  CheckExt(KHR_swapchain, VKXX);                \
-  CheckExt(KHR_display_swapchain, VKXX);        \
-  CheckExt(NV_external_memory, VKXX);           \
-  CheckExt(NV_external_memory_win32, VKXX);     \
-  CheckExt(NV_win32_keyed_mutex, VKXX);         \
-  CheckExt(KHR_maintenance1, VK11);             \
-  CheckExt(EXT_display_control, VKXX);          \
-  CheckExt(KHR_external_memory, VK11);          \
-  CheckExt(KHR_external_memory_win32, VKXX);    \
-  CheckExt(KHR_external_memory_fd, VKXX);       \
-  CheckExt(KHR_external_semaphore, VK11);       \
-  CheckExt(KHR_external_semaphore_win32, VKXX); \
-  CheckExt(KHR_external_semaphore_fd, VKXX);    \
-  CheckExt(KHR_get_memory_requirements2, VK11); \
-  CheckExt(AMD_shader_info, VKXX);              \
-  CheckExt(KHR_push_descriptor, VKXX);          \
-  CheckExt(KHR_descriptor_update_template, VK11);
+#define CheckDeviceExts()                         \
+  CheckExt(EXT_debug_marker, VKXX);               \
+  CheckExt(KHR_swapchain, VKXX);                  \
+  CheckExt(KHR_display_swapchain, VKXX);          \
+  CheckExt(NV_external_memory, VKXX);             \
+  CheckExt(NV_external_memory_win32, VKXX);       \
+  CheckExt(NV_win32_keyed_mutex, VKXX);           \
+  CheckExt(KHR_maintenance1, VK11);               \
+  CheckExt(EXT_display_control, VKXX);            \
+  CheckExt(KHR_external_memory, VK11);            \
+  CheckExt(KHR_external_memory_win32, VKXX);      \
+  CheckExt(KHR_external_memory_fd, VKXX);         \
+  CheckExt(KHR_external_semaphore, VK11);         \
+  CheckExt(KHR_external_semaphore_win32, VKXX);   \
+  CheckExt(KHR_external_semaphore_fd, VKXX);      \
+  CheckExt(KHR_get_memory_requirements2, VK11);   \
+  CheckExt(AMD_shader_info, VKXX);                \
+  CheckExt(KHR_push_descriptor, VKXX);            \
+  CheckExt(KHR_descriptor_update_template, VK11); \
+  CheckExt(KHR_bind_memory2, VK11);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -376,6 +377,8 @@
   HookInitExtension(KHR_descriptor_update_template, UpdateDescriptorSetWithTemplateKHR); \
   HookInitExtension(KHR_push_descriptor &&KHR_descriptor_update_template,                \
                     CmdPushDescriptorSetWithTemplateKHR);                                \
+  HookInitExtension(KHR_bind_memory2, BindBufferMemory2KHR);                             \
+  HookInitExtension(KHR_bind_memory2, BindImageMemory2KHR);                              \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -805,6 +808,10 @@
   HookDefine5(void, vkCmdPushDescriptorSetWithTemplateKHR, VkCommandBuffer, commandBuffer,           \
               VkDescriptorUpdateTemplateKHR, descriptorUpdateTemplate, VkPipelineLayout, layout,     \
               uint32_t, set, const void *, pData);                                                   \
+  HookDefine3(VkResult, vkBindBufferMemory2KHR, VkDevice, device, uint32_t, bindInfoCount,           \
+              const VkBindBufferMemoryInfoKHR *, pBindInfos);                                        \
+  HookDefine3(VkResult, vkBindImageMemory2KHR, VkDevice, device, uint32_t, bindInfoCount,            \
+              const VkBindImageMemoryInfoKHR *, pBindInfos);                                         \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

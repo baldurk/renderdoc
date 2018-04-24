@@ -574,6 +574,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_KHR_BIND_MEMORY_2_EXTENSION_NAME, VK_KHR_BIND_MEMORY_2_SPEC_VERSION,
+    },
+    {
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME, VK_KHR_DEDICATED_ALLOCATION_SPEC_VERSION,
     },
     {
@@ -2262,6 +2265,13 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkUpdateDescriptorSetWithTemplateKHR:
       return Serialise_vkUpdateDescriptorSetWithTemplateKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                                             VK_NULL_HANDLE, NULL);
+      break;
+
+    case VulkanChunk::vkBindBufferMemory2KHR:
+      return Serialise_vkBindBufferMemory2KHR(ser, VK_NULL_HANDLE, 0, NULL);
+      break;
+    case VulkanChunk::vkBindImageMemory2KHR:
+      return Serialise_vkBindImageMemory2KHR(ser, VK_NULL_HANDLE, 0, NULL);
       break;
 
     default:

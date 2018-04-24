@@ -451,6 +451,8 @@ enum class VulkanChunk : uint32_t
   vkCmdPushDescriptorSetWithTemplateKHR,
   vkCreateDescriptorUpdateTemplateKHR,
   vkUpdateDescriptorSetWithTemplateKHR,
+  vkBindBufferMemory2KHR,
+  vkBindImageMemory2KHR,
   Max,
 };
 
@@ -595,6 +597,8 @@ DECLARE_REFLECTION_STRUCT(VkSwapchainCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDebugMarkerMarkerInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateEntryKHR);
 DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkBindBufferMemoryInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkBindImageMemoryInfoKHR);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);

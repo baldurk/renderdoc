@@ -665,6 +665,9 @@ private:
 
   void FirstFrame(VkSwapchainKHR swap);
 
+  bool CheckMemoryRequirements(const char *resourceName, ResourceId memId,
+                               VkDeviceSize memoryOffset, VkMemoryRequirements mrq);
+
   std::vector<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);
   string MakeRenderPassOpString(bool store);
   void MakeSubpassLoadRP(VkRenderPassCreateInfo &info, const VkRenderPassCreateInfo *origInfo,
@@ -1662,4 +1665,11 @@ public:
                                 VkDescriptorSet descriptorSet,
                                 VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
                                 const void *pData);
+
+  // VK_KHR_bind_memory2
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory2KHR, VkDevice device,
+                                uint32_t bindInfoCount, const VkBindBufferMemoryInfoKHR *pBindInfos);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2KHR, VkDevice device,
+                                uint32_t bindInfoCount, const VkBindImageMemoryInfoKHR *pBindInfos);
 };

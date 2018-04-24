@@ -140,6 +140,94 @@
 
 // Memory functions
 
+template <>
+VkBindBufferMemoryInfoKHR *WrappedVulkan::UnwrapInfos(const VkBindBufferMemoryInfoKHR *info,
+                                                      uint32_t count)
+{
+  VkBindBufferMemoryInfoKHR *ret = GetTempArray<VkBindBufferMemoryInfoKHR>(count);
+
+  memcpy(ret, info, count * sizeof(VkBindBufferMemoryInfoKHR));
+
+  for(uint32_t i = 0; i < count; i++)
+  {
+    ret[i].buffer = Unwrap(ret[i].buffer);
+    ret[i].memory = Unwrap(ret[i].memory);
+  }
+
+  return ret;
+}
+
+template <>
+VkBindImageMemoryInfoKHR *WrappedVulkan::UnwrapInfos(const VkBindImageMemoryInfoKHR *info,
+                                                     uint32_t count)
+{
+  VkBindImageMemoryInfoKHR *ret = GetTempArray<VkBindImageMemoryInfoKHR>(count);
+
+  memcpy(ret, info, count * sizeof(VkBindImageMemoryInfoKHR));
+
+  for(uint32_t i = 0; i < count; i++)
+  {
+    ret[i].image = Unwrap(ret[i].image);
+    ret[i].memory = Unwrap(ret[i].memory);
+  }
+
+  return ret;
+}
+
+bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId memId,
+                                            VkDeviceSize memoryOffset, VkMemoryRequirements mrq)
+{
+  // verify that the memory meets basic requirements. If not, something changed and we should
+  // bail loading this capture. This is a bit of an under-estimate since we just make sure
+  // there's enough space left in the memory, that doesn't mean that there aren't overlaps due
+  // to increased size requirements.
+  ResourceId memOrigId = GetResourceManager()->GetOriginalID(memId);
+
+  VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[memId];
+  uint32_t bit = 1U << memInfo.memoryTypeIndex;
+
+  // verify type
+  if((mrq.memoryTypeBits & bit) == 0)
+  {
+    RDCERR(
+        "Trying to bind %s to memory %llu which is type %u, "
+        "but only these types are allowed: %08x.\n"
+        "This is most likely caused by incompatible hardware or drivers between capture and "
+        "replay, causing a change in memory requirements.",
+        resourceName, memOrigId, memInfo.memoryTypeIndex, mrq.memoryTypeBits);
+    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+    return false;
+  }
+
+  // verify offset alignment
+  if((memoryOffset % mrq.alignment) != 0)
+  {
+    RDCERR(
+        "Trying to bind %s to memory %llu which is type %u, "
+        "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
+        "This is most likely caused by incompatible hardware or drivers between capture and "
+        "replay, causing a change in memory requirements.",
+        resourceName, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
+    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+    return false;
+  }
+
+  // verify size
+  if(mrq.size > memInfo.size - memoryOffset)
+  {
+    RDCERR(
+        "Trying to bind %s to memory %llu which is type %u, "
+        "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
+        "This is most likely caused by incompatible hardware or drivers between capture and "
+        "replay, causing a change in memory requirements.",
+        resourceName, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.size, memInfo.size);
+    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+    return false;
+  }
+
+  return true;
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice device,
                                                const VkMemoryAllocateInfo *pAllocateInfo,
@@ -879,54 +967,14 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
     ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(buffer));
     ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
 
-    // verify that the memory meets basic requirements. If not, something changed and we should bail
-    // loading this capture. This is a bit of an under-estimate since we just make sure there's
-    // enough space left in the memory, that doesn't mean that there aren't overlaps due to
-    // increased size requirements.
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), &mrq);
 
-    VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(memory)];
-    uint32_t bit = 1U << memInfo.memoryTypeIndex;
+    bool ok = CheckMemoryRequirements(StringFormat::Fmt("Buffer %llu", resOrigId).c_str(),
+                                      GetResID(memory), memoryOffset, mrq);
 
-    // verify type
-    if((mrq.memoryTypeBits & bit) == 0)
-    {
-      RDCERR(
-          "Trying to bind buffer %llu to memory %llu which is type %u, "
-          "but only these types are allowed: %08x.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memInfo.memoryTypeIndex, mrq.memoryTypeBits);
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+    if(!ok)
       return false;
-    }
-
-    // verify offset alignment
-    if((memoryOffset % mrq.alignment) != 0)
-    {
-      RDCERR(
-          "Trying to bind buffer %llu to memory %llu which is type %u, "
-          "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
-      return false;
-    }
-
-    // verify size
-    if(mrq.size > memInfo.size - memoryOffset)
-    {
-      RDCERR(
-          "Trying to bind buffer %llu to memory %llu which is type %u, "
-          "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.size, memInfo.size);
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
-      return false;
-    }
 
     ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
 
@@ -990,54 +1038,14 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
     ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(image));
     ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
 
-    // verify that the memory meets basic requirements. If not, something changed and we should bail
-    // loading this capture. This is a bit of an under-estimate since we just make sure there's
-    // enough space left in the memory, that doesn't mean that there aren't overlaps due to
-    // increased size requirements.
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), &mrq);
 
-    VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(memory)];
-    uint32_t bit = 1U << memInfo.memoryTypeIndex;
+    bool ok = CheckMemoryRequirements(StringFormat::Fmt("Image %llu", resOrigId).c_str(),
+                                      GetResID(memory), memoryOffset, mrq);
 
-    // verify type
-    if((mrq.memoryTypeBits & bit) == 0)
-    {
-      RDCERR(
-          "Trying to bind image %llu to memory %llu which is type %u, "
-          "but only these types are allowed: %08x.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memInfo.memoryTypeIndex, mrq.memoryTypeBits);
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+    if(!ok)
       return false;
-    }
-
-    // verify offset alignment
-    if((memoryOffset % mrq.alignment) != 0)
-    {
-      RDCERR(
-          "Trying to bind image %llu to memory %llu which is type %u, "
-          "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
-      return false;
-    }
-
-    // verify size
-    if(mrq.size > memInfo.size - memoryOffset)
-    {
-      RDCERR(
-          "Trying to bind image %llu to memory %llu which is type %u, "
-          "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
-          "This is most likely caused by incompatible hardware or drivers between capture and "
-          "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.size, memInfo.size);
-      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
-      return false;
-    }
 
     ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
 
@@ -1767,6 +1775,177 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkBindBufferMemory2KHR(SerialiserType &ser, VkDevice device,
+                                                     uint32_t bindInfoCount,
+                                                     const VkBindBufferMemoryInfoKHR *pBindInfos)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(bindInfoCount);
+  SERIALISE_ELEMENT_ARRAY(pBindInfos, bindInfoCount);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      const VkBindBufferMemoryInfoKHR &bindInfo = pBindInfos[i];
+
+      ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.buffer));
+      ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
+
+      VkMemoryRequirements mrq = {};
+      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(bindInfo.buffer), &mrq);
+
+      bool ok = CheckMemoryRequirements(StringFormat::Fmt("Buffer %llu", resOrigId).c_str(),
+                                        GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq);
+
+      if(!ok)
+        return false;
+
+      GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+      GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+
+      AddResourceCurChunk(memOrigId);
+      AddResourceCurChunk(resOrigId);
+    }
+
+    VkBindBufferMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    ObjDisp(device)->BindBufferMemory2KHR(Unwrap(device), bindInfoCount, unwrapped);
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkBindBufferMemory2KHR(VkDevice device, uint32_t bindInfoCount,
+                                               const VkBindBufferMemoryInfoKHR *pBindInfos)
+{
+  VkBindBufferMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->BindBufferMemory2KHR(Unwrap(device), bindInfoCount, unwrapped));
+
+  if(IsCaptureMode(m_State))
+  {
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      VkResourceRecord *bufrecord = GetRecord(pBindInfos[i].buffer);
+      VkResourceRecord *memrecord = GetRecord(pBindInfos[i].memory);
+
+      Chunk *chunk = NULL;
+
+      // we split this batch-bind up, so that each bind goes into the right record
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindBufferMemory2KHR);
+        Serialise_vkBindBufferMemory2KHR(ser, device, bindInfoCount, pBindInfos);
+
+        chunk = scope.Get();
+      }
+
+      // memory object bindings are immutable and must happen before creation or use,
+      // so this can always go into the record, even if a resource is created and bound
+      // to memory mid-frame
+      bufrecord->AddChunk(chunk);
+
+      bufrecord->AddParent(memrecord);
+      bufrecord->baseResource = memrecord->GetResourceID();
+    }
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkBindImageMemory2KHR(SerialiserType &ser, VkDevice device,
+                                                    uint32_t bindInfoCount,
+                                                    const VkBindImageMemoryInfoKHR *pBindInfos)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(bindInfoCount);
+  SERIALISE_ELEMENT_ARRAY(pBindInfos, bindInfoCount);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      const VkBindImageMemoryInfoKHR &bindInfo = pBindInfos[i];
+
+      ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.image));
+      ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
+
+      VkMemoryRequirements mrq = {};
+      ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(bindInfo.image), &mrq);
+
+      bool ok = CheckMemoryRequirements(StringFormat::Fmt("Image %llu", resOrigId).c_str(),
+                                        GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq);
+
+      if(!ok)
+        return false;
+
+      GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+      GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+
+      AddResourceCurChunk(memOrigId);
+      AddResourceCurChunk(resOrigId);
+    }
+
+    VkBindImageMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    ObjDisp(device)->BindImageMemory2KHR(Unwrap(device), bindInfoCount, unwrapped);
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkBindImageMemory2KHR(VkDevice device, uint32_t bindInfoCount,
+                                              const VkBindImageMemoryInfoKHR *pBindInfos)
+{
+  VkBindImageMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->BindImageMemory2KHR(Unwrap(device), bindInfoCount, unwrapped));
+
+  if(IsCaptureMode(m_State))
+  {
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      VkResourceRecord *imgrecord = GetRecord(pBindInfos[i].image);
+      VkResourceRecord *memrecord = GetRecord(pBindInfos[i].memory);
+
+      Chunk *chunk = NULL;
+
+      // we split this batch-bind up, so that each bind goes into the right record
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindImageMemory2KHR);
+        Serialise_vkBindImageMemory2KHR(ser, device, 1, pBindInfos + i);
+
+        chunk = scope.Get();
+      }
+
+      // memory object bindings are immutable and must happen before creation or use,
+      // so this can always go into the record, even if a resource is created and bound
+      // to memory mid-frame
+      imgrecord->AddChunk(chunk);
+
+      imgrecord->AddParent(memrecord);
+
+      // images are a base resource but we want to track where their memory comes from.
+      // Anything that looks up a baseResource for an image knows not to chase further
+      // than the image.
+      imgrecord->baseResource = memrecord->GetResourceID();
+    }
+  }
+
+  return ret;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateMemory, VkDevice device,
                                 const VkMemoryAllocateInfo *pAllocateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkDeviceMemory *pMemory);
@@ -1797,3 +1976,9 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateImage, VkDevice device,
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateImageView, VkDevice device,
                                 const VkImageViewCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkImageView *pView);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory2KHR, VkDevice device,
+                                uint32_t bindInfoCount, const VkBindBufferMemoryInfoKHR *pBindInfos);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2KHR, VkDevice device,
+                                uint32_t bindInfoCount, const VkBindImageMemoryInfoKHR *pBindInfos);

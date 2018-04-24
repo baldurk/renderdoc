@@ -1980,6 +1980,28 @@ void Deserialise(const VkDescriptorUpdateTemplateCreateInfoKHR &el)
   delete[] el.pDescriptorUpdateEntries;
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBindBufferMemoryInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(memoryOffset);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBindImageMemoryInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(memoryOffset);
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2078,6 +2100,8 @@ INSTANTIATE_SERIALISE_TYPE(VkImageResolve);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkBindImageMemoryInfoKHR);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);
