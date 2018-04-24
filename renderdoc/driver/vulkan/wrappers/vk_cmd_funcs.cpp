@@ -880,7 +880,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = CommandBuffer;
+    m_LastCmdBufferID = BakedCommandBuffer;
 
     if(IsActiveReplaying(m_State))
     {
@@ -889,7 +889,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         commandBuffer = RerecordCmdBuf(BakedCommandBuffer);
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Ending re-recorded command buffer for %llu baked to %llu", m_LastCmdBufferID,
+        RDCDEBUG("Ending re-recorded command buffer for %llu baked to %llu", CommandBuffer,
                  BakedCommandBuffer);
 #endif
 
@@ -920,7 +920,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           m_Partial[Primary].partialParent = ResourceId();
       }
 
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
+      m_BakedCmdBufferInfo[CommandBuffer].curEventID = 0;
     }
     else
     {
@@ -928,7 +928,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
       ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
-      if(!m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+      if(!m_BakedCmdBufferInfo[BakedCommandBuffer].curEvents.empty())
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
@@ -936,7 +936,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
         AddDrawcall(draw, true);
 
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+        m_BakedCmdBufferInfo[BakedCommandBuffer].curEventID++;
       }
 
       {
@@ -952,9 +952,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         m_BakedCmdBufferInfo[BakedCommandBuffer].endChunk =
             uint32_t(m_StructuredFile->chunks.size() - 1);
 
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].eventCount = 0;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount = 0;
+        m_BakedCmdBufferInfo[CommandBuffer].curEventID = 0;
+        m_BakedCmdBufferInfo[CommandBuffer].eventCount = 0;
+        m_BakedCmdBufferInfo[CommandBuffer].drawCount = 0;
       }
     }
   }
