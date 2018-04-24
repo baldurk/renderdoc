@@ -43,25 +43,31 @@
   HookInitExtension(VK_KHR_external_memory_win32, GetMemoryWin32HandleKHR);           \
   HookInitExtension(VK_KHR_external_memory_win32, GetMemoryWin32HandlePropertiesKHR); \
   HookInitExtension(VK_KHR_external_semaphore_win32, ImportSemaphoreWin32HandleKHR);  \
-  HookInitExtension(VK_KHR_external_semaphore_win32, GetSemaphoreWin32HandleKHR);
+  HookInitExtension(VK_KHR_external_semaphore_win32, GetSemaphoreWin32HandleKHR);     \
+  HookInitExtension(VK_KHR_external_fence_win32, ImportFenceWin32HandleKHR);          \
+  HookInitExtension(VK_KHR_external_fence_win32, GetFenceWin32HandleKHR);
 
-#define HookDefine_PlatformSpecific()                                                          \
-  HookDefine4(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance,                         \
-              const VkWin32SurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
-              pAllocator, VkSurfaceKHR *, pSurface);                                           \
-  HookDefine2(VkBool32, vkGetPhysicalDeviceWin32PresentationSupportKHR, VkPhysicalDevice,      \
-              physicalDevice, uint32_t, queueFamilyIndex);                                     \
-  HookDefine4(VkResult, vkGetMemoryWin32HandleNV, VkDevice, device, VkDeviceMemory, memory,    \
-              VkExternalMemoryHandleTypeFlagsNV, handleType, HANDLE *, pHandle);               \
-  HookDefine3(VkResult, vkGetMemoryWin32HandleKHR, VkDevice, device,                           \
-              const VkMemoryGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle);  \
-  HookDefine4(VkResult, vkGetMemoryWin32HandlePropertiesKHR, VkDevice, device,                 \
-              VkExternalMemoryHandleTypeFlagBitsKHR, handleType, HANDLE, handle,               \
-              VkMemoryWin32HandlePropertiesKHR *, pMemoryWin32HandleProperties);               \
-  HookDefine2(VkResult, vkImportSemaphoreWin32HandleKHR, VkDevice, device,                     \
-              const VkImportSemaphoreWin32HandleInfoKHR *, pImportSemaphoreWin32HandleInfo);   \
-  HookDefine3(VkResult, vkGetSemaphoreWin32HandleKHR, VkDevice, device,                        \
-              const VkSemaphoreGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle);
+#define HookDefine_PlatformSpecific()                                                            \
+  HookDefine4(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance,                           \
+              const VkWin32SurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *,   \
+              pAllocator, VkSurfaceKHR *, pSurface);                                             \
+  HookDefine2(VkBool32, vkGetPhysicalDeviceWin32PresentationSupportKHR, VkPhysicalDevice,        \
+              physicalDevice, uint32_t, queueFamilyIndex);                                       \
+  HookDefine4(VkResult, vkGetMemoryWin32HandleNV, VkDevice, device, VkDeviceMemory, memory,      \
+              VkExternalMemoryHandleTypeFlagsNV, handleType, HANDLE *, pHandle);                 \
+  HookDefine3(VkResult, vkGetMemoryWin32HandleKHR, VkDevice, device,                             \
+              const VkMemoryGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle);    \
+  HookDefine4(VkResult, vkGetMemoryWin32HandlePropertiesKHR, VkDevice, device,                   \
+              VkExternalMemoryHandleTypeFlagBitsKHR, handleType, HANDLE, handle,                 \
+              VkMemoryWin32HandlePropertiesKHR *, pMemoryWin32HandleProperties);                 \
+  HookDefine2(VkResult, vkImportSemaphoreWin32HandleKHR, VkDevice, device,                       \
+              const VkImportSemaphoreWin32HandleInfoKHR *, pImportSemaphoreWin32HandleInfo);     \
+  HookDefine3(VkResult, vkGetSemaphoreWin32HandleKHR, VkDevice, device,                          \
+              const VkSemaphoreGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle); \
+  HookDefine2(VkResult, vkImportFenceWin32HandleKHR, VkDevice, device,                           \
+              const VkImportFenceWin32HandleInfoKHR *, pImportFenceWin32HandleInfo);             \
+  HookDefine3(VkResult, vkGetFenceWin32HandleKHR, VkDevice, device,                              \
+              const VkFenceGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle);
 
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 
@@ -288,7 +294,8 @@
   CheckExt(EXT_direct_mode_display, VKXX);             \
   CheckExt(EXT_acquire_xlib_display, VKXX);            \
   CheckExt(KHR_external_memory_capabilities, VK11);    \
-  CheckExt(KHR_external_semaphore_capabilities, VK11);
+  CheckExt(KHR_external_semaphore_capabilities, VK11); \
+  CheckExt(KHR_external_fence_capabilities, VK11);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -307,6 +314,9 @@
   CheckExt(KHR_external_semaphore, VK11);         \
   CheckExt(KHR_external_semaphore_win32, VKXX);   \
   CheckExt(KHR_external_semaphore_fd, VKXX);      \
+  CheckExt(KHR_external_fence, VK11);             \
+  CheckExt(KHR_external_fence_win32, VKXX);       \
+  CheckExt(KHR_external_fence_fd, VKXX);          \
   CheckExt(KHR_get_memory_requirements2, VK11);   \
   CheckExt(AMD_shader_info, VKXX);                \
   CheckExt(KHR_push_descriptor, VKXX);            \
@@ -347,6 +357,7 @@
   HookInitExtension(KHR_external_memory_capabilities, GetPhysicalDeviceExternalBufferPropertiesKHR); \
   HookInitExtension(KHR_external_semaphore_capabilities,                                             \
                     GetPhysicalDeviceExternalSemaphorePropertiesKHR);                                \
+  HookInitExtension(KHR_external_fence_capabilities, GetPhysicalDeviceExternalFencePropertiesKHR);   \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                       \
@@ -370,6 +381,8 @@
   HookInitExtension(KHR_external_memory_fd, GetMemoryFdPropertiesKHR);                   \
   HookInitExtension(KHR_external_semaphore_fd, ImportSemaphoreFdKHR);                    \
   HookInitExtension(KHR_external_semaphore_fd, GetSemaphoreFdKHR);                       \
+  HookInitExtension(KHR_external_fence_fd, ImportFenceFdKHR);                            \
+  HookInitExtension(KHR_external_fence_fd, GetFenceFdKHR);                               \
   HookInitExtension(KHR_get_memory_requirements2, GetBufferMemoryRequirements2KHR);      \
   HookInitExtension(KHR_get_memory_requirements2, GetImageMemoryRequirements2KHR);       \
   HookInitExtension(KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2KHR); \
@@ -782,6 +795,13 @@
   HookDefine2(VkResult, vkImportSemaphoreFdKHR, VkDevice, device,                                    \
               const VkImportSemaphoreFdInfoKHR *, pImportSemaphoreFdInfo);                           \
   HookDefine3(VkResult, vkGetSemaphoreFdKHR, VkDevice, device, const VkSemaphoreGetFdInfoKHR *,      \
+              pGetFdInfo, int *, pFd);                                                               \
+  HookDefine3(void, vkGetPhysicalDeviceExternalFencePropertiesKHR, VkPhysicalDevice,                 \
+              physicalDevice, const VkPhysicalDeviceExternalFenceInfoKHR *, pExternalFenceInfo,      \
+              VkExternalFencePropertiesKHR *, pExternalFenceProperties);                             \
+  HookDefine2(VkResult, vkImportFenceFdKHR, VkDevice, device, const VkImportFenceFdInfoKHR *,        \
+              pImportFenceFdInfo);                                                                   \
+  HookDefine3(VkResult, vkGetFenceFdKHR, VkDevice, device, const VkFenceGetFdInfoKHR *,              \
               pGetFdInfo, int *, pFd);                                                               \
   HookDefine3(void, vkGetImageMemoryRequirements2KHR, VkDevice, device,                              \
               const VkImageMemoryRequirementsInfo2KHR *, pInfo, VkMemoryRequirements2KHR *,          \

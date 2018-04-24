@@ -146,6 +146,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHR)                                \
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR)                          \
                                                                                                   \
+  /* VK_KHR_external_fence / .._fd / ..._win32 */                                                 \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_FENCE_CREATE_INFO_KHR)                                    \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR)                              \
+                                                                                                  \
   /* we don't create real swapchains on replay, so we can ignore surface counters */              \
   /* VK_EXT_display_control */                                                                    \
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT)                               \

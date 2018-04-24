@@ -1477,6 +1477,13 @@ public:
   VkResult vkGetSemaphoreWin32HandleKHR(VkDevice device,
                                         const VkSemaphoreGetWin32HandleInfoKHR *pGetWin32HandleInfo,
                                         HANDLE *pHandle);
+
+  // VK_KHR_external_fence_win32
+  VkResult vkImportFenceWin32HandleKHR(
+      VkDevice device, const VkImportFenceWin32HandleInfoKHR *pImportFenceWin32HandleInfo);
+  VkResult vkGetFenceWin32HandleKHR(VkDevice device,
+                                    const VkFenceGetWin32HandleInfoKHR *pGetWin32HandleInfo,
+                                    HANDLE *pHandle);
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -1620,6 +1627,15 @@ public:
   VkResult vkImportSemaphoreFdKHR(VkDevice device,
                                   const VkImportSemaphoreFdInfoKHR *pImportSemaphoreFdInfo);
   VkResult vkGetSemaphoreFdKHR(VkDevice device, const VkSemaphoreGetFdInfoKHR *pGetFdInfo, int *pFd);
+
+  // VK_KHR_external_fence_capabilities
+  void vkGetPhysicalDeviceExternalFencePropertiesKHR(
+      VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfoKHR *pExternalFenceInfo,
+      VkExternalFencePropertiesKHR *pExternalFenceProperties);
+
+  // VK_KHR_external_fence_fd
+  VkResult vkImportFenceFdKHR(VkDevice device, const VkImportFenceFdInfoKHR *pImportFenceFdInfo);
+  VkResult vkGetFenceFdKHR(VkDevice device, const VkFenceGetFdInfoKHR *pGetFdInfo, int *pFd);
 
   // VK_KHR_get_memory_requirements2
   void vkGetImageMemoryRequirements2KHR(VkDevice device,

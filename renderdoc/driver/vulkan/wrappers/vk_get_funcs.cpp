@@ -416,6 +416,15 @@ void WrappedVulkan::vkGetPhysicalDeviceExternalSemaphorePropertiesKHR(
           Unwrap(physicalDevice), pExternalSemaphoreInfo, pExternalSemaphoreProperties);
 }
 
+void WrappedVulkan::vkGetPhysicalDeviceExternalFencePropertiesKHR(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfoKHR *pExternalFenceInfo,
+    VkExternalFencePropertiesKHR *pExternalFenceProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceExternalFencePropertiesKHR(Unwrap(physicalDevice), pExternalFenceInfo,
+                                                    pExternalFenceProperties);
+}
+
 void WrappedVulkan::vkGetPhysicalDeviceFeatures2KHR(VkPhysicalDevice physicalDevice,
                                                     VkPhysicalDeviceFeatures2KHR *pFeatures)
 {

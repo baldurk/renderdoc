@@ -862,6 +862,23 @@ VkResult WrappedVulkan::vkGetSemaphoreFdKHR(VkDevice device,
   return ObjDisp(device)->GetSemaphoreFdKHR(Unwrap(device), &unwrappedInfo, pFd);
 }
 
+VkResult WrappedVulkan::vkImportFenceFdKHR(VkDevice device,
+                                           const VkImportFenceFdInfoKHR *pImportFenceFdInfo)
+{
+  VkImportFenceFdInfoKHR unwrappedInfo = *pImportFenceFdInfo;
+  unwrappedInfo.fence = Unwrap(unwrappedInfo.fence);
+
+  return ObjDisp(device)->ImportFenceFdKHR(Unwrap(device), &unwrappedInfo);
+}
+
+VkResult WrappedVulkan::vkGetFenceFdKHR(VkDevice device, const VkFenceGetFdInfoKHR *pGetFdInfo,
+                                        int *pFd)
+{
+  VkFenceGetFdInfoKHR unwrappedInfo = *pGetFdInfo;
+  unwrappedInfo.fence = Unwrap(unwrappedInfo.fence);
+  return ObjDisp(device)->GetFenceFdKHR(Unwrap(device), &unwrappedInfo, pFd);
+}
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
 VkResult WrappedVulkan::vkImportSemaphoreWin32HandleKHR(
@@ -879,6 +896,23 @@ VkResult WrappedVulkan::vkGetSemaphoreWin32HandleKHR(
   VkSemaphoreGetWin32HandleInfoKHR unwrappedInfo = *pGetWin32HandleInfo;
   unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
   return ObjDisp(device)->GetSemaphoreWin32HandleKHR(Unwrap(device), &unwrappedInfo, pHandle);
+}
+
+VkResult WrappedVulkan::vkImportFenceWin32HandleKHR(
+    VkDevice device, const VkImportFenceWin32HandleInfoKHR *pImportFenceWin32HandleInfo)
+{
+  VkImportFenceWin32HandleInfoKHR unwrappedInfo = *pImportFenceWin32HandleInfo;
+  unwrappedInfo.fence = Unwrap(unwrappedInfo.fence);
+
+  return ObjDisp(device)->ImportFenceWin32HandleKHR(Unwrap(device), &unwrappedInfo);
+}
+
+VkResult WrappedVulkan::vkGetFenceWin32HandleKHR(
+    VkDevice device, const VkFenceGetWin32HandleInfoKHR *pGetWin32HandleInfo, HANDLE *pHandle)
+{
+  VkFenceGetWin32HandleInfoKHR unwrappedInfo = *pGetWin32HandleInfo;
+  unwrappedInfo.fence = Unwrap(unwrappedInfo.fence);
+  return ObjDisp(device)->GetFenceWin32HandleKHR(Unwrap(device), &unwrappedInfo, pHandle);
 }
 
 #endif
