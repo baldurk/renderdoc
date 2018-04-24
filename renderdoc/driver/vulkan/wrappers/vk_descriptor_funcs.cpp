@@ -933,13 +933,6 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
     // handled on queue submission by marking ref'd all the current bindings of the sets referenced
     // by the cmd buffer
 
-    // as long as descriptor sets are forced to have initial states, we don't have to mark them
-    // ref'd for write here. The reason being that as long as we only mark them as ref'd when
-    // they're actually bound, we can safely skip the ref here and it means any descriptor set
-    // updates of descriptor sets that are never used in the frame can be ignored.
-    // GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].destSet),
-    // eFrameRef_Write);
-
     {
       CACHE_THREAD_SERIALISER();
 
@@ -950,20 +943,29 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
 
+    // previously we would not mark descriptor set destinations as ref'd here. This is because all
+    // descriptor sets are implicitly dirty and they're only actually *needed* when bound - we can
+    // safely skip any updates of unused descriptor sets. However for consistency with template
+    // updates below, we pull them in here even if they won't technically be needed.
+
+    for(uint32_t i = 0; i < writeCount; i++)
+    {
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].dstSet),
+                                                        eFrameRef_Write);
+    }
+
     for(uint32_t i = 0; i < copyCount; i++)
     {
-      // Like writes we don't have to mark the written descriptor set as used because unless it's
-      // bound somewhere we don't need it anyway. However we DO have to mark the source set as used
-      // because it doesn't have to be bound to still be needed (think about if the dest set is
-      // bound somewhere after this copy - what refs the source set?).
-      //
       // At the same time as ref'ing the source set, we must ref all of its resources (via the
-      // bindFrameRefs).
+      // bindFrameRefs). This is because they must be valid even if the source set is not ever bound
+      // (and so its bindings aren't pulled in).
       //
       // We just ref all rather than looking at only the copied sets to keep things simple.
       // This does mean a slightly conservative ref'ing if the dest set doesn't end up getting
       // bound, but we only do this during frame capture so it's not too bad.
 
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].dstSet),
+                                                        eFrameRef_Write);
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet),
                                                         eFrameRef_Read);
 
