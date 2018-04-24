@@ -1509,6 +1509,15 @@ void Deserialise(const VkDescriptorSetAllocateInfo &el)
   delete[] el.pSetLayouts;
 }
 
+enum class VkDescriptorImageInfoValidity
+{
+  Neither = 0x0,
+  Sampler = 0x1,
+  ImageView = 0x100,
+};
+
+BITMASK_OPERATORS(VkDescriptorImageInfoValidity);
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDescriptorImageInfo &el)
 {
@@ -1516,8 +1525,20 @@ void DoSerialise(SerialiserType &ser, VkDescriptorImageInfo &el)
   // might still have recorded some updates to it
   OPTIONAL_RESOURCES();
 
-  SERIALISE_MEMBER(sampler);
-  SERIALISE_MEMBER(imageView);
+  VkDescriptorImageInfoValidity validity = (VkDescriptorImageInfoValidity)ser.GetStructArg();
+
+  RDCASSERT(validity != VkDescriptorImageInfoValidity::Neither, (uint64_t)validity);
+
+  if(validity & VkDescriptorImageInfoValidity::Sampler)
+    SERIALISE_MEMBER(sampler);
+  else
+    SERIALISE_MEMBER_EMPTY(sampler);
+
+  if(validity & VkDescriptorImageInfoValidity::ImageView)
+    SERIALISE_MEMBER(imageView);
+  else
+    SERIALISE_MEMBER_EMPTY(imageView);
+
   SERIALISE_MEMBER(imageLayout);
 }
 
@@ -1556,6 +1577,23 @@ void DoSerialise(SerialiserType &ser, VkWriteDescriptorSet &el)
      el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
      el.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
   {
+    VkDescriptorImageInfoValidity validity = VkDescriptorImageInfoValidity::Neither;
+
+    if(el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+       el.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+      validity = validity | VkDescriptorImageInfoValidity::Sampler;
+
+    if(el.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+       el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+       el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+       el.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+      validity = validity | VkDescriptorImageInfoValidity::ImageView;
+
+    // set the validity flags so the serialisation of VkDescriptorImageInfo knows which members are
+    // safe to read. We pass this as just flags so the comparisons happen here once, not per-element
+    // in this array
+    ser.SetStructArg((uint64_t)validity);
+
     SERIALISE_MEMBER_ARRAY(pImageInfo, descriptorCount);
   }
   else
@@ -1860,6 +1898,11 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
   // Resources in this struct are optional, because if we decided a descriptor wasn't used - we
   // might still have recorded the contents of it
   OPTIONAL_RESOURCES();
+
+  // all members are valid because it's either NULL or pointing at an existing element, it won't
+  // point to garbage.
+  ser.SetStructArg(
+      uint64_t(VkDescriptorImageInfoValidity::Sampler | VkDescriptorImageInfoValidity::ImageView));
 
   SERIALISE_MEMBER(bufferInfo);
   SERIALISE_MEMBER(imageInfo);

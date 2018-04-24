@@ -134,6 +134,11 @@ public:
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   void WriteStructuredFile(const SDFile &file, RENDERDOC_ProgressCallback progress);
   void SetDrawChunk() { m_DrawChunk = true; }
+  // the struct argument allows nested structs to pass a bit of data so a child struct can have
+  // context from a parent struct if needed to serialise properly. Rarely used, primarily to be able
+  // to flag if some context-sensitive members might be invalid
+  void SetStructArg(uint64_t arg) { m_StructArg = arg; }
+  uint64_t GetStructArg() { return m_StructArg; }
   //////////////////////////////////////////
   // Public serialisation interface
 
@@ -1561,6 +1566,8 @@ private:
   }
 
   void *m_pUserData = NULL;
+
+  uint64_t m_StructArg = 0;
 
   StreamWriter *m_Write = NULL;
   StreamReader *m_Read = NULL;
