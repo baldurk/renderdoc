@@ -1701,6 +1701,17 @@ std::string DoStringise(const VkConservativeRasterizationModeEXT &el)
 }
 
 template <>
+std::string DoStringise(const VkTessellationDomainOriginKHR &el)
+{
+  BEGIN_ENUM_STRINGISE(VkTessellationDomainOriginKHR);
+  {
+    STRINGISE_ENUM(VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT)
+    STRINGISE_ENUM(VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

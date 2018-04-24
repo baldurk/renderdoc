@@ -1871,8 +1871,9 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::Tessellation &el)
 {
   SERIALISE_MEMBER(numControlPoints);
+  SERIALISE_MEMBER(domainOriginUpperLeft);
 
-  SIZE_CHECK(4);
+  SIZE_CHECK(8);
 }
 
 template <typename SerialiserType>

@@ -120,51 +120,58 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 SERIALISE_VK_HANDLES();
 
 // pNext structure type dispatch
-#define HANDLE_PNEXT()                                                                       \
-  /* we can ignore all external memory extension structs entirely. We don't need to       */ \
-  /* serialise or replay it as we won't actually use external memory and will just create */ \
-  /* normal memory to replay with. */                                                        \
-                                                                                             \
-  /* VK_NV_external_memory / VK_NV_external_memory_win32 */                                  \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)                             \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV)                       \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)                         \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)                         \
-                                                                                             \
-  /* VK_NV_win32_keyed_mutex */                                                              \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV)                  \
-                                                                                             \
-  /* VK_KHR_external_memory / ..._fd / .._win32 */                                           \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)                            \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)                      \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR)                     \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR)                        \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR)                        \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)                                  \
-                                                                                             \
-  /* VK_KHR_external_semaphore / .._fd / ..._win32 */                                        \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHR)                           \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR)                     \
-                                                                                             \
-  /* we don't create real swapchains on replay, so we can ignore surface counters */         \
-  /* VK_EXT_display_control */                                                               \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT)                          \
-                                                                                             \
-  /* for now we don't serialise dedicated memory on replay as it's only a performance */     \
-  /* hint, and is only required in conjunction with shared memory (which we don't */         \
-  /* replay). In future it might be helpful to serialise this for informational purposes. */ \
-                                                                                             \
-  /* VK_NV_dedicated_allocation */                                                           \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV)               \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV)                  \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV)                 \
-                                                                                             \
-  /* VK_KHR_dedicated_allocation */                                                          \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)                         \
-                                                                                             \
-  /* VK_EXT_conservative_rasterization */                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,  \
-               VkPipelineRasterizationConservativeStateCreateInfoEXT)
+#define HANDLE_PNEXT()                                                                            \
+  /* we can ignore all external memory extension structs entirely. We don't need to       */      \
+  /* serialise or replay it as we won't actually use external memory and will just create */      \
+  /* normal memory to replay with. */                                                             \
+                                                                                                  \
+  /* VK_NV_external_memory / VK_NV_external_memory_win32 */                                       \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)                                  \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV)                            \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)                              \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)                              \
+                                                                                                  \
+  /* VK_NV_win32_keyed_mutex */                                                                   \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV)                       \
+                                                                                                  \
+  /* VK_KHR_external_memory / ..._fd / .._win32 */                                                \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)                                 \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)                           \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR)                          \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR)                             \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR)                             \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)                                       \
+                                                                                                  \
+  /* VK_KHR_external_semaphore / .._fd / ..._win32 */                                             \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHR)                                \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR)                          \
+                                                                                                  \
+  /* we don't create real swapchains on replay, so we can ignore surface counters */              \
+  /* VK_EXT_display_control */                                                                    \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT)                               \
+                                                                                                  \
+  /* for now we don't serialise dedicated memory on replay as it's only a performance */          \
+  /* hint, and is only required in conjunction with shared memory (which we don't */              \
+  /* replay). In future it might be helpful to serialise this for informational purposes. */      \
+                                                                                                  \
+  /* VK_NV_dedicated_allocation */                                                                \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV)                    \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV)                       \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV)                      \
+                                                                                                  \
+  /* VK_KHR_dedicated_allocation */                                                               \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)                              \
+                                                                                                  \
+  /* VK_EXT_conservative_rasterization */                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,       \
+               VkPipelineRasterizationConservativeStateCreateInfoEXT)                             \
+                                                                                                  \
+  /* VK_KHR_maintenance2 */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO_KHR,       \
+               VkPipelineTessellationDomainOriginStateCreateInfoKHR)                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO_KHR, VkImageViewUsageCreateInfoKHR) \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO_KHR,             \
+               VkRenderPassInputAttachmentAspectCreateInfoKHR)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -1981,7 +1988,7 @@ void DoSerialise(SerialiserType &ser, VkClearRect &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkClearAttachment &el)
 {
-  SERIALISE_MEMBER(aspectMask);
+  SERIALISE_MEMBER_TYPED(VkImageAspectFlagBits, aspectMask);
   SERIALISE_MEMBER(colorAttachment);
   SERIALISE_MEMBER(clearValue);
 }
@@ -2228,6 +2235,63 @@ template <>
 void Deserialise(const VkPipelineRasterizationConservativeStateCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineTessellationDomainOriginStateCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(domainOrigin);
+}
+
+template <>
+void Deserialise(const VkPipelineTessellationDomainOriginStateCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageViewUsageCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkImageUsageFlagBits, usage);
+}
+
+template <>
+void Deserialise(const VkImageViewUsageCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkInputAttachmentAspectReference &el)
+{
+  SERIALISE_MEMBER(subpass);
+  SERIALISE_MEMBER(inputAttachmentIndex);
+  SERIALISE_MEMBER_TYPED(VkImageAspectFlagBits, aspectMask);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRenderPassInputAttachmentAspectCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(aspectReferenceCount);
+  SERIALISE_MEMBER_ARRAY(pAspectReferences, aspectReferenceCount);
+}
+
+template <>
+void Deserialise(const VkRenderPassInputAttachmentAspectCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pAspectReferences;
 }
 
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);

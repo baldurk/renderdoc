@@ -423,6 +423,9 @@ struct Tessellation
 {
   DOCUMENT("The number of control points in each input patch.");
   uint32_t numControlPoints = 0;
+
+  DOCUMENT("``True`` if the tessellation domain origin is upper-left, ``False`` if lower-left.");
+  bool domainOriginUpperLeft = true;
 };
 
 DOCUMENT("Describes a combined viewport and scissor region.");

@@ -298,6 +298,7 @@
   CheckExt(NV_external_memory_win32, VKXX);       \
   CheckExt(NV_win32_keyed_mutex, VKXX);           \
   CheckExt(KHR_maintenance1, VK11);               \
+  CheckExt(KHR_maintenance2, VK11);               \
   CheckExt(EXT_display_control, VKXX);            \
   CheckExt(KHR_external_memory, VK11);            \
   CheckExt(KHR_external_memory_win32, VKXX);      \

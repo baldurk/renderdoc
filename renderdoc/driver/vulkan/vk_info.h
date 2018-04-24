@@ -174,6 +174,9 @@ struct VulkanCreationInfo
     // VkPipelineTessellationStateCreateInfo
     uint32_t patchControlPoints;
 
+    // VkPipelineTessellationDomainOriginStateCreateInfoKHR
+    VkTessellationDomainOriginKHR tessellationDomainOrigin;
+
     // VkPipelineViewportStateCreateInfo
     uint32_t viewportCount;
     vector<VkViewport> viewports;

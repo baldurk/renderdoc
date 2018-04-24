@@ -228,6 +228,15 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   else
     patchControlPoints = 0;
 
+  tessellationDomainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
+
+  const VkPipelineTessellationDomainOriginStateCreateInfoKHR *tessDomain =
+      (const VkPipelineTessellationDomainOriginStateCreateInfoKHR *)FindNextStruct(
+          pCreateInfo->pTessellationState,
+          VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO);
+  if(tessDomain)
+    tessellationDomainOrigin = tessDomain->domainOrigin;
+
   if(pCreateInfo->pViewportState)
     viewportCount = pCreateInfo->pViewportState->viewportCount;
   else
@@ -420,6 +429,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   primitiveRestartEnable = false;
 
   patchControlPoints = 0;
+
+  tessellationDomainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
 
   viewportCount = 0;
 

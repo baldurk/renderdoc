@@ -910,6 +910,9 @@ void VulkanReplay::SavePipelineState()
     // Tessellation
     m_VulkanPipelineState.tessellation.numControlPoints = p.patchControlPoints;
 
+    m_VulkanPipelineState.tessellation.domainOriginUpperLeft =
+        p.tessellationDomainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
+
     // Viewport/Scissors
     size_t numViewScissors = p.viewportCount;
     m_VulkanPipelineState.viewportScissor.viewportScissors.resize(numViewScissors);

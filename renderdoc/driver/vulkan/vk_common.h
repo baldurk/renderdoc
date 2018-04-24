@@ -618,6 +618,10 @@ DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkBindBufferMemoryInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkBindImageMemoryInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationConservativeStateCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkImageViewUsageCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkInputAttachmentAspectReference);
+DECLARE_REFLECTION_STRUCT(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -658,6 +662,9 @@ DECLARE_DESERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkBindImageMemoryInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkImageViewUsageCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
@@ -724,3 +731,4 @@ DECLARE_REFLECTION_ENUM(VkColorSpaceKHR);
 DECLARE_REFLECTION_ENUM(VkPresentModeKHR);
 DECLARE_REFLECTION_ENUM(VkDescriptorUpdateTemplateType);
 DECLARE_REFLECTION_ENUM(VkConservativeRasterizationModeEXT);
+DECLARE_REFLECTION_ENUM(VkTessellationDomainOriginKHR);
