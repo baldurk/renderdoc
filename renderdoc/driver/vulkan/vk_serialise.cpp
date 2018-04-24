@@ -119,80 +119,156 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
 SERIALISE_VK_HANDLES();
 
-template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkGenericStruct &el)
-{
-  SERIALISE_MEMBER(sType);
-  SERIALISE_MEMBER_OPT(pNext);
-
-  RDCERR("Unexpected VkGenericStruct being serialised!");
-
-  // here we'd switch on sType to serialise the rest of the members
-}
+// pNext structure type dispatch
+#define HANDLE_PNEXT()                                                                       \
+  /* we can ignore all external memory extension structs entirely. We don't need to       */ \
+  /* serialise or replay it as we won't actually use external memory and will just create */ \
+  /* normal memory to replay with. */                                                        \
+                                                                                             \
+  /* VK_NV_external_memory / VK_NV_external_memory_win32 */                                  \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)                             \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV)                       \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)                         \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)                         \
+                                                                                             \
+  /* VK_NV_win32_keyed_mutex */                                                              \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV)                  \
+                                                                                             \
+  /* VK_KHR_external_memory / ..._fd / .._win32 */                                           \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)                            \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)                      \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR)                     \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR)                        \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR)                        \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)                                  \
+                                                                                             \
+  /* VK_KHR_external_semaphore / .._fd / ..._win32 */                                        \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHR)                           \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR)                     \
+                                                                                             \
+  /* we don't create real swapchains on replay, so we can ignore surface counters */         \
+  /* VK_EXT_display_control */                                                               \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT)                          \
+                                                                                             \
+  /* for now we don't serialise dedicated memory on replay as it's only a performance */     \
+  /* hint, and is only required in conjunction with shared memory (which we don't */         \
+  /* replay). In future it might be helpful to serialise this for informational purposes. */ \
+                                                                                             \
+  /* VK_NV_dedicated_allocation */                                                           \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV)               \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV)                  \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV)                 \
+                                                                                             \
+  /* VK_KHR_dedicated_allocation */                                                          \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
 {
+  // this is the parent sType, serialised here for convenience
   ser.Serialise("sType", sType);
-
-  // we just serialise a dummy pointer to preserve it here.
-  VkGenericStruct *dummy = NULL;
-  ser.SerialiseNullable("pNext", dummy);
 
   if(ser.IsReading())
   {
+    // default to a NULL pNext
     pNext = NULL;
-  }
-  else
-  {
-    if(pNext == NULL)
-      return;
 
+    // serialise a nullable next type, to tell us the type of object that's serialised. This is
+    // hidden as it doesn't correspond to the actual pNext, it's just metadata to help us launch the
+    // serialisation.
+    VkStructureType *nextType = NULL;
+    ser.SerialiseNullable("pNext", nextType);
+
+    // most common case - no pNext serialised. Bail immediately
+    if(nextType == NULL)
+    {
+      // fixup the structured data, set the type to void*
+      ser.TypedAs("void *");
+      return;
+    }
+
+    // hide and rename the pNextType if we got something - we'll want the pNext below to be the only
+    // thing user-facing.
+    ser.Named("pNextType").Hidden();
+
+// any pNext structs that we ignore should not be present on reading - print an error
+#define PNEXT_IGNORE(StructType) \
+  case StructType: RDCERR("Serialised ignore struct %s", ToStr(*nextType).c_str()); break;
+
+// if we come across a struct we should process, then serialise a pointer to it.
+#define PNEXT_STRUCT(StructType, StructName)    \
+  case StructType:                              \
+  {                                             \
+    StructName *nextStruct = NULL;              \
+    ser.SerialiseNullable("pNext", nextStruct); \
+    pNext = nextStruct;                         \
+    break;                                      \
+  }
+
+    // this serialises the pNext with the right type, as nullable. We already know from above that
+    // there IS something here, so the nullable is redundant but convenient
+    switch(*nextType)
+    {
+      HANDLE_PNEXT();
+      default:
+      {
+        RDCERR("Unexpected/unhandled next structure type %s", ToStr(*nextType).c_str());
+        break;
+      }
+    }
+
+    // delete the type itself. Any pNext we serialised is saved in the pNext pointer and will be
+    // deleted in DeserialiseNext()
+    delete nextType;
+
+    // note, we don't have to serialise more of the chain - this is recursive, if there was more of
+    // the pNext chain it would be done recursively above
+  }
+  else    // ser.IsWriting()
+  {
+// any pNext structs that we ignore, just break and keep walking the chain
+#undef PNEXT_IGNORE
+#define PNEXT_IGNORE(StructType) \
+  case StructType: break;
+
+// if we come across a struct we should process, then serialise a pointer to its type (to tell the
+// reading serialisation what struct is coming up), then a pointer to it.
+// We don't have to go any further, the act of serialising this struct will walk the chain further,
+// so we can return immediately.
+#undef PNEXT_STRUCT
+#define PNEXT_STRUCT(StructType, StructName)      \
+  case StructType:                                \
+  {                                               \
+    VkStructureType *nextType = &next->sType;     \
+    ser.SerialiseNullable("pNextType", nextType); \
+    StructName *actual = (StructName *)next;      \
+    ser.SerialiseNullable("pNext", actual);       \
+    return;                                       \
+  }
+
+    // walk the pNext chain, skipping any structs we don't care about serialising.
     VkGenericStruct *next = (VkGenericStruct *)pNext;
 
     while(next)
     {
-      // we can ignore this entirely, we don't need to serialise or replay it as we won't
-      // actually use external memory. Unwrapping, if necessary, happens elsewhere
-      if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV ||
-         next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
-         next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV ||
-         next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV ||
-         next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV ||
-
-         next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHR ||
-         next->sType == VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR)
+      switch(next->sType)
       {
-        // do nothing
-      }
-      // likewise we don't create real swapchains, so we can ignore surface counters
-      else if(next->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT)
-      {
-        // do nothing
-      }
-      // for now we don't serialise dedicated memory on replay as it's only a performance hint,
-      // and is only required in conjunction with shared memory (which we don't replay). In future
-      // it might be helpful to serialise this for informational purposes.
-      else if(next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV ||
-              next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV ||
-              next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV ||
-              next->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
-      {
-        // do nothing
-      }
-      else
-      {
-        RDCERR("Unrecognised extension structure type %d", next->sType);
+        HANDLE_PNEXT();
+        default:
+        {
+          RDCERR("Unrecognised extension structure type %s", ToStr(next->sType).c_str());
+          break;
+        }
       }
 
+      // walk to the next item if we didn't serialise the current one
       next = (VkGenericStruct *)next->pNext;
     }
+
+    // if we got here, either pNext was NULL (common) or we skipped the whole chain. Serialise a
+    // NULL structure type to indicate that.
+    VkStructureType *dummy = NULL;
+    ser.SerialiseNullable("pNext", dummy);
   }
 }
 
@@ -202,6 +278,17 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, void *&pN
   const void *tmpNext = pNext;
   SerialiseNext(ser, sType, tmpNext);
   pNext = (void *)tmpNext;
+}
+
+static inline void DeserialiseNext(const void *pNext)
+{
+  if(pNext == NULL)
+    return;
+
+  // walk the chain, deserialising from the tail back
+  const VkGenericStruct *gen = (const VkGenericStruct *)pNext;
+  DeserialiseNext(gen->pNext);
+  delete gen;
 }
 
 template <typename SerialiserType>
@@ -479,9 +566,12 @@ void DoSerialise(SerialiserType &ser, VkDeviceCreateInfo &el)
 template <>
 void Deserialise(const VkDeviceCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   for(uint32_t i = 0; i < el.queueCreateInfoCount; i++)
+  {
+    DeserialiseNext(el.pQueueCreateInfos[i].pNext);
     delete[] el.pQueueCreateInfos[i].pQueuePriorities;
+  }
   delete[] el.pQueueCreateInfos;
   delete[] el.ppEnabledExtensionNames;
   delete[] el.ppEnabledLayerNames;
@@ -516,7 +606,7 @@ void DoSerialise(SerialiserType &ser, VkBufferCreateInfo &el)
 template <>
 void Deserialise(const VkBufferCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pQueueFamilyIndices;
 }
 
@@ -531,6 +621,12 @@ void DoSerialise(SerialiserType &ser, VkBufferViewCreateInfo &el)
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(range);
+}
+
+template <>
+void Deserialise(const VkBufferViewCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -569,7 +665,7 @@ void DoSerialise(SerialiserType &ser, VkImageCreateInfo &el)
 template <>
 void Deserialise(const VkImageCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pQueueFamilyIndices;
 }
 
@@ -593,6 +689,12 @@ void DoSerialise(SerialiserType &ser, VkImageViewCreateInfo &el)
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(components);
   SERIALISE_MEMBER(subresourceRange);
+}
+
+template <>
+void Deserialise(const VkImageViewCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -663,7 +765,7 @@ void DoSerialise(SerialiserType &ser, VkBindSparseInfo &el)
 template <>
 void Deserialise(const VkBindSparseInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pWaitSemaphores;
   for(uint32_t i = 0; i < el.bufferBindCount; i++)
     delete[] el.pBufferBinds[i].pBinds;
@@ -706,7 +808,7 @@ void DoSerialise(SerialiserType &ser, VkSubmitInfo &el)
 template <>
 void Deserialise(const VkSubmitInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pWaitSemaphores;
   delete[] el.pCommandBuffers;
   delete[] el.pSignalSemaphores;
@@ -730,7 +832,7 @@ void DoSerialise(SerialiserType &ser, VkFramebufferCreateInfo &el)
 template <>
 void Deserialise(const VkFramebufferCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pAttachments;
 }
 
@@ -804,7 +906,7 @@ void DoSerialise(SerialiserType &ser, VkRenderPassCreateInfo &el)
 template <>
 void Deserialise(const VkRenderPassCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pAttachments;
   for(uint32_t i = 0; i < el.subpassCount; i++)
   {
@@ -835,7 +937,7 @@ void DoSerialise(SerialiserType &ser, VkRenderPassBeginInfo &el)
 template <>
 void Deserialise(const VkRenderPassBeginInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pClearValues;
 }
 
@@ -1008,6 +1110,12 @@ void DoSerialise(SerialiserType &ser, VkCommandPoolCreateInfo &el)
   SERIALISE_MEMBER(queueFamilyIndex);
 }
 
+template <>
+void Deserialise(const VkCommandPoolCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkCommandBufferAllocateInfo &el)
 {
@@ -1017,6 +1125,12 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferAllocateInfo &el)
   SERIALISE_MEMBER(commandPool);
   SERIALISE_MEMBER(level);
   SERIALISE_MEMBER(commandBufferCount);
+}
+
+template <>
+void Deserialise(const VkCommandBufferAllocateInfo &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1046,7 +1160,9 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferBeginInfo &el)
 template <>
 void Deserialise(const VkCommandBufferBeginInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
+  if(el.pInheritanceInfo)
+    DeserialiseNext(el.pInheritanceInfo->pNext);
   delete el.pInheritanceInfo;
 }
 
@@ -1074,6 +1190,12 @@ void DoSerialise(SerialiserType &ser, VkQueryPoolCreateInfo &el)
   SERIALISE_MEMBER_TYPED(VkQueryPipelineStatisticFlagBits, pipelineStatistics);
 }
 
+template <>
+void Deserialise(const VkQueryPoolCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSemaphoreCreateInfo &el)
 {
@@ -1081,6 +1203,12 @@ void DoSerialise(SerialiserType &ser, VkSemaphoreCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+}
+
+template <>
+void Deserialise(const VkSemaphoreCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1092,6 +1220,12 @@ void DoSerialise(SerialiserType &ser, VkEventCreateInfo &el)
   SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
 }
 
+template <>
+void Deserialise(const VkEventCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkFenceCreateInfo &el)
 {
@@ -1099,6 +1233,12 @@ void DoSerialise(SerialiserType &ser, VkFenceCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_TYPED(VkFenceCreateFlagBits, flags);
+}
+
+template <>
+void Deserialise(const VkFenceCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1123,6 +1263,12 @@ void DoSerialise(SerialiserType &ser, VkSamplerCreateInfo &el)
   SERIALISE_MEMBER(maxLod);
   SERIALISE_MEMBER(borderColor);
   SERIALISE_MEMBER(unnormalizedCoordinates);
+}
+
+template <>
+void Deserialise(const VkSamplerCreateInfo &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1193,7 +1339,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineCacheCreateInfo &el)
 template <>
 void Deserialise(const VkPipelineCacheCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   FreeAlignedBuffer((byte *)el.pInitialData);
 }
 
@@ -1213,7 +1359,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineLayoutCreateInfo &el)
 template <>
 void Deserialise(const VkPipelineLayoutCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pSetLayouts;
   delete[] el.pPushConstantRanges;
 }
@@ -1246,7 +1392,7 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleCreateInfo &el)
 template <>
 void Deserialise(const VkShaderModuleCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   FreeAlignedBuffer((byte *)el.pCode);
 }
 
@@ -1287,6 +1433,12 @@ void DoSerialise(SerialiserType &ser, VkMemoryAllocateInfo &el)
   SERIALISE_MEMBER(memoryTypeIndex);
 }
 
+template <>
+void Deserialise(const VkMemoryAllocateInfo &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkMemoryBarrier &el)
 {
@@ -1295,6 +1447,12 @@ void DoSerialise(SerialiserType &ser, VkMemoryBarrier &el)
 
   SERIALISE_MEMBER_TYPED(VkAccessFlagBits, srcAccessMask);
   SERIALISE_MEMBER_TYPED(VkAccessFlagBits, dstAccessMask);
+}
+
+template <>
+void Deserialise(const VkMemoryBarrier &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1318,6 +1476,12 @@ void DoSerialise(SerialiserType &ser, VkBufferMemoryBarrier &el)
   SERIALISE_MEMBER(size);
 }
 
+template <>
+void Deserialise(const VkBufferMemoryBarrier &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImageMemoryBarrier &el)
 {
@@ -1338,6 +1502,12 @@ void DoSerialise(SerialiserType &ser, VkImageMemoryBarrier &el)
   SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
   SERIALISE_MEMBER(image);
   SERIALISE_MEMBER(subresourceRange);
+}
+
+template <>
+void Deserialise(const VkImageMemoryBarrier &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1370,27 +1540,27 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
 template <>
 void Deserialise(const VkGraphicsPipelineCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   if(el.pVertexInputState)
   {
-    RDCASSERT(el.pVertexInputState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pVertexInputState->pNext);
     delete[] el.pVertexInputState->pVertexBindingDescriptions;
     delete[] el.pVertexInputState->pVertexAttributeDescriptions;
     delete el.pVertexInputState;
   }
   if(el.pInputAssemblyState)
   {
-    RDCASSERT(el.pInputAssemblyState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pInputAssemblyState->pNext);
     delete el.pInputAssemblyState;
   }
   if(el.pTessellationState)
   {
-    RDCASSERT(el.pTessellationState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pTessellationState->pNext);
     delete el.pTessellationState;
   }
   if(el.pViewportState)
   {
-    RDCASSERT(el.pViewportState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pViewportState->pNext);
     if(el.pViewportState->pViewports)
       delete[] el.pViewportState->pViewports;
     if(el.pViewportState->pScissors)
@@ -1399,36 +1569,36 @@ void Deserialise(const VkGraphicsPipelineCreateInfo &el)
   }
   if(el.pRasterizationState)
   {
-    RDCASSERT(el.pRasterizationState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pRasterizationState->pNext);
     delete el.pRasterizationState;
   }
   if(el.pMultisampleState)
   {
-    RDCASSERT(el.pMultisampleState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pMultisampleState->pNext);
     delete el.pMultisampleState->pSampleMask;
     delete el.pMultisampleState;
   }
   if(el.pDepthStencilState)
   {
-    RDCASSERT(el.pDepthStencilState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pDepthStencilState->pNext);
     delete el.pDepthStencilState;
   }
   if(el.pColorBlendState)
   {
-    RDCASSERT(el.pColorBlendState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pColorBlendState->pNext);
     delete[] el.pColorBlendState->pAttachments;
     delete el.pColorBlendState;
   }
   if(el.pDynamicState)
   {
-    RDCASSERT(el.pDynamicState->pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pDynamicState->pNext);
     if(el.pDynamicState->pDynamicStates)
       delete[] el.pDynamicState->pDynamicStates;
     delete el.pDynamicState;
   }
   for(uint32_t i = 0; i < el.stageCount; i++)
   {
-    RDCASSERT(el.pStages[i].pNext == NULL);    // otherwise delete
+    DeserialiseNext(el.pStages[i].pNext);
     if(el.pStages[i].pSpecializationInfo)
     {
       FreeAlignedBuffer((byte *)el.pStages[i].pSpecializationInfo->pData);
@@ -1455,8 +1625,8 @@ void DoSerialise(SerialiserType &ser, VkComputePipelineCreateInfo &el)
 template <>
 void Deserialise(const VkComputePipelineCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);          // otherwise delete
-  RDCASSERT(el.stage.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
+  DeserialiseNext(el.stage.pNext);
   if(el.stage.pSpecializationInfo)
   {
     FreeAlignedBuffer((byte *)(el.stage.pSpecializationInfo->pData));
@@ -1487,7 +1657,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorPoolCreateInfo &el)
 template <>
 void Deserialise(const VkDescriptorPoolCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pPoolSizes;
 }
 
@@ -1505,7 +1675,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetAllocateInfo &el)
 template <>
 void Deserialise(const VkDescriptorSetAllocateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pSetLayouts;
 }
 
@@ -1627,7 +1797,7 @@ void DoSerialise(SerialiserType &ser, VkWriteDescriptorSet &el)
 template <>
 void Deserialise(const VkWriteDescriptorSet &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   if(el.pImageInfo)
     delete[] el.pImageInfo;
   if(el.pBufferInfo)
@@ -1654,6 +1824,12 @@ void DoSerialise(SerialiserType &ser, VkCopyDescriptorSet &el)
   SERIALISE_MEMBER(dstArrayElement);
   SERIALISE_MEMBER(descriptorCount);
 }
+
+template <>
+void Deserialise(const VkCopyDescriptorSet &el)
+{
+  DeserialiseNext(el.pNext);
+};
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPushConstantRange &el)
@@ -1687,7 +1863,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutCreateInfo &el)
 template <>
 void Deserialise(const VkDescriptorSetLayoutCreateInfo &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   for(uint32_t i = 0; i < el.bindingCount; i++)
     if(el.pBindings[i].pImmutableSamplers)
       delete[] el.pBindings[i].pImmutableSamplers;
@@ -1712,6 +1888,12 @@ void DoSerialise(SerialiserType &ser, VkMappedMemoryRange &el)
   SERIALISE_MEMBER(memory);
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(size);
+}
+
+template <>
+void Deserialise(const VkMappedMemoryRange &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -1880,6 +2062,12 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   SERIALISE_MEMBER_EMPTY(oldSwapchain);
 }
 
+template <>
+void Deserialise(const VkSwapchainCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDebugMarkerMarkerInfoEXT &el)
 {
@@ -1888,6 +2076,12 @@ void DoSerialise(SerialiserType &ser, VkDebugMarkerMarkerInfoEXT &el)
 
   SERIALISE_MEMBER(pMarkerName);
   SERIALISE_MEMBER(color);
+}
+
+template <>
+void Deserialise(const VkDebugMarkerMarkerInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 // this isn't a real vulkan type, it's our own "anything that could be in a descriptor"
@@ -1976,7 +2170,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateCreateInfoKHR &e
 template <>
 void Deserialise(const VkDescriptorUpdateTemplateCreateInfoKHR &el)
 {
-  RDCASSERT(el.pNext == NULL);    // otherwise delete
+  DeserialiseNext(el.pNext);
   delete[] el.pDescriptorUpdateEntries;
 }
 
@@ -1991,6 +2185,12 @@ void DoSerialise(SerialiserType &ser, VkBindBufferMemoryInfoKHR &el)
   SERIALISE_MEMBER(memoryOffset);
 }
 
+template <>
+void Deserialise(const VkBindBufferMemoryInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkBindImageMemoryInfoKHR &el)
 {
@@ -2000,6 +2200,12 @@ void DoSerialise(SerialiserType &ser, VkBindImageMemoryInfoKHR &el)
   SERIALISE_MEMBER(image);
   SERIALISE_MEMBER(memory);
   SERIALISE_MEMBER(memoryOffset);
+}
+
+template <>
+void Deserialise(const VkBindImageMemoryInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);

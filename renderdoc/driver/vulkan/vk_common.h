@@ -271,6 +271,24 @@ void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   nextChainTail = (VkGenericStruct *)outputStruct;
 }
 
+template <typename VkStruct>
+const VkGenericStruct *FindNextStruct(const VkStruct *haystack, VkStructureType needle)
+{
+  if(!haystack)
+    return NULL;
+
+  const VkGenericStruct *next = (const VkGenericStruct *)haystack->pNext;
+  while(next)
+  {
+    if(next->sType == needle)
+      return next;
+
+    next = next->pNext;
+  }
+
+  return NULL;
+}
+
 enum class MemoryScope : uint8_t
 {
   InitialContents,
@@ -602,7 +620,9 @@ DECLARE_REFLECTION_STRUCT(VkBindImageMemoryInfoKHR);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkBufferViewCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkImageCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkImageViewCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBindSparseInfo);
 DECLARE_DESERIALISE_TYPE(VkSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetAllocateInfo);
@@ -610,15 +630,32 @@ DECLARE_DESERIALISE_TYPE(VkFramebufferCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferBeginInfo);
+DECLARE_DESERIALISE_TYPE(VkCommandPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkCommandBufferAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineCacheCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineLayoutCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkShaderModuleCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkGraphicsPipelineCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkComputePipelineCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDescriptorPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkQueryPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkSemaphoreCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkEventCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkFenceCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkSamplerCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkMemoryAllocateInfo);
+DECLARE_DESERIALISE_TYPE(VkMemoryBarrier);
+DECLARE_DESERIALISE_TYPE(VkBufferMemoryBarrier);
+DECLARE_DESERIALISE_TYPE(VkImageMemoryBarrier);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
+DECLARE_DESERIALISE_TYPE(VkCopyDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkMappedMemoryRange);
+DECLARE_DESERIALISE_TYPE(VkSwapchainCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkBindImageMemoryInfoKHR);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
