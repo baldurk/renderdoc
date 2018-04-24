@@ -191,6 +191,10 @@ struct VulkanCreationInfo
     float depthBiasSlopeFactor;
     float lineWidth;
 
+    // VkPipelineRasterizationConservativeStateCreateInfoEXT
+    VkConservativeRasterizationModeEXT conservativeRasterizationMode;
+    float extraPrimitiveOverestimationSize;
+
     // VkPipelineMultisampleStateCreateInfo
     VkSampleCountFlagBits rasterizationSamples;
     bool sampleShadingEnable;

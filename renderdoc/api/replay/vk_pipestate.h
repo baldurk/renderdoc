@@ -457,10 +457,20 @@ to ``0.0`` to ``1.0`` and not clipped.
 ``False`` if clockwise polygons are front-facing.
 )");
   bool frontCCW = false;
-  DOCUMENT("The polygon fill mode.");
+  DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
-  DOCUMENT("The polygon culling mode.");
+  DOCUMENT("The polygon :class:`CullMode`.");
   CullMode cullMode = CullMode::NoCull;
+
+  DOCUMENT("The active conservative rasterization mode.");
+  ConservativeRaster conservativeRasterization = ConservativeRaster::Disabled;
+
+  DOCUMENT(R"(The extra size in pixels to increase primitives by during conservative rasterization,
+in the x and y directions in screen space.
+
+See :data:`conservativeRasterizationMode`
+)");
+  float extraPrimitiveOverestimationSize = 0.0f;
 
   DOCUMENT("The fixed depth bias value to apply to z-values.");
   float depthBias = 0.0f;

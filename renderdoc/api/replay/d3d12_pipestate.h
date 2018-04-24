@@ -509,9 +509,9 @@ struct StreamOut
 DOCUMENT("Describes the rasterizer state in the PSO.");
 struct RasterizerState
 {
-  DOCUMENT("The polygon fill mode.");
+  DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
-  DOCUMENT("The polygon culling mode.");
+  DOCUMENT("The polygon :class:`CullMode`.");
   CullMode cullMode = CullMode::NoCull;
   DOCUMENT(R"(``True`` if counter-clockwise polygons are front-facing.
 ``False`` if clockwise polygons are front-facing.
@@ -537,8 +537,8 @@ struct RasterizerState
 not force any sample count.
 )");
   uint32_t forcedSampleCount = 0;
-  DOCUMENT("``True`` if a conservative rasterization algorithm should be used.");
-  bool conservativeRasterization = false;
+  DOCUMENT("The current :class:`ConservativeRaster` mode.");
+  ConservativeRaster conservativeRasterization = ConservativeRaster::Disabled;
 };
 
 DOCUMENT("Describes the rasterization state of the D3D12 pipeline.");

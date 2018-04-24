@@ -953,6 +953,22 @@ void VulkanReplay::SavePipelineState()
     m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
     m_VulkanPipelineState.rasterizer.frontCCW = p.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
+    m_VulkanPipelineState.rasterizer.conservativeRasterization = ConservativeRaster::Disabled;
+    switch(p.conservativeRasterizationMode)
+    {
+      case VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT:
+        m_VulkanPipelineState.rasterizer.conservativeRasterization =
+            ConservativeRaster::Underestimate;
+        break;
+      case VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT:
+        m_VulkanPipelineState.rasterizer.conservativeRasterization = ConservativeRaster::Overestimate;
+        break;
+      default: break;
+    }
+
+    m_VulkanPipelineState.rasterizer.extraPrimitiveOverestimationSize =
+        p.extraPrimitiveOverestimationSize;
+
     switch(p.polygonMode)
     {
       case VK_POLYGON_MODE_POINT:

@@ -419,9 +419,9 @@ struct Feedback
 DOCUMENT("Describes the rasterizer state toggles.");
 struct RasterizerState
 {
-  DOCUMENT("The polygon fill mode.");
+  DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
-  DOCUMENT("The polygon culling mode.");
+  DOCUMENT("The polygon :class:`CullMode`.");
   CullMode cullMode = CullMode::NoCull;
   DOCUMENT(R"(``True`` if counter-clockwise polygons are front-facing.
 ``False`` if clockwise polygons are front-facing.

@@ -257,6 +257,20 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   depthBiasSlopeFactor = pCreateInfo->pRasterizationState->depthBiasSlopeFactor;
   lineWidth = pCreateInfo->pRasterizationState->lineWidth;
 
+  // VkPipelineRasterizationConservativeStateCreateInfoEXT
+  conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
+  extraPrimitiveOverestimationSize = 0.0f;
+
+  const VkPipelineRasterizationConservativeStateCreateInfoEXT *conservRast =
+      (const VkPipelineRasterizationConservativeStateCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pRasterizationState,
+          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT);
+  if(conservRast)
+  {
+    conservativeRasterizationMode = conservRast->conservativeRasterizationMode;
+    extraPrimitiveOverestimationSize = conservRast->extraPrimitiveOverestimationSize;
+  }
+
   // VkPipelineMultisampleStateCreateInfo
   if(pCreateInfo->pMultisampleState)
   {
@@ -415,6 +429,10 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   polygonMode = VK_POLYGON_MODE_FILL;
   cullMode = VK_CULL_MODE_NONE;
   frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+  // VkPipelineRasterizationConservativeStateCreateInfoEXT
+  conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
+  extraPrimitiveOverestimationSize = 0.0f;
 
   // VkPipelineMultisampleStateCreateInfo
   rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;

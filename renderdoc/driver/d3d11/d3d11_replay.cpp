@@ -990,8 +990,13 @@ void D3D11Replay::SavePipelineState()
       if(CanQuery<ID3D11RasterizerState2>(rs->RS.State))
       {
         ((ID3D11RasterizerState2 *)rs->RS.State)->GetDesc2(&desc2);
+
+        // D3D only supports overestimate conservative raster (underestimated can be emulated using
+        // coverage information in the shader)
         ret.rasterizer.state.conservativeRasterization =
-            desc2.ConservativeRaster == D3D11_CONSERVATIVE_RASTERIZATION_MODE_ON;
+            desc2.ConservativeRaster == D3D11_CONSERVATIVE_RASTERIZATION_MODE_ON
+                ? ConservativeRaster::Overestimate
+                : ConservativeRaster::Disabled;
       }
 
       ret.rasterizer.state.resourceId = rm->GetOriginalID(GetIDForResource(rs->RS.State));

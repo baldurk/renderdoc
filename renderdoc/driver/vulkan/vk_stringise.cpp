@@ -1689,6 +1689,18 @@ std::string DoStringise(const VkDescriptorUpdateTemplateType &el)
 }
 
 template <>
+std::string DoStringise(const VkConservativeRasterizationModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkConservativeRasterizationModeEXT);
+  {
+    STRINGISE_ENUM(VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT)
+    STRINGISE_ENUM(VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT)
+    STRINGISE_ENUM(VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

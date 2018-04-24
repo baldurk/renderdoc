@@ -574,6 +574,9 @@ void VulkanPipelineStateViewer::clearState()
   ui->rasterizerDiscard->setPixmap(tick);
   ui->lineWidth->setText(lit("1.0"));
 
+  ui->conservativeRaster->setText(tr("Disabled"));
+  ui->overestimationSize->setText(lit("0.0"));
+
   ui->sampleCount->setText(lit("1"));
   ui->sampleShading->setPixmap(tick);
   ui->minSampleShading->setText(lit("0.0"));
@@ -1787,6 +1790,10 @@ void VulkanPipelineStateViewer::setState()
   ui->depthClamp->setPixmap(state.rasterizer.depthClampEnable ? tick : cross);
   ui->rasterizerDiscard->setPixmap(state.rasterizer.rasterizerDiscardEnable ? tick : cross);
   ui->lineWidth->setText(Formatter::Format(state.rasterizer.lineWidth));
+
+  ui->conservativeRaster->setText(ToQStr(state.rasterizer.conservativeRasterization));
+  ui->overestimationSize->setText(
+      Formatter::Format(state.rasterizer.extraPrimitiveOverestimationSize));
 
   ui->sampleCount->setText(QString::number(state.multisample.rasterSamples));
   ui->sampleShading->setPixmap(state.multisample.sampleShadingEnable ? tick : cross);

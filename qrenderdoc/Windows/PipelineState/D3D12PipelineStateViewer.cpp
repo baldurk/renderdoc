@@ -1525,7 +1525,9 @@ void D3D12PipelineStateViewer::setState()
   ui->depthBiasClamp->setText(Formatter::Format(state.rasterizer.state.depthBiasClamp));
   ui->slopeScaledBias->setText(Formatter::Format(state.rasterizer.state.slopeScaledDepthBias));
   ui->forcedSampleCount->setText(QString::number(state.rasterizer.state.forcedSampleCount));
-  ui->conservativeRaster->setPixmap(state.rasterizer.state.conservativeRasterization ? tick : cross);
+  ui->conservativeRaster->setPixmap(
+      state.rasterizer.state.conservativeRasterization != ConservativeRaster::Disabled ? tick
+                                                                                       : cross);
 
   ////////////////////////////////////////////////
   // Output Merger
@@ -2775,7 +2777,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
               tr("Conservative Raster"), tr("Sample Mask")},
         {rs.state.antialiasedLines ? tr("Yes") : tr("No"),
          rs.state.multisampleEnable ? tr("Yes") : tr("No"), rs.state.forcedSampleCount,
-         rs.state.conservativeRasterization ? tr("Yes") : tr("No"),
+         rs.state.conservativeRasterization != ConservativeRaster::Disabled ? tr("Yes") : tr("No"),
          Formatter::Format(rs.sampleMask, true)});
 
     xml.writeStartElement(lit("p"));

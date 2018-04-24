@@ -1153,8 +1153,13 @@ void D3D12Replay::SavePipelineState()
       dst.multisampleEnable = src.MultisampleEnable == TRUE;
       dst.slopeScaledDepthBias = src.SlopeScaledDepthBias;
       dst.forcedSampleCount = src.ForcedSampleCount;
+
+      // D3D only supports overestimate conservative raster (underestimated can be emulated using
+      // coverage information in the shader)
       dst.conservativeRasterization =
-          src.ConservativeRaster == D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
+          src.ConservativeRaster == D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON
+              ? ConservativeRaster::Overestimate
+              : ConservativeRaster::Disabled;
     }
 
     state.rasterizer.scissors.resize(rs.scissors.size());

@@ -538,6 +538,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,
+        VK_EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION,
+    },
+    {
         VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_SPEC_VERSION,
     },
     {

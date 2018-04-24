@@ -239,6 +239,18 @@ std::string DoStringise(const CullMode &el)
 }
 
 template <>
+std::string DoStringise(const ConservativeRaster &el)
+{
+  BEGIN_ENUM_STRINGISE(ConservativeRaster)
+  {
+    STRINGISE_ENUM_CLASS(Disabled);
+    STRINGISE_ENUM_CLASS(Underestimate);
+    STRINGISE_ENUM_CLASS(Overestimate);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const FilterMode &el)
 {
   BEGIN_ENUM_STRINGISE(FilterMode)

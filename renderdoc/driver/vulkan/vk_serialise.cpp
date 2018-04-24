@@ -160,7 +160,11 @@ SERIALISE_VK_HANDLES();
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV)                 \
                                                                                              \
   /* VK_KHR_dedicated_allocation */                                                          \
-  PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)                         \
+                                                                                             \
+  /* VK_EXT_conservative_rasterization */                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,  \
+               VkPipelineRasterizationConservativeStateCreateInfoEXT)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2208,6 +2212,24 @@ void Deserialise(const VkBindImageMemoryInfoKHR &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineRasterizationConservativeStateCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(conservativeRasterizationMode);
+  SERIALISE_MEMBER(extraPrimitiveOverestimationSize);
+}
+
+template <>
+void Deserialise(const VkPipelineRasterizationConservativeStateCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2308,6 +2330,7 @@ INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindImageMemoryInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

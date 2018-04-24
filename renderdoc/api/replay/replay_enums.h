@@ -2207,6 +2207,31 @@ enum class CullMode : uint32_t
 
 DECLARE_REFLECTION_ENUM(CullMode);
 
+DOCUMENT(R"(The conservative rasterization mode.
+
+.. data:: Disabled
+
+  No conservative rasterization, the default rasterization coverage algorithm is used.
+
+.. data:: Underestimate
+
+  Fragments will only be generated if the primitive full covers all parts of the pixel, including
+  edges and corners.
+
+.. data:: Overestimate
+
+  Fragments will be generated if the primitive covers any part of the pixel, including edges and
+  corners.
+)");
+enum class ConservativeRaster : uint32_t
+{
+  Disabled = 0,
+  Underestimate,
+  Overestimate,
+};
+
+DECLARE_REFLECTION_ENUM(ConservativeRaster);
+
 DOCUMENT(R"(The texture filtering mode for a given direction (minification, magnification, or
 between mips).
 
