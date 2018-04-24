@@ -552,6 +552,32 @@ static void HookAllModules()
       [](const MODULEENTRY32 &me32) { s_HookData->ApplyHooks(me32.szModule, me32.hModule); });
 }
 
+static bool IsAPISet(const wchar_t *filename)
+{
+  if(wcschr(filename, L'/') != 0 || wcschr(filename, L'\\') != 0)
+    return false;
+
+  wchar_t match[] = L"api-ms-win";
+
+  if(wcslen(filename) < ARRAY_COUNT(match) - 1)
+    return false;
+
+  for(size_t i = 0; i < ARRAY_COUNT(match) - 1; i++)
+    if(towlower(filename[i]) != match[i])
+      return false;
+
+  return true;
+}
+
+static bool IsAPISet(const char *filename)
+{
+  std::wstring wfn;
+  // assume ASCII not UTF, just upcast plainly to wchar_t
+  while(*filename)
+    wfn.push_back(wchar_t(*filename++));
+  return IsAPISet(wfn.c_str());
+}
+
 HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
 {
   bool dohook = true;
@@ -570,7 +596,7 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
 
   DWORD err = GetLastError();
 
-  if(dohook && mod)
+  if(dohook && mod && !IsAPISet(lpLibFileName))
     HookAllModules();
 
   SetLastError(err);
@@ -596,7 +622,7 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
 
   DWORD err = GetLastError();
 
-  if(dohook && mod)
+  if(dohook && mod && !IsAPISet(lpLibFileName))
     HookAllModules();
 
   SetLastError(err);
