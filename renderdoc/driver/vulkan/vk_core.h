@@ -1672,4 +1672,9 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2KHR, VkDevice device,
                                 uint32_t bindInfoCount, const VkBindImageMemoryInfoKHR *pBindInfos);
+
+  // VK_KHR_maintenance3
+  void vkGetDescriptorSetLayoutSupportKHR(VkDevice device,
+                                          const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
+                                          VkDescriptorSetLayoutSupport *pSupport);
 };

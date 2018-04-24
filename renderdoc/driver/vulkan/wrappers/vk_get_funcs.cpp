@@ -478,3 +478,11 @@ VkResult WrappedVulkan::vkGetShaderInfoAMD(VkDevice device, VkPipeline pipeline,
   return ObjDisp(device)->GetShaderInfoAMD(Unwrap(device), Unwrap(pipeline), shaderStage, infoType,
                                            pInfoSize, pInfo);
 }
+
+void WrappedVulkan::vkGetDescriptorSetLayoutSupportKHR(VkDevice device,
+                                                       const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
+                                                       VkDescriptorSetLayoutSupport *pSupport)
+{
+  VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
+  return ObjDisp(device)->GetDescriptorSetLayoutSupportKHR(Unwrap(device), &unwrapped, pSupport);
+}

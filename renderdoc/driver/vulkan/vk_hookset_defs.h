@@ -299,6 +299,7 @@
   CheckExt(NV_win32_keyed_mutex, VKXX);           \
   CheckExt(KHR_maintenance1, VK11);               \
   CheckExt(KHR_maintenance2, VK11);               \
+  CheckExt(KHR_maintenance3, VK11);               \
   CheckExt(EXT_display_control, VKXX);            \
   CheckExt(KHR_external_memory, VK11);            \
   CheckExt(KHR_external_memory_win32, VKXX);      \
@@ -381,6 +382,7 @@
                     CmdPushDescriptorSetWithTemplateKHR);                                \
   HookInitExtension(KHR_bind_memory2, BindBufferMemory2KHR);                             \
   HookInitExtension(KHR_bind_memory2, BindImageMemory2KHR);                              \
+  HookInitExtension(KHR_maintenance3, GetDescriptorSetLayoutSupportKHR);                 \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -814,6 +816,9 @@
               const VkBindBufferMemoryInfoKHR *, pBindInfos);                                        \
   HookDefine3(VkResult, vkBindImageMemory2KHR, VkDevice, device, uint32_t, bindInfoCount,            \
               const VkBindImageMemoryInfoKHR *, pBindInfos);                                         \
+  HookDefine3(void, vkGetDescriptorSetLayoutSupportKHR, VkDevice, device,                            \
+              const VkDescriptorSetLayoutCreateInfo *, pCreateInfo,                                  \
+              VkDescriptorSetLayoutSupport *, pSupport);                                             \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
