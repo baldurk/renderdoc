@@ -509,27 +509,22 @@ bool operator<(const VkExtensionProperties &a, const VkExtensionProperties &b)
 
 // This list must be kept sorted according to the above sort operator!
 static const VkExtensionProperties supportedExtensions[] = {
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_AMD_GCN_SHADER_EXTENSION_NAME, VK_AMD_GCN_SHADER_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_AMD_GPU_SHADER_HALF_FLOAT_EXTENSION_NAME, VK_AMD_GPU_SHADER_HALF_FLOAT_SPEC_VERSION,
     },
     {
         VK_AMD_NEGATIVE_VIEWPORT_HEIGHT_EXTENSION_NAME, VK_AMD_NEGATIVE_VIEWPORT_HEIGHT_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_AMD_SHADER_BALLOT_EXTENSION_NAME, VK_AMD_SHADER_BALLOT_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_EXTENSION_NAME,
         VK_AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME, VK_AMD_SHADER_TRINARY_MINMAX_SPEC_VERSION,
     },
@@ -557,11 +552,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME, VK_EXT_GLOBAL_PRIORITY_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME, VK_EXT_SHADER_SUBGROUP_BALLOT_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME, VK_EXT_SHADER_SUBGROUP_BALLOT_SPEC_VERSION,
     },
@@ -672,7 +665,6 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
     },
-    // this extension is 'free' - it just marks SPIR-V extension availability
     {
         VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, VK_KHR_SHADER_DRAW_PARAMETERS_SPEC_VERSION,
     },
