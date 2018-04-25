@@ -121,11 +121,21 @@ void D3D12Replay::CreateResources()
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    AMDCounters *counters = new AMDCounters();
+    AMDCounters *counters = NULL;
+
+    if(m_Vendor == GPUVendor::AMD)
+    {
+      RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+      counters = new AMDCounters();
+    }
+    else
+    {
+      RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+    }
 
     ID3D12Device *d3dDevice = m_pDevice->GetReal();
 
-    if(counters->Init(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
+    if(counters && counters->Init(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
     {
       m_pAMDCounters = counters;
     }

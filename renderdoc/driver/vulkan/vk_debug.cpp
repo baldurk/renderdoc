@@ -1399,8 +1399,21 @@ void VulkanReplay::CreateResources()
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
-  AMDCounters *counters = new AMDCounters();
-  if(counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
+  AMDCounters *counters = NULL;
+
+  GPUVendor vendor = m_pDriver->GetDriverVersion().Vendor();
+
+  if(vendor == GPUVendor::AMD)
+  {
+    RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+    counters = new AMDCounters();
+  }
+  else
+  {
+    RDCLOG("%s GPU detected - no counters available", ToStr(vendor).c_str());
+  }
+
+  if(counters && counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
   {
     m_pAMDCounters = counters;
   }

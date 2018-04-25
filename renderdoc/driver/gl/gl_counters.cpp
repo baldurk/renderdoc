@@ -35,8 +35,19 @@ void GLReplay::PreContextInitCounters()
 
 void GLReplay::PostContextInitCounters()
 {
-  AMDCounters *counters = new AMDCounters();
-  if(counters->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
+  AMDCounters *counters = NULL;
+
+  if(m_Vendor == GPUVendor::AMD)
+  {
+    RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+    counters = new AMDCounters();
+  }
+  else
+  {
+    RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+  }
+
+  if(counters && counters->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
   {
     m_pAMDCounters = counters;
   }
