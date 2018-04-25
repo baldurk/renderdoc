@@ -978,6 +978,7 @@ struct EventBookmark
 
 DECLARE_REFLECTION_STRUCT(EventBookmark);
 
+DOCUMENT("Controlling interface for interop with RGP tool.");
 struct IRGPInterop
 {
   DOCUMENT(R"(Return true if the given :data:`eventId <renderdoc.APIEvent.eventId>` has and
