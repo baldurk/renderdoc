@@ -322,7 +322,8 @@
   CheckExt(KHR_push_descriptor, VKXX);            \
   CheckExt(KHR_descriptor_update_template, VK11); \
   CheckExt(KHR_bind_memory2, VK11);               \
-  CheckExt(EXT_conservative_rasterization, VKXX);
+  CheckExt(EXT_conservative_rasterization, VKXX); \
+  CheckExt(EXT_global_priority, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \

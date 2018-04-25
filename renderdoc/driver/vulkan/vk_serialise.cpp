@@ -166,6 +166,9 @@ SERIALISE_VK_HANDLES();
   /* VK_KHR_dedicated_allocation */                                                               \
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)                              \
                                                                                                   \
+  /* VK_EXT_global_priority */                                                                    \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT)                    \
+                                                                                                  \
   /* VK_EXT_conservative_rasterization */                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,       \
                VkPipelineRasterizationConservativeStateCreateInfoEXT)                             \
