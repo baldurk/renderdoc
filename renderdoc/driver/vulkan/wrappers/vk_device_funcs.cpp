@@ -1182,6 +1182,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "shaderStorageImageMultisample = false, save/load from 2DMS textures will not be "
           "possible");
 
+    if(availFeatures.fragmentStoresAndAtomics)
+      enabledFeatures.fragmentStoresAndAtomics = true;
+    else
+      RDCWARN("fragmentStoresAndAtomics = false, quad overdraw overlay will not be available");
+
     if(availFeatures.sampleRateShading)
       enabledFeatures.sampleRateShading = true;
     else

@@ -1581,6 +1581,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
   {
     VulkanRenderState prevstate = m_pDriver->m_RenderState;
 
+    if(m_Overlay.m_QuadResolvePipeline[0] != VK_NULL_HANDLE)
     {
       SCOPED_TIMER("Quad Overdraw");
 

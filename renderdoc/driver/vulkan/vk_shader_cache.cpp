@@ -30,8 +30,9 @@
 
 enum class FeatureCheck
 {
-  NoCheck,
-  ShaderMSAAStorage,
+  NoCheck = 0x0,
+  ShaderMSAAStorage = 0x1,
+  FragmentStores = 0x2,
 };
 
 BITMASK_OPERATORS(FeatureCheck);
@@ -69,9 +70,9 @@ static const BuiltinShaderConfig builtinShaders[] = {
     {BuiltinShader::OutlineFS, EmbeddedResource(glsl_outline_frag), SPIRVShaderStage::Fragment,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::QuadResolveFS, EmbeddedResource(glsl_quadresolve_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::NoCheck, true},
+     SPIRVShaderStage::Fragment, FeatureCheck::FragmentStores, true},
     {BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag), SPIRVShaderStage::Fragment,
-     FeatureCheck::NoCheck, false},
+     FeatureCheck::FragmentStores, false},
     {BuiltinShader::TrisizeGS, EmbeddedResource(glsl_trisize_geom), SPIRVShaderStage::Geometry,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), SPIRVShaderStage::Fragment,
@@ -145,6 +146,12 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
       {
         continue;
       }
+    }
+
+    if(config.checks & FeatureCheck::FragmentStores)
+    {
+      if(!features.fragmentStoresAndAtomics)
+        continue;
     }
 
     if(config.stage == SPIRVShaderStage::Geometry && !features.geometryShader)
