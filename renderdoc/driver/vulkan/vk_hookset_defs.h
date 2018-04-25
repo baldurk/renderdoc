@@ -323,7 +323,8 @@
   CheckExt(KHR_descriptor_update_template, VK11); \
   CheckExt(KHR_bind_memory2, VK11);               \
   CheckExt(EXT_conservative_rasterization, VKXX); \
-  CheckExt(EXT_global_priority, VKXX);
+  CheckExt(EXT_global_priority, VKXX);            \
+  CheckExt(AMD_buffer_marker, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -397,6 +398,7 @@
   HookInitExtension(KHR_bind_memory2, BindBufferMemory2KHR);                             \
   HookInitExtension(KHR_bind_memory2, BindImageMemory2KHR);                              \
   HookInitExtension(KHR_maintenance3, GetDescriptorSetLayoutSupportKHR);                 \
+  HookInitExtension(AMD_buffer_marker, CmdWriteBufferMarkerAMD);                         \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -840,6 +842,9 @@
   HookDefine3(void, vkGetDescriptorSetLayoutSupportKHR, VkDevice, device,                            \
               const VkDescriptorSetLayoutCreateInfo *, pCreateInfo,                                  \
               VkDescriptorSetLayoutSupport *, pSupport);                                             \
+  HookDefine5(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer, commandBuffer,                       \
+              VkPipelineStageFlagBits, pipelineStage, VkBuffer, dstBuffer, VkDeviceSize,             \
+              dstOffset, uint32_t, marker);                                                          \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

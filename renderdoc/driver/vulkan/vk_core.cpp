@@ -510,6 +510,9 @@ bool operator<(const VkExtensionProperties &a, const VkExtensionProperties &b)
 // This list must be kept sorted according to the above sort operator!
 static const VkExtensionProperties supportedExtensions[] = {
     {
+        VK_AMD_BUFFER_MARKER_EXTENSION_NAME, VK_AMD_BUFFER_MARKER_SPEC_VERSION,
+    },
+    {
         VK_AMD_GCN_SHADER_EXTENSION_NAME, VK_AMD_GCN_SHADER_SPEC_VERSION,
     },
     {
@@ -2299,6 +2302,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       break;
     case VulkanChunk::vkBindImageMemory2KHR:
       return Serialise_vkBindImageMemory2KHR(ser, VK_NULL_HANDLE, 0, NULL);
+      break;
+
+    case VulkanChunk::vkCmdWriteBufferMarkerAMD:
+      return Serialise_vkCmdWriteBufferMarkerAMD(
+          ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_NULL_HANDLE, 0, 0);
       break;
 
     default:

@@ -3504,6 +3504,81 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdWriteBufferMarkerAMD(SerialiserType &ser,
+                                                        VkCommandBuffer commandBuffer,
+                                                        VkPipelineStageFlagBits pipelineStage,
+                                                        VkBuffer dstBuffer, VkDeviceSize dstOffset,
+                                                        uint32_t marker)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(pipelineStage);
+  SERIALISE_ELEMENT(dstBuffer);
+  SERIALISE_ELEMENT(dstOffset);
+  SERIALISE_ELEMENT(marker);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      else
+        commandBuffer = VK_NULL_HANDLE;
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+    {
+      ObjDisp(commandBuffer)
+          ->CmdWriteBufferMarkerAMD(Unwrap(commandBuffer), pipelineStage, Unwrap(dstBuffer),
+                                    dstOffset, marker);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdWriteBufferMarkerAMD(VkCommandBuffer commandBuffer,
+                                              VkPipelineStageFlagBits pipelineStage,
+                                              VkBuffer dstBuffer, VkDeviceSize dstOffset,
+                                              uint32_t marker)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdWriteBufferMarkerAMD(Unwrap(commandBuffer), pipelineStage,
+                                                    Unwrap(dstBuffer), dstOffset, marker));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdWriteBufferMarkerAMD);
+    Serialise_vkCmdWriteBufferMarkerAMD(ser, commandBuffer, pipelineStage, dstBuffer, dstOffset,
+                                        marker);
+
+    record->AddChunk(scope.Get());
+
+    VkResourceRecord *buf = GetRecord(dstBuffer);
+
+    // mark buffer just as read, and memory behind as write & dirtied
+    record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
+    record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
+    if(buf->baseResource != ResourceId())
+      record->cmdInfo->dirtied.insert(buf->baseResource);
+    if(buf->sparseInfo)
+      record->cmdInfo->sparse.insert(buf->sparseInfo);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkCommandPool *pCommandPool);
@@ -3601,3 +3676,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetWithTemplateKHR,
                                 VkCommandBuffer commandBuffer,
                                 VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
                                 VkPipelineLayout layout, uint32_t set, const void *pData);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlagBits pipelineStage, VkBuffer dstBuffer,
+                                VkDeviceSize dstOffset, uint32_t marker);

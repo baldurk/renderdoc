@@ -471,6 +471,7 @@ enum class VulkanChunk : uint32_t
   vkUpdateDescriptorSetWithTemplateKHR,
   vkBindBufferMemory2KHR,
   vkBindImageMemory2KHR,
+  vkCmdWriteBufferMarkerAMD,
   Max,
 };
 

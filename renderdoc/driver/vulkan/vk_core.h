@@ -1694,4 +1694,8 @@ public:
   void vkGetDescriptorSetLayoutSupportKHR(VkDevice device,
                                           const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
                                           VkDescriptorSetLayoutSupport *pSupport);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlagBits pipelineStage, VkBuffer dstBuffer,
+                                VkDeviceSize dstOffset, uint32_t marker);
 };
