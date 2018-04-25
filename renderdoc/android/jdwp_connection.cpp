@@ -123,25 +123,61 @@ void Connection::SetupIDSizes()
       .Read(frameIDSize)
       .Done();
 
-  // we only support sizes that are all the same
-  if(fieldIDSize != methodIDSize || fieldIDSize != objectIDSize ||
-     fieldIDSize != referenceTypeIDSize || fieldIDSize != frameIDSize)
+  if(objectIDSize != referenceTypeIDSize)
   {
-    RDCLOG("Field ID sizes (%d %d %d %d %d) are not the same. Unsupported!", fieldIDSize,
-           methodIDSize, objectIDSize, referenceTypeIDSize, frameIDSize);
-    error = true;
-    return;
+    RDCWARN("objectID (%d) is not the same size as referenceTypeID (%d). Could cause problems!",
+            objectIDSize, referenceTypeIDSize);
   }
 
-  // we also only support 4 or 8 bytes
+  // we only support 4 or 8 bytes
   if(fieldIDSize != 4 && fieldIDSize != 8)
   {
-    RDCLOG("Field ID size %d is unsupported!", fieldIDSize);
+    RDCLOG("fieldID size %d is unsupported!", fieldIDSize);
     error = true;
     return;
   }
 
-  objectID::setSize(fieldIDSize);
+  fieldID::setSize(fieldIDSize);
+
+  // we only support 4 or 8 bytes
+  if(methodIDSize != 4 && methodIDSize != 8)
+  {
+    RDCLOG("methodID size %d is unsupported!", methodIDSize);
+    error = true;
+    return;
+  }
+
+  methodID::setSize(methodIDSize);
+
+  // we only support 4 or 8 bytes
+  if(objectIDSize != 4 && objectIDSize != 8)
+  {
+    RDCLOG("objectID size %d is unsupported!", objectIDSize);
+    error = true;
+    return;
+  }
+
+  objectID::setSize(objectIDSize);
+
+  // we only support 4 or 8 bytes
+  if(referenceTypeIDSize != 4 && referenceTypeIDSize != 8)
+  {
+    RDCLOG("referenceTypeID size %d is unsupported!", referenceTypeIDSize);
+    error = true;
+    return;
+  }
+
+  referenceTypeID::setSize(referenceTypeIDSize);
+
+  // we only support 4 or 8 bytes
+  if(frameIDSize != 4 && frameIDSize != 8)
+  {
+    RDCLOG("frameID size %d is unsupported!", frameIDSize);
+    error = true;
+    return;
+  }
+
+  frameID::setSize(frameIDSize);
 }
 
 void Connection::Suspend()

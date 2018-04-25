@@ -211,13 +211,28 @@ enum class Error : uint16_t
 
 struct CommandData;
 
-// we abstract the objectID size away, and always treat it as a uint64 (if it's actually 4 bytes, we
-// just only read/write the lower 4 bytes).
-struct objectID
+// different IDs in JDWP can be different sizes, but we want to basically treat them all the same.
+// For that reason we have a templated struct (jdwpID) which has all the functions we need, we
+// instantiate it for each *unique* ID type, and then further typedef for other IDs that are the
+// same.
+
+// we abstract the actual size away, and always treat an ID as a uint64 (if it's actually 4 bytes,
+// we just only read/write the lower 4 bytes).
+enum class IDType
+{
+  field,
+  method,
+  object,
+  refType,
+  frame
+};
+
+template <IDType>
+struct jdwpID
 {
 public:
-  objectID() = default;
-  objectID(uint64_t v) { data.u64 = v; }
+  jdwpID() = default;
+  jdwpID(uint64_t v) { data.u64 = v; }
   operator uint64_t() const { return size == 4 ? data.u32 : data.u64; }
   static int32_t getSize() { return size; }
   static void setSize(int32_t s)
@@ -243,21 +258,24 @@ private:
   static int32_t size;
 };
 
-// all object types are the same and we don't care too much about type safety, so we just typedef
-// them.
+typedef jdwpID<IDType::object> objectID;
 typedef objectID threadID;
 typedef objectID threadGroupID;
 typedef objectID stringID;
 typedef objectID classLoaderID;
 typedef objectID classObjectID;
 typedef objectID arrayID;
-typedef objectID referenceTypeID;
-typedef objectID classID;
-typedef objectID interfaceID;
-typedef objectID arrayTypeID;
-typedef objectID methodID;
-typedef objectID fieldID;
-typedef objectID frameID;
+
+// docs are weird - the protocol says referenceTypeID size is "same as objectID", but it has a
+// separate ID size. To be safe, keep it separate.
+typedef jdwpID<IDType::refType> referenceTypeID;
+typedef referenceTypeID classID;
+typedef referenceTypeID interfaceID;
+typedef referenceTypeID arrayTypeID;
+
+typedef jdwpID<IDType::method> methodID;
+typedef jdwpID<IDType::field> fieldID;
+typedef jdwpID<IDType::frame> frameID;
 
 struct taggedObjectID
 {
@@ -275,6 +293,7 @@ struct value
     byte Byte;
     char Char;
     objectID Object;
+    referenceTypeID RefType;
     float Float;
     double Double;
     int32_t Int;
@@ -423,10 +442,6 @@ CommandData &CommandData::Read(std::string &str);
 template <>
 CommandData &CommandData::Write(const std::string &str);
 template <>
-CommandData &CommandData::Read(objectID &id);
-template <>
-CommandData &CommandData::Write(const objectID &id);
-template <>
 CommandData &CommandData::Read(taggedObjectID &id);
 template <>
 CommandData &CommandData::Write(const taggedObjectID &id);
@@ -438,6 +453,28 @@ template <>
 CommandData &CommandData::Read(Location &loc);
 template <>
 CommandData &CommandData::Write(const Location &loc);
+
+// objectID variants
+template <>
+CommandData &CommandData::Read(objectID &id);
+template <>
+CommandData &CommandData::Write(const objectID &id);
+template <>
+CommandData &CommandData::Read(referenceTypeID &id);
+template <>
+CommandData &CommandData::Write(const referenceTypeID &id);
+template <>
+CommandData &CommandData::Read(methodID &id);
+template <>
+CommandData &CommandData::Write(const methodID &id);
+template <>
+CommandData &CommandData::Read(fieldID &id);
+template <>
+CommandData &CommandData::Write(const fieldID &id);
+template <>
+CommandData &CommandData::Read(frameID &id);
+template <>
+CommandData &CommandData::Write(const frameID &id);
 
 typedef std::function<bool(const Event &evData)> EventFilterFunction;
 

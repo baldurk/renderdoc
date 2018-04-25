@@ -309,7 +309,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 
   // look up onCreate in the most derived class - since we can't guarantee that the base
   // application.app.onCreate() will get called.
-  methodID onCreate = conn.GetMethod(thisClass.Object, "onCreate", "()V");
+  methodID onCreate = conn.GetMethod(thisClass.RefType, "onCreate", "()V");
 
   if(onCreate == 0)
   {
