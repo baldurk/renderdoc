@@ -390,7 +390,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   RDCASSERT(ARRAY_COUNT(scissors) >= pipeInfo.scissors.size());
 
   static VkPipelineRasterizationStateCreateInfo rs = {
-      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+  };
 
   rs.depthClampEnable = pipeInfo.depthClampEnable;
   rs.rasterizerDiscardEnable = pipeInfo.rasterizerDiscardEnable,
@@ -402,6 +403,17 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   rs.depthBiasClamp = pipeInfo.depthBiasClamp;
   rs.depthBiasSlopeFactor = pipeInfo.depthBiasSlopeFactor;
   rs.lineWidth = pipeInfo.lineWidth;
+
+  static VkPipelineRasterizationConservativeStateCreateInfoEXT conservRast = {
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_EXT_conserv_rast])
+  {
+    conservRast.conservativeRasterizationMode = pipeInfo.conservativeRasterizationMode;
+    conservRast.extraPrimitiveOverestimationSize = pipeInfo.extraPrimitiveOverestimationSize;
+    rs.pNext = &conservRast;
+  }
 
   static VkPipelineMultisampleStateCreateInfo msaa = {
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
