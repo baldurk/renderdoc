@@ -356,6 +356,25 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
                                                                  : VK_VERTEX_INPUT_RATE_VERTEX;
   }
 
+  static VkPipelineVertexInputDivisorStateCreateInfoEXT vertexDivisor = {
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,
+  };
+  static VkVertexInputBindingDivisorDescriptionEXT vibindDivisors[128] = {};
+
+  if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_EXT_vertex_divisor])
+  {
+    vertexDivisor.pVertexBindingDivisors = vibindDivisors;
+    vertexDivisor.vertexBindingDivisorCount = vi.vertexBindingDescriptionCount;
+
+    for(uint32_t i = 0; i < vi.vertexBindingDescriptionCount; i++)
+    {
+      vibindDivisors[i].binding = i;
+      vibindDivisors[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
+    }
+
+    vi.pNext = &vertexDivisor;
+  }
+
   RDCASSERT(ARRAY_COUNT(viattr) >= pipeInfo.vertexAttrs.size());
   RDCASSERT(ARRAY_COUNT(vibind) >= pipeInfo.vertexBindings.size());
 

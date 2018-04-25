@@ -320,7 +320,7 @@ struct VertexBinding
   bool operator==(const VertexBinding &o) const
   {
     return vertexBufferBinding == o.vertexBufferBinding && byteStride == o.byteStride &&
-           perInstance == o.perInstance;
+           perInstance == o.perInstance && instanceDivisor == o.instanceDivisor;
   }
   bool operator<(const VertexBinding &o) const
   {
@@ -330,6 +330,8 @@ struct VertexBinding
       return byteStride < o.byteStride;
     if(!(perInstance == o.perInstance))
       return perInstance < o.perInstance;
+    if(!(instanceDivisor == o.instanceDivisor))
+      return instanceDivisor < o.instanceDivisor;
     return false;
   }
   DOCUMENT("The vertex binding where data will be sourced from.");
@@ -338,6 +340,14 @@ struct VertexBinding
   uint32_t byteStride = 0;
   DOCUMENT("``True`` if the vertex data is instance-rate.");
   bool perInstance = false;
+  DOCUMENT(R"(The instance rate divisor.
+
+If this is ``0`` then every vertex gets the same value.
+
+If it's ``1`` then one element is read for each instance, and for ``N`` greater than ``1`` then
+``N`` instances read the same element before advancing.
+)");
+  uint32_t instanceDivisor = 1;
 };
 
 DOCUMENT("Describes a single Vulkan vertex buffer binding.")

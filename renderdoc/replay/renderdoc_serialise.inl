@@ -1819,8 +1819,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::VertexBinding &el)
   SERIALISE_MEMBER(vertexBufferBinding);
   SERIALISE_MEMBER(byteStride);
   SERIALISE_MEMBER(perInstance);
+  SERIALISE_MEMBER(instanceDivisor);
 
-  SIZE_CHECK(12);
+  SIZE_CHECK(16);
 }
 
 template <typename SerialiserType>

@@ -214,6 +214,7 @@ enum
 {
   VkCheckExt_AMD_neg_viewport,
   VkCheckExt_EXT_conserv_rast,
+  VkCheckExt_EXT_vertex_divisor,
   VkCheckExt_Max,
 };
 
@@ -624,6 +625,8 @@ DECLARE_REFLECTION_STRUCT(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkImageViewUsageCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkInputAttachmentAspectReference);
 DECLARE_REFLECTION_STRUCT(VkRenderPassInputAttachmentAspectCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDivisorDescriptionEXT);
+DECLARE_REFLECTION_STRUCT(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -667,6 +670,7 @@ DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkImageViewUsageCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);

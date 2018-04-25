@@ -155,6 +155,9 @@ struct VulkanCreationInfo
       uint32_t vbufferBinding;
       uint32_t bytestride;
       bool perInstance;
+
+      // VkVertexInputBindingDivisorDescriptionEXT
+      uint32_t instanceDivisor;
     };
     vector<Binding> vertexBindings;
 

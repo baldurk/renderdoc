@@ -205,6 +205,23 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       vertexBindings[i].perInstance =
           pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].inputRate ==
           VK_VERTEX_INPUT_RATE_INSTANCE;
+      vertexBindings[i].instanceDivisor = 1;
+    }
+
+    // if there's a divisors struct, apply them now
+    const VkPipelineVertexInputDivisorStateCreateInfoEXT *divisors =
+        (const VkPipelineVertexInputDivisorStateCreateInfoEXT *)FindNextStruct(
+            pCreateInfo->pVertexInputState,
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT);
+    if(divisors)
+    {
+      for(uint32_t b = 0; b < divisors->vertexBindingDivisorCount; b++)
+      {
+        const VkVertexInputBindingDivisorDescriptionEXT &div = divisors->pVertexBindingDivisors[b];
+
+        if(div.binding < vertexBindings.size())
+          vertexBindings[div.binding].instanceDivisor = div.divisor;
+      }
     }
 
     vertexAttrs.resize(pCreateInfo->pVertexInputState->vertexAttributeDescriptionCount);

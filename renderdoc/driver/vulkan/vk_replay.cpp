@@ -874,6 +874,8 @@ void VulkanReplay::SavePipelineState()
       m_VulkanPipelineState.vertexInput.bindings[i].vertexBufferBinding =
           p.vertexBindings[i].vbufferBinding;
       m_VulkanPipelineState.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
+      m_VulkanPipelineState.vertexInput.bindings[i].instanceDivisor =
+          p.vertexBindings[i].instanceDivisor;
     }
 
     m_VulkanPipelineState.vertexInput.vertexBuffers.resize(state.vbuffers.size());

@@ -178,7 +178,11 @@ SERIALISE_VK_HANDLES();
                VkPipelineTessellationDomainOriginStateCreateInfoKHR)                              \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO_KHR, VkImageViewUsageCreateInfoKHR) \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO_KHR,             \
-               VkRenderPassInputAttachmentAspectCreateInfoKHR)
+               VkRenderPassInputAttachmentAspectCreateInfoKHR)                                    \
+                                                                                                  \
+  /* VK_EXT_vertex_attribute_divisor */                                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,             \
+               VkPipelineVertexInputDivisorStateCreateInfoEXT)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2301,6 +2305,31 @@ void Deserialise(const VkRenderPassInputAttachmentAspectCreateInfoKHR &el)
   delete[] el.pAspectReferences;
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkVertexInputBindingDivisorDescriptionEXT &el)
+{
+  SERIALISE_MEMBER(binding);
+  SERIALISE_MEMBER(divisor);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineVertexInputDivisorStateCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(vertexBindingDivisorCount);
+  SERIALISE_MEMBER_ARRAY(pVertexBindingDivisors, vertexBindingDivisorCount);
+}
+
+template <>
+void Deserialise(const VkPipelineVertexInputDivisorStateCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pVertexBindingDivisors;
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2402,6 +2431,7 @@ INSTANTIATE_SERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindImageMemoryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

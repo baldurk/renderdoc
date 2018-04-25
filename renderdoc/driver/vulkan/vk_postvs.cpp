@@ -35,7 +35,7 @@ static const uint32_t MeshOutputDispatchWidth = 128;
 static const uint32_t MeshOutputTBufferArraySize = 16;
 
 static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                                       const char *entryName, std::vector<bool> isInstanced,
+                                       const char *entryName, std::vector<uint32_t> instDivisor,
                                        uint32_t &descSet, const DrawcallDescription *draw,
                                        int32_t indexOffset, uint64_t numFetchVerts, uint32_t numVerts,
                                        std::vector<uint32_t> &modSpirv, uint32_t &bufStride)
@@ -849,14 +849,41 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           ops.push_back(SPIRVOperation(spv::OpImage, {tb.imageTypeID, rawimg, loaded}));
 
           // vec4 result = texelFetch(rawimg, vtxID or instID);
-          uint32_t idx = location < isInstanced.size() && isInstanced[location] ? instanceLookup
-                                                                                : vertexLookup;
+          uint32_t idx = vertexLookup;
+
+          if(location < instDivisor.size())
+          {
+            uint32_t divisor = instDivisor[location];
+
+            if(divisor == ~0U)
+            {
+              // this magic value indicates vertex-rate data
+              idx = vertexLookup;
+            }
+            else if(divisor == 0)
+            {
+              // if the divisor is 0, all instances read the first value.
+              idx = editor.AddConstantImmediate<int32_t>(0);
+            }
+            else if(divisor == 1)
+            {
+              // if the divisor is 1, it's just regular instancing
+              idx = instanceLookup;
+            }
+            else
+            {
+              // otherwise we divide by the divisor
+              idx = editor.MakeId();
+              divisor = editor.AddConstantImmediate(int32_t(divisor & 0x7fffffff));
+              ops.push_back(SPIRVOperation(spv::OpSDiv, {sint32ID, idx, instanceLookup, divisor}));
+            }
+          }
+
           uint32_t result = editor.MakeId();
           ops.push_back(SPIRVOperation(spv::OpImageFetch, {ins[i].vec4ID, result, rawimg, idx}));
 
           // for one component, extract x, for less than 4, extract the sub-vector, otherwise
-          // leave
-          // alone (4 components)
+          // leave alone (4 components)
           if(refl.inputSignature[i].compCount == 1)
           {
             uint32_t swizzleIn = result;
@@ -1240,7 +1267,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     VkBufferView view;
   };
 
-  std::vector<bool> attrIsInstanced;
+  std::vector<uint32_t> attrInstDivisor;
   CompactedAttrBuffer vbuffers[64];
   RDCEraseEl(vbuffers);
 
@@ -1292,7 +1319,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
         continue;
       }
 
-      bool isInstanced = false;
+      uint32_t instDivisor = ~0U;
       size_t stride = 1;
 
       const byte *origVBBegin = NULL;
@@ -1306,7 +1333,10 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
           origVBBegin = origVBs[vb].data() + attrDesc.offset;
           origVBEnd = origVBs[vb].data() + origVBs[vb].size();
           stride = vbDesc.stride;
-          isInstanced = (vbDesc.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE);
+          if(vbDesc.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
+            instDivisor = pipeInfo.vertexBindings[vbDesc.binding].instanceDivisor;
+          else
+            instDivisor = ~0U;
           break;
         }
       }
@@ -1360,7 +1390,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
             VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         };
 
-        if(isInstanced)
+        if(instDivisor != ~0U)
           bufInfo.size = elemSize * (maxInstance + 1);
 
         vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &vbuffers[attr].buf);
@@ -1505,8 +1535,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
       m_pDriver->vkCreateBufferView(dev, &info, NULL, &vbuffers[attr].view);
 
-      attrIsInstanced.resize(RDCMAX(attrIsInstanced.size(), size_t(attr + 1)));
-      attrIsInstanced[attr] = isInstanced;
+      attrInstDivisor.resize(RDCMAX(attrInstDivisor.size(), size_t(attr + 1)));
+      attrInstDivisor[attr] = instDivisor;
 
       descWrites[numWrites].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descWrites[numWrites].dstSet = m_MeshFetchDescSet;
@@ -1540,7 +1570,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   }
 
   ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
-                             pipeInfo.shaders[0].entryPoint.c_str(), attrIsInstanced, descSet,
+                             pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor, descSet,
                              drawcall, baseVertex, numFetchVerts, numVerts, modSpirv, bufStride);
 
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};

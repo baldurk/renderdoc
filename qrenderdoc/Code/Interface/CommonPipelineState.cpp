@@ -917,9 +917,12 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         ret[a].vertexBuffer = (int)attrs[i].binding;
         ret[a].byteOffset = attrs[i].byteOffset;
         ret[a].perInstance = false;
-        if(attrs[i].binding < (uint32_t)m_Vulkan->vertexInput.bindings.count())
-          ret[a].perInstance = m_Vulkan->vertexInput.bindings[attrs[i].binding].perInstance;
         ret[a].instanceRate = 1;
+        if(attrs[i].binding < (uint32_t)m_Vulkan->vertexInput.bindings.count())
+        {
+          ret[a].perInstance = m_Vulkan->vertexInput.bindings[attrs[i].binding].perInstance;
+          ret[a].instanceRate = m_Vulkan->vertexInput.bindings[attrs[i].binding].instanceDivisor;
+        }
         ret[a].format = attrs[i].format;
         ret[a].used = true;
         ret[a].genericEnabled = false;

@@ -324,7 +324,8 @@
   CheckExt(KHR_bind_memory2, VK11);               \
   CheckExt(EXT_conservative_rasterization, VKXX); \
   CheckExt(EXT_global_priority, VKXX);            \
-  CheckExt(AMD_buffer_marker, VKXX);
+  CheckExt(AMD_buffer_marker, VKXX);              \
+  CheckExt(EXT_vertex_attribute_divisor, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \

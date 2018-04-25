@@ -180,9 +180,9 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->viBuffers->setHeader(header);
 
-    ui->viBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Rate"), tr("Offset"), tr("Stride"),
-                               tr("Byte Length"), tr("Go")});
-    header->setColumnStretchHints({1, 4, 2, 2, 2, 3, -1});
+    ui->viBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Rate"), tr("Divisor"), tr("Offset"),
+                               tr("Stride"), tr("Byte Length"), tr("Go")});
+    header->setColumnStretchHints({1, 4, 2, 2, 2, 2, 3, -1});
 
     ui->viBuffers->setHoverIconColumn(6, action, action_hover);
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
@@ -1595,7 +1595,7 @@ void VulkanPipelineStateViewer::setState()
         length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), state.inputAssembly.indexBuffer.resourceId, tr("Index"),
+          {tr("Index"), state.inputAssembly.indexBuffer.resourceId, tr("Index"), lit("-"),
            (qulonglong)state.inputAssembly.indexBuffer.byteOffset,
            draw != NULL ? draw->indexByteWidth : 0, (qulonglong)length, QString()});
 
@@ -1616,8 +1616,8 @@ void VulkanPipelineStateViewer::setState()
   {
     if(ibufferUsed || showEmpty)
     {
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), ResourceId(), tr("Index"), lit("-"), lit("-"), lit("-"), QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Index"), ResourceId(), tr("Index"), lit("-"),
+                                                     lit("-"), lit("-"), lit("-"), QString()});
 
       node->setTag(QVariant::fromValue(
           VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
@@ -1657,6 +1657,7 @@ void VulkanPipelineStateViewer::setState()
         uint64_t length = 1;
         uint64_t offset = 0;
         uint32_t stride = 0;
+        uint32_t divisor = 1;
 
         if(vbuff != NULL)
         {
@@ -1671,6 +1672,8 @@ void VulkanPipelineStateViewer::setState()
         {
           stride = bind->byteStride;
           rate = bind->perInstance ? tr("Instance") : tr("Vertex");
+          if(bind->perInstance)
+            divisor = bind->instanceDivisor;
         }
         else
         {
@@ -1680,11 +1683,11 @@ void VulkanPipelineStateViewer::setState()
         RDTreeWidgetItem *node = NULL;
 
         if(filledSlot)
-          node = new RDTreeWidgetItem({i, vbuff->resourceId, rate, (qulonglong)offset, stride,
-                                       (qulonglong)length, QString()});
+          node = new RDTreeWidgetItem({i, vbuff->resourceId, rate, divisor, (qulonglong)offset,
+                                       stride, (qulonglong)length, QString()});
         else
           node = new RDTreeWidgetItem(
-              {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
+              {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
         node->setTag(QVariant::fromValue(VulkanVBIBTag(
             vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0)));
@@ -1706,7 +1709,7 @@ void VulkanPipelineStateViewer::setState()
       if(usedBindings[i])
       {
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
+            {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
         node->setTag(QVariant::fromValue(VulkanVBIBTag(ResourceId(), 0)));
 
