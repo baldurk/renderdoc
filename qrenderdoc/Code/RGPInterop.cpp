@@ -221,8 +221,7 @@ void RGPInterop::EventSelected(RGPInteropEvent event)
 
   m_Ctx.SetEventID({}, eventId, eventId);
 
-  m_Ctx.GetMainWindow()->Widget()->activateWindow();
-  m_Ctx.GetMainWindow()->Widget()->raise();
+  BringToForeground(m_Ctx.GetMainWindow()->Widget());
 }
 
 void RGPInterop::ConnectionEstablished()

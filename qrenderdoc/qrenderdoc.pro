@@ -88,6 +88,8 @@ win32 {
 		LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/x64/shiboken2.lib
 	}
 
+	LIBS += user32.lib
+
 	# Link against the core library
 	LIBS += $$DESTDIR/renderdoc.lib
 

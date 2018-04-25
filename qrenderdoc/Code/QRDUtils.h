@@ -539,6 +539,8 @@ void setEnabledMultiple(const QList<QWidget *> &widgets, bool enabled);
 
 QString GetSystemUsername();
 
+void BringToForeground(QWidget *window);
+
 bool IsDarkTheme();
 
 float getLuminance(const QColor &col);

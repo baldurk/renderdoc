@@ -1675,6 +1675,22 @@ QString GetSystemUsername()
   return username;
 }
 
+void BringToForeground(QWidget *window)
+{
+#ifdef Q_OS_WIN
+  SetWindowPos((HWND)window->winId(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+  window->setWindowState(Qt::WindowActive);
+  window->raise();
+  window->showNormal();
+  window->show();
+  SetWindowPos((HWND)window->winId(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+#else
+  window->activateWindow();
+  window->raise();
+  window->showNormal();
+#endif
+}
+
 bool IsDarkTheme()
 {
   float baseLum = getLuminance(QApplication::palette().color(QPalette::Base));
