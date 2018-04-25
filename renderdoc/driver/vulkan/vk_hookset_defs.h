@@ -30,7 +30,7 @@
 #define VK11 VK_MAKE_VERSION(1, 1, 0)
 
 // extensions that are not core in any version
-#define VKXX VK_MAKE_VERSION(999, 999, 0)
+#define VKXX VK_MAKE_VERSION(99, 99, 0)
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
