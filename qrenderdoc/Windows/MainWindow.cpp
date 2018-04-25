@@ -1823,7 +1823,7 @@ void MainWindow::OnCaptureLoaded()
   ui->action_Start_Replay_Loop->setEnabled(true);
   ui->action_Open_RGP_Profile->setEnabled(
       m_Ctx.Replay().GetCaptureAccess()->FindSectionByType(SectionType::AMDRGPProfile) >= 0);
-  ui->action_Create_RGP_Profile->setEnabled(m_Ctx.APIProps().RGPCapture && m_Ctx.IsCaptureLocal());
+  ui->action_Create_RGP_Profile->setEnabled(m_Ctx.APIProps().rgpCapture && m_Ctx.IsCaptureLocal());
 
   setCaptureHasErrors(!m_Ctx.DebugMessages().empty());
 

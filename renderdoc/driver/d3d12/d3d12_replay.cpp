@@ -188,7 +188,7 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.vendor = m_Vendor;
   ret.degraded = false;
   ret.shadersMutable = false;
-  ret.RGPCapture = m_RGP != NULL && m_RGP->DriverSupportsInterop();
+  ret.rgpCapture = m_RGP != NULL && m_RGP->DriverSupportsInterop();
 
   return ret;
 }

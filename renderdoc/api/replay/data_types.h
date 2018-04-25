@@ -1089,7 +1089,7 @@ worked around by re-sorting bindings.
   bool shadersMutable = false;
 
   DOCUMENT("``True`` if the driver and system are configured to allow creating RGP captures.");
-  bool RGPCapture = false;
+  bool rgpCapture = false;
 
 #if !defined(SWIG)
   // flags about edge-case parts of the APIs that might be used in the capture.
