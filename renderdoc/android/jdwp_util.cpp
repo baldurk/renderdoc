@@ -32,11 +32,6 @@
 namespace JDWP
 {
 uint32_t Command::idalloc = 42;
-int32_t objectID::size = 8;
-int32_t referenceTypeID::size = 8;
-int32_t methodID::size = 8;
-int32_t fieldID::size = 8;
-int32_t frameID::size = 8;
 
 uint32_t Command::Send(StreamWriter &writer)
 {

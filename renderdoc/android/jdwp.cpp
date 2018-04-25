@@ -322,7 +322,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
     thread = 0;
 
     Event evData = conn.WaitForEvent(
-        EventKind::MethodEntry, {{ModifierKind::ClassOnly, thisClass.Object}},
+        EventKind::MethodEntry, {{ModifierKind::ClassOnly, thisClass.RefType}},
         [onCreate](const Event &evData) { return evData.MethodEntry.location.methodID == onCreate; });
 
     if(evData.eventKind == EventKind::MethodEntry)

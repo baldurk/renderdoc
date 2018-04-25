@@ -227,7 +227,7 @@ enum class IDType
   frame
 };
 
-template <IDType>
+template <IDType t>
 struct jdwpID
 {
 public:
@@ -238,7 +238,7 @@ public:
   static void setSize(int32_t s)
   {
     RDCASSERT(s == 4 || s == 8);
-    size = s;
+    jdwpID<t>::size = s;
   }
 
   void EndianSwap()
@@ -276,6 +276,9 @@ typedef referenceTypeID arrayTypeID;
 typedef jdwpID<IDType::method> methodID;
 typedef jdwpID<IDType::field> fieldID;
 typedef jdwpID<IDType::frame> frameID;
+
+template <IDType t>
+int32_t jdwpID<t>::size = 8;
 
 struct taggedObjectID
 {
