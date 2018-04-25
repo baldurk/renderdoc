@@ -1069,7 +1069,8 @@ void MainWindow::PopulateRecentCaptureFiles()
   int idx = 1;
   for(int i = m_Ctx.Config().RecentCaptureFiles.count() - 1; i >= 0; i--)
   {
-    const QString &filename = m_Ctx.Config().RecentCaptureFiles[i];
+    QString filename = m_Ctx.Config().RecentCaptureFiles[i];
+    filename.replace(QLatin1Char('&'), lit("&&"));
     ui->menu_Recent_Capture_Files->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
                                              [this, filename] { recentCaptureFile(filename); });
     idx++;
@@ -1096,7 +1097,8 @@ void MainWindow::PopulateRecentCaptureSettings()
   int idx = 1;
   for(int i = m_Ctx.Config().RecentCaptureSettings.count() - 1; i >= 0; i--)
   {
-    const QString &filename = m_Ctx.Config().RecentCaptureSettings[i];
+    QString filename = m_Ctx.Config().RecentCaptureSettings[i];
+    filename.replace(QLatin1Char('&'), lit("&&"));
     ui->menu_Recent_Capture_Settings->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
                                                 [this, filename] { recentCaptureSetting(filename); });
     idx++;
