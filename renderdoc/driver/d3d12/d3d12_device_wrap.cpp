@@ -1309,6 +1309,9 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
+      record->m_MapsCount = GetNumSubresources(this, pDesc);
+      record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
+
       record->AddChunk(scope.Get());
 
       {
@@ -1549,6 +1552,9 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
       record->type = Resource_Resource;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
+
+      record->m_MapsCount = GetNumSubresources(this, pDesc);
+      record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
 
       RDCASSERT(pHeap);
 

@@ -285,10 +285,11 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
   // perform an implicit unmap on release
   if(GetResourceRecord())
   {
-    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+    D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
+    size_t mapcount = GetResourceRecord()->m_MapsCount;
 
     // may not have a map if e.g. no pointer was requested
-    for(size_t i = 0; i < map.size(); i++)
+    for(size_t i = 0; i < mapcount; i++)
     {
       if(map[i].refcount > 0)
       {
@@ -315,9 +316,10 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
 
 byte *WrappedID3D12Resource::GetMap(UINT Subresource)
 {
-  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+  D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
+  size_t mapcount = GetResourceRecord()->m_MapsCount;
 
-  if(Subresource < map.size())
+  if(Subresource < mapcount)
     return map[Subresource].realPtr;
 
   return NULL;
@@ -325,20 +327,14 @@ byte *WrappedID3D12Resource::GetMap(UINT Subresource)
 
 byte *WrappedID3D12Resource::GetShadow(UINT Subresource)
 {
-  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
-
-  if(Subresource >= map.size())
-    map.resize(Subresource + 1);
+  D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   return map[Subresource].shadowPtr;
 }
 
 void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
 {
-  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
-
-  if(Subresource >= map.size())
-    map.resize(Subresource + 1);
+  D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   if(map[Subresource].shadowPtr == NULL)
     map[Subresource].shadowPtr = AllocAlignedBuffer(size);
@@ -346,9 +342,10 @@ void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
 
 void WrappedID3D12Resource::FreeShadow()
 {
-  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+  D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
+  size_t mapcount = GetResourceRecord()->m_MapsCount;
 
-  for(size_t i = 0; i < map.size(); i++)
+  for(size_t i = 0; i < mapcount; i++)
   {
     FreeAlignedBuffer(map[i].shadowPtr);
     map[i].shadowPtr = NULL;
@@ -377,13 +374,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
 
   if(SUCCEEDED(hr) && GetResourceRecord())
   {
-    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
-
-    if(Subresource >= map.size())
-      map.resize(Subresource + 1);
-
-    // the map pointer should be NULL or identical (if we are in a nested Map)
-    RDCASSERT(map[Subresource].realPtr == mapPtr || map[Subresource].realPtr == NULL);
+    D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
     map[Subresource].realPtr = (byte *)mapPtr;
 
@@ -401,10 +392,11 @@ void STDMETHODCALLTYPE WrappedID3D12Resource::Unmap(UINT Subresource, const D3D1
 {
   if(GetResourceRecord())
   {
-    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+    D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
+    size_t mapcount = GetResourceRecord()->m_MapsCount;
 
     // may not have a map if e.g. no pointer was requested
-    if(Subresource < map.size())
+    if(Subresource < mapcount)
     {
       int32_t refcount = Atomic::Dec32(&map[Subresource].refcount);
 
@@ -435,9 +427,9 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
 
   if(GetResourceRecord())
   {
-    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+    size_t mapcount = GetResourceRecord()->m_MapsCount;
 
-    if(DstSubresource < map.size())
+    if(DstSubresource < mapcount)
     {
       m_pDevice->WriteToSubresource(this, DstSubresource, pDstBox, pSrcData, SrcDepthPitch,
                                     SrcDepthPitch);

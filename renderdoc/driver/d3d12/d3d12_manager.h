@@ -389,10 +389,16 @@ struct D3D12ResourceRecord : public ResourceRecord
         type(Resource_Unknown),
         ContainsExecuteIndirect(false),
         cmdInfo(NULL),
+        m_Maps(NULL),
+        m_MapsCount(0),
         bakedCommands(NULL)
   {
   }
-  ~D3D12ResourceRecord() { SAFE_DELETE(cmdInfo); }
+  ~D3D12ResourceRecord()
+  {
+    SAFE_DELETE(cmdInfo);
+    SAFE_DELETE_ARRAY(m_Maps);
+  }
   void Bake()
   {
     RDCASSERT(cmdInfo);
@@ -434,7 +440,8 @@ struct D3D12ResourceRecord : public ResourceRecord
     byte *shadowPtr;
   };
 
-  vector<MapData> m_Map;
+  MapData *m_Maps;
+  size_t m_MapsCount;
 };
 
 typedef vector<D3D12_RESOURCE_STATES> SubresourceStateVector;
