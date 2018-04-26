@@ -706,6 +706,9 @@
       <Filter>Code\Interface</Filter>
     </ClCompile>
     <ClCompile Include="Code\RGPInterop.cpp" />
+    <ClCompile Include="Widgets\CollapseGroupBox.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1057,6 +1060,9 @@
       <Filter>Code\pyrenderdoc</Filter>
     </ClInclude>
     <ClInclude Include="Code\RGPInterop.h" />
+    <ClInclude Include="Widgets\CollapseGroupBox.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Code\pyrenderdoc\pyconversion.h">

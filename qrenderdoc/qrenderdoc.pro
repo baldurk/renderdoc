@@ -193,6 +193,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/ThumbnailStrip.cpp \
     Widgets/TextureGoto.cpp \
     Widgets/RangeHistogram.cpp \
+    Widgets/CollapseGroupBox.cpp \
     Windows/Dialogs/TextureSaveDialog.cpp \
     Windows/Dialogs/CaptureDialog.cpp \
     Windows/Dialogs/LiveCapture.cpp \
@@ -267,6 +268,7 @@ HEADERS += Code/CaptureContext.h \
     Widgets/ThumbnailStrip.h \
     Widgets/TextureGoto.h \
     Widgets/RangeHistogram.h \
+    Widgets/CollapseGroupBox.h \
     Windows/Dialogs/TextureSaveDialog.h \
     Windows/Dialogs/CaptureDialog.h \
     Windows/Dialogs/LiveCapture.h \
