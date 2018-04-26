@@ -13,308 +13,303 @@
   <property name="windowTitle">
    <string>Resource Inspector</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0" colspan="2">
-    <layout class="QHBoxLayout" name="titleLayout">
-     <item>
-      <widget class="QLabel" name="resourceName">
-       <property name="font">
-        <font>
-         <pointsize>20</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Resource Name Here</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="RDLineEdit" name="resourceNameEdit">
-       <property name="font">
-        <font>
-         <pointsize>20</pointsize>
-        </font>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="renameResource">
-       <property name="text">
-        <string>Rename resource</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonTextBesideIcon</enum>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="resetName">
-       <property name="text">
-        <string>Reset name</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonTextBesideIcon</enum>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="viewContents">
-       <property name="text">
-        <string>View Contents</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/action_hover.png</normaloff>:/action_hover.png</iconset>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonTextBesideIcon</enum>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="0" column="2" rowspan="3">
-    <widget class="QGroupBox" name="resourceListGroupBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>1</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Resource List</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
+  <widget class="QWidget" name="resourceListWidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>615</x>
+     <y>346</y>
+     <width>191</width>
+     <height>241</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>1</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>6</number>
+    </property>
+    <property name="leftMargin">
+     <number>3</number>
+    </property>
+    <property name="topMargin">
+     <number>3</number>
+    </property>
+    <property name="rightMargin">
+     <number>3</number>
+    </property>
+    <property name="bottomMargin">
+     <number>3</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="resourceListControls">
       <property name="spacing">
-       <number>6</number>
-      </property>
-      <property name="leftMargin">
-       <number>3</number>
-      </property>
-      <property name="topMargin">
-       <number>3</number>
-      </property>
-      <property name="rightMargin">
-       <number>3</number>
-      </property>
-      <property name="bottomMargin">
-       <number>3</number>
+       <number>0</number>
       </property>
       <item>
-       <layout class="QHBoxLayout" name="resourceListControls">
-        <property name="spacing">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="RDLineEdit" name="resourceListFilter">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="cancelResourceListFilter">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../Resources/resources.qrc">
-            <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="RDListView" name="resourceList">
-        <property name="frameShape">
-         <enum>QFrame::Box</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Sunken</enum>
-        </property>
-        <property name="editTriggers">
-         <set>QAbstractItemView::NoEditTriggers</set>
-        </property>
-        <property name="showDropIndicator" stdset="0">
-         <bool>false</bool>
-        </property>
-        <property name="defaultDropAction">
-         <enum>Qt::CopyAction</enum>
-        </property>
-        <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectRows</enum>
-        </property>
-        <property name="viewMode">
-         <enum>QListView::ListMode</enum>
-        </property>
-        <property name="uniformItemSizes">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QGroupBox" name="relatedResourcesGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>3</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Related Resources</string>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <property name="leftMargin">
-       <number>3</number>
-      </property>
-      <property name="topMargin">
-       <number>3</number>
-      </property>
-      <property name="rightMargin">
-       <number>3</number>
-      </property>
-      <property name="bottomMargin">
-       <number>3</number>
-      </property>
-      <item>
-       <widget class="RDTreeWidget" name="relatedResources">
+       <widget class="RDLineEdit" name="resourceListFilter">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
-          <verstretch>1</verstretch>
+          <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectRows</enum>
-        </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
        </widget>
       </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QGroupBox" name="resourceUsageGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>3</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Usage in Frame</string>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="leftMargin">
-       <number>3</number>
-      </property>
-      <property name="topMargin">
-       <number>3</number>
-      </property>
-      <property name="rightMargin">
-       <number>3</number>
-      </property>
-      <property name="bottomMargin">
-       <number>3</number>
-      </property>
       <item>
-       <widget class="RDTreeWidget" name="resourceUsage">
-        <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOn</enum>
+       <widget class="QToolButton" name="cancelResourceListFilter">
+        <property name="text">
+         <string/>
         </property>
-        <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectRows</enum>
+        <property name="icon">
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
         </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="2" column="0" colspan="2">
-    <widget class="QGroupBox" name="initChunksGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>2</horstretch>
-       <verstretch>5</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Resource Initialisation Parameters</string>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
-      <property name="leftMargin">
-       <number>3</number>
-      </property>
-      <property name="topMargin">
-       <number>3</number>
-      </property>
-      <property name="rightMargin">
-       <number>3</number>
-      </property>
-      <property name="bottomMargin">
-       <number>3</number>
-      </property>
-      <item>
-       <widget class="RDTreeWidget" name="initChunks">
-        <property name="editTriggers">
-         <set>QAbstractItemView::NoEditTriggers</set>
-        </property>
-        <property name="showDropIndicator" stdset="0">
-         <bool>false</bool>
-        </property>
-        <property name="selectionMode">
-         <enum>QAbstractItemView::ContiguousSelection</enum>
-        </property>
-        <property name="indentation">
-         <number>20</number>
-        </property>
-        <property name="rootIsDecorated">
-         <bool>true</bool>
-        </property>
-        <property name="itemsExpandable">
-         <bool>true</bool>
-        </property>
-        <property name="allColumnsShowFocus">
+        <property name="autoRaise">
          <bool>true</bool>
         </property>
        </widget>
       </item>
      </layout>
-    </widget>
-   </item>
-  </layout>
+    </item>
+    <item>
+     <widget class="RDListView" name="resourceList">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="defaultDropAction">
+       <enum>Qt::CopyAction</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="viewMode">
+       <enum>QListView::ListMode</enum>
+      </property>
+      <property name="uniformItemSizes">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="ToolWindowManager" name="dockarea" native="true">
+   <property name="geometry">
+    <rect>
+     <x>420</x>
+     <y>450</y>
+     <width>119</width>
+     <height>100</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>100</width>
+     <height>100</height>
+    </size>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <widget class="QWidget" name="titleWidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>800</width>
+     <height>39</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_4">
+    <property name="spacing">
+     <number>3</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QLabel" name="resourceName">
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Resource Name Here</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="RDLineEdit" name="resourceNameEdit">
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+       </font>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="renameResource">
+      <property name="text">
+       <string>Rename resource</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="resetName">
+      <property name="text">
+       <string>Reset name</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="viewContents">
+      <property name="text">
+       <string>View Contents</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/action_hover.png</normaloff>:/action_hover.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="RDTreeWidget" name="initChunks">
+   <property name="geometry">
+    <rect>
+     <x>60</x>
+     <y>340</y>
+     <width>256</width>
+     <height>192</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="editTriggers">
+    <set>QAbstractItemView::NoEditTriggers</set>
+   </property>
+   <property name="showDropIndicator" stdset="0">
+    <bool>false</bool>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::ContiguousSelection</enum>
+   </property>
+   <property name="indentation">
+    <number>20</number>
+   </property>
+   <property name="rootIsDecorated">
+    <bool>true</bool>
+   </property>
+   <property name="itemsExpandable">
+    <bool>true</bool>
+   </property>
+   <property name="allColumnsShowFocus">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="RDTreeWidget" name="relatedResources">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>80</y>
+     <width>310</width>
+     <height>174</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>1</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="selectionBehavior">
+    <enum>QAbstractItemView::SelectRows</enum>
+   </property>
+   <attribute name="headerVisible">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="RDTreeWidget" name="resourceUsage">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>90</y>
+     <width>310</width>
+     <height>174</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="verticalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOn</enum>
+   </property>
+   <property name="selectionBehavior">
+    <enum>QAbstractItemView::SelectRows</enum>
+   </property>
+   <attribute name="headerVisible">
+    <bool>false</bool>
+   </attribute>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>
@@ -331,6 +326,11 @@
    <class>RDListView</class>
    <extends>QListView</extends>
    <header>Widgets/Extended/RDListView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
  <resources>

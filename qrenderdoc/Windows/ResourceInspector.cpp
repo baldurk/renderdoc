@@ -24,6 +24,7 @@
 
 #include "ResourceInspector.h"
 #include <QKeyEvent>
+#include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Widgets/Extended/RDHeaderView.h"
 #include "ui_ResourceInspector.h"
 
@@ -139,6 +140,41 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
                    &ResourceInspector::resource_doubleClicked);
   QObject::connect(ui->relatedResources, &QTreeView::activated, this,
                    &ResourceInspector::resource_doubleClicked);
+
+  ui->dockarea->addToolWindow(ui->resourceListWidget, ToolWindowManager::EmptySpace);
+  ui->dockarea->setToolWindowProperties(ui->resourceListWidget, ToolWindowManager::HideCloseButton);
+
+  ui->dockarea->addToolWindow(
+      ui->relatedResources,
+      ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                       ui->dockarea->areaOf(ui->resourceListWidget), 0.75f));
+  ui->dockarea->setToolWindowProperties(ui->relatedResources, ToolWindowManager::HideCloseButton);
+
+  ui->dockarea->addToolWindow(ui->initChunks, ToolWindowManager::AreaReference(
+                                                  ToolWindowManager::BottomOf,
+                                                  ui->dockarea->areaOf(ui->relatedResources), 0.5f));
+  ui->dockarea->setToolWindowProperties(ui->initChunks, ToolWindowManager::HideCloseButton);
+
+  ui->dockarea->addToolWindow(
+      ui->resourceUsage,
+      ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                       ui->dockarea->areaOf(ui->relatedResources), 0.5f));
+  ui->dockarea->setToolWindowProperties(ui->resourceUsage, ToolWindowManager::HideCloseButton);
+
+  ui->dockarea->setAllowFloatingWindow(false);
+
+  ui->relatedResources->setWindowTitle(tr("Related Resources"));
+  ui->initChunks->setWindowTitle(tr("Resource Initialisation Parameters"));
+  ui->resourceUsage->setWindowTitle(tr("Usage in Frame"));
+  ui->resourceListWidget->setWindowTitle(tr("Resource List"));
+
+  QVBoxLayout *vertical = new QVBoxLayout(this);
+
+  vertical->setSpacing(3);
+  vertical->setContentsMargins(3, 3, 3, 3);
+
+  vertical->addWidget(ui->titleWidget);
+  vertical->addWidget(ui->dockarea);
 
   Inspect(ResourceId());
 
