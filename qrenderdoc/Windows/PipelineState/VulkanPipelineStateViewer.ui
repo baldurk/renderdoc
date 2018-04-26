@@ -621,7 +621,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="vsResGroup">
+            <widget class="CollapseGroupBox" name="vsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -673,7 +673,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsUBOGroup">
+            <widget class="CollapseGroupBox" name="vsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -888,7 +888,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="tcsResGroup">
+            <widget class="CollapseGroupBox" name="tcsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -940,7 +940,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tcsUBOGroup">
+            <widget class="CollapseGroupBox" name="tcsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -1155,7 +1155,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="tesResGroup">
+            <widget class="CollapseGroupBox" name="tesResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -1207,7 +1207,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tesUBOGroup">
+            <widget class="CollapseGroupBox" name="tesUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -1422,7 +1422,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="gsResGroup">
+            <widget class="CollapseGroupBox" name="gsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -1474,7 +1474,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsUBOGroup">
+            <widget class="CollapseGroupBox" name="gsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -2421,7 +2421,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="fsResGroup">
+            <widget class="CollapseGroupBox" name="fsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -2473,7 +2473,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="fsUBOGroup">
+            <widget class="CollapseGroupBox" name="fsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -3216,7 +3216,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="csResGroup">
+            <widget class="CollapseGroupBox" name="csResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -3268,7 +3268,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csUBOGroup">
+            <widget class="CollapseGroupBox" name="csUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -3331,19 +3331,25 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLabel</class>
-   <extends>QLabel</extends>
-   <header>Widgets/Extended/RDLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
    <class>PipelineFlowChart</class>
    <extends>QFrame</extends>
    <header>Widgets/PipelineFlowChart.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CollapseGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>Widgets/CollapseGroupBox.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

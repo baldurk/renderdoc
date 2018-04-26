@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>868</width>
-    <height>491</height>
+    <height>574</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -164,7 +164,7 @@
    <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -203,7 +203,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>432</height>
+            <height>515</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -583,6 +583,12 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
            </spacer>
           </item>
          </layout>
@@ -602,7 +608,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>383</height>
+            <height>466</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -619,7 +625,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="vsResGroup">
+            <widget class="CollapseGroupBox" name="vsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -671,7 +677,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsUAVGroup">
+            <widget class="CollapseGroupBox" name="vsUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -723,7 +729,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsSamplerGroup">
+            <widget class="CollapseGroupBox" name="vsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -775,7 +781,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsCBufferGroup">
+            <widget class="CollapseGroupBox" name="vsCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -952,6 +958,12 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
            </spacer>
           </item>
          </layout>
@@ -971,7 +983,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>383</height>
+            <height>466</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -988,7 +1000,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="hsResGroup">
+            <widget class="CollapseGroupBox" name="hsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1040,7 +1052,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="hsUAVGroup">
+            <widget class="CollapseGroupBox" name="hsUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1092,7 +1104,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="hsSamplerGroup">
+            <widget class="CollapseGroupBox" name="hsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1144,7 +1156,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="hsCBufferGroup">
+            <widget class="CollapseGroupBox" name="hsCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1321,6 +1333,12 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
            </spacer>
           </item>
          </layout>
@@ -1340,7 +1358,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>383</height>
+            <height>466</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -1357,7 +1375,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="dsResGroup">
+            <widget class="CollapseGroupBox" name="dsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1409,7 +1427,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="dsUAVGroup">
+            <widget class="CollapseGroupBox" name="dsUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1461,7 +1479,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="dsSamplerGroup">
+            <widget class="CollapseGroupBox" name="dsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1513,7 +1531,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="dsCBufferGroup">
+            <widget class="CollapseGroupBox" name="dsCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1690,6 +1708,12 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
            </spacer>
           </item>
          </layout>
@@ -1709,7 +1733,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>383</height>
+            <height>466</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -1726,7 +1750,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="gsResGroup">
+            <widget class="CollapseGroupBox" name="gsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1778,7 +1802,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsUAVGroup">
+            <widget class="CollapseGroupBox" name="gsUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1830,7 +1854,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsSamplerGroup">
+            <widget class="CollapseGroupBox" name="gsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1882,112 +1906,108 @@
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="soHLayout">
-             <item>
-              <widget class="QGroupBox" name="gsCBufferGroup">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-                 <horstretch>5</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string>Constant Buffers</string>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_17">
-                <property name="leftMargin">
-                 <number>2</number>
+            <widget class="CollapseGroupBox" name="gsCBufferGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+               <horstretch>5</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Constant Buffers</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_17">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <item>
+               <widget class="RDTreeWidget" name="gsCBuffers">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
                 </property>
-                <property name="topMargin">
-                 <number>2</number>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
                 </property>
-                <property name="rightMargin">
-                 <number>2</number>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
                 </property>
-                <property name="bottomMargin">
-                 <number>2</number>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
                 </property>
-                <item>
-                 <widget class="RDTreeWidget" name="gsCBuffers">
-                  <property name="frameShape">
-                   <enum>QFrame::Box</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <property name="editTriggers">
-                   <set>QAbstractItemView::NoEditTriggers</set>
-                  </property>
-                  <property name="showDropIndicator" stdset="0">
-                   <bool>false</bool>
-                  </property>
-                  <property name="rootIsDecorated">
-                   <bool>false</bool>
-                  </property>
-                  <property name="allColumnsShowFocus">
-                   <bool>true</bool>
-                  </property>
-                  <attribute name="headerStretchLastSection">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="soGroup">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>4</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string>Stream Out</string>
-               </property>
-               <layout class="QHBoxLayout" name="soLayout_3">
-                <property name="leftMargin">
-                 <number>2</number>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
                 </property>
-                <property name="topMargin">
-                 <number>2</number>
+                <property name="allColumnsShowFocus">
+                 <bool>true</bool>
                 </property>
-                <property name="rightMargin">
-                 <number>2</number>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="CollapseGroupBox" name="soGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>4</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Stream Out</string>
+             </property>
+             <layout class="QHBoxLayout" name="soLayout_3">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <item>
+               <widget class="RDTreeWidget" name="gsStreamOut">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
                 </property>
-                <property name="bottomMargin">
-                 <number>2</number>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
                 </property>
-                <item>
-                 <widget class="RDTreeWidget" name="gsStreamOut">
-                  <property name="frameShape">
-                   <enum>QFrame::Box</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <property name="editTriggers">
-                   <set>QAbstractItemView::NoEditTriggers</set>
-                  </property>
-                  <property name="showDropIndicator" stdset="0">
-                   <bool>false</bool>
-                  </property>
-                  <property name="rootIsDecorated">
-                   <bool>false</bool>
-                  </property>
-                  <property name="allColumnsShowFocus">
-                   <bool>true</bool>
-                  </property>
-                  <attribute name="headerStretchLastSection">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
+                </property>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
+                </property>
+                <property name="allColumnsShowFocus">
+                 <bool>true</bool>
+                </property>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -2662,6 +2682,12 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
            </spacer>
           </item>
          </layout>
@@ -2681,7 +2707,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>383</height>
+            <height>466</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -2698,7 +2724,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="psResGroup">
+            <widget class="CollapseGroupBox" name="psResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2750,7 +2776,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="psUAVGroup">
+            <widget class="CollapseGroupBox" name="psUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2802,7 +2828,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="psSamplerGroup">
+            <widget class="CollapseGroupBox" name="psSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2854,7 +2880,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="psCBufferGroup">
+            <widget class="CollapseGroupBox" name="psCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2942,7 +2968,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>432</height>
+            <height>515</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_6">
@@ -3769,7 +3795,7 @@
             <x>0</x>
             <y>0</y>
             <width>868</width>
-            <height>369</height>
+            <height>452</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_15">
@@ -3786,7 +3812,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="csResGroup">
+            <widget class="CollapseGroupBox" name="csResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3838,7 +3864,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csUAVGroup">
+            <widget class="CollapseGroupBox" name="csUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3890,7 +3916,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csSamplerGroup">
+            <widget class="CollapseGroupBox" name="csSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3942,7 +3968,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csCBufferGroup">
+            <widget class="CollapseGroupBox" name="csCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4005,19 +4031,25 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLabel</class>
-   <extends>QLabel</extends>
-   <header>Widgets/Extended/RDLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
    <class>PipelineFlowChart</class>
    <extends>QFrame</extends>
    <header>Widgets/PipelineFlowChart.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CollapseGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>Widgets/CollapseGroupBox.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

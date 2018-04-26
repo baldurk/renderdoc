@@ -164,7 +164,7 @@
    <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
-      <number>4</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -633,7 +633,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="vsTexGroup">
+            <widget class="CollapseGroupBox" name="vsTexGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -685,7 +685,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsSamplerGroup">
+            <widget class="CollapseGroupBox" name="vsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -737,7 +737,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsUBOGroup">
+            <widget class="CollapseGroupBox" name="vsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -789,7 +789,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsReadWriteGroup">
+            <widget class="CollapseGroupBox" name="vsReadWriteGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -841,7 +841,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="vsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1068,7 +1068,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="tcsTexGroup">
+            <widget class="CollapseGroupBox" name="tcsTexGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1120,7 +1120,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tcsSamplerGroup">
+            <widget class="CollapseGroupBox" name="tcsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1172,7 +1172,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tcsUBOGroup">
+            <widget class="CollapseGroupBox" name="tcsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1224,7 +1224,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tcsReadWriteGroup">
+            <widget class="CollapseGroupBox" name="tcsReadWriteGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1276,7 +1276,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tcsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="tcsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1503,7 +1503,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="tesTexGroup">
+            <widget class="CollapseGroupBox" name="tesTexGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1555,7 +1555,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tesSamplerGroup">
+            <widget class="CollapseGroupBox" name="tesSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1607,7 +1607,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tesUBOGroup">
+            <widget class="CollapseGroupBox" name="tesUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1659,7 +1659,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tesReadWriteGroup">
+            <widget class="CollapseGroupBox" name="tesReadWriteGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1711,7 +1711,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="tesSubroutineGroup">
+            <widget class="CollapseGroupBox" name="tesSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1921,7 +1921,7 @@
             <x>0</x>
             <y>0</y>
             <width>857</width>
-            <height>454</height>
+            <height>538</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -1938,7 +1938,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="gsTexGroup">
+            <widget class="CollapseGroupBox" name="gsTexGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1990,7 +1990,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsSamplerGroup">
+            <widget class="CollapseGroupBox" name="gsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2042,165 +2042,161 @@
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="xfbHLayout">
-             <item>
-              <widget class="QGroupBox" name="gsUBOGroup">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-                 <horstretch>5</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string>Uniforms and UBOs</string>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_41">
-                <property name="leftMargin">
-                 <number>2</number>
+            <widget class="CollapseGroupBox" name="gsUBOGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+               <horstretch>5</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Uniforms and UBOs</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_41">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <item>
+               <widget class="RDTreeWidget" name="gsUBOs">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
                 </property>
-                <property name="topMargin">
-                 <number>2</number>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
                 </property>
-                <property name="rightMargin">
-                 <number>2</number>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
                 </property>
-                <property name="bottomMargin">
-                 <number>2</number>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
                 </property>
-                <item>
-                 <widget class="RDTreeWidget" name="gsUBOs">
-                  <property name="frameShape">
-                   <enum>QFrame::Box</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <property name="editTriggers">
-                   <set>QAbstractItemView::NoEditTriggers</set>
-                  </property>
-                  <property name="showDropIndicator" stdset="0">
-                   <bool>false</bool>
-                  </property>
-                  <property name="rootIsDecorated">
-                   <bool>false</bool>
-                  </property>
-                  <property name="allColumnsShowFocus">
-                   <bool>true</bool>
-                  </property>
-                  <attribute name="headerStretchLastSection">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="xfbGroup">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>4</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string>Transform Feedback</string>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_3">
-                <property name="leftMargin">
-                 <number>2</number>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
                 </property>
-                <property name="topMargin">
-                 <number>2</number>
+                <property name="allColumnsShowFocus">
+                 <bool>true</bool>
                 </property>
-                <property name="rightMargin">
-                 <number>2</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>2</number>
-                </property>
-                <item row="0" column="0">
-                 <layout class="QHBoxLayout" name="xfbPaused_HLayout">
-                  <item>
-                   <widget class="RDLabel" name="xfbObj">
-                    <property name="frameShape">
-                     <enum>QFrame::Box</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLabel" name="xfbPausedLabel">
-                    <property name="text">
-                     <string>Paused:</string>
-                    </property>
-                    <property name="alignment">
-                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLabel" name="xfbPaused">
-                    <property name="text">
-                     <string/>
-                    </property>
-                    <property name="pixmap">
-                     <pixmap resource="../../Resources/resources.qrc">:/tick.png</pixmap>
-                    </property>
-                    <property name="alignment">
-                     <set>Qt::AlignCenter</set>
-                    </property>
-                    <property name="margin">
-                     <number>0</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <spacer name="horizontalSpacer_2">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>40</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                 </layout>
-                </item>
-                <item row="4" column="0" colspan="2">
-                 <widget class="RDTreeWidget" name="xfbBuffers">
-                  <property name="frameShape">
-                   <enum>QFrame::Box</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <property name="editTriggers">
-                   <set>QAbstractItemView::NoEditTriggers</set>
-                  </property>
-                  <property name="showDropIndicator" stdset="0">
-                   <bool>false</bool>
-                  </property>
-                  <property name="rootIsDecorated">
-                   <bool>false</bool>
-                  </property>
-                  <property name="allColumnsShowFocus">
-                   <bool>true</bool>
-                  </property>
-                  <attribute name="headerStretchLastSection">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsReadWriteGroup">
+            <widget class="CollapseGroupBox" name="xfbGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>4</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Transform Feedback</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_3">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <item row="0" column="0">
+               <layout class="QHBoxLayout" name="xfbPaused_HLayout">
+                <item>
+                 <widget class="RDLabel" name="xfbObj">
+                  <property name="frameShape">
+                   <enum>QFrame::Box</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="xfbPausedLabel">
+                  <property name="text">
+                   <string>Paused:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="xfbPaused">
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="pixmap">
+                   <pixmap resource="../../Resources/resources.qrc">:/tick.png</pixmap>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="margin">
+                   <number>0</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_2">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item row="4" column="0" colspan="2">
+               <widget class="RDTreeWidget" name="xfbBuffers">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
+                </property>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
+                </property>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
+                </property>
+                <property name="allColumnsShowFocus">
+                 <bool>true</bool>
+                </property>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="CollapseGroupBox" name="gsReadWriteGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2252,7 +2248,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="gsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3355,7 +3351,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="fsTexGroup">
+            <widget class="CollapseGroupBox" name="fsTexGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3407,7 +3403,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="fsSamplerGroup">
+            <widget class="CollapseGroupBox" name="fsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3459,7 +3455,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="fsUBOGroup">
+            <widget class="CollapseGroupBox" name="fsUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3511,7 +3507,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="fsReadWriteGroup">
+            <widget class="CollapseGroupBox" name="fsReadWriteGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3563,7 +3559,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="fsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="fsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4297,7 +4293,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="csTexGroup">
+            <widget class="CollapseGroupBox" name="csTexGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4349,7 +4345,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csSamplerGroup">
+            <widget class="CollapseGroupBox" name="csSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4401,7 +4397,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csUBOGroup">
+            <widget class="CollapseGroupBox" name="csUBOGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4453,7 +4449,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csReadWriteGroup">
+            <widget class="CollapseGroupBox" name="csReadWriteGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4505,7 +4501,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csSubroutineGroup">
+            <widget class="CollapseGroupBox" name="csSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4568,19 +4564,25 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLabel</class>
-   <extends>QLabel</extends>
-   <header>Widgets/Extended/RDLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
    <class>PipelineFlowChart</class>
    <extends>QFrame</extends>
    <header>Widgets/PipelineFlowChart.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CollapseGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>Widgets/CollapseGroupBox.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

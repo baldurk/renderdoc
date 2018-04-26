@@ -76,7 +76,7 @@
          <string>Show Disabled Items</string>
         </property>
         <property name="icon">
-         <iconset>
+         <iconset resource="../../Resources/resources.qrc">
           <normaloff>:/page_white_delete.png</normaloff>:/page_white_delete.png</iconset>
         </property>
         <property name="checkable">
@@ -99,7 +99,7 @@
          <string>Show Empty Items</string>
         </property>
         <property name="icon">
-         <iconset>
+         <iconset resource="../../Resources/resources.qrc">
           <normaloff>:/page_white_database.png</normaloff>:/page_white_database.png</iconset>
         </property>
         <property name="checkable">
@@ -122,7 +122,7 @@
          <string>Export</string>
         </property>
         <property name="icon">
-         <iconset>
+         <iconset resource="../../Resources/resources.qrc">
           <normaloff>:/save.png</normaloff>:/save.png</iconset>
         </property>
         <property name="checkable">
@@ -313,7 +313,7 @@
                  <string>View the mesh input data</string>
                 </property>
                 <property name="pixmap">
-                 <pixmap>:/wireframe_mesh.png</pixmap>
+                 <pixmap resource="../../Resources/resources.qrc">:/wireframe_mesh.png</pixmap>
                 </property>
                 <property name="scaledContents">
                  <bool>true</bool>
@@ -368,7 +368,7 @@
                  <string/>
                 </property>
                 <property name="pixmap">
-                 <pixmap>:/topologies/topo_trilist.svg</pixmap>
+                 <pixmap resource="../../Resources/resources.qrc">:/topologies/topo_trilist.svg</pixmap>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -418,7 +418,7 @@
                  <string>View</string>
                 </property>
                 <property name="icon">
-                 <iconset>
+                 <iconset resource="../../Resources/resources.qrc">
                   <normaloff>:/action.png</normaloff>:/action.png</iconset>
                 </property>
                 <property name="toolButtonStyle">
@@ -622,7 +622,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -642,7 +642,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -662,7 +662,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -723,7 +723,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="vsResGroup">
+            <widget class="CollapseGroupBox" name="vsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -775,7 +775,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsSamplerGroup">
+            <widget class="CollapseGroupBox" name="vsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -827,7 +827,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsCBufferGroup">
+            <widget class="CollapseGroupBox" name="vsCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -879,7 +879,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="vsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="vsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -993,7 +993,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1013,7 +1013,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1033,7 +1033,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1091,7 +1091,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="hsResGroup">
+            <widget class="CollapseGroupBox" name="hsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1143,7 +1143,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="hsSamplerGroup">
+            <widget class="CollapseGroupBox" name="hsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1195,7 +1195,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="hsCBufferGroup">
+            <widget class="CollapseGroupBox" name="hsCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1247,7 +1247,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="hsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="hsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1361,7 +1361,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1381,7 +1381,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1401,7 +1401,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1459,7 +1459,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="dsResGroup">
+            <widget class="CollapseGroupBox" name="dsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1511,7 +1511,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="dsSamplerGroup">
+            <widget class="CollapseGroupBox" name="dsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1563,7 +1563,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="dsCBufferGroup">
+            <widget class="CollapseGroupBox" name="dsCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1615,7 +1615,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="dsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="dsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1729,7 +1729,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1749,7 +1749,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1769,7 +1769,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1827,7 +1827,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="gsResGroup">
+            <widget class="CollapseGroupBox" name="gsResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1879,7 +1879,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsSamplerGroup">
+            <widget class="CollapseGroupBox" name="gsSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -1931,115 +1931,111 @@
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="soHLayout">
-             <item>
-              <widget class="QGroupBox" name="gsCBufferGroup">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-                 <horstretch>5</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string>Constant Buffers</string>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_17">
-                <property name="leftMargin">
-                 <number>2</number>
+            <widget class="CollapseGroupBox" name="gsCBufferGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+               <horstretch>5</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Constant Buffers</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_17">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <item>
+               <widget class="RDTreeWidget" name="gsCBuffers">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
                 </property>
-                <property name="topMargin">
-                 <number>2</number>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
                 </property>
-                <property name="rightMargin">
-                 <number>2</number>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
                 </property>
-                <property name="bottomMargin">
-                 <number>2</number>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
                 </property>
-                <item>
-                 <widget class="RDTreeWidget" name="gsCBuffers">
-                  <property name="frameShape">
-                   <enum>QFrame::Box</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <property name="editTriggers">
-                   <set>QAbstractItemView::NoEditTriggers</set>
-                  </property>
-                  <property name="showDropIndicator" stdset="0">
-                   <bool>false</bool>
-                  </property>
-                  <property name="rootIsDecorated">
-                   <bool>false</bool>
-                  </property>
-                  <property name="allColumnsShowFocus">
-                   <bool>true</bool>
-                  </property>
-                  <attribute name="headerStretchLastSection">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="soGroup">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>4</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string>Stream Out</string>
-               </property>
-               <layout class="QHBoxLayout" name="soLayout_3">
-                <property name="leftMargin">
-                 <number>2</number>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
                 </property>
-                <property name="topMargin">
-                 <number>2</number>
+                <property name="allColumnsShowFocus">
+                 <bool>true</bool>
                 </property>
-                <property name="rightMargin">
-                 <number>2</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>2</number>
-                </property>
-                <item>
-                 <widget class="RDTreeWidget" name="gsStreamOut">
-                  <property name="frameShape">
-                   <enum>QFrame::Box</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <property name="editTriggers">
-                   <set>QAbstractItemView::NoEditTriggers</set>
-                  </property>
-                  <property name="showDropIndicator" stdset="0">
-                   <bool>false</bool>
-                  </property>
-                  <property name="rootIsDecorated">
-                   <bool>false</bool>
-                  </property>
-                  <property name="allColumnsShowFocus">
-                   <bool>true</bool>
-                  </property>
-                  <attribute name="headerStretchLastSection">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="gsSubroutineGroup">
+            <widget class="CollapseGroupBox" name="soGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>4</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Stream Out</string>
+             </property>
+             <layout class="QHBoxLayout" name="soLayout_3">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <item>
+               <widget class="RDTreeWidget" name="gsStreamOut">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
+                </property>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
+                </property>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
+                </property>
+                <property name="allColumnsShowFocus">
+                 <bool>true</bool>
+                </property>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="CollapseGroupBox" name="gsSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2279,7 +2275,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap>:/cross.png</pixmap>
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2295,7 +2291,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap>:/cross.png</pixmap>
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2311,7 +2307,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap>:/cross.png</pixmap>
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2345,7 +2341,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap>:/cross.png</pixmap>
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2462,7 +2458,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap>:/cross.png</pixmap>
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2491,7 +2487,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap>:/cross.png</pixmap>
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2772,7 +2768,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -2792,7 +2788,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -2812,7 +2808,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -2870,7 +2866,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="psResGroup">
+            <widget class="CollapseGroupBox" name="psResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2922,7 +2918,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="psSamplerGroup">
+            <widget class="CollapseGroupBox" name="psSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -2974,7 +2970,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="psCBufferGroup">
+            <widget class="CollapseGroupBox" name="psCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3026,7 +3022,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="psSubroutineGroup">
+            <widget class="CollapseGroupBox" name="psSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -3306,7 +3302,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap>:/cross.png</pixmap>
+                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3397,7 +3393,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap>:/cross.png</pixmap>
+                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3478,7 +3474,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap>:/cross.png</pixmap>
+                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3504,7 +3500,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap>:/cross.png</pixmap>
+                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3685,7 +3681,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap>:/cross.png</pixmap>
+                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3920,7 +3916,7 @@
                 <string>View</string>
                </property>
                <property name="icon">
-                <iconset>
+                <iconset resource="../../Resources/resources.qrc">
                  <normaloff>:/action.png</normaloff>:/action.png</iconset>
                </property>
                <property name="toolButtonStyle">
@@ -3940,7 +3936,7 @@
                 <string>Edit</string>
                </property>
                <property name="icon">
-                <iconset>
+                <iconset resource="../../Resources/resources.qrc">
                  <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
                </property>
                <property name="toolButtonStyle">
@@ -3960,7 +3956,7 @@
                 <string>Save</string>
                </property>
                <property name="icon">
-                <iconset>
+                <iconset resource="../../Resources/resources.qrc">
                  <normaloff>:/save.png</normaloff>:/save.png</iconset>
                </property>
                <property name="toolButtonStyle">
@@ -4036,7 +4032,7 @@
                 <string/>
                </property>
                <property name="icon">
-                <iconset>
+                <iconset resource="../../Resources/resources.qrc">
                  <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
                </property>
                <property name="autoRaise">
@@ -4094,7 +4090,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="csResGroup">
+            <widget class="CollapseGroupBox" name="csResGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4146,7 +4142,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csUAVGroup">
+            <widget class="CollapseGroupBox" name="csUAVGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4198,7 +4194,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csSamplerGroup">
+            <widget class="CollapseGroupBox" name="csSamplerGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4250,7 +4246,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csCBufferGroup">
+            <widget class="CollapseGroupBox" name="csCBufferGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4302,7 +4298,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="csSubroutineGroup">
+            <widget class="CollapseGroupBox" name="csSubroutineGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -4365,14 +4361,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLabel</class>
-   <extends>QLabel</extends>
-   <header>Widgets/Extended/RDLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
   </customwidget>
   <customwidget>
    <class>PipelineFlowChart</class>
@@ -4380,7 +4376,15 @@
    <header>Widgets/PipelineFlowChart.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>CollapseGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>Widgets/CollapseGroupBox.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../../Resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
