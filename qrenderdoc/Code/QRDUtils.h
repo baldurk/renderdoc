@@ -166,6 +166,7 @@ struct Formatter
   static void shutdown();
 
   static QString Format(double f, bool hex = false);
+  static QString HumanFormat(uint64_t u);
   static QString Format(uint64_t u, bool hex = false)
   {
     return QFormatStr("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();

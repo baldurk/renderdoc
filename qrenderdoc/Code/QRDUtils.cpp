@@ -716,7 +716,7 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
         case SDBasic::String: param = obj->data.str; break;
         case SDBasic::Resource:
         case SDBasic::Enum:
-        case SDBasic::UnsignedInteger: param = Formatter::Format(obj->data.basic.u); break;
+        case SDBasic::UnsignedInteger: param = Formatter::HumanFormat(obj->data.basic.u); break;
         case SDBasic::SignedInteger: param = Formatter::Format(obj->data.basic.i); break;
         case SDBasic::Float: param = Formatter::Format(obj->data.basic.d); break;
         case SDBasic::Boolean: param = (obj->data.basic.b ? lit("True") : lit("False")); break;
@@ -1182,6 +1182,22 @@ QString Formatter::Format(double f, bool)
   }
 
   return ret;
+}
+
+QString Formatter::HumanFormat(uint64_t u)
+{
+  if(u == UINT16_MAX)
+    return lit("UINT16_MAX");
+  if(u == UINT32_MAX)
+    return lit("UINT32_MAX");
+  if(u == UINT64_MAX)
+    return lit("UINT64_MAX");
+
+  // format as hex when over a certain threshold
+  if(u > 0xffffff)
+    return lit("0x") + Format(u, true);
+
+  return Format(u);
 }
 
 class RDProgressDialog : public QProgressDialog
