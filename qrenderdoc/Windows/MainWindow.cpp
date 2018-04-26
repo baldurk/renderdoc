@@ -1070,8 +1070,9 @@ void MainWindow::PopulateRecentCaptureFiles()
   for(int i = m_Ctx.Config().RecentCaptureFiles.count() - 1; i >= 0; i--)
   {
     QString filename = m_Ctx.Config().RecentCaptureFiles[i];
-    filename.replace(QLatin1Char('&'), lit("&&"));
-    ui->menu_Recent_Capture_Files->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
+    QString filenameDisplay = filename;
+    filenameDisplay.replace(QLatin1Char('&'), lit("&&"));
+    ui->menu_Recent_Capture_Files->addAction(QFormatStr("&%1 %2").arg(idx).arg(filenameDisplay),
                                              [this, filename] { recentCaptureFile(filename); });
     idx++;
 
@@ -1098,8 +1099,9 @@ void MainWindow::PopulateRecentCaptureSettings()
   for(int i = m_Ctx.Config().RecentCaptureSettings.count() - 1; i >= 0; i--)
   {
     QString filename = m_Ctx.Config().RecentCaptureSettings[i];
-    filename.replace(QLatin1Char('&'), lit("&&"));
-    ui->menu_Recent_Capture_Settings->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
+    QString filenameDisplay = filename;
+    filenameDisplay.replace(QLatin1Char('&'), lit("&&"));
+    ui->menu_Recent_Capture_Settings->addAction(QFormatStr("&%1 %2").arg(idx).arg(filenameDisplay),
                                                 [this, filename] { recentCaptureSetting(filename); });
     idx++;
 
