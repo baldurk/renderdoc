@@ -342,15 +342,38 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
 
     const int labelHeight = lineHeight + border * 2;
 
+    const int checkWidth =
+        (group->subControls & QStyle::SC_GroupBoxCheckBox) ? Constants::CheckWidth : 0;
+
     if(sc == SC_GroupBoxLabel)
     {
-      ret.setHeight(labelHeight);
+      if(checkWidth > 0)
+      {
+        ret.adjust(checkWidth + Constants::CheckMargin, 0, 0, 0);
+        ret.setHeight(qMax(labelHeight, Constants::CheckHeight));
+      }
+      else
+      {
+        ret.setHeight(labelHeight);
+      }
+
       return ret;
     }
 
     if(sc == SC_GroupBoxCheckBox)
     {
-      return QRect();
+      if(checkWidth > 0)
+      {
+        ret.setWidth(checkWidth);
+        ret.setHeight(Constants::CheckHeight);
+        ret.adjust(Constants::CheckMargin, Constants::CheckMargin, Constants::CheckMargin,
+                   Constants::CheckMargin);
+      }
+      else
+      {
+        ret = QRect();
+      }
+      return ret;
     }
 
     if(sc == QStyle::SC_GroupBoxContents)
@@ -882,7 +905,11 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
   }
   else if(control == CC_GroupBox)
   {
-    drawRoundedRectBorder(opt, p, widget, QPalette::Window, false);
+    // when drawing the border don't apply any states intended for the checkbox
+    QStyleOptionComplex frame = *opt;
+    frame.state &=
+        ~(QStyle::State_Sunken | QStyle::State_MouseOver | QStyle::State_On | QStyle::State_Off);
+    drawRoundedRectBorder(&frame, p, widget, QPalette::Window, false);
 
     const QStyleOptionGroupBox *group = qstyleoption_cast<const QStyleOptionGroupBox *>(opt);
 
@@ -907,6 +934,16 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 
     p->setPen(QPen(opt->palette.brush(m_Scheme == Light ? QPalette::Mid : QPalette::Midlight), 1.0));
     p->drawLine(labelRect.bottomLeft(), labelRect.bottomRight());
+
+    if(opt->subControls & QStyle::SC_GroupBoxCheckBox)
+    {
+      QRect checkBoxRect = subControlRect(CC_GroupBox, opt, SC_GroupBoxCheckBox, widget);
+
+      QStyleOptionButton box;
+      (QStyleOption &)box = *(QStyleOption *)opt;
+      box.rect = checkBoxRect;
+      drawPrimitive(PE_IndicatorCheckBox, &box, p, widget);
+    }
 
     return;
   }
@@ -1341,14 +1378,17 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
 
     return;
   }
-  else if(element == QStyle::PE_IndicatorViewItemCheck)
+  else if(element == QStyle::PE_IndicatorViewItemCheck || element == QStyle::PE_IndicatorCheckBox)
   {
     QRect rect = opt->rect;
 
     QPen outlinePen(outlineBrush(opt->palette), 1.0);
 
     p->save();
+    p->setClipRect(rect);
     p->setRenderHint(QPainter::Antialiasing);
+
+    rect.adjust(0, 0, -1, -1);
 
     QPainterPath path;
     path.addRoundedRect(rect, 1.0, 1.0);
