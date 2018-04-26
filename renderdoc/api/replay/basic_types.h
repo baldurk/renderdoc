@@ -761,7 +761,7 @@ struct rdcstr : public rdcarray<char>
     return !strcmp(elems, o);
   }
   bool operator==(const std::string &o) const { return o == elems; }
-  bool operator==(const rdcstr &o) const { return *this == (const char *const)o.elems; }
+  bool operator==(const rdcstr &o) const { return *this == (const char *)o.elems; }
   bool operator!=(const char *const o) const { return !(*this == o); }
   bool operator!=(const std::string &o) const { return !(*this == o); }
   bool operator!=(const rdcstr &o) const { return !(*this == o); }
