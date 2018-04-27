@@ -446,7 +446,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
 void WrappedID3D12Resource::RefBuffers(D3D12ResourceManager *rm)
 {
   // only buffers go into m_Addresses
-  SCOPED_LOCK(m_Addresses.addressLock);
+  SCOPED_READLOCK(m_Addresses.addressLock);
   for(size_t i = 0; i < m_Addresses.addresses.size(); i++)
     rm->MarkResourceFrameReferenced(m_Addresses.addresses[i].id, eFrameRef_Read);
 }

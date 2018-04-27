@@ -320,11 +320,11 @@ struct GPUAddressRangeTracker
   GPUAddressRangeTracker &operator=(const GPUAddressRangeTracker &);
 
   std::vector<GPUAddressRange> addresses;
-  Threading::CriticalSection addressLock;
+  Threading::RWLock addressLock;
 
   void AddTo(GPUAddressRange range)
   {
-    SCOPED_LOCK(addressLock);
+    SCOPED_WRITELOCK(addressLock);
     auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
     RDCASSERT(it == addresses.begin() || it == addresses.end() || range.start < it->start ||
               range.start >= it->end);
@@ -334,7 +334,7 @@ struct GPUAddressRangeTracker
 
   void RemoveFrom(D3D12_GPU_VIRTUAL_ADDRESS baseAddr)
   {
-    SCOPED_LOCK(addressLock);
+    SCOPED_WRITELOCK(addressLock);
     auto it = std::lower_bound(addresses.begin(), addresses.end(), baseAddr);
     RDCASSERT(it != addresses.end() && baseAddr >= it->start && baseAddr < it->end);
 
@@ -353,7 +353,7 @@ struct GPUAddressRangeTracker
 
     // this should really be a read-write lock
     {
-      SCOPED_LOCK(addressLock);
+      SCOPED_READLOCK(addressLock);
 
       auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
       if(it == addresses.end())

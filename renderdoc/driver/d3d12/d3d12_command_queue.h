@@ -252,6 +252,10 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ExecuteCommandLists,
                                 UINT NumCommandLists, ID3D12CommandList *const *ppCommandLists);
 
+  virtual void ExecuteCommandListsInternal(UINT NumCommandLists,
+                                           ID3D12CommandList *const *ppCommandLists,
+                                           bool InFrameCaptureBoundary);
+
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, SetMarker, UINT Metadata,
                                 const void *pData, UINT Size);
 

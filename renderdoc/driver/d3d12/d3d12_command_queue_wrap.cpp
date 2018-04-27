@@ -321,8 +321,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
   return true;
 }
 
-void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
-    UINT NumCommandLists, ID3D12CommandList *const *ppCommandLists)
+void WrappedID3D12CommandQueue::ExecuteCommandLists(UINT NumCommandLists,
+                                                    ID3D12CommandList *const *ppCommandLists)
+{
+  ExecuteCommandListsInternal(NumCommandLists, ppCommandLists, false);
+}
+
+void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists,
+                                                            ID3D12CommandList *const *ppCommandLists,
+                                                            bool InFrameCaptureBoundary)
 {
   ID3D12CommandList **unwrapped = m_pDevice->GetTempArray<ID3D12CommandList *>(NumCommandLists);
   for(UINT i = 0; i < NumCommandLists; i++)
@@ -342,7 +349,9 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   if(IsCaptureMode(m_State))
   {
     SCOPED_LOCK(m_Lock);
-    SCOPED_LOCK(m_pDevice->GetCapTransitionLock());
+
+    if(!InFrameCaptureBoundary)
+      m_pDevice->GetCapTransitionLock().ReadLock();
 
     bool capframe = IsActiveCapturing(m_State);
     std::set<ResourceId> refdIDs;
@@ -529,6 +538,9 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
         m_QueueRecord->AddChunk(scope.Get());
       }
     }
+
+    if(!InFrameCaptureBoundary)
+      m_pDevice->GetCapTransitionLock().ReadUnlock();
   }
 }
 

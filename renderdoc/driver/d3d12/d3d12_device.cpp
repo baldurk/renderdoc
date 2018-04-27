@@ -886,7 +886,7 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
 
   bool capframe = false;
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_READLOCK(m_CapTransitionLock);
     capframe = IsActiveCapturing(m_State);
   }
 
@@ -1119,7 +1119,7 @@ void WrappedID3D12Device::WriteToSubresource(ID3D12Resource *Resource, UINT Subr
 {
   bool capframe = false;
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_READLOCK(m_CapTransitionLock);
     capframe = IsActiveCapturing(m_State);
   }
 
@@ -1316,7 +1316,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   // will check to see if they need to markdirty or markpendingdirty
   // and go into the frame record.
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_WRITELOCK(m_CapTransitionLock);
 
     initStateCurBatch = 0;
     initStateCurList = NULL;
@@ -1332,7 +1332,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     initStateCurBatch = 0;
     initStateCurList = NULL;
 
-    ExecuteLists();
+    ExecuteLists(NULL, true);
     FlushLists();
 
     RDCDEBUG("Attempting capture");
@@ -1406,7 +1406,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   // transition back to IDLE and readback initial states atomically
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_WRITELOCK(m_CapTransitionLock);
     EndCaptureFrame(backbuffer);
 
     m_State = CaptureState::BackgroundCapturing;
@@ -1495,7 +1495,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
         list->Close();
 
-        ExecuteLists();
+        ExecuteLists(NULL, true);
         FlushLists();
 
         byte *data = NULL;
@@ -2392,13 +2392,14 @@ void WrappedID3D12Device::CloseInitialStateList()
   initStateCurBatch = 0;
 }
 
-void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList2 *list, ID3D12CommandQueue *queue)
+void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList2 *list,
+                                      WrappedID3D12CommandQueue *queue, bool InFrameCaptureBoundary)
 {
   if(queue == NULL)
     queue = GetQueue();
 
   ID3D12CommandList *l = list;
-  queue->ExecuteCommandLists(1, &l);
+  queue->ExecuteCommandListsInternal(1, &l, InFrameCaptureBoundary);
 
   for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
   {
@@ -2412,7 +2413,7 @@ void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList2 *list, ID3D12Co
   m_InternalCmds.submittedcmds.push_back(list);
 }
 
-void WrappedID3D12Device::ExecuteLists(ID3D12CommandQueue *queue)
+void WrappedID3D12Device::ExecuteLists(WrappedID3D12CommandQueue *queue, bool InFrameCaptureBoundary)
 {
   // nothing to do
   if(m_InternalCmds.pendingcmds.empty())
@@ -2426,7 +2427,7 @@ void WrappedID3D12Device::ExecuteLists(ID3D12CommandQueue *queue)
   if(queue == NULL)
     queue = GetQueue();
 
-  queue->ExecuteCommandLists((UINT)cmds.size(), &cmds[0]);
+  queue->ExecuteCommandListsInternal((UINT)cmds.size(), &cmds[0], InFrameCaptureBoundary);
 
   m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(),
                                       m_InternalCmds.pendingcmds.begin(),

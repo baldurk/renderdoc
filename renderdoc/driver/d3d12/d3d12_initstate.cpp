@@ -117,7 +117,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       {
         m_Device->CloseInitialStateList();
 
-        m_Device->ExecuteLists();
+        m_Device->ExecuteLists(NULL, true);
         m_Device->FlushLists();
 
         m_Device->Evict(1, &pageable);
@@ -228,7 +228,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       {
         m_Device->CloseInitialStateList();
 
-        m_Device->ExecuteLists();
+        m_Device->ExecuteLists(NULL, true);
         m_Device->FlushLists();
 
         m_Device->Evict(1, &pageable);
@@ -374,7 +374,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
     if(ser.IsWriting())
     {
-      m_Device->ExecuteLists();
+      m_Device->ExecuteLists(NULL, true);
       m_Device->FlushLists();
 
       mappedBuffer = (ID3D12Resource *)initContents.resource;
@@ -738,7 +738,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
         m_Device->CloseInitialStateList();
-        m_Device->ExecuteLists();
+        m_Device->ExecuteLists(NULL, true);
         m_Device->FlushLists(true);
 #endif
       }

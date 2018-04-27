@@ -312,7 +312,7 @@ private:
 
   bool m_AppControlledCapture;
 
-  Threading::CriticalSection m_CapTransitionLock;
+  Threading::RWLock m_CapTransitionLock;
   CaptureState m_State;
 
   uint32_t m_SubmitCounter = 0;
@@ -351,7 +351,7 @@ private:
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
 
-    ID3D12CommandQueue *queue;
+    WrappedID3D12CommandQueue *queue;
 
     int32_t lastPresentedBuffer;
   };
@@ -397,7 +397,7 @@ public:
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
   ResourceId GetResourceID() { return m_ResourceID; }
-  Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
+  Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain4 *swap);
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
@@ -485,8 +485,9 @@ public:
 
   void AddCaptureSubmission();
 
-  void ExecuteList(ID3D12GraphicsCommandList2 *list, ID3D12CommandQueue *queue = NULL);
-  void ExecuteLists(ID3D12CommandQueue *queue = NULL);
+  void ExecuteList(ID3D12GraphicsCommandList2 *list, WrappedID3D12CommandQueue *queue = NULL,
+                   bool InFrameCaptureBoundary = false);
+  void ExecuteLists(WrappedID3D12CommandQueue *queue = NULL, bool InFrameCaptureBoundary = false);
   void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
 
   void GPUSync(ID3D12CommandQueue *queue = NULL, ID3D12Fence *fence = NULL);

@@ -238,24 +238,6 @@ struct GLResourceRecord : public ResourceRecord
     int64_t persistentMaps;    // counter indicating how many coherent maps are 'live'
   } Map;
 
-  template <typename ChunkFilter>
-  void FilterChunks(const ChunkFilter &filter)
-  {
-    LockChunks();
-    std::vector<std::map<int32_t, Chunk *>::iterator> deletions;
-    for(auto it = m_Chunks.begin(); it != m_Chunks.end(); ++it)
-    {
-      if(filter(it->second))
-        deletions.push_back(it);
-    }
-    for(size_t i = 0; i < deletions.size(); i++)
-    {
-      SAFE_DELETE(deletions[i]->second);
-      m_Chunks.erase(deletions[i]);
-    }
-    UnlockChunks();
-  }
-
   void VerifyDataType(GLenum target)
   {
 #if ENABLED(RDOC_DEVEL)
