@@ -83,6 +83,13 @@ struct pthreadLockData
   pthread_mutexattr_t attr;
 };
 typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
+
+struct pthreadRWLockData
+{
+  pthread_rwlock_t rwlock;
+  pthread_rwlockattr_t attr;
+};
+typedef RWLockTemplate<pthreadRWLockData> RWLock;
 };
 
 namespace Bits

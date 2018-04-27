@@ -38,21 +38,26 @@ private:
   CriticalSection *m_CS;
 };
 
-class TryScopedLock
+class ScopedReadLock
 {
 public:
-  TryScopedLock(CriticalSection &cs) : m_CS(&cs) { m_Owned = m_CS->Trylock(); }
-  ~TryScopedLock()
-  {
-    if(m_Owned)
-      m_CS->Unlock();
-  }
-
-  bool HasLock() const { return m_Owned; }
+  ScopedReadLock(RWLock &rw) : m_RW(&rw) { m_RW->ReadLock(); }
+  ~ScopedReadLock() { m_RW->ReadUnlock(); }
 private:
-  CriticalSection *m_CS;
-  bool m_Owned;
+  RWLock *m_RW;
+};
+
+class ScopedWriteLock
+{
+public:
+  ScopedWriteLock(RWLock &rw) : m_RW(&rw) { m_RW->WriteLock(); }
+  ~ScopedWriteLock() { m_RW->WriteUnlock(); }
+private:
+  RWLock *m_RW;
 };
 };
 
 #define SCOPED_LOCK(cs) Threading::ScopedLock CONCAT(scopedlock, __LINE__)(cs);
+
+#define SCOPED_READLOCK(rw) Threading::ScopedReadLock CONCAT(scopedlock, __LINE__)(rw);
+#define SCOPED_WRITELOCK(rw) Threading::ScopedWriteLock CONCAT(scopedlock, __LINE__)(rw);

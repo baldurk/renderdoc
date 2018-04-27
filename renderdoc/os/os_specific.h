@@ -99,10 +99,31 @@ public:
   bool Trylock();
   void Unlock();
 
-private:
   // no copying
-  CriticalSectionTemplate &operator=(const CriticalSectionTemplate &other);
-  CriticalSectionTemplate(const CriticalSectionTemplate &other);
+  CriticalSectionTemplate &operator=(const CriticalSectionTemplate &other) = delete;
+  CriticalSectionTemplate(const CriticalSectionTemplate &other) = delete;
+
+  data m_Data;
+};
+
+template <class data>
+class RWLockTemplate
+{
+public:
+  RWLockTemplate();
+  ~RWLockTemplate();
+
+  void ReadLock();
+  bool TryReadlock();
+  void ReadUnlock();
+
+  void WriteLock();
+  bool TryWritelock();
+  void WriteUnlock();
+
+  // no copying
+  RWLockTemplate &operator=(const RWLockTemplate &other) = delete;
+  RWLockTemplate(const RWLockTemplate &other) = delete;
 
   data m_Data;
 };

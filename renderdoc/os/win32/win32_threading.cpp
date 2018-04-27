@@ -98,12 +98,51 @@ void CriticalSection::Lock()
 
 bool CriticalSection::Trylock()
 {
-  return TryEnterCriticalSection(&m_Data) == TRUE;
+  return TryEnterCriticalSection(&m_Data) != FALSE;
 }
 
 void CriticalSection::Unlock()
 {
   LeaveCriticalSection(&m_Data);
+}
+
+RWLock::RWLockTemplate()
+{
+  InitializeSRWLock(&m_Data);
+}
+
+RWLock::~RWLockTemplate()
+{
+}
+
+void RWLock::WriteLock()
+{
+  AcquireSRWLockExclusive(&m_Data);
+}
+
+bool RWLock::TryWritelock()
+{
+  return TryAcquireSRWLockExclusive(&m_Data) != FALSE;
+}
+
+void RWLock::WriteUnlock()
+{
+  ReleaseSRWLockExclusive(&m_Data);
+}
+
+void RWLock::ReadLock()
+{
+  AcquireSRWLockShared(&m_Data);
+}
+
+bool RWLock::TryReadlock()
+{
+  return TryAcquireSRWLockShared(&m_Data) != FALSE;
+}
+
+void RWLock::ReadUnlock()
+{
+  ReleaseSRWLockShared(&m_Data);
 }
 
 struct ThreadInitData

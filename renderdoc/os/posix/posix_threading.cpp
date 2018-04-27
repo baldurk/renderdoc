@@ -101,6 +101,56 @@ void CriticalSection::Unlock()
   pthread_mutex_unlock(&m_Data.lock);
 }
 
+template <>
+RWLock::RWLockTemplate()
+{
+  pthread_rwlockattr_init(&m_Data.attr);
+  pthread_rwlock_init(&m_Data.rwlock, &m_Data.attr);
+}
+
+template <>
+RWLock::~RWLockTemplate()
+{
+  pthread_rwlock_destroy(&m_Data.rwlock);
+  pthread_rwlockattr_destroy(&m_Data.attr);
+}
+
+template <>
+void RWLock::WriteLock()
+{
+  pthread_rwlock_wrlock(&m_Data.rwlock);
+}
+
+template <>
+bool RWLock::TryWritelock()
+{
+  return pthread_rwlock_trywrlock(&m_Data.rwlock) == 0;
+}
+
+template <>
+void RWLock::WriteUnlock()
+{
+  pthread_rwlock_unlock(&m_Data.rwlock);
+}
+
+template <>
+void RWLock::ReadLock()
+{
+  pthread_rwlock_rdlock(&m_Data.rwlock);
+}
+
+template <>
+bool RWLock::TryReadlock()
+{
+  return pthread_rwlock_tryrdlock(&m_Data.rwlock) == 0;
+}
+
+template <>
+void RWLock::ReadUnlock()
+{
+  pthread_rwlock_unlock(&m_Data.rwlock);
+}
+
 struct ThreadInitData
 {
   std::function<void()> entryFunc;

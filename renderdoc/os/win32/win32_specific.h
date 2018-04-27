@@ -73,6 +73,7 @@ void WriteOutput(int channel, const char *str);
 namespace Threading
 {
 typedef CriticalSectionTemplate<CRITICAL_SECTION> CriticalSection;
+typedef RWLockTemplate<SRWLOCK> RWLock;
 };
 
 namespace Bits
