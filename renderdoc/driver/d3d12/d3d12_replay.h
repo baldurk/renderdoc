@@ -388,6 +388,9 @@ private:
   std::vector<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
+  bool m_ISAChecked = false;
+  bool m_ISAAvailable = false;
+
   D3D12Pipe::State m_PipelineState;
   D3D11Pipe::State m_D3D11State;
   VKPipe::State m_VKState;

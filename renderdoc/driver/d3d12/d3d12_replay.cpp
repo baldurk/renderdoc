@@ -38,6 +38,8 @@
 
 #include "data/hlsl/debugcbuffers.h"
 
+static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
+
 extern "C" __declspec(dllexport) HRESULT
     __cdecl RENDERDOC_CreateWrappedDXGIFactory1(REFIID riid, void **ppFactory);
 extern "C" __declspec(dllexport) HRESULT
@@ -383,6 +385,32 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
   // DXBC is always first
   ret.insert(ret.begin(), DXBCDisassemblyTarget);
 
+  if(!m_ISAChecked && m_TexRender.BlendPipe)
+  {
+    m_ISAChecked = true;
+
+    UINT size = 0;
+    m_TexRender.BlendPipe->GetPrivateData(WKPDID_CommentStringW, &size, NULL);
+
+    if(size > 0)
+    {
+      byte *isa = new byte[size + 1];
+      m_TexRender.BlendPipe->GetPrivateData(WKPDID_CommentStringW, &size, isa);
+
+      if(strstr((const char *)isa, "disassembly requires a participating driver") == NULL &&
+         wcsstr((const wchar_t *)isa, L"disassembly requires a participating driver") == NULL)
+      {
+        m_ISAAvailable =
+            strstr((const char *)isa, "<shader") || wcsstr((const wchar_t *)isa, L"<shader");
+      }
+
+      delete[] isa;
+    }
+  }
+
+  if(m_ISAAvailable)
+    ret.push_back(LiveDriverDisassemblyTarget);
+
   return ret;
 }
 
@@ -399,6 +427,105 @@ string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
 
   if(target == DXBCDisassemblyTarget || target.empty())
     return dxbc->GetDisassembly();
+
+  if(target == LiveDriverDisassemblyTarget)
+  {
+    if(pipeline == ResourceId())
+    {
+      return "; No pipeline specified, live driver disassembly is not available\n"
+             "; Shader must be disassembled with a specific pipeline to get live driver assembly.";
+    }
+
+    WrappedID3D12PipelineState *pipe =
+        m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12PipelineState>(pipeline);
+
+    UINT size = 0;
+    pipe->GetPrivateData(WKPDID_CommentStringW, &size, NULL);
+
+    if(size == 0)
+      return "; Unknown error fetching disassembly, empty string returned\n";
+
+    byte *data = new byte[size + 1];
+    memset(data, 0, size);
+    pipe->GetPrivateData(WKPDID_CommentStringW, &size, data);
+
+    byte *iter = data;
+
+    // need to handle wide and ascii strings to some extent. We assume that it doesn't change from
+    // character to character, we just handle the initial <comments> being either one, then assume
+    // the xml within is all consistent.
+    if(!strncmp((char *)iter, "<comments", 9))
+    {
+      iter += 9;
+
+      // find the end of the tag, advance past it
+      iter = (byte *)strchr((char *)iter, '>') + 1;
+
+      if(*(char *)iter == '\n')
+        iter++;
+    }
+    else if(!wcsncmp((wchar_t *)iter, L"<comments", 9))
+    {
+      iter += 9 * sizeof(wchar_t);
+
+      // find the end of the tag
+      iter = (byte *)wcschr((wchar_t *)iter, L'>') + sizeof(wchar_t);
+
+      if(*(wchar_t *)iter == L'\n')
+        iter += sizeof(wchar_t);
+    }
+    else
+      return "; Unknown error fetching disassembly, invalid string returned\n\n\n" +
+             std::string(data, data + size);
+
+    std::string contents;
+
+    // decode the <shader><comment> tags
+    if(!strncmp((char *)iter, "<shader", 7))
+      contents = std::string((char *)iter, (char *)iter + strlen((char *)iter));
+    else if(!wcsncmp((wchar_t *)iter, L"<shader", 7))
+      contents = StringFormat::Wide2UTF8(
+          std::wstring((wchar_t *)iter, (wchar_t *)iter + wcslen((wchar_t *)iter)));
+
+    delete[] data;
+
+    const char *search = "stage=\"?S\"";
+
+    switch(refl->stage)
+    {
+      case ShaderStage::Vertex: search = "stage=\"VS\""; break;
+      case ShaderStage::Hull: search = "stage=\"HS\""; break;
+      case ShaderStage::Domain: search = "stage=\"DS\""; break;
+      case ShaderStage::Geometry: search = "stage=\"GS\""; break;
+      case ShaderStage::Pixel: search = "stage=\"PS\""; break;
+      case ShaderStage::Compute: search = "stage=\"CS\""; break;
+      default: return "; Unknown shader stage in shader reflection\n";
+    }
+
+    size_t idx = contents.find(search);
+
+    if(idx == std::string::npos)
+      return "; Couldn't find disassembly for given shader stage in returned string\n\n\n" + contents;
+
+    idx += 11;    // stage=".S">
+
+    if(strncmp(contents.c_str() + idx, "<comment>", 9))
+      return "; Unknown error fetching disassembly, invalid string returned\n\n\n" + contents;
+
+    idx += 9;    // <comment>
+
+    if(strncmp(contents.c_str() + idx, "<![CDATA[\n", 10))
+      return "; Unknown error fetching disassembly, invalid string returned\n\n\n" + contents;
+
+    idx += 10;    // <![CDATA[\n
+
+    size_t end = contents.find("]]></comment>", idx);
+
+    if(end == std::string::npos)
+      return "; Unknown error fetching disassembly, invalid string returned\n\n\n" + contents;
+
+    return contents.substr(idx, end - idx);
+  }
 
   return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
