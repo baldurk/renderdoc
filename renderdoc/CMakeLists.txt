@@ -14,9 +14,11 @@ if(ANDROID)
         PRIVATE -llog
         PRIVATE -landroid)
 elseif(APPLE)
+    INCLUDE(FindOpenGL)
     list(APPEND RDOC_LIBRARIES
         PRIVATE -lm
-        PRIVATE -ldl)
+        PRIVATE -ldl
+        "-framework OpenGL")
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
@@ -271,6 +273,13 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
         set_property(SOURCE strings/utf8printf.cpp
             APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning -Wno-format-truncation")
     endif()
+    # Need to add -Wno-unknown-warning-option since only newer clang versions have
+    # -Wno-unused-lambda-capture available
+	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND APPLE)
+		# Only clang has this warning. Fixing it in this file causes a compile error on windows
+		set_source_files_properties(os/os_specific.cpp
+			PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-unused-lambda-capture")
+    endif()
 endif()
 
 set(data
@@ -413,6 +422,10 @@ add_dependencies(renderdoc renderdoc_libentry)
 
 if(UNIX AND NOT ANDROID AND NOT APPLE)
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.version -Wl,--no-undefined")
+endif()
+
+if(APPLE)
+    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,-all_load")
 endif()
 
 if(ANDROID)
