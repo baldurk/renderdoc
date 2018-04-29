@@ -2304,7 +2304,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
 
   // apply the permutation to the mapping array, and update the bindPoint values in the shader
   // reflection to match, so that the re-order is applied
-  ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
+  ApplyPermutation(permutation, [mapping](size_t a, size_t b) {
     std::swap(mapping->readOnlyResources[a], mapping->readOnlyResources[b]);
   });
 
@@ -2317,7 +2317,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
-  ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
+  ApplyPermutation(permutation, [mapping](size_t a, size_t b) {
     std::swap(mapping->readWriteResources[a], mapping->readWriteResources[b]);
   });
 
@@ -2330,7 +2330,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
-  ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
+  ApplyPermutation(permutation, [mapping](size_t a, size_t b) {
     std::swap(mapping->constantBlocks[a], mapping->constantBlocks[b]);
   });
 

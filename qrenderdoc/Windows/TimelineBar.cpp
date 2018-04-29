@@ -355,7 +355,7 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
     if(!m_Draws.isEmpty() && m_dataArea.contains(m_lastPos))
     {
       uint32_t eid = eventAt(x);
-      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [this, eid](uint32_t d) {
+      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [eid](uint32_t d) {
         if(d >= eid)
           return true;
 

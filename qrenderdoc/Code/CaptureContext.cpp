@@ -699,7 +699,7 @@ void CaptureContext::RecompressCapture()
   // convert from the currently open cap to the destination
   float progress = 0.0f;
 
-  LambdaThread *th = new LambdaThread([this, cap, destFilename, &progress]() {
+  LambdaThread *th = new LambdaThread([cap, destFilename, &progress]() {
     cap->Convert(destFilename.toUtf8().data(), "rdc", NULL, [&progress](float p) { progress = p; });
   });
   th->start();
@@ -982,7 +982,7 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
 
   float progress = 0.0f;
 
-  LambdaThread *th = new LambdaThread([this, file, sdfile, ext, exportfile, &progress, &status]() {
+  LambdaThread *th = new LambdaThread([file, sdfile, ext, exportfile, &progress, &status]() {
     status = file->Convert(exportfile.c_str(), ext.toUtf8().data(), sdfile,
                            [&progress](float p) { progress = p; });
   });
