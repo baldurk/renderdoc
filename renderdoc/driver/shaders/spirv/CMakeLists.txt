@@ -108,6 +108,14 @@ set_source_files_properties(${glslang_sources}
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_source_files_properties(${glslang_dir}/SPIRV/GlslangToSpv.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-tautological-constant-out-of-range-compare")
+
+    if(APPLE)
+        # Need to add -Wno-unknown-warning-option since only newer clang versions have
+        # -Wno-unused-lambda-capture available
+        # Do not want modify glslang for a clang specific warning
+        set_source_files_properties(${glslang_dir}/hlsl/hlslParseHelper.cpp
+            PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option -Wno-unused-lambda-capture")
+    endif()
 endif()
 
 add_library(rdoc_spirv OBJECT ${sources})

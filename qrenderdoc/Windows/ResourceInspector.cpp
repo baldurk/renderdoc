@@ -218,7 +218,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
     rdcarray<ShaderEntryPoint> entries = r->GetShaderEntryPoints(id);
 
-    GUIInvoke::call([this, id, entries, usage] {
+    GUIInvoke::call([this, entries, usage] {
 
       if(!entries.isEmpty())
       {
@@ -226,22 +226,21 @@ void ResourceInspector::Inspect(ResourceId id)
         ui->viewContents->setVisible(true);
       }
 
-      CombineUsageEvents(
-          m_Ctx, usage, [this, id](uint32_t startEID, uint32_t endEID, ResourceUsage use) {
-            QString text;
+      CombineUsageEvents(m_Ctx, usage, [this](uint32_t startEID, uint32_t endEID, ResourceUsage use) {
+        QString text;
 
-            if(startEID == endEID)
-              text = QFormatStr("EID %1").arg(startEID);
-            else
-              text = QFormatStr("EID %1-%2").arg(startEID).arg(endEID);
+        if(startEID == endEID)
+          text = QFormatStr("EID %1").arg(startEID);
+        else
+          text = QFormatStr("EID %1-%2").arg(startEID).arg(endEID);
 
-            RDTreeWidgetItem *item =
-                new RDTreeWidgetItem({text, ToQStr(use, m_Ctx.APIProps().pipelineType)});
-            item->setData(0, ResourceIdRole, QVariant(endEID));
-            item->setData(1, ResourceIdRole, QVariant(endEID));
+        RDTreeWidgetItem *item =
+            new RDTreeWidgetItem({text, ToQStr(use, m_Ctx.APIProps().pipelineType)});
+        item->setData(0, ResourceIdRole, QVariant(endEID));
+        item->setData(1, ResourceIdRole, QVariant(endEID));
 
-            ui->resourceUsage->addTopLevelItem(item);
-          });
+        ui->resourceUsage->addTopLevelItem(item);
+      });
     });
   });
 
@@ -268,8 +267,9 @@ void ResourceInspector::Inspect(ResourceId id)
       derivedResources.push_back(qMakePair(derived, m_Ctx.GetResourceName(derived)));
 
     std::sort(derivedResources.begin(), derivedResources.end(),
-              [this](const QPair<ResourceId, QString> &a,
-                     const QPair<ResourceId, QString> &b) -> bool { return a.second < b.second; });
+              [](const QPair<ResourceId, QString> &a, const QPair<ResourceId, QString> &b) -> bool {
+                return a.second < b.second;
+              });
 
     for(const QPair<ResourceId, QString> &derived : derivedResources)
     {
