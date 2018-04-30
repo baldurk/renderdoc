@@ -195,10 +195,6 @@ void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocation
 #pragma comment( \
     linker,      \
     "/EXPORT:VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr=_VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr@8")
-#pragma comment( \
-    linker,      \
-    "/EXPORT:VK_LAYER_RENDERDOC_NegotiateLoaderLayerInterfaceVersion=_VK_LAYER_RENDERDOC_NegotiateLoaderLayerInterfaceVersion@8")
-
 #endif
 
 extern "C" {
