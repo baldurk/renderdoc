@@ -1713,6 +1713,18 @@ std::string DoStringise(const VkTessellationDomainOriginKHR &el)
 }
 
 template <>
+std::string DoStringise(const VkSamplerReductionModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkSamplerReductionModeEXT);
+  {
+    STRINGISE_ENUM(VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT)
+    STRINGISE_ENUM(VK_SAMPLER_REDUCTION_MODE_MIN_EXT)
+    STRINGISE_ENUM(VK_SAMPLER_REDUCTION_MODE_MAX_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

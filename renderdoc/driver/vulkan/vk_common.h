@@ -94,7 +94,7 @@ AddressMode MakeAddressMode(VkSamplerAddressMode addr);
 void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor);
 CompareFunction MakeCompareFunc(VkCompareOp func);
 TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,
-                         bool anisoEnable, bool compareEnable);
+                         bool anisoEnable, bool compareEnable, VkSamplerReductionModeEXT reduction);
 LogicOperation MakeLogicOp(VkLogicOp op);
 BlendMultiplier MakeBlendMultiplier(VkBlendFactor blend);
 BlendOperation MakeBlendOp(VkBlendOp op);
@@ -627,6 +627,7 @@ DECLARE_REFLECTION_STRUCT(VkInputAttachmentAspectReference);
 DECLARE_REFLECTION_STRUCT(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDivisorDescriptionEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineVertexInputDivisorStateCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkSamplerReductionModeCreateInfoEXT);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -671,6 +672,7 @@ DECLARE_DESERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkImageViewUsageCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
@@ -738,3 +740,4 @@ DECLARE_REFLECTION_ENUM(VkPresentModeKHR);
 DECLARE_REFLECTION_ENUM(VkDescriptorUpdateTemplateType);
 DECLARE_REFLECTION_ENUM(VkConservativeRasterizationModeEXT);
 DECLARE_REFLECTION_ENUM(VkTessellationDomainOriginKHR);
+DECLARE_REFLECTION_ENUM(VkSamplerReductionModeEXT);

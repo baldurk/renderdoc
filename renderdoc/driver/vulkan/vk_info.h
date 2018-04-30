@@ -372,6 +372,7 @@ struct VulkanCreationInfo
     float maxLod;
     VkBorderColor borderColor;
     bool unnormalizedCoordinates;
+    VkSamplerReductionModeEXT reductionMode;
   };
   map<ResourceId, Sampler> m_Sampler;
 

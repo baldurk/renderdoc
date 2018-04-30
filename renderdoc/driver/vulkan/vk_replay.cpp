@@ -1307,7 +1307,8 @@ void VulkanReplay::SavePipelineState()
 
                 // sampler info
                 el.filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
-                                       sampl.maxAnisotropy > 1.0f, sampl.compareEnable);
+                                       sampl.maxAnisotropy > 1.0f, sampl.compareEnable,
+                                       sampl.reductionMode);
                 el.addressU = MakeAddressMode(sampl.address[0]);
                 el.addressV = MakeAddressMode(sampl.address[1]);
                 el.addressW = MakeAddressMode(sampl.address[2]);

@@ -632,6 +632,16 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   maxLod = pCreateInfo->maxLod;
   borderColor = pCreateInfo->borderColor;
   unnormalizedCoordinates = pCreateInfo->unnormalizedCoordinates != 0;
+
+  reductionMode = VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT;
+
+  const VkSamplerReductionModeCreateInfoEXT *reduction =
+      (const VkSamplerReductionModeCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT);
+  if(reduction)
+  {
+    reductionMode = reduction->reductionMode;
+  }
 }
 
 static TextureSwizzle Convert(VkComponentSwizzle s, int i)

@@ -182,7 +182,11 @@ SERIALISE_VK_HANDLES();
                                                                                                   \
   /* VK_EXT_vertex_attribute_divisor */                                                           \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,             \
-               VkPipelineVertexInputDivisorStateCreateInfoEXT)
+               VkPipelineVertexInputDivisorStateCreateInfoEXT)                                    \
+                                                                                                  \
+  /* VK_EXT_sampler_filter_minmax */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,                          \
+               VkSamplerReductionModeCreateInfoEXT)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2330,6 +2334,21 @@ void Deserialise(const VkPipelineVertexInputDivisorStateCreateInfoEXT &el)
   delete[] el.pVertexBindingDivisors;
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSamplerReductionModeCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(reductionMode);
+}
+
+template <>
+void Deserialise(const VkSamplerReductionModeCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2432,6 +2451,7 @@ INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindImageMemoryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

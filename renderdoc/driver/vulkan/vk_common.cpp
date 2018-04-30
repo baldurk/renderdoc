@@ -1493,7 +1493,7 @@ static FilterMode MakeFilterMode(VkSamplerMipmapMode f)
 }
 
 TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,
-                         bool anisoEnable, bool compareEnable)
+                         bool anisoEnable, bool compareEnable, VkSamplerReductionModeEXT reduction)
 {
   TextureFilter ret;
 
@@ -1508,6 +1508,22 @@ TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmap
     ret.mip = MakeFilterMode(mipmapMode);
   }
   ret.filter = compareEnable ? FilterFunction::Comparison : FilterFunction::Normal;
+
+  if(compareEnable)
+  {
+    ret.filter = FilterFunction::Comparison;
+  }
+  else
+  {
+    switch(reduction)
+    {
+      case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT:
+        ret.filter = FilterFunction::Normal;
+        break;
+      case VK_SAMPLER_REDUCTION_MODE_MIN_EXT: ret.filter = FilterFunction::Minimum; break;
+      case VK_SAMPLER_REDUCTION_MODE_MAX_EXT: ret.filter = FilterFunction::Maximum; break;
+    }
+  }
 
   return ret;
 }
