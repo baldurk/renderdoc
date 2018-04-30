@@ -1782,6 +1782,39 @@ std::string DoStringise(const VkDeviceQueueCreateFlagBits &el)
 }
 
 template <>
+std::string DoStringise(const VkSubpassDescriptionFlagBits &el)
+{
+  BEGIN_ENUM_STRINGISE(VkSubpassDescriptionFlagBits);
+  {
+    STRINGISE_ENUM(VK_SUBPASS_DESCRIPTION_PER_VIEW_ATTRIBUTES_BIT_NVX)
+    STRINGISE_ENUM(VK_SUBPASS_DESCRIPTION_PER_VIEW_POSITION_X_ONLY_BIT_NVX)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkDescriptorSetLayoutCreateFlagBits &el)
+{
+  BEGIN_ENUM_STRINGISE(VkDescriptorSetLayoutCreateFlagBits);
+  {
+    STRINGISE_ENUM(VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR)
+    STRINGISE_ENUM(VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkSwapchainCreateFlagBitsKHR &el)
+{
+  BEGIN_ENUM_STRINGISE(VkSwapchainCreateFlagBitsKHR);
+  {
+    STRINGISE_ENUM(VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR)
+    STRINGISE_ENUM(VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

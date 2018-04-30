@@ -747,3 +747,6 @@ DECLARE_REFLECTION_ENUM(VkSamplerYcbcrModelConversionKHR);
 DECLARE_REFLECTION_ENUM(VkSamplerYcbcrRangeKHR);
 DECLARE_REFLECTION_ENUM(VkChromaLocation);
 DECLARE_REFLECTION_ENUM(VkDeviceQueueCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkSubpassDescriptionFlagBits);
+DECLARE_REFLECTION_ENUM(VkDescriptorSetLayoutCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkSwapchainCreateFlagBitsKHR);

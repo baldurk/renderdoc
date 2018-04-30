@@ -357,7 +357,7 @@ void DoSerialise(SerialiserType &ser, VkDeviceQueueCreateInfo &el)
     RDCWARN("sType not set properly: %u", el.sType);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER_TYPED(VkDeviceQueueCreateFlagBits, flags);
   SERIALISE_MEMBER(queueFamilyIndex);
   SERIALISE_MEMBER(queueCount);
   SERIALISE_MEMBER_ARRAY(pQueuePriorities, queueCount);
@@ -906,7 +906,7 @@ void DoSerialise(SerialiserType &ser, VkAttachmentDescription &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSubpassDescription &el)
 {
-  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER_TYPED(VkSubpassDescriptionFlagBits, flags);
   SERIALISE_MEMBER(pipelineBindPoint);
 
   SERIALISE_MEMBER(inputAttachmentCount);
@@ -1908,7 +1908,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER_TYPED(VkDescriptorSetLayoutCreateFlagBits, flags);
   SERIALISE_MEMBER(bindingCount);
   SERIALISE_MEMBER_ARRAY(pBindings, bindingCount);
 }
@@ -2089,7 +2089,7 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER_TYPED(VkSwapchainCreateFlagBitsKHR, flags);
 
   // don't need the surface
   SERIALISE_MEMBER_EMPTY(surface);
