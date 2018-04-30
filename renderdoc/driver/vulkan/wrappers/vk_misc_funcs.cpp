@@ -111,6 +111,7 @@ DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 DESTROY_IMPL(VkDescriptorUpdateTemplateKHR, DestroyDescriptorUpdateTemplateKHR)
+DESTROY_IMPL(VkSamplerYcbcrConversionKHR, DestroySamplerYcbcrConversionKHR)
 
 #undef DESTROY_IMPL
 
@@ -389,6 +390,13 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
       vt->DestroyDescriptorUpdateTemplateKHR(Unwrap(dev), real, NULL);
       break;
     }
+    case eResSamplerConversion:
+    {
+      VkSamplerYcbcrConversionKHR real = nondisp->real.As<VkSamplerYcbcrConversionKHR>();
+      GetResourceManager()->ReleaseWrappedResource(VkSamplerYcbcrConversionKHR(handle));
+      vt->DestroySamplerYcbcrConversionKHR(Unwrap(dev), real, NULL);
+      break;
+    }
   }
 
   return true;
@@ -454,9 +462,59 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
 VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
                                         const VkAllocationCallbacks *pAllocator, VkSampler *pSampler)
 {
+  VkSamplerCreateInfo info = *pCreateInfo;
+
+  size_t memSize = 0;
+
+  // we don't have to unwrap every struct, but unwrapping a struct means we need to copy
+  // the previous one in the chain locally to modify the pNext pointer. So we just copy
+  // all of them locally
+  {
+    const VkGenericStruct *next = (const VkGenericStruct *)info.pNext;
+    while(next)
+    {
+      // we need to unwrap these structs
+      if(next->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO_KHR)
+        memSize += sizeof(VkSamplerYcbcrConversionInfoKHR);
+
+      next = next->pNext;
+    }
+  }
+
+  byte *tempMem = GetTempMemory(memSize);
+
+  {
+    VkGenericStruct *nextChainTail = (VkGenericStruct *)&info;
+    const VkGenericStruct *nextInput = (const VkGenericStruct *)info.pNext;
+    while(nextInput)
+    {
+      // unwrap and replace the dedicated allocation struct in the chain
+      if(nextInput->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO)
+      {
+        const VkSamplerYcbcrConversionInfoKHR *ycbcrIn =
+            (const VkSamplerYcbcrConversionInfoKHR *)nextInput;
+        VkSamplerYcbcrConversionInfoKHR *ycbcrOut = (VkSamplerYcbcrConversionInfoKHR *)tempMem;
+
+        // copy and unwrap the struct
+        ycbcrOut->sType = ycbcrIn->sType;
+        ycbcrOut->conversion = Unwrap(ycbcrIn->conversion);
+
+        AppendModifiedChainedStruct(tempMem, ycbcrOut, nextChainTail);
+      }
+      else
+      {
+        RDCERR("unrecognised struct %d in vkAllocateMemoryInfo pNext chain", nextInput->sType);
+        // can't patch this struct, have to just copy it and hope it's the last in the chain
+        nextChainTail->pNext = nextInput;
+      }
+
+      nextInput = nextInput->pNext;
+    }
+  }
+
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateSampler(Unwrap(device), pCreateInfo, pAllocator, pSampler));
+      ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info, pAllocator, pSampler));
 
   if(ret == VK_SUCCESS)
   {
@@ -1009,6 +1067,100 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
 {
   return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), firstQuery,
                                               queryCount, dataSize, pData, stride, flags);
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversionKHR(
+    SerialiserType &ser, VkDevice device, const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversionKHR *pYcbcrConversion)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_OPT(pAllocator);
+  SERIALISE_ELEMENT_LOCAL(ycbcrConversion, GetResID(*pYcbcrConversion))
+      .TypedAs("VkSamplerYcbcrConversionKHR");
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkSamplerYcbcrConversionKHR conv = VK_NULL_HANDLE;
+
+    VkResult ret =
+        ObjDisp(device)->CreateSamplerYcbcrConversionKHR(Unwrap(device), &CreateInfo, NULL, &conv);
+
+    if(ret != VK_SUCCESS)
+    {
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
+    }
+    else
+    {
+      ResourceId live;
+
+      if(GetResourceManager()->HasWrapper(ToTypedHandle(conv)))
+      {
+        live = GetResourceManager()->GetNonDispWrapper(conv)->id;
+
+        // destroy this instance of the duplicate, as we must have matching create/destroy
+        // calls and there won't be a wrapped resource hanging around to destroy this one.
+        ObjDisp(device)->DestroySamplerYcbcrConversionKHR(Unwrap(device), conv, NULL);
+
+        // whenever the new ID is requested, return the old ID, via replacements.
+        GetResourceManager()->ReplaceResource(ycbcrConversion,
+                                              GetResourceManager()->GetOriginalID(live));
+      }
+      else
+      {
+        live = GetResourceManager()->WrapResource(Unwrap(device), conv);
+        GetResourceManager()->AddLiveResource(ycbcrConversion, conv);
+
+        m_CreationInfo.m_YCbCrSampler[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+      }
+    }
+
+    AddResource(ycbcrConversion, ResourceType::Sampler, "YCbCr Sampler");
+    DerivedResource(device, ycbcrConversion);
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCreateSamplerYcbcrConversionKHR(
+    VkDevice device, const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversionKHR *pYcbcrConversion)
+{
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateSamplerYcbcrConversionKHR(
+                          Unwrap(device), pCreateInfo, pAllocator, pYcbcrConversion));
+
+  if(ret == VK_SUCCESS)
+  {
+    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pYcbcrConversion);
+
+    if(IsCaptureMode(m_State))
+    {
+      Chunk *chunk = NULL;
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateSamplerYcbcrConversionKHR);
+        Serialise_vkCreateSamplerYcbcrConversionKHR(ser, device, pCreateInfo, NULL, pYcbcrConversion);
+
+        chunk = scope.Get();
+      }
+
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pYcbcrConversion);
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, *pYcbcrConversion);
+    }
+  }
+
+  return ret;
 }
 
 struct UserDebugReportCallbackData
@@ -1619,3 +1771,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkSubmitDebugUtilsMessageEXT, VkInstance i
                                 VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                 VkDebugUtilsMessageTypeFlagsEXT messageTypes,
                                 const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversionKHR, VkDevice device,
+                                const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkSamplerYcbcrConversionKHR *pYcbcrConversion);

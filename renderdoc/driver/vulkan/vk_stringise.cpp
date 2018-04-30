@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1112, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1113, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -144,6 +144,7 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdBeginDebugUtilsLabelEXT);
     STRINGISE_ENUM_CLASS(vkCmdEndDebugUtilsLabelEXT);
     STRINGISE_ENUM_CLASS(vkCmdInsertDebugUtilsLabelEXT);
+    STRINGISE_ENUM_CLASS(vkCreateSamplerYcbcrConversionKHR);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -1727,6 +1728,42 @@ std::string DoStringise(const VkSamplerReductionModeEXT &el)
     STRINGISE_ENUM(VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT)
     STRINGISE_ENUM(VK_SAMPLER_REDUCTION_MODE_MIN_EXT)
     STRINGISE_ENUM(VK_SAMPLER_REDUCTION_MODE_MAX_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkSamplerYcbcrModelConversionKHR &el)
+{
+  BEGIN_ENUM_STRINGISE(VkSamplerYcbcrModelConversionKHR);
+  {
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020_KHR)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkSamplerYcbcrRangeKHR &el)
+{
+  BEGIN_ENUM_STRINGISE(VkSamplerYcbcrRangeKHR);
+  {
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_RANGE_ITU_FULL_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_RANGE_ITU_NARROW_KHR)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkChromaLocation &el)
+{
+  BEGIN_ENUM_STRINGISE(VkChromaLocation);
+  {
+    STRINGISE_ENUM(VK_CHROMA_LOCATION_COSITED_EVEN_KHR)
+    STRINGISE_ENUM(VK_CHROMA_LOCATION_MIDPOINT_KHR)
   }
   END_ENUM_STRINGISE();
 }

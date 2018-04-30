@@ -291,6 +291,25 @@ const VkGenericStruct *FindNextStruct(const VkStruct *haystack, VkStructureType 
   return NULL;
 }
 
+template <typename VkStruct>
+VkGenericStruct *FindNextStruct(VkStruct *haystack, VkStructureType needle)
+{
+  if(!haystack)
+    return NULL;
+
+  VkGenericStruct *next = (VkGenericStruct *)haystack->pNext;
+  while(next)
+  {
+    if(next->sType == needle)
+      return next;
+
+    // assume non-const pNext in the original struct
+    next = (VkGenericStruct *)next->pNext;
+  }
+
+  return NULL;
+}
+
 enum class MemoryScope : uint8_t
 {
   InitialContents,
@@ -481,6 +500,7 @@ enum class VulkanChunk : uint32_t
   vkCmdBeginDebugUtilsLabelEXT,
   vkCmdEndDebugUtilsLabelEXT,
   vkCmdInsertDebugUtilsLabelEXT,
+  vkCreateSamplerYcbcrConversionKHR,
   Max,
 };
 
@@ -636,6 +656,7 @@ DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDivisorDescriptionEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerReductionModeCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDebugUtilsLabelEXT);
+DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionCreateInfoKHR);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -682,6 +703,7 @@ DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDebugUtilsLabelEXT);
+DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfoKHR);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
@@ -750,3 +772,6 @@ DECLARE_REFLECTION_ENUM(VkDescriptorUpdateTemplateType);
 DECLARE_REFLECTION_ENUM(VkConservativeRasterizationModeEXT);
 DECLARE_REFLECTION_ENUM(VkTessellationDomainOriginKHR);
 DECLARE_REFLECTION_ENUM(VkSamplerReductionModeEXT);
+DECLARE_REFLECTION_ENUM(VkSamplerYcbcrModelConversionKHR);
+DECLARE_REFLECTION_ENUM(VkSamplerYcbcrRangeKHR);
+DECLARE_REFLECTION_ENUM(VkChromaLocation);

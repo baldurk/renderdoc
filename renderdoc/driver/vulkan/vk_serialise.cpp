@@ -169,6 +169,12 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_global_priority */                                                                    \
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT)                    \
                                                                                                   \
+  /* for now we don't support ycbcr and force-disable the feature bit, so no-one should try */    \
+  /* to pNext any of these structs anyway, but if they do, we ignore them */                      \
+  /* VK_KHR_sampler_ycbcr_conversion */                                                           \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO_KHR)                                \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO)                                   \
+                                                                                                  \
   /* VK_EXT_conservative_rasterization */                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,       \
                VkPipelineRasterizationConservativeStateCreateInfoEXT)                             \
@@ -2365,6 +2371,29 @@ void Deserialise(const VkDebugUtilsLabelEXT &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSamplerYcbcrConversionCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(ycbcrModel);
+  SERIALISE_MEMBER(ycbcrRange);
+  SERIALISE_MEMBER(components);
+  SERIALISE_MEMBER(xChromaOffset);
+  SERIALISE_MEMBER(yChromaOffset);
+  SERIALISE_MEMBER(chromaFilter);
+  SERIALISE_MEMBER(forceExplicitReconstruction);
+}
+
+template <>
+void Deserialise(const VkSamplerYcbcrConversionCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2469,6 +2498,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT
 INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugUtilsLabelEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfoKHR);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

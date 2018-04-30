@@ -327,7 +327,8 @@
   CheckExt(EXT_global_priority, VKXX);            \
   CheckExt(AMD_buffer_marker, VKXX);              \
   CheckExt(EXT_vertex_attribute_divisor, VKXX);   \
-  CheckExt(EXT_sampler_filter_minmax, VKXX);
+  CheckExt(EXT_sampler_filter_minmax, VKXX);      \
+  CheckExt(KHR_sampler_ycbcr_conversion, VK11);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -413,6 +414,8 @@
   HookInitExtension(EXT_debug_utils, CmdBeginDebugUtilsLabelEXT);                        \
   HookInitExtension(EXT_debug_utils, CmdEndDebugUtilsLabelEXT);                          \
   HookInitExtension(EXT_debug_utils, CmdInsertDebugUtilsLabelEXT);                       \
+  HookInitExtension(KHR_sampler_ycbcr_conversion, CreateSamplerYcbcrConversionKHR);      \
+  HookInitExtension(KHR_sampler_ycbcr_conversion, DestroySamplerYcbcrConversionKHR);     \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -882,6 +885,13 @@
               VkDebugUtilsMessageSeverityFlagBitsEXT, messageSeverity,                               \
               VkDebugUtilsMessageTypeFlagsEXT, messageTypes,                                         \
               const VkDebugUtilsMessengerCallbackDataEXT *, pCallbackData);                          \
+  HookDefine4(VkResult, vkCreateSamplerYcbcrConversionKHR, VkDevice, device,                         \
+              const VkSamplerYcbcrConversionCreateInfoKHR *, pCreateInfo,                            \
+              const VkAllocationCallbacks *, pAllocator, VkSamplerYcbcrConversionKHR *,              \
+              pYcbcrConversion);                                                                     \
+  HookDefine3(void, vkDestroySamplerYcbcrConversionKHR, VkDevice, device,                            \
+              VkSamplerYcbcrConversionKHR, ycbcrConversion, const VkAllocationCallbacks *,           \
+              pAllocator);                                                                           \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

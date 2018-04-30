@@ -1736,4 +1736,14 @@ public:
                                 VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                 VkDebugUtilsMessageTypeFlagsEXT messageTypes,
                                 const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData);
+
+  // VK_KHR_sampler_ycbcr_conversion
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversionKHR, VkDevice device,
+                                const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkSamplerYcbcrConversionKHR *pYcbcrConversion);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroySamplerYcbcrConversionKHR, VkDevice device,
+                                VkSamplerYcbcrConversionKHR ycbcrConversion,
+                                const VkAllocationCallbacks *pAllocator);
 };

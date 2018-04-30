@@ -644,6 +644,12 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   }
 }
 
+void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
+                                            VulkanCreationInfo &info,
+                                            const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo)
+{
+}
+
 static TextureSwizzle Convert(VkComponentSwizzle s, int i)
 {
   switch(s)

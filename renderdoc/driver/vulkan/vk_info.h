@@ -376,6 +376,13 @@ struct VulkanCreationInfo
   };
   map<ResourceId, Sampler> m_Sampler;
 
+  struct YCbCrSampler
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo);
+  };
+  map<ResourceId, YCbCrSampler> m_YCbCrSampler;
+
   struct ImageView
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

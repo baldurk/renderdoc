@@ -53,6 +53,7 @@ WRAPPED_POOL_INST(WrappedVkCommandPool)
 WRAPPED_POOL_INST(WrappedVkSwapchainKHR)
 WRAPPED_POOL_INST(WrappedVkSurfaceKHR)
 WRAPPED_POOL_INST(WrappedVkDescriptorUpdateTemplateKHR)
+WRAPPED_POOL_INST(WrappedVkSamplerYcbcrConversionKHR)
 
 byte VkResourceRecord::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,
@@ -123,6 +124,8 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
     return eResSurface;
   if(WrappedVkDescriptorUpdateTemplateKHR::IsAlloc(ptr))
     return eResDescUpdateTemplate;
+  if(WrappedVkSamplerYcbcrConversionKHR::IsAlloc(ptr))
+    return eResSamplerConversion;
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 

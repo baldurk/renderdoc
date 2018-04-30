@@ -428,7 +428,18 @@ void WrappedVulkan::vkGetPhysicalDeviceExternalFencePropertiesKHR(
 void WrappedVulkan::vkGetPhysicalDeviceFeatures2KHR(VkPhysicalDevice physicalDevice,
                                                     VkPhysicalDeviceFeatures2KHR *pFeatures)
 {
-  return ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2KHR(Unwrap(physicalDevice), pFeatures);
+  ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2KHR(Unwrap(physicalDevice), pFeatures);
+
+  // if the user is requesting ycbcr features, make sure it's reported as NOT supported
+  VkPhysicalDeviceSamplerYcbcrConversionFeaturesKHR *ycbcr =
+      (VkPhysicalDeviceSamplerYcbcrConversionFeaturesKHR *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES_KHR);
+
+  if(ycbcr)
+  {
+    RDCWARN("Forcibly disabling support for YCbCr Conversion");
+    ycbcr->samplerYcbcrConversion = VK_FALSE;
+  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice physicalDevice,
