@@ -1746,4 +1746,29 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroySamplerYcbcrConversionKHR, VkDevice device,
                                 VkSamplerYcbcrConversionKHR ycbcrConversion,
                                 const VkAllocationCallbacks *pAllocator);
+
+  // VK_KHR_device_group_creation
+  VkResult vkEnumeratePhysicalDeviceGroupsKHR(
+      VkInstance instance, uint32_t *pPhysicalDeviceGroupCount,
+      VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroupProperties);
+
+  // VK_KHR_device_group
+  void vkGetDeviceGroupPeerMemoryFeaturesKHR(VkDevice device, uint32_t heapIndex,
+                                             uint32_t localDeviceIndex, uint32_t remoteDeviceIndex,
+                                             VkPeerMemoryFeatureFlags *pPeerMemoryFeatures);
+  VkResult vkGetDeviceGroupPresentCapabilitiesKHR(
+      VkDevice device, VkDeviceGroupPresentCapabilitiesKHR *pDeviceGroupPresentCapabilities);
+  VkResult vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkSurfaceKHR surface,
+                                                  VkDeviceGroupPresentModeFlagsKHR *pModes);
+  VkResult vkGetPhysicalDevicePresentRectanglesKHR(VkPhysicalDevice physicalDevice,
+                                                   VkSurfaceKHR surface, uint32_t *pRectCount,
+                                                   VkRect2D *pRects);
+  VkResult vkAcquireNextImage2KHR(VkDevice device, const VkAcquireNextImageInfoKHR *pAcquireInfo,
+                                  uint32_t *pImageIndex);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDeviceMaskKHR, VkCommandBuffer commandBuffer,
+                                uint32_t deviceMask);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatchBaseKHR, VkCommandBuffer commandBuffer,
+                                uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ,
+                                uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 };

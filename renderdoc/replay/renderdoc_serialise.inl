@@ -483,6 +483,7 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
 
   SERIALISE_MEMBER(dispatchDimension);
   SERIALISE_MEMBER(dispatchThreadsDimension);
+  SERIALISE_MEMBER(dispatchBase);
 
   SERIALISE_MEMBER(indexByteWidth);
   SERIALISE_MEMBER(topology);
@@ -500,7 +501,7 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(events);
   SERIALISE_MEMBER(children);
 
-  SIZE_CHECK(248);
+  SIZE_CHECK(256);
 }
 
 template <typename SerialiserType>

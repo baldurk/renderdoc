@@ -643,6 +643,18 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
   unwrappedInfo.pWaitSemaphores = unwrappedInfo.waitSemaphoreCount ? &unwrappedSems[0] : NULL;
 
   // Don't support any extensions for present info
+  const VkGenericStruct *next = (const VkGenericStruct *)pPresentInfo->pNext;
+  while(next)
+  {
+    // allowed (and ignored) pNext structs
+    if(next->sType != VK_STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR &&
+       next->sType != VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR)
+    {
+      RDCWARN("Unsupported pNext structure in pPresentInfo: %s", ToStr(next->sType).c_str());
+    }
+
+    next = next->pNext;
+  }
   RDCASSERT(pPresentInfo->pNext == NULL);
 
   VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
@@ -886,6 +898,42 @@ VkResult WrappedVulkan::vkReleaseDisplayEXT(VkPhysicalDevice physicalDevice, VkD
 {
   // displays are not wrapped
   return ObjDisp(physicalDevice)->ReleaseDisplayEXT(Unwrap(physicalDevice), display);
+}
+
+VkResult WrappedVulkan::vkGetDeviceGroupPresentCapabilitiesKHR(
+    VkDevice device, VkDeviceGroupPresentCapabilitiesKHR *pDeviceGroupPresentCapabilities)
+{
+  return ObjDisp(device)->GetDeviceGroupPresentCapabilitiesKHR(Unwrap(device),
+                                                               pDeviceGroupPresentCapabilities);
+}
+
+VkResult WrappedVulkan::vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkSurfaceKHR surface,
+                                                               VkDeviceGroupPresentModeFlagsKHR *pModes)
+{
+  return ObjDisp(device)->GetDeviceGroupSurfacePresentModesKHR(Unwrap(device), Unwrap(surface),
+                                                               pModes);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDevicePresentRectanglesKHR(VkPhysicalDevice physicalDevice,
+                                                                VkSurfaceKHR surface,
+                                                                uint32_t *pRectCount,
+                                                                VkRect2D *pRects)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDevicePresentRectanglesKHR(Unwrap(physicalDevice), Unwrap(surface), pRectCount,
+                                              pRects);
+}
+
+VkResult WrappedVulkan::vkAcquireNextImage2KHR(VkDevice device,
+                                               const VkAcquireNextImageInfoKHR *pAcquireInfo,
+                                               uint32_t *pImageIndex)
+{
+  VkAcquireNextImageInfoKHR unwrapped = *pAcquireInfo;
+  unwrapped.semaphore = Unwrap(unwrapped.semaphore);
+  unwrapped.fence = Unwrap(unwrapped.fence);
+  unwrapped.swapchain = Unwrap(unwrapped.swapchain);
+
+  return ObjDisp(device)->AcquireNextImage2KHR(Unwrap(device), &unwrapped, pImageIndex);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,

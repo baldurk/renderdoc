@@ -175,6 +175,20 @@ SERIALISE_VK_HANDLES();
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO_KHR)                                \
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO)                                   \
                                                                                                   \
+  /* for now we don't handle true device groups and report all physdevices in separate groups. */ \
+  /* So we can safely ignore these structures as redundant/unneeded. */                           \
+  /* VK_KHR_sampler_ycbcr_conversion */                                                           \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_GROUP_SWAPCHAIN_CREATE_INFO_KHR)                          \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR)                            \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_IMAGE_SWAPCHAIN_CREATE_INFO_KHR)                                 \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR)                         \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO_KHR)                        \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_GROUP_BIND_SPARSE_INFO_KHR)                               \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO_KHR)                                    \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_GROUP_COMMAND_BUFFER_BEGIN_INFO_KHR)                      \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_GROUP_RENDER_PASS_BEGIN_INFO_KHR)                         \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR)                                  \
+                                                                                                  \
   /* VK_EXT_conservative_rasterization */                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,       \
                VkPipelineRasterizationConservativeStateCreateInfoEXT)                             \

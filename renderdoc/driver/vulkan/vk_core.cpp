@@ -2360,6 +2360,13 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
       break;
 
+    case VulkanChunk::vkCmdSetDeviceMaskKHR:
+      return Serialise_vkCmdSetDeviceMaskKHR(ser, VK_NULL_HANDLE, 0);
+      break;
+    case VulkanChunk::vkCmdDispatchBaseKHR:
+      return Serialise_vkCmdDispatchBaseKHR(ser, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0);
+      break;
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;

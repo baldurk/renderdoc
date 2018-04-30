@@ -954,6 +954,7 @@ struct DrawcallDescription
 
     dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
     dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
+    dispatchBase[0] = dispatchBase[1] = dispatchBase[2] = 0;
 
     indexByteWidth = 0;
     topology = Topology::Unknown;
@@ -1014,6 +1015,9 @@ struct DrawcallDescription
 
   DOCUMENT("The 3D size of each workgroup in threads if the call allows an override, or 0 if not.");
   uint32_t dispatchThreadsDimension[3];
+
+  DOCUMENT("The 3D base offset of the workgroup ID if the call allows an override, or 0 if not.");
+  uint32_t dispatchBase[3];
 
   DOCUMENT(R"(The width in bytes of each index.
 

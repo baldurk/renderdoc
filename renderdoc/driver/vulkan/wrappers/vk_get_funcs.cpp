@@ -506,3 +506,51 @@ void WrappedVulkan::vkGetDescriptorSetLayoutSupportKHR(VkDevice device,
   VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
   return ObjDisp(device)->GetDescriptorSetLayoutSupportKHR(Unwrap(device), &unwrapped, pSupport);
 }
+
+VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroupsKHR(
+    VkInstance instance, uint32_t *pPhysicalDeviceGroupCount,
+    VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroupProperties)
+{
+  // we ignore the 'real' physical device groups, and report one group per physical device. We use
+  // our internal enumerate function to make sure we handle wrapping the objects.
+  uint32_t numPhys = 0;
+  vkEnumeratePhysicalDevices(Unwrap(instance), &numPhys, NULL);
+
+  VkPhysicalDevice *phys = new VkPhysicalDevice[numPhys];
+  vkEnumeratePhysicalDevices(Unwrap(instance), &numPhys, phys);
+
+  uint32_t outputSpace = pPhysicalDeviceGroupCount ? *pPhysicalDeviceGroupCount : 0;
+
+  if(pPhysicalDeviceGroupCount)
+    *pPhysicalDeviceGroupCount = numPhys;
+
+  if(pPhysicalDeviceGroupProperties)
+  {
+    // list one group per device
+    for(uint32_t i = 0; i < outputSpace; i++)
+    {
+      RDCEraseEl(pPhysicalDeviceGroupProperties[i]);
+      pPhysicalDeviceGroupProperties[i].sType =
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
+      pPhysicalDeviceGroupProperties[i].physicalDeviceCount = 1;
+      pPhysicalDeviceGroupProperties[i].physicalDevices[0] = phys[i];
+      pPhysicalDeviceGroupProperties[i].subsetAllocation = VK_FALSE;
+    }
+  }
+
+  delete[] phys;
+
+  if(pPhysicalDeviceGroupProperties && outputSpace < numPhys)
+    return VK_INCOMPLETE;
+
+  return VK_SUCCESS;
+}
+
+void WrappedVulkan::vkGetDeviceGroupPeerMemoryFeaturesKHR(VkDevice device, uint32_t heapIndex,
+                                                          uint32_t localDeviceIndex,
+                                                          uint32_t remoteDeviceIndex,
+                                                          VkPeerMemoryFeatureFlags *pPeerMemoryFeatures)
+{
+  return ObjDisp(device)->GetDeviceGroupPeerMemoryFeaturesKHR(
+      Unwrap(device), heapIndex, localDeviceIndex, remoteDeviceIndex, pPeerMemoryFeatures);
+}

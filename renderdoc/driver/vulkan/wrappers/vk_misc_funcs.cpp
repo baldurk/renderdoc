@@ -464,53 +464,9 @@ VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateIn
 {
   VkSamplerCreateInfo info = *pCreateInfo;
 
-  size_t memSize = 0;
+  byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
 
-  // we don't have to unwrap every struct, but unwrapping a struct means we need to copy
-  // the previous one in the chain locally to modify the pNext pointer. So we just copy
-  // all of them locally
-  {
-    const VkGenericStruct *next = (const VkGenericStruct *)info.pNext;
-    while(next)
-    {
-      // we need to unwrap these structs
-      if(next->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO_KHR)
-        memSize += sizeof(VkSamplerYcbcrConversionInfoKHR);
-
-      next = next->pNext;
-    }
-  }
-
-  byte *tempMem = GetTempMemory(memSize);
-
-  {
-    VkGenericStruct *nextChainTail = (VkGenericStruct *)&info;
-    const VkGenericStruct *nextInput = (const VkGenericStruct *)info.pNext;
-    while(nextInput)
-    {
-      // unwrap and replace the dedicated allocation struct in the chain
-      if(nextInput->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO)
-      {
-        const VkSamplerYcbcrConversionInfoKHR *ycbcrIn =
-            (const VkSamplerYcbcrConversionInfoKHR *)nextInput;
-        VkSamplerYcbcrConversionInfoKHR *ycbcrOut = (VkSamplerYcbcrConversionInfoKHR *)tempMem;
-
-        // copy and unwrap the struct
-        ycbcrOut->sType = ycbcrIn->sType;
-        ycbcrOut->conversion = Unwrap(ycbcrIn->conversion);
-
-        AppendModifiedChainedStruct(tempMem, ycbcrOut, nextChainTail);
-      }
-      else
-      {
-        RDCERR("unrecognised struct %d in vkAllocateMemoryInfo pNext chain", nextInput->sType);
-        // can't patch this struct, have to just copy it and hope it's the last in the chain
-        nextChainTail->pNext = nextInput;
-      }
-
-      nextInput = nextInput->pNext;
-    }
-  }
+  PatchNextChain("VkSamplerCreateInfo", tempMem, (VkGenericStruct *)&info);
 
   VkResult ret;
   SERIALISE_TIME_CALL(

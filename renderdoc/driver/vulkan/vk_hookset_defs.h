@@ -296,7 +296,8 @@
   CheckExt(KHR_external_memory_capabilities, VK11);    \
   CheckExt(KHR_external_semaphore_capabilities, VK11); \
   CheckExt(KHR_external_fence_capabilities, VK11);     \
-  CheckExt(EXT_debug_utils, VKXX);
+  CheckExt(EXT_debug_utils, VKXX);                     \
+  CheckExt(KHR_device_group_creation, VK11);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -328,7 +329,8 @@
   CheckExt(AMD_buffer_marker, VKXX);              \
   CheckExt(EXT_vertex_attribute_divisor, VKXX);   \
   CheckExt(EXT_sampler_filter_minmax, VKXX);      \
-  CheckExt(KHR_sampler_ycbcr_conversion, VK11);
+  CheckExt(KHR_sampler_ycbcr_conversion, VK11);   \
+  CheckExt(KHR_device_group, VK11);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -367,6 +369,11 @@
   HookInitExtension(EXT_debug_utils, CreateDebugUtilsMessengerEXT);                                  \
   HookInitExtension(EXT_debug_utils, DestroyDebugUtilsMessengerEXT);                                 \
   HookInitExtension(EXT_debug_utils, SubmitDebugUtilsMessageEXT);                                    \
+  HookInitExtension(KHR_device_group_creation, EnumeratePhysicalDeviceGroupsKHR);                    \
+  /* Not technically accurate - part of KHR_device_group - but these extensions are linked and */    \
+  /* should always be present/not present together. Keying from the instance extension ensures */    \
+  /* we'll load this function correctly when populating dispatch tables. */                          \
+  HookInitExtension(KHR_device_group_creation, GetPhysicalDevicePresentRectanglesKHR);               \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                       \
@@ -416,6 +423,12 @@
   HookInitExtension(EXT_debug_utils, CmdInsertDebugUtilsLabelEXT);                       \
   HookInitExtension(KHR_sampler_ycbcr_conversion, CreateSamplerYcbcrConversionKHR);      \
   HookInitExtension(KHR_sampler_ycbcr_conversion, DestroySamplerYcbcrConversionKHR);     \
+  HookInitExtension(KHR_device_group, GetDeviceGroupPeerMemoryFeaturesKHR);              \
+  HookInitExtension(KHR_device_group, CmdSetDeviceMaskKHR);                              \
+  HookInitExtension(KHR_device_group, CmdDispatchBaseKHR);                               \
+  HookInitExtension(KHR_device_group, GetDeviceGroupPresentCapabilitiesKHR);             \
+  HookInitExtension(KHR_device_group, GetDeviceGroupSurfacePresentModesKHR);             \
+  HookInitExtension(KHR_device_group, AcquireNextImage2KHR);                             \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -892,6 +905,24 @@
   HookDefine3(void, vkDestroySamplerYcbcrConversionKHR, VkDevice, device,                            \
               VkSamplerYcbcrConversionKHR, ycbcrConversion, const VkAllocationCallbacks *,           \
               pAllocator);                                                                           \
+  HookDefine3(VkResult, vkEnumeratePhysicalDeviceGroupsKHR, VkInstance, instance, uint32_t *,        \
+              pPhysicalDeviceGroupCount, VkPhysicalDeviceGroupProperties *,                          \
+              pPhysicalDeviceGroupProperties);                                                       \
+  HookDefine5(void, vkGetDeviceGroupPeerMemoryFeaturesKHR, VkDevice, device, uint32_t, heapIndex,    \
+              uint32_t, localDeviceIndex, uint32_t, remoteDeviceIndex, VkPeerMemoryFeatureFlags *,   \
+              pPeerMemoryFeatures);                                                                  \
+  HookDefine2(void, vkCmdSetDeviceMaskKHR, VkCommandBuffer, commandBuffer, uint32_t, deviceMask);    \
+  HookDefine7(void, vkCmdDispatchBaseKHR, VkCommandBuffer, commandBuffer, uint32_t, baseGroupX,      \
+              uint32_t, baseGroupY, uint32_t, baseGroupZ, uint32_t, groupCountX, uint32_t,           \
+              groupCountY, uint32_t, groupCountZ);                                                   \
+  HookDefine2(VkResult, vkGetDeviceGroupPresentCapabilitiesKHR, VkDevice, device,                    \
+              VkDeviceGroupPresentCapabilitiesKHR *, pDeviceGroupPresentCapabilities);               \
+  HookDefine3(VkResult, vkGetDeviceGroupSurfacePresentModesKHR, VkDevice, device, VkSurfaceKHR,      \
+              surface, VkDeviceGroupPresentModeFlagsKHR *, pModes);                                  \
+  HookDefine4(VkResult, vkGetPhysicalDevicePresentRectanglesKHR, VkPhysicalDevice, physicalDevice,   \
+              VkSurfaceKHR, surface, uint32_t *, pRectCount, VkRect2D *, pRects);                    \
+  HookDefine3(VkResult, vkAcquireNextImage2KHR, VkDevice, device,                                    \
+              const VkAcquireNextImageInfoKHR *, pAcquireInfo, uint32_t *, pImageIndex);             \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
