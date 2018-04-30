@@ -206,7 +206,11 @@ SERIALISE_VK_HANDLES();
                                                                                                   \
   /* VK_EXT_sampler_filter_minmax */                                                              \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,                          \
-               VkSamplerReductionModeCreateInfoEXT)
+               VkSamplerReductionModeCreateInfoEXT)                                               \
+                                                                                                  \
+  /* VK_KHR_multiview */                                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO_KHR,                           \
+               VkRenderPassMultiviewCreateInfoKHR)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2408,6 +2412,29 @@ void Deserialise(const VkSamplerYcbcrConversionCreateInfoKHR &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRenderPassMultiviewCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(subpassCount);
+  SERIALISE_MEMBER_ARRAY(pViewMasks, subpassCount);
+  SERIALISE_MEMBER(dependencyCount);
+  SERIALISE_MEMBER_ARRAY(pViewOffsets, dependencyCount);
+  SERIALISE_MEMBER(correlationMaskCount);
+  SERIALISE_MEMBER_ARRAY(pCorrelationMasks, correlationMaskCount);
+}
+
+template <>
+void Deserialise(const VkRenderPassMultiviewCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pViewMasks;
+  delete[] el.pViewOffsets;
+  delete[] el.pCorrelationMasks;
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2513,6 +2540,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugUtilsLabelEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkRenderPassMultiviewCreateInfoKHR);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);
