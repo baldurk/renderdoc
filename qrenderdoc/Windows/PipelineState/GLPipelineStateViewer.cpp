@@ -804,27 +804,86 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
   vs = ubos->verticalScrollBar()->value();
   ubos->beginUpdate();
   ubos->clear();
-  for(int i = 0; shaderDetails && i < shaderDetails->constantBlocks.count(); i++)
+
+  // see if there's a global UBO, if so display it first
+  if(shaderDetails)
   {
-    const ConstantBlock &shaderCBuf = shaderDetails->constantBlocks[i];
-    int bindPoint = stage.bindpointMapping.constantBlocks[i].bind;
+    const ConstantBlock *shaderCBuf = NULL;
+    const Bindpoint *map = NULL;
 
-    const GLPipe::Buffer *b = NULL;
+    int idx = 0;
 
-    if(bindPoint >= 0 && bindPoint < state.uniformBuffers.count())
-      b = &state.uniformBuffers[bindPoint];
+    for(const ConstantBlock &bind : shaderDetails->constantBlocks)
+    {
+      if(!bind.bufferBacked)
+      {
+        shaderCBuf = &bind;
+        map = &mapping.constantBlocks[bind.bindPoint];
+        break;
+      }
 
-    bool filledSlot = !shaderCBuf.bufferBacked || (b && b->resourceId != ResourceId());
-    bool usedSlot = stage.bindpointMapping.constantBlocks[i].used;
+      idx++;
+    }
+
+    if(shaderCBuf && map)
+    {
+      bool filledSlot = true;
+      bool usedSlot = map->used;
+
+      if(showNode(usedSlot, filledSlot))
+      {
+        QString sizestr = tr("%1 Variables").arg(shaderCBuf->variables.count());
+
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({tr("Uniforms"), QString(), QString(), sizestr, QString()});
+
+        node->setTag(QVariant::fromValue(idx));
+
+        if(!filledSlot)
+          setEmptyRow(node);
+
+        if(!usedSlot)
+          setInactiveRow(node);
+
+        ubos->addTopLevelItem(node);
+      }
+    }
+  }
+
+  for(int i = 0; i < state.uniformBuffers.count(); i++)
+  {
+    const GLPipe::Buffer &b = state.uniformBuffers[i];
+
+    const ConstantBlock *shaderCBuf = NULL;
+    const Bindpoint *map = NULL;
+
+    int idx = 0;
+
+    if(shaderDetails)
+    {
+      for(const ConstantBlock &bind : shaderDetails->constantBlocks)
+      {
+        if(mapping.constantBlocks[bind.bindPoint].bind == i)
+        {
+          shaderCBuf = &bind;
+          map = &mapping.constantBlocks[bind.bindPoint];
+          break;
+        }
+
+        idx++;
+      }
+    }
+
+    bool filledSlot = ((shaderCBuf && !shaderCBuf->bufferBacked) || b.resourceId != ResourceId());
+    bool usedSlot = (shaderCBuf && map && map->used);
 
     if(showNode(usedSlot, filledSlot))
     {
       ulong offset = 0;
       ulong length = 0;
-      int numvars = shaderCBuf.variables.count();
-      ulong byteSize = (ulong)shaderCBuf.byteSize;
+      int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
+      ulong byteSize = shaderCBuf ? (ulong)shaderCBuf->byteSize : 0;
 
-      QString slotname = tr("Uniforms");
       QString name;
       QString sizestr = tr("%1 Variables").arg(numvars);
       QString byterange;
@@ -835,35 +894,36 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         length = 0;
       }
 
-      if(b)
+      QString slotname = QString::number(i);
+
+      if(shaderCBuf && !shaderCBuf->name.empty())
+        slotname += lit(": ") + shaderCBuf->name;
+
+      offset = b.byteOffset;
+      length = b.byteSize;
+
+      BufferDescription *buf = m_Ctx.GetBuffer(b.resourceId);
+      if(buf)
       {
-        slotname = QFormatStr("%1: %2").arg(bindPoint).arg(shaderCBuf.name);
-        offset = b->byteOffset;
-        length = b->byteSize;
-
-        BufferDescription *buf = m_Ctx.GetBuffer(b->resourceId);
-        if(buf)
-        {
-          if(length == 0)
-            length = buf->length;
-        }
-
-        if(length == byteSize)
-          sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
-        else
-          sizestr =
-              tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(byteSize).arg(length);
-
-        if(length < byteSize)
-          filledSlot = false;
-
-        byterange = QFormatStr("%1 - %2").arg(offset).arg(offset + length);
+        if(length == 0)
+          length = buf->length;
       }
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({slotname, b->resourceId, byterange, sizestr, QString()});
+      if(length == byteSize)
+        sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+      else
+        sizestr =
+            tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(byteSize).arg(length);
 
-      node->setTag(QVariant::fromValue(i));
+      if(length < byteSize)
+        filledSlot = false;
+
+      byterange = QFormatStr("%1 - %2").arg(offset).arg(offset + length);
+
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({slotname, b.resourceId, byterange, sizestr, QString()});
+
+      node->setTag(QVariant::fromValue(idx));
 
       if(!filledSlot)
         setEmptyRow(node);
