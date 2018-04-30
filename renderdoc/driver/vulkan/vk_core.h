@@ -1771,4 +1771,9 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatchBaseKHR, VkCommandBuffer commandBuffer,
                                 uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ,
                                 uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+
+  // Vulkan 1.1
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceQueue2, VkDevice device,
+                                const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue);
 };

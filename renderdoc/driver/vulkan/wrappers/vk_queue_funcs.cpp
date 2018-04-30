@@ -1260,6 +1260,110 @@ void WrappedVulkan::vkQueueInsertDebugUtilsLabelEXT(VkQueue queue,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice device,
+                                                const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(QueueInfo, *pQueueInfo);
+  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue");
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    uint32_t queueFamilyIndex = QueueInfo.queueFamilyIndex;
+
+    VkQueue queue;
+    // MULTIQUEUE - re-map the queue family/index instead of using the supported family
+    QueueInfo.queueFamilyIndex = m_SupportedQueueFamily;
+    QueueInfo.queueIndex = 0;
+    ObjDisp(device)->GetDeviceQueue2(Unwrap(device), &QueueInfo, &queue);
+
+    GetResourceManager()->WrapResource(Unwrap(device), queue);
+    GetResourceManager()->AddLiveResource(Queue, queue);
+
+    if(queueFamilyIndex == m_QueueFamilyIdx)
+    {
+      m_Queue = queue;
+
+      // we can now submit any cmds that were queued (e.g. from creating debug
+      // manager on vkCreateDevice)
+      SubmitCmds();
+    }
+
+    AddResource(Queue, ResourceType::Queue, "Queue");
+    DerivedResource(device, Queue);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkGetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2 *pQueueInfo,
+                                      VkQueue *pQueue)
+{
+  SERIALISE_TIME_CALL(ObjDisp(device)->GetDeviceQueue2(Unwrap(device), pQueueInfo, pQueue));
+
+  if(m_SetDeviceLoaderData)
+    m_SetDeviceLoaderData(m_Device, *pQueue);
+  else
+    SetDispatchTableOverMagicNumber(device, *pQueue);
+
+  RDCASSERT(IsCaptureMode(m_State));
+
+  {
+    // it's perfectly valid for enumerate type functions to return the same handle
+    // each time. If that happens, we will already have a wrapper created so just
+    // return the wrapped object to the user and do nothing else
+    if(m_QueueFamilies[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex] != VK_NULL_HANDLE)
+    {
+      *pQueue = m_QueueFamilies[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex];
+    }
+    else
+    {
+      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pQueue);
+
+      {
+        Chunk *chunk = NULL;
+
+        {
+          CACHE_THREAD_SERIALISER();
+
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetDeviceQueue2);
+          Serialise_vkGetDeviceQueue2(ser, device, pQueueInfo, pQueue);
+
+          chunk = scope.Get();
+        }
+
+        VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
+        RDCASSERT(record);
+
+        VkResourceRecord *instrecord = GetRecord(m_Instance);
+
+        // treat queues as pool members of the instance (ie. freed when the instance dies)
+        {
+          instrecord->LockChunks();
+          instrecord->pooledChildren.push_back(record);
+          instrecord->UnlockChunks();
+        }
+
+        record->AddChunk(chunk);
+      }
+
+      m_QueueFamilies[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex] = *pQueue;
+
+      if(pQueueInfo->queueFamilyIndex == m_QueueFamilyIdx)
+      {
+        m_Queue = *pQueue;
+
+        // we can now submit any cmds that were queued (e.g. from creating debug
+        // manager on vkCreateDevice)
+        SubmitCmds();
+      }
+    }
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkGetDeviceQueue, VkDevice device, uint32_t queueFamilyIndex,
                                 uint32_t queueIndex, VkQueue *pQueue);
 
@@ -1278,3 +1382,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkQueueEndDebugUtilsLabelEXT, VkQueue queu
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkQueueInsertDebugUtilsLabelEXT, VkQueue queue,
                                 const VkDebugUtilsLabelEXT *pLabelInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkGetDeviceQueue2, VkDevice device,
+                                const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue);

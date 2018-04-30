@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1115, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1116, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -147,6 +147,7 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCreateSamplerYcbcrConversionKHR);
     STRINGISE_ENUM_CLASS(vkCmdSetDeviceMaskKHR);
     STRINGISE_ENUM_CLASS(vkCmdDispatchBaseKHR);
+    STRINGISE_ENUM_CLASS(vkGetDeviceQueue2);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -1766,6 +1767,16 @@ std::string DoStringise(const VkChromaLocation &el)
   {
     STRINGISE_ENUM(VK_CHROMA_LOCATION_COSITED_EVEN_KHR)
     STRINGISE_ENUM(VK_CHROMA_LOCATION_MIDPOINT_KHR)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkDeviceQueueCreateFlagBits &el)
+{
+  BEGIN_ENUM_STRINGISE(VkDeviceQueueCreateFlagBits);
+  {
+    STRINGISE_ENUM(VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT)
   }
   END_ENUM_STRINGISE();
 }

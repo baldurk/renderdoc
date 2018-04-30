@@ -2370,6 +2370,10 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdDispatchBaseKHR(ser, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0);
       break;
 
+    case VulkanChunk::vkGetDeviceQueue2:
+      return Serialise_vkGetDeviceQueue2(ser, VK_NULL_HANDLE, NULL, NULL);
+      break;
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;

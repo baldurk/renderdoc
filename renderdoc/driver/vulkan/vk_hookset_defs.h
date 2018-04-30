@@ -297,7 +297,8 @@
   CheckExt(KHR_external_semaphore_capabilities, VK11); \
   CheckExt(KHR_external_fence_capabilities, VK11);     \
   CheckExt(EXT_debug_utils, VKXX);                     \
-  CheckExt(KHR_device_group_creation, VK11);
+  CheckExt(KHR_device_group_creation, VK11);           \
+  CheckExt(protected_memory, VK11);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -429,6 +430,7 @@
   HookInitExtension(KHR_device_group, GetDeviceGroupPresentCapabilitiesKHR);             \
   HookInitExtension(KHR_device_group, GetDeviceGroupSurfacePresentModesKHR);             \
   HookInitExtension(KHR_device_group, AcquireNextImage2KHR);                             \
+  HookInitExtension(protected_memory, GetDeviceQueue2);                                  \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -923,6 +925,8 @@
               VkSurfaceKHR, surface, uint32_t *, pRectCount, VkRect2D *, pRects);                    \
   HookDefine3(VkResult, vkAcquireNextImage2KHR, VkDevice, device,                                    \
               const VkAcquireNextImageInfoKHR *, pAcquireInfo, uint32_t *, pImageIndex);             \
+  HookDefine3(void, vkGetDeviceQueue2, VkDevice, device, const VkDeviceQueueInfo2 *, pQueueInfo,     \
+              VkQueue *, pQueue);                                                                    \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

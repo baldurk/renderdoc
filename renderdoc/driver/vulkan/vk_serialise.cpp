@@ -189,6 +189,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_DEVICE_GROUP_RENDER_PASS_BEGIN_INFO_KHR)                         \
   PNEXT_IGNORE(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR)                                  \
                                                                                                   \
+  /* Vulkan 1.1 - protected memory */                                                             \
+  PNEXT_IGNORE(VK_STRUCTURE_TYPE_PROTECTED_SUBMIT_INFO)                                           \
+                                                                                                  \
   /* VK_EXT_conservative_rasterization */                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,       \
                VkPipelineRasterizationConservativeStateCreateInfoEXT)                             \
@@ -2435,6 +2438,23 @@ void Deserialise(const VkRenderPassMultiviewCreateInfoKHR &el)
   delete[] el.pCorrelationMasks;
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDeviceQueueInfo2 &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkDeviceQueueCreateFlagBits, flags);
+  SERIALISE_MEMBER(queueFamilyIndex);
+  SERIALISE_MEMBER(queueIndex);
+}
+
+template <>
+void Deserialise(const VkDeviceQueueInfo2 &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 INSTANTIATE_SERIALISE_TYPE(VkOffset2D);
 INSTANTIATE_SERIALISE_TYPE(VkExtent2D);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryType);
@@ -2541,6 +2561,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugUtilsLabelEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassMultiviewCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkDeviceQueueInfo2);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

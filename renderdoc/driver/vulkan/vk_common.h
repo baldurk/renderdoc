@@ -467,6 +467,7 @@ enum class VulkanChunk : uint32_t
   vkCreateSamplerYcbcrConversionKHR,
   vkCmdSetDeviceMaskKHR,
   vkCmdDispatchBaseKHR,
+  vkGetDeviceQueue2,
   Max,
 };
 
@@ -624,6 +625,7 @@ DECLARE_REFLECTION_STRUCT(VkSamplerReductionModeCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDebugUtilsLabelEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkRenderPassMultiviewCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkDeviceQueueInfo2);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -672,6 +674,7 @@ DECLARE_DESERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDebugUtilsLabelEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkRenderPassMultiviewCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkDeviceQueueInfo2);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
@@ -743,3 +746,4 @@ DECLARE_REFLECTION_ENUM(VkSamplerReductionModeEXT);
 DECLARE_REFLECTION_ENUM(VkSamplerYcbcrModelConversionKHR);
 DECLARE_REFLECTION_ENUM(VkSamplerYcbcrRangeKHR);
 DECLARE_REFLECTION_ENUM(VkChromaLocation);
+DECLARE_REFLECTION_ENUM(VkDeviceQueueCreateFlagBits);
