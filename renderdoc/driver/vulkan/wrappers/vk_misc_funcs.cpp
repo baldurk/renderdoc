@@ -1471,7 +1471,7 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
       std::string DebugPath = std::string(tag, tag + pTagInfo->tagSize);
 
       SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
-      Serialise_SetShaderDebugPath(ser, (VkShaderModule)data.record->Resource, DebugPath);
+      Serialise_SetShaderDebugPath(ser, (VkShaderModule)(uint64_t)data.record->Resource, DebugPath);
       data.record->AddChunk(scope.Get());
     }
     else if(ObjDisp(device)->DebugMarkerSetObjectTagEXT)
@@ -1670,7 +1670,7 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectTagEXT(VkDevice device,
       std::string DebugPath = std::string(tag, tag + pTagInfo->tagSize);
 
       SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
-      Serialise_SetShaderDebugPath(ser, (VkShaderModule)data.record->Resource, DebugPath);
+      Serialise_SetShaderDebugPath(ser, (VkShaderModule)(uint64_t)data.record->Resource, DebugPath);
       data.record->AddChunk(scope.Get());
     }
     else if(ObjDisp(device)->SetDebugUtilsObjectTagEXT)
