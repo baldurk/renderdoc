@@ -1772,6 +1772,7 @@ TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmap
   {
     switch(reduction)
     {
+      default:
       case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT:
         ret.filter = FilterFunction::Normal;
         break;

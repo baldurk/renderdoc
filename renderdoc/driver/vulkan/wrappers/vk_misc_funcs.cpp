@@ -1711,23 +1711,6 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevic
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
                                 const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectTagEXT, VkDevice device,
-                                const VkDebugUtilsObjectTagInfoEXT *pTagInfo);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDebugUtilsMessengerEXT, VkInstance instance,
-                                const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkDebugUtilsMessengerEXT *pMessenger);
-
-INSTANTIATE_FUNCTION_SERIALISED(void, vkDestroyDebugUtilsMessengerEXT, VkInstance instance,
-                                VkDebugUtilsMessengerEXT messenger,
-                                const VkAllocationCallbacks *pAllocator);
-
-INSTANTIATE_FUNCTION_SERIALISED(void, vkSubmitDebugUtilsMessageEXT, VkInstance instance,
-                                VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-                                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData);
-
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversionKHR, VkDevice device,
                                 const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator,
