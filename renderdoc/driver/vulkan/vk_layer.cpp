@@ -195,6 +195,9 @@ void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocation
 #pragma comment( \
     linker,      \
     "/EXPORT:VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr=_VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr@8")
+#pragma comment( \
+    linker,      \
+    "/EXPORT:VK_LAYER_RENDERDOC_NegotiateLoaderLayerInterfaceVersion=_VK_LAYER_RENDERDOC_NegotiateLoaderLayerInterfaceVersion@8")
 
 #endif
 
@@ -303,11 +306,32 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
   return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
 }
 
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName)
+{
+  if(instance == VK_NULL_HANDLE)
+    return NULL;
+
+  if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
+    return NULL;
+
+  PFN_vkGetInstanceProcAddr GPDA =
+      (PFN_vkGetInstanceProcAddr)GetInstanceDispatchTable(instance)->GetInstanceProcAddr(
+          Unwrap(instance), "vk_layerGetPhysicalDeviceProcAddr");
+
+  if(GPDA == NULL)
+    return NULL;
+
+  return GPDA(Unwrap(instance), pName);
+}
+
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *pName)
 {
   if(!strcmp("vkGetInstanceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr;
+  if(!strcmp("vk_layerGetPhysicalDeviceProcAddr", pName))
+    return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr;
   if(!strcmp("vkEnumerateDeviceLayerProperties", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties;
   if(!strcmp("vkEnumerateDeviceExtensionProperties", pName))
@@ -347,5 +371,32 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
   if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
     return NULL;
   return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(Unwrap(instance), pName);
+}
+
+// layer interface negotation (new interface)
+VK_LAYER_EXPORT
+VkResult VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion(
+    VkNegotiateLayerInterface *pVersionStruct)
+{
+  if(pVersionStruct->sType != LAYER_NEGOTIATE_INTERFACE_STRUCT)
+    return VK_ERROR_INITIALIZATION_FAILED;
+
+  if(pVersionStruct->loaderLayerInterfaceVersion >= 2)
+  {
+    pVersionStruct->pfnGetInstanceProcAddr = VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr;
+    pVersionStruct->pfnGetDeviceProcAddr = VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
+    pVersionStruct->pfnGetPhysicalDeviceProcAddr =
+        VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr;
+  }
+
+  // we only support the current version. Don't let updating the header silently make us report a
+  // higher version without examining what this means
+  RDCCOMPILE_ASSERT(CURRENT_LOADER_LAYER_INTERFACE_VERSION == 2,
+                    "Loader/layer interface version has been bumped");
+
+  if(pVersionStruct->loaderLayerInterfaceVersion > 2)
+    pVersionStruct->loaderLayerInterfaceVersion = 2;
+
+  return VK_SUCCESS;
 }
 }
