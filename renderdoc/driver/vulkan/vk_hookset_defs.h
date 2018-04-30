@@ -295,7 +295,8 @@
   CheckExt(EXT_acquire_xlib_display, VKXX);            \
   CheckExt(KHR_external_memory_capabilities, VK11);    \
   CheckExt(KHR_external_semaphore_capabilities, VK11); \
-  CheckExt(KHR_external_fence_capabilities, VK11);
+  CheckExt(KHR_external_fence_capabilities, VK11);     \
+  CheckExt(EXT_debug_utils, VKXX);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -362,6 +363,9 @@
   HookInitExtension(KHR_external_semaphore_capabilities,                                             \
                     GetPhysicalDeviceExternalSemaphorePropertiesKHR);                                \
   HookInitExtension(KHR_external_fence_capabilities, GetPhysicalDeviceExternalFencePropertiesKHR);   \
+  HookInitExtension(EXT_debug_utils, CreateDebugUtilsMessengerEXT);                                  \
+  HookInitExtension(EXT_debug_utils, DestroyDebugUtilsMessengerEXT);                                 \
+  HookInitExtension(EXT_debug_utils, SubmitDebugUtilsMessageEXT);                                    \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                       \
@@ -401,6 +405,14 @@
   HookInitExtension(KHR_bind_memory2, BindImageMemory2KHR);                              \
   HookInitExtension(KHR_maintenance3, GetDescriptorSetLayoutSupportKHR);                 \
   HookInitExtension(AMD_buffer_marker, CmdWriteBufferMarkerAMD);                         \
+  HookInitExtension(EXT_debug_utils, SetDebugUtilsObjectNameEXT);                        \
+  HookInitExtension(EXT_debug_utils, SetDebugUtilsObjectTagEXT);                         \
+  HookInitExtension(EXT_debug_utils, QueueBeginDebugUtilsLabelEXT);                      \
+  HookInitExtension(EXT_debug_utils, QueueEndDebugUtilsLabelEXT);                        \
+  HookInitExtension(EXT_debug_utils, QueueInsertDebugUtilsLabelEXT);                     \
+  HookInitExtension(EXT_debug_utils, CmdBeginDebugUtilsLabelEXT);                        \
+  HookInitExtension(EXT_debug_utils, CmdEndDebugUtilsLabelEXT);                          \
+  HookInitExtension(EXT_debug_utils, CmdInsertDebugUtilsLabelEXT);                       \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -847,6 +859,29 @@
   HookDefine5(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer, commandBuffer,                       \
               VkPipelineStageFlagBits, pipelineStage, VkBuffer, dstBuffer, VkDeviceSize,             \
               dstOffset, uint32_t, marker);                                                          \
+  HookDefine2(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice, device,                              \
+              const VkDebugUtilsObjectNameInfoEXT *, pNameInfo);                                     \
+  HookDefine2(VkResult, vkSetDebugUtilsObjectTagEXT, VkDevice, device,                               \
+              const VkDebugUtilsObjectTagInfoEXT *, pTagInfo);                                       \
+  HookDefine2(void, vkQueueBeginDebugUtilsLabelEXT, VkQueue, queue, const VkDebugUtilsLabelEXT *,    \
+              pLabelInfo);                                                                           \
+  HookDefine1(void, vkQueueEndDebugUtilsLabelEXT, VkQueue, queue);                                   \
+  HookDefine2(void, vkQueueInsertDebugUtilsLabelEXT, VkQueue, queue, const VkDebugUtilsLabelEXT *,   \
+              pLabelInfo);                                                                           \
+  HookDefine2(void, vkCmdBeginDebugUtilsLabelEXT, VkCommandBuffer, commandBuffer,                    \
+              const VkDebugUtilsLabelEXT *, pLabelInfo);                                             \
+  HookDefine1(void, vkCmdEndDebugUtilsLabelEXT, VkCommandBuffer, commandBuffer);                     \
+  HookDefine2(void, vkCmdInsertDebugUtilsLabelEXT, VkCommandBuffer, commandBuffer,                   \
+              const VkDebugUtilsLabelEXT *, pLabelInfo);                                             \
+  HookDefine4(VkResult, vkCreateDebugUtilsMessengerEXT, VkInstance, instance,                        \
+              const VkDebugUtilsMessengerCreateInfoEXT *, pCreateInfo,                               \
+              const VkAllocationCallbacks *, pAllocator, VkDebugUtilsMessengerEXT *, pMessenger);    \
+  HookDefine3(void, vkDestroyDebugUtilsMessengerEXT, VkInstance, instance,                           \
+              VkDebugUtilsMessengerEXT, messenger, const VkAllocationCallbacks *, pAllocator);       \
+  HookDefine4(void, vkSubmitDebugUtilsMessageEXT, VkInstance, instance,                              \
+              VkDebugUtilsMessageSeverityFlagBitsEXT, messageSeverity,                               \
+              VkDebugUtilsMessageTypeFlagsEXT, messageTypes,                                         \
+              const VkDebugUtilsMessengerCallbackDataEXT *, pCallbackData);                          \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

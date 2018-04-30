@@ -679,8 +679,8 @@ private:
   bool EndFrameCapture(void *dev, void *wnd);
 
   template <typename SerialiserType>
-  bool Serialise_SetShaderDebugPath(SerialiserType &ser, VkDevice device,
-                                    const VkDebugMarkerObjectTagInfoEXT *pTagInfo);
+  bool Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderModule ShaderObject,
+                                    std::string DebugPath);
 
   // replay
 
@@ -1695,7 +1695,45 @@ public:
                                           const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
                                           VkDescriptorSetLayoutSupport *pSupport);
 
+  // VK_AMD_buffer_marker
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer commandBuffer,
                                 VkPipelineStageFlagBits pipelineStage, VkBuffer dstBuffer,
                                 VkDeviceSize dstOffset, uint32_t marker);
+
+  // VK_EXT_debug_utils
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
+                                const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectTagEXT, VkDevice device,
+                                const VkDebugUtilsObjectTagInfoEXT *pTagInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkQueueBeginDebugUtilsLabelEXT, VkQueue queue,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkQueueEndDebugUtilsLabelEXT, VkQueue queue);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkQueueInsertDebugUtilsLabelEXT, VkQueue queue,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginDebugUtilsLabelEXT, VkCommandBuffer commandBuffer,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndDebugUtilsLabelEXT, VkCommandBuffer commandBuffer);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdInsertDebugUtilsLabelEXT, VkCommandBuffer commandBuffer,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDebugUtilsMessengerEXT, VkInstance instance,
+                                const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkDebugUtilsMessengerEXT *pMessenger);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyDebugUtilsMessengerEXT, VkInstance instance,
+                                VkDebugUtilsMessengerEXT messenger,
+                                const VkAllocationCallbacks *pAllocator);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkSubmitDebugUtilsMessageEXT, VkInstance instance,
+                                VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+                                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData);
 };

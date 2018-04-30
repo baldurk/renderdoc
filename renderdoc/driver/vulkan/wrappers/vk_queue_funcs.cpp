@@ -1105,6 +1105,161 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser, VkQueue queue,
+                                                             const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(ObjDisp(queue)->QueueBeginDebugUtilsLabelEXT)
+      ObjDisp(queue)->QueueBeginDebugUtilsLabelEXT(Unwrap(queue), &Label);
+
+    if(IsLoading(m_State))
+    {
+      DrawcallDescription draw;
+      draw.name = Label.pLabelName;
+      draw.flags |= DrawFlags::PushMarker;
+
+      draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      draw.markerColor[1] = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      draw.markerColor[2] = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      draw.markerColor[3] = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+
+      AddEvent();
+      m_RootEventID++;
+      AddDrawcall(draw, false);
+
+      // now push the drawcall stack
+      GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+    }
+    else
+    {
+      m_RootEventID++;
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkQueueBeginDebugUtilsLabelEXT(VkQueue queue,
+                                                   const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  if(ObjDisp(queue)->QueueBeginDebugUtilsLabelEXT)
+  {
+    SERIALISE_TIME_CALL(ObjDisp(queue)->QueueBeginDebugUtilsLabelEXT(Unwrap(queue), pLabelInfo));
+  }
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueBeginDebugUtilsLabelEXT);
+    Serialise_vkQueueBeginDebugUtilsLabelEXT(ser, queue, pLabelInfo);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueueEndDebugUtilsLabelEXT(SerialiserType &ser, VkQueue queue)
+{
+  SERIALISE_ELEMENT(queue);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(ObjDisp(queue)->QueueEndDebugUtilsLabelEXT)
+      ObjDisp(queue)->QueueEndDebugUtilsLabelEXT(Unwrap(queue));
+
+    if(IsLoading(m_State))
+    {
+      if(GetDrawcallStack().size() > 1)
+        GetDrawcallStack().pop_back();
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkQueueEndDebugUtilsLabelEXT(VkQueue queue)
+{
+  if(ObjDisp(queue)->QueueEndDebugUtilsLabelEXT)
+  {
+    SERIALISE_TIME_CALL(ObjDisp(queue)->QueueEndDebugUtilsLabelEXT(Unwrap(queue)));
+  }
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueEndDebugUtilsLabelEXT);
+    Serialise_vkQueueEndDebugUtilsLabelEXT(ser, queue);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &ser, VkQueue queue,
+                                                              const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(ObjDisp(queue)->QueueInsertDebugUtilsLabelEXT)
+      ObjDisp(queue)->QueueInsertDebugUtilsLabelEXT(Unwrap(queue), &Label);
+
+    if(IsLoading(m_State))
+    {
+      DrawcallDescription draw;
+      draw.name = Label.pLabelName;
+      draw.flags |= DrawFlags::SetMarker;
+
+      draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      draw.markerColor[1] = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      draw.markerColor[2] = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      draw.markerColor[3] = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+
+      AddEvent();
+      AddDrawcall(draw, false);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkQueueInsertDebugUtilsLabelEXT(VkQueue queue,
+                                                    const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  if(ObjDisp(queue)->QueueInsertDebugUtilsLabelEXT)
+  {
+    SERIALISE_TIME_CALL(ObjDisp(queue)->QueueInsertDebugUtilsLabelEXT(Unwrap(queue), pLabelInfo));
+  }
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueInsertDebugUtilsLabelEXT);
+    Serialise_vkQueueInsertDebugUtilsLabelEXT(ser, queue, pLabelInfo);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkGetDeviceQueue, VkDevice device, uint32_t queueFamilyIndex,
                                 uint32_t queueIndex, VkQueue *pQueue);
 
@@ -1115,3 +1270,11 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueBindSparse, VkQueue queue, uint
                                 const VkBindSparseInfo *pBindInfo, VkFence fence);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueWaitIdle, VkQueue queue);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkQueueBeginDebugUtilsLabelEXT, VkQueue queue,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkQueueEndDebugUtilsLabelEXT, VkQueue queue);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkQueueInsertDebugUtilsLabelEXT, VkQueue queue,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);

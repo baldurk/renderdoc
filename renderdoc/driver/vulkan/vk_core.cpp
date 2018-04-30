@@ -541,7 +541,13 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION,
     },
     {
+        VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION,
+    },
+    {
         VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_SPEC_VERSION,
+    },
+    {
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_DEBUG_UTILS_SPEC_VERSION,
     },
     {
         VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME, VK_EXT_DIRECT_MODE_DISPLAY_SPEC_VERSION,
@@ -737,6 +743,10 @@ static const VkExtensionProperties renderdocProvidedDeviceExtensions[] = {
     {VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION},
 };
 
+static const VkExtensionProperties renderdocProvidedInstanceExtensions[] = {
+    {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_DEBUG_UTILS_SPEC_VERSION},
+};
+
 bool WrappedVulkan::IsSupportedExtension(const char *extName)
 {
   for(size_t i = 0; i < ARRAY_COUNT(supportedExtensions); i++)
@@ -849,6 +859,12 @@ VkResult WrappedVulkan::FilterInstanceExtensionProperties(
   filtered.reserve(exts.size());
 
   FilterToSupportedExtensions(exts, filtered);
+
+  // now we can add extensions that we provide ourselves (note this isn't sorted, but we
+  // don't have to sort the results, the sorting was just so we could filter optimally).
+  filtered.insert(
+      filtered.end(), &renderdocProvidedInstanceExtensions[0],
+      &renderdocProvidedInstanceExtensions[0] + ARRAY_COUNT(renderdocProvidedInstanceExtensions));
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
                                   pProperties);
@@ -1946,6 +1962,10 @@ bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     {
       // don't add these events - they will be handled when inserted in-line into queue submit
     }
+    else if(chunk == VulkanChunk::vkQueueEndDebugUtilsLabelEXT)
+    {
+      // also ignore, this just pops the drawcall stack
+    }
     else
     {
       if(!m_AddedDrawcall)
@@ -2313,6 +2333,28 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdWriteBufferMarkerAMD:
       return Serialise_vkCmdWriteBufferMarkerAMD(
           ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_NULL_HANDLE, 0, 0);
+      break;
+
+    case VulkanChunk::vkSetDebugUtilsObjectNameEXT:
+      return Serialise_vkSetDebugUtilsObjectNameEXT(ser, VK_NULL_HANDLE, NULL);
+      break;
+    case VulkanChunk::vkQueueBeginDebugUtilsLabelEXT:
+      return Serialise_vkQueueBeginDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
+      break;
+    case VulkanChunk::vkQueueEndDebugUtilsLabelEXT:
+      return Serialise_vkQueueEndDebugUtilsLabelEXT(ser, VK_NULL_HANDLE);
+      break;
+    case VulkanChunk::vkQueueInsertDebugUtilsLabelEXT:
+      return Serialise_vkQueueInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
+      break;
+    case VulkanChunk::vkCmdBeginDebugUtilsLabelEXT:
+      return Serialise_vkCmdBeginDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
+      break;
+    case VulkanChunk::vkCmdEndDebugUtilsLabelEXT:
+      return Serialise_vkCmdEndDebugUtilsLabelEXT(ser, VK_NULL_HANDLE);
+      break;
+    case VulkanChunk::vkCmdInsertDebugUtilsLabelEXT:
+      return Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
       break;
 
     default:

@@ -14,6 +14,12 @@
     "pre_instance_functions": {
       "vkEnumerateInstanceExtensionProperties": "VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties"
     },
+    "instance_extensions": [
+      {
+        "name": "VK_EXT_debug_utils",
+        "spec_version": "1"
+      }
+    ],
     "device_extensions": [
       {
         "name": "VK_EXT_debug_marker",
@@ -25,7 +31,6 @@
                         "vkCmdDebugMarkerInsertEXT"
                        ]
       }
-
     ],
     "enable_environment": {
       "ENABLE_VULKAN_RENDERDOC_CAPTURE": "1"

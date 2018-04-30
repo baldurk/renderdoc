@@ -113,6 +113,7 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
     DeviceGPA(func);                  \
   }
 
+  CheckInstanceExts();
   CheckDeviceExts();
 
   HookInitVulkanDeviceExts();

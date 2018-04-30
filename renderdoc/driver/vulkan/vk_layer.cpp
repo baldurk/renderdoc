@@ -293,6 +293,7 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 
   InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
 
+  CheckInstanceExts();
   CheckDeviceExts();
 
   HookInitVulkanDeviceExts();

@@ -1011,7 +1011,7 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
                                               queryCount, dataSize, pData, stride, flags);
 }
 
-struct UserDebugCallbackData
+struct UserDebugReportCallbackData
 {
   VkInstance wrappedInstance;
   VkDebugReportCallbackCreateInfoEXT createInfo;
@@ -1020,12 +1020,13 @@ struct UserDebugCallbackData
   VkDebugReportCallbackEXT realObject;
 };
 
-VkBool32 VKAPI_PTR UserDebugCallback(VkDebugReportFlagsEXT flags,
-                                     VkDebugReportObjectTypeEXT objectType, uint64_t object,
-                                     size_t location, int32_t messageCode, const char *pLayerPrefix,
-                                     const char *pMessage, void *pUserData)
+VkBool32 VKAPI_PTR UserDebugReportCallback(VkDebugReportFlagsEXT flags,
+                                           VkDebugReportObjectTypeEXT objectType, uint64_t object,
+                                           size_t location, int32_t messageCode,
+                                           const char *pLayerPrefix, const char *pMessage,
+                                           void *pUserData)
 {
-  UserDebugCallbackData *user = (UserDebugCallbackData *)pUserData;
+  UserDebugReportCallbackData *user = (UserDebugReportCallbackData *)pUserData;
 
   if(RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
   {
@@ -1061,22 +1062,77 @@ VkBool32 VKAPI_PTR UserDebugCallback(VkDebugReportFlagsEXT flags,
   return user->createInfo.pfnCallback(flags, objectType, object, location, messageCode,
                                       pLayerPrefix, pMessage, user->createInfo.pUserData);
 }
+struct UserDebugUtilsCallbackData
+{
+  VkDebugUtilsMessengerCreateInfoEXT createInfo;
+  bool muteWarned;
+
+  VkDebugUtilsMessengerEXT realObject;
+};
+
+VkBool32 VKAPI_PTR UserDebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                          VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                          const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                          void *pUserData)
+{
+  UserDebugUtilsCallbackData *user = (UserDebugUtilsCallbackData *)pUserData;
+
+  if(RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
+  {
+    if(user->muteWarned)
+      return false;
+
+    // once only insert a fake message notifying of the muting
+    user->muteWarned = true;
+
+    // we insert as an information message, since some trigger-happy applications might
+    // debugbreak/crash/messagebox/etc on even warnings. This puts us in the same pool
+    // as extremely spammy messages, but there's not much alternative.
+    if(user->createInfo.messageSeverity & (VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+                                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT))
+    {
+      // use information type if possible, or if it's not accepted but debug is - use debug type.
+      messageSeverity =
+          (user->createInfo.messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+              ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+              : VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+
+      VkDebugUtilsMessengerCallbackDataEXT data = {};
+
+      data.messageIdNumber = 1;
+      data.pMessageIdName = NULL;
+      data.pMessage =
+          "While debugging through RenderDoc, debug output through validation layers is "
+          "suppressed.\n"
+          "To show debug output look at the 'DebugOutputMute' capture option in RenderDoc's API, "
+          "but be aware of false positives from the validation layers.";
+      data.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT;
+
+      user->createInfo.pfnUserCallback(messageSeverity, VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+                                       &data, user->createInfo.pUserData);
+    }
+
+    return false;
+  }
+
+  return user->createInfo.pfnUserCallback(messageSeverity, messageType, pCallbackData,
+                                          user->createInfo.pUserData);
+}
 
 VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
     VkInstance instance, const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkDebugReportCallbackEXT *pCallback)
 {
   // we create an interception object here so that we can dynamically check the state of API
-  // messages
-  // being muted, since it's quite likely that the application will initialise Vulkan (and so create
-  // a debug report callback) before it messes with RenderDoc's API to unmute messages.
-  UserDebugCallbackData *user = new UserDebugCallbackData();
+  // messages being muted, since it's quite likely that the application will initialise Vulkan (and
+  // so create a debug report callback) before it messes with RenderDoc's API to unmute messages.
+  UserDebugReportCallbackData *user = new UserDebugReportCallbackData();
   user->wrappedInstance = instance;
   user->createInfo = *pCreateInfo;
   user->muteWarned = false;
 
   VkDebugReportCallbackCreateInfoEXT wrappedCreateInfo = *pCreateInfo;
-  wrappedCreateInfo.pfnCallback = &UserDebugCallback;
+  wrappedCreateInfo.pfnCallback = &UserDebugReportCallback;
   wrappedCreateInfo.pUserData = user;
 
   VkResult vkr = ObjDisp(instance)->CreateDebugReportCallbackEXT(
@@ -1098,7 +1154,8 @@ void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
                                                     VkDebugReportCallbackEXT callback,
                                                     const VkAllocationCallbacks *pAllocator)
 {
-  UserDebugCallbackData *user = (UserDebugCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(callback);
+  UserDebugReportCallbackData *user =
+      (UserDebugReportCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(callback);
 
   ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
 
@@ -1114,82 +1171,177 @@ void WrappedVulkan::vkDebugReportMessageEXT(VkInstance instance, VkDebugReportFl
                                                   location, messageCode, pLayerPrefix, pMessage);
 }
 
-static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64_t object)
+// we use VkObjectType as the object type since it mostly overlaps with the debug report enum so in
+// most cases we can upcast it. There's an overload to translate the few that might conflict.
+// Likewise to re-use the switch in most cases, we return both the record and the unwrapped
+// object at once. In *most* cases the unwrapped object comes from the record, but there are a few
+// exceptions which don't have records, or aren't wrapped, etc.
+struct ObjData
 {
+  VkResourceRecord *record;
+  uint64_t unwrapped;
+};
+
+static ObjData GetObjData(VkObjectType objType, uint64_t object)
+{
+  ObjData ret = {};
+
   switch(objType)
   {
-    case VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT: return GetRecord((VkInstance)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT:
-      return GetRecord((VkPhysicalDevice)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT: return GetRecord((VkDevice)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT: return GetRecord((VkQueue)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT: return GetRecord((VkCommandBuffer)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT: return GetRecord((VkDeviceMemory)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT: return GetRecord((VkBuffer)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT: return GetRecord((VkBufferView)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT: return GetRecord((VkImage)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT: return GetRecord((VkImageView)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT: return GetRecord((VkShaderModule)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT: return GetRecord((VkPipeline)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT:
-      return GetRecord((VkPipelineLayout)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT: return GetRecord((VkSampler)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT: return GetRecord((VkDescriptorSet)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT:
-      return GetRecord((VkDescriptorSetLayout)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT:
-      return GetRecord((VkDescriptorPool)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT: return GetRecord((VkFence)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT: return GetRecord((VkSemaphore)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT: return GetRecord((VkEvent)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT: return GetRecord((VkQueryPool)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT: return GetRecord((VkFramebuffer)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT: return GetRecord((VkRenderPass)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT: return GetRecord((VkPipelineCache)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT: return GetRecord((VkSurfaceKHR)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT: return GetRecord((VkSwapchainKHR)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT: return GetRecord((VkCommandPool)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT:
-      return GetRecord((VkDescriptorUpdateTemplateKHR)object);
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_KHR_EXT:
-    case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT: break;
+    case VK_OBJECT_TYPE_INSTANCE: ret.record = GetRecord((VkInstance)object); break;
+    case VK_OBJECT_TYPE_PHYSICAL_DEVICE: ret.record = GetRecord((VkPhysicalDevice)object); break;
+    case VK_OBJECT_TYPE_DEVICE: ret.record = GetRecord((VkDevice)object); break;
+    case VK_OBJECT_TYPE_QUEUE: ret.record = GetRecord((VkQueue)object); break;
+    case VK_OBJECT_TYPE_SEMAPHORE: ret.record = GetRecord((VkSemaphore)object); break;
+    case VK_OBJECT_TYPE_COMMAND_BUFFER: ret.record = GetRecord((VkCommandBuffer)object); break;
+    case VK_OBJECT_TYPE_FENCE: ret.record = GetRecord((VkFence)object); break;
+    case VK_OBJECT_TYPE_DEVICE_MEMORY: ret.record = GetRecord((VkDeviceMemory)object); break;
+    case VK_OBJECT_TYPE_BUFFER: ret.record = GetRecord((VkBuffer)object); break;
+    case VK_OBJECT_TYPE_IMAGE: ret.record = GetRecord((VkImage)object); break;
+    case VK_OBJECT_TYPE_EVENT: ret.record = GetRecord((VkEvent)object); break;
+    case VK_OBJECT_TYPE_QUERY_POOL: ret.record = GetRecord((VkQueryPool)object); break;
+    case VK_OBJECT_TYPE_BUFFER_VIEW: ret.record = GetRecord((VkBufferView)object); break;
+    case VK_OBJECT_TYPE_IMAGE_VIEW: ret.record = GetRecord((VkImageView)object); break;
+    case VK_OBJECT_TYPE_SHADER_MODULE: ret.record = GetRecord((VkShaderModule)object); break;
+    case VK_OBJECT_TYPE_PIPELINE_CACHE: ret.record = GetRecord((VkPipelineCache)object); break;
+    case VK_OBJECT_TYPE_PIPELINE_LAYOUT: ret.record = GetRecord((VkPipelineLayout)object); break;
+    case VK_OBJECT_TYPE_RENDER_PASS: ret.record = GetRecord((VkRenderPass)object); break;
+    case VK_OBJECT_TYPE_PIPELINE: ret.record = GetRecord((VkPipeline)object); break;
+    case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT:
+      ret.record = GetRecord((VkDescriptorSetLayout)object);
+      break;
+    case VK_OBJECT_TYPE_SAMPLER: ret.record = GetRecord((VkSampler)object); break;
+    case VK_OBJECT_TYPE_DESCRIPTOR_POOL: ret.record = GetRecord((VkDescriptorPool)object); break;
+    case VK_OBJECT_TYPE_DESCRIPTOR_SET: ret.record = GetRecord((VkDescriptorSet)object); break;
+    case VK_OBJECT_TYPE_FRAMEBUFFER: ret.record = GetRecord((VkFramebuffer)object); break;
+    case VK_OBJECT_TYPE_COMMAND_POOL: ret.record = GetRecord((VkCommandPool)object); break;
+
+    case VK_OBJECT_TYPE_SWAPCHAIN_KHR: ret.record = GetRecord((VkSwapchainKHR)object); break;
+    case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE:
+      ret.record = GetRecord((VkDescriptorUpdateTemplateKHR)object);
+      break;
+
+    /////////////////////////////
+    // special cases
+
+    // VkSurfaceKHR doesn't have a record
+    case VK_OBJECT_TYPE_SURFACE_KHR:
+      ret.unwrapped = GetWrapped((VkSurfaceKHR)object)->real.handle;
+      break;
+
+    // VkDisplayKHR and VkDisplayModeKHR are not wrapped
+    case VK_OBJECT_TYPE_DISPLAY_KHR:
+    case VK_OBJECT_TYPE_DISPLAY_MODE_KHR:
+      ret.unwrapped = object;
+      break;
+
+    // debug report callback and messenger are not wrapped in the conventional way
+    case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT:
+    {
+      UserDebugReportCallbackData *user = (UserDebugReportCallbackData *)(uintptr_t)object;
+      ret.unwrapped = NON_DISP_TO_UINT64(user->realObject);
+      break;
+    }
+
+    case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT:
+    {
+      UserDebugUtilsCallbackData *user = (UserDebugUtilsCallbackData *)(uintptr_t)object;
+      ret.unwrapped = NON_DISP_TO_UINT64(user->realObject);
+      break;
+    }
+
+    // these objects are not supported
+    case VK_OBJECT_TYPE_OBJECT_TABLE_NVX:
+    case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT:
+    case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX:
+    case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION:
+    case VK_OBJECT_TYPE_UNKNOWN:
+    case VK_OBJECT_TYPE_RANGE_SIZE:
+    case VK_OBJECT_TYPE_MAX_ENUM: break;
   }
-  return NULL;
+
+  RDCCOMPILE_ASSERT(VK_OBJECT_TYPE_END_RANGE == VK_OBJECT_TYPE_COMMAND_POOL,
+                    "Enum added to object type");
+
+  // if we have a record and no unwrapped object, fetch it out of the record
+  if(ret.record && ret.unwrapped == 0)
+  {
+    switch(objType)
+    {
+      // dispatchable objects
+      case VK_OBJECT_TYPE_INSTANCE:
+      case VK_OBJECT_TYPE_PHYSICAL_DEVICE:
+      case VK_OBJECT_TYPE_QUEUE:
+      case VK_OBJECT_TYPE_DEVICE:
+      case VK_OBJECT_TYPE_COMMAND_BUFFER:
+      {
+        WrappedVkDispRes *res = (WrappedVkDispRes *)ret.record->Resource;
+        ret.unwrapped = res->real.handle;
+        break;
+      }
+
+      // non-dispatchable objects
+      default:
+      {
+        WrappedVkNonDispRes *res = (WrappedVkNonDispRes *)ret.record->Resource;
+        ret.unwrapped = res->real.handle;
+        break;
+      }
+    }
+  }
+
+  return ret;
+}
+
+// overload to silently cast
+static ObjData GetObjData(VkDebugReportObjectTypeEXT objType, uint64_t object)
+{
+  VkObjectType castType = (VkObjectType)objType;
+
+  // a few special cases don't overlap and will conflict when more core objects are added to
+  // VkObjectType so we don't cast them.
+  if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT)
+    castType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT)
+    castType = VK_OBJECT_TYPE_SURFACE_KHR;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT)
+    castType = VK_OBJECT_TYPE_DISPLAY_KHR;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT)
+    castType = VK_OBJECT_TYPE_DISPLAY_MODE_KHR;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT)
+    castType = VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT)
+    castType = VK_OBJECT_TYPE_OBJECT_TABLE_NVX;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT)
+    castType = VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT)
+    castType = VK_OBJECT_TYPE_VALIDATION_CACHE_EXT;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT)
+    castType = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION;
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT)
+    castType = VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE;
+
+  RDCCOMPILE_ASSERT(VK_DEBUG_REPORT_OBJECT_TYPE_END_RANGE_EXT ==
+                        VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT,
+                    "Enum added to debug report object type");
+
+  return GetObjData((VkObjectType)objType, object);
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkDevice device,
-                                                 const VkDebugMarkerObjectTagInfoEXT *pTagInfo)
+bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderModule ShaderObject,
+                                                 std::string DebugPath)
 {
-  SERIALISE_ELEMENT_LOCAL(ShaderObject,
-                          GetObjRecord(pTagInfo->objectType, pTagInfo->object)->GetResourceID())
-      .TypedAs("VkShaderModule");
-
-  std::string DebugPath;
-  if(IsCaptureMode(m_State))
-  {
-    char *tag = (char *)pTagInfo->pTag;
-    DebugPath = std::string(tag, tag + pTagInfo->tagSize);
-  }
-
+  SERIALISE_ELEMENT(ShaderObject);
   SERIALISE_ELEMENT(DebugPath);
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    m_CreationInfo.m_ShaderModule[GetResourceManager()->GetLiveID(ShaderObject)].unstrippedPath =
-        DebugPath;
+    m_CreationInfo.m_ShaderModule[GetResID(ShaderObject)].unstrippedPath = DebugPath;
 
-    AddResourceCurChunk(ShaderObject);
+    AddResourceCurChunk(GetResourceManager()->GetOriginalID(GetResID(ShaderObject)));
   }
 
   return true;
@@ -1200,50 +1352,25 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
 {
   if(IsCaptureMode(m_State) && pTagInfo)
   {
-    VkResourceRecord *record = GetObjRecord(pTagInfo->objectType, pTagInfo->object);
+    ObjData data = GetObjData(pTagInfo->objectType, pTagInfo->object);
 
-    if(!record)
-    {
-      RDCERR("Unrecognised object %d %llu", pTagInfo->objectType, pTagInfo->object);
-      return VK_SUCCESS;
-    }
-
-    if(pTagInfo->tagName == RENDERDOC_ShaderDebugMagicValue_truncated &&
+    if(data.record && pTagInfo->tagName == RENDERDOC_ShaderDebugMagicValue_truncated &&
        pTagInfo->objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT)
     {
       CACHE_THREAD_SERIALISER();
 
+      char *tag = (char *)pTagInfo->pTag;
+      std::string DebugPath = std::string(tag, tag + pTagInfo->tagSize);
+
       SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
-      Serialise_SetShaderDebugPath(ser, device, pTagInfo);
-      record->AddChunk(scope.Get());
+      Serialise_SetShaderDebugPath(ser, (VkShaderModule)data.record->Resource, DebugPath);
+      data.record->AddChunk(scope.Get());
     }
     else if(ObjDisp(device)->DebugMarkerSetObjectTagEXT)
     {
       VkDebugMarkerObjectTagInfoEXT unwrapped = *pTagInfo;
 
-      // special case for VkSurfaceKHR - the record pointer is actually just the underlying native
-      // window handle, so instead we unwrap and call through.
-      if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT)
-      {
-        unwrapped.object = GetWrapped((VkSurfaceKHR)unwrapped.object)->real.handle;
-
-        return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, &unwrapped);
-      }
-
-      if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
-         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT ||
-         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT ||
-         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT ||
-         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT)
-      {
-        WrappedVkDispRes *res = (WrappedVkDispRes *)record->Resource;
-        unwrapped.object = res->real.handle;
-      }
-      else
-      {
-        WrappedVkNonDispRes *res = (WrappedVkNonDispRes *)record->Resource;
-        unwrapped.object = res->real.handle;
-      }
+      unwrapped.object = data.unwrapped;
 
       return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, &unwrapped);
     }
@@ -1256,8 +1383,8 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
     SerialiserType &ser, VkDevice device, const VkDebugMarkerObjectNameInfoEXT *pNameInfo)
 {
-  SERIALISE_ELEMENT_LOCAL(Object,
-                          GetObjRecord(pNameInfo->objectType, pNameInfo->object)->GetResourceID());
+  SERIALISE_ELEMENT_LOCAL(
+      Object, GetObjData(pNameInfo->objectType, pNameInfo->object).record->GetResourceID());
   SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1286,58 +1413,166 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
 {
   if(IsCaptureMode(m_State) && pNameInfo)
   {
-    Chunk *chunk = NULL;
-
-    VkResourceRecord *record = GetObjRecord(pNameInfo->objectType, pNameInfo->object);
-
-    if(!record)
-    {
-      RDCERR("Unrecognised object %d %llu", pNameInfo->objectType, pNameInfo->object);
-      return VK_SUCCESS;
-    }
+    ObjData data = GetObjData(pNameInfo->objectType, pNameInfo->object);
 
     VkDebugMarkerObjectNameInfoEXT unwrapped = *pNameInfo;
-
-    // special case for VkSurfaceKHR - the record pointer is actually just the underlying native
-    // window handle, so instead we unwrap and call through.
-    if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT)
-    {
-      unwrapped.object = GetWrapped((VkSurfaceKHR)unwrapped.object)->real.handle;
-
-      if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
-        return ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, &unwrapped);
-
-      return VK_SUCCESS;
-    }
-
-    if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
-       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT ||
-       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT ||
-       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT ||
-       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT)
-    {
-      WrappedVkDispRes *res = (WrappedVkDispRes *)record->Resource;
-      unwrapped.object = res->real.handle;
-    }
-    else
-    {
-      WrappedVkNonDispRes *res = (WrappedVkNonDispRes *)record->Resource;
-      unwrapped.object = res->real.handle;
-    }
+    unwrapped.object = data.unwrapped;
 
     if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
       ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, &unwrapped);
 
+    if(data.record)
     {
       CACHE_THREAD_SERIALISER();
 
       SCOPED_SERIALISE_CHUNK(VulkanChunk::vkDebugMarkerSetObjectNameEXT);
       Serialise_vkDebugMarkerSetObjectNameEXT(ser, device, pNameInfo);
 
-      chunk = scope.Get();
-    }
+      Chunk *chunk = scope.Get();
 
-    record->AddChunk(chunk);
+      data.record->AddChunk(chunk);
+    }
+  }
+
+  return VK_SUCCESS;
+}
+
+VkResult WrappedVulkan::vkCreateDebugUtilsMessengerEXT(
+    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pMessenger)
+{
+  // we create an interception object here so that we can dynamically check the state of API
+  // messages being muted, since it's quite likely that the application will initialise Vulkan (and
+  // so create a debug report callback) before it messes with RenderDoc's API to unmute messages.
+  UserDebugUtilsCallbackData *user = new UserDebugUtilsCallbackData();
+  user->createInfo = *pCreateInfo;
+  user->muteWarned = false;
+
+  VkDebugUtilsMessengerCreateInfoEXT wrappedCreateInfo = *pCreateInfo;
+  wrappedCreateInfo.pfnUserCallback = &UserDebugUtilsCallback;
+  wrappedCreateInfo.pUserData = user;
+
+  VkResult vkr = ObjDisp(instance)->CreateDebugUtilsMessengerEXT(
+      Unwrap(instance), &wrappedCreateInfo, pAllocator, &user->realObject);
+
+  if(vkr != VK_SUCCESS)
+  {
+    *pMessenger = VK_NULL_HANDLE;
+    delete user;
+    return vkr;
+  }
+
+  *pMessenger = (VkDebugUtilsMessengerEXT)(uint64_t)user;
+
+  return vkr;
+}
+
+void WrappedVulkan::vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
+                                                    VkDebugUtilsMessengerEXT messenger,
+                                                    const VkAllocationCallbacks *pAllocator)
+{
+  UserDebugReportCallbackData *user =
+      (UserDebugReportCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(messenger);
+
+  ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
+
+  delete user;
+}
+
+void WrappedVulkan::vkSubmitDebugUtilsMessageEXT(
+    VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData)
+{
+  return ObjDisp(instance)->SubmitDebugUtilsMessageEXT(Unwrap(instance), messageSeverity,
+                                                       messageTypes, pCallbackData);
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
+    SerialiserType &ser, VkDevice device, const VkDebugUtilsObjectNameInfoEXT *pNameInfo)
+{
+  SERIALISE_ELEMENT_LOCAL(
+      Object, GetObjData(pNameInfo->objectType, pNameInfo->objectHandle).record->GetResourceID());
+  SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // if we don't have a live resource, this is probably a command buffer being named on the
+    // virtual non-existant parent, not any of the baked IDs. Just save the name on the original ID
+    // and we'll propagate it in Serialise_vkBeginCommandBuffer
+    if(!GetResourceManager()->HasLiveResource(Object) || GetResourceManager()->HasReplacement(Object))
+      m_CreationInfo.m_Names[Object] = ObjectName;
+    else
+      m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(Object)] = ObjectName;
+
+    ResourceDescription &descr = GetReplay()->GetResourceDesc(Object);
+
+    AddResourceCurChunk(descr);
+    descr.SetCustomName(ObjectName);
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkSetDebugUtilsObjectNameEXT(VkDevice device,
+                                                     const VkDebugUtilsObjectNameInfoEXT *pNameInfo)
+{
+  if(IsCaptureMode(m_State) && pNameInfo)
+  {
+    ObjData data = GetObjData(pNameInfo->objectType, pNameInfo->objectHandle);
+
+    VkDebugUtilsObjectNameInfoEXT unwrapped = *pNameInfo;
+    unwrapped.objectHandle = data.unwrapped;
+
+    if(ObjDisp(device)->SetDebugUtilsObjectNameEXT)
+      ObjDisp(device)->SetDebugUtilsObjectNameEXT(device, &unwrapped);
+
+    if(data.record)
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkSetDebugUtilsObjectNameEXT);
+      Serialise_vkSetDebugUtilsObjectNameEXT(ser, device, pNameInfo);
+
+      Chunk *chunk = scope.Get();
+
+      data.record->AddChunk(chunk);
+    }
+  }
+
+  return VK_SUCCESS;
+}
+
+VkResult WrappedVulkan::vkSetDebugUtilsObjectTagEXT(VkDevice device,
+                                                    const VkDebugUtilsObjectTagInfoEXT *pTagInfo)
+{
+  if(IsCaptureMode(m_State) && pTagInfo)
+  {
+    ObjData data = GetObjData(pTagInfo->objectType, pTagInfo->objectHandle);
+
+    if(data.record && pTagInfo->tagName == RENDERDOC_ShaderDebugMagicValue_truncated &&
+       pTagInfo->objectType == VK_OBJECT_TYPE_SHADER_MODULE)
+    {
+      CACHE_THREAD_SERIALISER();
+
+      char *tag = (char *)pTagInfo->pTag;
+      std::string DebugPath = std::string(tag, tag + pTagInfo->tagSize);
+
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
+      Serialise_SetShaderDebugPath(ser, (VkShaderModule)data.record->Resource, DebugPath);
+      data.record->AddChunk(scope.Get());
+    }
+    else if(ObjDisp(device)->SetDebugUtilsObjectTagEXT)
+    {
+      VkDebugUtilsObjectTagInfoEXT unwrapped = *pTagInfo;
+
+      unwrapped.objectHandle = data.unwrapped;
+
+      return ObjDisp(device)->SetDebugUtilsObjectTagEXT(device, &unwrapped);
+    }
   }
 
   return VK_SUCCESS;
@@ -1359,8 +1594,28 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool, VkDevice device,
                                 const VkQueryPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkQueryPool *pQueryPool);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, SetShaderDebugPath, VkDevice device,
-                                const VkDebugMarkerObjectTagInfoEXT *pTagInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, SetShaderDebugPath, VkShaderModule ShaderObject,
+                                std::string DebugPath);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevice device,
                                 const VkDebugMarkerObjectNameInfoEXT *pNameInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
+                                const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectTagEXT, VkDevice device,
+                                const VkDebugUtilsObjectTagInfoEXT *pTagInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDebugUtilsMessengerEXT, VkInstance instance,
+                                const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkDebugUtilsMessengerEXT *pMessenger);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkDestroyDebugUtilsMessengerEXT, VkInstance instance,
+                                VkDebugUtilsMessengerEXT messenger,
+                                const VkAllocationCallbacks *pAllocator);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkSubmitDebugUtilsMessageEXT, VkInstance instance,
+                                VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+                                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData);

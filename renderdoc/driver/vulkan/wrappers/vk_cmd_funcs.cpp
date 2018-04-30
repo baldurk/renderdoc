@@ -3579,6 +3579,217 @@ void WrappedVulkan::vkCmdWriteBufferMarkerAMD(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
+                                                           VkCommandBuffer commandBuffer,
+                                                           const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount++;
+
+        if(ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT)
+          ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
+      }
+    }
+    else
+    {
+      if(ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT)
+        ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
+
+      DrawcallDescription draw;
+      draw.name = Label.pLabelName;
+      draw.flags |= DrawFlags::PushMarker;
+
+      draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      draw.markerColor[1] = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      draw.markerColor[2] = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      draw.markerColor[3] = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+
+      AddEvent();
+      AddDrawcall(draw, false);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
+                                                 const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  if(ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT)
+  {
+    SERIALISE_TIME_CALL(
+        ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT(Unwrap(commandBuffer), pLabelInfo));
+  }
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginDebugUtilsLabelEXT);
+    Serialise_vkCmdBeginDebugUtilsLabelEXT(ser, commandBuffer, pLabelInfo);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdEndDebugUtilsLabelEXT(SerialiserType &ser,
+                                                         VkCommandBuffer commandBuffer)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        int &markerCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount;
+        markerCount = RDCMAX(0, markerCount - 1);
+
+        if(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT)
+          ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer));
+      }
+    }
+    else
+    {
+      if(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT)
+        ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer));
+
+      if(!m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+      {
+        DrawcallDescription draw;
+        draw.name = "API Calls";
+        draw.flags = DrawFlags::APICalls;
+
+        AddDrawcall(draw, true);
+      }
+
+      // dummy draw that is consumed when this command buffer
+      // is being in-lined into the call stream
+      DrawcallDescription draw;
+      draw.name = "Pop()";
+      draw.flags = DrawFlags::PopMarker;
+
+      AddEvent();
+      AddDrawcall(draw, false);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer commandBuffer)
+{
+  if(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT)
+  {
+    SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer)));
+  }
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndDebugUtilsLabelEXT);
+    Serialise_vkCmdEndDebugUtilsLabelEXT(ser, commandBuffer);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdInsertDebugUtilsLabelEXT(SerialiserType &ser,
+                                                            VkCommandBuffer commandBuffer,
+                                                            const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        if(ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT)
+          ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
+      }
+    }
+    else
+    {
+      if(ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT)
+        ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
+
+      DrawcallDescription draw;
+      draw.name = Label.pLabelName;
+      draw.flags |= DrawFlags::SetMarker;
+
+      draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      draw.markerColor[1] = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      draw.markerColor[2] = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      draw.markerColor[3] = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+
+      AddEvent();
+      AddDrawcall(draw, false);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
+                                                  const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+  if(ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT)
+  {
+    SERIALISE_TIME_CALL(
+        ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), pLabelInfo));
+  }
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdInsertDebugUtilsLabelEXT);
+    Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, commandBuffer, pLabelInfo);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkCommandPool *pCommandPool);
@@ -3680,3 +3891,11 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetWithTemplateKHR,
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer commandBuffer,
                                 VkPipelineStageFlagBits pipelineStage, VkBuffer dstBuffer,
                                 VkDeviceSize dstOffset, uint32_t marker);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginDebugUtilsLabelEXT, VkCommandBuffer commandBuffer,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndDebugUtilsLabelEXT, VkCommandBuffer commandBuffer);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdInsertDebugUtilsLabelEXT, VkCommandBuffer commandBuffer,
+                                const VkDebugUtilsLabelEXT *pLabelInfo);

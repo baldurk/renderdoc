@@ -474,6 +474,13 @@ enum class VulkanChunk : uint32_t
   vkBindBufferMemory2KHR,
   vkBindImageMemory2KHR,
   vkCmdWriteBufferMarkerAMD,
+  vkSetDebugUtilsObjectNameEXT,
+  vkQueueBeginDebugUtilsLabelEXT,
+  vkQueueEndDebugUtilsLabelEXT,
+  vkQueueInsertDebugUtilsLabelEXT,
+  vkCmdBeginDebugUtilsLabelEXT,
+  vkCmdEndDebugUtilsLabelEXT,
+  vkCmdInsertDebugUtilsLabelEXT,
   Max,
 };
 
@@ -628,6 +635,7 @@ DECLARE_REFLECTION_STRUCT(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDivisorDescriptionEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerReductionModeCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkDebugUtilsLabelEXT);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -673,6 +681,7 @@ DECLARE_DESERIALISE_TYPE(VkImageViewUsageCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkDebugUtilsLabelEXT);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
