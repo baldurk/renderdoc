@@ -54,9 +54,6 @@ static std::map<std::string, dlopenCallback> libraryHooks;
 
 void PosixHookLibrary(const char *name, dlopenCallback cb)
 {
-  if(cb == NULL)
-    return;
-
   SCOPED_LOCK(libLock);
   libraryHooks[name] = cb;
 }
@@ -97,7 +94,10 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
       {
         RDCDEBUG("Redirecting dlopen to ourselves for %s", filename);
 
-        it->second(ret);
+        if(it->second)
+        {
+          it->second(ret);
+        }
 
         ret = realdlopen("librenderdoc.so", flag);
       }
