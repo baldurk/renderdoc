@@ -1994,9 +1994,15 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
     WrappedID3DDeviceContextState *wrapped = NULL;
 
     if(m_pDevice->GetResourceManager()->HasWrapper(prev))
+    {
       wrapped = (WrappedID3DDeviceContextState *)m_pDevice->GetResourceManager()->GetWrapper(prev);
+
+      wrapped->AddRef();
+    }
     else if(prev)
+    {
       wrapped = new WrappedID3DDeviceContextState(prev, m_pDevice);
+    }
 
     if(wrapped)
       wrapped->state->CopyState(*m_CurrentPipelineState);
