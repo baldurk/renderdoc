@@ -4,7 +4,7 @@
     "name": "VK_LAYER_RENDERDOC_Capture",
     "type": "GLOBAL",
     "library_path": ".\\renderdoc.dll",
-    "api_version": "1.0.0",
+    "api_version": "1.1.73",
     "implementation_version": "[MINOR]",
     "description": "Debugging capture layer for RenderDoc",
     "functions": {

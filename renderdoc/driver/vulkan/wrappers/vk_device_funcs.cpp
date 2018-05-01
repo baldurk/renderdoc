@@ -174,17 +174,32 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
   AddRequiredExtensions(true, params.Extensions, supportedExtensions);
 
-  if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) ==
-     supportedExtensions.end())
+  // after 1.0, VK_KHR_get_physical_device_properties2 is promoted to core, but enable it if it's
+  // reported as available, just in case.
+  if(params.APIVersion >= VK_API_VERSION_1_0)
   {
-    RDCWARN("Unsupported required instance extension for AMD performance counters '%s'",
-            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) !=
+       supportedExtensions.end())
+    {
+      if(std::find(params.Extensions.begin(), params.Extensions.end(),
+                   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == params.Extensions.end())
+        params.Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
   }
   else
   {
-    if(std::find(params.Extensions.begin(), params.Extensions.end(),
-                 VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == params.Extensions.end())
-      params.Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) ==
+       supportedExtensions.end())
+    {
+      RDCWARN("Unsupported required instance extension for AMD performance counters '%s'",
+              VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
+    else
+    {
+      if(std::find(params.Extensions.begin(), params.Extensions.end(),
+                   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == params.Extensions.end())
+        params.Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
   }
 
   // verify that extensions & layers are supported
@@ -416,10 +431,10 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   // override applicationInfo with RenderDoc's, but preserve apiVersion
   if(modifiedCreateInfo.pApplicationInfo)
   {
-    modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
-
     if(modifiedCreateInfo.pApplicationInfo->apiVersion >= VK_API_VERSION_1_0)
       renderdocAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
+
+    modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
   }
 
   VkResult ret = createFunc(&modifiedCreateInfo, pAllocator, pInstance);
@@ -1535,6 +1550,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       record->memIdxMap = GetRecord(physicalDevice)->memIdxMap;
 
       record->instDevInfo = new InstanceDeviceInfo();
+
+      record->instDevInfo->vulkanVersion = GetRecord(m_Instance)->instDevInfo->vulkanVersion;
 
 #undef CheckExt
 #define CheckExt(name, ver) \

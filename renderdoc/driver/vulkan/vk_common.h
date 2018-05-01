@@ -452,10 +452,10 @@ enum class VulkanChunk : uint32_t
   vkCmdIndirectSubCommand,
   vkCmdPushDescriptorSetKHR,
   vkCmdPushDescriptorSetWithTemplateKHR,
-  vkCreateDescriptorUpdateTemplateKHR,
-  vkUpdateDescriptorSetWithTemplateKHR,
-  vkBindBufferMemory2KHR,
-  vkBindImageMemory2KHR,
+  vkCreateDescriptorUpdateTemplate,
+  vkUpdateDescriptorSetWithTemplate,
+  vkBindBufferMemory2,
+  vkBindImageMemory2,
   vkCmdWriteBufferMarkerAMD,
   vkSetDebugUtilsObjectNameEXT,
   vkQueueBeginDebugUtilsLabelEXT,
@@ -464,9 +464,9 @@ enum class VulkanChunk : uint32_t
   vkCmdBeginDebugUtilsLabelEXT,
   vkCmdEndDebugUtilsLabelEXT,
   vkCmdInsertDebugUtilsLabelEXT,
-  vkCreateSamplerYcbcrConversionKHR,
-  vkCmdSetDeviceMaskKHR,
-  vkCmdDispatchBaseKHR,
+  vkCreateSamplerYcbcrConversion,
+  vkCmdSetDeviceMask,
+  vkCmdDispatchBase,
   vkGetDeviceQueue2,
   Max,
 };
@@ -477,35 +477,36 @@ DECLARE_REFLECTION_ENUM(VulkanChunk);
 // directly as-if it were the original type, then on replay load up the resource if available.
 // Really this is only one type of serialisation, but we declare a couple of overloads to account
 // for resources being accessed through different interfaces in different functions
-#define SERIALISE_VK_HANDLES()            \
-  SERIALISE_HANDLE(VkInstance)            \
-  SERIALISE_HANDLE(VkPhysicalDevice)      \
-  SERIALISE_HANDLE(VkDevice)              \
-  SERIALISE_HANDLE(VkQueue)               \
-  SERIALISE_HANDLE(VkCommandBuffer)       \
-  SERIALISE_HANDLE(VkFence)               \
-  SERIALISE_HANDLE(VkDeviceMemory)        \
-  SERIALISE_HANDLE(VkBuffer)              \
-  SERIALISE_HANDLE(VkImage)               \
-  SERIALISE_HANDLE(VkSemaphore)           \
-  SERIALISE_HANDLE(VkEvent)               \
-  SERIALISE_HANDLE(VkQueryPool)           \
-  SERIALISE_HANDLE(VkBufferView)          \
-  SERIALISE_HANDLE(VkImageView)           \
-  SERIALISE_HANDLE(VkShaderModule)        \
-  SERIALISE_HANDLE(VkPipelineCache)       \
-  SERIALISE_HANDLE(VkPipelineLayout)      \
-  SERIALISE_HANDLE(VkRenderPass)          \
-  SERIALISE_HANDLE(VkPipeline)            \
-  SERIALISE_HANDLE(VkDescriptorSetLayout) \
-  SERIALISE_HANDLE(VkSampler)             \
-  SERIALISE_HANDLE(VkDescriptorPool)      \
-  SERIALISE_HANDLE(VkDescriptorSet)       \
-  SERIALISE_HANDLE(VkFramebuffer)         \
-  SERIALISE_HANDLE(VkCommandPool)         \
-  SERIALISE_HANDLE(VkSwapchainKHR)        \
-  SERIALISE_HANDLE(VkSurfaceKHR)          \
-  SERIALISE_HANDLE(VkDescriptorUpdateTemplateKHR)
+#define SERIALISE_VK_HANDLES()                 \
+  SERIALISE_HANDLE(VkInstance)                 \
+  SERIALISE_HANDLE(VkPhysicalDevice)           \
+  SERIALISE_HANDLE(VkDevice)                   \
+  SERIALISE_HANDLE(VkQueue)                    \
+  SERIALISE_HANDLE(VkCommandBuffer)            \
+  SERIALISE_HANDLE(VkFence)                    \
+  SERIALISE_HANDLE(VkDeviceMemory)             \
+  SERIALISE_HANDLE(VkBuffer)                   \
+  SERIALISE_HANDLE(VkImage)                    \
+  SERIALISE_HANDLE(VkSemaphore)                \
+  SERIALISE_HANDLE(VkEvent)                    \
+  SERIALISE_HANDLE(VkQueryPool)                \
+  SERIALISE_HANDLE(VkBufferView)               \
+  SERIALISE_HANDLE(VkImageView)                \
+  SERIALISE_HANDLE(VkShaderModule)             \
+  SERIALISE_HANDLE(VkPipelineCache)            \
+  SERIALISE_HANDLE(VkPipelineLayout)           \
+  SERIALISE_HANDLE(VkRenderPass)               \
+  SERIALISE_HANDLE(VkPipeline)                 \
+  SERIALISE_HANDLE(VkDescriptorSetLayout)      \
+  SERIALISE_HANDLE(VkSampler)                  \
+  SERIALISE_HANDLE(VkDescriptorPool)           \
+  SERIALISE_HANDLE(VkDescriptorSet)            \
+  SERIALISE_HANDLE(VkFramebuffer)              \
+  SERIALISE_HANDLE(VkCommandPool)              \
+  SERIALISE_HANDLE(VkSwapchainKHR)             \
+  SERIALISE_HANDLE(VkSurfaceKHR)               \
+  SERIALISE_HANDLE(VkDescriptorUpdateTemplate) \
+  SERIALISE_HANDLE(VkSamplerYcbcrConversion)
 
 #define SERIALISE_HANDLE(type) DECLARE_REFLECTION_STRUCT(type)
 
@@ -610,21 +611,21 @@ DECLARE_REFLECTION_STRUCT(VkImageBlit);
 DECLARE_REFLECTION_STRUCT(VkImageResolve);
 DECLARE_REFLECTION_STRUCT(VkSwapchainCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDebugMarkerMarkerInfoEXT);
-DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateEntryKHR);
-DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateCreateInfoKHR);
-DECLARE_REFLECTION_STRUCT(VkBindBufferMemoryInfoKHR);
-DECLARE_REFLECTION_STRUCT(VkBindImageMemoryInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateEntry);
+DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkBindBufferMemoryInfo);
+DECLARE_REFLECTION_STRUCT(VkBindImageMemoryInfo);
 DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationConservativeStateCreateInfoEXT);
-DECLARE_REFLECTION_STRUCT(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
-DECLARE_REFLECTION_STRUCT(VkImageViewUsageCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkPipelineTessellationDomainOriginStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkImageViewUsageCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkInputAttachmentAspectReference);
-DECLARE_REFLECTION_STRUCT(VkRenderPassInputAttachmentAspectCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkRenderPassInputAttachmentAspectCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDivisorDescriptionEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerReductionModeCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDebugUtilsLabelEXT);
-DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionCreateInfoKHR);
-DECLARE_REFLECTION_STRUCT(VkRenderPassMultiviewCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkRenderPassMultiviewCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueInfo2);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
@@ -659,21 +660,21 @@ DECLARE_DESERIALISE_TYPE(VkImageMemoryBarrier);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkCopyDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutCreateInfo);
-DECLARE_DESERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkDescriptorUpdateTemplateCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkMappedMemoryRange);
 DECLARE_DESERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
-DECLARE_DESERIALISE_TYPE(VkBindBufferMemoryInfoKHR);
-DECLARE_DESERIALISE_TYPE(VkBindImageMemoryInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkBindBufferMemoryInfo);
+DECLARE_DESERIALISE_TYPE(VkBindImageMemoryInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
-DECLARE_DESERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfoKHR);
-DECLARE_DESERIALISE_TYPE(VkImageViewUsageCreateInfoKHR);
-DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkImageViewUsageCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDebugUtilsLabelEXT);
-DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfoKHR);
-DECLARE_DESERIALISE_TYPE(VkRenderPassMultiviewCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueInfo2);
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
@@ -741,10 +742,10 @@ DECLARE_REFLECTION_ENUM(VkColorSpaceKHR);
 DECLARE_REFLECTION_ENUM(VkPresentModeKHR);
 DECLARE_REFLECTION_ENUM(VkDescriptorUpdateTemplateType);
 DECLARE_REFLECTION_ENUM(VkConservativeRasterizationModeEXT);
-DECLARE_REFLECTION_ENUM(VkTessellationDomainOriginKHR);
+DECLARE_REFLECTION_ENUM(VkTessellationDomainOrigin);
 DECLARE_REFLECTION_ENUM(VkSamplerReductionModeEXT);
-DECLARE_REFLECTION_ENUM(VkSamplerYcbcrModelConversionKHR);
-DECLARE_REFLECTION_ENUM(VkSamplerYcbcrRangeKHR);
+DECLARE_REFLECTION_ENUM(VkSamplerYcbcrModelConversion);
+DECLARE_REFLECTION_ENUM(VkSamplerYcbcrRange);
 DECLARE_REFLECTION_ENUM(VkChromaLocation);
 DECLARE_REFLECTION_ENUM(VkDeviceQueueCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkSubpassDescriptionFlagBits);

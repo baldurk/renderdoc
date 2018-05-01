@@ -273,6 +273,16 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateInstanceE
       return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function); \
   }
 
+// for promoted extensions, we return the function pointer for either name as an alias.
+#undef HookInitPromotedExtension
+#define HookInitPromotedExtension(cond, function, suffix)             \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
+     !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+  {                                                                   \
+    if(cond)                                                          \
+      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);        \
+  }
+
 // proc addr routines
 
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL
@@ -358,6 +368,12 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 #undef HookInitExtension
 #define HookInitExtension(cond, function)             \
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
+    return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
+
+#undef HookInitPromotedExtension
+#define HookInitPromotedExtension(cond, function, suffix)             \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
+     !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
   HookInitVulkanDevice();

@@ -425,10 +425,10 @@ VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPoo
   return ObjDisp(device)->ResetCommandPool(Unwrap(device), Unwrap(cmdPool), flags);
 }
 
-void WrappedVulkan::vkTrimCommandPoolKHR(VkDevice device, VkCommandPool commandPool,
-                                         VkCommandPoolTrimFlagsKHR flags)
+void WrappedVulkan::vkTrimCommandPool(VkDevice device, VkCommandPool commandPool,
+                                      VkCommandPoolTrimFlags flags)
 {
-  return ObjDisp(device)->TrimCommandPoolKHR(Unwrap(device), Unwrap(commandPool), flags);
+  return ObjDisp(device)->TrimCommandPool(Unwrap(device), Unwrap(commandPool), flags);
 }
 
 // Command buffer functions
@@ -3296,7 +3296,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
     SerialiserType &ser, VkCommandBuffer commandBuffer,
-    VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, VkPipelineLayout layout, uint32_t set,
+    VkDescriptorUpdateTemplate descriptorUpdateTemplate, VkPipelineLayout layout, uint32_t set,
     const void *pData)
 {
   SERIALISE_ELEMENT(commandBuffer);
@@ -3409,7 +3409,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
     byte *memory = GetTempMemory(tempInfo->dataByteSize);
 
     // iterate the entries, copy the descriptor data and unwrap
-    for(const VkDescriptorUpdateTemplateEntryKHR &entry : tempInfo->updates)
+    for(const VkDescriptorUpdateTemplateEntry &entry : tempInfo->updates)
     {
       byte *dst = memory + entry.offset;
       const byte *src = (const byte *)pData + entry.offset;
@@ -3791,9 +3791,8 @@ void WrappedVulkan::vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetDeviceMaskKHR(SerialiserType &ser,
-                                                    VkCommandBuffer commandBuffer,
-                                                    uint32_t deviceMask)
+bool WrappedVulkan::Serialise_vkCmdSetDeviceMask(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                 uint32_t deviceMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(deviceMask);
@@ -3816,18 +3815,18 @@ bool WrappedVulkan::Serialise_vkCmdSetDeviceMaskKHR(SerialiserType &ser,
 
     if(commandBuffer != VK_NULL_HANDLE)
     {
-      ObjDisp(commandBuffer)->CmdSetDeviceMaskKHR(Unwrap(commandBuffer), deviceMask);
+      ObjDisp(commandBuffer)->CmdSetDeviceMask(Unwrap(commandBuffer), deviceMask);
     }
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetDeviceMaskKHR(VkCommandBuffer commandBuffer, uint32_t deviceMask)
+void WrappedVulkan::vkCmdSetDeviceMask(VkCommandBuffer commandBuffer, uint32_t deviceMask)
 {
   SCOPED_DBG_SINK();
 
-  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetDeviceMaskKHR(Unwrap(commandBuffer), deviceMask));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetDeviceMask(Unwrap(commandBuffer), deviceMask));
 
   if(IsCaptureMode(m_State))
   {
@@ -3835,8 +3834,8 @@ void WrappedVulkan::vkCmdSetDeviceMaskKHR(VkCommandBuffer commandBuffer, uint32_
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDeviceMaskKHR);
-    Serialise_vkCmdSetDeviceMaskKHR(ser, commandBuffer, deviceMask);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDeviceMask);
+    Serialise_vkCmdSetDeviceMask(ser, commandBuffer, deviceMask);
 
     record->AddChunk(scope.Get());
   }
@@ -3937,7 +3936,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetWithTemplateKHR,
                                 VkCommandBuffer commandBuffer,
-                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                VkDescriptorUpdateTemplate descriptorUpdateTemplate,
                                 VkPipelineLayout layout, uint32_t set, const void *pData);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer commandBuffer,
@@ -3952,5 +3951,5 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndDebugUtilsLabelEXT, VkCommandBuffe
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdInsertDebugUtilsLabelEXT, VkCommandBuffer commandBuffer,
                                 const VkDebugUtilsLabelEXT *pLabelInfo);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDeviceMaskKHR, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDeviceMask, VkCommandBuffer commandBuffer,
                                 uint32_t deviceMask);

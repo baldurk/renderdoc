@@ -291,12 +291,12 @@ size_t GetNextPatchSize(const void *pNext)
     // VkMemoryAllocateInfo
     if(next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV)
       memSize += sizeof(VkDedicatedAllocationMemoryAllocateInfoNV);
-    else if(next->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
-      memSize += sizeof(VkMemoryDedicatedAllocateInfoKHR);
+    else if(next->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO)
+      memSize += sizeof(VkMemoryDedicatedAllocateInfo);
     else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)
       memSize += sizeof(VkExportMemoryAllocateInfoNV);
-    else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)
-      memSize += sizeof(VkExportMemoryAllocateInfoKHR);
+    else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO)
+      memSize += sizeof(VkExportMemoryAllocateInfo);
     else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)
       memSize += sizeof(VkImportMemoryFdInfoKHR);
 
@@ -325,12 +325,14 @@ size_t GetNextPatchSize(const void *pNext)
 #endif
 
     // vkSamplerCreateInfo
-    else if(next->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO_KHR)
-      memSize += sizeof(VkSamplerYcbcrConversionInfoKHR);
+    else if(next->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO)
+      memSize += sizeof(VkSamplerYcbcrConversionInfo);
+    else if(next->sType == VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT)
+      memSize += sizeof(VkSamplerReductionModeCreateInfoEXT);
 
     // VkImageCreateInfo
-    else if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)
-      memSize += sizeof(VkExternalMemoryImageCreateInfoKHR);
+    else if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO)
+      memSize += sizeof(VkExternalMemoryImageCreateInfo);
     else if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV)
       memSize += sizeof(VkExternalMemoryImageCreateInfoNV);
     else if(next->sType == VK_STRUCTURE_TYPE_IMAGE_SWAPCHAIN_CREATE_INFO_KHR)
@@ -338,13 +340,13 @@ size_t GetNextPatchSize(const void *pNext)
     else if(next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV)
       memSize += sizeof(VkDedicatedAllocationImageCreateInfoNV);
 
-    // VkBindImageMemoryInfoKHR
+    // VkBindImageMemoryInfo
     else if(next->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR)
       memSize += sizeof(VkBindImageMemorySwapchainInfoKHR);
-    else if(next->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR)
-      memSize += sizeof(VkBindImageMemoryDeviceGroupInfoKHR);
-    else if(next->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO_KHR)
-      memSize += sizeof(VkBindImagePlaneMemoryInfoKHR);
+    else if(next->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO)
+      memSize += sizeof(VkBindImageMemoryDeviceGroupInfo);
+    else if(next->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO)
+      memSize += sizeof(VkBindImagePlaneMemoryInfo);
 
     next = next->pNext;
   }
@@ -373,11 +375,11 @@ void PatchNextChain(const char *structName, byte *&tempMem, VkGenericStruct *inf
 
       AppendModifiedChainedStruct(tempMem, dedicatedOut, nextChainTail);
     }
-    else if(nextInput->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO)
     {
-      const VkMemoryDedicatedAllocateInfoKHR *dedicatedIn =
-          (const VkMemoryDedicatedAllocateInfoKHR *)nextInput;
-      VkMemoryDedicatedAllocateInfoKHR *dedicatedOut = (VkMemoryDedicatedAllocateInfoKHR *)tempMem;
+      const VkMemoryDedicatedAllocateInfo *dedicatedIn =
+          (const VkMemoryDedicatedAllocateInfo *)nextInput;
+      VkMemoryDedicatedAllocateInfo *dedicatedOut = (VkMemoryDedicatedAllocateInfo *)tempMem;
 
       // copy and unwrap the struct
       dedicatedOut->sType = dedicatedIn->sType;
@@ -390,9 +392,9 @@ void PatchNextChain(const char *structName, byte *&tempMem, VkGenericStruct *inf
     {
       CopyNextChainedStruct<VkExportMemoryAllocateInfoNV>(tempMem, nextInput, nextChainTail);
     }
-    else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO)
     {
-      CopyNextChainedStruct<VkExportMemoryAllocateInfoKHR>(tempMem, nextInput, nextChainTail);
+      CopyNextChainedStruct<VkExportMemoryAllocateInfo>(tempMem, nextInput, nextChainTail);
     }
     else if(nextInput->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)
     {
@@ -432,9 +434,8 @@ void PatchNextChain(const char *structName, byte *&tempMem, VkGenericStruct *inf
     }
     else if(nextInput->sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO)
     {
-      const VkSamplerYcbcrConversionInfoKHR *ycbcrIn =
-          (const VkSamplerYcbcrConversionInfoKHR *)nextInput;
-      VkSamplerYcbcrConversionInfoKHR *ycbcrOut = (VkSamplerYcbcrConversionInfoKHR *)tempMem;
+      const VkSamplerYcbcrConversionInfo *ycbcrIn = (const VkSamplerYcbcrConversionInfo *)nextInput;
+      VkSamplerYcbcrConversionInfo *ycbcrOut = (VkSamplerYcbcrConversionInfo *)tempMem;
 
       // copy and unwrap the struct
       ycbcrOut->sType = ycbcrIn->sType;
@@ -442,9 +443,13 @@ void PatchNextChain(const char *structName, byte *&tempMem, VkGenericStruct *inf
 
       AppendModifiedChainedStruct(tempMem, ycbcrOut, nextChainTail);
     }
-    else if(nextInput->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT)
     {
-      CopyNextChainedStruct<VkExternalMemoryImageCreateInfoKHR>(tempMem, nextInput, nextChainTail);
+      CopyNextChainedStruct<VkSamplerReductionModeCreateInfoEXT>(tempMem, nextInput, nextChainTail);
+    }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO)
+    {
+      CopyNextChainedStruct<VkExternalMemoryImageCreateInfo>(tempMem, nextInput, nextChainTail);
     }
     else if(nextInput->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV)
     {
@@ -478,17 +483,17 @@ void PatchNextChain(const char *structName, byte *&tempMem, VkGenericStruct *inf
 
       AppendModifiedChainedStruct(tempMem, swapOut, nextChainTail);
     }
-    else if(nextInput->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR)
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO)
     {
-      CopyNextChainedStruct<VkBindImageMemoryDeviceGroupInfoKHR>(tempMem, nextInput, nextChainTail);
+      CopyNextChainedStruct<VkBindImageMemoryDeviceGroupInfo>(tempMem, nextInput, nextChainTail);
     }
-    else if(nextInput->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO_KHR)
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO)
     {
-      CopyNextChainedStruct<VkBindImagePlaneMemoryInfoKHR>(tempMem, nextInput, nextChainTail);
+      CopyNextChainedStruct<VkBindImagePlaneMemoryInfo>(tempMem, nextInput, nextChainTail);
     }
     else
     {
-      RDCERR("unrecognised struct %d in %s pNext chain", structName, nextInput->sType);
+      RDCERR("unrecognised struct %d in %s pNext chain", nextInput->sType, structName);
       // can't patch this struct, have to just copy it and hope it's the last in the chain
       nextChainTail->pNext = nextInput;
     }
@@ -527,7 +532,7 @@ void ReplacePresentableImageLayout(VkImageLayout &layout)
 
 void ReplaceExternalQueueFamily(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily)
 {
-  if(srcQueueFamily == VK_QUEUE_FAMILY_EXTERNAL_KHR || dstQueueFamily == VK_QUEUE_FAMILY_EXTERNAL_KHR)
+  if(srcQueueFamily == VK_QUEUE_FAMILY_EXTERNAL || dstQueueFamily == VK_QUEUE_FAMILY_EXTERNAL)
   {
     // we should ignore this family transition since we're not synchronising with an
     // external access.

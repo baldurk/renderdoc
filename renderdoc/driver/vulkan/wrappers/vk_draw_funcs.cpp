@@ -2137,10 +2137,10 @@ void WrappedVulkan::vkCmdClearAttachments(VkCommandBuffer commandBuffer, uint32_
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdDispatchBaseKHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                   uint32_t baseGroupX, uint32_t baseGroupY,
-                                                   uint32_t baseGroupZ, uint32_t groupCountX,
-                                                   uint32_t groupCountY, uint32_t groupCountZ)
+bool WrappedVulkan::Serialise_vkCmdDispatchBase(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                uint32_t baseGroupX, uint32_t baseGroupY,
+                                                uint32_t baseGroupZ, uint32_t groupCountX,
+                                                uint32_t groupCountY, uint32_t groupCountZ)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(baseGroupX);
@@ -2167,14 +2167,14 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBaseKHR(SerialiserType &ser, VkComman
         uint32_t eventId = HandlePreCallback(commandBuffer, DrawFlags::Dispatch);
 
         ObjDisp(commandBuffer)
-            ->CmdDispatchBaseKHR(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
-                                 groupCountX, groupCountY, groupCountZ);
+            ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
+                              groupCountX, groupCountY, groupCountZ);
 
         if(eventId && m_DrawcallCallback->PostDispatch(eventId, commandBuffer))
         {
           ObjDisp(commandBuffer)
-              ->CmdDispatchBaseKHR(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
-                                   groupCountX, groupCountY, groupCountZ);
+              ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
+                                groupCountX, groupCountY, groupCountZ);
           m_DrawcallCallback->PostRedispatch(eventId, commandBuffer);
         }
       }
@@ -2182,14 +2182,14 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBaseKHR(SerialiserType &ser, VkComman
     else
     {
       ObjDisp(commandBuffer)
-          ->CmdDispatchBaseKHR(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
-                               groupCountX, groupCountY, groupCountZ);
+          ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ, groupCountX,
+                            groupCountY, groupCountZ);
 
       {
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdDispatchBaseKHR(%u, %u, %u)", groupCountX, groupCountY,
+        draw.name = StringFormat::Fmt("vkCmdDispatchBase(%u, %u, %u)", groupCountX, groupCountY,
                                       groupCountZ);
         draw.dispatchDimension[0] = groupCountX;
         draw.dispatchDimension[1] = groupCountY;
@@ -2208,16 +2208,15 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBaseKHR(SerialiserType &ser, VkComman
   return true;
 }
 
-void WrappedVulkan::vkCmdDispatchBaseKHR(VkCommandBuffer commandBuffer, uint32_t baseGroupX,
-                                         uint32_t baseGroupY, uint32_t baseGroupZ,
-                                         uint32_t groupCountX, uint32_t groupCountY,
-                                         uint32_t groupCountZ)
+void WrappedVulkan::vkCmdDispatchBase(VkCommandBuffer commandBuffer, uint32_t baseGroupX,
+                                      uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX,
+                                      uint32_t groupCountY, uint32_t groupCountZ)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
-                          ->CmdDispatchBaseKHR(Unwrap(commandBuffer), baseGroupX, baseGroupY,
-                                               baseGroupZ, groupCountX, groupCountY, groupCountZ));
+                          ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY,
+                                            baseGroupZ, groupCountX, groupCountY, groupCountZ));
 
   if(IsCaptureMode(m_State))
   {
@@ -2226,9 +2225,9 @@ void WrappedVulkan::vkCmdDispatchBaseKHR(VkCommandBuffer commandBuffer, uint32_t
     CACHE_THREAD_SERIALISER();
 
     ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDispatchBaseKHR);
-    Serialise_vkCmdDispatchBaseKHR(ser, commandBuffer, baseGroupX, baseGroupY, baseGroupZ,
-                                   groupCountX, groupCountY, groupCountZ);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDispatchBase);
+    Serialise_vkCmdDispatchBase(ser, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX,
+                                groupCountY, groupCountZ);
 
     record->AddChunk(scope.Get());
   }
@@ -2296,6 +2295,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResolveImage, VkCommandBuffer command
                                 VkImageLayout dstImageLayout, uint32_t regionCount,
                                 const VkImageResolve *pRegions);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDispatchBaseKHR, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDispatchBase, VkCommandBuffer commandBuffer,
                                 uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ,
                                 uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);

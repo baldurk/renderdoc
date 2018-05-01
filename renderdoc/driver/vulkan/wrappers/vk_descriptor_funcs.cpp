@@ -76,10 +76,10 @@ VkDescriptorSetAllocateInfo WrappedVulkan::UnwrapInfo(const VkDescriptorSetAlloc
 }
 
 template <>
-VkDescriptorUpdateTemplateCreateInfoKHR WrappedVulkan::UnwrapInfo(
-    const VkDescriptorUpdateTemplateCreateInfoKHR *info)
+VkDescriptorUpdateTemplateCreateInfo WrappedVulkan::UnwrapInfo(
+    const VkDescriptorUpdateTemplateCreateInfo *info)
 {
-  VkDescriptorUpdateTemplateCreateInfoKHR ret = *info;
+  VkDescriptorUpdateTemplateCreateInfo ret = *info;
 
   ret.pipelineLayout = Unwrap(ret.pipelineLayout);
   ret.descriptorSetLayout = Unwrap(ret.descriptorSetLayout);
@@ -1138,24 +1138,24 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplateKHR(
-    SerialiserType &ser, VkDevice device, const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate)
+bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
+    SerialiserType &ser, VkDevice device, const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate)
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(DescriptorUpdateTemplate, GetResID(*pDescriptorUpdateTemplate))
-      .TypedAs("VkDescriptorUpdateTemplateKHR");
+      .TypedAs("VkDescriptorUpdateTemplate");
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    VkDescriptorUpdateTemplateKHR templ = VK_NULL_HANDLE;
+    VkDescriptorUpdateTemplate templ = VK_NULL_HANDLE;
 
-    VkResult ret = ObjDisp(device)->CreateDescriptorUpdateTemplateKHR(Unwrap(device), &CreateInfo,
-                                                                      NULL, &templ);
+    VkResult ret =
+        ObjDisp(device)->CreateDescriptorUpdateTemplate(Unwrap(device), &CreateInfo, NULL, &templ);
 
     if(ret != VK_SUCCESS)
     {
@@ -1182,13 +1182,13 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplateKHR(
   return true;
 }
 
-VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplateKHR(
-    VkDevice device, const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate)
+VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplate(
+    VkDevice device, const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate)
 {
-  VkDescriptorUpdateTemplateCreateInfoKHR unwrapped = UnwrapInfo(pCreateInfo);
+  VkDescriptorUpdateTemplateCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorUpdateTemplateKHR(
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorUpdateTemplate(
                           Unwrap(device), &unwrapped, pAllocator, pDescriptorUpdateTemplate));
 
   if(ret == VK_SUCCESS)
@@ -1202,9 +1202,9 @@ VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplateKHR(
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateDescriptorUpdateTemplateKHR);
-        Serialise_vkCreateDescriptorUpdateTemplateKHR(ser, device, pCreateInfo, NULL,
-                                                      pDescriptorUpdateTemplate);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateDescriptorUpdateTemplate);
+        Serialise_vkCreateDescriptorUpdateTemplate(ser, device, pCreateInfo, NULL,
+                                                   pDescriptorUpdateTemplate);
 
         chunk = scope.Get();
       }
@@ -1227,9 +1227,9 @@ VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplateKHR(
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplateKHR(
+bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplate(
     SerialiserType &ser, VkDevice device, VkDescriptorSet descriptorSet,
-    VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, const void *pData)
+    VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void *pData)
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(descriptorSet);
@@ -1265,9 +1265,9 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplateKHR(
 
 // see vkUpdateDescriptorSets for more verbose comments, the concepts are the same here except we
 // apply from a template & user memory instead of arrays of VkWriteDescriptorSet/VkCopyDescriptorSet
-void WrappedVulkan::vkUpdateDescriptorSetWithTemplateKHR(
+void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
     VkDevice device, VkDescriptorSet descriptorSet,
-    VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, const void *pData)
+    VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void *pData)
 {
   SCOPED_DBG_SINK();
 
@@ -1278,7 +1278,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplateKHR(
     byte *memory = GetTempMemory(tempInfo->dataByteSize);
 
     // iterate the entries, copy the descriptor data and unwrap
-    for(const VkDescriptorUpdateTemplateEntryKHR &entry : tempInfo->updates)
+    for(const VkDescriptorUpdateTemplateEntry &entry : tempInfo->updates)
     {
       byte *dst = memory + entry.offset;
       const byte *src = (const byte *)pData + entry.offset;
@@ -1342,7 +1342,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplateKHR(
       }
     }
 
-    SERIALISE_TIME_CALL(ObjDisp(device)->UpdateDescriptorSetWithTemplateKHR(
+    SERIALISE_TIME_CALL(ObjDisp(device)->UpdateDescriptorSetWithTemplate(
         Unwrap(device), Unwrap(descriptorSet), Unwrap(descriptorUpdateTemplate), memory));
   }
 
@@ -1356,9 +1356,9 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplateKHR(
   {
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSetWithTemplateKHR);
-    Serialise_vkUpdateDescriptorSetWithTemplateKHR(ser, device, descriptorSet,
-                                                   descriptorUpdateTemplate, pData);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSetWithTemplate);
+    Serialise_vkUpdateDescriptorSetWithTemplate(ser, device, descriptorSet,
+                                                descriptorUpdateTemplate, pData);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
 
@@ -1371,7 +1371,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplateKHR(
   // need to track descriptor set contents whether capframing or idle
   if(IsCaptureMode(m_State))
   {
-    for(const VkDescriptorUpdateTemplateEntryKHR &entry : tempInfo->updates)
+    for(const VkDescriptorUpdateTemplateEntry &entry : tempInfo->updates)
     {
       VkResourceRecord *record = GetRecord(descriptorSet);
       RDCASSERT(record->descInfo && record->descInfo->layout);
@@ -1465,12 +1465,12 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSets, VkDevice device,
                                 uint32_t descriptorCopyCount,
                                 const VkCopyDescriptorSet *pDescriptorCopies);
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorUpdateTemplateKHR, VkDevice device,
-                                const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo,
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorUpdateTemplate, VkDevice device,
+                                const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator,
-                                VkDescriptorUpdateTemplateKHR *pDescriptorUpdateTemplate);
+                                VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSetWithTemplateKHR, VkDevice device,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkUpdateDescriptorSetWithTemplate, VkDevice device,
                                 VkDescriptorSet descriptorSet,
-                                VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+                                VkDescriptorUpdateTemplate descriptorUpdateTemplate,
                                 const void *pData);

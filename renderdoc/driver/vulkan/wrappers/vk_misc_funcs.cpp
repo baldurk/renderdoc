@@ -110,8 +110,8 @@ DESTROY_IMPL(VkCommandPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
-DESTROY_IMPL(VkDescriptorUpdateTemplateKHR, DestroyDescriptorUpdateTemplateKHR)
-DESTROY_IMPL(VkSamplerYcbcrConversionKHR, DestroySamplerYcbcrConversionKHR)
+DESTROY_IMPL(VkDescriptorUpdateTemplate, DestroyDescriptorUpdateTemplate)
+DESTROY_IMPL(VkSamplerYcbcrConversion, DestroySamplerYcbcrConversion)
 
 #undef DESTROY_IMPL
 
@@ -385,16 +385,16 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
     }
     case eResDescUpdateTemplate:
     {
-      VkDescriptorUpdateTemplateKHR real = nondisp->real.As<VkDescriptorUpdateTemplateKHR>();
-      GetResourceManager()->ReleaseWrappedResource(VkDescriptorUpdateTemplateKHR(handle));
-      vt->DestroyDescriptorUpdateTemplateKHR(Unwrap(dev), real, NULL);
+      VkDescriptorUpdateTemplate real = nondisp->real.As<VkDescriptorUpdateTemplate>();
+      GetResourceManager()->ReleaseWrappedResource(VkDescriptorUpdateTemplate(handle));
+      vt->DestroyDescriptorUpdateTemplate(Unwrap(dev), real, NULL);
       break;
     }
     case eResSamplerConversion:
     {
-      VkSamplerYcbcrConversionKHR real = nondisp->real.As<VkSamplerYcbcrConversionKHR>();
-      GetResourceManager()->ReleaseWrappedResource(VkSamplerYcbcrConversionKHR(handle));
-      vt->DestroySamplerYcbcrConversionKHR(Unwrap(dev), real, NULL);
+      VkSamplerYcbcrConversion real = nondisp->real.As<VkSamplerYcbcrConversion>();
+      GetResourceManager()->ReleaseWrappedResource(VkSamplerYcbcrConversion(handle));
+      vt->DestroySamplerYcbcrConversion(Unwrap(dev), real, NULL);
       break;
     }
   }
@@ -1026,24 +1026,24 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversionKHR(
-    SerialiserType &ser, VkDevice device, const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversionKHR *pYcbcrConversion)
+bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversion(
+    SerialiserType &ser, VkDevice device, const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversion *pYcbcrConversion)
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(ycbcrConversion, GetResID(*pYcbcrConversion))
-      .TypedAs("VkSamplerYcbcrConversionKHR");
+      .TypedAs("VkSamplerYcbcrConversion");
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    VkSamplerYcbcrConversionKHR conv = VK_NULL_HANDLE;
+    VkSamplerYcbcrConversion conv = VK_NULL_HANDLE;
 
     VkResult ret =
-        ObjDisp(device)->CreateSamplerYcbcrConversionKHR(Unwrap(device), &CreateInfo, NULL, &conv);
+        ObjDisp(device)->CreateSamplerYcbcrConversion(Unwrap(device), &CreateInfo, NULL, &conv);
 
     if(ret != VK_SUCCESS)
     {
@@ -1060,7 +1060,7 @@ bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversionKHR(
 
         // destroy this instance of the duplicate, as we must have matching create/destroy
         // calls and there won't be a wrapped resource hanging around to destroy this one.
-        ObjDisp(device)->DestroySamplerYcbcrConversionKHR(Unwrap(device), conv, NULL);
+        ObjDisp(device)->DestroySamplerYcbcrConversion(Unwrap(device), conv, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
         GetResourceManager()->ReplaceResource(ycbcrConversion,
@@ -1082,12 +1082,12 @@ bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversionKHR(
   return true;
 }
 
-VkResult WrappedVulkan::vkCreateSamplerYcbcrConversionKHR(
-    VkDevice device, const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversionKHR *pYcbcrConversion)
+VkResult WrappedVulkan::vkCreateSamplerYcbcrConversion(
+    VkDevice device, const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversion *pYcbcrConversion)
 {
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateSamplerYcbcrConversionKHR(
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateSamplerYcbcrConversion(
                           Unwrap(device), pCreateInfo, pAllocator, pYcbcrConversion));
 
   if(ret == VK_SUCCESS)
@@ -1101,8 +1101,8 @@ VkResult WrappedVulkan::vkCreateSamplerYcbcrConversionKHR(
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateSamplerYcbcrConversionKHR);
-        Serialise_vkCreateSamplerYcbcrConversionKHR(ser, device, pCreateInfo, NULL, pYcbcrConversion);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateSamplerYcbcrConversion);
+        Serialise_vkCreateSamplerYcbcrConversion(ser, device, pCreateInfo, NULL, pYcbcrConversion);
 
         chunk = scope.Get();
       }
@@ -1326,7 +1326,10 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
 
     case VK_OBJECT_TYPE_SWAPCHAIN_KHR: ret.record = GetRecord((VkSwapchainKHR)object); break;
     case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE:
-      ret.record = GetRecord((VkDescriptorUpdateTemplateKHR)object);
+      ret.record = GetRecord((VkDescriptorUpdateTemplate)object);
+      break;
+    case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION:
+      ret.record = GetRecord((VkSamplerYcbcrConversion)object);
       break;
 
     /////////////////////////////
@@ -1362,7 +1365,6 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_OBJECT_TABLE_NVX:
     case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT:
     case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX:
-    case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION:
     case VK_OBJECT_TYPE_UNKNOWN:
     case VK_OBJECT_TYPE_RANGE_SIZE:
     case VK_OBJECT_TYPE_MAX_ENUM: break;
@@ -1711,7 +1713,7 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevic
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
                                 const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversionKHR, VkDevice device,
-                                const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo,
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevice device,
+                                const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator,
-                                VkSamplerYcbcrConversionKHR *pYcbcrConversion);
+                                VkSamplerYcbcrConversion *pYcbcrConversion);

@@ -194,14 +194,13 @@ void WrappedVulkan::vkGetImageSparseMemoryRequirements(
                                                     pSparseMemoryRequirements);
 }
 
-void WrappedVulkan::vkGetBufferMemoryRequirements2KHR(VkDevice device,
-                                                      const VkBufferMemoryRequirementsInfo2KHR *pInfo,
-                                                      VkMemoryRequirements2KHR *pMemoryRequirements)
+void WrappedVulkan::vkGetBufferMemoryRequirements2(VkDevice device,
+                                                   const VkBufferMemoryRequirementsInfo2 *pInfo,
+                                                   VkMemoryRequirements2 *pMemoryRequirements)
 {
-  VkBufferMemoryRequirementsInfo2KHR unwrappedInfo = *pInfo;
+  VkBufferMemoryRequirementsInfo2 unwrappedInfo = *pInfo;
   unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
-  ObjDisp(device)->GetBufferMemoryRequirements2KHR(Unwrap(device), &unwrappedInfo,
-                                                   pMemoryRequirements);
+  ObjDisp(device)->GetBufferMemoryRequirements2(Unwrap(device), &unwrappedInfo, pMemoryRequirements);
 
   // don't do remapping here on replay.
   if(IsReplayMode(m_State))
@@ -219,14 +218,13 @@ void WrappedVulkan::vkGetBufferMemoryRequirements2KHR(VkDevice device,
       pMemoryRequirements->memoryRequirements.memoryTypeBits |= (1U << i);
 }
 
-void WrappedVulkan::vkGetImageMemoryRequirements2KHR(VkDevice device,
-                                                     const VkImageMemoryRequirementsInfo2KHR *pInfo,
-                                                     VkMemoryRequirements2KHR *pMemoryRequirements)
+void WrappedVulkan::vkGetImageMemoryRequirements2(VkDevice device,
+                                                  const VkImageMemoryRequirementsInfo2 *pInfo,
+                                                  VkMemoryRequirements2 *pMemoryRequirements)
 {
-  VkImageMemoryRequirementsInfo2KHR unwrappedInfo = *pInfo;
+  VkImageMemoryRequirementsInfo2 unwrappedInfo = *pInfo;
   unwrappedInfo.image = Unwrap(unwrappedInfo.image);
-  ObjDisp(device)->GetImageMemoryRequirements2KHR(Unwrap(device), &unwrappedInfo,
-                                                  pMemoryRequirements);
+  ObjDisp(device)->GetImageMemoryRequirements2(Unwrap(device), &unwrappedInfo, pMemoryRequirements);
 
   // don't do remapping here on replay.
   if(IsReplayMode(m_State))
@@ -268,14 +266,14 @@ void WrappedVulkan::vkGetImageMemoryRequirements2KHR(VkDevice device,
   }
 }
 
-void WrappedVulkan::vkGetImageSparseMemoryRequirements2KHR(
-    VkDevice device, const VkImageSparseMemoryRequirementsInfo2KHR *pInfo,
+void WrappedVulkan::vkGetImageSparseMemoryRequirements2(
+    VkDevice device, const VkImageSparseMemoryRequirementsInfo2 *pInfo,
     uint32_t *pSparseMemoryRequirementCount,
-    VkSparseImageMemoryRequirements2KHR *pSparseMemoryRequirements)
+    VkSparseImageMemoryRequirements2 *pSparseMemoryRequirements)
 {
-  VkImageSparseMemoryRequirementsInfo2KHR unwrappedInfo = *pInfo;
+  VkImageSparseMemoryRequirementsInfo2 unwrappedInfo = *pInfo;
   unwrappedInfo.image = Unwrap(unwrappedInfo.image);
-  ObjDisp(device)->GetImageSparseMemoryRequirements2KHR(
+  ObjDisp(device)->GetImageSparseMemoryRequirements2(
       Unwrap(device), &unwrappedInfo, pSparseMemoryRequirementCount, pSparseMemoryRequirements);
 }
 
@@ -397,43 +395,43 @@ VkResult WrappedVulkan::vkGetMemoryFdPropertiesKHR(VkDevice device,
                                                    pMemoryFdProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceExternalBufferPropertiesKHR(
-    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfoKHR *pExternalBufferInfo,
-    VkExternalBufferPropertiesKHR *pExternalBufferProperties)
+void WrappedVulkan::vkGetPhysicalDeviceExternalBufferProperties(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
+    VkExternalBufferProperties *pExternalBufferProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceExternalBufferPropertiesKHR(Unwrap(physicalDevice), pExternalBufferInfo,
-                                                     pExternalBufferProperties);
+      ->GetPhysicalDeviceExternalBufferProperties(Unwrap(physicalDevice), pExternalBufferInfo,
+                                                  pExternalBufferProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceExternalSemaphorePropertiesKHR(
+void WrappedVulkan::vkGetPhysicalDeviceExternalSemaphoreProperties(
     VkPhysicalDevice physicalDevice,
-    const VkPhysicalDeviceExternalSemaphoreInfoKHR *pExternalSemaphoreInfo,
-    VkExternalSemaphorePropertiesKHR *pExternalSemaphoreProperties)
+    const VkPhysicalDeviceExternalSemaphoreInfo *pExternalSemaphoreInfo,
+    VkExternalSemaphoreProperties *pExternalSemaphoreProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceExternalSemaphorePropertiesKHR(
-          Unwrap(physicalDevice), pExternalSemaphoreInfo, pExternalSemaphoreProperties);
+      ->GetPhysicalDeviceExternalSemaphoreProperties(Unwrap(physicalDevice), pExternalSemaphoreInfo,
+                                                     pExternalSemaphoreProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceExternalFencePropertiesKHR(
-    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfoKHR *pExternalFenceInfo,
-    VkExternalFencePropertiesKHR *pExternalFenceProperties)
+void WrappedVulkan::vkGetPhysicalDeviceExternalFenceProperties(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfo *pExternalFenceInfo,
+    VkExternalFenceProperties *pExternalFenceProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceExternalFencePropertiesKHR(Unwrap(physicalDevice), pExternalFenceInfo,
-                                                    pExternalFenceProperties);
+      ->GetPhysicalDeviceExternalFenceProperties(Unwrap(physicalDevice), pExternalFenceInfo,
+                                                 pExternalFenceProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceFeatures2KHR(VkPhysicalDevice physicalDevice,
-                                                    VkPhysicalDeviceFeatures2KHR *pFeatures)
+void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
+                                                 VkPhysicalDeviceFeatures2 *pFeatures)
 {
-  ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2KHR(Unwrap(physicalDevice), pFeatures);
+  ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), pFeatures);
 
   // if the user is requesting ycbcr features, make sure it's reported as NOT supported
-  VkPhysicalDeviceSamplerYcbcrConversionFeaturesKHR *ycbcr =
-      (VkPhysicalDeviceSamplerYcbcrConversionFeaturesKHR *)FindNextStruct(
-          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES_KHR);
+  VkPhysicalDeviceSamplerYcbcrConversionFeatures *ycbcr =
+      (VkPhysicalDeviceSamplerYcbcrConversionFeatures *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES);
 
   if(ycbcr)
   {
@@ -442,52 +440,52 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2KHR(VkPhysicalDevice physicalDev
   }
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice physicalDevice,
-                                                      VkPhysicalDeviceProperties2KHR *pProperties)
+void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
+                                                   VkPhysicalDeviceProperties2 *pProperties)
 {
-  return ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2KHR(Unwrap(physicalDevice), pProperties);
+  return ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), pProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2KHR(VkPhysicalDevice physicalDevice,
-                                                            VkFormat format,
-                                                            VkFormatProperties2KHR *pFormatProperties)
-{
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceFormatProperties2KHR(Unwrap(physicalDevice), format, pFormatProperties);
-}
-
-VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties2KHR(
-    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2KHR *pImageFormatInfo,
-    VkImageFormatProperties2KHR *pImageFormatProperties)
+void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
+                                                         VkFormat format,
+                                                         VkFormatProperties2 *pFormatProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceImageFormatProperties2KHR(Unwrap(physicalDevice), pImageFormatInfo,
-                                                   pImageFormatProperties);
+      ->GetPhysicalDeviceFormatProperties2(Unwrap(physicalDevice), format, pFormatProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties2KHR(
+VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties2(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+    VkImageFormatProperties2 *pImageFormatProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceImageFormatProperties2(Unwrap(physicalDevice), pImageFormatInfo,
+                                                pImageFormatProperties);
+}
+
+void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties2(
     VkPhysicalDevice physicalDevice, uint32_t *pCount,
-    VkQueueFamilyProperties2KHR *pQueueFamilyProperties)
+    VkQueueFamilyProperties2 *pQueueFamilyProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceQueueFamilyProperties2KHR(Unwrap(physicalDevice), pCount,
-                                                   pQueueFamilyProperties);
+      ->GetPhysicalDeviceQueueFamilyProperties2(Unwrap(physicalDevice), pCount,
+                                                pQueueFamilyProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceMemoryProperties2KHR(
-    VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties2KHR *pMemoryProperties)
+void WrappedVulkan::vkGetPhysicalDeviceMemoryProperties2(
+    VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties2 *pMemoryProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceMemoryProperties2KHR(Unwrap(physicalDevice), pMemoryProperties);
+      ->GetPhysicalDeviceMemoryProperties2(Unwrap(physicalDevice), pMemoryProperties);
 }
 
-void WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
-    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2KHR *pFormatInfo,
-    uint32_t *pPropertyCount, VkSparseImageFormatProperties2KHR *pProperties)
+void WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties2(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
+    uint32_t *pPropertyCount, VkSparseImageFormatProperties2 *pProperties)
 {
   return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceSparseImageFormatProperties2KHR(Unwrap(physicalDevice), pFormatInfo,
-                                                         pPropertyCount, pProperties);
+      ->GetPhysicalDeviceSparseImageFormatProperties2(Unwrap(physicalDevice), pFormatInfo,
+                                                      pPropertyCount, pProperties);
 }
 
 VkResult WrappedVulkan::vkGetShaderInfoAMD(VkDevice device, VkPipeline pipeline,
@@ -499,15 +497,15 @@ VkResult WrappedVulkan::vkGetShaderInfoAMD(VkDevice device, VkPipeline pipeline,
                                            pInfoSize, pInfo);
 }
 
-void WrappedVulkan::vkGetDescriptorSetLayoutSupportKHR(VkDevice device,
-                                                       const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
-                                                       VkDescriptorSetLayoutSupport *pSupport)
+void WrappedVulkan::vkGetDescriptorSetLayoutSupport(VkDevice device,
+                                                    const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
+                                                    VkDescriptorSetLayoutSupport *pSupport)
 {
   VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
-  return ObjDisp(device)->GetDescriptorSetLayoutSupportKHR(Unwrap(device), &unwrapped, pSupport);
+  return ObjDisp(device)->GetDescriptorSetLayoutSupport(Unwrap(device), &unwrapped, pSupport);
 }
 
-VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroupsKHR(
+VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroups(
     VkInstance instance, uint32_t *pPhysicalDeviceGroupCount,
     VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroupProperties)
 {
@@ -530,8 +528,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroupsKHR(
     for(uint32_t i = 0; i < outputSpace; i++)
     {
       RDCEraseEl(pPhysicalDeviceGroupProperties[i]);
-      pPhysicalDeviceGroupProperties[i].sType =
-          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
+      pPhysicalDeviceGroupProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
       pPhysicalDeviceGroupProperties[i].physicalDeviceCount = 1;
       pPhysicalDeviceGroupProperties[i].physicalDevices[0] = phys[i];
       pPhysicalDeviceGroupProperties[i].subsetAllocation = VK_FALSE;
@@ -546,11 +543,11 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroupsKHR(
   return VK_SUCCESS;
 }
 
-void WrappedVulkan::vkGetDeviceGroupPeerMemoryFeaturesKHR(VkDevice device, uint32_t heapIndex,
-                                                          uint32_t localDeviceIndex,
-                                                          uint32_t remoteDeviceIndex,
-                                                          VkPeerMemoryFeatureFlags *pPeerMemoryFeatures)
+void WrappedVulkan::vkGetDeviceGroupPeerMemoryFeatures(VkDevice device, uint32_t heapIndex,
+                                                       uint32_t localDeviceIndex,
+                                                       uint32_t remoteDeviceIndex,
+                                                       VkPeerMemoryFeatureFlags *pPeerMemoryFeatures)
 {
-  return ObjDisp(device)->GetDeviceGroupPeerMemoryFeaturesKHR(
+  return ObjDisp(device)->GetDeviceGroupPeerMemoryFeatures(
       Unwrap(device), heapIndex, localDeviceIndex, remoteDeviceIndex, pPeerMemoryFeatures);
 }

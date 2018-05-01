@@ -132,10 +132,10 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS_NAMED(vkCmdIndirectSubCommand, "Indirect sub-command");
     STRINGISE_ENUM_CLASS(vkCmdPushDescriptorSetKHR);
     STRINGISE_ENUM_CLASS(vkCmdPushDescriptorSetWithTemplateKHR);
-    STRINGISE_ENUM_CLASS(vkCreateDescriptorUpdateTemplateKHR);
-    STRINGISE_ENUM_CLASS(vkUpdateDescriptorSetWithTemplateKHR);
-    STRINGISE_ENUM_CLASS(vkBindBufferMemory2KHR);
-    STRINGISE_ENUM_CLASS(vkBindImageMemory2KHR);
+    STRINGISE_ENUM_CLASS(vkCreateDescriptorUpdateTemplate);
+    STRINGISE_ENUM_CLASS(vkUpdateDescriptorSetWithTemplate);
+    STRINGISE_ENUM_CLASS(vkBindBufferMemory2);
+    STRINGISE_ENUM_CLASS(vkBindImageMemory2);
     STRINGISE_ENUM_CLASS(vkCmdWriteBufferMarkerAMD);
     STRINGISE_ENUM_CLASS(vkSetDebugUtilsObjectNameEXT);
     STRINGISE_ENUM_CLASS(vkQueueBeginDebugUtilsLabelEXT);
@@ -144,9 +144,9 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdBeginDebugUtilsLabelEXT);
     STRINGISE_ENUM_CLASS(vkCmdEndDebugUtilsLabelEXT);
     STRINGISE_ENUM_CLASS(vkCmdInsertDebugUtilsLabelEXT);
-    STRINGISE_ENUM_CLASS(vkCreateSamplerYcbcrConversionKHR);
-    STRINGISE_ENUM_CLASS(vkCmdSetDeviceMaskKHR);
-    STRINGISE_ENUM_CLASS(vkCmdDispatchBaseKHR);
+    STRINGISE_ENUM_CLASS(vkCreateSamplerYcbcrConversion);
+    STRINGISE_ENUM_CLASS(vkCmdSetDeviceMask);
+    STRINGISE_ENUM_CLASS(vkCmdDispatchBase);
     STRINGISE_ENUM_CLASS(vkGetDeviceQueue2);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
@@ -1713,9 +1713,9 @@ std::string DoStringise(const VkConservativeRasterizationModeEXT &el)
 }
 
 template <>
-std::string DoStringise(const VkTessellationDomainOriginKHR &el)
+std::string DoStringise(const VkTessellationDomainOrigin &el)
 {
-  BEGIN_ENUM_STRINGISE(VkTessellationDomainOriginKHR);
+  BEGIN_ENUM_STRINGISE(VkTessellationDomainOrigin);
   {
     STRINGISE_ENUM(VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT)
     STRINGISE_ENUM(VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT)
@@ -1736,26 +1736,26 @@ std::string DoStringise(const VkSamplerReductionModeEXT &el)
 }
 
 template <>
-std::string DoStringise(const VkSamplerYcbcrModelConversionKHR &el)
+std::string DoStringise(const VkSamplerYcbcrModelConversion &el)
 {
-  BEGIN_ENUM_STRINGISE(VkSamplerYcbcrModelConversionKHR);
+  BEGIN_ENUM_STRINGISE(VkSamplerYcbcrModelConversion);
   {
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY_KHR)
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY_KHR)
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709_KHR)
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601_KHR)
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020)
   }
   END_ENUM_STRINGISE();
 }
 
 template <>
-std::string DoStringise(const VkSamplerYcbcrRangeKHR &el)
+std::string DoStringise(const VkSamplerYcbcrRange &el)
 {
-  BEGIN_ENUM_STRINGISE(VkSamplerYcbcrRangeKHR);
+  BEGIN_ENUM_STRINGISE(VkSamplerYcbcrRange);
   {
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_RANGE_ITU_FULL_KHR)
-    STRINGISE_ENUM(VK_SAMPLER_YCBCR_RANGE_ITU_NARROW_KHR)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_RANGE_ITU_FULL)
+    STRINGISE_ENUM(VK_SAMPLER_YCBCR_RANGE_ITU_NARROW)
   }
   END_ENUM_STRINGISE();
 }
@@ -1765,8 +1765,8 @@ std::string DoStringise(const VkChromaLocation &el)
 {
   BEGIN_ENUM_STRINGISE(VkChromaLocation);
   {
-    STRINGISE_ENUM(VK_CHROMA_LOCATION_COSITED_EVEN_KHR)
-    STRINGISE_ENUM(VK_CHROMA_LOCATION_MIDPOINT_KHR)
+    STRINGISE_ENUM(VK_CHROMA_LOCATION_COSITED_EVEN)
+    STRINGISE_ENUM(VK_CHROMA_LOCATION_MIDPOINT)
   }
   END_ENUM_STRINGISE();
 }

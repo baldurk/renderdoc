@@ -2321,19 +2321,19 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
                                                              VK_NULL_HANDLE, 0, NULL);
       break;
 
-    case VulkanChunk::vkCreateDescriptorUpdateTemplateKHR:
-      return Serialise_vkCreateDescriptorUpdateTemplateKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
+    case VulkanChunk::vkCreateDescriptorUpdateTemplate:
+      return Serialise_vkCreateDescriptorUpdateTemplate(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
       break;
-    case VulkanChunk::vkUpdateDescriptorSetWithTemplateKHR:
-      return Serialise_vkUpdateDescriptorSetWithTemplateKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
-                                                            VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkUpdateDescriptorSetWithTemplate:
+      return Serialise_vkUpdateDescriptorSetWithTemplate(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
+                                                         VK_NULL_HANDLE, NULL);
       break;
 
-    case VulkanChunk::vkBindBufferMemory2KHR:
-      return Serialise_vkBindBufferMemory2KHR(ser, VK_NULL_HANDLE, 0, NULL);
+    case VulkanChunk::vkBindBufferMemory2:
+      return Serialise_vkBindBufferMemory2(ser, VK_NULL_HANDLE, 0, NULL);
       break;
-    case VulkanChunk::vkBindImageMemory2KHR:
-      return Serialise_vkBindImageMemory2KHR(ser, VK_NULL_HANDLE, 0, NULL);
+    case VulkanChunk::vkBindImageMemory2:
+      return Serialise_vkBindImageMemory2(ser, VK_NULL_HANDLE, 0, NULL);
       break;
 
     case VulkanChunk::vkCmdWriteBufferMarkerAMD:
@@ -2363,11 +2363,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
       break;
 
-    case VulkanChunk::vkCmdSetDeviceMaskKHR:
-      return Serialise_vkCmdSetDeviceMaskKHR(ser, VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkCmdSetDeviceMask:
+      return Serialise_vkCmdSetDeviceMask(ser, VK_NULL_HANDLE, 0);
       break;
-    case VulkanChunk::vkCmdDispatchBaseKHR:
-      return Serialise_vkCmdDispatchBaseKHR(ser, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0);
+    case VulkanChunk::vkCmdDispatchBase:
+      return Serialise_vkCmdDispatchBase(ser, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0);
       break;
 
     case VulkanChunk::vkGetDeviceQueue2:

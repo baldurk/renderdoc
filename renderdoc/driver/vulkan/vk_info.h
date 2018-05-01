@@ -91,7 +91,7 @@ struct DescUpdateTemplateApplication
 struct DescUpdateTemplate
 {
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-            const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo);
+            const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo);
 
   void Apply(const void *pData, DescUpdateTemplateApplication &application);
 
@@ -105,7 +105,7 @@ struct DescUpdateTemplate
   uint32_t bufferInfoCount;
   uint32_t imageInfoCount;
 
-  std::vector<VkDescriptorUpdateTemplateEntryKHR> updates;
+  std::vector<VkDescriptorUpdateTemplateEntry> updates;
 };
 
 struct VulkanCreationInfo
@@ -177,8 +177,8 @@ struct VulkanCreationInfo
     // VkPipelineTessellationStateCreateInfo
     uint32_t patchControlPoints;
 
-    // VkPipelineTessellationDomainOriginStateCreateInfoKHR
-    VkTessellationDomainOriginKHR tessellationDomainOrigin;
+    // VkPipelineTessellationDomainOriginStateCreateInfo
+    VkTessellationDomainOrigin tessellationDomainOrigin;
 
     // VkPipelineViewportStateCreateInfo
     uint32_t viewportCount;
@@ -379,7 +379,7 @@ struct VulkanCreationInfo
   struct YCbCrSampler
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-              const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo);
+              const VkSamplerYcbcrConversionCreateInfo *pCreateInfo);
   };
   map<ResourceId, YCbCrSampler> m_YCbCrSampler;
 

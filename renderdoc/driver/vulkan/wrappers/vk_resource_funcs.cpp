@@ -141,12 +141,11 @@
 // Memory functions
 
 template <>
-VkBindBufferMemoryInfoKHR *WrappedVulkan::UnwrapInfos(const VkBindBufferMemoryInfoKHR *info,
-                                                      uint32_t count)
+VkBindBufferMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindBufferMemoryInfo *info, uint32_t count)
 {
-  VkBindBufferMemoryInfoKHR *ret = GetTempArray<VkBindBufferMemoryInfoKHR>(count);
+  VkBindBufferMemoryInfo *ret = GetTempArray<VkBindBufferMemoryInfo>(count);
 
-  memcpy(ret, info, count * sizeof(VkBindBufferMemoryInfoKHR));
+  memcpy(ret, info, count * sizeof(VkBindBufferMemoryInfo));
 
   for(uint32_t i = 0; i < count; i++)
   {
@@ -158,25 +157,24 @@ VkBindBufferMemoryInfoKHR *WrappedVulkan::UnwrapInfos(const VkBindBufferMemoryIn
 }
 
 template <>
-VkBindImageMemoryInfoKHR *WrappedVulkan::UnwrapInfos(const VkBindImageMemoryInfoKHR *info,
-                                                     uint32_t count)
+VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindImageMemoryInfo *info, uint32_t count)
 {
-  size_t memSize = sizeof(VkBindImageMemoryInfoKHR) * count;
+  size_t memSize = sizeof(VkBindImageMemoryInfo) * count;
 
   for(uint32_t i = 0; i < count; i++)
     memSize += GetNextPatchSize(info[i].pNext);
 
   byte *tempMem = GetTempMemory(memSize);
 
-  VkBindImageMemoryInfoKHR *ret = (VkBindImageMemoryInfoKHR *)tempMem;
+  VkBindImageMemoryInfo *ret = (VkBindImageMemoryInfo *)tempMem;
 
-  tempMem += sizeof(VkBindImageMemoryInfoKHR) * count;
+  tempMem += sizeof(VkBindImageMemoryInfo) * count;
 
-  memcpy(ret, info, count * sizeof(VkBindImageMemoryInfoKHR));
+  memcpy(ret, info, count * sizeof(VkBindImageMemoryInfo));
 
   for(uint32_t i = 0; i < count; i++)
   {
-    PatchNextChain("VkBindImageMemoryInfoKHR", tempMem, (VkGenericStruct *)&ret[i]);
+    PatchNextChain("VkBindImageMemoryInfo", tempMem, (VkGenericStruct *)&ret[i]);
     ret[i].image = Unwrap(ret[i].image);
     ret[i].memory = Unwrap(ret[i].memory);
   }
@@ -1423,7 +1421,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       while(next)
       {
         if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
-           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)
+           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO)
         {
           isExternal = true;
           break;
@@ -1654,9 +1652,9 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkBindBufferMemory2KHR(SerialiserType &ser, VkDevice device,
-                                                     uint32_t bindInfoCount,
-                                                     const VkBindBufferMemoryInfoKHR *pBindInfos)
+bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice device,
+                                                  uint32_t bindInfoCount,
+                                                  const VkBindBufferMemoryInfo *pBindInfos)
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(bindInfoCount);
@@ -1668,7 +1666,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2KHR(SerialiserType &ser, VkDevi
   {
     for(uint32_t i = 0; i < bindInfoCount; i++)
     {
-      const VkBindBufferMemoryInfoKHR &bindInfo = pBindInfos[i];
+      const VkBindBufferMemoryInfo &bindInfo = pBindInfos[i];
 
       ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.buffer));
       ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
@@ -1689,21 +1687,21 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2KHR(SerialiserType &ser, VkDevi
       AddResourceCurChunk(resOrigId);
     }
 
-    VkBindBufferMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
-    ObjDisp(device)->BindBufferMemory2KHR(Unwrap(device), bindInfoCount, unwrapped);
+    VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped);
   }
 
   return true;
 }
 
-VkResult WrappedVulkan::vkBindBufferMemory2KHR(VkDevice device, uint32_t bindInfoCount,
-                                               const VkBindBufferMemoryInfoKHR *pBindInfos)
+VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCount,
+                                            const VkBindBufferMemoryInfo *pBindInfos)
 {
-  VkBindBufferMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+  VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->BindBufferMemory2KHR(Unwrap(device), bindInfoCount, unwrapped));
+      ret = ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped));
 
   if(IsCaptureMode(m_State))
   {
@@ -1718,8 +1716,8 @@ VkResult WrappedVulkan::vkBindBufferMemory2KHR(VkDevice device, uint32_t bindInf
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindBufferMemory2KHR);
-        Serialise_vkBindBufferMemory2KHR(ser, device, bindInfoCount, pBindInfos);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindBufferMemory2);
+        Serialise_vkBindBufferMemory2(ser, device, bindInfoCount, pBindInfos);
 
         chunk = scope.Get();
       }
@@ -1738,9 +1736,9 @@ VkResult WrappedVulkan::vkBindBufferMemory2KHR(VkDevice device, uint32_t bindInf
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkBindImageMemory2KHR(SerialiserType &ser, VkDevice device,
-                                                    uint32_t bindInfoCount,
-                                                    const VkBindImageMemoryInfoKHR *pBindInfos)
+bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice device,
+                                                 uint32_t bindInfoCount,
+                                                 const VkBindImageMemoryInfo *pBindInfos)
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(bindInfoCount);
@@ -1752,7 +1750,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2KHR(SerialiserType &ser, VkDevic
   {
     for(uint32_t i = 0; i < bindInfoCount; i++)
     {
-      const VkBindImageMemoryInfoKHR &bindInfo = pBindInfos[i];
+      const VkBindImageMemoryInfo &bindInfo = pBindInfos[i];
 
       ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.image));
       ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
@@ -1773,20 +1771,20 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2KHR(SerialiserType &ser, VkDevic
       AddResourceCurChunk(resOrigId);
     }
 
-    VkBindImageMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
-    ObjDisp(device)->BindImageMemory2KHR(Unwrap(device), bindInfoCount, unwrapped);
+    VkBindImageMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    ObjDisp(device)->BindImageMemory2(Unwrap(device), bindInfoCount, unwrapped);
   }
 
   return true;
 }
 
-VkResult WrappedVulkan::vkBindImageMemory2KHR(VkDevice device, uint32_t bindInfoCount,
-                                              const VkBindImageMemoryInfoKHR *pBindInfos)
+VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCount,
+                                           const VkBindImageMemoryInfo *pBindInfos)
 {
-  VkBindImageMemoryInfoKHR *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+  VkBindImageMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->BindImageMemory2KHR(Unwrap(device), bindInfoCount, unwrapped));
+      ret = ObjDisp(device)->BindImageMemory2(Unwrap(device), bindInfoCount, unwrapped));
 
   if(IsCaptureMode(m_State))
   {
@@ -1801,8 +1799,8 @@ VkResult WrappedVulkan::vkBindImageMemory2KHR(VkDevice device, uint32_t bindInfo
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindImageMemory2KHR);
-        Serialise_vkBindImageMemory2KHR(ser, device, 1, pBindInfos + i);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindImageMemory2);
+        Serialise_vkBindImageMemory2(ser, device, 1, pBindInfos + i);
 
         chunk = scope.Get();
       }
@@ -1855,8 +1853,8 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateImageView, VkDevice device,
                                 const VkImageViewCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkImageView *pView);
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory2KHR, VkDevice device,
-                                uint32_t bindInfoCount, const VkBindBufferMemoryInfoKHR *pBindInfos);
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory2, VkDevice device,
+                                uint32_t bindInfoCount, const VkBindBufferMemoryInfo *pBindInfos);
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2KHR, VkDevice device,
-                                uint32_t bindInfoCount, const VkBindImageMemoryInfoKHR *pBindInfos);
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindImageMemory2, VkDevice device,
+                                uint32_t bindInfoCount, const VkBindImageMemoryInfo *pBindInfos);

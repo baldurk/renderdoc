@@ -247,8 +247,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
   tessellationDomainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
 
-  const VkPipelineTessellationDomainOriginStateCreateInfoKHR *tessDomain =
-      (const VkPipelineTessellationDomainOriginStateCreateInfoKHR *)FindNextStruct(
+  const VkPipelineTessellationDomainOriginStateCreateInfo *tessDomain =
+      (const VkPipelineTessellationDomainOriginStateCreateInfo *)FindNextStruct(
           pCreateInfo->pTessellationState,
           VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO);
   if(tessDomain)
@@ -646,7 +646,7 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
 
 void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
                                             VulkanCreationInfo &info,
-                                            const VkSamplerYcbcrConversionCreateInfoKHR *pCreateInfo)
+                                            const VkSamplerYcbcrConversionCreateInfo *pCreateInfo)
 {
 }
 
@@ -759,7 +759,7 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
 }
 
 void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-                              const VkDescriptorUpdateTemplateCreateInfoKHR *pCreateInfo)
+                              const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo)
 {
   updates.insert(updates.begin(), pCreateInfo->pDescriptorUpdateEntries,
                  pCreateInfo->pDescriptorUpdateEntries + pCreateInfo->descriptorUpdateEntryCount);
@@ -770,7 +770,7 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
   bufferInfoCount = 0;
   imageInfoCount = 0;
 
-  for(const VkDescriptorUpdateTemplateEntryKHR &entry : updates)
+  for(const VkDescriptorUpdateTemplateEntry &entry : updates)
   {
     uint32_t entrySize = 4;
 
@@ -835,7 +835,7 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
   application.bufInfo.reserve(bufferInfoCount);
   application.imgInfo.reserve(imageInfoCount);
 
-  for(const VkDescriptorUpdateTemplateEntryKHR &entry : updates)
+  for(const VkDescriptorUpdateTemplateEntry &entry : updates)
   {
     VkWriteDescriptorSet write = {};
 
