@@ -18,18 +18,6 @@
 
 #include "ADLGetDriverVersion.h"
 
-/// Structure used to query driver version info
-typedef struct ADLVersionsInfo
-{
-    /// Driver Release (Packaging) Version (e.g. 8.71-100128n-094835E-ATI)
-    char strDriverVer[ADL_MAX_PATH];
-    /// Catalyst Version(e.g. "10.1").
-    char strCatalystVersion[ADL_MAX_PATH];
-    /// Web link to an XML file with information about the latest AMD drivers and locations (e.g. "http://www.amd.com/us/driverxml" )
-    char strCatalystWebLink[ADL_MAX_PATH];
-
-} ADLVersionsInfo, *LPADLVersionsInfo;
-
 // Definitions of the used ADL function pointers.
 typedef int(*ADL2_MAIN_CONTROL_CREATE)(ADL_MAIN_MALLOC_CALLBACK, int, ADL_CONTEXT_HANDLE*);
 typedef int(*ADL2_MAIN_CONTROL_DESTROY)(ADL_CONTEXT_HANDLE);
