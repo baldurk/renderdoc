@@ -354,9 +354,12 @@ string GetHomeFolderFilename()
 
 string GetAppFolderFilename(const string &filename)
 {
-  PWSTR appDataPath;
-  SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL,
-                       &appDataPath);
+  PWSTR appDataPath = NULL;
+  HRESULT hr = SHGetKnownFolderPath(
+      FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL, &appDataPath);
+  if(appDataPath == NULL || FAILED(hr))
+    return "";
+
   wstring appdata = appDataPath;
   CoTaskMemFree(appDataPath);
 
