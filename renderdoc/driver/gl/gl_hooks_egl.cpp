@@ -225,52 +225,58 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
 {
   PosixHookReapply();
 
-  EGLint defaultAttribList[] = {0};
+  vector<EGLint> attribs;
 
-  const EGLint *attribs = attribList ? attribList : defaultAttribList;
-  vector<EGLint> attribVec;
-
-  // modify attribs to our liking
+  // modify attribList to our liking
   {
     bool flagsFound = false;
-    const int *a = attribs;
-    while(*a)
+
+    if(attribList)
     {
-      int name = *a++;
-      int val = *a++;
+      const EGLint *ptr = attribList;
 
-      if(name == EGL_CONTEXT_FLAGS_KHR)
+      for(;;)
       {
-        if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
-          val |= EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
-        else
-          val &= ~EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
+        EGLint name = *ptr++;
 
-        flagsFound = true;
+        if(name == EGL_NONE)
+        {
+          break;
+        }
+
+        EGLint value = *ptr++;
+
+        if(name == EGL_CONTEXT_FLAGS_KHR)
+        {
+          if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
+            value |= EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
+          else
+            value &= ~EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
+
+          flagsFound = true;
+        }
+
+        attribs.push_back(name);
+        attribs.push_back(value);
       }
-
-      attribVec.push_back(name);
-      attribVec.push_back(val);
     }
 
     if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
-      attribVec.push_back(EGL_CONTEXT_FLAGS_KHR);
-      attribVec.push_back(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR);
+      attribs.push_back(EGL_CONTEXT_FLAGS_KHR);
+      attribs.push_back(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR);
     }
 
-    attribVec.push_back(EGL_NONE);
-
-    attribs = &attribVec[0];
+    attribs.push_back(EGL_NONE);
   }
 
   if(eglhooks.real.CreateContext == NULL)
     eglhooks.SetupExportedFunctions();
 
-  EGLContext ret = eglhooks.real.CreateContext(display, config, shareContext, attribs);
+  EGLContext ret = eglhooks.real.CreateContext(display, config, shareContext, attribs.data());
 
   // don't continue if context creation failed
-  if(!ret)
+  if(ret == EGL_NO_CONTEXT)
     return ret;
 
   GLInitParams init;
