@@ -280,9 +280,14 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       m_pImmediateContext->RSGetState(&rs);
 
       if(rs)
+      {
         rs->GetDesc(&origdesc);
+      }
       else
+      {
         origdesc.CullMode = D3D11_CULL_BACK;
+        origdesc.FrontCounterClockwise = FALSE;
+      }
 
       SAFE_RELEASE(rs);
     }
@@ -292,7 +297,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       rdesc.FillMode = D3D11_FILL_SOLID;
       rdesc.CullMode = D3D11_CULL_NONE;
-      rdesc.FrontCounterClockwise = FALSE;
+      rdesc.FrontCounterClockwise = origdesc.FrontCounterClockwise;
       rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
       rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
       rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
