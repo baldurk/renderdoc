@@ -109,7 +109,7 @@
           </Component>
 
           <Component Id='LICENSE' Guid='107AD4E6-D64F-4284-A1F6-D8AAAA6CFC42'>
-            <File Id='LICENSE' Name='LICENSE.rtf' DiskId='1' Source='scripts/installer/LICENSE.rtf' KeyPath='yes' />
+            <File Id='LICENSE' Name='LICENSE.rtf' DiskId='1' Source='util/installer/LICENSE.rtf' KeyPath='yes' />
           </Component>
 
           <Component Id='RenderDocCMD' Guid='97338A5D-8FDB-4DF5-AEC7-14B36F234F29'>
@@ -348,12 +348,12 @@
     <UIRef Id="WixUI_Mondo" />
     <UIRef Id="WixUI_ErrorProgressText" />
 
-    <WixVariable Id="WixUILicenseRtf" Value="scripts/installer/LICENSE.rtf" />
+    <WixVariable Id="WixUILicenseRtf" Value="util/installer/LICENSE.rtf" />
 
-    <WixVariable Id="WixUIBannerBmp" Value="scripts/installer/bannrbmp.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="scripts/installer/dlgbmp.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="util/installer/bannrbmp.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="util/installer/dlgbmp.bmp" />
 
-    <Icon Id="chm.ico"  SourceFile="scripts/installer/chm.ico" />
+    <Icon Id="chm.ico"  SourceFile="util/installer/chm.ico" />
     <Icon Id="icon.ico" SourceFile="qrenderdoc/Resources/icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="icon.ico" />
     <Property Id="ARPHELPLINK" Value="http://renderdoc.org/" />

@@ -1,22 +1,22 @@
 if [[ "$DOCS_BUILD" == "1" ]]; then
 
-	echo "== Setting up documentation build.";
+	echo "== Compiling documentation build.";
 
-	. ./scripts/travis/docs_setup.sh;
+	. ./util/travis/docs_compile.sh;
 
 else
 
-	echo "== Setting up code build.";
+	echo "== Compiling code build.";
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
 
 		if [[ "$LINUX_BUILD" == "1" ]]; then
 
-			. ./scripts/travis/linux_setup.sh;
+			. ./util/travis/linux_compile.sh;
 
 		elif [[ "$ANDROID_BUILD" == "1" ]]; then
 
-			. ./scripts/travis/android_setup.sh;
+			. ./util/travis/android_compile.sh;
 
 		else
 
@@ -29,7 +29,7 @@ else
 
 		if [[ "$APPLE_BUILD" == "1" ]]; then
 
-			. ./scripts/travis/osx_setup.sh
+			. ./util/travis/osx_compile.sh
 
 		else
 

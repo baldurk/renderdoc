@@ -32,7 +32,7 @@ fi
 # check formatting matches clang-format-3.8. Since newer versions can have
 # changes in formatting even without any rule changes, we have to fix on a
 # single version.
-. ./scripts/clang_format_all.sh
+. ./util/clang_format_all.sh
 
 git clean -f
 

@@ -4,7 +4,7 @@ AUTOBUILD=1
 
 if [ ! -f LICENSE.md ]; then
 	echo "This script should be run from the root of the checkout.";
-	echo "e.g. ./scripts/dist.sh";
+	echo "e.g. ./util/dist.sh";
 	exit;
 fi
 
@@ -104,10 +104,10 @@ VERSION=`grep -E "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/api/replay/
 
 export RENDERDOC_VERSION="${VERSION}"
 
-"$WIX/bin/candle.exe" -o dist/Installer32.wixobj scripts/installer/Installer32.wxs
-"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc scripts/installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj
+"$WIX/bin/candle.exe" -o dist/Installer32.wixobj util/installer/Installer32.wxs
+"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc util/installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj
 
-"$WIX/bin/candle.exe" -o dist/Installer64.wixobj scripts/installer/Installer64.wxs
-"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc scripts/installer/customtext.wxl -o dist/Installer64.msi dist/Installer64.wixobj
+"$WIX/bin/candle.exe" -o dist/Installer64.wixobj util/installer/Installer64.wxs
+"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc util/installer/customtext.wxl -o dist/Installer64.msi dist/Installer64.wixobj
 
 rm dist/*.wixobj dist/*.wixpdb

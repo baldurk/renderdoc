@@ -90,7 +90,7 @@ To make things easier for everyone, I've adopted clang-format for keeping code c
 | :warning: | **I have fixed the version used for RenderDoc at [clang-format-3.8](http://releases.llvm.org/download.html#3.8.1).**                    | :warning: |
 | :warning: | **This formatting is enforced by CI checks that run on PRs, so if you aren't running the same version locally it will show up there.**  | :warning: |
 
-If you want to format a single file, run: `clang-format -i file.cpp`. If you want to format any changes you make before you commit them, you'll need python installed and then run: `git clang-format`. To clang-format the whole codebase, you can run the bash script `scripts/clang_format_all.sh` but be sure to squash any changes into the right commits.
+If you want to format a single file, run: `clang-format -i file.cpp`. If you want to format any changes you make before you commit them, you'll need python installed and then run: `git clang-format`. To clang-format the whole codebase, you can run the bash script `util/clang_format_all.sh` but be sure to squash any changes into the right commits.
 
 There are instructions on how to set up git hooks or IDE integration [on the wiki](https://github.com/baldurk/renderdoc/wiki/Code-formatting-(using-clang-format)).
 
@@ -247,7 +247,7 @@ sudo apt-get install openjdk-8-jdk
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ```
 
-The Android SDK and NDK can be set up with the following steps.  They are also mirrored in our Travis-CI [setup script](scripts/travis/android_setup.sh) for Android.  We are currently targeting build-tools 26.0.1 and NDK r14b.
+The Android SDK and NDK can be set up with the following steps.  They are also mirrored in our Travis-CI [setup script](util/travis/android_setup.sh) for Android.  We are currently targeting build-tools 26.0.1 and NDK r14b.
 
 SDK links are pulled from [here](https://developer.android.com/studio/index.html).
 
@@ -308,18 +308,17 @@ If you have a change you'd like to see make it into mainline, create a fork of r
 There are [several pages](https://github.com/baldurk/renderdoc/wiki/Code-Dives) on the wiki explaining different aspects of how the code fits together - like how the capture-side works vs replay-side, how shader debugging works, etc.
 
     renderdoc/ 
-        CMakeLists.txt                  ; The cmake file, will recurse into subdirectories to build them
-        renderdoc.sln                   ; VS2015 solution for windows building
+        CMakeLists.txt           ; The cmake file, will recurse into subdirectories to build them
+        renderdoc.sln            ; VS2015 solution for windows building
         renderdoc/
-            3rdparty/                   ; third party utilities & libraries included
-            drivers/                    ; API-specific back-ends, can be individually skipped/removed
-            ...                         ; everything else in here consists of the core renderdoc runtime
-        renderdoccmd/                   ; A small C++ utility program that runs to do various little tasks
-        renderdocshim/                  ; A tiny C DLL using only kernel32.dll that is used for global hooking
-        qrenderdoc/                     ; The Qt UI layer built on top of renderdoc/
-        docs/                           ; source documentation for the .chm file or http://docs.renderdoc.org/
-                                        ; in the Sandcastle help file builder
-        scripts/                        ; folder for small scripts - e.g. for CI, installers, distribution
+            3rdparty/            ; third party utilities & libraries included
+            drivers/             ; API-specific back-ends, can be individually skipped/removed
+            ...                  ; everything else in here consists of the core renderdoc runtime
+        renderdoccmd/            ; A small C++ utility program that runs to do various little tasks
+        renderdocshim/           ; A tiny C DLL using only kernel32.dll that is used for global hooking
+        qrenderdoc/              ; The Qt UI layer built on top of renderdoc/
+        docs/                    ; source documentation for the .chm file or http://docs.renderdoc.org/
+        util/                    ; folder for utility/support files - e.g. build scripts, installers, CI config
 
 # Testing
 
