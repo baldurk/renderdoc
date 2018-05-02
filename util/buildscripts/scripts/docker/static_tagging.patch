@@ -1,0 +1,13 @@
+diff --git a/src/corelib/global/qversiontagging.h b/src/corelib/global/qversiontagging.h
+index fa824d1..b46bb7a 100644 (file)
+--- a/src/corelib/global/qversiontagging.h
++++ b/src/corelib/global/qversiontagging.h
+@@ -54,7 +54,7 @@ QT_BEGIN_NAMESPACE
+  * There will only be one copy of the section in the output library or application.
+  */
+
+-#if defined(QT_BUILD_CORE_LIB) || defined(QT_BOOTSTRAPPED) || defined(QT_NO_VERSION_TAGGING)
++#if defined(QT_BUILD_CORE_LIB) || defined(QT_BOOTSTRAPPED) || defined(QT_NO_VERSION_TAGGING) || defined(QT_STATIC)
+ // don't make tags in QtCore, bootstrapped systems or if the user asked not to
+ #elif defined(Q_CC_GNU) && !defined(Q_OS_ANDROID)
+ #  if defined(Q_PROCESSOR_X86) && (defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD_KERNEL))

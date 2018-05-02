@@ -1,25 +1,18 @@
 #!/bin/bash
 
-AUTOBUILD=1
+FILENAME="$1"
 
-if [ ! -f LICENSE.md ]; then
-	echo "This script should be run from the root of the checkout.";
-	echo "e.g. ./util/dist.sh";
+if [ $# -ne 1 ]; then
+	echo "Usage: $0 FILENAME";
 	exit;
 fi
 
-if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
-	AUTOBUILD=0
-	echo "=== Building standalone folders. Hit enter when each prompt is satisfied"
-
-	echo "Have you rebuilt the documentation? (cd docs/ && ./make.sh htmlhelp)"
-	read;
-
-	echo "Have you built 32-bit and 64-bit Release builds?"
-	read;
-
-	echo "=== Building folders"
+if [ ! -d "${REPO_ROOT}"/x64/Release ] || [ ! -d "${REPO_ROOT}"/Win32/Release ]; then
+	echo "ERROR: Missing one of Win32 or x64 Release builds";
+	exit 1;
 fi
+
+pushd "${REPO_ROOT}"
 
 # clean any old files lying around and make new structure
 rm -rf dist
@@ -43,8 +36,17 @@ cp LICENSE.md Documentation/htmlhelp/*.chm dist/Release64/
 cp LICENSE.md Documentation/htmlhelp/*.chm dist/Release32/
 
 # Copy in appropriate plugins folder if they exist
-cp -R plugins-win64/ dist/Release64/plugins
-cp -R plugins-win32/ dist/Release32/plugins
+if [ -d plugins-win64 ]; then
+	cp -R plugins-win64/ dist/Release64/plugins
+else
+	echo "WARNING: x64 plugins missing, download and extract https://renderdoc.org/plugins.zip in root";
+fi;
+
+if [ -d plugins-win32 ]; then
+	cp -R plugins-win32/ dist/Release32/plugins
+else
+	echo "WARNING: x86 plugins missing, download and extract https://renderdoc.org/plugins.zip in root";
+fi
 
 # Delete new VS2015 incremental pdb files, these are just build artifacts
 # and aren't needed for later symbol resolution etc
@@ -53,16 +55,20 @@ find dist/Release{32,64}/ -iname '*.iobj' -exec rm '{}' \;
 
 # Copy in any android APKs that were built
 mkdir -p dist/Release64/plugins/android/
-find build-android-* -iname 'org.renderdoc.renderdoccmd.*.apk' -exec cp '{}' dist/Release64/plugins/android ';'
+if ls build-android-* > /dev/null; then
+	find build-android-* -iname 'org.renderdoc.renderdoccmd.*.apk' -exec cp '{}' dist/Release64/plugins/android ';'
+else
+	echo "WARNING: No android builds found, expected build-android-arm32 and build-android-arm64";
+fi
 
 # Copy in android adb and patching requirements
 if [ -f plugins-android/adb.exe ]; then
 	cp -R plugins-android/* dist/Release64/plugins/android/;
 else
-	echo "ERROR: Couldn't find android dependency (adb.exe and friends)";
-	echo "       These files must be in plugins-android/ in the root and";
-	echo "       MUST be built locally from an AOSP checkout, not from a";
-	echo "       distributed android SDK due to licensing concerns.";
+	echo "WARNING: Couldn't find android dependency (adb.exe and friends)";
+	echo "         These files must be in plugins-android/ in the root and";
+	echo "         MUST be built locally from an AOSP checkout, not from a";
+	echo "         distributed android SDK due to licensing concerns.";
 fi
 
 # Generate a debug key for signing purposes
@@ -93,13 +99,6 @@ cp -R dist/Release32/{d3dcompiler_47.dll,renderdoc.dll,renderdoc.json,renderdocs
 mkdir -p dist/ReleasePDBs64/x86
 cp -R dist/ReleasePDBs32/{d3dcompiler_47.dll,renderdoc.dll,renderdoc.json,renderdoc.pdb,renderdocshim32.dll,renderdocshim32.pdb,renderdoccmd.exe,renderdoccmd.pdb,dbghelp.dll,symsrv.dll,symsrv.yes} dist/ReleasePDBs64/x86/
 
-if [[ $AUTOBUILD -eq 0 ]]; then
-	echo "=== Folders built. Ready to make installer MSIs."
-	echo
-	echo "Hit enter when ready"
-	read;
-fi
-
 VERSION=`grep -E "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/api/replay/version.h | tr -dc '[0-9\n]' | tr '\n' '.' | grep -Eo '[0-9]+\.[0-9]+'`
 
 export RENDERDOC_VERSION="${VERSION}"
@@ -110,4 +109,37 @@ export RENDERDOC_VERSION="${VERSION}"
 "$WIX/bin/candle.exe" -o dist/Installer64.wixobj util/installer/Installer64.wxs
 "$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc util/installer/customtext.wxl -o dist/Installer64.msi dist/Installer64.wixobj
 
-rm dist/*.wixobj dist/*.wixpdb
+rm -f dist/*.wixobj dist/*.wixpdb
+
+popd # $REPO_ROOT
+
+rm -rf "${REPO_ROOT}"/package
+mkdir "${REPO_ROOT}"/package
+pushd "${REPO_ROOT}"/package
+
+cp -R "${REPO_ROOT}"/dist/Release32 ${FILENAME}_32
+cp -R "${REPO_ROOT}"/dist/Release64 ${FILENAME}_64
+zip -r ${FILENAME}_32.zip ${FILENAME}_32/
+zip -r ${FILENAME}_64.zip ${FILENAME}_64/
+gpg -o ${FILENAME}_32.zip.sig --detach-sign --armor ${FILENAME}_32.zip
+gpg -o ${FILENAME}_64.zip.sig --detach-sign --armor ${FILENAME}_64.zip
+
+if [ -f "${REPO_ROOT}"/dist/Installer32.msi ]; then
+
+	cp "${REPO_ROOT}"/dist/Installer32.msi ${FILENAME}_32.msi
+	cp "${REPO_ROOT}"/dist/Installer64.msi ${FILENAME}_64.msi
+
+	gpg -o ${FILENAME}_32.msi.sig --detach-sign --armor ${FILENAME}_32.msi
+	gpg -o ${FILENAME}_64.msi.sig --detach-sign --armor ${FILENAME}_64.msi
+
+	# On windows, also sign the installers
+	if [ "$(uname)" != "Linux" ]; then
+		"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_32.msi
+		"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_64.msi
+	fi
+
+fi;
+
+rm -rf ${FILENAME}_32/ ${FILENAME}_64/
+
+popd # $REPO_ROOT/package
