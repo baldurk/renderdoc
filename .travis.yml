@@ -49,7 +49,7 @@ matrix:
 
 # install dependencies
 install:
-  - . ./scripts/travis/setup.sh
+  - . ./util/travis/setup.sh
 
 script:
-  - . ./scripts/travis/compile.sh
+  - . ./util/travis/compile.sh
