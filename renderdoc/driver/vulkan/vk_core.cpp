@@ -1776,7 +1776,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     m_LastEventID = ~0U;
   }
 
-  if(!partial)
+  if(!partial && !IsStructuredExporting(m_State))
     AddFrameTerminator(AMDRGPControl::GetBeginTag());
 
   uint64_t startOffset = ser.GetReader()->GetOffset();
@@ -1845,7 +1845,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     }
   }
 
-  if(!partial)
+  if(!partial && !IsStructuredExporting(m_State))
     AddFrameTerminator(AMDRGPControl::GetEndTag());
 
   // swap the structure back now that we've accumulated the frame as well.
