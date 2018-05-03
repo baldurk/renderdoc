@@ -486,7 +486,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
     gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
                                        eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
-    tex.width = uint32_t(tex.byteSize / (tex.format.compByteWidth * tex.format.compCount));
+    tex.width = uint32_t(tex.byteSize / RDCMAX(1, tex.format.compByteWidth * tex.format.compCount));
 
     m_CachedTextures[id] = tex;
     return;
