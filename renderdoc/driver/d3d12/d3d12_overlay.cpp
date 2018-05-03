@@ -890,11 +890,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
 
       if(rs.dsv.ptr)
-      {
-        D3D12_CPU_DESCRIPTOR_HANDLE realDSV = Unwrap(rs.dsv);
-
-        list->OMSetRenderTargets(1, &rtv, TRUE, &realDSV);
-      }
+        list->OMSetRenderTargets(1, &rtv, TRUE, &rs.dsv);
 
       list->RSSetViewports(1, &rs.views[0]);
 
