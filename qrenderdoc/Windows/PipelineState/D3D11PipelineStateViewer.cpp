@@ -1319,9 +1319,10 @@ void D3D11PipelineStateViewer::setState()
           {tr("Index"), state.inputAssembly.indexBuffer.resourceId, draw ? draw->indexByteWidth : 0,
            state.inputAssembly.indexBuffer.byteOffset, (qulonglong)length, QString()});
 
-      node->setTag(
-          QVariant::fromValue(D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                           draw ? draw->indexOffset * draw->indexByteWidth : 0)));
+      node->setTag(QVariant::fromValue(
+          D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                       state.inputAssembly.indexBuffer.byteOffset +
+                           (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1339,9 +1340,10 @@ void D3D11PipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(
-          QVariant::fromValue(D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                           draw ? draw->indexOffset * draw->indexByteWidth : 0)));
+      node->setTag(QVariant::fromValue(
+          D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                       state.inputAssembly.indexBuffer.byteOffset +
+                           (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
 
       setEmptyRow(node);
 

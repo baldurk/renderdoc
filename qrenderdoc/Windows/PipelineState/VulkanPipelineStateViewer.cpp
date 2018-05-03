@@ -1601,7 +1601,8 @@ void VulkanPipelineStateViewer::setState()
 
       node->setTag(QVariant::fromValue(
           VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                        draw != NULL ? draw->indexOffset * draw->indexByteWidth : 0)));
+                        state.inputAssembly.indexBuffer.byteOffset +
+                            (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
 
       if(!ibufferUsed)
         setInactiveRow(node);
