@@ -3127,41 +3127,68 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
   //////////////////////////////
   // Framebuffer/renderpass
 
-  if(state.renderPass != ResourceId() && state.framebuffer != ResourceId())
+  AddFramebufferUsage(drawNode, state.renderPass, state.framebuffer, state.subpass);
+}
+
+void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
+                                        ResourceId framebuffer, uint32_t subpass)
+{
+  VulkanCreationInfo &c = m_CreationInfo;
+  uint32_t e = drawNode.draw.eventId;
+
+  if(renderPass != ResourceId() && framebuffer != ResourceId())
   {
-    VulkanCreationInfo::RenderPass &rp = c.m_RenderPass[state.renderPass];
-    VulkanCreationInfo::Framebuffer &fb = c.m_Framebuffer[state.framebuffer];
+    const VulkanCreationInfo::RenderPass &rp = c.m_RenderPass[renderPass];
+    const VulkanCreationInfo::Framebuffer &fb = c.m_Framebuffer[framebuffer];
 
-    RDCASSERT(state.subpass < rp.subpasses.size());
-
-    for(size_t i = 0; i < rp.subpasses[state.subpass].inputAttachments.size(); i++)
+    if(subpass >= rp.subpasses.size())
     {
-      uint32_t att = rp.subpasses[state.subpass].inputAttachments[i];
-      if(att == VK_ATTACHMENT_UNUSED)
-        continue;
-      drawNode.resourceUsage.push_back(
-          std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                         EventUsage(e, ResourceUsage::InputTarget, fb.attachments[att].view)));
+      RDCERR("Invalid subpass index %u, only %u subpasses exist in this renderpass", subpass,
+             (uint32_t)rp.subpasses.size());
     }
-
-    for(size_t i = 0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
+    else
     {
-      uint32_t att = rp.subpasses[state.subpass].colorAttachments[i];
-      if(att == VK_ATTACHMENT_UNUSED)
-        continue;
-      drawNode.resourceUsage.push_back(
-          std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                         EventUsage(e, ResourceUsage::ColorTarget, fb.attachments[att].view)));
-    }
+      const VulkanCreationInfo::RenderPass::Subpass &sub = rp.subpasses[subpass];
 
-    if(rp.subpasses[state.subpass].depthstencilAttachment >= 0)
-    {
-      int32_t att = rp.subpasses[state.subpass].depthstencilAttachment;
-      drawNode.resourceUsage.push_back(std::make_pair(
-          c.m_ImageView[fb.attachments[att].view].image,
-          EventUsage(e, ResourceUsage::DepthStencilTarget, fb.attachments[att].view)));
+      for(size_t i = 0; i < sub.inputAttachments.size(); i++)
+      {
+        uint32_t att = sub.inputAttachments[i];
+        if(att == VK_ATTACHMENT_UNUSED)
+          continue;
+        drawNode.resourceUsage.push_back(
+            std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
+                           EventUsage(e, ResourceUsage::InputTarget, fb.attachments[att].view)));
+      }
+
+      for(size_t i = 0; i < sub.colorAttachments.size(); i++)
+      {
+        uint32_t att = sub.colorAttachments[i];
+        if(att == VK_ATTACHMENT_UNUSED)
+          continue;
+        drawNode.resourceUsage.push_back(
+            std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
+                           EventUsage(e, ResourceUsage::ColorTarget, fb.attachments[att].view)));
+      }
+
+      if(sub.depthstencilAttachment >= 0)
+      {
+        int32_t att = sub.depthstencilAttachment;
+        drawNode.resourceUsage.push_back(std::make_pair(
+            c.m_ImageView[fb.attachments[att].view].image,
+            EventUsage(e, ResourceUsage::DepthStencilTarget, fb.attachments[att].view)));
+      }
     }
   }
+}
+
+void WrappedVulkan::AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode,
+                                                   ResourceId renderPass, ResourceId framebuffer,
+                                                   uint32_t subpass)
+{
+  for(VulkanDrawcallTreeNode &c : drawNode.children)
+    AddFramebufferUsageAllChildren(c, renderPass, framebuffer, subpass);
+
+  AddFramebufferUsage(drawNode, renderPass, framebuffer, subpass);
 }
 
 void WrappedVulkan::AddEvent()

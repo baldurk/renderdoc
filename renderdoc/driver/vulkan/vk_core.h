@@ -735,6 +735,10 @@ private:
   void AddEvent();
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages);
+  void AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
+                           ResourceId framebuffer, uint32_t subpass);
+  void AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
+                                      ResourceId framebuffer, uint32_t subpass);
 
   // no copy semantics
   WrappedVulkan(const WrappedVulkan &);

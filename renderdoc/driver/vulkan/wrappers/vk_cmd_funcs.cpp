@@ -2515,6 +2515,10 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
       parentCmdBufInfo.curEventID++;
 
+      // should we add framebuffer usage to the child draws.
+      bool framebufferUsage = parentCmdBufInfo.state.renderPass != ResourceId() &&
+                              parentCmdBufInfo.state.framebuffer != ResourceId();
+
       for(uint32_t c = 0; c < commandBufferCount; c++)
       {
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
@@ -2542,6 +2546,22 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         // drawIDs
         parentCmdBufInfo.draw->InsertAndUpdateIDs(*cmdBufInfo.draw, parentCmdBufInfo.curEventID,
                                                   parentCmdBufInfo.drawCount);
+
+        if(framebufferUsage)
+        {
+          size_t total = parentCmdBufInfo.draw->children.size();
+          size_t numChildren = cmdBufInfo.draw->children.size();
+
+          // iterate through the newly added draws, and recursively add usage to them using our
+          // primary command buffer's state
+          for(size_t i = 0; i < numChildren; i++)
+          {
+            AddFramebufferUsageAllChildren(parentCmdBufInfo.draw->children[total - numChildren + i],
+                                           parentCmdBufInfo.state.renderPass,
+                                           parentCmdBufInfo.state.framebuffer,
+                                           parentCmdBufInfo.state.subpass);
+          }
+        }
 
         for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
         {
