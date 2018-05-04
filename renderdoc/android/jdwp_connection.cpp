@@ -238,7 +238,7 @@ referenceTypeID Connection::GetType(objectID obj)
 }
 
 methodID Connection::GetMethod(referenceTypeID type, const std::string &name,
-                               const std::string &signature)
+                               const std::string &signature, referenceTypeID *methClass)
 {
   referenceTypeID searchClass = type;
 
@@ -255,7 +255,8 @@ methodID Connection::GetMethod(referenceTypeID type, const std::string &name,
     {
       if(m.name == name && (signature == "" || signature == m.signature))
       {
-        // RDCDEBUG("Found %s (%s)!", m.name.c_str(), m.signature.c_str());
+        if(methClass)
+          *methClass = searchClass;
         return m.id;
       }
     }

@@ -309,9 +309,17 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 
   // look up onCreate in the most derived class - since we can't guarantee that the base
   // application.app.onCreate() will get called.
-  methodID onCreate = conn.GetMethod(thisClass.RefType, "onCreate", "()V");
+  //
+  // Note that because we're filtering on both classID and methodID, we need to return back the
+  // exact class in the inheritance hierarchy matching the methodID, otherwise we could filter on
+  // the derived class but a parent method, and have no hits.
+  //
+  // This can happen if the most derived class doesn't have an onCreate, and we have to search to a
+  // superclass
+  referenceTypeID onCreateClass = thisClass.RefType;
+  methodID onCreateMethod = conn.GetMethod(thisClass.RefType, "onCreate", "()V", &onCreateClass);
 
-  if(onCreate == 0)
+  if(onCreateMethod == 0)
   {
     RDCERR("Couldn't find this.getClass().onCreate()");
     return false;
@@ -321,9 +329,11 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   {
     thread = 0;
 
-    Event evData = conn.WaitForEvent(
-        EventKind::MethodEntry, {{ModifierKind::ClassOnly, thisClass.RefType}},
-        [onCreate](const Event &evData) { return evData.MethodEntry.location.meth == onCreate; });
+    Event evData =
+        conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, onCreateClass}},
+                          [onCreateMethod](const Event &evData) {
+                            return evData.MethodEntry.location.meth == onCreateMethod;
+                          });
 
     if(evData.eventKind == EventKind::MethodEntry)
       thread = evData.MethodEntry.thread;

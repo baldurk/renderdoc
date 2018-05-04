@@ -511,8 +511,10 @@ public:
   value GetFieldValue(referenceTypeID type, fieldID field);
 
   // get a method handle. If signature is empty, it's ignored for matching
+  // The actual class for the method (possibly a parent of 'type') will be returned in methClass if
+  // non-NULL
   methodID GetMethod(referenceTypeID type, const std::string &name,
-                     const std::string &signature = "");
+                     const std::string &signature = "", referenceTypeID *methClass = NULL);
 
   // get a local variable slot. If signature is empty, it's ignored for matching. Returns -1 if not
   // found
