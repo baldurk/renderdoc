@@ -202,8 +202,8 @@ template <>
 CommandData &CommandData::Read(Location &loc)
 {
   Read((byte &)loc.tag);
-  Read(loc.classID);
-  Read(loc.methodID);
+  Read(loc.clss);
+  Read(loc.meth);
   Read(loc.index);
   return *this;
 }
@@ -212,8 +212,8 @@ template <>
 CommandData &CommandData::Write(const Location &loc)
 {
   Write((const byte &)loc.tag);
-  Write(loc.classID);
-  Write(loc.methodID);
+  Write(loc.clss);
+  Write(loc.meth);
   Write(loc.index);
   return *this;
 }

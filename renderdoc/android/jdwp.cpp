@@ -206,7 +206,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
       Event evData =
           conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, vulkanLoaderClass}},
                             [vulkanLoaderMethod](const Event &evData) {
-                              return evData.MethodEntry.location.methodID == vulkanLoaderMethod;
+                              return evData.MethodEntry.location.meth == vulkanLoaderMethod;
                             });
 
       // if we successfully hit the event, try to inject
@@ -250,7 +250,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   {
     Event evData = conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, androidApp}},
                                      [appConstruct](const Event &evData) {
-                                       return evData.MethodEntry.location.methodID == appConstruct;
+                                       return evData.MethodEntry.location.meth == appConstruct;
                                      });
 
     if(evData.eventKind == EventKind::MethodEntry)
@@ -323,7 +323,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 
     Event evData = conn.WaitForEvent(
         EventKind::MethodEntry, {{ModifierKind::ClassOnly, thisClass.RefType}},
-        [onCreate](const Event &evData) { return evData.MethodEntry.location.methodID == onCreate; });
+        [onCreate](const Event &evData) { return evData.MethodEntry.location.meth == onCreate; });
 
     if(evData.eventKind == EventKind::MethodEntry)
       thread = evData.MethodEntry.thread;

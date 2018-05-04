@@ -314,8 +314,8 @@ struct value
 struct Location
 {
   TypeTag tag;
-  objectID classID;
-  objectID methodID;
+  classID clss;
+  methodID meth;
   uint64_t index;
 };
 
