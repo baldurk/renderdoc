@@ -38,6 +38,8 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
 
   if(res.name || allowFake0)
   {
+    ContextPair &ctx = m_GL->GetCtx();
+
     MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
     GLint numVBufferBindings = 16;
@@ -47,12 +49,12 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
     {
       GLuint buffer = GetBoundVertexBuffer(gl, i);
 
-      MarkResourceFrameReferenced(BufferRes(res.Context, buffer), ref);
+      MarkResourceFrameReferenced(BufferRes(ctx, buffer), ref);
     }
 
     GLuint ibuffer = 0;
     gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
-    MarkResourceFrameReferenced(BufferRes(res.Context, ibuffer), ref);
+    MarkResourceFrameReferenced(BufferRes(ctx, ibuffer), ref);
   }
 }
 
@@ -64,6 +66,8 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
   const GLHookSet &gl = m_GL->GetHookset();
+
+  ContextPair &ctx = m_GL->GetCtx();
 
   GLint numCols = 8;
   gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
@@ -81,9 +85,9 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
                                                      (GLint *)&type);
 
     if(type == eGL_RENDERBUFFER)
-      MarkResourceFrameReferenced(RenderbufferRes(res.Context, name), ref);
+      MarkResourceFrameReferenced(RenderbufferRes(ctx, name), ref);
     else
-      MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
+      MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
   }
 
   gl.glGetNamedFramebufferAttachmentParameterivEXT(
@@ -94,9 +98,9 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(name)
   {
     if(type == eGL_RENDERBUFFER)
-      MarkResourceFrameReferenced(RenderbufferRes(res.Context, name), ref);
+      MarkResourceFrameReferenced(RenderbufferRes(ctx, name), ref);
     else
-      MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
+      MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
   }
 
   gl.glGetNamedFramebufferAttachmentParameterivEXT(
@@ -107,9 +111,9 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(name)
   {
     if(type == eGL_RENDERBUFFER)
-      MarkResourceFrameReferenced(RenderbufferRes(res.Context, name), ref);
+      MarkResourceFrameReferenced(RenderbufferRes(ctx, name), ref);
     else
-      MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
+      MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
   }
 }
 

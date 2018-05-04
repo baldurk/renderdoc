@@ -210,6 +210,9 @@ uint64_t GLReplay::MakeOutputWindow(WindowingData window, bool depth)
   m_pDriver->m_Platform.GetOutputWindowDimensions(win, win.width, win.height);
 
   MakeCurrentReplayContext(&win);
+
+  m_pDriver->RegisterReplayContext(win, m_ReplayCtx.ctx, true, true);
+
   InitOutputWindow(win);
   CreateOutputWindowBackbuffer(win, depth);
 

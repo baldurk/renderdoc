@@ -540,7 +540,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
   RDCASSERT(strlen(text) < (size_t)FONT_MAX_CHARS);
 
-  ContextData &ctxdata = m_ContextData[GetCtx()];
+  ContextData &ctxdata = GetCtxData();
 
   if(!ctxdata.built || !ctxdata.ready)
     return;

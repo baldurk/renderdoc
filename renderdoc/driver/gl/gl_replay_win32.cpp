@@ -318,9 +318,8 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   }
 
   WrappedOpenGL *gl = new WrappedOpenGL(real, GetGLPlatform());
-  gl->Initialise(initParams, ver);
-
   RDCLOG("Created device.");
+
   GLReplay *replay = gl->GetReplay();
   replay->SetProxy(rdc == NULL);
   GLWindowingData data;
@@ -328,6 +327,8 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   data.ctx = rc;
   data.wnd = w;
   replay->SetReplayData(data);
+
+  gl->Initialise(initParams, ver);
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;

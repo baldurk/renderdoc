@@ -41,7 +41,7 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
 {
   WrappedOpenGL &gl = *m_pDriver;
 
-  void *ctx = m_ReplayCtx.ctx;
+  ContextPair &ctx = gl.GetCtx();
 
   // delete the old program if it exists
   if(DebugData.overlayProg != 0)
@@ -151,7 +151,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
   GLMarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
 
-  void *ctx = m_ReplayCtx.ctx;
+  ContextPair &ctx = gl.GetCtx();
 
   GLRenderState rs(&gl.GetHookset());
   rs.FetchState(&gl);

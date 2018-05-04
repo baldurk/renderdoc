@@ -106,7 +106,7 @@ public:
     size_t count = 0;
     for(auto it = m_CurrentResourceIds.begin(); it != m_CurrentResourceIds.end(); it++)
     {
-      if(it->first.Context == context)
+      if(it->first.ContextShareGroup == context)
       {
         ++count;
         ResourceId res = it->second;
@@ -117,7 +117,7 @@ public:
         it = m_CurrentResourceIds.erase(it);
       }
     }
-    RDCDEBUG("Removed %zu/%zu resources belonging to context %p", count,
+    RDCDEBUG("Removed %zu/%zu resources belonging to context/sharegroup %p", count,
              m_CurrentResourceIds.size(), context);
   }
 
@@ -213,7 +213,7 @@ public:
   using ResourceManager::MarkCleanResource;
 
   void MarkCleanResource(GLResource res) { return ResourceManager::MarkCleanResource(GetID(res)); }
-  void RegisterSync(void *ctx, GLsync sync, GLuint &name, ResourceId &id)
+  void RegisterSync(ContextPair &ctx, GLsync sync, GLuint &name, ResourceId &id)
   {
     name = (GLuint)Atomic::Inc64(&m_SyncName);
     id = RegisterResource(SyncRes(ctx, name));

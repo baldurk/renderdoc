@@ -160,6 +160,8 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
   {
     FramebufferInitialData &data = initContents.fbo;
 
+    ContextPair &ctx = m_GL->GetCtx();
+
     RDCASSERT(!data.valid);
     data.valid = true;
 
@@ -201,8 +203,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
       }
 
       a.layered = (layered != 0);
-      a.obj = (type == eGL_RENDERBUFFER) ? RenderbufferRes(res.Context, object)
-                                         : TextureRes(res.Context, object);
+      a.obj = (type == eGL_RENDERBUFFER) ? RenderbufferRes(ctx, object) : TextureRes(ctx, object);
 
       if(type != eGL_RENDERBUFFER)
       {
@@ -234,13 +235,14 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     RDCASSERT(!data.valid);
     data.valid = true;
 
-#if ENABLED(RDOC_DEVEL)
-    if(ProgramRes(m_GL->GetCtx(), 0).Context != NULL)
-      RDCFATAL("Program resources are context-specific - we assume they aren't");
-#endif
+    // programs are shared
+    void *shareGroup = m_GL->GetCtx().shareGroup;
 
     for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(data.programs); i++)
+    {
       data.programs[i].Namespace = eResProgram;
+      data.programs[i].ContextShareGroup = shareGroup;
+    }
 
     gl.glGetProgramPipelineiv(res.name, eGL_VERTEX_SHADER, (GLint *)&data.programs[0].name);
     gl.glGetProgramPipelineiv(res.name, eGL_FRAGMENT_SHADER, (GLint *)&data.programs[4].name);
@@ -256,6 +258,8 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     RDCASSERT(!data.valid);
     data.valid = true;
 
+    ContextPair &ctx = m_GL->GetCtx();
+
     GLuint prevfeedback = 0;
     gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&prevfeedback);
 
@@ -268,7 +272,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     {
       GLuint buffer = 0;
       gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
-      data.Buffer[i] = BufferRes(res.Context, buffer);
+      data.Buffer[i] = BufferRes(ctx, buffer);
       gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i, (GLint64 *)&data.Offset[i]);
       gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, i, (GLint64 *)&data.Size[i]);
     }
@@ -282,13 +286,12 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     RDCASSERT(!data.valid);
     data.valid = true;
 
+    ContextPair &ctx = m_GL->GetCtx();
+
     GLuint prevVAO = 0;
     gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
-    if(res.name == 0)
-      gl.glBindVertexArray(m_GL->GetFakeVAO());
-    else
-      gl.glBindVertexArray(res.name);
+    gl.glBindVertexArray(res.name);
 
     for(GLuint i = 0; i < 16; i++)
     {
@@ -306,7 +309,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 
       GLuint buffer = GetBoundVertexBuffer(gl, i);
 
-      data.VertexBuffers[i].Buffer = BufferRes(res.Context, buffer);
+      data.VertexBuffers[i].Buffer = BufferRes(ctx, buffer);
 
       gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&data.VertexBuffers[i].Stride);
       gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data.VertexBuffers[i].Offset);
@@ -315,7 +318,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 
     GLuint buffer = 0;
     gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
-    data.ElementArrayBuffer = BufferRes(res.Context, buffer);
+    data.ElementArrayBuffer = BufferRes(ctx, buffer);
 
     gl.glBindVertexArray(prevVAO);
   }
@@ -359,7 +362,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
     gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, oldbuf2);
 
-    SetInitialContents(Id, GLInitialContents(BufferRes(res.Context, buf), length));
+    SetInitialContents(
+        Id, GLInitialContents(GLResource(res.ContextShareGroup, eResBuffer, buf), length));
   }
   else if(res.Namespace == eResProgram)
   {
@@ -383,9 +387,11 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   }
   else if(res.Namespace == eResFramebuffer)
   {
-    // if FBOs aren't shared we need to fetch the data for this FBO on the right context. It's
-    // not safe for us to go changing contexts ourselves (the context could be active on another
-    // thread), so instead we'll queue this up to fetch when we are on the correct context.
+    // We need to fetch the data for this FBO on the right context.
+    // It's not safe for us to go changing contexts ourselves (the context could be active on
+    // another thread), so instead we'll queue this up to fetch when we are on a correct context.
+    // The correct context depends on whether the object is shared or not - if it's shared, any
+    // context in the same share group will do, otherwise it must be precisely the right context
     //
     // Because we've already allocated and set the blob above, it can be filled in any time
     // before serialising (end of the frame, and if the context is never used before the end of
@@ -395,7 +401,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // and we just start getting commands there, but that case already isn't supported as we don't
     // detect it and insert state-change chunks, we assume all commands will come from a single
     // thread.
-    if(!VendorCheck[VendorCheck_EXT_fbo_shared] && res.Context && m_GL->GetCtx() != res.Context)
+    ContextPair &ctx = m_GL->GetCtx();
+    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
     {
       m_GL->QueuePrepareInitialState(res);
     }
@@ -411,7 +418,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   {
     // queue initial state fetching if we're not on the right context, see above in FBOs for more
     // explanation of this.
-    if(res.Context && m_GL->GetCtx() != res.Context)
+    ContextPair &ctx = m_GL->GetCtx();
+    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
     {
       m_GL->QueuePrepareInitialState(res);
     }
@@ -424,7 +432,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   {
     // queue initial state fetching if we're not on the right context, see above in FBOs for more
     // explanation of this.
-    if(res.Context && m_GL->GetCtx() != res.Context)
+    ContextPair &ctx = m_GL->GetCtx();
+    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
     {
       m_GL->QueuePrepareInitialState(res);
     }
@@ -437,7 +446,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   {
     // queue initial state fetching if we're not on the right context, see above in FBOs for more
     // explanation of this.
-    if(res.Context && m_GL->GetCtx() != res.Context)
+    ContextPair &ctx = m_GL->GetCtx();
+    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
     {
       m_GL->QueuePrepareInitialState(res);
     }
@@ -826,7 +836,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                  (GLint *)&state.maxLevel);
     }
 
-    initContents.resource = TextureRes(res.Context, tex);
+    initContents.resource = GLResource(res.ContextShareGroup, eResTexture, tex);
   }
   else
   {
@@ -835,7 +845,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     GLuint bufName = 0;
     gl.glGetTextureLevelParameterivEXT(res.name, details.curType, 0,
                                        eGL_TEXTURE_BUFFER_DATA_STORE_BINDING, (GLint *)&bufName);
-    state.texBuffer = BufferRes(res.Context, bufName);
+    state.texBuffer = GLResource(res.ContextShareGroup, eResBuffer, bufName);
 
     gl.glGetTextureLevelParameterivEXT(res.name, details.curType, 0, eGL_TEXTURE_BUFFER_OFFSET,
                                        (GLint *)&state.texBufOffs);
@@ -2079,10 +2089,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
       GLuint VAO = 0;
       gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
 
-      if(live.name == 0)
-        gl.glBindVertexArray(m_GL->GetFakeVAO());
-      else
-        gl.glBindVertexArray(live.name);
+      gl.glBindVertexArray(live.name);
 
       for(GLuint i = 0; i < 16; i++)
       {

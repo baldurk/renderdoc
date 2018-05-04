@@ -3139,9 +3139,6 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    if(framebuffer.name == 0)
-      framebuffer.name = m_FakeBB_FBO;
-
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
@@ -3265,9 +3262,6 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    if(framebuffer.name == 0)
-      framebuffer.name = m_FakeBB_FBO;
-
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
@@ -3382,9 +3376,6 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    if(framebuffer.name == 0)
-      framebuffer.name = m_FakeBB_FBO;
-
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
@@ -3488,9 +3479,6 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
 
   if(IsReplayingAndReading())
   {
-    if(framebuffer.name == 0)
-      framebuffer.name = m_FakeBB_FBO;
-
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,

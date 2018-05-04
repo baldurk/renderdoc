@@ -414,7 +414,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   }
   else    // drawcall is indexed
   {
-    ResourceId idxId = rm->GetID(BufferRes(NULL, elArrayBuffer));
+    ResourceId idxId = rm->GetID(BufferRes(gl.GetCtx(), elArrayBuffer));
 
     bytebuf idxdata;
     GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
@@ -1422,6 +1422,8 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDat
   GLPostVSData postvs;
   RDCEraseEl(postvs);
 
+  ContextPair ctx = {m_ReplayCtx.ctx, m_pDriver->ShareCtx(m_ReplayCtx.ctx)};
+
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     postvs = m_PostVSData[eventId];
 
@@ -1430,7 +1432,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDat
   MeshFormat ret;
 
   if(s.useIndices && s.idxBuf)
-    ret.indexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(NULL, s.idxBuf));
+    ret.indexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.idxBuf));
   else
     ret.indexResourceId = ResourceId();
   ret.indexByteOffset = 0;
@@ -1438,7 +1440,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDat
   ret.baseVertex = 0;
 
   if(s.buf)
-    ret.vertexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(NULL, s.buf));
+    ret.vertexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.buf));
   else
     ret.vertexResourceId = ResourceId();
 

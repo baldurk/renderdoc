@@ -102,37 +102,37 @@ struct GLResource
 {
   GLResource()
   {
+    ContextShareGroup = NULL;
     Namespace = eResUnknown;
-    Context = NULL;
     name = 0;
   }
   GLResource(NullInitialiser)
   {
+    ContextShareGroup = NULL;
     Namespace = eResUnknown;
-    Context = NULL;
     name = 0;
   }
   GLResource(void *ctx, GLNamespace n, GLuint i)
   {
-    Context = ctx;
+    ContextShareGroup = ctx;
     Namespace = n;
     name = i;
   }
 
-  void *Context;
+  void *ContextShareGroup;
   GLNamespace Namespace;
   GLuint name;
 
   bool operator==(const GLResource &o) const
   {
-    return Context == o.Context && Namespace == o.Namespace && name == o.name;
+    return ContextShareGroup == o.ContextShareGroup && Namespace == o.Namespace && name == o.name;
   }
 
   bool operator!=(const GLResource &o) const { return !(*this == o); }
   bool operator<(const GLResource &o) const
   {
-    if(Context != o.Context)
-      return Context < o.Context;
+    if(ContextShareGroup != o.ContextShareGroup)
+      return ContextShareGroup < o.ContextShareGroup;
     if(Namespace != o.Namespace)
       return Namespace < o.Namespace;
     return name < o.name;
@@ -141,64 +141,65 @@ struct GLResource
 
 DECLARE_REFLECTION_STRUCT(GLResource);
 
+struct ContextPair
+{
+  void *ctx;
+  void *shareGroup;
+};
+
 // Shared objects currently ignore the context parameter.
 // For correctness we'd need to check if the context is shared and if so move up to a 'parent'
 // so the context value ends up being identical for objects being shared, but can be different
 // for objects in non-shared contexts
-inline GLResource TextureRes(void *ctx, GLuint i)
+inline GLResource TextureRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResTexture, i);
+  return GLResource(c.shareGroup, eResTexture, i);
 }
-inline GLResource SamplerRes(void *ctx, GLuint i)
+inline GLResource SamplerRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResSampler, i);
+  return GLResource(c.shareGroup, eResSampler, i);
 }
-inline GLResource FramebufferRes(void *ctx, GLuint i)
+inline GLResource FramebufferRes(const ContextPair &c, GLuint i)
 {
-  return GLResource(VendorCheck[VendorCheck_EXT_fbo_shared] ? NULL : ctx, eResFramebuffer, i);
+  return GLResource(VendorCheck[VendorCheck_EXT_fbo_shared] ? c.shareGroup : c.ctx, eResFramebuffer,
+                    i);
 }
-inline GLResource RenderbufferRes(void *ctx, GLuint i)
+inline GLResource RenderbufferRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResRenderbuffer, i);
+  return GLResource(c.shareGroup, eResRenderbuffer, i);
 }
-inline GLResource BufferRes(void *ctx, GLuint i)
+inline GLResource BufferRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResBuffer, i);
+  return GLResource(c.shareGroup, eResBuffer, i);
 }
-inline GLResource VertexArrayRes(void *ctx, GLuint i)
+inline GLResource VertexArrayRes(const ContextPair &c, GLuint i)
 {
-  return GLResource(VendorCheck[VendorCheck_EXT_vao_shared] ? NULL : ctx, eResVertexArray, i);
+  return GLResource(VendorCheck[VendorCheck_EXT_vao_shared] ? c.shareGroup : c.ctx, eResVertexArray,
+                    i);
 }
-inline GLResource ShaderRes(void *ctx, GLuint i)
+inline GLResource ShaderRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResShader, i);
+  return GLResource(c.shareGroup, eResShader, i);
 }
-inline GLResource ProgramRes(void *ctx, GLuint i)
+inline GLResource ProgramRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResProgram, i);
+  return GLResource(c.shareGroup, eResProgram, i);
 }
-inline GLResource ProgramPipeRes(void *ctx, GLuint i)
+inline GLResource ProgramPipeRes(const ContextPair &c, GLuint i)
 {
-  return GLResource(ctx, eResProgramPipe, i);
+  return GLResource(c.ctx, eResProgramPipe, i);
 }
-inline GLResource FeedbackRes(void *ctx, GLuint i)
+inline GLResource FeedbackRes(const ContextPair &c, GLuint i)
 {
-  return GLResource(ctx, eResFeedback, i);
+  return GLResource(c.ctx, eResFeedback, i);
 }
-inline GLResource QueryRes(void *ctx, GLuint i)
+inline GLResource QueryRes(const ContextPair &c, GLuint i)
 {
-  return GLResource(ctx, eResQuery, i);
+  return GLResource(c.ctx, eResQuery, i);
 }
-inline GLResource SyncRes(void *ctx, GLuint i)
+inline GLResource SyncRes(const ContextPair &c, GLuint i)
 {
-  (void)ctx;
-  return GLResource(NULL, eResSync, i);
+  return GLResource(c.shareGroup, eResSync, i);
 }
 
 struct GLResourceRecord : public ResourceRecord

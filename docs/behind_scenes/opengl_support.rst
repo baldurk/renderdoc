@@ -12,7 +12,7 @@ RenderDoc only supports the core profile of OpenGL - from 3.2 up to 4.5 inclusiv
 
 .. note::
 
-   that to be more compatible with applications, RenderDoc will still attempt to capture on a compatibility context, but it will not replay successfully unless the given subset of functionality is used.
+   To be more compatible with applications, RenderDoc will still attempt to capture on a compatibility context, but it will not replay successfully unless the given subset of functionality is used.
 
 On OpenGL ES, any context version 2.0 and above is supported.
 
@@ -35,7 +35,7 @@ On OpenGL ES, you must be able to create a GLES 3 context to replay.
 Multiple contexts & multithreading
 ----------------------------------
 
-RenderDoc assumes that all GL commands (with the exception of perhaps a SwapBuffers call) for frames will come from a single thread, and that all contexts are set up to share objects with each other. This means that e.g. if commands come from a second thread during loading, or some time during initialisation, this will be supported only if the second context shares with the primary context. During frame capture all commands are serialised as if they come from a single thread.
+RenderDoc assumes that all GL commands (with the exception of perhaps a SwapBuffers call) for frames will come from a single thread. This means that e.g. if commands come from a second thread during loading, or some time during initialisation, this will be supported. However during frame capture all commands are serialised as if they come from a single thread, so interleaved rendering commands from multiple threads will not work.
 
 Extension support
 -----------------
@@ -47,7 +47,6 @@ OpenGL remaining work
 
 There are a couple of places where OpenGL is not yet at feature parity with other APIs.
 
-* Full & complete support for multiple threads feeding GL simultaneously, or multiple contexts that don't share with each other (or only share within defined groups).
 * Shader debugging is not supported on any shader stage.
 * Pixel history is not implemented.
 

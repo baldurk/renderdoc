@@ -1758,6 +1758,8 @@ enum class GLChunk : uint32_t
 
   glIndirectSubCommand,
 
+  glContextInit,
+
   Max,
 };
 

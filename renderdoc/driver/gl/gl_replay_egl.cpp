@@ -156,12 +156,13 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   WrappedOpenGL *gl = new WrappedOpenGL(real, GetGLPlatformEGL());
   gl->SetDriverType(RDCDriver::OpenGLES);
-  gl->Initialise(initParams, ver);
 
   RDCLOG("Created OPEN GL ES replay device.");
   GLReplay *replay = gl->GetReplay();
   replay->SetProxy(rdc == NULL);
   replay->SetReplayData(data);
+
+  gl->Initialise(initParams, ver);
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;
