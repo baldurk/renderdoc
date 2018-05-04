@@ -656,7 +656,7 @@
           <item>
            <widget class="QToolButton" name="vsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader DXBC</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -1027,7 +1027,7 @@
           <item>
            <widget class="QToolButton" name="hsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader DXBC</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -1395,7 +1395,7 @@
           <item>
            <widget class="QToolButton" name="dsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader DXBC</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -1763,7 +1763,7 @@
           <item>
            <widget class="QToolButton" name="gsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader DXBC</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -2802,7 +2802,7 @@
           <item>
            <widget class="QToolButton" name="psShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader DXBC</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -3950,7 +3950,7 @@
              <item>
               <widget class="QToolButton" name="csShaderSaveButton">
                <property name="toolTip">
-                <string>Save Shader SPIR-V</string>
+                <string>Save Shader DXBC</string>
                </property>
                <property name="text">
                 <string>Save</string>

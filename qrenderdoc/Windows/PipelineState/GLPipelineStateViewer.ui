@@ -569,7 +569,7 @@
           <item>
            <widget class="QToolButton" name="vsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader GLSL</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -1004,7 +1004,7 @@
           <item>
            <widget class="QToolButton" name="tcsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader GLSL</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -1439,7 +1439,7 @@
           <item>
            <widget class="QToolButton" name="tesShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader GLSL</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -1874,7 +1874,7 @@
           <item>
            <widget class="QToolButton" name="gsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader GLSL</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -3287,7 +3287,7 @@
           <item>
            <widget class="QToolButton" name="fsShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader GLSL</string>
             </property>
             <property name="text">
              <string>Save</string>
@@ -4229,7 +4229,7 @@
           <item>
            <widget class="QToolButton" name="csShaderSaveButton">
             <property name="toolTip">
-             <string>Save Shader SPIR-V</string>
+             <string>Save Shader GLSL</string>
             </property>
             <property name="text">
              <string>Save</string>
