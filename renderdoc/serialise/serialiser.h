@@ -126,6 +126,12 @@ public:
   // jumps to the byte after the current chunk, can be called any time after BeginChunk
   void SkipCurrentChunk();
 
+  //////////////////////////////////////////
+  // Version checking
+
+  void SetVersion(uint64_t version) { m_Version = version; }
+  // assume that we always write the latest version, so on writing the version check always passes.
+  bool VersionCheck(uint64_t req) { return IsWriting() || m_Version >= req; }
   // enable 'streaming mode' for ephemeral transfers like temporary I/O over sockets, where there's
   // no need for the chunk length - avoids needing to seek internally in a stream that might not
   // support seeking to fixup lengths, while also not requiring conservative length estimates
@@ -1566,6 +1572,7 @@ private:
   }
 
   void *m_pUserData = NULL;
+  uint64_t m_Version;
 
   uint64_t m_StructArg = 0;
 

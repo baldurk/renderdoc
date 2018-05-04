@@ -499,6 +499,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
     flags |= WriteSerialiser::ChunkCallstack;
 
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
+  m_ScratchSerialiser.SetVersion(GLInitParams::CurrentVersion);
 
   m_SectionVersion = GLInitParams::CurrentVersion;
 
@@ -2344,6 +2345,8 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
 
+  ser.SetVersion(m_SectionVersion);
+
   int chunkIdx = 0;
 
   struct chunkinfo
@@ -3931,6 +3934,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
+  ser.SetVersion(m_SectionVersion);
 
   SDFile *prevFile = m_StructuredFile;
 

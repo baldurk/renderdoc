@@ -458,6 +458,7 @@ WriteSerialiser &WrappedVulkan::GetThreadSerialiser()
 
   ser->SetChunkMetadataRecording(flags);
   ser->SetUserData(GetResourceManager());
+  ser->SetVersion(VkInitParams::CurrentVersion);
 
   Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
 
@@ -1588,6 +1589,8 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
 
+  ser.SetVersion(m_SectionVersion);
+
   int chunkIdx = 0;
 
   struct chunkinfo
@@ -1711,6 +1714,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
+  ser.SetVersion(m_SectionVersion);
 
   SDFile *prevFile = m_StructuredFile;
 

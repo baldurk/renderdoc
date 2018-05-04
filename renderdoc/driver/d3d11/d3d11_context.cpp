@@ -145,6 +145,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   }
 
   m_ScratchSerialiser.SetUserData(GetResourceManager());
+  m_ScratchSerialiser.SetVersion(D3D11InitParams::CurrentVersion);
 
   m_SuccessfulCapture = true;
   m_FailureReason = CaptureSucceeded;
@@ -1109,6 +1110,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
+  ser.SetVersion(m_pDevice->GetLogVersion());
 
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
   {

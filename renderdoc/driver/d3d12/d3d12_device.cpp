@@ -2059,8 +2059,8 @@ WriteSerialiser &WrappedID3D12Device::GetThreadSerialiser()
     flags |= WriteSerialiser::ChunkCallstack;
 
   ser->SetChunkMetadataRecording(flags);
-
   ser->SetUserData(GetResourceManager());
+  ser->SetVersion(D3D12InitParams::CurrentVersion);
 
   Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
 
@@ -2521,6 +2521,8 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   m_StructuredFile = &ser.GetStructuredFile();
 
   m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
+
+  ser.SetVersion(m_SectionVersion);
 
   int chunkIdx = 0;
 

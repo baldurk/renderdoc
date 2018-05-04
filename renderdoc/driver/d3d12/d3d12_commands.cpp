@@ -533,6 +533,7 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
+  ser.SetVersion(m_pDevice->GetLogVersion());
 
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
   {
