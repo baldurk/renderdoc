@@ -512,7 +512,7 @@
       <item>
        <widget class="QCheckBox" name="RefAllResources">
         <property name="toolTip">
-         <string>Consider all resources to be included, even if unsued in the capture frame</string>
+         <string>Consider all resources to be included, even if unused in the capture frame</string>
         </property>
         <property name="text">
          <string>Ref all Resources</string>
