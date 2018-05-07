@@ -2963,6 +2963,7 @@ static mz_bool mz_zip_get_file_modified_time(const char *pFilename, mz_uint16 *p
   return MZ_TRUE;
 }
 
+#if defined(_MSC_VER) || defined(__MINGW64__)
 static mz_bool mz_zip_get_wfile_modified_time(const wchar_t *pFilename, mz_uint16 *pDOS_time, mz_uint16 *pDOS_date)
 {
 #ifdef MINIZ_NO_TIME
@@ -2973,6 +2974,7 @@ static mz_bool mz_zip_get_wfile_modified_time(const wchar_t *pFilename, mz_uint1
 #endif // #ifdef MINIZ_NO_TIME
   return MZ_TRUE;
 }
+#endif
 static mz_bool mz_zip_set_file_times(const char *pFilename, time_t access_time, time_t modified_time)
 {
 #ifndef MINIZ_NO_TIME
@@ -3796,6 +3798,7 @@ mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, 
   return status;
 }
 
+#if defined(_MSC_VER) || defined(__MINGW64__)
 mz_bool mz_zip_reader_extract_to_wfile(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags)
 {
   mz_bool status;
@@ -3811,6 +3814,7 @@ mz_bool mz_zip_reader_extract_to_wfile(mz_zip_archive *pZip, mz_uint file_index,
     return MZ_FALSE;
   return status;
 }
+#endif
 #endif // #ifndef MINIZ_NO_STDIO
 
 mz_bool mz_zip_reader_end(mz_zip_archive *pZip)
@@ -3976,6 +3980,7 @@ mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename, mz_
   return mz_zip_writer_init_xfile(pZip, pFile, size_to_reserve_at_beginning);
 }
 
+#if defined(_MSC_VER) || defined(__MINGW64__)
 mz_bool mz_zip_writer_init_wfile(mz_zip_archive *pZip, const wchar_t *pFilename, mz_uint64 size_to_reserve_at_beginning)
 {
   MZ_FILE *pFile;
@@ -3983,6 +3988,7 @@ mz_bool mz_zip_writer_init_wfile(mz_zip_archive *pZip, const wchar_t *pFilename,
     return MZ_FALSE;
   return mz_zip_writer_init_xfile(pZip, pFile, size_to_reserve_at_beginning);
 }
+#endif
 
 #endif // #ifndef MINIZ_NO_STDIO
 
@@ -4515,6 +4521,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, 
   return mz_zip_writer_add_xfile(pZip, pArchive_name, pSrc_file, pComment, comment_size, level_and_flags, dos_time, dos_date);
 }
 
+#if defined(_MSC_VER) || defined(__MINGW64__)
 mz_bool mz_zip_writer_add_wfile(mz_zip_archive *pZip, const char *pArchive_name, const wchar_t *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags)
 {
   mz_uint16 dos_time = 0, dos_date = 0;
@@ -4529,6 +4536,7 @@ mz_bool mz_zip_writer_add_wfile(mz_zip_archive *pZip, const char *pArchive_name,
 
   return mz_zip_writer_add_xfile(pZip, pArchive_name, pSrc_file, pComment, comment_size, level_and_flags, dos_time, dos_date);
 }
+#endif
 #endif // #ifndef MINIZ_NO_STDIO
 
 mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *pSource_zip, mz_uint file_index)
