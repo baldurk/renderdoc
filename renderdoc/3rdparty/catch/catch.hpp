@@ -26,5 +26,9 @@
 // want on.
 
 #define CATCH_CONFIG_FALLBACK_STRINGIFIER ToStr
+#define CATCH_CONFIG_FORCE_FALLBACK_STRINGIFIER
+#define CATCH_CONFIG_INLINE_DEBUG_BREAK
+
+#include "api/replay/stringise.h"
 
 #include "official/catch.hpp"

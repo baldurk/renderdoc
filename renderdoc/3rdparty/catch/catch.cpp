@@ -29,6 +29,14 @@
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 
+// since we force use of ToStr for everything and don't allow using catch's stringstream (so that
+// enums get forwarded to ToStr) we need to implement ToStr for one of Catch's structs.
+template <>
+std::string DoStringise(const Catch::SourceLineInfo &el)
+{
+  return StringFormat::Fmt("%s:%zu", el.file, el.line);
+}
+
 struct AppVeyorListener : Catch::TestEventListenerBase
 {
   using TestEventListenerBase::TestEventListenerBase;    // inherit constructor

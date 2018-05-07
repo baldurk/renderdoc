@@ -800,6 +800,13 @@ namespace Catch {
     // If we decide for C++14, change these to enable_if_ts
     template <typename T, typename = void>
     struct StringMaker {
+#if defined(CATCH_CONFIG_FORCE_FALLBACK_STRINGIFIER)
+        static
+        typename std::string
+            convert( const T& value ) {
+            return CATCH_CONFIG_FALLBACK_STRINGIFIER(value);
+        }
+#else
         template <typename Fake = T>
         static
         typename std::enable_if<::Catch::Detail::IsStreamInsertable<Fake>::value, std::string>::type
@@ -815,6 +822,7 @@ namespace Catch {
             convert( const Fake& value ) {
                 return Detail::convertUnstreamable( value );
         }
+#endif
     };
 
     namespace Detail {
@@ -1573,6 +1581,10 @@ namespace Catch {
         void complete();
         void setCompleted();
 
+#if defined(CATCH_CONFIG_INLINE_DEBUG_BREAK)
+        bool shouldDebugBreak() { return m_reaction.shouldDebugBreak; }
+#endif
+
         // query
         auto allowThrows() const -> bool;
     };
@@ -1641,6 +1653,44 @@ namespace Catch {
 } // end namespace Catch
 
 // end catch_message.h
+// start catch_debugger.h
+
+namespace Catch {
+    bool isDebuggerActive();
+}
+
+#ifdef CATCH_PLATFORM_MAC
+
+    #define CATCH_TRAP() __asm__("int $3\n" : : ) /* NOLINT */
+
+#elif defined(CATCH_PLATFORM_LINUX)
+    // If we can use inline assembler, do it because this allows us to break
+    // directly at the location of the failing check instead of breaking inside
+    // raise() called from it, i.e. one stack frame below.
+    #if defined(__GNUC__) && (defined(__i386) || defined(__x86_64))
+        #define CATCH_TRAP() asm volatile ("int $3") /* NOLINT */
+    #else // Fall back to the generic way.
+        #include <signal.h>
+
+        #define CATCH_TRAP() raise(SIGTRAP)
+    #endif
+#elif defined(_MSC_VER)
+    #define CATCH_TRAP() __debugbreak()
+#elif defined(__MINGW32__)
+    extern "C" __declspec(dllimport) void __stdcall DebugBreak();
+    #define CATCH_TRAP() DebugBreak()
+#endif
+
+#ifdef CATCH_TRAP
+    #define CATCH_BREAK_INTO_DEBUGGER() if( Catch::isDebuggerActive() ) { CATCH_TRAP(); }
+#else
+    namespace Catch {
+        inline void doNothing() {}
+    }
+    #define CATCH_BREAK_INTO_DEBUGGER() Catch::doNothing()
+#endif
+
+// end catch_debugger.h
 #if !defined(CATCH_CONFIG_DISABLE)
 
 #if !defined(CATCH_CONFIG_DISABLE_STRINGIFICATION)
@@ -1664,7 +1714,19 @@ namespace Catch {
 
 #endif
 
+#if defined(CATCH_CONFIG_INLINE_DEBUG_BREAK)
+
+#define INTERNAL_CATCH_REACT( handler ) \
+    if(handler.shouldDebugBreak()) { \
+        CATCH_BREAK_INTO_DEBUGGER(); \
+    } \
+    handler.complete();
+
+#else
+
 #define INTERNAL_CATCH_REACT( handler ) handler.complete();
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 #define INTERNAL_CATCH_TEST( macroName, resultDisposition, ... ) \
@@ -4715,44 +4777,6 @@ namespace Catch {
 }
 
 // end catch_context.h
-// start catch_debugger.h
-
-namespace Catch {
-    bool isDebuggerActive();
-}
-
-#ifdef CATCH_PLATFORM_MAC
-
-    #define CATCH_TRAP() __asm__("int $3\n" : : ) /* NOLINT */
-
-#elif defined(CATCH_PLATFORM_LINUX)
-    // If we can use inline assembler, do it because this allows us to break
-    // directly at the location of the failing check instead of breaking inside
-    // raise() called from it, i.e. one stack frame below.
-    #if defined(__GNUC__) && (defined(__i386) || defined(__x86_64))
-        #define CATCH_TRAP() asm volatile ("int $3") /* NOLINT */
-    #else // Fall back to the generic way.
-        #include <signal.h>
-
-        #define CATCH_TRAP() raise(SIGTRAP)
-    #endif
-#elif defined(_MSC_VER)
-    #define CATCH_TRAP() __debugbreak()
-#elif defined(__MINGW32__)
-    extern "C" __declspec(dllimport) void __stdcall DebugBreak();
-    #define CATCH_TRAP() DebugBreak()
-#endif
-
-#ifdef CATCH_TRAP
-    #define CATCH_BREAK_INTO_DEBUGGER() if( Catch::isDebuggerActive() ) { CATCH_TRAP(); }
-#else
-    namespace Catch {
-        inline void doNothing() {}
-    }
-    #define CATCH_BREAK_INTO_DEBUGGER() Catch::doNothing()
-#endif
-
-// end catch_debugger.h
 // start catch_run_context.h
 
 // start catch_fatal_condition.h
@@ -5016,6 +5040,7 @@ namespace Catch {
 
     void AssertionHandler::complete() {
         setCompleted();
+#if !defined(CATCH_CONFIG_INLINE_DEBUG_BREAK)
         if( m_reaction.shouldDebugBreak ) {
 
             // If you find your debugger stopping you here then go one level up on the
@@ -5024,6 +5049,7 @@ namespace Catch {
             // (To go back to the test and change execution, jump over the throw, next)
             CATCH_BREAK_INTO_DEBUGGER();
         }
+#endif
         if( m_reaction.shouldThrow )
             throw Catch::TestFailureException();
     }
