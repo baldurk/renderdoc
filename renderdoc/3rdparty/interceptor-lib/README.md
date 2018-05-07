@@ -61,12 +61,13 @@ make -j8 install
 There is one extra step needed to copy some non-public headers into the install, that are required by interceptor-lib. From the `build_armXX` folder:
 
 ```
-cp -R ../lib/Target/ARM/MCTargetDesc/ $TARGET_PATH/include/
 
 # for arm32
+cp -R ../lib/Target/ARM/MCTargetDesc/ $TARGET_PATH/include/
 cp ./lib/Target/ARM/ARM*.inc $TARGET_PATH/include/MCTargetDesc/
 
 # for arm64
+cp -R ../lib/Target/AArch64/MCTargetDesc/ $TARGET_PATH/include/
 cp ./lib/Target/AArch64/AArch64*.inc  $TARGET_PATH/include/MCTargetDesc/
 ```
 
