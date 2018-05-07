@@ -8018,7 +8018,7 @@ namespace Floating {
     }
 
     std::string WithinUlpsMatcher::describe() const {
-        return "is within " + std::to_string(m_ulps) + " ULPs of " + ::Catch::Detail::stringify(m_target) + ((m_type == FloatingPointKind::Float)? "f" : "");
+        return "is within " + ::Catch::Detail::stringify(m_ulps) + " ULPs of " + ::Catch::Detail::stringify(m_target) + ((m_type == FloatingPointKind::Float)? "f" : "");
     }
 
 }// namespace Floating
