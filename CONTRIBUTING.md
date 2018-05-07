@@ -58,6 +58,8 @@ On Windows, you need to specify the 'generator' type to the cmake invocation. Th
 cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -G "MSYS Makefiles" ..
 ```
 
+With GLES programs on Android, the built-in hooking method doesn't always work. If you have trouble with crashes or problems capturing GLES programs, try enabling building with [interceptor-lib](renderdoc/3rdparty/interceptor-lib/README.md). **WARNING**: Building this requires a hefty dependency.
+
 # Code of Conduct
 
 I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. If you have any queries in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
