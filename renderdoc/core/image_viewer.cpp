@@ -316,21 +316,32 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     FileIO::fread(&buffer[0], 1, buffer.size(), f);
 
-    EXRImage exrImage;
-    InitEXRImage(&exrImage);
+    EXRVersion exrVersion;
+    int ret = ParseEXRVersionFromMemory(&exrVersion, buffer.data(), buffer.size());
 
-    int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, &buffer[0], &err);
-
-    FreeEXRImage(&exrImage);
-
-    // could be an unsupported form of EXR, like deep image or other
     if(ret != 0)
     {
+      RDCERR("EXR file detected, but couldn't load with ParseEXRVersionFromMemory: %d", ret);
       FileIO::fclose(f);
+      return ReplayStatus::ImageUnsupported;
+    }
 
-      RDCERR(
-          "EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'",
-          ret, err);
+    if(exrVersion.multipart || exrVersion.non_image || exrVersion.tiled)
+    {
+      RDCERR("Unsupported EXR file detected - multipart or similar.");
+      FileIO::fclose(f);
+      return ReplayStatus::ImageUnsupported;
+    }
+
+    EXRHeader exrHeader;
+    InitEXRHeader(&exrHeader);
+
+    ret = ParseEXRHeaderFromMemory(&exrHeader, &exrVersion, buffer.data(), buffer.size(), &err);
+
+    if(ret != 0)
+    {
+      RDCERR("EXR file detected, but couldn't load with ParseEXRHeaderFromMemory %d: '%s'", ret, err);
+      FileIO::fclose(f);
       return ReplayStatus::ImageUnsupported;
     }
   }
@@ -478,20 +489,48 @@ void ImageViewer::RefreshFile()
     std::vector<byte> buffer;
     buffer.resize((size_t)size);
 
-    FileIO::fread(&buffer[0], 1, buffer.size(), f);
+    FileIO::fread(buffer.data(), 1, buffer.size(), f);
+
+    EXRVersion exrVersion;
+    int ret = ParseEXRVersionFromMemory(&exrVersion, buffer.data(), buffer.size());
+
+    if(ret != 0)
+    {
+      RDCERR("EXR file detected, but couldn't load with ParseEXRVersionFromMemory: %d", ret);
+      FileIO::fclose(f);
+      return;
+    }
+
+    if(exrVersion.multipart || exrVersion.non_image || exrVersion.tiled)
+    {
+      RDCERR("Unsupported EXR file detected - multipart or similar.");
+      FileIO::fclose(f);
+      return;
+    }
+
+    EXRHeader exrHeader;
+    InitEXRHeader(&exrHeader);
+
+    const char *err = NULL;
+
+    ret = ParseEXRHeaderFromMemory(&exrHeader, &exrVersion, buffer.data(), buffer.size(), &err);
+    if(ret != 0)
+    {
+      RDCERR("EXR file detected, but couldn't load with ParseEXRHeaderFromMemory %d: '%s'", ret, err);
+      FileIO::fclose(f);
+      return;
+    }
+
+    for(int i = 0; i < exrHeader.num_channels; i++)
+      exrHeader.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
 
     EXRImage exrImage;
     InitEXRImage(&exrImage);
 
-    const char *err = NULL;
-
-    int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, &buffer[0], &err);
-
+    ret = LoadEXRImageFromMemory(&exrImage, &exrHeader, buffer.data(), buffer.size(), &err);
     if(ret != 0)
     {
-      RDCERR(
-          "EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'",
-          ret, err);
+      RDCERR("EXR file detected, but couldn't load with LoadEXRImageFromMemory %d: '%s'", ret, err);
       FileIO::fclose(f);
       return;
     }
@@ -502,15 +541,10 @@ void ImageViewer::RefreshFile()
     datasize = texDetails.width * texDetails.height * 4 * sizeof(float);
     data = (byte *)malloc(datasize);
 
-    for(int i = 0; i < exrImage.num_channels; i++)
-      exrImage.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
-
-    ret = LoadMultiChannelEXRFromMemory(&exrImage, &buffer[0], &err);
-
     int channels[4] = {-1, -1, -1, -1};
     for(int i = 0; i < exrImage.num_channels; i++)
     {
-      switch(exrImage.channel_names[i][0])
+      switch(exrHeader.channels[i].name[0])
       {
         case 'R': channels[0] = i; break;
         case 'G': channels[1] = i; break;

@@ -1,4 +1,4 @@
-From https://github.com/syoyo/tinyexr : 25d4523fb9b630d45a6a04d50125f0058679c9b6
+From https://github.com/syoyo/tinyexr : 9b30f25383bdb9dd517592552be528c5905474be
 
 # Tiny OpenEXR image library.
 

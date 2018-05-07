@@ -121,6 +121,7 @@
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
     <ClInclude Include="3rdparty\lz4\lz4.h" />
+    <ClInclude Include="3rdparty\miniz\miniz.h" />
     <ClInclude Include="3rdparty\plthook\plthook.h" />
     <ClInclude Include="3rdparty\pugixml\pugiconfig.hpp" />
     <ClInclude Include="3rdparty\pugixml\pugixml.hpp" />
@@ -257,6 +258,11 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="3rdparty\lz4\lz4.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\miniz\miniz.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>

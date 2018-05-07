@@ -127,6 +127,9 @@
     <Filter Include="3rdparty\catch\official">
       <UniqueIdentifier>{c46ee73c-e0dd-446d-b9a3-38c3ee0433fe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\miniz">
+      <UniqueIdentifier>{5994c355-880b-45b9-b17a-2e9e1fc2044a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -431,6 +434,9 @@
     </ClInclude>
     <ClInclude Include="3rdparty\catch\official\catch.hpp">
       <Filter>3rdparty\catch\official</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\miniz\miniz.h">
+      <Filter>3rdparty\miniz</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -757,6 +763,9 @@
     </ClCompile>
     <ClCompile Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.cc">
       <Filter>3rdparty\interceptor-lib\AArch64</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\miniz\miniz.c">
+      <Filter>3rdparty\miniz</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

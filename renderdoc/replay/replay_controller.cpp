@@ -1169,6 +1169,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       {
         const char *err = NULL;
 
+        EXRHeader exrHeader;
+        InitEXRHeader(&exrHeader);
+
         EXRImage exrImage;
         InitEXRImage(&exrImage);
 
@@ -1179,19 +1182,21 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
         // must be in this order as many viewers don't pay attention to channels and just assume
         // they are in this order
-        const char *bgraNames[4] = {"A", "B", "G", "R"};
+        EXRChannelInfo bgraChannels[4] = {
+            {"A"}, {"B"}, {"G"}, {"R"},
+        };
 
-        exrImage.num_channels = 4;
-        exrImage.channel_names = bgraNames;
+        exrHeader.num_channels = 4;
+        exrHeader.channels = bgraChannels;
         exrImage.images = (unsigned char **)abgr;
         exrImage.width = td.width;
         exrImage.height = td.height;
-        exrImage.pixel_types = pixTypes;
-        exrImage.requested_pixel_types = reqTypes;
+        exrHeader.pixel_types = pixTypes;
+        exrHeader.requested_pixel_types = reqTypes;
 
         unsigned char *mem = NULL;
 
-        size_t ret = SaveMultiChannelEXRToMemory(&exrImage, &mem, &err);
+        size_t ret = SaveEXRImageToMemory(&exrImage, &exrHeader, &mem, &err);
 
         success = (ret > 0);
         if(success)

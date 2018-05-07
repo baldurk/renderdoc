@@ -166,6 +166,8 @@ set(sources
     3rdparty/pugixml/pugiconfig.hpp
     3rdparty/lz4/lz4.c
     3rdparty/lz4/lz4.h
+    3rdparty/miniz/miniz.c
+    3rdparty/miniz/miniz.h
     3rdparty/zstd/bitstream.h
     3rdparty/zstd/compiler.h
     3rdparty/zstd/entropy_common.c
