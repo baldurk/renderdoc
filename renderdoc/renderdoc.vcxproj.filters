@@ -124,6 +124,9 @@
     <Filter Include="3rdparty\interceptor-lib\AArch64">
       <UniqueIdentifier>{7894d954-a38a-450f-9780-a38f73df1208}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\catch\official">
+      <UniqueIdentifier>{c46ee73c-e0dd-446d-b9a3-38c3ee0433fe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -425,6 +428,9 @@
     </ClInclude>
     <ClInclude Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.h">
       <Filter>3rdparty\interceptor-lib\AArch64</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\catch\official\catch.hpp">
+      <Filter>3rdparty\catch\official</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

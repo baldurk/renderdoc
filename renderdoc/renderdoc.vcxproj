@@ -108,6 +108,7 @@
   <ItemGroup>
     <ClInclude Include="3rdparty\android\android_manifest.h" />
     <ClInclude Include="3rdparty\catch\catch.hpp" />
+    <ClInclude Include="3rdparty\catch\official\catch.hpp" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\ARM\target_arm.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\code_generator.h" />

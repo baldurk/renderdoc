@@ -1941,19 +1941,6 @@ Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
 
 #include "3rdparty/catch/catch.hpp"
 
-#define CATCH_TOSTR(type)                                                  \
-  namespace Catch                                                          \
-  {                                                                        \
-  template <>                                                              \
-  struct StringMaker<type>                                                 \
-  {                                                                        \
-    static std::string convert(type const &value) { return ToStr(value); } \
-  };                                                                       \
-  }
-
-CATCH_TOSTR(CompType);
-CATCH_TOSTR(GLenum);
-
 TEST_CASE("GL formats", "[format][gl]")
 {
   // must be updated by hand
@@ -2136,7 +2123,7 @@ TEST_CASE("GL formats", "[format][gl]")
       if(fmt.type != ResourceFormatType::Regular)
         continue;
 
-      INFO("Format is " << ToStr(f));
+      INFO("Format is " << f);
 
       uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
 
