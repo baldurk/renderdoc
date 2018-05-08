@@ -33,4 +33,4 @@ By default the table is sorted by EID, but each column is sortable individually 
 
 .. |save| image:: ../imgs/icons/save.png
 
-Clicking the |save| button lets you save the results of the counters as csv.
+Clicking the |save| button lets you save the results of the counters as CSV.

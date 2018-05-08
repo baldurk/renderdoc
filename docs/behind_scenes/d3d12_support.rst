@@ -10,7 +10,7 @@ D3D12 is intended as to have low CPU overhead and be fully threadable, and Rende
 
 Some patterns of access are more or less conducive to good performance on RenderDoc, so if you are having trouble with slow capture, large memory/disk overhead or slow replay you might want to try eliminating use of persistent maps of resources. If you do have persistent maps, ensure that either the memory allocation is small or that you have only a few queue submits during the frame - since RenderDoc must compare the whole allocation at every submit to determine what might have changed and save out the delta.
 
-Likewise try to avoid making very large memory allocations in the range of 1GB and above. By its nature RenderDoc must save one or more copies of memory allocations to enable proper capture, so having allocations limited to only a few 100s of MBs can help gain granularity of management and limit the memory overhead RenderDoc adds. There may be optimisation of this in future on RenderDoc's side but there are no easy guarantees.
+Likewise try to avoid making very large memory allocations in the range of 1GB and above. By its nature RenderDoc must save one or more copies of memory allocations to enable proper capture, so having allocations limited to only a few 100s of megabytes can help gain granularity of management and limit the memory overhead RenderDoc adds. There may be optimisation of this in future on RenderDoc's side but there are no easy guarantees.
 
 Current support
 ---------------

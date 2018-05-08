@@ -112,7 +112,7 @@ There are four other buttons available for control of the range:
 
 * |wand| **Autofit** - This button automatically fits the range control to the min and max values in any visible channels in the texture. Oftentimes this is a good starting point for a range, although with some extreme textures it may adjust badly.
 
-  Right clicking on this button will cause it to always auto-fit until you disable this. ie. when you move to another event or another texture, the range will be auto-fit again. This is useful if jumping between events or textures where the visible ranges are very different.
+  Right clicking on this button will cause it to always auto-fit until you disable this. i.e. when you move to another event or another texture, the range will be auto-fit again. This is useful if jumping between events or textures where the visible ranges are very different.
 
 * |arrow_undo| **Reset** - Simply resets the range back to the default of [0, 1] - useful for resetting after changing to a new texture where the range settings aren't applicable.
 
@@ -173,7 +173,7 @@ Gamma display of Linear Data
 
   | γ Gamma display
 
-A proper explanation of this is available in the :ref:`FAQ <gamma-linear-display>`. In short, linear data is 'overcorrected' to look as expected, but this behaviour can be overridden by toggling off this option.
+A proper explanation of this is available in the :ref:`FAQ <gamma-linear-display>`. In short, linear data is 'over-corrected' to look as expected, but this behaviour can be overridden by toggling off this option.
 
 Alpha background
 ~~~~~~~~~~~~~~~~

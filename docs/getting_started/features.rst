@@ -60,7 +60,7 @@ Current Common Feature set
 * Python scripting console with full documented API, giving complete access to RenderDoc internals, core data structures, and the Qt UI itself.
 * Import and Export of captures
 
-    * Captures have an internal in-memory representation containing the full serialised data of all function calls, as well as associated metadat.
+    * Captures have an internal in-memory representation containing the full serialised data of all function calls, as well as associated metadata.
     * This capture representation can be used to export an ``.rdc`` file to another form that's easier for external tools to work with such as ``.xml``.
     * If the external format contains full expression of data, it can then be imported again back into an ``.rdc`` after modification.
     * This also allows generation of RenderDoc captures from arbitrary data into a standard format.
@@ -95,7 +95,7 @@ OpenGL & OpenGL ES
 * Support for OpenGL ES 2.0 - 3.2 on Linux and Android.
 * Tree hierarchy of events defined by any of the standard or vendor-specific extensions, and ``KHR_debug`` object labels used for object naming.
 
-Captures have a very limited amount of portability between machines. Many hardware-specific feature uses are baked into captures, and portability depends on how similar the captuer and replay hardware are, whether these feature uses can map the same in both cases. Captures are however completely portable between different OSes with sufficiently comparable hardware.
+Captures have a very limited amount of portability between machines. Many hardware-specific feature uses are baked into captures, and portability depends on how similar the capture and replay hardware are, whether these feature uses can map the same in both cases. Captures are however completely portable between different OSes with sufficiently comparable hardware.
 
 See Also
 --------

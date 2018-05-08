@@ -183,7 +183,7 @@ This option tries to make the disassembly of shaders easier to read by substitut
 
 Here you can configure external tools that disassemble binary SPIR-V into a human-readable representation.
 
-Some built-in tools are supported such as SPIRV-Cross and spirv-dis, for these tools if they can be autodetected they will already be present, and they may be distributed with RenderDoc builds in case a version isn't installed on the system.
+Some built-in tools are supported such as SPIRV-Cross and spirv-dis, for these tools if they can be auto-detected they will already be present, and they may be distributed with RenderDoc builds in case a version isn't installed on the system.
 
 Other custom tools can be configured, but for those the command line arguments must be configured. The command line arguments will have ``{spv_bin}`` replaced with the full path to the binary SPIR-V file, and ``{spv_disasm}`` with the path of where the human-readable output must be written to.
 
@@ -280,6 +280,6 @@ This setting, if present, will override all other search paths and be looked in 
 
   | :guilabel:`Max Connection Timeout` Default: ``30 seconds``
 
-Some Android programs take a long time to start up before they begin renderding. This setting allows you to define a timeout before RenderDoc will consider the execution and connection to have failed.
+Some Android programs take a long time to start up before they begin rendering. This setting allows you to define a timeout before RenderDoc will consider the execution and connection to have failed.
 
 This only applies to running Android programs.

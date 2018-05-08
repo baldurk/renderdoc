@@ -318,7 +318,7 @@ The other way is a closer integration, where your code will explicitly load Rend
     It is advised to call this function twice - first to obtain ``pathlength`` so that sufficient space can be allocated. Then again to actually retrieve the path.
 
 
-The path follows the template set in :cpp:func:`SetLogFilePathTemplate` so it may not be an absolute path.
+The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so it may not be an absolute path.
 
 .. cpp:function:: void TriggerCapture()
 

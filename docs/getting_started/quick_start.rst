@@ -14,7 +14,7 @@ To capture a frame, begin by selecting :guilabel:`File` → :guilabel:`Launch Ap
 
     Launching an executable
 
-The defaults work pretty well in most situations, so you can just either browse to or drag in your exe into the Executable box. If the working directory box is empty then the Executable's directory will be used. Enter any command line you may need and click Launch to launch the application with RenderDoc.
+The defaults work pretty well in most situations, so you can just either browse to or drag in your exe into the Executable box. If the working directory box is empty then the executable's directory will be used. Enter any command line you may need and click Launch to launch the application with RenderDoc.
 
 More details of the specific options and their functionality can be found in the details page for the :doc:`../window/capture_attach`.
 
@@ -37,7 +37,7 @@ When ready, press the Capture Key (:kbd:`F12` or :kbd:`Print Screen`) and the ne
 
     The in-application RenderDoc Overlay
 
-When the application exits, if you captured a frame it will automatically start to open in the RenderDoc UI. If you didn't capture a frame then nothing will happen and the RenderDoc UI will be back as it was when you clicked Lanuch.
+When the application exits, if you captured a frame it will automatically start to open in the RenderDoc UI. If you didn't capture a frame then nothing will happen and the RenderDoc UI will be back as it was when you clicked Launch.
 
 
 If you made multiple captures you will see a thumbnail list that allows you to open (in the current instance or a new instance to compare side-by-side), save and delete them as you wish. You can also access this view while the program is still running, see :doc:`../window/capture_connection` for more information on taking multiple frame captures. Note however that for the simple use-case, you don't need to worry about this!
@@ -139,7 +139,7 @@ The timeline bar is essentially an alternate view of the frame, with the horizon
 
 The frame marker hierarchy is top-down in this case, and can be expanded or collapsed by clicking on each section. In this image, "Render Scene" and "Toon shading draw" are both expanded, but the other sections remain collapsed. Each drawcall is rendered as a blue pip underneath the section of the hierarchy that it is a child of. The current drawcall (if visible) is rendered as a green circle.
 
-There is a vertical line around the current drawcall, as well as a |flag_green| above, and a grey outline around the event where the mouse is hovering.
+There is a vertical line around the current drawcall, as well as a |flag_green| above, and a gray outline around the event where the mouse is hovering.
 
 When the currently selected texture is used in the frame, each drawcall that references it draws a marker below the bar. A purple marker indicates that the drawcall at that point is writing to the texture, and a green marker indicates that it is reading. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular drawcall unless you zoom in.
 

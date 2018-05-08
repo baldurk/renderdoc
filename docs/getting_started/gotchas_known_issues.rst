@@ -12,7 +12,7 @@ Things to Note
 
 * RenderDoc doesn't serialise out the initial contents of large graphics resources when it believes that they will not be used in replay. e.g. a G-Buffer render target will not be saved out as it is initialised and written to in-frame. This detection will go wrong if a render target is partially written to but partially re-used, as RenderDoc will count this as initialised in-frame. This could happen e.g. with an accumulating texture that is written to in the frame over the top of previous results.
 
-  You can override this behaviour by selecting 'Save All Initials' in the :doc:`capture options <../how/how_capture_frame>` before capturing, as this will force RenderDoc to serialise out all initial contents regardless, at the cost of larger logfiles and slightly slower replay app analysis.
+  You can override this behaviour by selecting 'Save All Initials' in the :doc:`capture options <../how/how_capture_frame>` before capturing, as this will force RenderDoc to serialise out all initial contents regardless, at the cost of larger capture files and slightly slower replay app analysis.
 
 * When capturing, only one swapchain is captured at any given time. The in-app overlay renders to all swapchains but only one is considered "active" at any given time - this can be cycled with the F11 key. The capture key will trigger a capture at the next swap of the currently active swapchain.
 

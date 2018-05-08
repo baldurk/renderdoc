@@ -49,7 +49,7 @@ In the 3D Mesh preview, you have the option to display the mesh with some solid 
 * Flat Shaded will perform basic flat lighting calculations based on triangle normals to give a better idea of the topology of the mesh.
 * Secondary will display the selected secondary mesh element.
 
-To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as color, or alpha as greyscale.
+To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as color, or alpha as grayscale.
 
 The selection will be remembered as long as the mesh format stays consistent between draws.
 
@@ -65,7 +65,7 @@ The dropdown above the mesh view will let you choose to show :guilabel:`this dra
 
 These let you narrow or expand the mesh outputs displayed. At minimum you will see the current draw - a specific instance, if the drawcall is an instanced draw. You can also display other instances in the same drawcall (either up to the selected instance, or all instances before or after the selected instance). Finally you can opt to display all other meshes up to the current draw in the same notional render pass.
 
-The current draw is always dark tinted, instances within the same draw have a lighter red color, and other drawcalls in the pass will be light grey.
+The current draw is always dark tinted, instances within the same draw have a lighter red color, and other drawcalls in the pass will be light gray.
 
 Raw Buffer Viewer
 -----------------

@@ -47,7 +47,7 @@ Next you can queue a capture at a specific frame number, if you know that a bug 
 
 .. note::
 
-	Note, capturing a frame in RenderDoc will cause a noticable stall on any non-trivial application, so if you are investigating a timing issue often this can throw things off and hide the bug. However capturing multiple frames can be useful when you know a bug alternates every N frames, or you specifically want to debug how N sequential frames look and you know extreme frame times won't skew the results.
+   Capturing a frame in RenderDoc will cause a noticeable stall on any non-trivial application, so if you are investigating a timing issue often this can throw things off and hide the bug. However capturing multiple frames can be useful when you know a bug alternates every N frames, or you specifically want to debug how N sequential frames look and you know extreme frame times won't skew the results.
 
 During running or after the application has closed, all captures will appear as thumbnails here. As mentioned above, if only one capture is made and the application is closed the capture dialog will automatically begin to load it up in the UI. Otherwise you can use this window to browse the captures, save and delete any frame captures, and open them either in the currently running UI or in a new separate instance.
 

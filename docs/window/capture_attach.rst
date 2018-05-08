@@ -95,7 +95,7 @@ This option modifies the above capturing of callstacks to only be saved for draw
 
   | :guilabel:`Enable API validation` Default: ``Disabled``
 
-Enable API validation causes RenderDoc to enable the API's built-in debugging, and where possible serialise this out and include it in the logfile for later inspection in the :doc:`debug_messages` window.
+Enable API validation causes RenderDoc to enable the API's built-in debugging, and where possible serialise this out and include it in the capture for later inspection in the :doc:`debug_messages` window.
 
 * On D3D11 & D3D12 this will activate the D3D debug layer and save out any messages.
 * For OpenGL this means ``ARB_debug_output`` is automatically enabled.
@@ -116,7 +116,7 @@ This option causes RenderDoc to hook into process creation calls from the target
 
   | :guilabel:`Save All Initials` Default: ``Disabled``
 
-RenderDoc will attempt to save overhead and particularly capture filesize by omitting the initial contents of 2D textures that it believes will be unnecessary. Typically these textures are render targets or depth buffers that will be written to and fully covered in the course of the frame before they are ever read, and so saving their initial contents is unnecessary.
+RenderDoc will attempt to save overhead and particularly capture file size by omitting the initial contents of 2D textures that it believes will be unnecessary. Typically these textures are render targets or depth buffers that will be written to and fully covered in the course of the frame before they are ever read, and so saving their initial contents is unnecessary.
 
 In some cases this detection will be wrong, such as targets that are partially written such as pools, or if a target is accumulated to via blend modes. When this is the case, enabling Save All Initials will force RenderDoc to save these textures regardless of any auto-detection.
 
@@ -124,7 +124,7 @@ In some cases this detection will be wrong, such as targets that are partially w
 
   | :guilabel:`Ref All Resources` Default: ``Disabled``
 
-One method RenderDoc uses to keep logfile sizes down is to only include the referenced dependencies of a frame within a capture. This means that even if 100 textures are allocated and present, if 50 of them are never bound to the pipeline or otherwise referenced then they will not be included in the logfile. Enabling this option will cause RenderDoc to include all live resources at the time of capture regardless of whether they are used or not.
+One method RenderDoc uses to keep capture file sizes down is to only include the referenced dependencies of a frame within a capture. This means that even if 100 textures are allocated and present, if 50 of them are never bound to the pipeline or otherwise referenced then they will not be included in the capture file. Enabling this option will cause RenderDoc to include all live resources at the time of capture regardless of whether they are used or not.
 
 ----------
 
@@ -191,7 +191,7 @@ RenderDoc implements this behaviour by modifying the `AppInit_DLLs <http://suppo
 
   If you have 'secure boot' enabled in Windows, the AppInit_DLLs registry key will not work. To use the global process hook you must disable secure boot.
 
-If RenderDoc crashes or something otherwise goes wrong while these registry keys are modified, the shim dll will continue to be injected into every process which is certainly not desireable. Should anything go wrong, RenderDoc writes a ``.reg`` file that restores the registry to its previous state in ``%TEMP%``.
+If RenderDoc crashes or something otherwise goes wrong while these registry keys are modified, the shim dll will continue to be injected into every process which is certainly not desirable. Should anything go wrong, RenderDoc writes a ``.reg`` file that restores the registry to its previous state in ``%TEMP%``.
 
 Again, **this method should be a last resort**. Given the risks you should always try to capture directly in some way before trying this.
 

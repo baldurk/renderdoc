@@ -13,7 +13,6 @@ Planned features
 * Debugging of all shader stages.
 * HLSL Debugging.
 * Mesh display after hull shader stage.
-* Perfkit/PerfHUD integration for vendor-specific detailed performance timers.
 * Diffing events in a given frame.
 * Modifying the pipeline on the fly to change state.
 * Highlighting redundant state-setting.

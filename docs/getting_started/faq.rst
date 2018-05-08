@@ -10,7 +10,7 @@ RenderDoc has some very light anonymous analytics to allow analysis of which fea
 
 The complete details of the analytics can be found in the page about :doc:`../behind_scenes/analytics`, but the brief outline is that RenderDoc records data **only in the replay program** and does not record any data that is specific to any captured programs. The data recorded is primarily boolean flags indicating whether or not a given feature, API, or platform is used or not. You can see the precise list of data gathered on your current RenderDoc build in the settings menu under the :guilabel:`Anonymous Analytics` section.
 
-The analytics data is summarised and transmitted securely and anonymously to RenderDoc's server. The aggeregated statistics are available for anyone to see at `the analytics homepage <https://renderdoc.org/analytics>`_.
+The analytics data is summarised and transmitted securely and anonymously to RenderDoc's server. The aggregated statistics are available for anyone to see at `the analytics homepage <https://renderdoc.org/analytics>`_.
 
 Enabling the analytics is greatly appreciated, if you have any concerns about the data gathered you can choose to manually verify each report before it's submitted.
 
@@ -62,7 +62,7 @@ Currently RenderDoc supports Vulkan 1.0, D3D11 (up to D3D11.3), D3D12, OpenGL 3.
 
 Vulkan support has :doc:`a few notes <../behind_scenes/vulkan_support>`, as does :doc:`D3D12 <../behind_scenes/d3d12_support>`.
 
-Future API support is at this point not clear; Metal, WebGL, and perhaps D3D9/D3D10 all being possible. Support for new APIs will be balanced against all other work such as features for existing APIs, bugfixes. So if you care strongly about support for a new API make sure to `file an issue on github <https://github.com/baldurk/renderdoc/issues>`_ or comment on an existing issue to register your interest.
+Future API support is at this point not clear; Metal, WebGL, and perhaps D3D9/D3D10 all being possible. Support for new APIs will be balanced against all other work such as features for existing APIs, bugfixes. So if you care strongly about support for a new API make sure to `file an issue on GitHub <https://github.com/baldurk/renderdoc/issues>`_ or comment on an existing issue to register your interest.
 
 How can I backup or restore my settings?
 ----------------------------------------
@@ -80,7 +80,7 @@ RenderDoc doesn't install any registry keys on windows aside from those required
 Which network ports does RenderDoc use?
 ---------------------------------------
 
-RenderDoc uses TCP and UDP ports ``38920-38927`` consecutively for remote access and control (ie. capturing remotely) for each new program that is opened on a machine. Note that even if you initiate a capture locally these ports are still opened for listening. These are the ports that are probed on a remote host to see if a connection exists.
+RenderDoc uses TCP and UDP ports ``38920-38927`` consecutively for remote access and control (i.e. capturing remotely) for each new program that is opened on a machine. Note that even if you initiate a capture locally these ports are still opened for listening. These are the ports that are probed on a remote host to see if a connection exists.
 
 RenderDoc also uses TCP and UDP ports ``39920`` for remote replay connections, for when a remote host is used to replay and analyse the capture.
 
@@ -123,9 +123,9 @@ For texture formats that explicitly specify that they contain sRGB data this isn
 
 For other textures it's more difficult - for starters they may actually contain sRGB data but the correction is handled by shaders so there's no markup. Or indeed the application may not be gamma-correct so the data is sRGB but uncorrected. If we display these textures in a technically correct way, such that the data is not over or under gamma-corrected, the result often looks 'wrong' or unintuitively different from expected.
 
-Nothing is actually wrong here except perhaps that when visualising linear data it is often more convenient to "overcorrect" such that the data is perceptually linear. A good example to use is a normal map: The classic deep blue of (127,127,255) flat normals is technically incorrect as everyone is used to visualising these textures in programs that display the data as if it were sRGB (which is the convention for normal images that do not represent vectors).
+Nothing is actually wrong here except perhaps that when visualising linear data it is often more convenient to "over-correct" such that the data is perceptually linear. A good example to use is a normal map: The classic deep blue of (127,127,255) flat normals is technically incorrect as everyone is used to visualising these textures in programs that display the data as if it were sRGB (which is the convention for normal images that do not represent vectors).
 
-You can override this behaviour on any texture that isn't listed as explicitly sRGB with the gamma (γ) button - toggle this off and the overcorrection will be disabled.
+You can override this behaviour on any texture that isn't listed as explicitly sRGB with the gamma (γ) button - toggle this off and the over-correction will be disabled.
 
 RenderDoc makes my bug go away! Or causes new artifacts that weren't there
 --------------------------------------------------------------------------

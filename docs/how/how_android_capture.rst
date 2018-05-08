@@ -3,7 +3,7 @@ How do I use RenderDoc on Android?
 
 RenderDoc contains support for Android for both Vulkan and OpenGL ES. It requires a couple of extra steps more than capturing on a desktop computer, but generally the workflow is very similar.
 
-Android support is still quite new, so if you run into any rough spots please `open an issue on github <https://github.com/baldurk/renderdoc/issues/new>`_ or `email me <mailto:baldurk@baldurk.org?subject=RenderDoc%20on%20Android>`_.
+Android support is still quite new, so if you run into any rough spots please `open an issue on GitHub <https://github.com/baldurk/renderdoc/issues/new>`_ or `email me <mailto:baldurk@baldurk.org?subject=RenderDoc%20on%20Android>`_.
 
 .. caution::
 
@@ -56,6 +56,6 @@ If you have Android Studio open, it will interfere with RenderDoc's debugging by
 
 RenderDoc does its best to locate or provide necessary android tools. On windows, these tools are shipped with the distributions and all that's required is java - either in your ``PATH`` or via the ``JAVA_HOME`` environment variable. If these tools aren't present then RenderDoc searches through ``PATH`` and other variables like ``ANDROID_HOME`` or ``ANDROID_SDK_ROOT`` to find the SDK. If you don't have those variables set, you can browse to the SDK and JDK folders in the :doc:`settings window <../window/settings_window>` under the :guilabel:`Android` section.
 
-If something goes wrong with these steps, please `open an issue on github <https://github.com/baldurk/renderdoc/issues/new>`__! The process should be as smooth as possible given Android's platform limitations, so if you encounter problems then it may well be fixable.
+If something goes wrong with these steps, please `open an issue on GitHub <https://github.com/baldurk/renderdoc/issues/new>`__! The process should be as smooth as possible given Android's platform limitations, so if you encounter problems then it may well be fixable.
 
 Often when an operation fails, more information is available via :guilabel:`Help` → :guilabel:`View Diagnostic Log`.

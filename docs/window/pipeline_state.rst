@@ -10,7 +10,7 @@ At the top of the Pipeline Viewer is the pipeline flowchart - this shows the hig
 
 Each block is a separate page which contains the relevant state and contents for that piece of the graphics pipeline, with specific details varying by API and the type of data to be displayed.
 
-The currently selected block is outlined with red, and the page in view reflects the contents of that section of the pipeline. Light grey parts of the pipeline are those which are currently active and participating in this drawcall. Dark grey parts of the pipeline are not enabled and can be considered pass-through/do-nothing.
+The currently selected block is outlined with red, and the page in view reflects the contents of that section of the pipeline. Light gray parts of the pipeline are those which are currently active and participating in this drawcall. Dark gray parts of the pipeline are not enabled and can be considered pass-through/do-nothing.
 
 .. figure:: ../imgs/Screenshots/PipelineBar.png
 

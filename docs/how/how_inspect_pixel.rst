@@ -54,7 +54,7 @@ Pixel History
 
 When you have a pixel selected, you can click 'History' to open up a pixel history view showing every modification to the selected texture from the start of the frame to the currently selected event.
 
-This display shows each modifying event as its own row, colored as to whether any modifications happened from this event or not - green for fragments that passed all pipeline tests, red for where fragments failed some test, and light grey for arbitrary shader writable resources where it's unknown if there was a write.
+This display shows each modifying event as its own row, colored as to whether any modifications happened from this event or not - green for fragments that passed all pipeline tests, red for where fragments failed some test, and light gray for arbitrary shader writable resources where it's unknown if there was a write.
 
 You can expand each event to see if there were multiple fragments, and see the shader output value from each fragment.
 

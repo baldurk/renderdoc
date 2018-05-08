@@ -21,7 +21,7 @@ Timeline Display
 
 By default the timeline bar views the whole frame, but with the mouse wheel you can zoom in and out. When zoomed in, you can scroll through the frame with the horizontal scroll bar.
 
-Underneath expanded sections, a blue pip is rendered for each drawcall-type event. The currently selected event is shown as a green pip, as well as there being a light grey vertical line to indicate the current position, such that this is visible even when the relevant section is not expanded.
+Underneath expanded sections, a blue pip is rendered for each drawcall-type event. The currently selected event is shown as a green pip, as well as there being a light gray vertical line to indicate the current position, such that this is visible even when the relevant section is not expanded.
 
 Clicking on any section will toggle it between expanded and unexpanded, and any sections underneath a section which is collapsed will remain in their previous state but will not be visible.
 
@@ -45,7 +45,7 @@ A colored triangle will be drawn under each pip that reads from the texture. If 
 Pixel history event Display
 ---------------------------
 
-When a pixel history window is focussed, the timeline bar will show the results over each EID with a red triangle to show rejected pixels and green triangles to show passed pixels.
+When a pixel history window is focused, the timeline bar will show the results over each EID with a red triangle to show rejected pixels and green triangles to show passed pixels.
 
 .. figure:: ../imgs/Screenshots/PixelHistoryTimeline.png
 

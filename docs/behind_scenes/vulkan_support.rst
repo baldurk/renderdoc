@@ -26,7 +26,7 @@ Vulkan is intended as a high-performance low CPU overhead API, and RenderDoc str
 
 Some patterns of access are more or less conducive to good performance on RenderDoc, so if you are having trouble with slow capture, large memory/disk overhead or slow replay you might want to try eliminating use of persistent maps of memory from coherent heaps - you can use ``vkFlushMappedMemoryRanges`` to emulate non-coherent heaps and RenderDoc will take advantage of that, or you can use non-persistent maps.
 
-Likewise try to avoid making very large memory allocations in the range of 1GB and above. By its nature RenderDoc must save one or mor copies of memory allocations to enable proper capture, so having allocations limited to only a few 100s of MBs can help gain granularity of management and limit the memory overhead RenderDoc adds. There may be optimisation of this in future on RenderDoc's side but there are no easy guarantees.
+Likewise try to avoid making very large memory allocations in the range of 1GB and above. By its nature RenderDoc must save one or more copies of memory allocations to enable proper capture, so having allocations limited to only a few 100s of megabytes can help gain granularity of management and limit the memory overhead RenderDoc adds. There may be optimisation of this in future on RenderDoc's side but there are no easy guarantees.
 
 Current support
 ---------------
