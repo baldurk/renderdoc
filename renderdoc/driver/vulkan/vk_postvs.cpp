@@ -177,9 +177,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       auto replIt = typeReplacements.find(it.word(1));
       if(replIt != typeReplacements.end())
       {
-        mod = true;
         if(!mod)
           editor.PreModify(it);
+        mod = true;
         it.word(1) = typeReplacements[it.word(1)];
       }
 
