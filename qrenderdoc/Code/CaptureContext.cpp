@@ -969,7 +969,7 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
   if(status != ReplayStatus::Succeeded)
   {
     QString text = tr("Couldn't open file '%1' for export\n").arg(filename);
-    QString message = local->ErrorString();
+    QString message = file->ErrorString();
     if(message.isEmpty())
       text += tr("%1").arg(ToQStr(status));
     else
