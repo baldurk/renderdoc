@@ -261,6 +261,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     set_source_files_properties(3rdparty/tinyexr/tinyexr.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")
 
+    set_source_files_properties(3rdparty/miniz/miniz.c
+        PROPERTIES COMPILE_FLAGS "-Wno-attributes")
+
     # Need to add -Wno-unknown-warning-option since some clang versions don't have
     # -Wno-shift-negative-value available
     set_source_files_properties(3rdparty/jpeg-compressor/jpgd.cpp
