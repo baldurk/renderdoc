@@ -3458,7 +3458,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       // log (which might make this combination valid on replay without some of the targets!)
       for(UINT i = 0; i < NumUAVs; i++)
       {
-        if(UAVs && UAVs[i])
+        if(UAVs[i])
         {
           MarkResourceReferenced(GetIDForResource(UAVs[i]), eFrameRef_Read);
           MarkResourceReferenced(GetViewResourceResID(UAVs[i]), eFrameRef_Read);

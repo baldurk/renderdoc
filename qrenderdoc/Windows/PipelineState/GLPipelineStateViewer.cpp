@@ -839,9 +839,6 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
 
         node->setTag(QVariant::fromValue(idx));
 
-        if(!filledSlot)
-          setEmptyRow(node);
-
         if(!usedSlot)
           setInactiveRow(node);
 
