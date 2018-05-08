@@ -1293,13 +1293,13 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
       if(vi->pVertexBindingDescriptions[vb].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
       {
-        len = (maxInstance + 1) * vi->pVertexBindingDescriptions[vb].stride;
+        len = uint64_t(maxInstance + 1) * vi->pVertexBindingDescriptions[vb].stride;
 
         offs += drawcall->instanceOffset * vi->pVertexBindingDescriptions[vb].stride;
       }
       else
       {
-        len = (maxIndex + 1) * vi->pVertexBindingDescriptions[vb].stride;
+        len = uint64_t(maxIndex + 1) * vi->pVertexBindingDescriptions[vb].stride;
 
         offs += drawcall->vertexOffset * vi->pVertexBindingDescriptions[vb].stride;
       }

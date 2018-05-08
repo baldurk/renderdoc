@@ -377,7 +377,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       idxs.resize(length);
       gl.glGetBufferSubData(
           eGL_ELEMENT_ARRAY_BUFFER, offset,
-          RDCMIN(GLsizeiptr(length - offset), GLsizeiptr(draw->numIndices * draw->indexByteWidth)),
+          RDCMIN(GLsizeiptr(length - offset), GLsizeiptr(draw->numIndices) * draw->indexByteWidth),
           &idxs[0]);
 
       // unbind the real index buffer
