@@ -363,6 +363,10 @@
 				<param name="Local" value="window/python_shell.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Shader Viewer">
+				<param name="Local" value="window/shader_viewer.html">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Texture Viewer">
 				<param name="Local" value="window/texture_viewer.html">
 		</OBJECT>

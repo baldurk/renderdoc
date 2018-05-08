@@ -181,6 +181,8 @@ This option tries to make the disassembly of shaders easier to read by substitut
 
   | :guilabel:`Vulkan Disassemblers`
 
+.. _vulkan-disassem:
+
 Here you can configure external tools that disassemble binary SPIR-V into a human-readable representation.
 
 Some built-in tools are supported such as SPIRV-Cross and spirv-dis, for these tools if they can be auto-detected they will already be present, and they may be distributed with RenderDoc builds in case a version isn't installed on the system.

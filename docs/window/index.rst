@@ -9,6 +9,7 @@ Window reference
 	event_browser
 	settings_window
 	pipeline_state
+	shader_viewer
 	timeline_bar
 	capture_connection
 	debug_messages
