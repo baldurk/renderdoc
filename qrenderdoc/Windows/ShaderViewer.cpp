@@ -312,7 +312,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
 
-      GUIInvoke::call([this, targets, disasm]() {
+      GUIInvoke::call(this, [this, targets, disasm]() {
         QStringList targetNames;
         for(const rdcstr &t : targets)
         {
@@ -909,7 +909,7 @@ void ShaderViewer::disassemble_typeChanged(int index)
   m_Ctx.Replay().AsyncInvoke([this, target](IReplayController *r) {
     rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
 
-    GUIInvoke::call([this, disasm]() {
+    GUIInvoke::call(this, [this, disasm]() {
       m_DisassemblyView->setReadOnly(false);
       m_DisassemblyView->setText(disasm.c_str());
       m_DisassemblyView->setReadOnly(true);

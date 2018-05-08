@@ -215,7 +215,7 @@ void PerformanceCounterViewer::CaptureCounters()
 
     const rdcarray<CounterResult> results = controller->FetchCounters(counters);
 
-    GUIInvoke::call([this, results, counterDescriptions, counterIndex]() -> void {
+    GUIInvoke::call(this, [this, results, counterDescriptions, counterIndex]() {
       ui->counterResults->clear();
 
       QStringList headers;

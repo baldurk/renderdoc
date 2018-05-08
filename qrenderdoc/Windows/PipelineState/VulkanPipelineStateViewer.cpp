@@ -2401,7 +2401,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
       m_Ctx.Replay().AsyncInvoke([this, stage, pipe, shaderDetails, entryFunc](IReplayController *r) {
         rdcstr disasm = r->DisassembleShader(pipe, shaderDetails, "");
 
-        GUIInvoke::call([this, stage, shaderDetails, entryFunc, disasm]() {
+        GUIInvoke::call(this, [this, stage, shaderDetails, entryFunc, disasm]() {
           rdcstrpairs fileMap;
           fileMap.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", disasm));
           m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, fileMap);

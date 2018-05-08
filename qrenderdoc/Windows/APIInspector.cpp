@@ -106,7 +106,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
       m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *) {
         rdcarray<rdcstr> stack = m_Ctx.Replay().GetCaptureAccess()->GetResolve(ev.callstack);
 
-        GUIInvoke::call([this, stack]() { addCallstack(stack); });
+        GUIInvoke::call(this, [this, stack]() { addCallstack(stack); });
       });
     }
     else

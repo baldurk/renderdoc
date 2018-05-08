@@ -193,7 +193,7 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
     else if(!m_Drawcalls.empty())
       SetEventID(viewers, m_Drawcalls.back().eventId, true);
 
-    GUIInvoke::blockcall([&viewers]() {
+    GUIInvoke::blockcall(m_MainWindow, [&viewers]() {
       // notify all the registers viewers that a capture has been loaded
       for(ICaptureViewer *viewer : viewers)
       {
@@ -1062,7 +1062,7 @@ void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
 
   if(m_DebugMessageView)
   {
-    GUIInvoke::call([this]() { m_DebugMessageView->RefreshMessageList(); });
+    GUIInvoke::call(m_DebugMessageView, [this]() { m_DebugMessageView->RefreshMessageList(); });
   }
 }
 

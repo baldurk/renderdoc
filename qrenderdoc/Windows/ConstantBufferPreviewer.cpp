@@ -120,7 +120,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
     m_Ctx.Replay().AsyncInvoke([this, offs, size, wasEmpty](IReplayController *r) {
       bytebuf data = r->GetBufferData(m_cbuffer, offs, size);
       rdcarray<ShaderVariable> vars = applyFormatOverride(data);
-      GUIInvoke::call([this, vars, wasEmpty] {
+      GUIInvoke::call(this, [this, vars, wasEmpty] {
         setVariables(vars);
         if(wasEmpty)
         {
@@ -135,7 +135,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
     m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, wasEmpty](IReplayController *r) {
       rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
           m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
-      GUIInvoke::call([this, vars, wasEmpty] {
+      GUIInvoke::call(this, [this, vars, wasEmpty] {
         setVariables(vars);
         if(wasEmpty)
         {

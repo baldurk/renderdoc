@@ -841,16 +841,16 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           std::tie(to, errs) = r->BuildTargetShader(
               entryFunc.toUtf8().data(), compileSource.toUtf8().data(), flags, shaderType);
 
-          GUIInvoke::call([viewer, errs]() { viewer->ShowErrors(errs); });
+          GUIInvoke::call(viewer->Widget(), [viewer, errs]() { viewer->ShowErrors(errs); });
           if(to == ResourceId())
           {
             r->RemoveReplacement(from);
-            GUIInvoke::call([ctx]() { ctx->RefreshStatus(); });
+            GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
           }
           else
           {
             r->ReplaceResource(from, to);
-            GUIInvoke::call([ctx]() { ctx->RefreshStatus(); });
+            GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
           }
         });
       },
@@ -861,7 +861,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
         // was a place to control replaced resources/shaders).
         ctx->Replay().AsyncInvoke([ctx, id](IReplayController *r) {
           r->RemoveReplacement(id);
-          GUIInvoke::call([ctx] { ctx->RefreshStatus(); });
+          GUIInvoke::call(ctx->GetMainWindow()->Widget(), [ctx] { ctx->RefreshStatus(); });
         });
       });
 

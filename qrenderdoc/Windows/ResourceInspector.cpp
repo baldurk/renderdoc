@@ -218,7 +218,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
     rdcarray<ShaderEntryPoint> entries = r->GetShaderEntryPoints(id);
 
-    GUIInvoke::call([this, entries, usage] {
+    GUIInvoke::call(this, [this, entries, usage] {
 
       if(!entries.isEmpty())
       {
@@ -450,13 +450,13 @@ void ResourceInspector::on_viewContents_clicked()
 
     ResourceId id = m_Resource;
     ICaptureContext *ctx = &m_Ctx;
-    m_Ctx.Replay().AsyncInvoke([ctx, id, entry](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, ctx, id, entry](IReplayController *r) {
       ShaderReflection *refl = r->GetShader(id, entry);
 
       if(!refl)
         return;
 
-      GUIInvoke::call([ctx, refl] {
+      GUIInvoke::call(this, [ctx, refl] {
         IShaderViewer *viewer = ctx->ViewShader(refl, ResourceId());
 
         ctx->AddDockWindow(viewer->Widget(), DockReference::MainToolArea, NULL);

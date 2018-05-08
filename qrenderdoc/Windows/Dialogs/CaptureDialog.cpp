@@ -402,7 +402,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
       if(admin)
       {
         RunProcessAsAdmin(qApp->applicationFilePath(),
-                          QStringList() << lit("--install_vulkan_layer") << lit("root"),
+                          QStringList() << lit("--install_vulkan_layer") << lit("root"), this,
                           [this]() { ui->vulkanLayerWarn->setVisible(false); });
         return;
       }
@@ -435,7 +435,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
     if(!debuggable && !hasroot)
     {
       // Check failed - set the warning visible
-      GUIInvoke::call([this]() {
+      GUIInvoke::call(this, [this]() {
         ui->androidScan->setVisible(false);
         ui->androidWarn->setVisible(true);
       });
@@ -443,7 +443,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
     else
     {
       // Check passed, either app is debuggable or we have root - no warnings needed
-      GUIInvoke::call([this]() {
+      GUIInvoke::call(this, [this]() {
         ui->androidScan->setVisible(false);
         ui->androidWarn->setVisible(false);
       });

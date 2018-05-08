@@ -808,37 +808,39 @@ int GUIInvoke::methodIndex = -1;
 
 void GUIInvoke::init()
 {
-  GUIInvoke *invoke = new GUIInvoke();
+  GUIInvoke *invoke = new GUIInvoke(NULL, {});
   methodIndex = invoke->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("doInvoke()"));
 }
 
-void GUIInvoke::call(const std::function<void()> &f)
+void GUIInvoke::call(QObject *obj, const std::function<void()> &f)
 {
   if(onUIThread())
   {
-    f();
+    if(obj)
+      f();
     return;
   }
 
-  defer(f);
+  defer(obj, f);
 }
 
-void GUIInvoke::defer(const std::function<void()> &f)
+void GUIInvoke::defer(QObject *obj, const std::function<void()> &f)
 {
-  GUIInvoke *invoke = new GUIInvoke(f);
+  GUIInvoke *invoke = new GUIInvoke(obj, f);
   invoke->moveToThread(qApp->thread());
   invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::QueuedConnection);
 }
 
-void GUIInvoke::blockcall(const std::function<void()> &f)
+void GUIInvoke::blockcall(QObject *obj, const std::function<void()> &f)
 {
   if(onUIThread())
   {
-    f();
+    if(obj)
+      f();
     return;
   }
 
-  GUIInvoke *invoke = new GUIInvoke(f);
+  GUIInvoke *invoke = new GUIInvoke(obj, f);
   invoke->moveToThread(qApp->thread());
   invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::BlockingQueuedConnection);
 }
@@ -906,7 +908,7 @@ QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget
   QMessageBox::StandardButton ret = defaultButton;
 
   // if we're already on the right thread, this boils down to a function call
-  GUIInvoke::blockcall([&]() {
+  GUIInvoke::blockcall(parent, [&]() {
     QMessageBox mb(icon, title, text, buttons, parent);
     mb.setDefaultButton(defaultButton);
     show(&mb);
@@ -924,7 +926,7 @@ QMessageBox::StandardButton RDDialog::messageBoxChecked(QMessageBox::Icon icon, 
   QMessageBox::StandardButton ret = defaultButton;
 
   // if we're already on the right thread, this boils down to a function call
-  GUIInvoke::blockcall([&]() {
+  GUIInvoke::blockcall(parent, [&]() {
     QMessageBox mb(icon, title, text, buttons, parent);
     mb.setDefaultButton(defaultButton);
     mb.setCheckBox(checkBox);
@@ -1321,7 +1323,7 @@ bool IsRunningAsAdmin()
 }
 
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
-                       std::function<void()> finishedCallback)
+                       QWidget *parent, std::function<void()> finishedCallback)
 {
 #if defined(Q_OS_WIN32)
 
@@ -1352,10 +1354,10 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
       HANDLE h = info.hProcess;
 
       // do the wait on another thread
-      LambdaThread *thread = new LambdaThread([h, finishedCallback]() {
+      LambdaThread *thread = new LambdaThread([h, parent, finishedCallback]() {
         WaitForSingleObject(h, 30000);
         CloseHandle(h);
-        GUIInvoke::call(finishedCallback);
+        GUIInvoke::call(parent, finishedCallback);
       });
       thread->selfDelete(true);
       thread->start();
@@ -1582,15 +1584,15 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
       QThread::msleep(30);
 
       if(update)
-        GUIInvoke::call([update, &dialog]() { dialog.setPercentage(update()); });
+        GUIInvoke::call(&dialog, [update, &dialog]() { dialog.setPercentage(update()); });
 
-      GUIInvoke::call([finished, &tickerSemaphore]() {
+      GUIInvoke::call(&dialog, [finished, &tickerSemaphore]() {
         if(finished())
           tickerSemaphore.tryAcquire();
       });
     }
 
-    GUIInvoke::call([&dialog]() { dialog.closeAndReset(); });
+    GUIInvoke::call(&dialog, [&dialog]() { dialog.closeAndReset(); });
   });
   progressTickerThread.start();
 

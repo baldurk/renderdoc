@@ -483,13 +483,10 @@ void RDHeaderView::setRootIndex(const QModelIndex &index)
   // *before* the root index changes).
   if(!m_sectionStretchHints.isEmpty())
   {
-    QPointer<RDHeaderView> ptr;
-    GUIInvoke::defer([ptr]() {
-      if(ptr)
-      {
-        ptr->cacheSectionMinSizes();
-        ptr->resizeSectionsWithHints();
-      }
+    QPointer<RDHeaderView> ptr = this;
+    GUIInvoke::defer(this, [this]() {
+      cacheSectionMinSizes();
+      resizeSectionsWithHints();
     });
   }
 }

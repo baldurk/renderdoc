@@ -228,29 +228,32 @@ struct OverloadedSlot
 // wise not to require a higher version that necessary.
 #include <functional>
 
+#include <QPointer>
+
 class GUIInvoke : public QObject
 {
 private:
   Q_OBJECT
-  GUIInvoke(const std::function<void()> &f) : func(f) {}
-  GUIInvoke() {}
+  GUIInvoke(QObject *obj, const std::function<void()> &f) : ptr(obj), func(f) {}
+  QPointer<QObject> ptr;
   std::function<void()> func;
 
   static int methodIndex;
 
 public:
   static void init();
-  static void call(const std::function<void()> &f);
-  static void blockcall(const std::function<void()> &f);
+  static void call(QObject *obj, const std::function<void()> &f);
+  static void blockcall(QObject *obj, const std::function<void()> &f);
   static bool onUIThread();
 
   // same as call() above, but it doesn't check for an instant call on the UI thread
-  static void defer(const std::function<void()> &f);
+  static void defer(QObject *obj, const std::function<void()> &f);
 
 protected slots:
   void doInvoke()
   {
-    func();
+    if(ptr)
+      func();
     deleteLater();
   }
 };
@@ -526,6 +529,7 @@ typedef std::function<bool()> ProgressFinishedMethod;
 QStringList ParseArgsList(const QString &args);
 bool IsRunningAsAdmin();
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
+                       QWidget *parent = NULL,
                        std::function<void()> finishedCallback = std::function<void()>());
 
 void RevealFilenameInExternalFileBrowser(const QString &filePath);

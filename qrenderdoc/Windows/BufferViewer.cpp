@@ -1511,7 +1511,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       buf->end = buf->data + data.size();
     }
 
-    GUIInvoke::call([this, buf, vsinHoriz, vsoutHoriz, gsoutHoriz] {
+    GUIInvoke::call(this, [this, buf, vsinHoriz, vsoutHoriz, gsoutHoriz] {
 
       if(buf)
       {
@@ -1850,7 +1850,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   LambdaThread *thread = new LambdaThread([this, bbox] {
     calcBoundingData(*bbox);
 
-    GUIInvoke::call([this, bbox]() { updateBoundingBox(*bbox); });
+    GUIInvoke::call(this, [this, bbox]() { updateBoundingBox(*bbox); });
   });
   thread->selfDelete(true);
   thread->start();
@@ -2002,7 +2002,7 @@ void BufferViewer::resetArcball()
 
         m_Arcball->Reset(mid, len * 0.7f);
 
-        GUIInvoke::call([this, len]() { ui->camSpeed->setValue(len / 200.0f); });
+        GUIInvoke::call(this, [this, len]() { ui->camSpeed->setValue(len / 200.0f); });
       }
     }
   }
@@ -2661,7 +2661,7 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
       if(vertSelected != ~0U)
       {
-        GUIInvoke::call([this, vertSelected, instanceSelected] {
+        GUIInvoke::call(this, [this, vertSelected, instanceSelected] {
           int row = (int)vertSelected;
 
           if(instanceSelected != m_Config.curInstance)
@@ -2784,7 +2784,7 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayController *)
     m_Output->SetMeshDisplay(m_Config);
   }
 
-  GUIInvoke::call([this]() { ui->render->update(); });
+  GUIInvoke::call(this, [this]() { ui->render->update(); });
 }
 
 RDTableView *BufferViewer::tableForStage(MeshDataStage stage)
@@ -3297,7 +3297,7 @@ void BufferViewer::debugVertex()
 
   if(!idx.isValid())
   {
-    GUIInvoke::call([this]() {
+    GUIInvoke::call(this, [this]() {
       RDDialog::critical(this, tr("Error debugging"),
                          tr("Error debugging vertex - make sure a valid vertex is selected"));
     });
@@ -3318,14 +3318,14 @@ void BufferViewer::debugVertex()
     {
       r->FreeTrace(trace);
 
-      GUIInvoke::call([this]() {
+      GUIInvoke::call(this, [this]() {
         RDDialog::critical(this, tr("Error debugging"),
                            tr("Error debugging vertex - make sure a valid vertex is selected"));
       });
       return;
     }
 
-    GUIInvoke::call([this, vertid, trace]() {
+    GUIInvoke::call(this, [this, vertid, trace]() {
       QString debugContext = tr("Vertex %1").arg(vertid);
 
       if(m_Ctx.CurDrawcall()->numInstances > 1)

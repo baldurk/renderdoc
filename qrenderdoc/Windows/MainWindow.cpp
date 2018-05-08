@@ -230,7 +230,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
       if(diff > 2 * 24 * 60 * 60)
       {
         // update the check date on the stored bug
-        GUIInvoke::call([this, b, now]() {
+        GUIInvoke::call(this, [this, b, now]() {
           for(BugReport &bug : m_Ctx.Config().CrashReport_ReportedBugs)
           {
             if(bug.reportId == b.reportId)
@@ -510,7 +510,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
     ExecuteResult ret =
         m_Ctx.Replay().ExecuteAndInject(exe, workingDir, cmdLine, env, capturefile, opts);
 
-    GUIInvoke::call([this, exe, ret, callback]() {
+    GUIInvoke::call(this, [this, exe, ret, callback]() {
 
       if(ret.status == ReplayStatus::JDWPFailure)
       {
@@ -568,7 +568,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
     ExecuteResult ret =
         RENDERDOC_InjectIntoProcess(PID, env, capturefile.toUtf8().data(), opts, false);
 
-    GUIInvoke::call([this, PID, ret, callback]() {
+    GUIInvoke::call(this, [this, PID, ret, callback]() {
 
       if(ret.status == ReplayStatus::JDWPFailure)
       {
@@ -1513,7 +1513,7 @@ void MainWindow::remoteProbe()
 {
   if(!m_Ctx.IsCaptureLoaded() && !m_Ctx.IsCaptureLoading())
   {
-    GUIInvoke::call([this] { m_Ctx.Config().AddAndroidHosts(); });
+    GUIInvoke::call(this, [this] { m_Ctx.Config().AddAndroidHosts(); });
 
     for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
     {
@@ -1559,7 +1559,7 @@ void MainWindow::messageCheck()
           disconnected = true;
       }
 
-      GUIInvoke::call([this, disconnected, msgs] {
+      GUIInvoke::call(this, [this, disconnected, msgs] {
         // if we just got disconnected while replaying a capture, alert the user.
         if(disconnected)
         {
@@ -1592,7 +1592,7 @@ void MainWindow::messageCheck()
     if(m_Ctx.Replay().CurrentRemote())
       m_Ctx.Replay().PingRemote();
 
-    GUIInvoke::call([this]() {
+    GUIInvoke::call(this, [this]() {
       if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
       {
         contextChooser->setIcon(Icons::cross());
@@ -1735,7 +1735,7 @@ void MainWindow::switchContext()
 
       if(!host->serverRunning && !host->runCommand.isEmpty())
       {
-        GUIInvoke::call([this]() {
+        GUIInvoke::call(this, [this]() {
           statusText->setText(tr("Running remote server command..."));
           statusProgress->setVisible(true);
           statusProgress->setMaximum(0);
@@ -1746,7 +1746,7 @@ void MainWindow::switchContext()
         // check if it's running now
         host->CheckStatus();
 
-        GUIInvoke::call([this]() { statusProgress->setVisible(false); });
+        GUIInvoke::call(this, [this]() { statusProgress->setVisible(false); });
       }
 
       ReplayStatus status = ReplayStatus::Succeeded;
@@ -1756,7 +1756,7 @@ void MainWindow::switchContext()
         status = m_Ctx.Replay().ConnectToRemoteServer(host);
       }
 
-      GUIInvoke::call([this, host, status]() {
+      GUIInvoke::call(this, [this, host, status]() {
         contextChooser->setIcon(host->serverRunning && !host->busy ? Icons::connect()
                                                                    : Icons::disconnect());
 
@@ -1834,7 +1834,7 @@ void MainWindow::OnCaptureLoaded()
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *) {
     bool hasResolver = m_Ctx.Replay().GetCaptureAccess()->HasCallstacks();
 
-    GUIInvoke::call([this, hasResolver]() {
+    GUIInvoke::call(this, [this, hasResolver]() {
       ui->action_Resolve_Symbols->setEnabled(hasResolver);
       ui->action_Resolve_Symbols->setText(hasResolver ? tr("Resolve Symbols")
                                                       : tr("Resolve Symbols - None in capture"));
@@ -2311,9 +2311,9 @@ void MainWindow::on_action_Create_RGP_Profile_triggered()
 
   rdcstr path;
 
-  m_Ctx.Replay().AsyncInvoke([winData, &popup, &path](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this, winData, &popup, &path](IReplayController *r) {
     path = r->CreateRGPProfile(winData);
-    GUIInvoke::call([&popup]() { popup.close(); });
+    GUIInvoke::call(this, [&popup]() { popup.close(); });
   });
 
   RDDialog::show(&popup);
@@ -2571,7 +2571,7 @@ void MainWindow::dropEvent(QDropEvent *event)
   {
     // we defer this so we can return immediately and unblock whichever application dropped the
     // item.
-    GUIInvoke::defer([this, fn]() { LoadFromFilename(fn, false); });
+    GUIInvoke::defer(this, [this, fn]() { LoadFromFilename(fn, false); });
   }
 }
 

@@ -436,7 +436,7 @@ void EventBrowser::on_timeDraws_clicked()
 
     m_Times = r->FetchCounters({GPUCounter::EventGPUDuration});
 
-    GUIInvoke::call([this]() {
+    GUIInvoke::call(this, [this]() {
       SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
       ui->events->update();
     });

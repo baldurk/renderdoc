@@ -140,7 +140,7 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
   m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
     rdcarray<EventUsage> usage = r->GetUsage(id);
 
-    GUIInvoke::call([this, usage]() {
+    GUIInvoke::call(this, [this, usage]() {
       for(const EventUsage &u : usage)
         m_UsageEvents << u;
       qSort(m_UsageEvents);

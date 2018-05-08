@@ -233,7 +233,7 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
     host->CheckStatus();
 
     GUIInvoke::call(
-        [this, node, host]() { setRemoteServerLive(node, host->serverRunning, host->busy); });
+        this, [this, node, host]() { setRemoteServerLive(node, host->serverRunning, host->busy); });
 
     uint32_t nextIdent = 0;
 
@@ -265,7 +265,7 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
 
         RemoteConnect tag(host->hostname, host->Name(), nextIdent);
 
-        GUIInvoke::call([this, node, target, running, tag]() {
+        GUIInvoke::call(this, [this, node, target, running, tag]() {
           RDTreeWidgetItem *child = new RDTreeWidgetItem({target, running});
           setRemoteConnect(child, tag);
           node->addChild(child);
@@ -276,11 +276,11 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
       }
     }
 
-    GUIInvoke::call([node]() { node->setItalic(false); });
+    GUIInvoke::call(this, [node]() { node->setItalic(false); });
 
     m_Lookups.acquire();
 
-    GUIInvoke::call([this]() { updateStatus(); });
+    GUIInvoke::call(this, [this]() { updateStatus(); });
   });
   th->selfDelete(true);
   th->start();

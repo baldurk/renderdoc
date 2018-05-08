@@ -733,7 +733,7 @@ void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *)
   m_CurPixelValue = pickValue;
   m_CurRealValue = realValue;
 
-  GUIInvoke::call([this]() { UI_UpdateStatusText(); });
+  GUIInvoke::call(this, [this]() { UI_UpdateStatusText(); });
 }
 
 void TextureViewer::RT_PickHoverAndUpdate(IReplayController *)
@@ -747,7 +747,7 @@ void TextureViewer::RT_PickHoverAndUpdate(IReplayController *)
 
   m_CurHoverValue = pickValue;
 
-  GUIInvoke::call([this]() { UI_UpdateStatusText(); });
+  GUIInvoke::call(this, [this]() { UI_UpdateStatusText(); });
 }
 
 void TextureViewer::RT_UpdateAndDisplay(IReplayController *)
@@ -755,7 +755,7 @@ void TextureViewer::RT_UpdateAndDisplay(IReplayController *)
   if(m_Output != NULL)
     m_Output->SetTextureDisplay(m_TexDisplay);
 
-  GUIInvoke::call([this]() { ui->render->update(); });
+  GUIInvoke::call(this, [this]() { ui->render->update(); });
 }
 
 void TextureViewer::RT_UpdateVisualRange(IReplayController *)
@@ -784,7 +784,7 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
     if(!histogram.isEmpty())
       memcpy(histogramVec.data(), histogram.data(), histogram.byteSize());
 
-    GUIInvoke::call([this, histogramVec]() {
+    GUIInvoke::call(this, [this, histogramVec]() {
       ui->rangeHistogram->setHistogramRange(ui->rangeHistogram->rangeMin(),
                                             ui->rangeHistogram->rangeMax());
       ui->rangeHistogram->setHistogramData(histogramVec);
@@ -1710,7 +1710,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
 {
   if(QThread::currentThread() != QCoreApplication::instance()->thread())
   {
-    GUIInvoke::call([this, ID, focus] { this->ViewTexture(ID, focus); });
+    GUIInvoke::call(this, [this, ID, focus] { this->ViewTexture(ID, focus); });
     return;
   }
 
@@ -2108,7 +2108,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
       m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
         rdcarray<EventUsage> usage = r->GetUsage(id);
 
-        GUIInvoke::call([this, id, usage]() { OpenResourceContextMenu(id, usage); });
+        GUIInvoke::call(this, [this, id, usage]() { OpenResourceContextMenu(id, usage); });
       });
     }
   }
@@ -2496,7 +2496,7 @@ void TextureViewer::OnCaptureLoaded()
 
     RT_UpdateAndDisplay(r);
 
-    GUIInvoke::call([this]() { OnEventChanged(m_Ctx.CurEvent()); });
+    GUIInvoke::call(this, [this]() { OnEventChanged(m_Ctx.CurEvent()); });
   });
 
   m_Watcher = new QFileSystemWatcher({configFilePath(QString())}, this);
@@ -3131,7 +3131,7 @@ void TextureViewer::AutoFitRange()
 
       if(changeRange)
       {
-        GUIInvoke::call([this, minval, maxval]() {
+        GUIInvoke::call(this, [this, minval, maxval]() {
           ui->rangeHistogram->setRange(minval, maxval);
           INVOKE_MEMFN(RT_UpdateVisualRange);
         });
@@ -3479,11 +3479,11 @@ void TextureViewer::on_debugPixelContext_clicked()
       r->FreeTrace(trace);
 
       // if we couldn't debug the pixel on this event, open up a pixel history
-      GUIInvoke::call([this]() { on_pixelHistory_clicked(); });
+      GUIInvoke::call(this, [this]() { on_pixelHistory_clicked(); });
       return;
     }
 
-    GUIInvoke::call([this, x, y, trace]() {
+    GUIInvoke::call(this, [this, x, y, trace]() {
       QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
 
       const ShaderReflection *shaderDetails =
@@ -3535,7 +3535,7 @@ void TextureViewer::on_pixelHistory_clicked()
           r->PixelHistory(texptr->resourceId, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
                           m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeHint);
 
-      GUIInvoke::call([hist, histWidget, history] {
+      GUIInvoke::call(this, [hist, histWidget, history] {
         if(histWidget)
           hist->SetHistory(history);
       });
@@ -3694,10 +3694,10 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
           if(m_CustomShaderEditor.contains(key))
           {
             IShaderViewer *editor = m_CustomShaderEditor[key];
-            GUIInvoke::call([editor, errors]() { editor->ShowErrors(errors); });
+            GUIInvoke::call(editor->Widget(), [editor, errors]() { editor->ShowErrors(errors); });
           }
 
-          GUIInvoke::call([this, fn, key, id]() {
+          GUIInvoke::call(this, [this, fn, key, id]() {
             QString prevtext = ui->customShader->currentText();
             ui->customShader->addItem(fn);
             ui->customShader->setCurrentText(prevtext);

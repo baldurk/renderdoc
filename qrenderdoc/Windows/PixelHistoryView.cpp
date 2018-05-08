@@ -694,7 +694,7 @@ void PixelHistoryView::startDebug(EventTag tag)
     return;
   }
 
-  GUIInvoke::call([this, trace]() {
+  GUIInvoke::call(this, [this, trace]() {
     QString debugContext = QFormatStr("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
 
     const ShaderReflection *shaderDetails =

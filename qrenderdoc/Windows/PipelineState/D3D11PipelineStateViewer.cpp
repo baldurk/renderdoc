@@ -3135,7 +3135,7 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
     {
       r->FreeTrace(trace);
 
-      GUIInvoke::call([this]() {
+      GUIInvoke::call(this, [this]() {
         RDDialog::critical(
             this, tr("Error debugging"),
             tr("Error debugging thread - make sure a valid group and thread is selected"));
@@ -3151,7 +3151,7 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
                                .arg(thread.t[1])
                                .arg(thread.t[2]);
 
-    GUIInvoke::call([this, debugContext, trace]() {
+    GUIInvoke::call(this, [this, debugContext, trace]() {
 
       const ShaderReflection *shaderDetails =
           m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);

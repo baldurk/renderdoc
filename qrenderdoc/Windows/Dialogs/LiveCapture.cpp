@@ -1078,7 +1078,7 @@ void LiveCapture::connectionThreadEntry()
 
   if(!m_Connection || !m_Connection->Connected())
   {
-    GUIInvoke::call([this]() {
+    GUIInvoke::call(this, [this]() {
       setTitle(tr("Connection failed"));
       ui->connectionStatus->setText(tr("Failed"));
       ui->connectionIcon->setPixmap(Pixmaps::del(ui->connectionIcon));
@@ -1089,7 +1089,7 @@ void LiveCapture::connectionThreadEntry()
     return;
   }
 
-  GUIInvoke::call([this]() {
+  GUIInvoke::call(this, [this]() {
     uint32_t pid = m_Connection->GetPID();
     QString target = QString::fromUtf8(m_Connection->GetTarget());
     if(pid)
@@ -1149,7 +1149,7 @@ void LiveCapture::connectionThreadEntry()
       QString api = msg.apiUse.name;
       bool presenting = msg.apiUse.presenting;
       bool supported = msg.apiUse.supported;
-      GUIInvoke::call([this, api, presenting, supported]() {
+      GUIInvoke::call(this, [this, api, presenting, supported]() {
         m_APIs[api] = APIStatus(presenting, supported);
 
         if(presenting && supported)
@@ -1165,7 +1165,7 @@ void LiveCapture::connectionThreadEntry()
     if(msg.type == TargetControlMessageType::CaptureProgress)
     {
       float progress = msg.capProgress;
-      GUIInvoke::call([this, progress]() {
+      GUIInvoke::call(this, [this, progress]() {
 
         if(progress >= 0.0f && progress < 1.0f)
         {
@@ -1194,7 +1194,7 @@ void LiveCapture::connectionThreadEntry()
       QString path = msg.newCapture.path;
       bool local = msg.newCapture.local;
 
-      GUIInvoke::call([this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, local]() {
+      GUIInvoke::call(this, [this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, local]() {
         QString target = QString::fromUtf8(m_Connection->GetTarget());
         QString api = QString::fromUtf8(m_Connection->GetAPI());
 
@@ -1207,7 +1207,7 @@ void LiveCapture::connectionThreadEntry()
       uint32_t capID = msg.newCapture.captureId;
       QString path = msg.newCapture.path;
 
-      GUIInvoke::call([this, capID, path]() { captureCopied(capID, path); });
+      GUIInvoke::call(this, [this, capID, path]() { captureCopied(capID, path); });
     }
 
     if(msg.type == TargetControlMessageType::NewChild)
@@ -1226,7 +1226,7 @@ void LiveCapture::connectionThreadEntry()
     }
   }
 
-  GUIInvoke::call([this]() {
+  GUIInvoke::call(this, [this]() {
     ui->connectionStatus->setText(tr("Closed"));
     ui->connectionIcon->setPixmap(Pixmaps::disconnect(ui->connectionIcon));
 
