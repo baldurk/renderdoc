@@ -40,8 +40,8 @@ public:
     m_width = w;
     m_height = h;
   }
-  int GetWidth() { return m_width; }
-  int GetHeight() { return m_height; }
+  int GetWidth() { return RDCMAX(1, m_width); }
+  int GetHeight() { return RDCMAX(1, m_height); }
   void SetOutputWindow(HWND w);
 
   void RenderText(float x, float y, const char *textfmt, ...);

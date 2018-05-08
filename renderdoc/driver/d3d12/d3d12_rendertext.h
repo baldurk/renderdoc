@@ -45,8 +45,8 @@ public:
     else
       m_BBFmtIdx = RGBA8_BACKBUFFER;
   }
-  int GetWidth() { return m_width; }
-  int GetHeight() { return m_height; }
+  int GetWidth() { return RDCMAX(1, m_width); }
+  int GetHeight() { return RDCMAX(1, m_height); }
   void RenderText(ID3D12GraphicsCommandList *list, float x, float y, const char *textfmt, ...);
 
 private:

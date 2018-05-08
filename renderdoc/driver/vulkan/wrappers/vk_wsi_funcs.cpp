@@ -682,7 +682,13 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkLayerDispatchTable *vt = ObjDisp(GetDev());
 
       TextPrintState textstate = {
-          GetNextCmd(), rp, fb, swapInfo.extent.width, swapInfo.extent.height, swapInfo.format};
+          GetNextCmd(),
+          rp,
+          fb,
+          RDCMAX(1U, swapInfo.extent.width),
+          RDCMAX(1U, swapInfo.extent.height),
+          swapInfo.format,
+      };
 
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
