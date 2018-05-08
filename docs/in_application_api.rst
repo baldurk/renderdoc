@@ -11,7 +11,7 @@ To begin using the API you need to fetch the ``RENDERDOC_GetAPI`` function. You 
 
 There are two common ways to integrate RenderDoc. The first is to passively check if the DLL is loaded, and use the API. This lets you continue to use RenderDoc entirely as normal, launching your program through the UI, but you can access additional functionality to e.g. trigger captures at custom times.
 
-To do this you'll use your platforms dynamic library functions to see if the library is open already - e.g. ``GetModuleHandle`` on Windows, or ``dlopen`` with the ``RTLD_NOLOAD`` flag if available on \*nix systems. Just searching for the module name - ``renderdoc.dll`` or ``librenderdoc.so`` is sufficient here, so you don't need to know the path to where RenderDoc is running from. Then you can use ``GetProcAddress`` or ``dlsym`` to fetch the ``RENDERDOC_GetAPI`` function using the typedef above.
+To do this you'll use your platforms dynamic library functions to see if the library is open already - e.g. ``GetModuleHandle`` on Windows, or ``dlopen`` with the ``RTLD_NOW | RTLD_NOLOAD`` flags if available on \*nix systems. Just searching for the module name - ``renderdoc.dll`` or ``librenderdoc.so`` is sufficient here, so you don't need to know the path to where RenderDoc is running from. Then you can use ``GetProcAddress`` or ``dlsym`` to fetch the ``RENDERDOC_GetAPI`` function using the typedef above.
 
 The other way is a closer integration, where your code will explicitly load RenderDoc's library at runtime. This needs more care taken as it can be a bit more complex. You will need to locate the RenderDoc module yourself, and load it as soon as possible after startup of your program. Due to the nature of RenderDoc's API hooking, the earlier you can load it the better in general. Once you've loaded it you can fetch the  ``RENDERDOC_GetAPI`` entry point as above, and use the API as normal.
 
@@ -35,6 +35,14 @@ The other way is a closer integration, where your code will explicitly load Rend
        if(HMODULE mod = GetModuleHandleA("renderdoc.dll"))
        {
            pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+           int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+           assert(ret == 1);
+       }
+
+       // At init, on linux
+       if(void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD))
+       {
+           pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
            int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
            assert(ret == 1);
        }
