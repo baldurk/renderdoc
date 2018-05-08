@@ -29,760 +29,824 @@
 template <>
 std::string DoStringise(const spv::Op &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::Op)
   {
-    case spv::OpNop: return "Nop";
-    case spv::OpUndef: return "Undef";
-    case spv::OpSourceContinued: return "SourceContinued";
-    case spv::OpSource: return "Source";
-    case spv::OpSourceExtension: return "SourceExtension";
-    case spv::OpName: return "Name";
-    case spv::OpMemberName: return "MemberName";
-    case spv::OpString: return "String";
-    case spv::OpLine: return "Line";
-    case spv::OpExtension: return "Extension";
-    case spv::OpExtInstImport: return "ExtInstImport";
-    case spv::OpExtInst: return "ExtInst";
-    case spv::OpMemoryModel: return "MemoryModel";
-    case spv::OpEntryPoint: return "EntryPoint";
-    case spv::OpExecutionMode: return "ExecutionMode";
-    case spv::OpCapability: return "Capability";
-    case spv::OpTypeVoid: return "TypeVoid";
-    case spv::OpTypeBool: return "TypeBool";
-    case spv::OpTypeInt: return "TypeInt";
-    case spv::OpTypeFloat: return "TypeFloat";
-    case spv::OpTypeVector: return "TypeVector";
-    case spv::OpTypeMatrix: return "TypeMatrix";
-    case spv::OpTypeImage: return "TypeImage";
-    case spv::OpTypeSampler: return "TypeSampler";
-    case spv::OpTypeSampledImage: return "TypeSampledImage";
-    case spv::OpTypeArray: return "TypeArray";
-    case spv::OpTypeRuntimeArray: return "TypeRuntimeArray";
-    case spv::OpTypeStruct: return "TypeStruct";
-    case spv::OpTypeOpaque: return "TypeOpaque";
-    case spv::OpTypePointer: return "TypePointer";
-    case spv::OpTypeFunction: return "TypeFunction";
-    case spv::OpTypeEvent: return "TypeEvent";
-    case spv::OpTypeDeviceEvent: return "TypeDeviceEvent";
-    case spv::OpTypeReserveId: return "TypeReserveId";
-    case spv::OpTypeQueue: return "TypeQueue";
-    case spv::OpTypePipe: return "TypePipe";
-    case spv::OpTypeForwardPointer: return "TypeForwardPointer";
-    case spv::OpConstantTrue: return "ConstantTrue";
-    case spv::OpConstantFalse: return "ConstantFalse";
-    case spv::OpConstant: return "Constant";
-    case spv::OpConstantComposite: return "ConstantComposite";
-    case spv::OpConstantSampler: return "ConstantSampler";
-    case spv::OpConstantNull: return "ConstantNull";
-    case spv::OpSpecConstantTrue: return "SpecConstantTrue";
-    case spv::OpSpecConstantFalse: return "SpecConstantFalse";
-    case spv::OpSpecConstant: return "SpecConstant";
-    case spv::OpSpecConstantComposite: return "SpecConstantComposite";
-    case spv::OpSpecConstantOp: return "SpecConstantOp";
-    case spv::OpFunction: return "Function";
-    case spv::OpFunctionParameter: return "FunctionParameter";
-    case spv::OpFunctionEnd: return "FunctionEnd";
-    case spv::OpFunctionCall: return "FunctionCall";
-    case spv::OpVariable: return "Variable";
-    case spv::OpImageTexelPointer: return "ImageTexelPointer";
-    case spv::OpLoad: return "Load";
-    case spv::OpStore: return "Store";
-    case spv::OpCopyMemory: return "CopyMemory";
-    case spv::OpCopyMemorySized: return "CopyMemorySized";
-    case spv::OpAccessChain: return "AccessChain";
-    case spv::OpInBoundsAccessChain: return "InBoundsAccessChain";
-    case spv::OpPtrAccessChain: return "PtrAccessChain";
-    case spv::OpArrayLength: return "ArrayLength";
-    case spv::OpGenericPtrMemSemantics: return "GenericPtrMemSemantics";
-    case spv::OpInBoundsPtrAccessChain: return "InBoundsPtrAccessChain";
-    case spv::OpDecorate: return "Decorate";
-    case spv::OpMemberDecorate: return "MemberDecorate";
-    case spv::OpDecorationGroup: return "DecorationGroup";
-    case spv::OpGroupDecorate: return "GroupDecorate";
-    case spv::OpGroupMemberDecorate: return "GroupMemberDecorate";
-    case spv::OpVectorExtractDynamic: return "VectorExtractDynamic";
-    case spv::OpVectorInsertDynamic: return "VectorInsertDynamic";
-    case spv::OpVectorShuffle: return "VectorShuffle";
-    case spv::OpCompositeConstruct: return "CompositeConstruct";
-    case spv::OpCompositeExtract: return "CompositeExtract";
-    case spv::OpCompositeInsert: return "CompositeInsert";
-    case spv::OpCopyObject: return "CopyObject";
-    case spv::OpTranspose: return "Transpose";
-    case spv::OpSampledImage: return "SampledImage";
-    case spv::OpImageSampleImplicitLod: return "ImageSampleImplicitLod";
-    case spv::OpImageSampleExplicitLod: return "ImageSampleExplicitLod";
-    case spv::OpImageSampleDrefImplicitLod: return "ImageSampleDrefImplicitLod";
-    case spv::OpImageSampleDrefExplicitLod: return "ImageSampleDrefExplicitLod";
-    case spv::OpImageSampleProjImplicitLod: return "ImageSampleProjImplicitLod";
-    case spv::OpImageSampleProjExplicitLod: return "ImageSampleProjExplicitLod";
-    case spv::OpImageSampleProjDrefImplicitLod: return "ImageSampleProjDrefImplicitLod";
-    case spv::OpImageSampleProjDrefExplicitLod: return "ImageSampleProjDrefExplicitLod";
-    case spv::OpImageFetch: return "ImageFetch";
-    case spv::OpImageGather: return "ImageGather";
-    case spv::OpImageDrefGather: return "ImageDrefGather";
-    case spv::OpImageRead: return "ImageRead";
-    case spv::OpImageWrite: return "ImageWrite";
-    case spv::OpImage: return "Image";
-    case spv::OpImageQueryFormat: return "ImageQueryFormat";
-    case spv::OpImageQueryOrder: return "ImageQueryOrder";
-    case spv::OpImageQuerySizeLod: return "ImageQuerySizeLod";
-    case spv::OpImageQuerySize: return "ImageQuerySize";
-    case spv::OpImageQueryLod: return "ImageQueryLod";
-    case spv::OpImageQueryLevels: return "ImageQueryLevels";
-    case spv::OpImageQuerySamples: return "ImageQuerySamples";
-    case spv::OpConvertFToU: return "ConvertFToU";
-    case spv::OpConvertFToS: return "ConvertFToS";
-    case spv::OpConvertSToF: return "ConvertSToF";
-    case spv::OpConvertUToF: return "ConvertUToF";
-    case spv::OpUConvert: return "UConvert";
-    case spv::OpSConvert: return "SConvert";
-    case spv::OpFConvert: return "FConvert";
-    case spv::OpQuantizeToF16: return "QuantizeToF16";
-    case spv::OpConvertPtrToU: return "ConvertPtrToU";
-    case spv::OpSatConvertSToU: return "SatConvertSToU";
-    case spv::OpSatConvertUToS: return "SatConvertUToS";
-    case spv::OpConvertUToPtr: return "ConvertUToPtr";
-    case spv::OpPtrCastToGeneric: return "PtrCastToGeneric";
-    case spv::OpGenericCastToPtr: return "GenericCastToPtr";
-    case spv::OpGenericCastToPtrExplicit: return "GenericCastToPtrExplicit";
-    case spv::OpBitcast: return "Bitcast";
-    case spv::OpSNegate: return "SNegate";
-    case spv::OpFNegate: return "FNegate";
-    case spv::OpIAdd: return "IAdd";
-    case spv::OpFAdd: return "FAdd";
-    case spv::OpISub: return "ISub";
-    case spv::OpFSub: return "FSub";
-    case spv::OpIMul: return "IMul";
-    case spv::OpFMul: return "FMul";
-    case spv::OpUDiv: return "UDiv";
-    case spv::OpSDiv: return "SDiv";
-    case spv::OpFDiv: return "FDiv";
-    case spv::OpUMod: return "UMod";
-    case spv::OpSRem: return "SRem";
-    case spv::OpSMod: return "SMod";
-    case spv::OpFRem: return "FRem";
-    case spv::OpFMod: return "FMod";
-    case spv::OpVectorTimesScalar: return "VectorTimesScalar";
-    case spv::OpMatrixTimesScalar: return "MatrixTimesScalar";
-    case spv::OpVectorTimesMatrix: return "VectorTimesMatrix";
-    case spv::OpMatrixTimesVector: return "MatrixTimesVector";
-    case spv::OpMatrixTimesMatrix: return "MatrixTimesMatrix";
-    case spv::OpOuterProduct: return "OuterProduct";
-    case spv::OpDot: return "Dot";
-    case spv::OpIAddCarry: return "IAddCarry";
-    case spv::OpISubBorrow: return "ISubBorrow";
-    case spv::OpUMulExtended: return "UMulExtended";
-    case spv::OpSMulExtended: return "SMulExtended";
-    case spv::OpAny: return "Any";
-    case spv::OpAll: return "All";
-    case spv::OpIsNan: return "IsNan";
-    case spv::OpIsInf: return "IsInf";
-    case spv::OpIsFinite: return "IsFinite";
-    case spv::OpIsNormal: return "IsNormal";
-    case spv::OpSignBitSet: return "SignBitSet";
-    case spv::OpLessOrGreater: return "LessOrGreater";
-    case spv::OpOrdered: return "Ordered";
-    case spv::OpUnordered: return "Unordered";
-    case spv::OpLogicalEqual: return "LogicalEqual";
-    case spv::OpLogicalNotEqual: return "LogicalNotEqual";
-    case spv::OpLogicalOr: return "LogicalOr";
-    case spv::OpLogicalAnd: return "LogicalAnd";
-    case spv::OpLogicalNot: return "LogicalNot";
-    case spv::OpSelect: return "Select";
-    case spv::OpIEqual: return "IEqual";
-    case spv::OpINotEqual: return "INotEqual";
-    case spv::OpUGreaterThan: return "UGreaterThan";
-    case spv::OpSGreaterThan: return "SGreaterThan";
-    case spv::OpUGreaterThanEqual: return "UGreaterThanEqual";
-    case spv::OpSGreaterThanEqual: return "SGreaterThanEqual";
-    case spv::OpULessThan: return "ULessThan";
-    case spv::OpSLessThan: return "SLessThan";
-    case spv::OpULessThanEqual: return "ULessThanEqual";
-    case spv::OpSLessThanEqual: return "SLessThanEqual";
-    case spv::OpFOrdEqual: return "FOrdEqual";
-    case spv::OpFUnordEqual: return "FUnordEqual";
-    case spv::OpFOrdNotEqual: return "FOrdNotEqual";
-    case spv::OpFUnordNotEqual: return "FUnordNotEqual";
-    case spv::OpFOrdLessThan: return "FOrdLessThan";
-    case spv::OpFUnordLessThan: return "FUnordLessThan";
-    case spv::OpFOrdGreaterThan: return "FOrdGreaterThan";
-    case spv::OpFUnordGreaterThan: return "FUnordGreaterThan";
-    case spv::OpFOrdLessThanEqual: return "FOrdLessThanEqual";
-    case spv::OpFUnordLessThanEqual: return "FUnordLessThanEqual";
-    case spv::OpFOrdGreaterThanEqual: return "FOrdGreaterThanEqual";
-    case spv::OpFUnordGreaterThanEqual: return "FUnordGreaterThanEqual";
-    case spv::OpShiftRightLogical: return "ShiftRightLogical";
-    case spv::OpShiftRightArithmetic: return "ShiftRightArithmetic";
-    case spv::OpShiftLeftLogical: return "ShiftLeftLogical";
-    case spv::OpBitwiseOr: return "BitwiseOr";
-    case spv::OpBitwiseXor: return "BitwiseXor";
-    case spv::OpBitwiseAnd: return "BitwiseAnd";
-    case spv::OpNot: return "Not";
-    case spv::OpBitFieldInsert: return "BitFieldInsert";
-    case spv::OpBitFieldSExtract: return "BitFieldSExtract";
-    case spv::OpBitFieldUExtract: return "BitFieldUExtract";
-    case spv::OpBitReverse: return "BitReverse";
-    case spv::OpBitCount: return "BitCount";
-    case spv::OpDPdx: return "ddx";
-    case spv::OpDPdy: return "ddy";
-    case spv::OpFwidth: return "Fwidth";
-    case spv::OpDPdxFine: return "ddx_fine";
-    case spv::OpDPdyFine: return "ddy_fine";
-    case spv::OpFwidthFine: return "Fwidth_fine";
-    case spv::OpDPdxCoarse: return "ddx_coarse";
-    case spv::OpDPdyCoarse: return "ddy_coarse";
-    case spv::OpFwidthCoarse: return "Fwidth_coarse";
-    case spv::OpEmitVertex: return "EmitVertex";
-    case spv::OpEndPrimitive: return "EndPrimitive";
-    case spv::OpEmitStreamVertex: return "EmitStreamVertex";
-    case spv::OpEndStreamPrimitive: return "EndStreamPrimitive";
-    case spv::OpControlBarrier: return "ControlBarrier";
-    case spv::OpMemoryBarrier: return "MemoryBarrier";
-    case spv::OpAtomicLoad: return "AtomicLoad";
-    case spv::OpAtomicStore: return "AtomicStore";
-    case spv::OpAtomicExchange: return "AtomicExchange";
-    case spv::OpAtomicCompareExchange: return "AtomicCompareExchange";
-    case spv::OpAtomicCompareExchangeWeak: return "AtomicCompareExchangeWeak";
-    case spv::OpAtomicIIncrement: return "AtomicIIncrement";
-    case spv::OpAtomicIDecrement: return "AtomicIDecrement";
-    case spv::OpAtomicIAdd: return "AtomicIAdd";
-    case spv::OpAtomicISub: return "AtomicISub";
-    case spv::OpAtomicSMin: return "AtomicSMin";
-    case spv::OpAtomicUMin: return "AtomicUMin";
-    case spv::OpAtomicSMax: return "AtomicSMax";
-    case spv::OpAtomicUMax: return "AtomicUMax";
-    case spv::OpAtomicAnd: return "AtomicAnd";
-    case spv::OpAtomicOr: return "AtomicOr";
-    case spv::OpAtomicXor: return "AtomicXor";
-    case spv::OpPhi: return "Phi";
-    case spv::OpLoopMerge: return "LoopMerge";
-    case spv::OpSelectionMerge: return "SelectionMerge";
-    case spv::OpLabel: return "Label";
-    case spv::OpBranch: return "Branch";
-    case spv::OpBranchConditional: return "BranchConditional";
-    case spv::OpSwitch: return "Switch";
-    case spv::OpKill: return "Kill";
-    case spv::OpReturn: return "Return";
-    case spv::OpReturnValue: return "ReturnValue";
-    case spv::OpUnreachable: return "Unreachable";
-    case spv::OpLifetimeStart: return "LifetimeStart";
-    case spv::OpLifetimeStop: return "LifetimeStop";
-    case spv::OpGroupAsyncCopy: return "GroupAsyncCopy";
-    case spv::OpGroupWaitEvents: return "GroupWaitEvents";
-    case spv::OpGroupAll: return "GroupAll";
-    case spv::OpGroupAny: return "GroupAny";
-    case spv::OpGroupBroadcast: return "GroupBroadcast";
-    case spv::OpGroupIAdd: return "GroupIAdd";
-    case spv::OpGroupFAdd: return "GroupFAdd";
-    case spv::OpGroupFMin: return "GroupFMin";
-    case spv::OpGroupUMin: return "GroupUMin";
-    case spv::OpGroupSMin: return "GroupSMin";
-    case spv::OpGroupFMax: return "GroupFMax";
-    case spv::OpGroupUMax: return "GroupUMax";
-    case spv::OpGroupSMax: return "GroupSMax";
-    case spv::OpReadPipe: return "ReadPipe";
-    case spv::OpWritePipe: return "WritePipe";
-    case spv::OpReservedReadPipe: return "ReservedReadPipe";
-    case spv::OpReservedWritePipe: return "ReservedWritePipe";
-    case spv::OpReserveReadPipePackets: return "ReserveReadPipePackets";
-    case spv::OpReserveWritePipePackets: return "ReserveWritePipePackets";
-    case spv::OpCommitReadPipe: return "CommitReadPipe";
-    case spv::OpCommitWritePipe: return "CommitWritePipe";
-    case spv::OpIsValidReserveId: return "IsValidReserveId";
-    case spv::OpGetNumPipePackets: return "GetNumPipePackets";
-    case spv::OpGetMaxPipePackets: return "GetMaxPipePackets";
-    case spv::OpGroupReserveReadPipePackets: return "GroupReserveReadPipePackets";
-    case spv::OpGroupReserveWritePipePackets: return "GroupReserveWritePipePackets";
-    case spv::OpGroupCommitReadPipe: return "GroupCommitReadPipe";
-    case spv::OpGroupCommitWritePipe: return "GroupCommitWritePipe";
-    case spv::OpEnqueueMarker: return "EnqueueMarker";
-    case spv::OpEnqueueKernel: return "EnqueueKernel";
-    case spv::OpGetKernelNDrangeSubGroupCount: return "GetKernelNDrangeSubGroupCount";
-    case spv::OpGetKernelNDrangeMaxSubGroupSize: return "GetKernelNDrangeMaxSubGroupSize";
-    case spv::OpGetKernelWorkGroupSize: return "GetKernelWorkGroupSize";
-    case spv::OpGetKernelPreferredWorkGroupSizeMultiple:
-      return "GetKernelPreferredWorkGroupSizeMultiple";
-    case spv::OpRetainEvent: return "RetainEvent";
-    case spv::OpReleaseEvent: return "ReleaseEvent";
-    case spv::OpCreateUserEvent: return "CreateUserEvent";
-    case spv::OpIsValidEvent: return "IsValidEvent";
-    case spv::OpSetUserEventStatus: return "SetUserEventStatus";
-    case spv::OpCaptureEventProfilingInfo: return "CaptureEventProfilingInfo";
-    case spv::OpGetDefaultQueue: return "GetDefaultQueue";
-    case spv::OpBuildNDRange: return "BuildNDRange";
-    case spv::OpImageSparseSampleImplicitLod: return "ImageSparseSampleImplicitLod";
-    case spv::OpImageSparseSampleExplicitLod: return "ImageSparseSampleExplicitLod";
-    case spv::OpImageSparseSampleDrefImplicitLod: return "ImageSparseSampleDrefImplicitLod";
-    case spv::OpImageSparseSampleDrefExplicitLod: return "ImageSparseSampleDrefExplicitLod";
-    case spv::OpImageSparseSampleProjImplicitLod: return "ImageSparseSampleProjImplicitLod";
-    case spv::OpImageSparseSampleProjExplicitLod: return "ImageSparseSampleProjExplicitLod";
-    case spv::OpImageSparseSampleProjDrefImplicitLod: return "ImageSparseSampleProjDrefImplicitLod";
-    case spv::OpImageSparseSampleProjDrefExplicitLod: return "ImageSparseSampleProjDrefExplicitLod";
-    case spv::OpImageSparseFetch: return "ImageSparseFetch";
-    case spv::OpImageSparseGather: return "ImageSparseGather";
-    case spv::OpImageSparseDrefGather: return "ImageSparseDrefGather";
-    case spv::OpImageSparseTexelsResident: return "ImageSparseTexelsResident";
-    case spv::OpNoLine: return "NoLine";
-    case spv::OpAtomicFlagTestAndSet: return "AtomicFlagTestAndSet";
-    case spv::OpAtomicFlagClear: return "AtomicFlagClear";
-    case spv::OpImageSparseRead: return "ImageSparseRead";
-    case spv::OpSubgroupBallotKHR: return "ImageSparseRead";
-    case spv::OpSubgroupFirstInvocationKHR: return "SubgroupFirstInvocationKHR";
-    case spv::OpSubgroupAllKHR: return "SubgroupAllKHR";
-    case spv::OpSubgroupAnyKHR: return "SubgroupAnyKHR";
-    case spv::OpSubgroupAllEqualKHR: return "SubgroupAllEqualKHR";
-    case spv::OpSubgroupReadInvocationKHR: return "SubgroupReadInvocationKHR";
-    case spv::OpGroupIAddNonUniformAMD: return "GroupIAddNonUniformAMD";
-    case spv::OpGroupFAddNonUniformAMD: return "GroupFAddNonUniformAMD";
-    case spv::OpGroupFMinNonUniformAMD: return "GroupFMinNonUniformAMD";
-    case spv::OpGroupUMinNonUniformAMD: return "GroupUMinNonUniformAMD";
-    case spv::OpGroupSMinNonUniformAMD: return "GroupSMinNonUniformAMD";
-    case spv::OpGroupFMaxNonUniformAMD: return "GroupFMaxNonUniformAMD";
-    case spv::OpGroupUMaxNonUniformAMD: return "GroupUMaxNonUniformAMD";
-    case spv::OpGroupSMaxNonUniformAMD: return "GroupSMaxNonUniformAMD";
-    case spv::OpMax: break;
+    STRINGISE_ENUM_NAMED(spv::OpNop, "Nop");
+    STRINGISE_ENUM_NAMED(spv::OpUndef, "Undef");
+    STRINGISE_ENUM_NAMED(spv::OpSourceContinued, "SourceContinued");
+    STRINGISE_ENUM_NAMED(spv::OpSource, "Source");
+    STRINGISE_ENUM_NAMED(spv::OpSourceExtension, "SourceExtension");
+    STRINGISE_ENUM_NAMED(spv::OpName, "Name");
+    STRINGISE_ENUM_NAMED(spv::OpMemberName, "MemberName");
+    STRINGISE_ENUM_NAMED(spv::OpString, "String");
+    STRINGISE_ENUM_NAMED(spv::OpLine, "Line");
+    STRINGISE_ENUM_NAMED(spv::OpExtension, "Extension");
+    STRINGISE_ENUM_NAMED(spv::OpExtInstImport, "ExtInstImport");
+    STRINGISE_ENUM_NAMED(spv::OpExtInst, "ExtInst");
+    STRINGISE_ENUM_NAMED(spv::OpMemoryModel, "MemoryModel");
+    STRINGISE_ENUM_NAMED(spv::OpEntryPoint, "EntryPoint");
+    STRINGISE_ENUM_NAMED(spv::OpExecutionMode, "ExecutionMode");
+    STRINGISE_ENUM_NAMED(spv::OpCapability, "Capability");
+    STRINGISE_ENUM_NAMED(spv::OpTypeVoid, "TypeVoid");
+    STRINGISE_ENUM_NAMED(spv::OpTypeBool, "TypeBool");
+    STRINGISE_ENUM_NAMED(spv::OpTypeInt, "TypeInt");
+    STRINGISE_ENUM_NAMED(spv::OpTypeFloat, "TypeFloat");
+    STRINGISE_ENUM_NAMED(spv::OpTypeVector, "TypeVector");
+    STRINGISE_ENUM_NAMED(spv::OpTypeMatrix, "TypeMatrix");
+    STRINGISE_ENUM_NAMED(spv::OpTypeImage, "TypeImage");
+    STRINGISE_ENUM_NAMED(spv::OpTypeSampler, "TypeSampler");
+    STRINGISE_ENUM_NAMED(spv::OpTypeSampledImage, "TypeSampledImage");
+    STRINGISE_ENUM_NAMED(spv::OpTypeArray, "TypeArray");
+    STRINGISE_ENUM_NAMED(spv::OpTypeRuntimeArray, "TypeRuntimeArray");
+    STRINGISE_ENUM_NAMED(spv::OpTypeStruct, "TypeStruct");
+    STRINGISE_ENUM_NAMED(spv::OpTypeOpaque, "TypeOpaque");
+    STRINGISE_ENUM_NAMED(spv::OpTypePointer, "TypePointer");
+    STRINGISE_ENUM_NAMED(spv::OpTypeFunction, "TypeFunction");
+    STRINGISE_ENUM_NAMED(spv::OpTypeEvent, "TypeEvent");
+    STRINGISE_ENUM_NAMED(spv::OpTypeDeviceEvent, "TypeDeviceEvent");
+    STRINGISE_ENUM_NAMED(spv::OpTypeReserveId, "TypeReserveId");
+    STRINGISE_ENUM_NAMED(spv::OpTypeQueue, "TypeQueue");
+    STRINGISE_ENUM_NAMED(spv::OpTypePipe, "TypePipe");
+    STRINGISE_ENUM_NAMED(spv::OpTypeForwardPointer, "TypeForwardPointer");
+    STRINGISE_ENUM_NAMED(spv::OpConstantTrue, "ConstantTrue");
+    STRINGISE_ENUM_NAMED(spv::OpConstantFalse, "ConstantFalse");
+    STRINGISE_ENUM_NAMED(spv::OpConstant, "Constant");
+    STRINGISE_ENUM_NAMED(spv::OpConstantComposite, "ConstantComposite");
+    STRINGISE_ENUM_NAMED(spv::OpConstantSampler, "ConstantSampler");
+    STRINGISE_ENUM_NAMED(spv::OpConstantNull, "ConstantNull");
+    STRINGISE_ENUM_NAMED(spv::OpSpecConstantTrue, "SpecConstantTrue");
+    STRINGISE_ENUM_NAMED(spv::OpSpecConstantFalse, "SpecConstantFalse");
+    STRINGISE_ENUM_NAMED(spv::OpSpecConstant, "SpecConstant");
+    STRINGISE_ENUM_NAMED(spv::OpSpecConstantComposite, "SpecConstantComposite");
+    STRINGISE_ENUM_NAMED(spv::OpSpecConstantOp, "SpecConstantOp");
+    STRINGISE_ENUM_NAMED(spv::OpFunction, "Function");
+    STRINGISE_ENUM_NAMED(spv::OpFunctionParameter, "FunctionParameter");
+    STRINGISE_ENUM_NAMED(spv::OpFunctionEnd, "FunctionEnd");
+    STRINGISE_ENUM_NAMED(spv::OpFunctionCall, "FunctionCall");
+    STRINGISE_ENUM_NAMED(spv::OpVariable, "Variable");
+    STRINGISE_ENUM_NAMED(spv::OpImageTexelPointer, "ImageTexelPointer");
+    STRINGISE_ENUM_NAMED(spv::OpLoad, "Load");
+    STRINGISE_ENUM_NAMED(spv::OpStore, "Store");
+    STRINGISE_ENUM_NAMED(spv::OpCopyMemory, "CopyMemory");
+    STRINGISE_ENUM_NAMED(spv::OpCopyMemorySized, "CopyMemorySized");
+    STRINGISE_ENUM_NAMED(spv::OpAccessChain, "AccessChain");
+    STRINGISE_ENUM_NAMED(spv::OpInBoundsAccessChain, "InBoundsAccessChain");
+    STRINGISE_ENUM_NAMED(spv::OpPtrAccessChain, "PtrAccessChain");
+    STRINGISE_ENUM_NAMED(spv::OpArrayLength, "ArrayLength");
+    STRINGISE_ENUM_NAMED(spv::OpGenericPtrMemSemantics, "GenericPtrMemSemantics");
+    STRINGISE_ENUM_NAMED(spv::OpInBoundsPtrAccessChain, "InBoundsPtrAccessChain");
+    STRINGISE_ENUM_NAMED(spv::OpDecorate, "Decorate");
+    STRINGISE_ENUM_NAMED(spv::OpMemberDecorate, "MemberDecorate");
+    STRINGISE_ENUM_NAMED(spv::OpDecorationGroup, "DecorationGroup");
+    STRINGISE_ENUM_NAMED(spv::OpGroupDecorate, "GroupDecorate");
+    STRINGISE_ENUM_NAMED(spv::OpGroupMemberDecorate, "GroupMemberDecorate");
+    STRINGISE_ENUM_NAMED(spv::OpVectorExtractDynamic, "VectorExtractDynamic");
+    STRINGISE_ENUM_NAMED(spv::OpVectorInsertDynamic, "VectorInsertDynamic");
+    STRINGISE_ENUM_NAMED(spv::OpVectorShuffle, "VectorShuffle");
+    STRINGISE_ENUM_NAMED(spv::OpCompositeConstruct, "CompositeConstruct");
+    STRINGISE_ENUM_NAMED(spv::OpCompositeExtract, "CompositeExtract");
+    STRINGISE_ENUM_NAMED(spv::OpCompositeInsert, "CompositeInsert");
+    STRINGISE_ENUM_NAMED(spv::OpCopyObject, "CopyObject");
+    STRINGISE_ENUM_NAMED(spv::OpTranspose, "Transpose");
+    STRINGISE_ENUM_NAMED(spv::OpSampledImage, "SampledImage");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleImplicitLod, "ImageSampleImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleExplicitLod, "ImageSampleExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleDrefImplicitLod, "ImageSampleDrefImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleDrefExplicitLod, "ImageSampleDrefExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleProjImplicitLod, "ImageSampleProjImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleProjExplicitLod, "ImageSampleProjExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleProjDrefImplicitLod, "ImageSampleProjDrefImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleProjDrefExplicitLod, "ImageSampleProjDrefExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageFetch, "ImageFetch");
+    STRINGISE_ENUM_NAMED(spv::OpImageGather, "ImageGather");
+    STRINGISE_ENUM_NAMED(spv::OpImageDrefGather, "ImageDrefGather");
+    STRINGISE_ENUM_NAMED(spv::OpImageRead, "ImageRead");
+    STRINGISE_ENUM_NAMED(spv::OpImageWrite, "ImageWrite");
+    STRINGISE_ENUM_NAMED(spv::OpImage, "Image");
+    STRINGISE_ENUM_NAMED(spv::OpImageQueryFormat, "ImageQueryFormat");
+    STRINGISE_ENUM_NAMED(spv::OpImageQueryOrder, "ImageQueryOrder");
+    STRINGISE_ENUM_NAMED(spv::OpImageQuerySizeLod, "ImageQuerySizeLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageQuerySize, "ImageQuerySize");
+    STRINGISE_ENUM_NAMED(spv::OpImageQueryLod, "ImageQueryLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageQueryLevels, "ImageQueryLevels");
+    STRINGISE_ENUM_NAMED(spv::OpImageQuerySamples, "ImageQuerySamples");
+    STRINGISE_ENUM_NAMED(spv::OpConvertFToU, "ConvertFToU");
+    STRINGISE_ENUM_NAMED(spv::OpConvertFToS, "ConvertFToS");
+    STRINGISE_ENUM_NAMED(spv::OpConvertSToF, "ConvertSToF");
+    STRINGISE_ENUM_NAMED(spv::OpConvertUToF, "ConvertUToF");
+    STRINGISE_ENUM_NAMED(spv::OpUConvert, "UConvert");
+    STRINGISE_ENUM_NAMED(spv::OpSConvert, "SConvert");
+    STRINGISE_ENUM_NAMED(spv::OpFConvert, "FConvert");
+    STRINGISE_ENUM_NAMED(spv::OpQuantizeToF16, "QuantizeToF16");
+    STRINGISE_ENUM_NAMED(spv::OpConvertPtrToU, "ConvertPtrToU");
+    STRINGISE_ENUM_NAMED(spv::OpSatConvertSToU, "SatConvertSToU");
+    STRINGISE_ENUM_NAMED(spv::OpSatConvertUToS, "SatConvertUToS");
+    STRINGISE_ENUM_NAMED(spv::OpConvertUToPtr, "ConvertUToPtr");
+    STRINGISE_ENUM_NAMED(spv::OpPtrCastToGeneric, "PtrCastToGeneric");
+    STRINGISE_ENUM_NAMED(spv::OpGenericCastToPtr, "GenericCastToPtr");
+    STRINGISE_ENUM_NAMED(spv::OpGenericCastToPtrExplicit, "GenericCastToPtrExplicit");
+    STRINGISE_ENUM_NAMED(spv::OpBitcast, "Bitcast");
+    STRINGISE_ENUM_NAMED(spv::OpSNegate, "SNegate");
+    STRINGISE_ENUM_NAMED(spv::OpFNegate, "FNegate");
+    STRINGISE_ENUM_NAMED(spv::OpIAdd, "IAdd");
+    STRINGISE_ENUM_NAMED(spv::OpFAdd, "FAdd");
+    STRINGISE_ENUM_NAMED(spv::OpISub, "ISub");
+    STRINGISE_ENUM_NAMED(spv::OpFSub, "FSub");
+    STRINGISE_ENUM_NAMED(spv::OpIMul, "IMul");
+    STRINGISE_ENUM_NAMED(spv::OpFMul, "FMul");
+    STRINGISE_ENUM_NAMED(spv::OpUDiv, "UDiv");
+    STRINGISE_ENUM_NAMED(spv::OpSDiv, "SDiv");
+    STRINGISE_ENUM_NAMED(spv::OpFDiv, "FDiv");
+    STRINGISE_ENUM_NAMED(spv::OpUMod, "UMod");
+    STRINGISE_ENUM_NAMED(spv::OpSRem, "SRem");
+    STRINGISE_ENUM_NAMED(spv::OpSMod, "SMod");
+    STRINGISE_ENUM_NAMED(spv::OpFRem, "FRem");
+    STRINGISE_ENUM_NAMED(spv::OpFMod, "FMod");
+    STRINGISE_ENUM_NAMED(spv::OpVectorTimesScalar, "VectorTimesScalar");
+    STRINGISE_ENUM_NAMED(spv::OpMatrixTimesScalar, "MatrixTimesScalar");
+    STRINGISE_ENUM_NAMED(spv::OpVectorTimesMatrix, "VectorTimesMatrix");
+    STRINGISE_ENUM_NAMED(spv::OpMatrixTimesVector, "MatrixTimesVector");
+    STRINGISE_ENUM_NAMED(spv::OpMatrixTimesMatrix, "MatrixTimesMatrix");
+    STRINGISE_ENUM_NAMED(spv::OpOuterProduct, "OuterProduct");
+    STRINGISE_ENUM_NAMED(spv::OpDot, "Dot");
+    STRINGISE_ENUM_NAMED(spv::OpIAddCarry, "IAddCarry");
+    STRINGISE_ENUM_NAMED(spv::OpISubBorrow, "ISubBorrow");
+    STRINGISE_ENUM_NAMED(spv::OpUMulExtended, "UMulExtended");
+    STRINGISE_ENUM_NAMED(spv::OpSMulExtended, "SMulExtended");
+    STRINGISE_ENUM_NAMED(spv::OpAny, "Any");
+    STRINGISE_ENUM_NAMED(spv::OpAll, "All");
+    STRINGISE_ENUM_NAMED(spv::OpIsNan, "IsNan");
+    STRINGISE_ENUM_NAMED(spv::OpIsInf, "IsInf");
+    STRINGISE_ENUM_NAMED(spv::OpIsFinite, "IsFinite");
+    STRINGISE_ENUM_NAMED(spv::OpIsNormal, "IsNormal");
+    STRINGISE_ENUM_NAMED(spv::OpSignBitSet, "SignBitSet");
+    STRINGISE_ENUM_NAMED(spv::OpLessOrGreater, "LessOrGreater");
+    STRINGISE_ENUM_NAMED(spv::OpOrdered, "Ordered");
+    STRINGISE_ENUM_NAMED(spv::OpUnordered, "Unordered");
+    STRINGISE_ENUM_NAMED(spv::OpLogicalEqual, "LogicalEqual");
+    STRINGISE_ENUM_NAMED(spv::OpLogicalNotEqual, "LogicalNotEqual");
+    STRINGISE_ENUM_NAMED(spv::OpLogicalOr, "LogicalOr");
+    STRINGISE_ENUM_NAMED(spv::OpLogicalAnd, "LogicalAnd");
+    STRINGISE_ENUM_NAMED(spv::OpLogicalNot, "LogicalNot");
+    STRINGISE_ENUM_NAMED(spv::OpSelect, "Select");
+    STRINGISE_ENUM_NAMED(spv::OpIEqual, "IEqual");
+    STRINGISE_ENUM_NAMED(spv::OpINotEqual, "INotEqual");
+    STRINGISE_ENUM_NAMED(spv::OpUGreaterThan, "UGreaterThan");
+    STRINGISE_ENUM_NAMED(spv::OpSGreaterThan, "SGreaterThan");
+    STRINGISE_ENUM_NAMED(spv::OpUGreaterThanEqual, "UGreaterThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpSGreaterThanEqual, "SGreaterThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpULessThan, "ULessThan");
+    STRINGISE_ENUM_NAMED(spv::OpSLessThan, "SLessThan");
+    STRINGISE_ENUM_NAMED(spv::OpULessThanEqual, "ULessThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpSLessThanEqual, "SLessThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFOrdEqual, "FOrdEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFUnordEqual, "FUnordEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFOrdNotEqual, "FOrdNotEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFUnordNotEqual, "FUnordNotEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFOrdLessThan, "FOrdLessThan");
+    STRINGISE_ENUM_NAMED(spv::OpFUnordLessThan, "FUnordLessThan");
+    STRINGISE_ENUM_NAMED(spv::OpFOrdGreaterThan, "FOrdGreaterThan");
+    STRINGISE_ENUM_NAMED(spv::OpFUnordGreaterThan, "FUnordGreaterThan");
+    STRINGISE_ENUM_NAMED(spv::OpFOrdLessThanEqual, "FOrdLessThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFUnordLessThanEqual, "FUnordLessThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFOrdGreaterThanEqual, "FOrdGreaterThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpFUnordGreaterThanEqual, "FUnordGreaterThanEqual");
+    STRINGISE_ENUM_NAMED(spv::OpShiftRightLogical, "ShiftRightLogical");
+    STRINGISE_ENUM_NAMED(spv::OpShiftRightArithmetic, "ShiftRightArithmetic");
+    STRINGISE_ENUM_NAMED(spv::OpShiftLeftLogical, "ShiftLeftLogical");
+    STRINGISE_ENUM_NAMED(spv::OpBitwiseOr, "BitwiseOr");
+    STRINGISE_ENUM_NAMED(spv::OpBitwiseXor, "BitwiseXor");
+    STRINGISE_ENUM_NAMED(spv::OpBitwiseAnd, "BitwiseAnd");
+    STRINGISE_ENUM_NAMED(spv::OpNot, "Not");
+    STRINGISE_ENUM_NAMED(spv::OpBitFieldInsert, "BitFieldInsert");
+    STRINGISE_ENUM_NAMED(spv::OpBitFieldSExtract, "BitFieldSExtract");
+    STRINGISE_ENUM_NAMED(spv::OpBitFieldUExtract, "BitFieldUExtract");
+    STRINGISE_ENUM_NAMED(spv::OpBitReverse, "BitReverse");
+    STRINGISE_ENUM_NAMED(spv::OpBitCount, "BitCount");
+    STRINGISE_ENUM_NAMED(spv::OpDPdx, "DPdx");
+    STRINGISE_ENUM_NAMED(spv::OpDPdy, "DPdy");
+    STRINGISE_ENUM_NAMED(spv::OpFwidth, "Fwidth");
+    STRINGISE_ENUM_NAMED(spv::OpDPdxFine, "DPdxFine");
+    STRINGISE_ENUM_NAMED(spv::OpDPdyFine, "DPdyFine");
+    STRINGISE_ENUM_NAMED(spv::OpFwidthFine, "FwidthFine");
+    STRINGISE_ENUM_NAMED(spv::OpDPdxCoarse, "DPdxCoarse");
+    STRINGISE_ENUM_NAMED(spv::OpDPdyCoarse, "DPdyCoarse");
+    STRINGISE_ENUM_NAMED(spv::OpFwidthCoarse, "FwidthCoarse");
+    STRINGISE_ENUM_NAMED(spv::OpEmitVertex, "EmitVertex");
+    STRINGISE_ENUM_NAMED(spv::OpEndPrimitive, "EndPrimitive");
+    STRINGISE_ENUM_NAMED(spv::OpEmitStreamVertex, "EmitStreamVertex");
+    STRINGISE_ENUM_NAMED(spv::OpEndStreamPrimitive, "EndStreamPrimitive");
+    STRINGISE_ENUM_NAMED(spv::OpControlBarrier, "ControlBarrier");
+    STRINGISE_ENUM_NAMED(spv::OpMemoryBarrier, "MemoryBarrier");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicLoad, "AtomicLoad");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicStore, "AtomicStore");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicExchange, "AtomicExchange");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicCompareExchange, "AtomicCompareExchange");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicCompareExchangeWeak, "AtomicCompareExchangeWeak");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicIIncrement, "AtomicIIncrement");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicIDecrement, "AtomicIDecrement");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicIAdd, "AtomicIAdd");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicISub, "AtomicISub");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicSMin, "AtomicSMin");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicUMin, "AtomicUMin");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicSMax, "AtomicSMax");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicUMax, "AtomicUMax");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicAnd, "AtomicAnd");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicOr, "AtomicOr");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicXor, "AtomicXor");
+    STRINGISE_ENUM_NAMED(spv::OpPhi, "Phi");
+    STRINGISE_ENUM_NAMED(spv::OpLoopMerge, "LoopMerge");
+    STRINGISE_ENUM_NAMED(spv::OpSelectionMerge, "SelectionMerge");
+    STRINGISE_ENUM_NAMED(spv::OpLabel, "Label");
+    STRINGISE_ENUM_NAMED(spv::OpBranch, "Branch");
+    STRINGISE_ENUM_NAMED(spv::OpBranchConditional, "BranchConditional");
+    STRINGISE_ENUM_NAMED(spv::OpSwitch, "Switch");
+    STRINGISE_ENUM_NAMED(spv::OpKill, "Kill");
+    STRINGISE_ENUM_NAMED(spv::OpReturn, "Return");
+    STRINGISE_ENUM_NAMED(spv::OpReturnValue, "ReturnValue");
+    STRINGISE_ENUM_NAMED(spv::OpUnreachable, "Unreachable");
+    STRINGISE_ENUM_NAMED(spv::OpLifetimeStart, "LifetimeStart");
+    STRINGISE_ENUM_NAMED(spv::OpLifetimeStop, "LifetimeStop");
+    STRINGISE_ENUM_NAMED(spv::OpGroupAsyncCopy, "GroupAsyncCopy");
+    STRINGISE_ENUM_NAMED(spv::OpGroupWaitEvents, "GroupWaitEvents");
+    STRINGISE_ENUM_NAMED(spv::OpGroupAll, "GroupAll");
+    STRINGISE_ENUM_NAMED(spv::OpGroupAny, "GroupAny");
+    STRINGISE_ENUM_NAMED(spv::OpGroupBroadcast, "GroupBroadcast");
+    STRINGISE_ENUM_NAMED(spv::OpGroupIAdd, "GroupIAdd");
+    STRINGISE_ENUM_NAMED(spv::OpGroupFAdd, "GroupFAdd");
+    STRINGISE_ENUM_NAMED(spv::OpGroupFMin, "GroupFMin");
+    STRINGISE_ENUM_NAMED(spv::OpGroupUMin, "GroupUMin");
+    STRINGISE_ENUM_NAMED(spv::OpGroupSMin, "GroupSMin");
+    STRINGISE_ENUM_NAMED(spv::OpGroupFMax, "GroupFMax");
+    STRINGISE_ENUM_NAMED(spv::OpGroupUMax, "GroupUMax");
+    STRINGISE_ENUM_NAMED(spv::OpGroupSMax, "GroupSMax");
+    STRINGISE_ENUM_NAMED(spv::OpReadPipe, "ReadPipe");
+    STRINGISE_ENUM_NAMED(spv::OpWritePipe, "WritePipe");
+    STRINGISE_ENUM_NAMED(spv::OpReservedReadPipe, "ReservedReadPipe");
+    STRINGISE_ENUM_NAMED(spv::OpReservedWritePipe, "ReservedWritePipe");
+    STRINGISE_ENUM_NAMED(spv::OpReserveReadPipePackets, "ReserveReadPipePackets");
+    STRINGISE_ENUM_NAMED(spv::OpReserveWritePipePackets, "ReserveWritePipePackets");
+    STRINGISE_ENUM_NAMED(spv::OpCommitReadPipe, "CommitReadPipe");
+    STRINGISE_ENUM_NAMED(spv::OpCommitWritePipe, "CommitWritePipe");
+    STRINGISE_ENUM_NAMED(spv::OpIsValidReserveId, "IsValidReserveId");
+    STRINGISE_ENUM_NAMED(spv::OpGetNumPipePackets, "GetNumPipePackets");
+    STRINGISE_ENUM_NAMED(spv::OpGetMaxPipePackets, "GetMaxPipePackets");
+    STRINGISE_ENUM_NAMED(spv::OpGroupReserveReadPipePackets, "GroupReserveReadPipePackets");
+    STRINGISE_ENUM_NAMED(spv::OpGroupReserveWritePipePackets, "GroupReserveWritePipePackets");
+    STRINGISE_ENUM_NAMED(spv::OpGroupCommitReadPipe, "GroupCommitReadPipe");
+    STRINGISE_ENUM_NAMED(spv::OpGroupCommitWritePipe, "GroupCommitWritePipe");
+    STRINGISE_ENUM_NAMED(spv::OpEnqueueMarker, "EnqueueMarker");
+    STRINGISE_ENUM_NAMED(spv::OpEnqueueKernel, "EnqueueKernel");
+    STRINGISE_ENUM_NAMED(spv::OpGetKernelNDrangeSubGroupCount, "GetKernelNDrangeSubGroupCount");
+    STRINGISE_ENUM_NAMED(spv::OpGetKernelNDrangeMaxSubGroupSize, "GetKernelNDrangeMaxSubGroupSize");
+    STRINGISE_ENUM_NAMED(spv::OpGetKernelWorkGroupSize, "GetKernelWorkGroupSize");
+    STRINGISE_ENUM_NAMED(spv::OpGetKernelPreferredWorkGroupSizeMultiple,
+                         "GetKernelPreferredWorkGroupSizeMultiple");
+    STRINGISE_ENUM_NAMED(spv::OpRetainEvent, "RetainEvent");
+    STRINGISE_ENUM_NAMED(spv::OpReleaseEvent, "ReleaseEvent");
+    STRINGISE_ENUM_NAMED(spv::OpCreateUserEvent, "CreateUserEvent");
+    STRINGISE_ENUM_NAMED(spv::OpIsValidEvent, "IsValidEvent");
+    STRINGISE_ENUM_NAMED(spv::OpSetUserEventStatus, "SetUserEventStatus");
+    STRINGISE_ENUM_NAMED(spv::OpCaptureEventProfilingInfo, "CaptureEventProfilingInfo");
+    STRINGISE_ENUM_NAMED(spv::OpGetDefaultQueue, "GetDefaultQueue");
+    STRINGISE_ENUM_NAMED(spv::OpBuildNDRange, "BuildNDRange");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleImplicitLod, "ImageSparseSampleImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleExplicitLod, "ImageSparseSampleExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleDrefImplicitLod,
+                         "ImageSparseSampleDrefImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleDrefExplicitLod,
+                         "ImageSparseSampleDrefExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleProjImplicitLod,
+                         "ImageSparseSampleProjImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleProjExplicitLod,
+                         "ImageSparseSampleProjExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleProjDrefImplicitLod,
+                         "ImageSparseSampleProjDrefImplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseSampleProjDrefExplicitLod,
+                         "ImageSparseSampleProjDrefExplicitLod");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseFetch, "ImageSparseFetch");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseGather, "ImageSparseGather");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseDrefGather, "ImageSparseDrefGather");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseTexelsResident, "ImageSparseTexelsResident");
+    STRINGISE_ENUM_NAMED(spv::OpNoLine, "NoLine");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicFlagTestAndSet, "AtomicFlagTestAndSet");
+    STRINGISE_ENUM_NAMED(spv::OpAtomicFlagClear, "AtomicFlagClear");
+    STRINGISE_ENUM_NAMED(spv::OpImageSparseRead, "ImageSparseRead");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupBallotKHR, "SubgroupBallotKHR");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupFirstInvocationKHR, "SubgroupFirstInvocationKHR");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupAllKHR, "SubgroupAllKHR");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupAnyKHR, "SubgroupAnyKHR");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupAllEqualKHR, "SubgroupAllEqualKHR");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupReadInvocationKHR, "SubgroupReadInvocationKHR");
+    STRINGISE_ENUM_NAMED(spv::OpGroupIAddNonUniformAMD, "GroupIAddNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupFAddNonUniformAMD, "GroupFAddNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupFMinNonUniformAMD, "GroupFMinNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupUMinNonUniformAMD, "GroupUMinNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupSMinNonUniformAMD, "GroupSMinNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupFMaxNonUniformAMD, "GroupFMaxNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupUMaxNonUniformAMD, "GroupUMaxNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupSMaxNonUniformAMD, "GroupSMaxNonUniformAMD");
+    STRINGISE_ENUM_NAMED(spv::OpFragmentMaskFetchAMD, "FragmentMaskFetchAMD");
+    STRINGISE_ENUM_NAMED(spv::OpFragmentFetchAMD, "FragmentFetchAMD");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformPartitionNV, "GroupNonUniformPartitionNV");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleINTEL, "SubgroupShuffleINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleDownINTEL, "SubgroupShuffleDownINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleUpINTEL, "SubgroupShuffleUpINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleXorINTEL, "SubgroupShuffleXorINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupBlockReadINTEL, "SubgroupBlockReadINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupBlockWriteINTEL, "SubgroupBlockWriteINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupImageBlockReadINTEL, "SubgroupImageBlockReadINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpSubgroupImageBlockWriteINTEL, "SubgroupImageBlockWriteINTEL");
+    STRINGISE_ENUM_NAMED(spv::OpDecorateStringGOOGLE, "DecorateStringGOOGLE");
+    STRINGISE_ENUM_NAMED(spv::OpMemberDecorateStringGOOGLE, "MemberDecorateStringGOOGLE");
+    STRINGISE_ENUM_NAMED(spv::OpMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedOp{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::SourceLanguage &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::SourceLanguage)
   {
-    case spv::SourceLanguageUnknown: return "Unknown";
-    case spv::SourceLanguageESSL: return "ESSL";
-    case spv::SourceLanguageGLSL: return "GLSL";
-    case spv::SourceLanguageOpenCL_C: return "OpenCL C";
-    case spv::SourceLanguageOpenCL_CPP: return "OpenCL C++";
-    case spv::SourceLanguageHLSL: return "HLSL";
-    case spv::SourceLanguageMax: break;
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageUnknown, "Unknown");
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageESSL, "ESSL");
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageGLSL, "GLSL");
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageOpenCL_C, "OpenCL_C");
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageOpenCL_CPP, "OpenCL_CPP");
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageHLSL, "HLSL");
+    STRINGISE_ENUM_NAMED(spv::SourceLanguageMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedLanguage{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::Capability &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::Capability)
   {
-    case spv::CapabilityMatrix: return "Matrix";
-    case spv::CapabilityShader: return "Shader";
-    case spv::CapabilityGeometry: return "Geometry";
-    case spv::CapabilityTessellation: return "Tessellation";
-    case spv::CapabilityAddresses: return "Addresses";
-    case spv::CapabilityLinkage: return "Linkage";
-    case spv::CapabilityKernel: return "Kernel";
-    case spv::CapabilityVector16: return "Vector16";
-    case spv::CapabilityFloat16Buffer: return "Float16Buffer";
-    case spv::CapabilityFloat16: return "Float16";
-    case spv::CapabilityFloat64: return "Float64";
-    case spv::CapabilityInt64: return "Int64";
-    case spv::CapabilityInt64Atomics: return "Int64Atomics";
-    case spv::CapabilityImageBasic: return "ImageBasic";
-    case spv::CapabilityImageReadWrite: return "ImageReadWrite";
-    case spv::CapabilityImageMipmap: return "ImageMipmap";
-    case spv::CapabilityPipes: return "Pipes";
-    case spv::CapabilityGroups: return "Groups";
-    case spv::CapabilityDeviceEnqueue: return "DeviceEnqueue";
-    case spv::CapabilityLiteralSampler: return "LiteralSampler";
-    case spv::CapabilityAtomicStorage: return "AtomicStorage";
-    case spv::CapabilityInt16: return "Int16";
-    case spv::CapabilityTessellationPointSize: return "TessellationPointSize";
-    case spv::CapabilityGeometryPointSize: return "GeometryPointSize";
-    case spv::CapabilityImageGatherExtended: return "ImageGatherExtended";
-    case spv::CapabilityStorageImageMultisample: return "StorageImageMultisample";
-    case spv::CapabilityUniformBufferArrayDynamicIndexing:
-      return "UniformBufferArrayDynamicIndexing";
-    case spv::CapabilitySampledImageArrayDynamicIndexing: return "SampledImageArrayDynamicIndexing";
-    case spv::CapabilityStorageBufferArrayDynamicIndexing:
-      return "StorageBufferArrayDynamicIndexing";
-    case spv::CapabilityStorageImageArrayDynamicIndexing: return "StorageImageArrayDynamicIndexing";
-    case spv::CapabilityClipDistance: return "ClipDistance";
-    case spv::CapabilityCullDistance: return "CullDistance";
-    case spv::CapabilityImageCubeArray: return "ImageCubeArray";
-    case spv::CapabilitySampleRateShading: return "SampleRateShading";
-    case spv::CapabilityImageRect: return "ImageRect";
-    case spv::CapabilitySampledRect: return "SampledRect";
-    case spv::CapabilityGenericPointer: return "GenericPointer";
-    case spv::CapabilityInt8: return "Int8";
-    case spv::CapabilityInputAttachment: return "InputAttachment";
-    case spv::CapabilitySparseResidency: return "SparseResidency";
-    case spv::CapabilityMinLod: return "MinLod";
-    case spv::CapabilitySampled1D: return "Sampled1D";
-    case spv::CapabilityImage1D: return "Image1D";
-    case spv::CapabilitySampledCubeArray: return "SampledCubeArray";
-    case spv::CapabilitySampledBuffer: return "SampledBuffer";
-    case spv::CapabilityImageBuffer: return "ImageBuffer";
-    case spv::CapabilityImageMSArray: return "ImageMSArray";
-    case spv::CapabilityStorageImageExtendedFormats: return "StorageImageExtendedFormats";
-    case spv::CapabilityImageQuery: return "ImageQuery";
-    case spv::CapabilityDerivativeControl: return "DerivativeControl";
-    case spv::CapabilityInterpolationFunction: return "InterpolationFunction";
-    case spv::CapabilityTransformFeedback: return "TransformFeedback";
-    case spv::CapabilityGeometryStreams: return "GeometryStreams";
-    case spv::CapabilityStorageImageReadWithoutFormat: return "StorageImageReadWithoutFormat";
-    case spv::CapabilityStorageImageWriteWithoutFormat: return "StorageImageWriteWithoutFormat";
-    case spv::CapabilityMultiViewport: return "MultiViewport";
-    case spv::CapabilitySubgroupBallotKHR: return "SubgroupBallotKHR";
-    case spv::CapabilityDrawParameters: return "DrawParameters";
-    case spv::CapabilitySubgroupVoteKHR: return "SubgroupVoteKHR";
-    case spv::CapabilityStorageUniformBufferBlock16: return "StorageUniformBufferBlock16";
-    case spv::CapabilityStorageUniform16: return "StorageUniform16";
-    case spv::CapabilityStoragePushConstant16: return "StoragePushConstant16";
-    case spv::CapabilityStorageInputOutput16: return "StorageInputOutput16";
-    case spv::CapabilityDeviceGroup: return "DeviceGroup";
-    case spv::CapabilityMultiView: return "MultiView";
-    case spv::CapabilityVariablePointersStorageBuffer: return "VariablePointersStorageBuffer";
-    case spv::CapabilityVariablePointers: return "VariablePointers";
-    case spv::CapabilityAtomicStorageOps: return "AtomicStorageOps";
-    case spv::CapabilitySampleMaskPostDepthCoverage: return "SampleMaskPostDepthCoverage";
-    case spv::CapabilityImageGatherBiasLodAMD: return "ImageGatherBiasLodAMD";
-    case spv::CapabilityStencilExportEXT: return "StencilExportEXT";
-    case spv::CapabilitySampleMaskOverrideCoverageNV: return "SampleMaskOverrideCoverageNV";
-    case spv::CapabilityGeometryShaderPassthroughNV: return "GeometryShaderPassthroughNV";
-    case spv::CapabilityShaderViewportIndexLayerNV: return "ShaderViewportIndexLayerNV";
-    case spv::CapabilityShaderViewportMaskNV: return "ShaderViewportMaskNV";
-    case spv::CapabilityShaderStereoViewNV: return "ShaderStereoViewNV";
-    case spv::CapabilityPerViewAttributesNV: return "PerViewAttributesNV";
-    case spv::CapabilityMax: break;
+    STRINGISE_ENUM_NAMED(spv::CapabilityMatrix, "Matrix");
+    STRINGISE_ENUM_NAMED(spv::CapabilityShader, "Shader");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGeometry, "Geometry");
+    STRINGISE_ENUM_NAMED(spv::CapabilityTessellation, "Tessellation");
+    STRINGISE_ENUM_NAMED(spv::CapabilityAddresses, "Addresses");
+    STRINGISE_ENUM_NAMED(spv::CapabilityLinkage, "Linkage");
+    STRINGISE_ENUM_NAMED(spv::CapabilityKernel, "Kernel");
+    STRINGISE_ENUM_NAMED(spv::CapabilityVector16, "Vector16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFloat16Buffer, "Float16Buffer");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFloat16, "Float16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFloat64, "Float64");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInt64, "Int64");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInt64Atomics, "Int64Atomics");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageBasic, "ImageBasic");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageReadWrite, "ImageReadWrite");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageMipmap, "ImageMipmap");
+    STRINGISE_ENUM_NAMED(spv::CapabilityPipes, "Pipes");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroups, "Groups");
+    STRINGISE_ENUM_NAMED(spv::CapabilityDeviceEnqueue, "DeviceEnqueue");
+    STRINGISE_ENUM_NAMED(spv::CapabilityLiteralSampler, "LiteralSampler");
+    STRINGISE_ENUM_NAMED(spv::CapabilityAtomicStorage, "AtomicStorage");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInt16, "Int16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityTessellationPointSize, "TessellationPointSize");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGeometryPointSize, "GeometryPointSize");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageGatherExtended, "ImageGatherExtended");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageMultisample, "StorageImageMultisample");
+    STRINGISE_ENUM_NAMED(spv::CapabilityUniformBufferArrayDynamicIndexing,
+                         "UniformBufferArrayDynamicIndexing");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampledImageArrayDynamicIndexing,
+                         "SampledImageArrayDynamicIndexing");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageBufferArrayDynamicIndexing,
+                         "StorageBufferArrayDynamicIndexing");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageArrayDynamicIndexing,
+                         "StorageImageArrayDynamicIndexing");
+    STRINGISE_ENUM_NAMED(spv::CapabilityClipDistance, "ClipDistance");
+    STRINGISE_ENUM_NAMED(spv::CapabilityCullDistance, "CullDistance");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageCubeArray, "ImageCubeArray");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampleRateShading, "SampleRateShading");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageRect, "ImageRect");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampledRect, "SampledRect");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGenericPointer, "GenericPointer");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInt8, "Int8");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInputAttachment, "InputAttachment");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySparseResidency, "SparseResidency");
+    STRINGISE_ENUM_NAMED(spv::CapabilityMinLod, "MinLod");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampled1D, "Sampled1D");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImage1D, "Image1D");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampledCubeArray, "SampledCubeArray");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampledBuffer, "SampledBuffer");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageBuffer, "ImageBuffer");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageMSArray, "ImageMSArray");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageExtendedFormats, "StorageImageExtendedFormats");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageQuery, "ImageQuery");
+    STRINGISE_ENUM_NAMED(spv::CapabilityDerivativeControl, "DerivativeControl");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInterpolationFunction, "InterpolationFunction");
+    STRINGISE_ENUM_NAMED(spv::CapabilityTransformFeedback, "TransformFeedback");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGeometryStreams, "GeometryStreams");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageReadWithoutFormat,
+                         "StorageImageReadWithoutFormat");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageWriteWithoutFormat,
+                         "StorageImageWriteWithoutFormat");
+    STRINGISE_ENUM_NAMED(spv::CapabilityMultiViewport, "MultiViewport");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupBallotKHR, "SubgroupBallotKHR");
+    STRINGISE_ENUM_NAMED(spv::CapabilityDrawParameters, "DrawParameters");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupVoteKHR, "SubgroupVoteKHR");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageUniformBufferBlock16, "StorageUniformBufferBlock16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageUniform16, "StorageUniform16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStoragePushConstant16, "StoragePushConstant16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageInputOutput16, "StorageInputOutput16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityDeviceGroup, "DeviceGroup");
+    STRINGISE_ENUM_NAMED(spv::CapabilityMultiView, "MultiView");
+    STRINGISE_ENUM_NAMED(spv::CapabilityVariablePointersStorageBuffer,
+                         "VariablePointersStorageBuffer");
+    STRINGISE_ENUM_NAMED(spv::CapabilityVariablePointers, "VariablePointers");
+    STRINGISE_ENUM_NAMED(spv::CapabilityAtomicStorageOps, "AtomicStorageOps");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampleMaskPostDepthCoverage, "SampleMaskPostDepthCoverage");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageGatherBiasLodAMD, "ImageGatherBiasLodAMD");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStencilExportEXT, "StencilExportEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampleMaskOverrideCoverageNV,
+                         "SampleMaskOverrideCoverageNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGeometryShaderPassthroughNV, "GeometryShaderPassthroughNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityShaderViewportIndexLayerNV, "ShaderViewportIndexLayerNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityShaderViewportMaskNV, "ShaderViewportMaskNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityShaderStereoViewNV, "ShaderStereoViewNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityPerViewAttributesNV, "PerViewAttributesNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFragmentFullyCoveredEXT, "FragmentFullyCoveredEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformPartitionedNV,
+                         "GroupNonUniformPartitionedNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityShaderNonUniformEXT, "ShaderNonUniformEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityRuntimeDescriptorArrayEXT, "RuntimeDescriptorArrayEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInputAttachmentArrayDynamicIndexingEXT,
+                         "InputAttachmentArrayDynamicIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityUniformTexelBufferArrayDynamicIndexingEXT,
+                         "UniformTexelBufferArrayDynamicIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageTexelBufferArrayDynamicIndexingEXT,
+                         "StorageTexelBufferArrayDynamicIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityUniformBufferArrayNonUniformIndexingEXT,
+                         "UniformBufferArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySampledImageArrayNonUniformIndexingEXT,
+                         "SampledImageArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageBufferArrayNonUniformIndexingEXT,
+                         "StorageBufferArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageArrayNonUniformIndexingEXT,
+                         "StorageImageArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityInputAttachmentArrayNonUniformIndexingEXT,
+                         "InputAttachmentArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityUniformTexelBufferArrayNonUniformIndexingEXT,
+                         "UniformTexelBufferArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageTexelBufferArrayNonUniformIndexingEXT,
+                         "StorageTexelBufferArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupShuffleINTEL, "SubgroupShuffleINTEL");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupBufferBlockIOINTEL, "SubgroupBufferBlockIOINTEL");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupImageBlockIOINTEL, "SubgroupImageBlockIOINTEL");
+    STRINGISE_ENUM_NAMED(spv::CapabilityMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedCap{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::ExecutionMode &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::ExecutionMode)
   {
-    case spv::ExecutionModeInvocations: return "Invocations";
-    case spv::ExecutionModeSpacingEqual: return "SpacingEqual";
-    case spv::ExecutionModeSpacingFractionalEven: return "SpacingFractionalEven";
-    case spv::ExecutionModeSpacingFractionalOdd: return "SpacingFractionalOdd";
-    case spv::ExecutionModeVertexOrderCw: return "VertexOrderCw";
-    case spv::ExecutionModeVertexOrderCcw: return "VertexOrderCcw";
-    case spv::ExecutionModePixelCenterInteger: return "PixelCenterInteger";
-    case spv::ExecutionModeOriginUpperLeft: return "OriginUpperLeft";
-    case spv::ExecutionModeOriginLowerLeft: return "OriginLowerLeft";
-    case spv::ExecutionModeEarlyFragmentTests: return "EarlyFragmentTests";
-    case spv::ExecutionModePointMode: return "PointMode";
-    case spv::ExecutionModeXfb: return "Xfb";
-    case spv::ExecutionModeDepthReplacing: return "DepthReplacing";
-    case spv::ExecutionModeDepthGreater: return "DepthGreater";
-    case spv::ExecutionModeDepthLess: return "DepthLess";
-    case spv::ExecutionModeDepthUnchanged: return "DepthUnchanged";
-    case spv::ExecutionModeLocalSize: return "LocalSize";
-    case spv::ExecutionModeLocalSizeHint: return "LocalSizeHint";
-    case spv::ExecutionModeInputPoints: return "InputPoints";
-    case spv::ExecutionModeInputLines: return "InputLines";
-    case spv::ExecutionModeInputLinesAdjacency: return "InputLinesAdjacency";
-    case spv::ExecutionModeTriangles: return "Triangles";
-    case spv::ExecutionModeInputTrianglesAdjacency: return "InputTrianglesAdjacency";
-    case spv::ExecutionModeQuads: return "Quads";
-    case spv::ExecutionModeIsolines: return "Isolines";
-    case spv::ExecutionModeOutputVertices: return "OutputVertices";
-    case spv::ExecutionModeOutputPoints: return "OutputPoints";
-    case spv::ExecutionModeOutputLineStrip: return "OutputLineStrip";
-    case spv::ExecutionModeOutputTriangleStrip: return "OutputTriangleStrip";
-    case spv::ExecutionModeVecTypeHint: return "VecTypeHint";
-    case spv::ExecutionModeContractionOff: return "ContractionOff";
-    case spv::ExecutionModePostDepthCoverage: return "PostDepthCoverage";
-    case spv::ExecutionModeMax: break;
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeInvocations, "Invocations");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSpacingEqual, "SpacingEqual");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSpacingFractionalEven, "SpacingFractionalEven");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSpacingFractionalOdd, "SpacingFractionalOdd");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeVertexOrderCw, "VertexOrderCw");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeVertexOrderCcw, "VertexOrderCcw");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModePixelCenterInteger, "PixelCenterInteger");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOriginUpperLeft, "OriginUpperLeft");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOriginLowerLeft, "OriginLowerLeft");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeEarlyFragmentTests, "EarlyFragmentTests");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModePointMode, "PointMode");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeXfb, "Xfb");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDepthReplacing, "DepthReplacing");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDepthGreater, "DepthGreater");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDepthLess, "DepthLess");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDepthUnchanged, "DepthUnchanged");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeLocalSize, "LocalSize");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeLocalSizeHint, "LocalSizeHint");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeInputPoints, "InputPoints");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeInputLines, "InputLines");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeInputLinesAdjacency, "InputLinesAdjacency");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeTriangles, "Triangles");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeInputTrianglesAdjacency, "InputTrianglesAdjacency");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeQuads, "Quads");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeIsolines, "Isolines");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputVertices, "OutputVertices");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputPoints, "OutputPoints");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputLineStrip, "OutputLineStrip");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputTriangleStrip, "OutputTriangleStrip");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeVecTypeHint, "VecTypeHint");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeContractionOff, "ContractionOff");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModePostDepthCoverage, "PostDepthCoverage");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeStencilRefReplacingEXT, "StencilRefReplacingEXT");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedMode{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::AddressingModel &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::AddressingModel)
   {
-    case spv::AddressingModelLogical: return "Logical";
-    case spv::AddressingModelPhysical32: return "Physical (32-bit)";
-    case spv::AddressingModelPhysical64: return "Physical (64-bit)";
-    case spv::AddressingModelMax: break;
+    STRINGISE_ENUM_NAMED(spv::AddressingModelLogical, "Logical");
+    STRINGISE_ENUM_NAMED(spv::AddressingModelPhysical32, "Physical32");
+    STRINGISE_ENUM_NAMED(spv::AddressingModelPhysical64, "Physical64");
+    STRINGISE_ENUM_NAMED(spv::AddressingModelMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::MemoryModel &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::MemoryModel)
   {
-    case spv::MemoryModelSimple: return "Simple";
-    case spv::MemoryModelGLSL450: return "GLSL450";
-    case spv::MemoryModelOpenCL: return "OpenCL";
-    case spv::MemoryModelMax: break;
+    STRINGISE_ENUM_NAMED(spv::MemoryModelSimple, "Simple");
+    STRINGISE_ENUM_NAMED(spv::MemoryModelGLSL450, "GLSL450");
+    STRINGISE_ENUM_NAMED(spv::MemoryModelOpenCL, "OpenCL");
+    STRINGISE_ENUM_NAMED(spv::MemoryModelMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::ExecutionModel &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::ExecutionModel)
   {
-    case spv::ExecutionModelVertex: return "Vertex Shader";
-    case spv::ExecutionModelTessellationControl: return "Tess. Control Shader";
-    case spv::ExecutionModelTessellationEvaluation: return "Tess. Eval Shader";
-    case spv::ExecutionModelGeometry: return "Geometry Shader";
-    case spv::ExecutionModelFragment: return "Fragment Shader";
-    case spv::ExecutionModelGLCompute: return "Compute Shader";
-    case spv::ExecutionModelKernel: return "Kernel";
-    case spv::ExecutionModelMax: break;
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelVertex, "Vertex");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelTessellationControl, "TessellationControl");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelTessellationEvaluation, "TessellationEvaluation");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelGeometry, "Geometry");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelFragment, "Fragment");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelGLCompute, "GLCompute");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelKernel, "Kernel");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::Decoration &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::Decoration)
   {
-    case spv::DecorationRelaxedPrecision: return "RelaxedPrecision";
-    case spv::DecorationSpecId: return "SpecId";
-    case spv::DecorationBlock: return "Block";
-    case spv::DecorationBufferBlock: return "BufferBlock";
-    case spv::DecorationRowMajor: return "RowMajor";
-    case spv::DecorationColMajor: return "ColMajor";
-    case spv::DecorationArrayStride: return "ArrayStride";
-    case spv::DecorationMatrixStride: return "MatrixStride";
-    case spv::DecorationGLSLShared: return "GLSLShared";
-    case spv::DecorationGLSLPacked: return "GLSLPacked";
-    case spv::DecorationCPacked: return "CPacked";
-    case spv::DecorationBuiltIn: return "BuiltIn";
-    case spv::DecorationNoPerspective: return "NoPerspective";
-    case spv::DecorationFlat: return "Flat";
-    case spv::DecorationPatch: return "Patch";
-    case spv::DecorationCentroid: return "Centroid";
-    case spv::DecorationSample: return "Sample";
-    case spv::DecorationInvariant: return "Invariant";
-    case spv::DecorationRestrict: return "Restrict";
-    case spv::DecorationAliased: return "Aliased";
-    case spv::DecorationVolatile: return "Volatile";
-    case spv::DecorationConstant: return "Constant";
-    case spv::DecorationCoherent: return "Coherent";
-    case spv::DecorationNonWritable: return "NonWritable";
-    case spv::DecorationNonReadable: return "NonReadable";
-    case spv::DecorationUniform: return "Uniform";
-    case spv::DecorationSaturatedConversion: return "SaturatedConversion";
-    case spv::DecorationStream: return "Stream";
-    case spv::DecorationLocation: return "Location";
-    case spv::DecorationComponent: return "Component";
-    case spv::DecorationIndex: return "Index";
-    case spv::DecorationBinding: return "Binding";
-    case spv::DecorationDescriptorSet: return "DescriptorSet";
-    case spv::DecorationOffset: return "Offset";
-    case spv::DecorationXfbBuffer: return "XfbBuffer";
-    case spv::DecorationXfbStride: return "XfbStride";
-    case spv::DecorationFuncParamAttr: return "FuncParamAttr";
-    case spv::DecorationFPRoundingMode: return "FPRoundingMode";
-    case spv::DecorationFPFastMathMode: return "FPFastMathMode";
-    case spv::DecorationLinkageAttributes: return "LinkageAttributes";
-    case spv::DecorationNoContraction: return "NoContraction";
-    case spv::DecorationInputAttachmentIndex: return "InputAttachmentIndex";
-    case spv::DecorationAlignment: return "Alignment";
-    case spv::DecorationExplicitInterpAMD: return "ExplicitInterpAMD";
-    case spv::DecorationOverrideCoverageNV: return "OverrideCoverageNV";
-    case spv::DecorationPassthroughNV: return "PassthroughNV";
-    case spv::DecorationViewportRelativeNV: return "ViewportRelativeNV";
-    case spv::DecorationSecondaryViewportRelativeNV: return "SecondaryViewportRelativeNV";
-    case spv::DecorationMax: break;
+    STRINGISE_ENUM_NAMED(spv::DecorationRelaxedPrecision, "RelaxedPrecision");
+    STRINGISE_ENUM_NAMED(spv::DecorationSpecId, "SpecId");
+    STRINGISE_ENUM_NAMED(spv::DecorationBlock, "Block");
+    STRINGISE_ENUM_NAMED(spv::DecorationBufferBlock, "BufferBlock");
+    STRINGISE_ENUM_NAMED(spv::DecorationRowMajor, "RowMajor");
+    STRINGISE_ENUM_NAMED(spv::DecorationColMajor, "ColMajor");
+    STRINGISE_ENUM_NAMED(spv::DecorationArrayStride, "ArrayStride");
+    STRINGISE_ENUM_NAMED(spv::DecorationMatrixStride, "MatrixStride");
+    STRINGISE_ENUM_NAMED(spv::DecorationGLSLShared, "GLSLShared");
+    STRINGISE_ENUM_NAMED(spv::DecorationGLSLPacked, "GLSLPacked");
+    STRINGISE_ENUM_NAMED(spv::DecorationCPacked, "CPacked");
+    STRINGISE_ENUM_NAMED(spv::DecorationBuiltIn, "BuiltIn");
+    STRINGISE_ENUM_NAMED(spv::DecorationNoPerspective, "NoPerspective");
+    STRINGISE_ENUM_NAMED(spv::DecorationFlat, "Flat");
+    STRINGISE_ENUM_NAMED(spv::DecorationPatch, "Patch");
+    STRINGISE_ENUM_NAMED(spv::DecorationCentroid, "Centroid");
+    STRINGISE_ENUM_NAMED(spv::DecorationSample, "Sample");
+    STRINGISE_ENUM_NAMED(spv::DecorationInvariant, "Invariant");
+    STRINGISE_ENUM_NAMED(spv::DecorationRestrict, "Restrict");
+    STRINGISE_ENUM_NAMED(spv::DecorationAliased, "Aliased");
+    STRINGISE_ENUM_NAMED(spv::DecorationVolatile, "Volatile");
+    STRINGISE_ENUM_NAMED(spv::DecorationConstant, "Constant");
+    STRINGISE_ENUM_NAMED(spv::DecorationCoherent, "Coherent");
+    STRINGISE_ENUM_NAMED(spv::DecorationNonWritable, "NonWritable");
+    STRINGISE_ENUM_NAMED(spv::DecorationNonReadable, "NonReadable");
+    STRINGISE_ENUM_NAMED(spv::DecorationUniform, "Uniform");
+    STRINGISE_ENUM_NAMED(spv::DecorationSaturatedConversion, "SaturatedConversion");
+    STRINGISE_ENUM_NAMED(spv::DecorationStream, "Stream");
+    STRINGISE_ENUM_NAMED(spv::DecorationLocation, "Location");
+    STRINGISE_ENUM_NAMED(spv::DecorationComponent, "Component");
+    STRINGISE_ENUM_NAMED(spv::DecorationIndex, "Index");
+    STRINGISE_ENUM_NAMED(spv::DecorationBinding, "Binding");
+    STRINGISE_ENUM_NAMED(spv::DecorationDescriptorSet, "DescriptorSet");
+    STRINGISE_ENUM_NAMED(spv::DecorationOffset, "Offset");
+    STRINGISE_ENUM_NAMED(spv::DecorationXfbBuffer, "XfbBuffer");
+    STRINGISE_ENUM_NAMED(spv::DecorationXfbStride, "XfbStride");
+    STRINGISE_ENUM_NAMED(spv::DecorationFuncParamAttr, "FuncParamAttr");
+    STRINGISE_ENUM_NAMED(spv::DecorationFPRoundingMode, "FPRoundingMode");
+    STRINGISE_ENUM_NAMED(spv::DecorationFPFastMathMode, "FPFastMathMode");
+    STRINGISE_ENUM_NAMED(spv::DecorationLinkageAttributes, "LinkageAttributes");
+    STRINGISE_ENUM_NAMED(spv::DecorationNoContraction, "NoContraction");
+    STRINGISE_ENUM_NAMED(spv::DecorationInputAttachmentIndex, "InputAttachmentIndex");
+    STRINGISE_ENUM_NAMED(spv::DecorationAlignment, "Alignment");
+    STRINGISE_ENUM_NAMED(spv::DecorationExplicitInterpAMD, "ExplicitInterpAMD");
+    STRINGISE_ENUM_NAMED(spv::DecorationOverrideCoverageNV, "OverrideCoverageNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationPassthroughNV, "PassthroughNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationViewportRelativeNV, "ViewportRelativeNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationSecondaryViewportRelativeNV, "SecondaryViewportRelativeNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationNonUniformEXT, "NonUniformEXT");
+    STRINGISE_ENUM_NAMED(spv::DecorationHlslCounterBufferGOOGLE, "HlslCounterBufferGOOGLE");
+    STRINGISE_ENUM_NAMED(spv::DecorationHlslSemanticGOOGLE, "HlslSemanticGOOGLE");
+    STRINGISE_ENUM_NAMED(spv::DecorationMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedDecoration{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::Dim &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::Dim)
   {
-    case spv::Dim1D: return "1D";
-    case spv::Dim2D: return "2D";
-    case spv::Dim3D: return "3D";
-    case spv::DimCube: return "Cube";
-    case spv::DimRect: return "Rect";
-    case spv::DimBuffer: return "Buffer";
-    case spv::DimSubpassData: return "Subpass Data";
-    case spv::DimMax: break;
+    STRINGISE_ENUM_NAMED(spv::Dim1D, "1D");
+    STRINGISE_ENUM_NAMED(spv::Dim2D, "2D");
+    STRINGISE_ENUM_NAMED(spv::Dim3D, "3D");
+    STRINGISE_ENUM_NAMED(spv::DimCube, "Cube");
+    STRINGISE_ENUM_NAMED(spv::DimRect, "Rect");
+    STRINGISE_ENUM_NAMED(spv::DimBuffer, "Buffer");
+    STRINGISE_ENUM_NAMED(spv::DimSubpassData, "SubpassData");
+    STRINGISE_ENUM_NAMED(spv::DimMax, "Max");
   }
-
-  return StringFormat::Fmt("{%u}D", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::StorageClass &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::StorageClass)
   {
-    case spv::StorageClassUniformConstant: return "UniformConstant";
-    case spv::StorageClassInput: return "Input";
-    case spv::StorageClassUniform: return "Uniform";
-    case spv::StorageClassOutput: return "Output";
-    case spv::StorageClassWorkgroup: return "Workgroup";
-    case spv::StorageClassCrossWorkgroup: return "CrossWorkgroup";
-    case spv::StorageClassPrivate: return "Private";
-    case spv::StorageClassFunction: return "Function";
-    case spv::StorageClassGeneric: return "Generic";
-    case spv::StorageClassPushConstant: return "PushConstant";
-    case spv::StorageClassAtomicCounter: return "AtomicCounter";
-    case spv::StorageClassImage: return "Image";
-    case spv::StorageClassStorageBuffer: return "StorageBuffer";
-    case spv::StorageClassMax: break;
+    STRINGISE_ENUM_NAMED(spv::StorageClassUniformConstant, "UniformConstant");
+    STRINGISE_ENUM_NAMED(spv::StorageClassInput, "Input");
+    STRINGISE_ENUM_NAMED(spv::StorageClassUniform, "Uniform");
+    STRINGISE_ENUM_NAMED(spv::StorageClassOutput, "Output");
+    STRINGISE_ENUM_NAMED(spv::StorageClassWorkgroup, "Workgroup");
+    STRINGISE_ENUM_NAMED(spv::StorageClassCrossWorkgroup, "CrossWorkgroup");
+    STRINGISE_ENUM_NAMED(spv::StorageClassPrivate, "Private");
+    STRINGISE_ENUM_NAMED(spv::StorageClassFunction, "Function");
+    STRINGISE_ENUM_NAMED(spv::StorageClassGeneric, "Generic");
+    STRINGISE_ENUM_NAMED(spv::StorageClassPushConstant, "PushConstant");
+    STRINGISE_ENUM_NAMED(spv::StorageClassAtomicCounter, "AtomicCounter");
+    STRINGISE_ENUM_NAMED(spv::StorageClassImage, "Image");
+    STRINGISE_ENUM_NAMED(spv::StorageClassStorageBuffer, "StorageBuffer");
+    STRINGISE_ENUM_NAMED(spv::StorageClassMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedClass{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::ImageFormat &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::ImageFormat)
   {
-    case spv::ImageFormatUnknown: return "Unknown";
-    case spv::ImageFormatRgba32f: return "RGBA32f";
-    case spv::ImageFormatRgba16f: return "RGBA16f";
-    case spv::ImageFormatR32f: return "R32f";
-    case spv::ImageFormatRgba8: return "RGBA8";
-    case spv::ImageFormatRgba8Snorm: return "RGBA8SNORM";
-    case spv::ImageFormatRg32f: return "RG32F";
-    case spv::ImageFormatRg16f: return "RG16F";
-    case spv::ImageFormatR11fG11fB10f: return "R11FG11FB10F";
-    case spv::ImageFormatR16f: return "R16F";
-    case spv::ImageFormatRgba16: return "RGBA16";
-    case spv::ImageFormatRgb10A2: return "RGB10A2";
-    case spv::ImageFormatRg16: return "RG16";
-    case spv::ImageFormatRg8: return "RG8";
-    case spv::ImageFormatR16: return "R16";
-    case spv::ImageFormatR8: return "R8";
-    case spv::ImageFormatRgba16Snorm: return "RGBA16SNORM";
-    case spv::ImageFormatRg16Snorm: return "RG16SNORM";
-    case spv::ImageFormatRg8Snorm: return "RG8SNORM";
-    case spv::ImageFormatR16Snorm: return "R16SNORM";
-    case spv::ImageFormatR8Snorm: return "R8SNORM";
-    case spv::ImageFormatRgba32i: return "RGBA32I";
-    case spv::ImageFormatRgba16i: return "RGBA16I";
-    case spv::ImageFormatRgba8i: return "RGBA8I";
-    case spv::ImageFormatR32i: return "R32I";
-    case spv::ImageFormatRg32i: return "RG32I";
-    case spv::ImageFormatRg16i: return "RG16I";
-    case spv::ImageFormatRg8i: return "RG8I";
-    case spv::ImageFormatR16i: return "R16I";
-    case spv::ImageFormatR8i: return "R8I";
-    case spv::ImageFormatRgba32ui: return "RGBA32UI";
-    case spv::ImageFormatRgba16ui: return "RGBA16UI";
-    case spv::ImageFormatRgba8ui: return "RGBA8UI";
-    case spv::ImageFormatR32ui: return "R32UI";
-    case spv::ImageFormatRgb10a2ui: return "RGB10A2UI";
-    case spv::ImageFormatRg32ui: return "RG32UI";
-    case spv::ImageFormatRg16ui: return "RG16UI";
-    case spv::ImageFormatRg8ui: return "RG8UI";
-    case spv::ImageFormatR16ui: return "R16UI";
-    case spv::ImageFormatR8ui: return "R8UI";
-    case spv::ImageFormatMax: break;
+    STRINGISE_ENUM_NAMED(spv::ImageFormatUnknown, "Unknown");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba32f, "Rgba32f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba16f, "Rgba16f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR32f, "R32f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba8, "Rgba8");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba8Snorm, "Rgba8Snorm");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg32f, "Rg32f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg16f, "Rg16f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR11fG11fB10f, "R11fG11fB10f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR16f, "R16f");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba16, "Rgba16");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgb10A2, "Rgb10A2");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg16, "Rg16");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg8, "Rg8");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR16, "R16");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR8, "R8");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba16Snorm, "Rgba16Snorm");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg16Snorm, "Rg16Snorm");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg8Snorm, "Rg8Snorm");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR16Snorm, "R16Snorm");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR8Snorm, "R8Snorm");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba32i, "Rgba32i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba16i, "Rgba16i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba8i, "Rgba8i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR32i, "R32i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg32i, "Rg32i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg16i, "Rg16i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg8i, "Rg8i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR16i, "R16i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR8i, "R8i");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba32ui, "Rgba32ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba16ui, "Rgba16ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgba8ui, "Rgba8ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR32ui, "R32ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRgb10a2ui, "Rgb10a2ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg32ui, "Rg32ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg16ui, "Rg16ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatRg8ui, "Rg8ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR16ui, "R16ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatR8ui, "R8ui");
+    STRINGISE_ENUM_NAMED(spv::ImageFormatMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedFormat{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::BuiltIn &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::BuiltIn)
   {
-    case spv::BuiltInPosition: return "Position";
-    case spv::BuiltInPointSize: return "PointSize";
-    case spv::BuiltInClipDistance: return "ClipDistance";
-    case spv::BuiltInCullDistance: return "CullDistance";
-    case spv::BuiltInVertexId: return "VertexId";
-    case spv::BuiltInInstanceId: return "InstanceId";
-    case spv::BuiltInPrimitiveId: return "PrimitiveId";
-    case spv::BuiltInInvocationId: return "InvocationId";
-    case spv::BuiltInLayer: return "Layer";
-    case spv::BuiltInViewportIndex: return "ViewportIndex";
-    case spv::BuiltInTessLevelOuter: return "TessLevelOuter";
-    case spv::BuiltInTessLevelInner: return "TessLevelInner";
-    case spv::BuiltInTessCoord: return "TessCoord";
-    case spv::BuiltInPatchVertices: return "PatchVertices";
-    case spv::BuiltInFragCoord: return "FragCoord";
-    case spv::BuiltInPointCoord: return "PointCoord";
-    case spv::BuiltInFrontFacing: return "FrontFacing";
-    case spv::BuiltInSampleId: return "SampleId";
-    case spv::BuiltInSamplePosition: return "SamplePosition";
-    case spv::BuiltInSampleMask: return "SampleMask";
-    case spv::BuiltInFragDepth: return "FragDepth";
-    case spv::BuiltInHelperInvocation: return "HelperInvocation";
-    case spv::BuiltInNumWorkgroups: return "NumWorkgroups";
-    case spv::BuiltInWorkgroupSize: return "WorkgroupSize";
-    case spv::BuiltInWorkgroupId: return "WorkgroupId";
-    case spv::BuiltInLocalInvocationId: return "LocalInvocationId";
-    case spv::BuiltInGlobalInvocationId: return "GlobalInvocationId";
-    case spv::BuiltInLocalInvocationIndex: return "LocalInvocationIndex";
-    case spv::BuiltInWorkDim: return "WorkDim";
-    case spv::BuiltInGlobalSize: return "GlobalSize";
-    case spv::BuiltInEnqueuedWorkgroupSize: return "EnqueuedWorkgroupSize";
-    case spv::BuiltInGlobalOffset: return "GlobalOffset";
-    case spv::BuiltInGlobalLinearId: return "GlobalLinearId";
-    case spv::BuiltInSubgroupSize: return "SubgroupSize";
-    case spv::BuiltInSubgroupMaxSize: return "SubgroupMaxSize";
-    case spv::BuiltInNumSubgroups: return "NumSubgroups";
-    case spv::BuiltInNumEnqueuedSubgroups: return "NumEnqueuedSubgroups";
-    case spv::BuiltInSubgroupId: return "SubgroupId";
-    case spv::BuiltInSubgroupLocalInvocationId: return "SubgroupLocalInvocationId";
-    case spv::BuiltInVertexIndex: return "VertexIndex";
-    case spv::BuiltInInstanceIndex: return "InstanceIndex";
-    case spv::BuiltInSubgroupEqMaskKHR: return "SubgroupEqMaskKHR";
-    case spv::BuiltInSubgroupGeMaskKHR: return "SubgroupGeMaskKHR";
-    case spv::BuiltInSubgroupGtMaskKHR: return "SubgroupGtMaskKHR";
-    case spv::BuiltInSubgroupLeMaskKHR: return "SubgroupLeMaskKHR";
-    case spv::BuiltInSubgroupLtMaskKHR: return "SubgroupLtMaskKHR";
-    case spv::BuiltInBaseVertex: return "BaseVertex";
-    case spv::BuiltInBaseInstance: return "BaseInstance";
-    case spv::BuiltInDrawIndex: return "DrawIndex";
-    case spv::BuiltInDeviceIndex: return "DeviceIndex";
-    case spv::BuiltInViewIndex: return "ViewIndex";
-    case spv::BuiltInBaryCoordNoPerspAMD: return "BaryCoordNoPerspAMD";
-    case spv::BuiltInBaryCoordNoPerspCentroidAMD: return "BaryCoordNoPerspCentroidAMD";
-    case spv::BuiltInBaryCoordNoPerspSampleAMD: return "BaryCoordNoPerspSampleAMD";
-    case spv::BuiltInBaryCoordSmoothAMD: return "BaryCoordSmoothAMD";
-    case spv::BuiltInBaryCoordSmoothCentroidAMD: return "BaryCoordSmoothCentroidAMD";
-    case spv::BuiltInBaryCoordSmoothSampleAMD: return "BaryCoordSmoothSampleAMD";
-    case spv::BuiltInBaryCoordPullModelAMD: return "BaryCoordPullModelAMD";
-    case spv::BuiltInFragStencilRefEXT: return "FragStencilRefEXT";
-    case spv::BuiltInViewportMaskNV: return "ViewportMaskNV";
-    case spv::BuiltInSecondaryPositionNV: return "SecondaryPositionNV";
-    case spv::BuiltInSecondaryViewportMaskNV: return "SecondaryViewportMaskNV";
-    case spv::BuiltInPositionPerViewNV: return "PositionPerViewNV";
-    case spv::BuiltInViewportMaskPerViewNV: return "ViewportMaskPerViewNV";
-    case spv::BuiltInMax: break;
+    STRINGISE_ENUM_NAMED(spv::BuiltInPosition, "Position");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPointSize, "PointSize");
+    STRINGISE_ENUM_NAMED(spv::BuiltInClipDistance, "ClipDistance");
+    STRINGISE_ENUM_NAMED(spv::BuiltInCullDistance, "CullDistance");
+    STRINGISE_ENUM_NAMED(spv::BuiltInVertexId, "VertexId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInInstanceId, "InstanceId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPrimitiveId, "PrimitiveId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInInvocationId, "InvocationId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInLayer, "Layer");
+    STRINGISE_ENUM_NAMED(spv::BuiltInViewportIndex, "ViewportIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInTessLevelOuter, "TessLevelOuter");
+    STRINGISE_ENUM_NAMED(spv::BuiltInTessLevelInner, "TessLevelInner");
+    STRINGISE_ENUM_NAMED(spv::BuiltInTessCoord, "TessCoord");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPatchVertices, "PatchVertices");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFragCoord, "FragCoord");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPointCoord, "PointCoord");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFrontFacing, "FrontFacing");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSampleId, "SampleId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSamplePosition, "SamplePosition");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSampleMask, "SampleMask");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFragDepth, "FragDepth");
+    STRINGISE_ENUM_NAMED(spv::BuiltInHelperInvocation, "HelperInvocation");
+    STRINGISE_ENUM_NAMED(spv::BuiltInNumWorkgroups, "NumWorkgroups");
+    STRINGISE_ENUM_NAMED(spv::BuiltInWorkgroupSize, "WorkgroupSize");
+    STRINGISE_ENUM_NAMED(spv::BuiltInWorkgroupId, "WorkgroupId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInLocalInvocationId, "LocalInvocationId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInGlobalInvocationId, "GlobalInvocationId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInLocalInvocationIndex, "LocalInvocationIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInWorkDim, "WorkDim");
+    STRINGISE_ENUM_NAMED(spv::BuiltInGlobalSize, "GlobalSize");
+    STRINGISE_ENUM_NAMED(spv::BuiltInEnqueuedWorkgroupSize, "EnqueuedWorkgroupSize");
+    STRINGISE_ENUM_NAMED(spv::BuiltInGlobalOffset, "GlobalOffset");
+    STRINGISE_ENUM_NAMED(spv::BuiltInGlobalLinearId, "GlobalLinearId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupSize, "SubgroupSize");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupMaxSize, "SubgroupMaxSize");
+    STRINGISE_ENUM_NAMED(spv::BuiltInNumSubgroups, "NumSubgroups");
+    STRINGISE_ENUM_NAMED(spv::BuiltInNumEnqueuedSubgroups, "NumEnqueuedSubgroups");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupId, "SubgroupId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLocalInvocationId, "SubgroupLocalInvocationId");
+    STRINGISE_ENUM_NAMED(spv::BuiltInVertexIndex, "VertexIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInInstanceIndex, "InstanceIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupEqMaskKHR, "SubgroupEqMaskKHR");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupGeMaskKHR, "SubgroupGeMaskKHR");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupGtMaskKHR, "SubgroupGtMaskKHR");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLeMaskKHR, "SubgroupLeMaskKHR");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLtMaskKHR, "SubgroupLtMaskKHR");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaseVertex, "BaseVertex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaseInstance, "BaseInstance");
+    STRINGISE_ENUM_NAMED(spv::BuiltInDrawIndex, "DrawIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInDeviceIndex, "DeviceIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInViewIndex, "ViewIndex");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordNoPerspAMD, "BaryCoordNoPerspAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordNoPerspCentroidAMD, "BaryCoordNoPerspCentroidAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordNoPerspSampleAMD, "BaryCoordNoPerspSampleAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordSmoothAMD, "BaryCoordSmoothAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordSmoothCentroidAMD, "BaryCoordSmoothCentroidAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordSmoothSampleAMD, "BaryCoordSmoothSampleAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordPullModelAMD, "BaryCoordPullModelAMD");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFragStencilRefEXT, "FragStencilRefEXT");
+    STRINGISE_ENUM_NAMED(spv::BuiltInViewportMaskNV, "ViewportMaskNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSecondaryPositionNV, "SecondaryPositionNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSecondaryViewportMaskNV, "SecondaryViewportMaskNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPositionPerViewNV, "PositionPerViewNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInViewportMaskPerViewNV, "ViewportMaskPerViewNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFullyCoveredEXT, "FullyCoveredEXT");
+    STRINGISE_ENUM_NAMED(spv::BuiltInMax, "Max");
   }
-
-  return StringFormat::Fmt("UnrecognisedBuiltIn{%u}", (uint32_t)el);
+  END_ENUM_STRINGISE()
 }
 
 template <>
 std::string DoStringise(const spv::Scope &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(spv::Scope)
   {
-    case spv::ScopeCrossDevice: return "CrossDevice";
-    case spv::ScopeDevice: return "Device";
-    case spv::ScopeWorkgroup: return "Workgroup";
-    case spv::ScopeSubgroup: return "Subgroup";
-    case spv::ScopeInvocation: return "Invocation";
-    case spv::ScopeMax: break;
+    STRINGISE_ENUM_NAMED(spv::ScopeCrossDevice, "CrossDevice");
+    STRINGISE_ENUM_NAMED(spv::ScopeDevice, "Device");
+    STRINGISE_ENUM_NAMED(spv::ScopeWorkgroup, "Workgroup");
+    STRINGISE_ENUM_NAMED(spv::ScopeSubgroup, "Subgroup");
+    STRINGISE_ENUM_NAMED(spv::ScopeInvocation, "Invocation");
+    STRINGISE_ENUM_NAMED(spv::ScopeMax, "Max");
   }
+  END_ENUM_STRINGISE()
+}
 
-  return StringFormat::Fmt("UnrecognisedScope{%u}", (uint32_t)el);
+template <>
+std::string DoStringise(const spv::GroupOperation &el)
+{
+  BEGIN_ENUM_STRINGISE(spv::GroupOperation)
+  {
+    STRINGISE_ENUM_NAMED(spv::GroupOperationReduce, "Reduce");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationInclusiveScan, "InclusiveScan");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationExclusiveScan, "ExclusiveScan");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationClusteredReduce, "ClusteredReduce");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationPartitionedReduceNV, "PartitionedReduceNV");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationPartitionedInclusiveScanNV,
+                         "PartitionedInclusiveScanNV");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationPartitionedExclusiveScanNV,
+                         "PartitionedExclusiveScanNV");
+    STRINGISE_ENUM_NAMED(spv::GroupOperationMax, "Max");
+  }
+  END_ENUM_STRINGISE()
 }
 
 template <>
@@ -816,6 +880,8 @@ std::string DoStringise(const spv::LoopControlMask &el)
   {
     STRINGISE_BITFIELD_BIT_NAMED(spv::LoopControlUnrollMask, "Unroll");
     STRINGISE_BITFIELD_BIT_NAMED(spv::LoopControlDontUnrollMask, "DontUnroll");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::LoopControlDependencyInfiniteMask, "DependencyInfinite");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::LoopControlDependencyLengthMask, "DependencyLength");
   }
   END_BITFIELD_STRINGISE();
 }
