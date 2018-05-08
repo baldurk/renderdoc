@@ -702,6 +702,20 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
   be less than or equal to the original depth produced by the rasterizer.
 
   Related to :data:`DepthOutputGreaterEqual` and :data:`DepthOutput`.
+
+.. data:: BaseVertex
+
+  The first vertex processed in this draw, as specified by the ``firstVertex`` / ``baseVertex``
+  parameter to the draw call.
+
+.. data:: BaseInstance
+
+  The first instance processed in this draw call, as specified by the ``firstInstance`` parameter.
+
+.. data:: DrawIndex
+
+  For indirect or multi-draw commands, the index of this draw call within the overall draw command.
+
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -735,6 +749,9 @@ enum class ShaderBuiltin : uint32_t
   DepthOutput,
   DepthOutputGreaterEqual,
   DepthOutputLessEqual,
+  BaseVertex,
+  BaseInstance,
+  DrawIndex,
   Count,
 };
 

@@ -3678,6 +3678,9 @@ ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el)
     case spv::BuiltInFragDepth: return ShaderBuiltin::DepthOutput;
     case spv::BuiltInVertexIndex: return ShaderBuiltin::VertexIndex;
     case spv::BuiltInInstanceIndex: return ShaderBuiltin::InstanceIndex;
+    case spv::BuiltInBaseVertex: return ShaderBuiltin::BaseVertex;
+    case spv::BuiltInBaseInstance: return ShaderBuiltin::BaseInstance;
+    case spv::BuiltInDrawIndex: return ShaderBuiltin::DrawIndex;
     default: break;
   }
 
@@ -4430,6 +4433,37 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     }
 
     cblocks.push_back(cblockpair(bindmap, cblock));
+  }
+
+  // look for execution modes that affect the reflection and apply them
+  for(SPVInstruction *inst : entries)
+  {
+    if(inst->entry && inst->entry->name == entryPoint)
+    {
+      for(const SPVExecutionMode &mode : inst->entry->modes)
+      {
+        if(mode.mode == spv::ExecutionModeDepthGreater)
+        {
+          for(SigParameter &sig : outputs)
+          {
+            if(sig.systemValue == ShaderBuiltin::DepthOutput)
+              sig.systemValue = ShaderBuiltin::DepthOutputGreaterEqual;
+          }
+          break;
+        }
+        if(mode.mode == spv::ExecutionModeDepthLess)
+        {
+          for(SigParameter &sig : outputs)
+          {
+            if(sig.systemValue == ShaderBuiltin::DepthOutput)
+              sig.systemValue = ShaderBuiltin::DepthOutputLessEqual;
+          }
+          break;
+        }
+      }
+
+      break;
+    }
   }
 
   // sort system value semantics to the start of the list

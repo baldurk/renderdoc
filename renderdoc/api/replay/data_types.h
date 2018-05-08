@@ -951,6 +951,7 @@ struct DrawcallDescription
     baseVertex = 0;
     vertexOffset = 0;
     instanceOffset = 0;
+    drawIndex = 0;
 
     dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
     dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
@@ -1009,6 +1010,12 @@ struct DrawcallDescription
   DOCUMENT(
       "For instanced drawcalls, the offset applied before looking up instanced vertex inputs.");
   uint32_t instanceOffset;
+
+  DOCUMENT(R"(The index of this draw in an call with multiple draws, e.g. an indirect draw.
+
+0 if not part of a multi-draw.
+)");
+  uint32_t drawIndex;
 
   DOCUMENT("The 3D number of workgroups to dispatch in a dispatch call.");
   uint32_t dispatchDimension[3];

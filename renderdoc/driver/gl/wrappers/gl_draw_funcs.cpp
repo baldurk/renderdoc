@@ -1933,6 +1933,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         m_CurEventID++;
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = count[i];
         multidraw.vertexOffset = first[i];
 
@@ -2080,6 +2081,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         m_CurEventID++;
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = count[i];
         multidraw.indexOffset = (uint32_t)(indices[i] & 0xFFFFFFFF);
         multidraw.indexByteWidth = IdxSize;
@@ -2232,6 +2234,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         m_CurEventID++;
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = count[i];
         multidraw.indexOffset = (uint32_t)(indices[i] & 0xFFFFFFFF);
         multidraw.baseVertex = basevertex[i];
@@ -2389,6 +2392,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
           offs += sizeof(params);
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = params.count;
         multidraw.numInstances = params.instanceCount;
         multidraw.vertexOffset = params.first;
@@ -2582,6 +2586,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
           offs += sizeof(params);
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = params.count;
         multidraw.numInstances = params.instanceCount;
         multidraw.indexOffset = params.firstIndex;
@@ -2783,6 +2788,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
           offs += sizeof(params);
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = params.count;
         multidraw.numInstances = params.instanceCount;
         multidraw.vertexOffset = params.first;
@@ -2986,6 +2992,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
           offs += sizeof(params);
 
         DrawcallDescription multidraw;
+        multidraw.drawIndex = i;
         multidraw.numIndices = params.count;
         multidraw.numInstances = params.instanceCount;
         multidraw.indexOffset = params.firstIndex;

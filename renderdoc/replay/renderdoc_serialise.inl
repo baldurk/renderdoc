@@ -480,6 +480,7 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(indexOffset);
   SERIALISE_MEMBER(vertexOffset);
   SERIALISE_MEMBER(instanceOffset);
+  SERIALISE_MEMBER(drawIndex);
 
   SERIALISE_MEMBER(dispatchDimension);
   SERIALISE_MEMBER(dispatchThreadsDimension);
@@ -501,7 +502,7 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(events);
   SERIALISE_MEMBER(children);
 
-  SIZE_CHECK(256);
+  SIZE_CHECK(264);
 }
 
 template <typename SerialiserType>

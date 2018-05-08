@@ -3423,6 +3423,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
           data += sizeof(D3D12_DRAW_ARGUMENTS);
 
+          curDraw.drawIndex = a;
           curDraw.numIndices = args->VertexCountPerInstance;
           curDraw.numInstances = args->InstanceCount;
           curDraw.vertexOffset = args->StartVertexLocation;
@@ -3463,6 +3464,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
           data += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 
+          curDraw.drawIndex = a;
           curDraw.numIndices = args->IndexCountPerInstance;
           curDraw.numInstances = args->InstanceCount;
           curDraw.baseVertex = args->BaseVertexLocation;

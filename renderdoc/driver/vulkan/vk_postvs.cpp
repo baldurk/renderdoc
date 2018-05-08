@@ -818,6 +818,29 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         {
           ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, instIndex}));
         }
+        else if(builtin == ShaderBuiltin::BaseVertex)
+        {
+          if(draw->flags & DrawFlags::UseIBuffer)
+            ops.push_back(SPIRVOperation(
+                spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
+                                                      int32_t(draw->vertexOffset & 0x7fffffff))}));
+          else
+            ops.push_back(SPIRVOperation(
+                spv::OpStore, {ins[i].variableID,
+                               editor.AddConstantImmediate(int32_t(draw->baseVertex & 0x7fffffff))}));
+        }
+        else if(builtin == ShaderBuiltin::BaseInstance)
+        {
+          ops.push_back(SPIRVOperation(
+              spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
+                                                    int32_t(draw->instanceOffset & 0x7fffffff))}));
+        }
+        else if(builtin == ShaderBuiltin::DrawIndex)
+        {
+          ops.push_back(SPIRVOperation(
+              spv::OpStore, {ins[i].variableID,
+                             editor.AddConstantImmediate(int32_t(draw->drawIndex & 0x7fffffff))}));
+        }
         else if(builtin != ShaderBuiltin::Undefined)
         {
           RDCERR("Unsupported/unsupported built-in input %s", ToStr(builtin).c_str());

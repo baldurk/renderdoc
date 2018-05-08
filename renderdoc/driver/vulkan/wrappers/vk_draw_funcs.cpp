@@ -483,6 +483,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         multi.numInstances = params.instanceCount;
         multi.vertexOffset = params.firstVertex;
         multi.instanceOffset = params.firstInstance;
+        multi.drawIndex = i;
 
         multi.name = "vkCmdDrawIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) + ", " +
                      ToStr(multi.numInstances) + ">)";
@@ -800,6 +801,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         multi.vertexOffset = params.vertexOffset;
         multi.indexOffset = params.firstIndex;
         multi.instanceOffset = params.firstInstance;
+        multi.drawIndex = i;
 
         multi.name = "vkCmdDrawIndexedIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) +
                      ", " + ToStr(multi.numInstances) + ">)";
