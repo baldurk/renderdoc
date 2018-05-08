@@ -1405,9 +1405,9 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 
     // when the process exits, call the callback and delete
     QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
-                     [process, finishedCallback](int exitCode) {
+                     [parent, process, finishedCallback](int exitCode) {
                        process->deleteLater();
-                       GUIInvoke::call(finishedCallback);
+                       GUIInvoke::call(parent, finishedCallback);
                      });
 
     return true;
@@ -1442,9 +1442,9 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 
     // when the process exits, call the callback and delete
     QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
-                     [process, finishedCallback](int exitCode) {
+                     [parent, process, finishedCallback](int exitCode) {
                        process->deleteLater();
-                       GUIInvoke::call(finishedCallback);
+                       GUIInvoke::call(parent, finishedCallback);
                      });
 
     return true;
