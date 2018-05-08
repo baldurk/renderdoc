@@ -2027,10 +2027,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         poly << pt;
 
         pt.setX(arrowRect.center().x());
-        if(header->sortIndicator == QStyleOptionHeader::SortDown)
-          pt.setY(ycentre - yoffset);
-        else
-          pt.setY(ycentre - yoffset);
+        pt.setY(ycentre - yoffset);
         poly << pt;
 
         pt.setX(arrowRect.right() - penWidth);
