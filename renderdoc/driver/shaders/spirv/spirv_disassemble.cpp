@@ -2195,6 +2195,11 @@ string SPVModule::Disassemble(const string &entryPoint)
   for(size_t s = 0; s < sourceexts.size(); s++)
     retDisasm += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
 
+  if(!sourceFiles.empty())
+    retDisasm += "Source files:\n";
+  for(size_t s = 0; s < sourceFiles.size(); s++)
+    retDisasm += "    " + sourceFiles[s].first + "\n";
+
   retDisasm += "\n";
 
   if(!extensions.empty())
@@ -3943,12 +3948,15 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())
   {
-    reflection.debugInfo.files.resize(sourceFiles.size());
+    reflection.debugInfo.files.reserve(sourceFiles.size());
 
     for(size_t i = 0; i < sourceFiles.size(); i++)
     {
-      reflection.debugInfo.files[i].filename = sourceFiles[i].first;
-      reflection.debugInfo.files[i].contents = sourceFiles[i].second;
+      // skip any empty source files
+      if(sourceFiles[i].second.empty())
+        continue;
+
+      reflection.debugInfo.files.push_back({sourceFiles[i].first, sourceFiles[i].second});
     }
   }
 
