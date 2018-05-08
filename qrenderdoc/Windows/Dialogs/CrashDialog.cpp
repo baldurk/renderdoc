@@ -331,15 +331,18 @@ void CrashDialog::sendReport()
       QHttpPart capture;
 
       QFile *file = new QFile(m_CaptureFilename);
-      file->open(QIODevice::ReadOnly);
-      file->setParent(multiPart);
+      if(file->open(QIODevice::ReadOnly))
+      {
+        file->setParent(multiPart);
 
-      capture.setHeader(QNetworkRequest::ContentTypeHeader, lit("application/x-renderdoc-capture"));
-      capture.setHeader(QNetworkRequest::ContentDispositionHeader,
-                        lit("form-data; name=\"capture\"; filename=\"capture.rdc\""));
-      capture.setBodyDevice(file);
+        capture.setHeader(QNetworkRequest::ContentTypeHeader,
+                          lit("application/x-renderdoc-capture"));
+        capture.setHeader(QNetworkRequest::ContentDispositionHeader,
+                          lit("form-data; name=\"capture\"; filename=\"capture.rdc\""));
+        capture.setBodyDevice(file);
 
-      multiPart->append(capture);
+        multiPart->append(capture);
+      }
     }
 
     if(m_Thumbnail)
@@ -363,15 +366,23 @@ void CrashDialog::sendReport()
     QHttpPart report;
 
     QFile *file = new QFile(m_ReportPath);
-    file->open(QIODevice::ReadOnly);
-    file->setParent(multiPart);
+    if(file->open(QIODevice::ReadOnly))
+    {
+      file->setParent(multiPart);
 
-    report.setHeader(QNetworkRequest::ContentTypeHeader, lit("application/zip"));
-    report.setHeader(QNetworkRequest::ContentDispositionHeader,
-                     lit("form-data; name=\"report\"; filename=\"report.zip\""));
-    report.setBodyDevice(file);
+      report.setHeader(QNetworkRequest::ContentTypeHeader, lit("application/zip"));
+      report.setHeader(QNetworkRequest::ContentDispositionHeader,
+                       lit("form-data; name=\"report\"; filename=\"report.zip\""));
+      report.setBodyDevice(file);
 
-    multiPart->append(report);
+      multiPart->append(report);
+    }
+    else
+    {
+      ui->progressText->setText(tr("Error preparing crash report"));
+      // can't send report without report.zip
+      return;
+    }
   }
 
   QNetworkRequest request(QUrl(lit(BUGREPORT_URL)));

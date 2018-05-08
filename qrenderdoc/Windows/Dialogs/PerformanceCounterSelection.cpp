@@ -402,35 +402,43 @@ void PerformanceCounterSelection::Load()
   QFile f(filename);
   if(f.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    LoadFromJSON(doc, f, JSON_ID, JSON_VER);
+    bool success = LoadFromJSON(doc, f, JSON_ID, JSON_VER);
 
-    QSet<GPUCounter> selectedCounters;
-
-    QVariantList counters = doc[lit("counters")].toList();
-
-    for(const QVariant &counter : counters)
+    if(success)
     {
-      QVariantList bytes = counter.toList();
-      Uuid uuid;
+      QSet<GPUCounter> selectedCounters;
 
-      if(bytes.size() != 4)
+      QVariantList counters = doc[lit("counters")].toList();
+
+      for(const QVariant &counter : counters)
       {
-        qWarning() << "Counter ID doesn't count 4 words";
-        continue;
+        QVariantList bytes = counter.toList();
+        Uuid uuid;
+
+        if(bytes.size() != 4)
+        {
+          qWarning() << "Counter ID doesn't count 4 words";
+          continue;
+        }
+
+        for(int i = 0; i < 4; ++i)
+        {
+          uuid.words[i] = bytes[i].toUInt();
+        }
+
+        if(!m_UuidToCounter.contains(uuid))
+          continue;
+
+        selectedCounters.insert(m_UuidToCounter[uuid]);
       }
 
-      for(int i = 0; i < 4; ++i)
-      {
-        uuid.words[i] = bytes[i].toUInt();
-      }
-
-      if(!m_UuidToCounter.contains(uuid))
-        continue;
-
-      selectedCounters.insert(m_UuidToCounter[uuid]);
+      SetSelectedCounters(selectedCounters.toList());
     }
-
-    SetSelectedCounters(selectedCounters.toList());
+    else
+    {
+      RDDialog::critical(this, tr("Error loading config"),
+                         tr("Couldn't interpret settings in %1.").arg(filename));
+    }
   }
   else
   {

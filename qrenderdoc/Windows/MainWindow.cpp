@@ -1980,7 +1980,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 
 void MainWindow::on_action_Close_Capture_triggered()
 {
-  PromptCloseCapture();
+  (void)PromptCloseCapture();
 }
 
 void MainWindow::on_action_Save_Capture_Inplace_triggered()
