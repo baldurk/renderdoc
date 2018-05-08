@@ -1077,6 +1077,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         {
           m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
           RDCERR("Capture requires extension '%s' which is not supported", Extensions[i].c_str());
+          SAFE_DELETE_ARRAY(extArray);
           return false;
         }
 
