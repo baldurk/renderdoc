@@ -1388,16 +1388,16 @@ DOCUMENT("Contains the bytes and metadata describing a thumbnail.");
 struct Thumbnail
 {
   DOCUMENT("The :class:`FileType` of the data in the thumbnail.");
-  FileType type;
+  FileType type = FileType::Raw;
 
   DOCUMENT("The ``bytes`` byte array containing the raw data.");
   bytebuf data;
 
   DOCUMENT("The width of the thumbnail image.");
-  uint32_t width;
+  uint32_t width = 0;
 
   DOCUMENT("The height of the thumbnail image.");
-  uint32_t height;
+  uint32_t height = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(Thumbnail);

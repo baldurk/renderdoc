@@ -1572,7 +1572,7 @@ private:
   }
 
   void *m_pUserData = NULL;
-  uint64_t m_Version;
+  uint64_t m_Version = 0;
 
   uint64_t m_StructArg = 0;
 

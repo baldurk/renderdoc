@@ -296,7 +296,7 @@ void D3D11TextRenderer::RenderTextInternal(float x, float y, const char *text)
 
   RDCASSERT(strlen(text) < FONT_MAX_CHARS);
 
-  FontCBuffer data;
+  FontCBuffer data = {};
 
   data.TextPosition.x = x;
   data.TextPosition.y = y;

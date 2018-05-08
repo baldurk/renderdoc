@@ -442,7 +442,7 @@ void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 
   RDCASSERT(strlen(text) < FONT_MAX_CHARS);
 
-  FontCBuffer data;
+  FontCBuffer data = {};
 
   data.TextPosition.x = x;
   data.TextPosition.y = y;

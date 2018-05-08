@@ -122,7 +122,7 @@ struct ShaderVariable
   {
     name = "";
     rows = columns = 0;
-    displayAsHex = isStruct = false;
+    displayAsHex = isStruct = rowMajor = false;
     type = VarType::Float;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
@@ -132,7 +132,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = false;
+    displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::Float;
@@ -146,7 +146,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = false;
+    displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::Int;
@@ -160,7 +160,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = false;
+    displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::UInt;
