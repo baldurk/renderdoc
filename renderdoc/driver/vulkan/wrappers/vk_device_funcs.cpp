@@ -1166,6 +1166,70 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     VkPhysicalDeviceFeatures availFeatures = {0};
     ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
 
+#define CHECK_PHYS_FEATURE(feature)                                                           \
+  if(enabledFeatures.feature && !availFeatures.feature)                                       \
+  {                                                                                           \
+    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;                              \
+    RDCERR("Capture requires physical device feature '" #feature "' which is not supported"); \
+    return false;                                                                             \
+  }
+
+    CHECK_PHYS_FEATURE(robustBufferAccess);
+    CHECK_PHYS_FEATURE(fullDrawIndexUint32);
+    CHECK_PHYS_FEATURE(imageCubeArray);
+    CHECK_PHYS_FEATURE(independentBlend);
+    CHECK_PHYS_FEATURE(geometryShader);
+    CHECK_PHYS_FEATURE(tessellationShader);
+    CHECK_PHYS_FEATURE(sampleRateShading);
+    CHECK_PHYS_FEATURE(dualSrcBlend);
+    CHECK_PHYS_FEATURE(logicOp);
+    CHECK_PHYS_FEATURE(multiDrawIndirect);
+    CHECK_PHYS_FEATURE(drawIndirectFirstInstance);
+    CHECK_PHYS_FEATURE(depthClamp);
+    CHECK_PHYS_FEATURE(depthBiasClamp);
+    CHECK_PHYS_FEATURE(fillModeNonSolid);
+    CHECK_PHYS_FEATURE(depthBounds);
+    CHECK_PHYS_FEATURE(wideLines);
+    CHECK_PHYS_FEATURE(largePoints);
+    CHECK_PHYS_FEATURE(alphaToOne);
+    CHECK_PHYS_FEATURE(multiViewport);
+    CHECK_PHYS_FEATURE(samplerAnisotropy);
+    CHECK_PHYS_FEATURE(textureCompressionETC2);
+    CHECK_PHYS_FEATURE(textureCompressionASTC_LDR);
+    CHECK_PHYS_FEATURE(textureCompressionBC);
+    CHECK_PHYS_FEATURE(occlusionQueryPrecise);
+    CHECK_PHYS_FEATURE(pipelineStatisticsQuery);
+    CHECK_PHYS_FEATURE(vertexPipelineStoresAndAtomics);
+    CHECK_PHYS_FEATURE(fragmentStoresAndAtomics);
+    CHECK_PHYS_FEATURE(shaderTessellationAndGeometryPointSize);
+    CHECK_PHYS_FEATURE(shaderImageGatherExtended);
+    CHECK_PHYS_FEATURE(shaderStorageImageExtendedFormats);
+    CHECK_PHYS_FEATURE(shaderStorageImageMultisample);
+    CHECK_PHYS_FEATURE(shaderStorageImageReadWithoutFormat);
+    CHECK_PHYS_FEATURE(shaderStorageImageWriteWithoutFormat);
+    CHECK_PHYS_FEATURE(shaderUniformBufferArrayDynamicIndexing);
+    CHECK_PHYS_FEATURE(shaderSampledImageArrayDynamicIndexing);
+    CHECK_PHYS_FEATURE(shaderStorageBufferArrayDynamicIndexing);
+    CHECK_PHYS_FEATURE(shaderStorageImageArrayDynamicIndexing);
+    CHECK_PHYS_FEATURE(shaderClipDistance);
+    CHECK_PHYS_FEATURE(shaderCullDistance);
+    CHECK_PHYS_FEATURE(shaderFloat64);
+    CHECK_PHYS_FEATURE(shaderInt64);
+    CHECK_PHYS_FEATURE(shaderInt16);
+    CHECK_PHYS_FEATURE(shaderResourceResidency);
+    CHECK_PHYS_FEATURE(shaderResourceMinLod);
+    CHECK_PHYS_FEATURE(sparseBinding);
+    CHECK_PHYS_FEATURE(sparseResidencyBuffer);
+    CHECK_PHYS_FEATURE(sparseResidencyImage2D);
+    CHECK_PHYS_FEATURE(sparseResidencyImage3D);
+    CHECK_PHYS_FEATURE(sparseResidency2Samples);
+    CHECK_PHYS_FEATURE(sparseResidency4Samples);
+    CHECK_PHYS_FEATURE(sparseResidency8Samples);
+    CHECK_PHYS_FEATURE(sparseResidency16Samples);
+    CHECK_PHYS_FEATURE(sparseResidencyAliased);
+    CHECK_PHYS_FEATURE(variableMultisampleRate);
+    CHECK_PHYS_FEATURE(inheritedQueries);
+
     if(availFeatures.depthClamp)
       enabledFeatures.depthClamp = true;
     else
