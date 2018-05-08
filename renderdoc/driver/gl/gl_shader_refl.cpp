@@ -259,8 +259,8 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
         sh.setStrings(&c_src, 1);
         sh.setEnvInput(glslang::EShSourceGlsl, EShLanguage(ShaderIdx(type)),
                        glslang::EShClientOpenGL, 100);
-        sh.setEnvClient(glslang::EShClientOpenGL, 100);
-        sh.setEnvTarget(glslang::EShTargetNone, 100);
+        sh.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
+        sh.setEnvTarget(glslang::EShTargetNone, glslang::EShTargetSpv_1_0);
 
         TBuiltInResource res = {};
         glslang::TShader::ForbidIncluder incl;

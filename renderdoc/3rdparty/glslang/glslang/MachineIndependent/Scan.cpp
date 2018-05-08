@@ -1,6 +1,7 @@
 //
 // Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
 // Copyright (C) 2013 LunarG, Inc.
+// Copyright (C) 2017 ARM Limited.
 //
 // All rights reserved.
 //
@@ -45,6 +46,7 @@
 #include "../Include/Types.h"
 #include "SymbolTable.h"
 #include "ParseHelper.h"
+#include "attribute.h"
 #include "glslang_tab.cpp.h"
 #include "ScanContext.h"
 #include "Scan.h"
@@ -339,6 +341,7 @@ void TScanContext::fillInKeywordMap()
 
     (*KeywordMap)["const"] =                   CONST;
     (*KeywordMap)["uniform"] =                 UNIFORM;
+    (*KeywordMap)["nonuniformEXT"] =           NONUNIFORM;
     (*KeywordMap)["in"] =                      IN;
     (*KeywordMap)["out"] =                     OUT;
     (*KeywordMap)["inout"] =                   INOUT;
@@ -463,15 +466,33 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["u64vec3"] =                 U64VEC3;
     (*KeywordMap)["u64vec4"] =                 U64VEC4;
 
-#ifdef AMD_EXTENSIONS
+    // GL_KHX_shader_explicit_arithmetic_types
+    (*KeywordMap)["int8_t"] =                  INT8_T;
+    (*KeywordMap)["i8vec2"] =                  I8VEC2;
+    (*KeywordMap)["i8vec3"] =                  I8VEC3;
+    (*KeywordMap)["i8vec4"] =                  I8VEC4;
+    (*KeywordMap)["uint8_t"] =                 UINT8_T;
+    (*KeywordMap)["u8vec2"] =                  U8VEC2;
+    (*KeywordMap)["u8vec3"] =                  U8VEC3;
+    (*KeywordMap)["u8vec4"] =                  U8VEC4;
+
     (*KeywordMap)["int16_t"] =                 INT16_T;
-    (*KeywordMap)["uint16_t"] =                UINT16_T;
     (*KeywordMap)["i16vec2"] =                 I16VEC2;
     (*KeywordMap)["i16vec3"] =                 I16VEC3;
     (*KeywordMap)["i16vec4"] =                 I16VEC4;
+    (*KeywordMap)["uint16_t"] =                UINT16_T;
     (*KeywordMap)["u16vec2"] =                 U16VEC2;
     (*KeywordMap)["u16vec3"] =                 U16VEC3;
     (*KeywordMap)["u16vec4"] =                 U16VEC4;
+
+    (*KeywordMap)["int32_t"] =                 INT32_T;
+    (*KeywordMap)["i32vec2"] =                 I32VEC2;
+    (*KeywordMap)["i32vec3"] =                 I32VEC3;
+    (*KeywordMap)["i32vec4"] =                 I32VEC4;
+    (*KeywordMap)["uint32_t"] =                UINT32_T;
+    (*KeywordMap)["u32vec2"] =                 U32VEC2;
+    (*KeywordMap)["u32vec3"] =                 U32VEC3;
+    (*KeywordMap)["u32vec4"] =                 U32VEC4;
 
     (*KeywordMap)["float16_t"] =               FLOAT16_T;
     (*KeywordMap)["f16vec2"] =                 F16VEC2;
@@ -489,7 +510,39 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["f16mat4x2"] =               F16MAT4X2;
     (*KeywordMap)["f16mat4x3"] =               F16MAT4X3;
     (*KeywordMap)["f16mat4x4"] =               F16MAT4X4;
-#endif
+
+    (*KeywordMap)["float32_t"] =               FLOAT32_T;
+    (*KeywordMap)["f32vec2"] =                 F32VEC2;
+    (*KeywordMap)["f32vec3"] =                 F32VEC3;
+    (*KeywordMap)["f32vec4"] =                 F32VEC4;
+    (*KeywordMap)["f32mat2"] =                 F32MAT2;
+    (*KeywordMap)["f32mat3"] =                 F32MAT3;
+    (*KeywordMap)["f32mat4"] =                 F32MAT4;
+    (*KeywordMap)["f32mat2x2"] =               F32MAT2X2;
+    (*KeywordMap)["f32mat2x3"] =               F32MAT2X3;
+    (*KeywordMap)["f32mat2x4"] =               F32MAT2X4;
+    (*KeywordMap)["f32mat3x2"] =               F32MAT3X2;
+    (*KeywordMap)["f32mat3x3"] =               F32MAT3X3;
+    (*KeywordMap)["f32mat3x4"] =               F32MAT3X4;
+    (*KeywordMap)["f32mat4x2"] =               F32MAT4X2;
+    (*KeywordMap)["f32mat4x3"] =               F32MAT4X3;
+    (*KeywordMap)["f32mat4x4"] =               F32MAT4X4;
+    (*KeywordMap)["float64_t"] =               FLOAT64_T;
+    (*KeywordMap)["f64vec2"] =                 F64VEC2;
+    (*KeywordMap)["f64vec3"] =                 F64VEC3;
+    (*KeywordMap)["f64vec4"] =                 F64VEC4;
+    (*KeywordMap)["f64mat2"] =                 F64MAT2;
+    (*KeywordMap)["f64mat3"] =                 F64MAT3;
+    (*KeywordMap)["f64mat4"] =                 F64MAT4;
+    (*KeywordMap)["f64mat2x2"] =               F64MAT2X2;
+    (*KeywordMap)["f64mat2x3"] =               F64MAT2X3;
+    (*KeywordMap)["f64mat2x4"] =               F64MAT2X4;
+    (*KeywordMap)["f64mat3x2"] =               F64MAT3X2;
+    (*KeywordMap)["f64mat3x3"] =               F64MAT3X3;
+    (*KeywordMap)["f64mat3x4"] =               F64MAT3X4;
+    (*KeywordMap)["f64mat4x2"] =               F64MAT4X2;
+    (*KeywordMap)["f64mat4x3"] =               F64MAT4X3;
+    (*KeywordMap)["f64mat4x4"] =               F64MAT4X4;
 
     (*KeywordMap)["sampler2D"] =               SAMPLER2D;
     (*KeywordMap)["samplerCube"] =             SAMPLERCUBE;
@@ -577,6 +630,54 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["isubpassInputMS"] =         ISUBPASSINPUTMS;
     (*KeywordMap)["usubpassInput"] =           USUBPASSINPUT;
     (*KeywordMap)["usubpassInputMS"] =         USUBPASSINPUTMS;
+
+#ifdef AMD_EXTENSIONS
+    (*KeywordMap)["f16sampler1D"] =                 F16SAMPLER1D;
+    (*KeywordMap)["f16sampler2D"] =                 F16SAMPLER2D;
+    (*KeywordMap)["f16sampler3D"] =                 F16SAMPLER3D;
+    (*KeywordMap)["f16sampler2DRect"] =             F16SAMPLER2DRECT;
+    (*KeywordMap)["f16samplerCube"] =               F16SAMPLERCUBE;
+    (*KeywordMap)["f16sampler1DArray"] =            F16SAMPLER1DARRAY;
+    (*KeywordMap)["f16sampler2DArray"] =            F16SAMPLER2DARRAY;
+    (*KeywordMap)["f16samplerCubeArray"] =          F16SAMPLERCUBEARRAY;
+    (*KeywordMap)["f16samplerBuffer"] =             F16SAMPLERBUFFER;
+    (*KeywordMap)["f16sampler2DMS"] =               F16SAMPLER2DMS;
+    (*KeywordMap)["f16sampler2DMSArray"] =          F16SAMPLER2DMSARRAY;
+    (*KeywordMap)["f16sampler1DShadow"] =           F16SAMPLER1DSHADOW;
+    (*KeywordMap)["f16sampler2DShadow"] =           F16SAMPLER2DSHADOW;
+    (*KeywordMap)["f16sampler2DRectShadow"] =       F16SAMPLER2DRECTSHADOW;
+    (*KeywordMap)["f16samplerCubeShadow"] =         F16SAMPLERCUBESHADOW;
+    (*KeywordMap)["f16sampler1DArrayShadow"] =      F16SAMPLER1DARRAYSHADOW;
+    (*KeywordMap)["f16sampler2DArrayShadow"] =      F16SAMPLER2DARRAYSHADOW;
+    (*KeywordMap)["f16samplerCubeArrayShadow"] =    F16SAMPLERCUBEARRAYSHADOW;
+
+    (*KeywordMap)["f16image1D"] =                   F16IMAGE1D;
+    (*KeywordMap)["f16image2D"] =                   F16IMAGE2D;
+    (*KeywordMap)["f16image3D"] =                   F16IMAGE3D;
+    (*KeywordMap)["f16image2DRect"] =               F16IMAGE2DRECT;
+    (*KeywordMap)["f16imageCube"] =                 F16IMAGECUBE;
+    (*KeywordMap)["f16image1DArray"] =              F16IMAGE1DARRAY;
+    (*KeywordMap)["f16image2DArray"] =              F16IMAGE2DARRAY;
+    (*KeywordMap)["f16imageCubeArray"] =            F16IMAGECUBEARRAY;
+    (*KeywordMap)["f16imageBuffer"] =               F16IMAGEBUFFER;
+    (*KeywordMap)["f16image2DMS"] =                 F16IMAGE2DMS;
+    (*KeywordMap)["f16image2DMSArray"] =            F16IMAGE2DMSARRAY;
+
+    (*KeywordMap)["f16texture1D"] =                 F16TEXTURE1D;
+    (*KeywordMap)["f16texture2D"] =                 F16TEXTURE2D;
+    (*KeywordMap)["f16texture3D"] =                 F16TEXTURE3D;
+    (*KeywordMap)["f16texture2DRect"] =             F16TEXTURE2DRECT;
+    (*KeywordMap)["f16textureCube"] =               F16TEXTURECUBE;
+    (*KeywordMap)["f16texture1DArray"] =            F16TEXTURE1DARRAY;
+    (*KeywordMap)["f16texture2DArray"] =            F16TEXTURE2DARRAY;
+    (*KeywordMap)["f16textureCubeArray"] =          F16TEXTURECUBEARRAY;
+    (*KeywordMap)["f16textureBuffer"] =             F16TEXTUREBUFFER;
+    (*KeywordMap)["f16texture2DMS"] =               F16TEXTURE2DMS;
+    (*KeywordMap)["f16texture2DMSArray"] =          F16TEXTURE2DMSARRAY;
+
+    (*KeywordMap)["f16subpassInput"] =              F16SUBPASSINPUT;
+    (*KeywordMap)["f16subpassInputMS"] =            F16SUBPASSINPUTMS;
+#endif
 
     (*KeywordMap)["noperspective"] =           NOPERSPECTIVE;
     (*KeywordMap)["smooth"] =                  SMOOTH;
@@ -714,19 +815,15 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
             parseContext.error(loc, "not supported", "::", "");
             break;
 
-        case PpAtomConstInt:           parserToken->sType.lex.i   = ppToken.ival;       return INTCONSTANT;
-        case PpAtomConstUint:          parserToken->sType.lex.i   = ppToken.ival;       return UINTCONSTANT;
-        case PpAtomConstInt64:         parserToken->sType.lex.i64 = ppToken.i64val;     return INT64CONSTANT;
-        case PpAtomConstUint64:        parserToken->sType.lex.i64 = ppToken.i64val;     return UINT64CONSTANT;
-#ifdef AMD_EXTENSIONS
-        case PpAtomConstInt16:         parserToken->sType.lex.i   = ppToken.ival;       return INT16CONSTANT;
-        case PpAtomConstUint16:        parserToken->sType.lex.i   = ppToken.ival;       return UINT16CONSTANT;
-#endif
-        case PpAtomConstFloat:         parserToken->sType.lex.d   = ppToken.dval;       return FLOATCONSTANT;
-        case PpAtomConstDouble:        parserToken->sType.lex.d   = ppToken.dval;       return DOUBLECONSTANT;
-#ifdef AMD_EXTENSIONS
-        case PpAtomConstFloat16:       parserToken->sType.lex.d   = ppToken.dval;       return FLOAT16CONSTANT;
-#endif
+        case PpAtomConstInt:           parserToken->sType.lex.i    = ppToken.ival;       return INTCONSTANT;
+        case PpAtomConstUint:          parserToken->sType.lex.i    = ppToken.ival;       return UINTCONSTANT;
+        case PpAtomConstInt16:         parserToken->sType.lex.i    = ppToken.ival;       return INT16CONSTANT;
+        case PpAtomConstUint16:        parserToken->sType.lex.i    = ppToken.ival;       return UINT16CONSTANT;
+        case PpAtomConstInt64:         parserToken->sType.lex.i64  = ppToken.i64val;     return INT64CONSTANT;
+        case PpAtomConstUint64:        parserToken->sType.lex.i64  = ppToken.i64val;     return UINT64CONSTANT;
+        case PpAtomConstFloat:         parserToken->sType.lex.d    = ppToken.dval;       return FLOATCONSTANT;
+        case PpAtomConstDouble:        parserToken->sType.lex.d    = ppToken.dval;       return DOUBLECONSTANT;
+        case PpAtomConstFloat16:       parserToken->sType.lex.d    = ppToken.dval;       return FLOAT16CONSTANT;
         case PpAtomIdentifier:
         {
             int token = tokenizeIdentifier();
@@ -776,6 +873,12 @@ int TScanContext::tokenizeIdentifier()
     case RETURN:
     case CASE:
         return keyword;
+
+    case NONUNIFORM:
+        if (parseContext.extensionTurnedOn(E_GL_EXT_nonuniform_qualifier))
+            return keyword;
+        else
+            return identifierOrType();
 
     case SWITCH:
     case DEFAULT:
@@ -841,7 +944,8 @@ int TScanContext::tokenizeIdentifier()
     case VOLATILE:
         if (parseContext.profile == EEsProfile && parseContext.version >= 310)
             return keyword;
-        if (! parseContext.symbolTable.atBuiltInLevel() && (parseContext.profile == EEsProfile || (parseContext.version < 420 && ! parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))))
+        if (! parseContext.symbolTable.atBuiltInLevel() && (parseContext.profile == EEsProfile ||
+            (parseContext.version < 420 && ! parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))))
             reservedWord();
         return keyword;
 
@@ -865,7 +969,7 @@ int TScanContext::tokenizeIdentifier()
     case PATCH:
         if (parseContext.symbolTable.atBuiltInLevel() ||
             (parseContext.profile == EEsProfile &&
-             (parseContext.version >= 320 || 
+             (parseContext.version >= 320 ||
               parseContext.extensionsTurnedOn(Num_AEP_tessellation_shader, AEP_tessellation_shader))) ||
             (parseContext.profile != EEsProfile && parseContext.extensionTurnedOn(E_GL_ARB_tessellation_shader)))
             return keyword;
@@ -985,12 +1089,29 @@ int TScanContext::tokenizeIdentifier()
     case U64VEC4:
         afterType = true;
         if (parseContext.symbolTable.atBuiltInLevel() ||
-            (parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_int64) &&
-             parseContext.profile != EEsProfile && parseContext.version >= 450))
+            (parseContext.profile != EEsProfile && parseContext.version >= 450 &&
+             (parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_int64) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_int64))))
             return keyword;
         return identifierOrType();
 
-#ifdef AMD_EXTENSIONS
+    case INT8_T:
+    case UINT8_T:
+    case I8VEC2:
+    case I8VEC3:
+    case I8VEC4:
+    case U8VEC2:
+    case U8VEC3:
+    case U8VEC4:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            ((parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_int8)) &&
+              parseContext.profile != EEsProfile && parseContext.version >= 450))
+            return keyword;
+        return identifierOrType();
+
     case INT16_T:
     case UINT16_T:
     case I16VEC2:
@@ -1001,8 +1122,75 @@ int TScanContext::tokenizeIdentifier()
     case U16VEC4:
         afterType = true;
         if (parseContext.symbolTable.atBuiltInLevel() ||
-            (parseContext.extensionTurnedOn(E_GL_AMD_gpu_shader_int16) &&
+            (parseContext.profile != EEsProfile && parseContext.version >= 450 &&
+             (
+#ifdef AMD_EXTENSIONS
+              parseContext.extensionTurnedOn(E_GL_AMD_gpu_shader_int16) ||
+#endif
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_int16))))
+            return keyword;
+        return identifierOrType();
+    case INT32_T:
+    case UINT32_T:
+    case I32VEC2:
+    case I32VEC3:
+    case I32VEC4:
+    case U32VEC2:
+    case U32VEC3:
+    case U32VEC4:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+           ((parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+             parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_int32)) &&
              parseContext.profile != EEsProfile && parseContext.version >= 450))
+            return keyword;
+        return identifierOrType();
+    case FLOAT32_T:
+    case F32VEC2:
+    case F32VEC3:
+    case F32VEC4:
+    case F32MAT2:
+    case F32MAT3:
+    case F32MAT4:
+    case F32MAT2X2:
+    case F32MAT2X3:
+    case F32MAT2X4:
+    case F32MAT3X2:
+    case F32MAT3X3:
+    case F32MAT3X4:
+    case F32MAT4X2:
+    case F32MAT4X3:
+    case F32MAT4X4:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            ((parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_float32)) &&
+              parseContext.profile != EEsProfile && parseContext.version >= 450))
+            return keyword;
+        return identifierOrType();
+
+    case FLOAT64_T:
+    case F64VEC2:
+    case F64VEC3:
+    case F64VEC4:
+    case F64MAT2:
+    case F64MAT3:
+    case F64MAT4:
+    case F64MAT2X2:
+    case F64MAT2X3:
+    case F64MAT2X4:
+    case F64MAT3X2:
+    case F64MAT3X3:
+    case F64MAT3X4:
+    case F64MAT4X2:
+    case F64MAT4X3:
+    case F64MAT4X4:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            ((parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_float64)) &&
+              parseContext.profile != EEsProfile && parseContext.version >= 450))
             return keyword;
         return identifierOrType();
 
@@ -1024,11 +1212,16 @@ int TScanContext::tokenizeIdentifier()
     case F16MAT4X4:
         afterType = true;
         if (parseContext.symbolTable.atBuiltInLevel() ||
-            (parseContext.extensionTurnedOn(E_GL_AMD_gpu_shader_half_float) &&
-             parseContext.profile != EEsProfile && parseContext.version >= 450))
-            return keyword;
-        return identifierOrType();
+            (parseContext.profile != EEsProfile && parseContext.version >= 450 &&
+             (
+#ifdef AMD_EXTENSIONS
+              parseContext.extensionTurnedOn(E_GL_AMD_gpu_shader_half_float) ||
 #endif
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types) ||
+              parseContext.extensionTurnedOn(E_GL_KHX_shader_explicit_arithmetic_types_float16))))
+            return keyword;
+
+        return identifierOrType();
 
     case SAMPLERCUBEARRAY:
     case SAMPLERCUBEARRAYSHADOW:
@@ -1115,7 +1308,7 @@ int TScanContext::tokenizeIdentifier()
     case SAMPLER3D:
         afterType = true;
         if (parseContext.profile == EEsProfile && parseContext.version < 300) {
-            if (! parseContext.extensionTurnedOn(E_GL_OES_texture_3D))
+            if (!parseContext.extensionTurnedOn(E_GL_OES_texture_3D))
                 reservedWord();
         }
         return keyword;
@@ -1152,7 +1345,9 @@ int TScanContext::tokenizeIdentifier()
 
     case SAMPLEREXTERNALOES:
         afterType = true;
-        if (parseContext.symbolTable.atBuiltInLevel() || parseContext.extensionTurnedOn(E_GL_OES_EGL_image_external))
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_OES_EGL_image_external) ||
+            parseContext.extensionTurnedOn(E_GL_OES_EGL_image_external_essl3))
             return keyword;
         return identifierOrType();
 
@@ -1191,7 +1386,7 @@ int TScanContext::tokenizeIdentifier()
     case TEXTURE1DARRAY:
     case SAMPLER:
     case SAMPLERSHADOW:
-        if (parseContext.spvVersion.vulkan >= 100)
+        if (parseContext.spvVersion.vulkan > 0)
             return keyword;
         else
             return identifierOrType();
@@ -1202,12 +1397,71 @@ int TScanContext::tokenizeIdentifier()
     case ISUBPASSINPUTMS:
     case USUBPASSINPUT:
     case USUBPASSINPUTMS:
-        if (parseContext.spvVersion.vulkan >= 100)
+        if (parseContext.spvVersion.vulkan > 0)
             return keyword;
         else
             return identifierOrType();
 
+#ifdef AMD_EXTENSIONS
+    case F16SAMPLER1D:
+    case F16SAMPLER2D:
+    case F16SAMPLER3D:
+    case F16SAMPLER2DRECT:
+    case F16SAMPLERCUBE:
+    case F16SAMPLER1DARRAY:
+    case F16SAMPLER2DARRAY:
+    case F16SAMPLERCUBEARRAY:
+    case F16SAMPLERBUFFER:
+    case F16SAMPLER2DMS:
+    case F16SAMPLER2DMSARRAY:
+    case F16SAMPLER1DSHADOW:
+    case F16SAMPLER2DSHADOW:
+    case F16SAMPLER1DARRAYSHADOW:
+    case F16SAMPLER2DARRAYSHADOW:
+    case F16SAMPLER2DRECTSHADOW:
+    case F16SAMPLERCUBESHADOW:
+    case F16SAMPLERCUBEARRAYSHADOW:
+
+    case F16IMAGE1D:
+    case F16IMAGE2D:
+    case F16IMAGE3D:
+    case F16IMAGE2DRECT:
+    case F16IMAGECUBE:
+    case F16IMAGE1DARRAY:
+    case F16IMAGE2DARRAY:
+    case F16IMAGECUBEARRAY:
+    case F16IMAGEBUFFER:
+    case F16IMAGE2DMS:
+    case F16IMAGE2DMSARRAY:
+
+    case F16TEXTURE1D:
+    case F16TEXTURE2D:
+    case F16TEXTURE3D:
+    case F16TEXTURE2DRECT:
+    case F16TEXTURECUBE:
+    case F16TEXTURE1DARRAY:
+    case F16TEXTURE2DARRAY:
+    case F16TEXTURECUBEARRAY:
+    case F16TEXTUREBUFFER:
+    case F16TEXTURE2DMS:
+    case F16TEXTURE2DMSARRAY:
+
+    case F16SUBPASSINPUT:
+    case F16SUBPASSINPUTMS:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            (parseContext.extensionTurnedOn(E_GL_AMD_gpu_shader_half_float_fetch) &&
+             parseContext.profile != EEsProfile && parseContext.version >= 450))
+            return keyword;
+        return identifierOrType();
+#endif
+
     case NOPERSPECTIVE:
+#ifdef NV_EXTENSIONS
+        if (parseContext.profile == EEsProfile && parseContext.version >= 300 &&
+            parseContext.extensionTurnedOn(E_GL_NV_shader_noperspective_interpolation))
+            return keyword;
+#endif
         return es30ReservedFromGLSL(130);
 
     case SMOOTH:
@@ -1401,7 +1655,8 @@ int TScanContext::dMat()
 int TScanContext::firstGenerationImage(bool inEs310)
 {
     if (parseContext.symbolTable.atBuiltInLevel() ||
-        (parseContext.profile != EEsProfile && (parseContext.version >= 420 || parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))) ||
+        (parseContext.profile != EEsProfile && (parseContext.version >= 420 ||
+         parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))) ||
         (inEs310 && parseContext.profile == EEsProfile && parseContext.version >= 310))
         return keyword;
 

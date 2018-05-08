@@ -67,7 +67,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AMD_EXTENSIONS;NV_EXTENSIONS;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AMD_EXTENSIONS;NV_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DisableSpecificWarnings>4100</DisableSpecificWarnings>
@@ -105,6 +105,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\intermOut.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\IntermTraverse.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\iomapper.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\attribute.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\limits.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\linkValidate.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\parseConst.cpp" />
@@ -127,13 +128,6 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslAttributes.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\InReadableOrder.cpp" />
@@ -183,6 +177,7 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\gl_types.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Initialize.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\iomapper.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\attribute.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\LiveTraverser.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\localintermediate.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseHelper.h" />
@@ -197,17 +192,10 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\osinclude.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ShaderLang.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslAttributes.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokens.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\bitutils.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.KHR.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.EXT.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.AMD.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.NV.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.std.450.h" />

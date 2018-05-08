@@ -108,24 +108,6 @@
     <ClCompile Include="spirv_compile.cpp" />
     <ClCompile Include="spirv_disassemble.cpp" />
     <ClCompile Include="spirv_common.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
@@ -138,14 +120,14 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseContextBase.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslAttributes.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
     <ClCompile Include="spirv_stringise.cpp" />
     <ClCompile Include="spirv_editor.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\attribute.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
@@ -248,27 +230,6 @@
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="spirv_common.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokens.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\Logger.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
@@ -282,9 +243,6 @@
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\hex_float.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslAttributes.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\bitutils.h">
@@ -303,5 +261,11 @@
       <Filter>PCH</Filter>
     </ClInclude>
     <ClInclude Include="spirv_editor.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.EXT.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\attribute.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -34,7 +34,7 @@
 
 #pragma once
 
-#if _MSC_VER >= 1900
+#if defined(_MSC_VER) && _MSC_VER >= 1900
     #pragma warning(disable : 4464) // relative include path contains '..'
 #endif
 
@@ -48,11 +48,15 @@
 namespace glslang {
 
 struct SpvOptions {
-    SpvOptions() : generateDebugInfo(false) { }
+    SpvOptions() : generateDebugInfo(false), disableOptimizer(true),
+        optimizeSize(false) { }
     bool generateDebugInfo;
+    bool disableOptimizer;
+    bool optimizeSize;
 };
 
 void GetSpirvVersion(std::string&);
+int GetSpirvGeneratorVersion();
 void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv,
                   SpvOptions* options = nullptr);
 void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv,

@@ -65,12 +65,17 @@ const Id NoResult = 0;
 const Id NoType = 0;
 
 const Decoration NoPrecision = DecorationMax;
+
+#ifdef __GNUC__
+#   define POTENTIALLY_UNUSED __attribute__((unused))
+#else
+#   define POTENTIALLY_UNUSED
+#endif
+
+POTENTIALLY_UNUSED
 const MemorySemanticsMask MemorySemanticsAllMemory =
-                (MemorySemanticsMask)(MemorySemanticsSequentiallyConsistentMask |
-                                      MemorySemanticsUniformMemoryMask |
-                                      MemorySemanticsSubgroupMemoryMask |
+                (MemorySemanticsMask)(MemorySemanticsUniformMemoryMask |
                                       MemorySemanticsWorkgroupMemoryMask |
-                                      MemorySemanticsCrossWorkgroupMemoryMask |
                                       MemorySemanticsAtomicCounterMemoryMask |
                                       MemorySemanticsImageMemoryMask);
 
@@ -253,7 +258,8 @@ public:
             delete blocks[i];
     }
     Id getId() const { return functionInstruction.getResultId(); }
-    Id getParamId(int p) { return parameterInstructions[p]->getResultId(); }
+    Id getParamId(int p) const { return parameterInstructions[p]->getResultId(); }
+    Id getParamType(int p) const { return parameterInstructions[p]->getTypeId(); }
 
     void addBlock(Block* block) { blocks.push_back(block); }
     void removeBlock(Block* block)

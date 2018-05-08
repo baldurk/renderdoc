@@ -37,19 +37,6 @@
 #ifndef _COMMON_INCLUDED_
 #define _COMMON_INCLUDED_
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900 /*vs2015*/) || defined MINGW_HAS_SECURE_API
-    #include <basetsd.h>
-    #define snprintf sprintf_s
-    #define safe_vsprintf(buf,max,format,args) vsnprintf_s((buf), (max), (max), (format), (args))
-#elif defined (solaris)
-    #define safe_vsprintf(buf,max,format,args) vsnprintf((buf), (max), (format), (args))
-    #include <sys/int_types.h>
-    #define UINT_PTR uintptr_t
-#else
-    #define safe_vsprintf(buf,max,format,args) vsnprintf((buf), (max), (format), (args))
-    #include <stdint.h>
-    #define UINT_PTR uintptr_t
-#endif
 
 #if defined(__ANDROID__) || _MSC_VER < 1700
 #include <sstream>
@@ -63,19 +50,40 @@ std::string to_string(const T& val) {
 }
 #endif
 
+#if (defined(_MSC_VER) && _MSC_VER < 1900 /*vs2015*/) || defined MINGW_HAS_SECURE_API
+    #include <basetsd.h>
+    #ifndef snprintf
+    #define snprintf sprintf_s
+    #endif
+    #define safe_vsprintf(buf,max,format,args) vsnprintf_s((buf), (max), (max), (format), (args))
+#elif defined (solaris)
+    #define safe_vsprintf(buf,max,format,args) vsnprintf((buf), (max), (format), (args))
+    #include <sys/int_types.h>
+    #define UINT_PTR uintptr_t
+#else
+    #define safe_vsprintf(buf,max,format,args) vsnprintf((buf), (max), (format), (args))
+    #include <stdint.h>
+    #define UINT_PTR uintptr_t
+#endif
+
 #if defined(_MSC_VER) && _MSC_VER < 1800
-inline long long int strtoll (const char* str, char** endptr, int base)
-{
-  return _strtoi64(str, endptr, base);
-}
-inline unsigned long long int strtoull (const char* str, char** endptr, int base)
-{
-  return _strtoui64(str, endptr, base);
-}
-inline long long int atoll (const char* str)
-{
-  return strtoll(str, NULL, 10);
-}
+    #include <stdlib.h>
+    inline long long int strtoll (const char* str, char** endptr, int base)
+    {
+        return _strtoi64(str, endptr, base);
+    }
+    inline unsigned long long int strtoull (const char* str, char** endptr, int base)
+    {
+        return _strtoui64(str, endptr, base);
+    }
+    inline long long int atoll (const char* str)
+    {
+        return strtoll(str, NULL, 10);
+    }
+#endif
+
+#if defined(_MSC_VER)
+#define strdup _strdup
 #endif
 
 /* windows only pragma */
@@ -151,7 +159,7 @@ inline TString* NewPoolTString(const char* s)
     return new(memory) TString(s);
 }
 
-template<class T> inline T* NewPoolObject(T)
+template<class T> inline T* NewPoolObject(T*)
 {
     return new(GetThreadPoolAllocator().allocate(sizeof(T))) T;
 }
@@ -222,6 +230,7 @@ inline const TString String(const int i, const int /*base*/ = 10)
 
 struct TSourceLoc {
     void init() { name = nullptr; string = 0; line = 0; column = 0; }
+    void init(int stringNum) { init(); string = stringNum; }
     // Returns the name if it exists. Otherwise, returns the string number.
     std::string getStringNameOrNum(bool quoteStringName = true) const
     {
@@ -235,7 +244,10 @@ struct TSourceLoc {
     int column;
 };
 
-typedef TMap<TString, TString> TPragmaTable;
+class TPragmaTable : public TMap<TString, TString> {
+public:
+    POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
+};
 
 const int MaxTokenLength = 1024;
 

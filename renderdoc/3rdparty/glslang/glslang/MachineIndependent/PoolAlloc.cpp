@@ -40,35 +40,22 @@
 
 namespace glslang {
 
+// Process-wide TLS index
 OS_TLSIndex PoolIndex;
 
-void InitializeMemoryPools()
+// Return the thread-specific current pool.
+TPoolAllocator& GetThreadPoolAllocator()
 {
-    TThreadMemoryPools* pools = static_cast<TThreadMemoryPools*>(OS_GetTLSValue(PoolIndex));
-    if (pools)
-        return;
-
-    TPoolAllocator *threadPoolAllocator = new TPoolAllocator();
-
-    TThreadMemoryPools* threadData = new TThreadMemoryPools();
-
-    threadData->threadPoolAllocator = threadPoolAllocator;
-
-    OS_SetTLSValue(PoolIndex, threadData);
+    return *static_cast<TPoolAllocator*>(OS_GetTLSValue(PoolIndex));
 }
 
-void FreeGlobalPools()
+// Set the thread-specific current pool.
+void SetThreadPoolAllocator(TPoolAllocator* poolAllocator)
 {
-    // Release the allocated memory for this thread.
-    TThreadMemoryPools* globalPools = static_cast<TThreadMemoryPools*>(OS_GetTLSValue(PoolIndex));
-    if (! globalPools)
-        return;
-
-    GetThreadPoolAllocator().popAll();
-    delete &GetThreadPoolAllocator();
-    delete globalPools;
+    OS_SetTLSValue(PoolIndex, poolAllocator);
 }
 
+// Process-wide set up of the TLS pool storage.
 bool InitializePoolIndex()
 {
     // Allocate a TLS index.
@@ -76,26 +63,6 @@ bool InitializePoolIndex()
         return false;
 
     return true;
-}
-
-void FreePoolIndex()
-{
-    // Release the TLS index.
-    OS_FreeTLSIndex(PoolIndex);
-}
-
-TPoolAllocator& GetThreadPoolAllocator()
-{
-    TThreadMemoryPools* threadData = static_cast<TThreadMemoryPools*>(OS_GetTLSValue(PoolIndex));
-
-    return *threadData->threadPoolAllocator;
-}
-
-void SetThreadPoolAllocator(TPoolAllocator& poolAllocator)
-{
-    TThreadMemoryPools* threadData = static_cast<TThreadMemoryPools*>(OS_GetTLSValue(PoolIndex));
-
-    threadData->threadPoolAllocator = &poolAllocator;
 }
 
 //
@@ -234,13 +201,16 @@ void TPoolAllocator::pop()
     currentPageOffset = stack.back().offset;
 
     while (inUseList != page) {
-        // invoke destructor to free allocation list
-        inUseList->~tHeader();
-
         tHeader* nextInUse = inUseList->nextPage;
-        if (inUseList->pageCount > 1)
+        size_t pageCount = inUseList->pageCount;
+
+        // This technically ends the lifetime of the header as C++ object,
+        // but we will still control the memory and reuse it.
+        inUseList->~tHeader(); // currently, just a debug allocation checker
+
+        if (pageCount > 1) {
             delete [] reinterpret_cast<char*>(inUseList);
-        else {
+        } else {
             inUseList->nextPage = freeList;
             freeList = inUseList;
         }

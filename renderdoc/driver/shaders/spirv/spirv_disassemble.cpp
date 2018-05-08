@@ -4578,7 +4578,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
   module.moduleVersion.major = uint8_t((packedVersion & 0x00ff0000) >> 16);
   module.moduleVersion.minor = uint8_t((packedVersion & 0x0000ff00) >> 8);
 
-  if(packedVersion != spv::Version)
+  // support 1.0 to 1.3, don't care about if the API would support it.
+  if(packedVersion < 0x00010000 || packedVersion > 0x00010300)
   {
     RDCERR("Unsupported SPIR-V version: %08x", spirv[1]);
     return;

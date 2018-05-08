@@ -69,6 +69,10 @@
 
 namespace { // anonymous namespace for file-local functions and symbols
 
+// Total number of successful initializers of glslang: a refcount
+// Shared global; access should be protected by a global mutex/critical section.
+int NumberOfClients = 0;
+
 using namespace glslang;
 
 // Create a language specific version of parseables.
@@ -91,18 +95,16 @@ TParseContextBase* CreateParseContext(TSymbolTable& symbolTable, TIntermediate& 
                                       int version, EProfile profile, EShSource source,
                                       EShLanguage language, TInfoSink& infoSink,
                                       SpvVersion spvVersion, bool forwardCompatible, EShMessages messages,
-                                      bool parsingBuiltIns, const std::string sourceEntryPointName = "")
+                                      bool parsingBuiltIns, std::string sourceEntryPointName = "")
 {
-#ifndef ENABLE_HLSL
-    (void)sourceEntryPointName; // Unused argument.
-#endif
-
     switch (source) {
-    case EShSourceGlsl:
-        intermediate.setEntryPointName("main");
+    case EShSourceGlsl: {
+        if (sourceEntryPointName.size() == 0)
+            intermediate.setEntryPointName("main");
+        TString entryPoint = sourceEntryPointName.c_str();
         return new TParseContext(symbolTable, intermediate, parsingBuiltIns, version, profile, spvVersion,
-                                 language, infoSink, forwardCompatible, messages);
-
+                                 language, infoSink, forwardCompatible, messages, &entryPoint);
+    }
 #ifdef ENABLE_HLSL
     case EShSourceHlsl:
         return new HlslParseContext(symbolTable, intermediate, parsingBuiltIns, version, profile, spvVersion,
@@ -219,7 +221,7 @@ enum EPrecisionClass {
 TSymbolTable* CommonSymbolTable[VersionCount][SpvVersionCount][ProfileCount][SourceCount][EPcCount] = {};
 TSymbolTable* SharedSymbolTables[VersionCount][SpvVersionCount][ProfileCount][SourceCount][EShLangCount] = {};
 
-TPoolAllocator* PerProcessGPA = 0;
+TPoolAllocator* PerProcessGPA = nullptr;
 
 //
 // Parse and add to the given symbol table the content of the given shader string.
@@ -363,7 +365,7 @@ bool AddContextSpecificSymbols(const TBuiltInResource* resources, TInfoSink& inf
 // pool allocator intact, so:
 //  - Switch to a new pool for parsing the built-ins
 //  - Do the parsing, which builds the symbol table, using the new pool
-//  - Switch to the process-global pool to save a copy the resulting symbol table
+//  - Switch to the process-global pool to save a copy of the resulting symbol table
 //  - Free up the new pool used to parse the built-ins
 //  - Switch back to the original thread's pool
 //
@@ -390,8 +392,8 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
 
     // Switch to a new pool
     TPoolAllocator& previousAllocator = GetThreadPoolAllocator();
-    TPoolAllocator* builtInPoolAllocator = new TPoolAllocator();
-    SetThreadPoolAllocator(*builtInPoolAllocator);
+    TPoolAllocator* builtInPoolAllocator = new TPoolAllocator;
+    SetThreadPoolAllocator(builtInPoolAllocator);
 
     // Dynamically allocate the local symbol tables so we can control when they are deallocated WRT when the pool is popped.
     TSymbolTable* commonTable[EPcCount];
@@ -405,7 +407,7 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
     InitializeSymbolTables(infoSink, commonTable, stageTables, version, profile, spvVersion, source);
 
     // Switch to the process-global pool
-    SetThreadPoolAllocator(*PerProcessGPA);
+    SetThreadPoolAllocator(PerProcessGPA);
 
     // Copy the local symbol tables from the new pool to the global tables using the process-global pool
     for (int precClass = 0; precClass < EPcCount; ++precClass) {
@@ -432,7 +434,7 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
         delete stageTables[stage];
 
     delete builtInPoolAllocator;
-    SetThreadPoolAllocator(previousAllocator);
+    SetThreadPoolAllocator(&previousAllocator);
 
     glslang::ReleaseGlobalLock();
 }
@@ -576,7 +578,7 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
     if (spvVersion.spv != 0) {
         switch (profile) {
         case  EEsProfile:
-            if (spvVersion.vulkan >= 100 && version < 310) {
+            if (spvVersion.vulkan > 0 && version < 310) {
                 correct = false;
                 infoSink.info.message(EPrefixError, "#version: ES shaders for Vulkan SPIR-V require version 310 or higher");
                 version = 310;
@@ -591,7 +593,7 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
             infoSink.info.message(EPrefixError, "#version: compilation for SPIR-V does not support the compatibility profile");
             break;
         default:
-            if (spvVersion.vulkan >= 100 && version < 140) {
+            if (spvVersion.vulkan > 0 && version < 140) {
                 correct = false;
                 infoSink.info.message(EPrefixError, "#version: Desktop shaders for Vulkan SPIR-V require version 140 or higher");
                 version = 140;
@@ -617,9 +619,9 @@ void TranslateEnvironment(const TEnvironment* environment, EShMessages& messages
 {
     // Set up environmental defaults, first ignoring 'environment'.
     if (messages & EShMsgSpvRules)
-        spvVersion.spv = 0x00010000;
+        spvVersion.spv = EShTargetSpv_1_0;
     if (messages & EShMsgVulkanRules) {
-        spvVersion.vulkan = 100;
+        spvVersion.vulkan = EShTargetVulkan_1_0;
         spvVersion.vulkanGlsl = 100;
     } else if (spvVersion.spv != 0)
         spvVersion.openGl = 100;
@@ -724,9 +726,6 @@ bool ProcessDeferred(
     const std::string sourceEntryPointName = "",
     const TEnvironment* environment = nullptr)  // optional way of fully setting all versions, overriding the above
 {
-    if (! InitThread())
-        return false;
-
     // This must be undone (.pop()) by the caller, after it finishes consuming the created tree.
     GetThreadPoolAllocator().push();
 
@@ -745,9 +744,9 @@ bool ProcessDeferred(
     const int numPre = 2;
     const int numPost = requireNonempty? 1 : 0;
     const int numTotal = numPre + numStrings + numPost;
-    size_t* lengths = new size_t[numTotal];
-    const char** strings = new const char*[numTotal];
-    const char** names = new const char*[numTotal];
+    std::unique_ptr<size_t[]> lengths(new size_t[numTotal]);
+    std::unique_ptr<const char*[]> strings(new const char*[numTotal]);
+    std::unique_ptr<const char*[]> names(new const char*[numTotal]);
     for (int s = 0; s < numStrings; ++s) {
         strings[s + numPre] = shaderStrings[s];
         if (inputLengths == nullptr || inputLengths[s] < 0)
@@ -769,6 +768,8 @@ bool ProcessDeferred(
     SpvVersion spvVersion;
     EShLanguage stage = compiler->getLanguage();
     TranslateEnvironment(environment, messages, source, stage, spvVersion);
+    if (environment != nullptr && environment->target.hlslFunctionality1)
+        intermediate.setHlslFunctionality1();
 
     // First, without using the preprocessor or parser, find the #version, so we know what
     // symbol tables, processing rules, etc. to set up.  This does not need the extra strings
@@ -815,7 +816,7 @@ bool ProcessDeferred(
     intermediate.setProfile(profile);
     intermediate.setSpv(spvVersion);
     RecordProcesses(intermediate, messages, sourceEntryPointName);
-    if (spvVersion.vulkan >= 100)
+    if (spvVersion.vulkan > 0)
         intermediate.setOriginUpperLeft();
     if ((messages & EShMsgHlslOffsets) || source == EShSourceHlsl)
         intermediate.setHlslOffsets();
@@ -833,25 +834,24 @@ bool ProcessDeferred(
                                                   [stage];
 
     // Dynamically allocate the symbol table so we can control when it is deallocated WRT the pool.
-    TSymbolTable* symbolTableMemory = new TSymbolTable;
-    TSymbolTable& symbolTable = *symbolTableMemory;
+    std::unique_ptr<TSymbolTable> symbolTable(new TSymbolTable);
     if (cachedTable)
-        symbolTable.adoptLevels(*cachedTable);
+        symbolTable->adoptLevels(*cachedTable);
 
     // Add built-in symbols that are potentially context dependent;
     // they get popped again further down.
-    if (! AddContextSpecificSymbols(resources, compiler->infoSink, symbolTable, version, profile, spvVersion,
-                                    stage, source))
+    if (! AddContextSpecificSymbols(resources, compiler->infoSink, *symbolTable, version, profile, spvVersion,
+                                    stage, source)) {
         return false;
+    }
 
     //
     // Now we can process the full shader under proper symbols and rules.
     //
 
-    TParseContextBase* parseContext = CreateParseContext(symbolTable, intermediate, version, profile, source,
-                                                         stage, compiler->infoSink,
-                                                         spvVersion, forwardCompatible, messages, false, sourceEntryPointName);
-
+    std::unique_ptr<TParseContextBase> parseContext(CreateParseContext(*symbolTable, intermediate, version, profile, source,
+                                                    stage, compiler->infoSink,
+                                                    spvVersion, forwardCompatible, messages, false, sourceEntryPointName));
     TPpContext ppContext(*parseContext, names[numPre] ? names[numPre] : "", includer);
 
     // only GLSL (bison triggered, really) needs an externally set scan context
@@ -887,23 +887,14 @@ bool ProcessDeferred(
         lengths[postIndex] = strlen(strings[numStrings + numPre]);
         names[postIndex] = nullptr;
     }
-    TInputScanner fullInput(numStrings + numPre + numPost, strings, lengths, names, numPre, numPost);
+    TInputScanner fullInput(numStrings + numPre + numPost, strings.get(), lengths.get(), names.get(), numPre, numPost);
 
     // Push a new symbol allocation scope that will get used for the shader's globals.
-    symbolTable.push();
+    symbolTable->push();
 
     bool success = processingContext(*parseContext, ppContext, fullInput,
-                                     versionWillBeError, symbolTable,
+                                     versionWillBeError, *symbolTable,
                                      intermediate, optLevel, messages);
-
-    // Clean up the symbol table. The AST is self-sufficient now.
-    delete symbolTableMemory;
-
-    delete parseContext;
-    delete [] lengths;
-    delete [] strings;
-    delete [] names;
-
     return success;
 }
 
@@ -913,7 +904,7 @@ bool ProcessDeferred(
 class SourceLineSynchronizer {
 public:
     SourceLineSynchronizer(const std::function<int()>& lastSourceIndex,
-                           std::stringstream* output)
+                           std::string* output)
       : getLastSourceIndex(lastSourceIndex), output(output), lastSource(-1), lastLine(0) {}
 //    SourceLineSynchronizer(const SourceLineSynchronizer&) = delete;
 //    SourceLineSynchronizer& operator=(const SourceLineSynchronizer&) = delete;
@@ -928,7 +919,7 @@ public:
             // used. We also need to output a newline to separate the output
             // from the previous source string (if there is one).
             if (lastSource != -1 || lastLine != 0)
-                *output << std::endl;
+                *output += '\n';
             lastSource = getLastSourceIndex();
             lastLine = -1;
             return true;
@@ -943,7 +934,7 @@ public:
         syncToMostRecentString();
         const bool newLineStarted = lastLine < tokenLine;
         for (; lastLine < tokenLine; ++lastLine) {
-            if (lastLine > 0) *output << std::endl;
+            if (lastLine > 0) *output += '\n';
         }
         return newLineStarted;
     }
@@ -957,8 +948,8 @@ private:
     // A function for getting the index of the last valid source string we've
     // read tokens from.
     const std::function<int()> getLastSourceIndex;
-    // output stream for newlines.
-    std::stringstream* output;
+    // output string for newlines.
+    std::string* output;
     // lastSource is the source string index (starting from 0) of the last token
     // processed. It is tracked in order for newlines to be inserted when a new
     // source string starts. -1 means we haven't started processing any source
@@ -989,27 +980,33 @@ struct DoPreprocessing {
         parseContext.setScanner(&input);
         ppContext.setInput(input, versionWillBeError);
 
-        std::stringstream outputStream;
+        std::string outputBuffer;
         SourceLineSynchronizer lineSync(
-            std::bind(&TInputScanner::getLastValidSourceIndex, &input), &outputStream);
+            std::bind(&TInputScanner::getLastValidSourceIndex, &input), &outputBuffer);
 
-        parseContext.setExtensionCallback([&lineSync, &outputStream](
+        parseContext.setExtensionCallback([&lineSync, &outputBuffer](
             int line, const char* extension, const char* behavior) {
                 lineSync.syncToLine(line);
-                outputStream << "#extension " << extension << " : " << behavior;
+                outputBuffer += "#extension ";
+                outputBuffer += extension;
+                outputBuffer += " : ";
+                outputBuffer += behavior;
         });
 
-        parseContext.setLineCallback([&lineSync, &outputStream, &parseContext](
+        parseContext.setLineCallback([&lineSync, &outputBuffer, &parseContext](
             int curLineNum, int newLineNum, bool hasSource, int sourceNum, const char* sourceName) {
             // SourceNum is the number of the source-string that is being parsed.
             lineSync.syncToLine(curLineNum);
-            outputStream << "#line " << newLineNum;
+            outputBuffer += "#line ";
+            outputBuffer += std::to_string(newLineNum);
             if (hasSource) {
-                outputStream << " ";
+                outputBuffer += ' ';
                 if (sourceName != nullptr) {
-                    outputStream << "\"" << sourceName << "\"";
+                    outputBuffer += '\"';
+                    outputBuffer += sourceName;
+                    outputBuffer += '\"';
                 } else {
-                    outputStream << sourceNum;
+                    outputBuffer += std::to_string(sourceNum);
                 }
             }
             if (parseContext.lineDirectiveShouldSetNextLine()) {
@@ -1017,33 +1014,36 @@ struct DoPreprocessing {
                 // directive. So the new line number for the current line is
                 newLineNum -= 1;
             }
-            outputStream << std::endl;
+            outputBuffer += '\n';
             // And we are at the next line of the #line directive now.
             lineSync.setLineNum(newLineNum + 1);
         });
 
         parseContext.setVersionCallback(
-            [&lineSync, &outputStream](int line, int version, const char* str) {
+            [&lineSync, &outputBuffer](int line, int version, const char* str) {
                 lineSync.syncToLine(line);
-                outputStream << "#version " << version;
+                outputBuffer += "#version ";
+                outputBuffer += std::to_string(version);
                 if (str) {
-                    outputStream << " " << str;
+                    outputBuffer += ' ';
+                    outputBuffer += str;
                 }
             });
 
-        parseContext.setPragmaCallback([&lineSync, &outputStream](
+        parseContext.setPragmaCallback([&lineSync, &outputBuffer](
             int line, const glslang::TVector<glslang::TString>& ops) {
                 lineSync.syncToLine(line);
-                outputStream << "#pragma ";
+                outputBuffer += "#pragma ";
                 for(size_t i = 0; i < ops.size(); ++i) {
-                    outputStream << ops[i];
+                    outputBuffer += ops[i].c_str();
                 }
         });
 
-        parseContext.setErrorCallback([&lineSync, &outputStream](
+        parseContext.setErrorCallback([&lineSync, &outputBuffer](
             int line, const char* errorMessage) {
                 lineSync.syncToLine(line);
-                outputStream << "#error " << errorMessage;
+                outputBuffer += "#error ";
+                outputBuffer += errorMessage;
         });
 
         int lastToken = EndOfInput; // lastToken records the last token processed.
@@ -1059,7 +1059,7 @@ struct DoPreprocessing {
                 // Don't emit whitespace onto empty lines.
                 // Copy any whitespace characters at the start of a line
                 // from the input to the output.
-                outputStream << std::string(ppToken.loc.column - 1, ' ');
+                outputBuffer += std::string(ppToken.loc.column - 1, ' ');
             }
 
             // Output a space in between tokens, but not at the start of a line,
@@ -1069,13 +1069,13 @@ struct DoPreprocessing {
                 (unNeededSpaceTokens.find((char)token) == std::string::npos) &&
                 (unNeededSpaceTokens.find((char)lastToken) == std::string::npos) &&
                 (noSpaceBeforeTokens.find((char)token) == std::string::npos)) {
-                outputStream << " ";
+                outputBuffer += ' ';
             }
             lastToken = token;
-            outputStream << ppToken.name;
+            outputBuffer += ppToken.name;
         } while (true);
-        outputStream << std::endl;
-        *outputString = outputStream.str();
+        outputBuffer += '\n';
+        *outputString = std::move(outputBuffer);
 
         bool success = true;
         if (parseContext.getNumErrors() > 0) {
@@ -1198,7 +1198,11 @@ int ShInitialize()
     if (! InitProcess())
         return 0;
 
-    if (! PerProcessGPA)
+    glslang::GetGlobalLock();
+    ++NumberOfClients;
+    glslang::ReleaseGlobalLock();
+
+    if (PerProcessGPA == nullptr)
         PerProcessGPA = new TPoolAllocator();
 
     glslang::TScanContext::fillInKeywordMap();
@@ -1264,6 +1268,14 @@ void ShDestruct(ShHandle handle)
 //
 int __fastcall ShFinalize()
 {
+    glslang::GetGlobalLock();
+    --NumberOfClients;
+    assert(NumberOfClients >= 0);
+    bool finalize = NumberOfClients == 0;
+    glslang::ReleaseGlobalLock();
+    if (! finalize)
+        return 1;
+
     for (int version = 0; version < VersionCount; ++version) {
         for (int spvVersion = 0; spvVersion < SpvVersionCount; ++spvVersion) {
             for (int p = 0; p < ProfileCount; ++p) {
@@ -1290,10 +1302,9 @@ int __fastcall ShFinalize()
         }
     }
 
-    if (PerProcessGPA) {
-        PerProcessGPA->popAll();
+    if (PerProcessGPA != nullptr) {
         delete PerProcessGPA;
-        PerProcessGPA = 0;
+        PerProcessGPA = nullptr;
     }
 
     glslang::TScanContext::deleteKeywordMap();
@@ -1333,6 +1344,8 @@ int ShCompile(
     TCompiler* compiler = base->getAsCompiler();
     if (compiler == 0)
         return 0;
+
+    SetThreadPoolAllocator(compiler->getPool());
 
     compiler->infoSink.info.erase();
     compiler->infoSink.debug.erase();
@@ -1391,6 +1404,8 @@ int ShLinkExt(
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(linkHandle);
     TLinker* linker = static_cast<TLinker*>(base->getAsLinker());
 
+    SetThreadPoolAllocator(linker->getPool());
+
     if (linker == 0)
         return 0;
 
@@ -1425,9 +1440,6 @@ void ShSetEncryptionMethod(ShHandle handle)
 //
 const char* ShGetInfoLog(const ShHandle handle)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return 0;
 
@@ -1451,9 +1463,6 @@ const char* ShGetInfoLog(const ShHandle handle)
 //
 const void* ShGetExecutable(const ShHandle handle)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return 0;
 
@@ -1476,9 +1485,6 @@ const void* ShGetExecutable(const ShHandle handle)
 //
 int ShSetVirtualAttributeBindings(const ShHandle handle, const ShBindingTable* table)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return 0;
 
@@ -1498,9 +1504,6 @@ int ShSetVirtualAttributeBindings(const ShHandle handle, const ShBindingTable* t
 //
 int ShSetFixedAttributeBindings(const ShHandle handle, const ShBindingTable* table)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return 0;
 
@@ -1519,9 +1522,6 @@ int ShSetFixedAttributeBindings(const ShHandle handle, const ShBindingTable* tab
 //
 int ShExcludeAttributes(const ShHandle handle, int *attributes, int count)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return 0;
 
@@ -1543,9 +1543,6 @@ int ShExcludeAttributes(const ShHandle handle, int *attributes, int count)
 //
 int ShGetUniformLocation(const ShHandle handle, const char* name)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return -1;
 
@@ -1572,14 +1569,17 @@ namespace glslang {
 
 #include "../Include/revision.h"
 
+#define QUOTE(s) #s
+#define STR(n) QUOTE(n)
+
 const char* GetEsslVersionString()
 {
-    return "OpenGL ES GLSL 3.00 glslang LunarG Khronos." GLSLANG_REVISION " " GLSLANG_DATE;
+    return "OpenGL ES GLSL 3.20 glslang Khronos. " STR(GLSLANG_MINOR_VERSION) "." STR(GLSLANG_PATCH_LEVEL);
 }
 
 const char* GetGlslVersionString()
 {
-    return "4.20 glslang LunarG Khronos." GLSLANG_REVISION " " GLSLANG_DATE;
+    return "4.60 glslang Khronos. " STR(GLSLANG_MINOR_VERSION) "." STR(GLSLANG_PATCH_LEVEL);
 }
 
 int GetKhronosToolId()
@@ -1604,8 +1604,9 @@ public:
 };
 
 TShader::TShader(EShLanguage s)
-    : pool(0), stage(s), lengths(nullptr), stringNames(nullptr), preamble("")
+    : stage(s), lengths(nullptr), stringNames(nullptr), preamble("")
 {
+    pool = new TPoolAllocator;
     infoSink = new TInfoSink;
     compiler = new TDeferredCompiler(stage, *infoSink);
     intermediate = new TIntermediate(s);
@@ -1615,6 +1616,7 @@ TShader::TShader(EShLanguage s)
     environment.input.dialect = EShClientNone;
     environment.client.client = EShClientNone;
     environment.target.language = EShTargetNone;
+    environment.target.hlslFunctionality1 = false;
 }
 
 TShader::~TShader()
@@ -1663,22 +1665,34 @@ void TShader::addProcesses(const std::vector<std::string>& p)
     intermediate->addProcesses(p);
 }
 
+// Set binding base for given resource type
+void TShader::setShiftBinding(TResourceType res, unsigned int base) {
+    intermediate->setShiftBinding(res, base);
+}
+
+// Set binding base for given resource type for a given binding set.
+void TShader::setShiftBindingForSet(TResourceType res, unsigned int base, unsigned int set) {
+    intermediate->setShiftBindingForSet(res, base, set);
+}
+
 // Set binding base for sampler types
-void TShader::setShiftSamplerBinding(unsigned int base) { intermediate->setShiftSamplerBinding(base); }
+void TShader::setShiftSamplerBinding(unsigned int base) { setShiftBinding(EResSampler, base); }
 // Set binding base for texture types (SRV)
-void TShader::setShiftTextureBinding(unsigned int base) { intermediate->setShiftTextureBinding(base); }
+void TShader::setShiftTextureBinding(unsigned int base) { setShiftBinding(EResTexture, base); }
 // Set binding base for image types
-void TShader::setShiftImageBinding(unsigned int base)   { intermediate->setShiftImageBinding(base); }
+void TShader::setShiftImageBinding(unsigned int base)   { setShiftBinding(EResImage, base); }
 // Set binding base for uniform buffer objects (CBV)
-void TShader::setShiftUboBinding(unsigned int base)     { intermediate->setShiftUboBinding(base); }
+void TShader::setShiftUboBinding(unsigned int base)     { setShiftBinding(EResUbo, base); }
 // Synonym for setShiftUboBinding, to match HLSL language.
-void TShader::setShiftCbufferBinding(unsigned int base) { intermediate->setShiftUboBinding(base); }
+void TShader::setShiftCbufferBinding(unsigned int base) { setShiftBinding(EResUbo, base); }
 // Set binding base for UAV (unordered access view)
-void TShader::setShiftUavBinding(unsigned int base)     { intermediate->setShiftUavBinding(base); }
+void TShader::setShiftUavBinding(unsigned int base)     { setShiftBinding(EResUav, base); }
 // Set binding base for SSBOs
-void TShader::setShiftSsboBinding(unsigned int base)    { intermediate->setShiftSsboBinding(base); }
+void TShader::setShiftSsboBinding(unsigned int base)    { setShiftBinding(EResSsbo, base); }
 // Enables binding automapping using TIoMapper
 void TShader::setAutoMapBindings(bool map)              { intermediate->setAutoMapBindings(map); }
+// Enables position.Y output negation in vertex shader
+void TShader::setInvertY(bool invert)                   { intermediate->setInvertY(invert); }
 // Fragile: currently within one stage: simple auto-assignment of location
 void TShader::setAutoMapLocations(bool map)             { intermediate->setAutoMapLocations(map); }
 // See comment above TDefaultHlslIoMapper in iomapper.cpp:
@@ -1698,9 +1712,8 @@ bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion
 {
     if (! InitThread())
         return false;
+    SetThreadPoolAllocator(pool);
 
-    pool = new TPoolAllocator();
-    SetThreadPoolAllocator(*pool);
     if (! preamble)
         preamble = "";
 
@@ -1722,9 +1735,8 @@ bool TShader::preprocess(const TBuiltInResource* builtInResources,
 {
     if (! InitThread())
         return false;
+    SetThreadPoolAllocator(pool);
 
-    pool = new TPoolAllocator();
-    SetThreadPoolAllocator(*pool);
     if (! preamble)
         preamble = "";
 
@@ -1744,8 +1756,9 @@ const char* TShader::getInfoDebugLog()
     return infoSink->debug.c_str();
 }
 
-TProgram::TProgram() : pool(0), reflection(0), ioMapper(nullptr), linked(false)
+TProgram::TProgram() : reflection(0), ioMapper(nullptr), linked(false)
 {
+    pool = new TPoolAllocator;
     infoSink = new TInfoSink;
     for (int s = 0; s < EShLangCount; ++s) {
         intermediate[s] = 0;
@@ -1780,8 +1793,7 @@ bool TProgram::link(EShMessages messages)
 
     bool error = false;
 
-    pool = new TPoolAllocator();
-    SetThreadPoolAllocator(*pool);
+    SetThreadPoolAllocator(pool);
 
     for (int s = 0; s < EShLangCount; ++s) {
         if (! linkStage((EShLanguage)s, messages))
@@ -1898,6 +1910,7 @@ const char* TProgram::getUniformBlockName(int index) const   { return reflection
 int TProgram::getUniformBlockSize(int index) const           { return reflection->getUniformBlock(index).size; }
 int TProgram::getUniformIndex(const char* name) const        { return reflection->getIndex(name); }
 int TProgram::getUniformBinding(int index) const             { return reflection->getUniform(index).getBinding(); }
+int TProgram::getUniformBlockBinding(int index) const        { return reflection->getUniformBlock(index).getBinding(); }
 int TProgram::getUniformBlockIndex(int index) const          { return reflection->getUniform(index).index; }
 int TProgram::getUniformBlockCounterIndex(int index) const   { return reflection->getUniformBlock(index).counterIndex; }
 int TProgram::getUniformType(int index) const                { return reflection->getUniform(index).glDefineType; }

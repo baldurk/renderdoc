@@ -415,6 +415,36 @@ public:
                 case EsdBuffer:
                     return GL_SAMPLER_BUFFER;
                 }
+#ifdef AMD_EXTENSIONS
+            case EbtFloat16:
+                switch ((int)sampler.dim) {
+                case Esd1D:
+                    switch ((int)sampler.shadow) {
+                    case false: return sampler.arrayed ? GL_FLOAT16_SAMPLER_1D_ARRAY_AMD : GL_FLOAT16_SAMPLER_1D_AMD;
+                    case true:  return sampler.arrayed ? GL_FLOAT16_SAMPLER_1D_ARRAY_SHADOW_AMD : GL_FLOAT16_SAMPLER_1D_SHADOW_AMD;
+                    }
+                case Esd2D:
+                    switch ((int)sampler.ms) {
+                    case false:
+                        switch ((int)sampler.shadow) {
+                        case false: return sampler.arrayed ? GL_FLOAT16_SAMPLER_2D_ARRAY_AMD : GL_FLOAT16_SAMPLER_2D_AMD;
+                        case true:  return sampler.arrayed ? GL_FLOAT16_SAMPLER_2D_ARRAY_SHADOW_AMD : GL_FLOAT16_SAMPLER_2D_SHADOW_AMD;
+                        }
+                    case true:      return sampler.arrayed ? GL_FLOAT16_SAMPLER_2D_MULTISAMPLE_ARRAY_AMD : GL_FLOAT16_SAMPLER_2D_MULTISAMPLE_AMD;
+                    }
+                case Esd3D:
+                    return GL_FLOAT16_SAMPLER_3D_AMD;
+                case EsdCube:
+                    switch ((int)sampler.shadow) {
+                    case false: return sampler.arrayed ? GL_FLOAT16_SAMPLER_CUBE_MAP_ARRAY_AMD : GL_FLOAT16_SAMPLER_CUBE_AMD;
+                    case true:  return sampler.arrayed ? GL_FLOAT16_SAMPLER_CUBE_MAP_ARRAY_SHADOW_AMD : GL_FLOAT16_SAMPLER_CUBE_SHADOW_AMD;
+                    }
+                case EsdRect:
+                    return sampler.shadow ? GL_FLOAT16_SAMPLER_2D_RECT_SHADOW_AMD : GL_FLOAT16_SAMPLER_2D_RECT_AMD;
+                case EsdBuffer:
+                    return GL_FLOAT16_SAMPLER_BUFFER_AMD;
+                }
+#endif
             case EbtInt:
                 switch ((int)sampler.dim) {
                 case Esd1D:
@@ -477,6 +507,26 @@ public:
                 case EsdBuffer:
                     return GL_IMAGE_BUFFER;
                 }
+#ifdef AMD_EXTENSIONS
+            case EbtFloat16:
+                switch ((int)sampler.dim) {
+                case Esd1D:
+                    return sampler.arrayed ? GL_FLOAT16_IMAGE_1D_ARRAY_AMD : GL_FLOAT16_IMAGE_1D_AMD;
+                case Esd2D:
+                    switch ((int)sampler.ms) {
+                    case false:     return sampler.arrayed ? GL_FLOAT16_IMAGE_2D_ARRAY_AMD : GL_FLOAT16_IMAGE_2D_AMD;
+                    case true:      return sampler.arrayed ? GL_FLOAT16_IMAGE_2D_MULTISAMPLE_ARRAY_AMD : GL_FLOAT16_IMAGE_2D_MULTISAMPLE_AMD;
+                    }
+                case Esd3D:
+                    return GL_FLOAT16_IMAGE_3D_AMD;
+                case EsdCube:
+                    return sampler.arrayed ? GL_FLOAT16_IMAGE_CUBE_MAP_ARRAY_AMD : GL_FLOAT16_IMAGE_CUBE_AMD;
+                case EsdRect:
+                    return GL_FLOAT16_IMAGE_2D_RECT_AMD;
+                case EsdBuffer:
+                    return GL_FLOAT16_IMAGE_BUFFER_AMD;
+                }
+#endif
             case EbtInt:
                 switch ((int)sampler.dim) {
                 case Esd1D:
@@ -716,11 +766,11 @@ void TReflection::buildAttributeReflection(EShLanguage stage, const TIntermediat
 }
 
 // build counter block index associations for buffers
-void TReflection::buildCounterIndices()
+void TReflection::buildCounterIndices(const TIntermediate& intermediate)
 {
     // search for ones that have counters
     for (int i = 0; i < int(indexToUniformBlock.size()); ++i) {
-        const TString counterName(indexToUniformBlock[i].name + "@count");
+        const TString counterName(intermediate.addCounterBufferName(indexToUniformBlock[i].name));
         const int index = getIndex(counterName);
 
         if (index >= 0)
@@ -752,7 +802,7 @@ bool TReflection::addStage(EShLanguage stage, const TIntermediate& intermediate)
         function->traverse(&it);
     }
 
-    buildCounterIndices();
+    buildCounterIndices(intermediate);
 
     return true;
 }
