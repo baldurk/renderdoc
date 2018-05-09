@@ -479,8 +479,8 @@ bool CaptureContext::ContainsMarker(const rdcarray<DrawcallDescription> &draws)
 
   for(const DrawcallDescription &d : draws)
   {
-    ret |=
-        (d.flags & DrawFlags::PushMarker) && !(d.flags & DrawFlags::CmdList) && !d.children.empty();
+    ret |= (d.flags & DrawFlags::PushMarker) &&
+           !(d.flags & (DrawFlags::CmdList | DrawFlags::MultiDraw)) && !d.children.empty();
     ret |= ContainsMarker(d.children);
 
     if(ret)
