@@ -500,19 +500,23 @@ private:
   void RemoveReplacement(ResourceId id);
   void FreeTargetResource(ResourceId id);
 
-  struct QueuedInitialStateFetch
+  struct QueuedResource
   {
     GLResource res;
 
-    bool operator<(const QueuedInitialStateFetch &o) const
+    bool operator<(const QueuedResource &o) const
     {
       return res.ContextShareGroup < o.res.ContextShareGroup;
     }
   };
 
-  vector<QueuedInitialStateFetch> m_QueuedInitialFetches;
+  vector<QueuedResource> m_QueuedInitialFetches;
+  vector<QueuedResource> m_QueuedReleases;
 
   void QueuePrepareInitialState(GLResource res);
+  void QueueResourceRelease(GLResource res);
+
+  void ReleaseResource(GLResource res);
 
   static const int FONT_TEX_WIDTH = 256;
   static const int FONT_TEX_HEIGHT = 128;

@@ -151,6 +151,7 @@ struct GLInitialContents
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
+    rm->ResourceTypeRelease(resource);
   }
 
   // these are all POD and mutually exclusive, so we can union them to save space

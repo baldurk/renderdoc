@@ -123,3 +123,9 @@ bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *re
     return false;
   return true;
 }
+
+bool GLResourceManager::ResourceTypeRelease(GLResource res)
+{
+  m_GL->QueueResourceRelease(res);
+  return true;
+}

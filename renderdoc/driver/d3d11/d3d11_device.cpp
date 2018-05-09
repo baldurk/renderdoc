@@ -1781,6 +1781,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->ClearReferencedResources();
 
+    GetResourceManager()->FreeInitialContents();
+
     return true;
   }
   else

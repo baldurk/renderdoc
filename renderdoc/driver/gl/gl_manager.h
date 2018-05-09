@@ -247,7 +247,7 @@ public:
 private:
   bool SerialisableResource(ResourceId id, GLResourceRecord *record);
 
-  bool ResourceTypeRelease(GLResource res) { return true; }
+  bool ResourceTypeRelease(GLResource res);
   bool Force_InitialState(GLResource res, bool prepare);
   bool Need_InitialStateChunk(GLResource res);
   bool Prepare_InitialState(GLResource res);

@@ -983,7 +983,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       // then from the context's share group.
       for(void *ctx : {(void *)winData.ctx, ShareCtx(winData.ctx)})
       {
-        QueuedInitialStateFetch fetch;
+        QueuedResource fetch;
         fetch.res.ContextShareGroup = ctx;
         size_t before = m_QueuedInitialFetches.size();
         auto it =
@@ -1005,6 +1005,29 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
       Serialise_BeginCaptureFrame(ser);
       m_ContextRecord->AddChunk(scope.Get());
+    }
+
+    // also if there are any queued releases, process them now
+    if(!m_QueuedReleases.empty())
+    {
+      for(void *ctx : {(void *)winData.ctx, ShareCtx(winData.ctx)})
+      {
+        QueuedResource fetch;
+        fetch.res.ContextShareGroup = ctx;
+        size_t before = m_QueuedReleases.size();
+        auto it = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), fetch);
+        for(; it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx;)
+        {
+          ReleaseResource(it->res);
+          it = m_QueuedReleases.erase(it);
+        }
+        size_t after = m_QueuedReleases.size();
+
+        (void)before;
+        (void)after;
+        RDCDEBUG("Released %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
+                 after);
+      }
     }
 
     ContextData &ctxdata = m_ContextData[winData.ctx];
@@ -1858,6 +1881,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->ClearReferencedResources();
 
+    GetResourceManager()->FreeInitialContents();
+
     if(switchctx.ctx != prevctx.ctx)
     {
       m_Platform.MakeContextCurrent(prevctx);
@@ -2179,12 +2204,50 @@ void WrappedOpenGL::FreeCaptureData()
 
 void WrappedOpenGL::QueuePrepareInitialState(GLResource res)
 {
-  QueuedInitialStateFetch fetch;
-  fetch.res = res;
+  QueuedResource q;
+  q.res = res;
 
-  auto insertPos =
-      std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
-  m_QueuedInitialFetches.insert(insertPos, fetch);
+  auto insertPos = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), q);
+  m_QueuedInitialFetches.insert(insertPos, q);
+}
+
+void WrappedOpenGL::QueueResourceRelease(GLResource res)
+{
+  ContextPair &ctx = GetCtx();
+  if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
+  {
+    // if we're already on a context, delete immediately
+    ReleaseResource(res);
+  }
+  else
+  {
+    // otherwise, queue for next time this becomes active
+    QueuedResource q;
+    q.res = res;
+
+    auto insertPos = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), q);
+    m_QueuedReleases.insert(insertPos, q);
+  }
+}
+
+void WrappedOpenGL::ReleaseResource(GLResource res)
+{
+  switch(res.Namespace)
+  {
+    default: RDCERR("Unknown namespace to release: %s", ToStr(res.Namespace).c_str()); return;
+    case eResTexture: m_Real.glDeleteTextures(1, &res.name); break;
+    case eResSampler: m_Real.glDeleteSamplers(1, &res.name); break;
+    case eResFramebuffer: m_Real.glDeleteFramebuffers(1, &res.name); break;
+    case eResRenderbuffer: m_Real.glDeleteRenderbuffers(1, &res.name); break;
+    case eResBuffer: m_Real.glDeleteBuffers(1, &res.name); break;
+    case eResVertexArray: m_Real.glDeleteVertexArrays(1, &res.name); break;
+    case eResShader: m_Real.glDeleteShader(res.name); break;
+    case eResProgram: m_Real.glDeleteProgram(res.name); break;
+    case eResProgramPipe: m_Real.glDeleteProgramPipelines(1, &res.name); break;
+    case eResFeedback: m_Real.glDeleteTransformFeedbacks(1, &res.name); break;
+    case eResQuery: m_Real.glDeleteQueries(1, &res.name); break;
+    case eResSync: m_Real.glDeleteSync(GetResourceManager()->GetSync(res.name)); break;
+  }
 }
 
 void WrappedOpenGL::AttemptCapture()
