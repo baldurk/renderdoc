@@ -1656,32 +1656,32 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
         switch(values[1])
         {
-          case eGL_FLOAT:
           case eGL_DOUBLE:
-          case eGL_FLOAT_VEC2:
           case eGL_DOUBLE_VEC2:
-          case eGL_FLOAT_VEC3:
           case eGL_DOUBLE_VEC3:
-          case eGL_FLOAT_VEC4:
           case eGL_DOUBLE_VEC4:
-          case eGL_FLOAT_MAT4:
           case eGL_DOUBLE_MAT4:
-          case eGL_FLOAT_MAT4x3:
           case eGL_DOUBLE_MAT4x3:
-          case eGL_FLOAT_MAT4x2:
           case eGL_DOUBLE_MAT4x2:
-          case eGL_FLOAT_MAT3:
           case eGL_DOUBLE_MAT3:
-          case eGL_FLOAT_MAT3x4:
           case eGL_DOUBLE_MAT3x4:
-          case eGL_FLOAT_MAT3x2:
           case eGL_DOUBLE_MAT3x2:
-          case eGL_FLOAT_MAT2:
           case eGL_DOUBLE_MAT2:
-          case eGL_FLOAT_MAT2x3:
           case eGL_DOUBLE_MAT2x3:
-          case eGL_FLOAT_MAT2x4:
-          case eGL_DOUBLE_MAT2x4: sig.compType = CompType::Float; break;
+          case eGL_DOUBLE_MAT2x4: sig.compType = CompType::Double; break;
+          case eGL_FLOAT:
+          case eGL_FLOAT_VEC2:
+          case eGL_FLOAT_VEC3:
+          case eGL_FLOAT_VEC4:
+          case eGL_FLOAT_MAT4:
+          case eGL_FLOAT_MAT4x3:
+          case eGL_FLOAT_MAT4x2:
+          case eGL_FLOAT_MAT3:
+          case eGL_FLOAT_MAT3x4:
+          case eGL_FLOAT_MAT3x2:
+          case eGL_FLOAT_MAT2:
+          case eGL_FLOAT_MAT2x3:
+          case eGL_FLOAT_MAT2x4: sig.compType = CompType::Float; break;
           case eGL_INT:
           case eGL_INT_VEC2:
           case eGL_INT_VEC3:

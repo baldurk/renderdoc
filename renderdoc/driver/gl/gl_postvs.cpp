@@ -215,7 +215,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     if(sig.systemValue == ShaderBuiltin::Position)
       posidx = int32_t(varyings.size()) - 1;
 
-    stride += sizeof(float) * sig.compCount;
+    if(sig.compType == CompType::Double)
+      stride += sizeof(double) * sig.compCount;
+    else
+      stride += sizeof(float) * sig.compCount;
   }
 
   // shift position attribute up to first, keeping order otherwise
