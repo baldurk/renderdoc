@@ -544,7 +544,8 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         ret.push_back((float)b);
         ret.push_back((float)a);
       }
-      else if(format.compType == CompType::SInt || format.compType == CompType::SScaled)
+      else if(format.compType == CompType::SInt || format.compType == CompType::SScaled ||
+              format.compType == CompType::SNorm)
       {
         int ir, ig, ib, ia;
 
@@ -583,6 +584,22 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
           ret.push_back((float)ig);
           ret.push_back((float)ib);
           ret.push_back((float)ia);
+        }
+        else if(format.compType == CompType::SNorm)
+        {
+          if(ir == -512)
+            ir = -511;
+          if(ig == -512)
+            ig = -511;
+          if(ib == -512)
+            ib = -511;
+          if(ia == -2)
+            ia = -1;
+
+          ret.push_back((float)ir / 511.0f);
+          ret.push_back((float)ig / 511.0f);
+          ret.push_back((float)ib / 511.0f);
+          ret.push_back((float)ia / 1.0f);
         }
       }
       else
