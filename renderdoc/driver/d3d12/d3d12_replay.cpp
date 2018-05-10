@@ -1443,6 +1443,9 @@ void D3D12Replay::SavePipelineState()
       for(size_t l = 0; l < it->second.size(); l++)
         res.states[l].name = ToStr(it->second[l]);
 
+      if(res.states.empty())
+        res.states.push_back({"Unknown"});
+
       i++;
     }
   }

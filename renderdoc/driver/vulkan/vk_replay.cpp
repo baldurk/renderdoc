@@ -1452,6 +1452,12 @@ void VulkanReplay::SavePipelineState()
         img.layouts[l].numMip = it->second.subresourceStates[l].subresourceRange.levelCount;
       }
 
+      if(img.layouts.empty())
+      {
+        img.layouts.push_back(VKPipe::ImageLayout());
+        img.layouts[0].name = "Unknown";
+      }
+
       i++;
     }
   }
