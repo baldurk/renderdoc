@@ -918,10 +918,8 @@ void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_V
     GetResourceManager()->MarkResourceFrameReferenced(
         WrappedID3D12Resource::GetResIDFromAddr(pDesc->BufferLocation), eFrameRef_Read);
   }
-  else
-  {
-    GetWrapped(DestDescriptor)->Init(pDesc);
-  }
+
+  GetWrapped(DestDescriptor)->Init(pDesc);
 }
 
 void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
@@ -964,10 +962,8 @@ void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Read);
   }
-  else
-  {
-    GetWrapped(DestDescriptor)->Init(pResource, pDesc);
-  }
+
+  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
 
   if(IsReplayMode(m_State) && pDesc)
   {
@@ -1020,10 +1016,8 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
     if(pCounterResource)
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCounterResource), eFrameRef_Write);
   }
-  else
-  {
-    GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
-  }
+
+  GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
 }
 
 void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
@@ -1066,10 +1060,8 @@ void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
   }
-  else
-  {
-    GetWrapped(DestDescriptor)->Init(pResource, pDesc);
-  }
+
+  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
 }
 
 void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
@@ -1110,10 +1102,8 @@ void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
   }
-  else
-  {
-    GetWrapped(DestDescriptor)->Init(pResource, pDesc);
-  }
+
+  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
 }
 
 void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
@@ -1150,10 +1140,8 @@ void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
   }
-  else
-  {
-    GetWrapped(DestDescriptor)->Init(pDesc);
-  }
+
+  GetWrapped(DestDescriptor)->Init(pDesc);
 }
 
 template <typename SerialiserType>

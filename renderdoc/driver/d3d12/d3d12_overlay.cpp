@@ -330,15 +330,15 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
   ID3D12Resource *renderDepth = NULL;
 
-  D3D12Descriptor *dsView = GetWrapped(rs.dsv);
+  D3D12Descriptor dsView = rs.dsv;
 
   D3D12_RESOURCE_DESC depthTexDesc = {};
   D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc = {};
-  if(dsView)
+  if(dsView.nonsamp.resource)
   {
-    ID3D12Resource *realDepth = dsView->nonsamp.resource;
+    ID3D12Resource *realDepth = dsView.nonsamp.resource;
 
-    dsViewDesc = dsView->nonsamp.dsv;
+    dsViewDesc = dsView.nonsamp.dsv;
 
     depthTexDesc = realDepth->GetDesc();
     depthTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -513,10 +513,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       D3D12RenderState prev = rs;
 
       rs.pipe = GetResID(pso);
-      rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = rtv;
-      rs.dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
+      rs.rts[0] = *GetWrapped(rtv);
+      RDCEraseEl(rs.dsv);
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -605,10 +604,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       D3D12RenderState prev = rs;
 
       rs.pipe = GetResID(redPSO);
-      rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = rtv;
-      rs.dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
+      rs.rts[0] = *GetWrapped(rtv);
+      RDCEraseEl(rs.dsv);
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -684,10 +682,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       D3D12RenderState prev = rs;
 
       rs.pipe = GetResID(pso);
-      rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = rtv;
-      rs.dsv = dsv;
+      rs.rts[0] = *GetWrapped(rtv);
+      RDCEraseEl(rs.dsv);
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -714,8 +711,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       list->Close();
       list = NULL;
 
-      bool rtSingle = rs.rtSingle;
-      std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rts = rs.rts;
+      std::vector<D3D12Descriptor> rts = rs.rts;
 
       if(overlay == DebugOverlay::ClearBeforePass)
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
@@ -724,15 +720,11 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       for(size_t i = 0; i < rts.size(); i++)
       {
-        D3D12Descriptor *desc = rtSingle ? GetWrapped(rts[0]) : GetWrapped(rts[i]);
+        const D3D12Descriptor &desc = rts[i];
 
-        if(desc)
-        {
-          if(rtSingle)
-            desc += i;
-
-          Unwrap(list)->ClearRenderTargetView(UnwrapCPU(desc), black, 0, NULL);
-        }
+        if(desc.nonsamp.resource)
+          Unwrap(list)->ClearRenderTargetView(Unwrap(GetDebugManager()->GetTempDescriptor(desc)),
+                                              black, 0, NULL);
       }
 
       list->Close();
@@ -889,8 +881,11 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
 
-      if(rs.dsv.ptr)
-        list->OMSetRenderTargets(1, &rtv, TRUE, &rs.dsv);
+      if(rs.dsv.nonsamp.resource)
+      {
+        D3D12_CPU_DESCRIPTOR_HANDLE tmpdsv = GetDebugManager()->GetTempDescriptor(rs.dsv);
+        list->OMSetRenderTargets(1, &rtv, TRUE, &tmpdsv);
+      }
 
       list->RSSetViewports(1, &rs.views[0]);
 
@@ -1225,10 +1220,12 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       D3D12RenderState prev = rs;
 
       rs.pipe = GetResID(redPSO);
-      rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = rtv;
-      rs.dsv = dsv;
+      rs.rts[0] = *GetWrapped(rtv);
+      if(dsv.ptr)
+        rs.dsv = *GetWrapped(dsv);
+      else
+        RDCEraseEl(rs.dsv);
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 

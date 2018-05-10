@@ -108,7 +108,9 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
-  // we can check other older versions we support here.
+  // see header for explanation of version changes
+  if(ver == 0x4)
+    return true;
 
   return false;
 }

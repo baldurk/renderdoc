@@ -32,6 +32,7 @@
 
 class WrappedID3D12Device;
 class D3D12ResourceManager;
+struct D3D12Descriptor;
 
 #define D3D12_MSAA_SAMPLECOUNT 4
 
@@ -53,6 +54,8 @@ enum CBVUAVSRVSlot
   PICK_VB_SRV,
   PICK_RESULT_UAV,
   PICK_RESULT_CLEAR_UAV,
+
+  TMP_UAV,
 };
 
 enum RTVSlot
@@ -61,6 +64,8 @@ enum RTVSlot
   CUSTOM_SHADER_RTV,
   OVERLAY_RTV,
   GET_TEX_RTV,
+  FIRST_TMP_RTV,
+  LAST_TMP_RTV = FIRST_TMP_RTV + 16,
   FIRST_WIN_RTV,
 };
 
@@ -74,6 +79,7 @@ enum SamplerSlot
 enum DSVSlot
 {
   OVERLAY_DSV,
+  TMP_DSV,
   FIRST_WIN_DSV,
 };
 
@@ -116,6 +122,8 @@ public:
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(RTVSlot slot);
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(DSVSlot slot);
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(SamplerSlot slot);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE GetTempDescriptor(const D3D12Descriptor &desc, size_t idx = 0);
 
   void SetDescriptorHeaps(ID3D12GraphicsCommandList *list, bool cbvsrvuav, bool samplers);
 

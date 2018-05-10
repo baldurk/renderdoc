@@ -194,7 +194,7 @@ private:
   void FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
                           rdcarray<D3D12Pipe::RegisterSpace> &spaces,
                           D3D12_SHADER_VISIBILITY visibility);
-  void FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc);
+  void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
 
   void ClearPostVSCache();
 

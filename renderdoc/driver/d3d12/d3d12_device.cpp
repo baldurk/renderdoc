@@ -2711,6 +2711,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       cmd.m_Partial[D3D12CommandData::Secondary].Reset();
       cmd.m_RenderState = D3D12RenderState();
       cmd.m_RenderState.m_ResourceManager = GetResourceManager();
+      cmd.m_RenderState.m_DebugManager = m_Replay.GetDebugManager();
     }
 
     // we'll need our own command list if we're replaying just a subsection

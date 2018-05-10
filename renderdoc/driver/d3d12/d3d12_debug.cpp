@@ -426,6 +426,41 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetGPUHandle(SamplerSlot slot)
   return ret;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Descriptor &desc,
+                                                                 size_t idx)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = {};
+
+  if(desc.GetType() == D3D12DescriptorType::RTV)
+  {
+    ret = GetCPUHandle(FIRST_TMP_RTV);
+    ret.ptr += idx * sizeof(D3D12Descriptor);
+
+    m_pDevice->CreateRenderTargetView(desc.nonsamp.resource, &desc.nonsamp.rtv, ret);
+  }
+  else if(desc.GetType() == D3D12DescriptorType::DSV)
+  {
+    ret = GetCPUHandle(TMP_DSV);
+
+    m_pDevice->CreateDepthStencilView(desc.nonsamp.resource, &desc.nonsamp.dsv, ret);
+  }
+  else if(desc.GetType() == D3D12DescriptorType::UAV)
+  {
+    // need a non-shader visible heap for this one
+    ret = GetCPUHandle(TMP_UAV);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc.nonsamp.uav.desc.AsDesc();
+    m_pDevice->CreateUnorderedAccessView(desc.nonsamp.resource, desc.nonsamp.uav.counterResource,
+                                         &uavDesc, ret);
+  }
+  else
+  {
+    RDCERR("Unexpected descriptor type %s for temp descriptor!", ToStr(desc.GetType()).c_str());
+  }
+
+  return ret;
+}
+
 void D3D12DebugManager::SetDescriptorHeaps(ID3D12GraphicsCommandList *list, bool cbvsrvuav,
                                            bool samplers)
 {

@@ -24,34 +24,9 @@
 
 #include "d3d12_state.h"
 #include "d3d12_command_list.h"
+#include "d3d12_debug.h"
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
-
-D3D12RenderState::D3D12RenderState()
-{
-  views.clear();
-  scissors.clear();
-
-  rts.clear();
-  rtSingle = false;
-  dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
-
-  m_ResourceManager = NULL;
-
-  heaps.clear();
-
-  pipe = graphics.rootsig = compute.rootsig = ResourceId();
-  graphics.sigelems.clear();
-  compute.sigelems.clear();
-
-  topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-
-  stencilRef = 0;
-  RDCEraseEl(blendFactor);
-
-  RDCEraseEl(ibuffer);
-  vbuffers.clear();
-}
 
 D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
 {
@@ -59,7 +34,6 @@ D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
   scissors = o.scissors;
 
   rts = o.rts;
-  rtSingle = o.rtSingle;
   dsv = o.dsv;
 
   pipe = o.pipe;
@@ -85,28 +59,10 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 {
   vector<ResourceId> ret;
 
-  if(rtSingle)
+  for(UINT i = 0; i < rts.size(); i++)
   {
-    if(!rts.empty())
-    {
-      const D3D12Descriptor *descs = GetWrapped(rts[0]);
-
-      for(UINT i = 0; i < rts.size(); i++)
-      {
-        RDCASSERT(descs[i].GetType() == D3D12DescriptorType::RTV);
-        ret.push_back(GetResID(descs[i].nonsamp.resource));
-      }
-    }
-  }
-  else
-  {
-    for(UINT i = 0; i < rts.size(); i++)
-    {
-      const D3D12Descriptor *desc = GetWrapped(rts[i]);
-
-      RDCASSERT(desc->GetType() == D3D12DescriptorType::RTV);
-      ret.push_back(GetResID(desc->nonsamp.resource));
-    }
+    RDCASSERT(rts[i].GetType() == D3D12DescriptorType::RTV);
+    ret.push_back(GetResID(rts[i].nonsamp.resource));
   }
 
   return ret;
@@ -114,16 +70,7 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 
 ResourceId D3D12RenderState::GetDSVID() const
 {
-  if(dsv.ptr)
-  {
-    const D3D12Descriptor *desc = GetWrapped(dsv);
-
-    RDCASSERT(desc->GetType() == D3D12DescriptorType::DSV);
-
-    return GetResID(desc->nonsamp.resource);
-  }
-
-  return ResourceId();
+  return GetResID(dsv.nonsamp.resource);
 }
 
 void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
@@ -183,20 +130,20 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
       }
     }
 
-    if(!rts.empty() || dsv.ptr)
+    if(!rts.empty() || dsv.nonsamp.resource)
     {
       D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
-      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = Unwrap(dsv);
+      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
 
-      UINT rtCount = (UINT)rts.size();
-      UINT numActualHandles = rtSingle ? RDCMIN(1U, rtCount) : rtCount;
+      if(dsv.nonsamp.resource)
+        dsvHandle = Unwrap(GetDebugManager()->GetTempDescriptor(dsv));
 
-      for(UINT i = 0; i < numActualHandles; i++)
-        rtHandles[i] = Unwrap(rts[i]);
+      for(size_t i = 0; i < rts.size(); i++)
+        rtHandles[i] = Unwrap(GetDebugManager()->GetTempDescriptor(rts[i], i));
 
       // need to unwrap here, as FromPortableHandle unwraps too.
-      Unwrap(cmd)->OMSetRenderTargets((UINT)rts.size(), rtHandles, rtSingle ? TRUE : FALSE,
-                                      dsv.ptr ? &dsvHandle : NULL);
+      Unwrap(cmd)->OMSetRenderTargets((UINT)rts.size(), rtHandles, FALSE,
+                                      dsvHandle.ptr ? &dsvHandle : NULL);
     }
   }
 

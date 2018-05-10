@@ -343,6 +343,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         // reset state
         D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[BakedCommandList].state;
         state.m_ResourceManager = GetResourceManager();
+        state.m_DebugManager = m_pDevice->GetReplay()->GetDebugManager();
         state.pipe = GetResID(pInitialState);
       }
     }
@@ -1238,72 +1239,116 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   UINT numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
                                                      : NumRenderTargetDescriptors;
 
-  SERIALISE_ELEMENT_ARRAY(pRenderTargetDescriptors, numHandles);
+  std::vector<D3D12Descriptor> RTVs;
+
+  if(ser.VersionCheck(0x5))
+  {
+    if(ser.IsWriting())
+    {
+      if(RTsSingleHandleToDescriptorRange)
+      {
+        const D3D12Descriptor *descs = GetWrapped(pRenderTargetDescriptors[0]);
+
+        RTVs.insert(RTVs.begin(), descs, descs + NumRenderTargetDescriptors);
+      }
+      else
+      {
+        for(UINT i = 0; i < NumRenderTargetDescriptors; i++)
+          RTVs.push_back(*GetWrapped(pRenderTargetDescriptors[i]));
+      }
+    }
+
+    // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
+    // consuming the descriptor immediately
+    SERIALISE_ELEMENT(RTVs).Named("pRenderTargetDescriptors");
+  }
+  else
+  {
+    SERIALISE_ELEMENT_ARRAY(pRenderTargetDescriptors, numHandles);
+
+    if(IsReplayingAndReading())
+    {
+      for(UINT h = 0; h < numHandles; h++)
+        RTVs.push_back(*GetWrapped(pRenderTargetDescriptors[h]));
+    }
+  }
+
   SERIALISE_ELEMENT_TYPED(bool, RTsSingleHandleToDescriptorRange);
-  SERIALISE_ELEMENT_OPT(pDepthStencilDescriptor);
+
+  D3D12Descriptor DSV = {};
+
+  if(ser.VersionCheck(0x5))
+  {
+    // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
+    // consuming the descriptor immediately.
+    const D3D12Descriptor *pDSV = NULL;
+
+    if(ser.IsWriting())
+      pDSV = pDepthStencilDescriptor ? GetWrapped(*pDepthStencilDescriptor) : NULL;
+
+    SERIALISE_ELEMENT_OPT(pDSV).Named("pDepthStencilDescriptor");
+
+    if(pDSV)
+      DSV = *pDSV;
+  }
+  else
+  {
+    SERIALISE_ELEMENT_OPT(pDepthStencilDescriptor);
+
+    if(IsReplayingAndReading())
+    {
+      if(pDepthStencilDescriptor)
+        DSV = *GetWrapped(*pDepthStencilDescriptor);
+    }
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    // recalculate here during read
-    numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
-                                                  : NumRenderTargetDescriptors;
-
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> unwrappedRTs;
-    unwrappedRTs.resize(numHandles);
-    for(UINT i = 0; i < numHandles; i++)
-      unwrappedRTs[i] = Unwrap(pRenderTargetDescriptors[i]);
+    unwrappedRTs.resize(RTVs.size());
+    for(size_t i = 0; i < RTVs.size(); i++)
+    {
+      unwrappedRTs[i] =
+          Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
+    }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE unwrappedDSV;
-    if(pDepthStencilDescriptor)
-      unwrappedDSV = Unwrap(*pDepthStencilDescriptor);
+    D3D12_CPU_DESCRIPTOR_HANDLE unwrappedDSV = {};
+    if(DSV.nonsamp.resource)
+    {
+      unwrappedDSV = Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV));
+    }
 
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->OMSetRenderTargets(NumRenderTargetDescriptors, unwrappedRTs.data(),
-                                 RTsSingleHandleToDescriptorRange,
-                                 pDepthStencilDescriptor ? &unwrappedDSV : NULL);
+            ->OMSetRenderTargets((UINT)unwrappedRTs.size(), unwrappedRTs.data(), FALSE,
+                                 unwrappedDSV.ptr ? &unwrappedDSV : NULL);
 
         if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
         {
-          m_Cmd->m_RenderState.rts.resize(numHandles);
-
-          for(UINT i = 0; i < numHandles; i++)
-            m_Cmd->m_RenderState.rts[i] = pRenderTargetDescriptors[i];
-
-          m_Cmd->m_RenderState.rtSingle = RTsSingleHandleToDescriptorRange != FALSE;
-
-          m_Cmd->m_RenderState.dsv =
-              pDepthStencilDescriptor ? *pDepthStencilDescriptor : D3D12_CPU_DESCRIPTOR_HANDLE();
+          m_Cmd->m_RenderState.rts = RTVs;
+          m_Cmd->m_RenderState.dsv = DSV;
         }
       }
     }
     else
     {
       Unwrap(pCommandList)
-          ->OMSetRenderTargets(NumRenderTargetDescriptors, unwrappedRTs.data(),
-                               RTsSingleHandleToDescriptorRange,
-                               pDepthStencilDescriptor ? &unwrappedDSV : NULL);
-      GetCrackedList()->OMSetRenderTargets(NumRenderTargetDescriptors, unwrappedRTs.data(),
-                                           RTsSingleHandleToDescriptorRange,
-                                           pDepthStencilDescriptor ? &unwrappedDSV : NULL);
+          ->OMSetRenderTargets((UINT)unwrappedRTs.size(), unwrappedRTs.data(), FALSE,
+                               unwrappedDSV.ptr ? &unwrappedDSV : NULL);
+      GetCrackedList()->OMSetRenderTargets((UINT)unwrappedRTs.size(), unwrappedRTs.data(), FALSE,
+                                           unwrappedDSV.ptr ? &unwrappedDSV : NULL);
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
-      state.rts.resize(numHandles);
-
-      for(UINT i = 0; i < numHandles; i++)
-        state.rts[i] = pRenderTargetDescriptors[i];
-
-      state.rtSingle = RTsSingleHandleToDescriptorRange != FALSE;
-
-      state.dsv = pDepthStencilDescriptor ? *pDepthStencilDescriptor : D3D12_CPU_DESCRIPTOR_HANDLE();
+      state.rts = RTVs;
+      state.dsv = DSV;
     }
   }
 
@@ -4279,7 +4324,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(DepthStencilView);
+  if(ser.VersionCheck(0x5))
+  {
+    // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
+    // consuming the descriptor immediately
+    SERIALISE_ELEMENT_LOCAL(DSV, *GetWrapped(DepthStencilView)).Named("DepthStencilView");
+
+    if(IsReplayingAndReading())
+      DepthStencilView = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV);
+  }
+  else
+  {
+    SERIALISE_ELEMENT(DepthStencilView);
+  }
   SERIALISE_ELEMENT(ClearFlags);
   SERIALISE_ELEMENT(Depth);
   SERIALISE_ELEMENT(Stencil);
@@ -4366,7 +4423,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RenderTargetView);
+  if(ser.VersionCheck(0x5))
+  {
+    // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
+    // consuming the descriptor immediately
+    SERIALISE_ELEMENT_LOCAL(RTV, *GetWrapped(RenderTargetView)).Named("RenderTargetView");
+
+    if(IsReplayingAndReading())
+      RenderTargetView = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(RTV);
+  }
+  else
+  {
+    SERIALISE_ELEMENT(RenderTargetView);
+  }
   SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
   SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
@@ -4449,7 +4518,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(ViewGPUHandleInCurrentHeap);
-  SERIALISE_ELEMENT(ViewCPUHandle);
+  if(ser.VersionCheck(0x5))
+  {
+    // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
+    // consuming the descriptor immediately. This is only true for the CPU-side handle
+    SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle");
+
+    if(IsReplayingAndReading())
+      ViewCPUHandle = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(UAV);
+  }
+  else
+  {
+    SERIALISE_ELEMENT(ViewCPUHandle);
+  }
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_ARRAY(Values, 4);
   SERIALISE_ELEMENT(NumRects);
@@ -4542,7 +4623,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(ViewGPUHandleInCurrentHeap);
-  SERIALISE_ELEMENT(ViewCPUHandle);
+  if(ser.VersionCheck(0x5))
+  {
+    // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
+    // consuming the descriptor immediately. This is only true for the CPU-side handle
+    SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle");
+
+    if(IsReplayingAndReading())
+      ViewCPUHandle = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(UAV);
+  }
+  else
+  {
+    SERIALISE_ELEMENT(ViewCPUHandle);
+  }
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_ARRAY(Values, 4);
   SERIALISE_ELEMENT(NumRects);

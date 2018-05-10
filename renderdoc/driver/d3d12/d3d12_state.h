@@ -29,6 +29,7 @@
 #include "d3d12_manager.h"
 
 class D3D12ResourceManager;
+class D3D12DebugManager;
 
 enum SignatureElementType
 {
@@ -42,7 +43,7 @@ enum SignatureElementType
 
 struct D3D12RenderState
 {
-  D3D12RenderState();
+  D3D12RenderState() = default;
   D3D12RenderState &operator=(const D3D12RenderState &o);
 
   void ApplyState(ID3D12GraphicsCommandList *list) const;
@@ -52,9 +53,10 @@ struct D3D12RenderState
   vector<D3D12_VIEWPORT> views;
   vector<D3D12_RECT> scissors;
 
-  vector<D3D12_CPU_DESCRIPTOR_HANDLE> rts;
-  bool rtSingle;
-  D3D12_CPU_DESCRIPTOR_HANDLE dsv;
+  // these are D3D12Descriptor copies since the values of the descriptors are read during
+  // OMSetRenderTargets and may not exist anywhere after that if they are immediately overwritten.
+  vector<D3D12Descriptor> rts;
+  D3D12Descriptor dsv = {};
 
   vector<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
@@ -163,16 +165,16 @@ struct D3D12RenderState
 
   ResourceId pipe;
 
-  D3D12_PRIMITIVE_TOPOLOGY topo;
-  UINT stencilRef;
-  float blendFactor[4];
+  D3D12_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+  UINT stencilRef = 0;
+  float blendFactor[4] = {};
 
   struct IdxBuffer
   {
     ResourceId buf;
-    UINT64 offs;
-    int bytewidth;
-    UINT size;
+    UINT64 offs = 0;
+    int bytewidth = 0;
+    UINT size = 0;
   } ibuffer;
 
   struct VertBuffer
@@ -185,5 +187,8 @@ struct D3D12RenderState
   vector<VertBuffer> vbuffers;
 
   D3D12ResourceManager *GetResourceManager() const { return m_ResourceManager; }
-  D3D12ResourceManager *m_ResourceManager;
+  D3D12ResourceManager *m_ResourceManager = NULL;
+
+  D3D12DebugManager *GetDebugManager() const { return m_DebugManager; }
+  D3D12DebugManager *m_DebugManager = NULL;
 };

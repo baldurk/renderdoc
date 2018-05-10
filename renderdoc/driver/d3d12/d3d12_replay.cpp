@@ -567,7 +567,7 @@ vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
   return m_pDevice->GetQueue()->GetUsage(id);
 }
 
-void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
+void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
@@ -1324,17 +1324,14 @@ void D3D12Replay::SavePipelineState()
     {
       D3D12Pipe::View &view = state.outputMerger.renderTargets[i];
 
-      D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
+      const D3D12Descriptor &desc = rs.rts[i];
 
-      if(desc)
+      if(desc.nonsamp.resource)
       {
-        if(rs.rtSingle)
-          desc += i;
-
         view.rootElement = (uint32_t)i;
         view.immediate = false;
 
-        FillResourceView(view, desc);
+        FillResourceView(view, &desc);
       }
       else
       {
@@ -1345,14 +1342,12 @@ void D3D12Replay::SavePipelineState()
     {
       D3D12Pipe::View &view = state.outputMerger.depthTarget;
 
-      if(rs.dsv.ptr)
+      if(rs.dsv.nonsamp.resource)
       {
-        D3D12Descriptor *desc = GetWrapped(rs.dsv);
-
         view.rootElement = 0;
         view.immediate = false;
 
-        FillResourceView(view, desc);
+        FillResourceView(view, &rs.dsv);
       }
       else
       {
@@ -2476,26 +2471,11 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
   id = m_pDevice->GetResourceManager()->GetLiveID(id);
 
   for(size_t i = 0; i < rs.rts.size(); i++)
-  {
-    D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
-
-    if(desc)
-    {
-      if(rs.rtSingle)
-        desc += i;
-
-      if(id == GetResID(desc->nonsamp.resource))
-        return true;
-    }
-  }
-
-  if(rs.dsv.ptr)
-  {
-    D3D12Descriptor *desc = GetWrapped(rs.dsv);
-
-    if(id == GetResID(desc->nonsamp.resource))
+    if(id == GetResID(rs.rts[i].nonsamp.resource))
       return true;
-  }
+
+  if(id == GetResID(rs.dsv.nonsamp.resource))
+    return true;
 
   return false;
 }
