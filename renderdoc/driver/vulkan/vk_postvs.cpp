@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <float.h>
+#include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "driver/shaders/spirv/spirv_editor.h"
@@ -438,11 +439,16 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     }
     else if(refl.inputSignature[i].compType == CompType::Double)
     {
-      RDCERR("Double inputs are not supported, will be undefined");
       scalarType = scalar<double>();
+      // doubles are loaded packed from a uint tbuffer
+      io.tbuffer = tbuffer_uint;
     }
 
-    io.vec4ID = editor.DeclareType(SPIRVVector(scalarType, 4));
+    // doubles are loaded as uvec4 and then packed in pairs, so we need to declare vec4ID as uvec4
+    if(refl.inputSignature[i].compType == CompType::Double)
+      io.vec4ID = editor.DeclareType(SPIRVVector(scalar<uint32_t>(), 4));
+    else
+      io.vec4ID = editor.DeclareType(SPIRVVector(scalarType, 4));
 
     if(refl.inputSignature[i].compCount > 1)
       io.basetypeID = editor.DeclareType(SPIRVVector(scalarType, refl.inputSignature[i].compCount));
@@ -902,13 +908,79 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             }
           }
 
+          if(refl.inputSignature[i].compType == CompType::Double)
+          {
+            // since doubles are packed into two uints, we need to multiply the index by two
+            uint32_t doubled = editor.MakeId();
+            ops.push_back(SPIRVOperation(
+                spv::OpIMul, {sint32ID, doubled, idx, editor.AddConstantImmediate(int32_t(2))}));
+            idx = doubled;
+          }
+
           uint32_t result = editor.MakeId();
           ops.push_back(SPIRVOperation(spv::OpImageFetch, {ins[i].vec4ID, result, rawimg, idx}));
 
-          // for one component, extract x, for less than 4, extract the sub-vector, otherwise
-          // leave alone (4 components)
-          if(refl.inputSignature[i].compCount == 1)
+          if(refl.inputSignature[i].compType == CompType::Double)
           {
+            // since doubles are packed into two uints, we now need to fetch more data and do
+            // packing. We can fetch the data unconditionally since it's harmless to read out of the
+            // bounds of the buffer
+
+            uint32_t nextidx = editor.MakeId();
+            ops.push_back(SPIRVOperation(
+                spv::OpIAdd, {sint32ID, nextidx, idx, editor.AddConstantImmediate(int32_t(1))}));
+
+            uint32_t result2 = editor.MakeId();
+            ops.push_back(
+                SPIRVOperation(spv::OpImageFetch, {ins[i].vec4ID, result2, rawimg, nextidx}));
+
+            uint32_t glsl450 = editor.ImportExtInst("GLSL.std.450");
+
+            uint32_t uvec2Type = editor.DeclareType(SPIRVVector(scalar<uint32_t>(), 2));
+            uint32_t comps[4] = {};
+
+            for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
+            {
+              // first extract the uvec2 we want
+              uint32_t packed = editor.MakeId();
+
+              // uvec2 packed = result.[xy/zw] / result2.[xy/zw];
+              ops.push_back(SPIRVOperation(
+                  spv::OpVectorShuffle, {uvec2Type, packed, result, result2, c * 2 + 0, c * 2 + 1}));
+
+              editor.SetName(packed, StringFormat::Fmt("packed_%c", "xyzw"[c]).c_str());
+
+              // double comp = PackDouble2x32(packed);
+              comps[c] = editor.MakeId();
+              ops.push_back(
+                  SPIRVOperation(spv::OpExtInst, {
+                                                     editor.DeclareType(scalar<double>()), comps[c],
+                                                     glsl450, GLSLstd450PackDouble2x32, packed,
+                                                 }));
+            }
+
+            // if there's only one component it's ready, otherwise construct a vector
+            if(refl.inputSignature[i].compCount == 1)
+            {
+              result = comps[0];
+            }
+            else
+            {
+              result = editor.MakeId();
+
+              std::vector<uint32_t> words = {ins[i].basetypeID, result};
+
+              for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
+                words.push_back(comps[c]);
+
+              // baseTypeN value = result.xyz;
+              ops.push_back(SPIRVOperation(spv::OpCompositeConstruct, words));
+            }
+          }
+          else if(refl.inputSignature[i].compCount == 1)
+          {
+            // for one component, extract x
+
             uint32_t swizzleIn = result;
             result = editor.MakeId();
 
@@ -918,6 +990,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           }
           else if(refl.inputSignature[i].compCount != 4)
           {
+            // for less than 4 components, extract the sub-vector
             uint32_t swizzleIn = result;
             result = editor.MakeId();
 
@@ -929,6 +1002,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             // baseTypeN value = result.xyz;
             ops.push_back(SPIRVOperation(spv::OpVectorShuffle, words));
           }
+
+          // copy the 4 component result directly
 
           // not a composite type, we can store directly
           if(patchData.inputs[i].accessChain.empty())
@@ -1391,6 +1466,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
         //
         // Note: This does not handle double format inputs, which must have special handling.
 
+        if(IsDoubleFormat(origFormat))
+          expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
         if(IsUIntFormat(origFormat))
           expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
         else if(IsSIntFormat(origFormat))
@@ -1400,6 +1477,10 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
       }
 
       uint32_t elemSize = GetByteSize(1, 1, 1, expandedFormat, 0);
+
+      // doubles are packed as uvec2
+      if(IsDoubleFormat(origFormat))
+        elemSize *= 2;
 
       // used for interpreting the original data, if we're upcasting
       ResourceFormat fmt = MakeResourceFormat(origFormat);
@@ -1459,24 +1540,46 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
             uint32_t zero = 0;
 
             // upcasting path
-            if(IsUIntFormat(expandedFormat))
+            if(IsDoubleFormat(origFormat))
+            {
+              while(src < origVBEnd && dst < dstEnd)
+              {
+                // the double is already in "packed uvec2" order, with least significant 32-bits
+                // first, so we can copy directly
+                memcpy(dst, src, sizeof(double) * fmt.compCount);
+                dst += sizeof(double) * fmt.compCount;
+
+                // fill up to *8* zeros not 4, since we're filling two for every component
+                for(uint8_t c = fmt.compCount * 2; c < 8; c++)
+                {
+                  memcpy(dst, &zero, sizeof(uint32_t));
+                  dst += sizeof(uint32_t);
+                }
+
+                src += stride;
+              }
+            }
+            else if(IsUIntFormat(expandedFormat))
             {
               while(src < origVBEnd && dst < dstEnd)
               {
                 uint32_t val = 0;
 
+                const byte *s = src;
+
                 uint8_t c = 0;
                 for(; c < fmt.compCount; c++)
                 {
                   if(fmt.compByteWidth == 1)
-                    val = *src;
+                    val = *s;
                   else if(fmt.compByteWidth == 2)
-                    val = *(uint16_t *)src;
+                    val = *(uint16_t *)s;
                   else if(fmt.compByteWidth == 4)
-                    val = *(uint32_t *)src;
+                    val = *(uint32_t *)s;
 
                   memcpy(dst, &val, sizeof(uint32_t));
                   dst += sizeof(uint32_t);
+                  s += fmt.compByteWidth;
                 }
 
                 for(; c < 4; c++)
@@ -1494,18 +1597,21 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
               {
                 int32_t val = 0;
 
+                const byte *s = src;
+
                 uint8_t c = 0;
                 for(; c < fmt.compCount; c++)
                 {
                   if(fmt.compByteWidth == 1)
-                    val = *(int8_t *)src;
+                    val = *(int8_t *)s;
                   else if(fmt.compByteWidth == 2)
-                    val = *(int16_t *)src;
+                    val = *(int16_t *)s;
                   else if(fmt.compByteWidth == 4)
-                    val = *(int32_t *)src;
+                    val = *(int32_t *)s;
 
                   memcpy(dst, &val, sizeof(int32_t));
                   dst += sizeof(int32_t);
+                  s += fmt.compByteWidth;
                 }
 
                 for(; c < 4; c++)
@@ -1565,7 +1671,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
       descWrites[numWrites].dstSet = m_MeshFetchDescSet;
       if(IsSIntFormat(attrDesc.format))
         descWrites[numWrites].dstBinding = 4;
-      else if(IsUIntFormat(attrDesc.format))
+      else if(IsUIntFormat(attrDesc.format) || IsDoubleFormat(attrDesc.format))
         descWrites[numWrites].dstBinding = 3;
       else
         descWrites[numWrites].dstBinding = 2;

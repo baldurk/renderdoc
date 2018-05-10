@@ -314,6 +314,28 @@ bool IsSRGBFormat(VkFormat f)
   return false;
 }
 
+bool IsDoubleFormat(VkFormat f)
+{
+  switch(f)
+  {
+    case VK_FORMAT_R64_SFLOAT:
+    case VK_FORMAT_R64G64_SFLOAT:
+    case VK_FORMAT_R64G64B64_SFLOAT:
+    case VK_FORMAT_R64G64B64A64_SFLOAT:
+    case VK_FORMAT_R64_SINT:
+    case VK_FORMAT_R64G64_SINT:
+    case VK_FORMAT_R64G64B64_SINT:
+    case VK_FORMAT_R64G64B64A64_SINT:
+    case VK_FORMAT_R64_UINT:
+    case VK_FORMAT_R64G64_UINT:
+    case VK_FORMAT_R64G64B64_UINT:
+    case VK_FORMAT_R64G64B64A64_UINT: return true;
+    default: break;
+  }
+
+  return false;
+}
+
 bool IsUIntFormat(VkFormat f)
 {
   switch(f)

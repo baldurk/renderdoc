@@ -3821,16 +3821,17 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
     return;
   }
 
-  switch(type->baseType ? type->baseType->type : type->type)
+  SPVTypeData *primType = type->baseType ? type->baseType : type;
+
+  switch(primType->type)
   {
     case SPVTypeData::eBool:
     case SPVTypeData::eUInt: sig.compType = CompType::UInt; break;
     case SPVTypeData::eSInt: sig.compType = CompType::SInt; break;
-    case SPVTypeData::eFloat: sig.compType = CompType::Float; break;
-    default:
-      RDCERR("Unexpected base type of input/output signature %u",
-             type->baseType ? type->baseType->type : type->type);
+    case SPVTypeData::eFloat:
+      sig.compType = primType->bitCount == 64 ? CompType::Double : CompType::Float;
       break;
+    default: RDCERR("Unexpected base type of input/output signature %u", primType->type); break;
   }
 
   sig.compCount = type->vectorSize;

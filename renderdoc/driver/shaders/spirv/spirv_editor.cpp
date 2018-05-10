@@ -373,6 +373,39 @@ void SPIRVEditor::AddCapability(spv::Capability cap)
   addWords(FirstRealWord, op.size());
 }
 
+SPIRVId SPIRVEditor::ImportExtInst(const char *setname)
+{
+  SPIRVId ret = extSets[setname];
+
+  if(ret)
+    return ret;
+
+  // start at the beginning
+  SPIRVIterator it(spirv, FirstRealWord);
+
+  // skip past any capabilities and extensions
+  while(it.opcode() == spv::OpCapability || it.opcode() == spv::OpExtension)
+    it++;
+
+  // insert the import instruction
+  ret = MakeId();
+
+  size_t sz = strlen(setname);
+  std::vector<uint32_t> uintName((sz / 4) + 1);
+  memcpy(&uintName[0], setname, sz);
+
+  uintName.insert(uintName.begin(), ret);
+
+  SPIRVOperation op(spv::OpExtInstImport, uintName);
+  spirv.insert(spirv.begin() + it.offset, op.begin(), op.end());
+  RegisterOp(it);
+  addWords(it.offset, op.size());
+
+  extSets[setname] = ret;
+
+  return ret;
+}
+
 SPIRVId SPIRVEditor::AddType(const SPIRVOperation &op)
 {
   SPIRVId id = op[1];
@@ -545,6 +578,12 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
   {
     capabilities.insert((spv::Capability)it.word(1));
   }
+  else if(opcode == spv::OpExtInstImport)
+  {
+    SPIRVId id = it.word(1);
+    const char *name = (const char *)&it.word(2);
+    extSets[name] = id;
+  }
   else if(opcode == spv::OpFunction)
   {
     SPIRVId id = it.word(2);
@@ -676,6 +715,11 @@ void SPIRVEditor::UnregisterOp(SPIRVIterator it)
   else if(opcode == spv::OpCapability)
   {
     capabilities.erase((spv::Capability)it.word(1));
+  }
+  else if(opcode == spv::OpExtInstImport)
+  {
+    const char *name = (const char *)&it.word(2);
+    extSets.erase(name);
   }
   else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
           opcode == spv::OpTypeFloat)

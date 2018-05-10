@@ -1209,6 +1209,7 @@ bool IsStencilFormat(VkFormat f);
 bool IsStencilOnlyFormat(VkFormat f);
 bool IsSRGBFormat(VkFormat f);
 bool IsUIntFormat(VkFormat f);
+bool IsDoubleFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);
 bool IsYUVFormat(VkFormat f);
 
