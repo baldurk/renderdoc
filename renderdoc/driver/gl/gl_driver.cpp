@@ -2730,25 +2730,29 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 
       SERIALISE_CHECK_READ_ERRORS();
 
-      GetResourceManager()->AddLiveResource(m_FBO0_ID, FramebufferRes(GetCtx(), m_FakeBB_FBO));
-
-      AddResource(m_FBO0_ID, ResourceType::SwapchainImage, "");
-      GetReplay()->GetResourceDesc(m_FBO0_ID).SetCustomName("Default FBO");
-
-      GetReplay()->GetResourceDesc(m_FBO0_ID).initialisationChunks.push_back(m_InitChunkIndex);
-
-      ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
-      GetReplay()->GetResourceDesc(colorId).initialisationChunks.push_back(m_InitChunkIndex);
-      GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(colorId);
-      GetReplay()->GetResourceDesc(colorId).parentResources.push_back(m_FBO0_ID);
-
-      if(m_FakeBB_DepthStencil)
+      if(IsReplayingAndReading())
       {
-        ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
-        GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
+        GetResourceManager()->AddLiveResource(m_FBO0_ID, FramebufferRes(GetCtx(), m_FakeBB_FBO));
 
-        GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(depthId);
-        GetReplay()->GetResourceDesc(depthId).parentResources.push_back(m_FBO0_ID);
+        AddResource(m_FBO0_ID, ResourceType::SwapchainImage, "");
+        GetReplay()->GetResourceDesc(m_FBO0_ID).SetCustomName("Default FBO");
+
+        GetReplay()->GetResourceDesc(m_FBO0_ID).initialisationChunks.push_back(m_InitChunkIndex);
+
+        ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
+        GetReplay()->GetResourceDesc(colorId).initialisationChunks.push_back(m_InitChunkIndex);
+        GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(colorId);
+        GetReplay()->GetResourceDesc(colorId).parentResources.push_back(m_FBO0_ID);
+
+        if(m_FakeBB_DepthStencil)
+        {
+          ResourceId depthId =
+              GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
+          GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
+
+          GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(depthId);
+          GetReplay()->GetResourceDesc(depthId).parentResources.push_back(m_FBO0_ID);
+        }
       }
 
       return true;
