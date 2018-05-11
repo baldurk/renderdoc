@@ -63,7 +63,7 @@ enum class ABI
 
 ABI GetABI(const std::string &abiName);
 std::vector<ABI> GetSupportedABIs(const std::string &deviceID);
-std::string GetRenderDocPackageForABI(ABI abi);
+std::string GetRenderDocPackageForABI(ABI abi, char sep = '.');
 std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName);
 
 bool PatchManifest(std::vector<byte> &manifest);

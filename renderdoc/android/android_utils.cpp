@@ -92,18 +92,21 @@ std::vector<ABI> GetSupportedABIs(const std::string &deviceID)
   return {};
 }
 
-std::string GetRenderDocPackageForABI(ABI abi)
+std::string GetRenderDocPackageForABI(ABI abi, char sep)
 {
+  std::string ret = RENDERDOC_ANDROID_PACKAGE_BASE;
+  ret += sep;
+
   switch(abi)
   {
-    case ABI::arm64_v8a: return RENDERDOC_ANDROID_PACKAGE_BASE ".arm64";
-    case ABI::armeabi_v7a: return RENDERDOC_ANDROID_PACKAGE_BASE ".arm32";
-    case ABI::x86_64: return RENDERDOC_ANDROID_PACKAGE_BASE ".x64";
-    case ABI::x86: return RENDERDOC_ANDROID_PACKAGE_BASE ".x86";
+    case ABI::arm64_v8a: return ret + "arm64";
+    case ABI::armeabi_v7a: return ret + "arm32";
+    case ABI::x86_64: return ret + "x64";
+    case ABI::x86: return ret + "x86";
     default: break;
   }
 
-  return RENDERDOC_ANDROID_PACKAGE_BASE ".unknown";
+  return ret + "unknown";
 }
 
 std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName)

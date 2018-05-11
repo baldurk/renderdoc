@@ -347,10 +347,15 @@ bool InstallRenderDocServer(const std::string &deviceID)
   paths.push_back(customPath);
 #endif
 
-  paths.push_back(exeDir + "/plugins/android/");                       // Windows install
-  paths.push_back(exeDir + "/../share/renderdoc/plugins/android/");    // Linux install
-  paths.push_back(exeDir + "/../../build-android/bin/");               // Local build
-  paths.push_back(exeDir + "/../../../../../build-android/bin/");      // macOS build
+  std::string suff = GetRenderDocPackageForABI(abis[0], '-');
+  suff.erase(0, strlen(RENDERDOC_ANDROID_PACKAGE_BASE));
+
+  paths.push_back(exeDir + "/plugins/android/");                                 // Windows install
+  paths.push_back(exeDir + "/../share/renderdoc/plugins/android/");              // Linux install
+  paths.push_back(exeDir + "/../../build-android/bin/");                         // Local build
+  paths.push_back(exeDir + "/../../build-android" + suff + "/bin/");             // Local ABI build
+  paths.push_back(exeDir + "/../../../../../build-android/bin/");                // macOS build
+  paths.push_back(exeDir + "/../../../../../build-android" + suff + "/bin/");    // macOS ABI build
 
   // use the first ABI for searching
   std::string apk = GetRenderDocPackageForABI(abis[0]);
@@ -381,7 +386,17 @@ bool InstallRenderDocServer(const std::string &deviceID)
 
   for(ABI abi : abis)
   {
-    apk = apksFolder + GetRenderDocPackageForABI(abi) + ".apk";
+    apk = apksFolder;
+
+    size_t abiSuffix = apk.find(suff);
+    if(abiSuffix != std::string::npos)
+    {
+      std::string abisuff = GetRenderDocPackageForABI(abi, '-');
+      abisuff.erase(0, strlen(RENDERDOC_ANDROID_PACKAGE_BASE));
+      apk.replace(abiSuffix, suff.size(), abisuff);
+    }
+
+    apk += GetRenderDocPackageForABI(abi) + ".apk";
 
     if(!FileIO::exists(apk.c_str()))
       RDCWARN(
