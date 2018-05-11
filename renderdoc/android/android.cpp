@@ -31,15 +31,17 @@
 
 namespace Android
 {
-void adbForwardPorts(int index, const std::string &deviceID, uint16_t jdwpPort, int pid)
+void adbForwardPorts(int index, const std::string &deviceID, uint16_t jdwpPort, int pid, bool silent)
 {
   const char *forwardCommand = "forward tcp:%i localabstract:renderdoc_%i";
   int offs = RenderDoc_AndroidPortOffset * (index + 1);
 
   adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_RemoteServerPort + offs,
-                                             RenderDoc_RemoteServerPort));
+                                             RenderDoc_RemoteServerPort),
+                 ".", silent);
   adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_FirstTargetControlPort + offs,
-                                             RenderDoc_FirstTargetControlPort));
+                                             RenderDoc_FirstTargetControlPort),
+                 ".", silent);
 
   if(jdwpPort && pid)
     adbExecCommand(deviceID, StringFormat::Fmt("forward tcp:%hu jdwp:%i", jdwpPort, pid));
@@ -260,7 +262,7 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
     jdwpPort = 0;
   }
 
-  adbForwardPorts(index, deviceID, jdwpPort, pid);
+  adbForwardPorts(index, deviceID, jdwpPort, pid, false);
 
   // sleep a little to let the ports initialise
   Threading::Sleep(500);
@@ -501,7 +503,7 @@ bool CheckAndroidServerVersion(const string &deviceID)
 
 void ResetCaptureSettings(const std::string &deviceID)
 {
-  Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
+  Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :", ".", true);
 }
 };    // namespace Android
 
@@ -549,7 +551,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
       ret += StringFormat::Fmt("adb:%d:%s", idx, tokens[0].c_str());
 
       // Forward the ports so we can see if a remoteserver/captured app is already running.
-      Android::adbForwardPorts(idx, tokens[0], 0, 0);
+      Android::adbForwardPorts(idx, tokens[0], 0, 0, true);
 
       idx++;
     }
@@ -591,7 +593,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   if(abis.empty())
     return;
 
-  Android::adbForwardPorts(index, deviceID, 0, 0);
+  Android::adbForwardPorts(index, deviceID, 0, 0, false);
   Android::ResetCaptureSettings(deviceID);
 
   // launch the first ABI, as the default 'most compatible' package

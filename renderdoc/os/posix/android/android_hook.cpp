@@ -681,7 +681,7 @@ void PosixHookApply()
       if(success)
         HOOK_DEBUG_PRINT("Hooked successfully, trampoline is %p", trampoline);
       else
-        HOOK_DEBUG_PRINT("Failed to hook!");
+        RDCERR("Failed to hook %s::%s!", lib.c_str(), hook.first.c_str());
 
       GetHookInfo().SetHooked(oldfunc);
 
