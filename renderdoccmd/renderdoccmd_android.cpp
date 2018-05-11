@@ -101,6 +101,7 @@ void DisplayGenericSplash()
   DLSYM_GET(eglBindAPI);
   DLSYM_GET(eglGetDisplay);
   DLSYM_GET(eglInitialize);
+  DLSYM_GET(eglGetError);
   DLSYM_GET(eglChooseConfig);
   DLSYM_GET(eglCreateContext);
   DLSYM_GET(eglCreateWindowSurface);
@@ -147,6 +148,8 @@ void DisplayGenericSplash()
                                     EGL_WINDOW_BIT,
                                     EGL_COLOR_BUFFER_TYPE,
                                     EGL_RGB_BUFFER,
+                                    EGL_RENDERABLE_TYPE,
+                                    EGL_OPENGL_ES2_BIT,
                                     EGL_NONE};
 
     EGLint numConfigs;
@@ -277,7 +280,7 @@ void main()
         }
         else
         {
-          ANDROID_LOG("failed making surface");
+          ANDROID_LOG("failed making surface: %x", eglGetError());
         }
 
         eglMakeCurrent(eglDisplay, 0L, 0L, NULL);
@@ -286,7 +289,7 @@ void main()
       }
       else
       {
-        ANDROID_LOG("failed making context");
+        ANDROID_LOG("failed making context: %x", eglGetError());
       }
     }
     else
