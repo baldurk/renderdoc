@@ -503,7 +503,7 @@ uint32_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
   return 128;
 }
 
-const char *NameOfType(VkResourceType type)
+static const char *NameOfType(VkResourceType type)
 {
   switch(type)
   {
@@ -514,6 +514,41 @@ const char *NameOfType(VkResourceType type)
     default: break;
   }
   return "VkResource";
+}
+
+static bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
+{
+  // this makes assumptions that only hold within the context of Serialise_InitialState below,
+  // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
+  // case they can be garbage and we must ignore them based on the descriptorType
+
+  if(write.pTexelBufferView)
+    return write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
+
+  if(write.pBufferInfo)
+    return write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
+
+  if(write.pImageInfo)
+  {
+    // only these two types need samplers
+    bool needSampler = (write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                        write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+    // but all types that aren't just a sampler need an image
+    bool needImage = (write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER);
+
+    if(needSampler && write.pImageInfo[arrayElement].sampler == VK_NULL_HANDLE)
+      return false;
+
+    if(needImage && write.pImageInfo[arrayElement].imageView == VK_NULL_HANDLE)
+      return false;
+
+    return true;
+  }
+
+  RDCERR("Encountered VkWriteDescriptorSet with no data!");
+
+  return false;
 }
 
 // second parameter isn't used, as we might be serialising init state for a deleted resource
@@ -584,7 +619,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
       initialContents.numDescriptors = (uint32_t)layout.bindings.size();
       initialContents.descriptorInfo = new VkDescriptorBufferInfo[NumBindings];
-      initialContents.descriptorWrites = new VkWriteDescriptorSet[initialContents.numDescriptors];
+
+      // if we have partially-valid arrays, we need to split up writes. The worst case will never be
+      // == number of bindings since that implies all arrays are valid, but it is an upper bound as
+      // we'll never need more writes than bindings
+      initialContents.descriptorWrites = new VkWriteDescriptorSet[NumBindings];
 
       RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
                         "Descriptor structs sizes are unexpected, ensure largest size is used");
@@ -593,104 +632,87 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
       VkDescriptorBufferInfo *dstData = initialContents.descriptorInfo;
       DescriptorSetSlot *srcData = Bindings;
 
-      uint32_t validBinds = initialContents.numDescriptors;
+      // validBinds counts up as we make a valid VkWriteDescriptorSet, so can be used to index into
+      // writes[] along the way as the 'latest' write.
+      uint32_t bind = 0;
 
-      // i is the writedescriptor that we're updating, could be
-      // lower than j if a writedescriptor ended up being no-op and
-      // was skipped. j is the actual index.
-      for(uint32_t i = 0, j = 0; j < initialContents.numDescriptors; j++)
+      for(uint32_t j = 0; j < initialContents.numDescriptors; j++)
       {
-        writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writes[i].pNext = NULL;
+        writes[bind].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[bind].pNext = NULL;
 
-        // update whole element (array or single)
-        writes[i].dstSet = (VkDescriptorSet)(uint64_t)res;
-        writes[i].dstBinding = j;
-        writes[i].dstArrayElement = 0;
-        writes[i].descriptorCount = layout.bindings[j].descriptorCount;
-        writes[i].descriptorType = layout.bindings[j].descriptorType;
+        // template for this write. We will expand it to include more descriptors as we find valid
+        // descriptors to update.
+        writes[bind].dstSet = (VkDescriptorSet)(uint64_t)res;
+        writes[bind].dstBinding = j;
+        writes[bind].dstArrayElement = 0;
+        // descriptor count starts at 0. We increment it as we find valid descriptors
+        writes[bind].descriptorCount = 0;
+        writes[bind].descriptorType = layout.bindings[j].descriptorType;
+
+        uint32_t descriptorCount = layout.bindings[j].descriptorCount;
 
         DescriptorSetSlot *src = srcData;
-        srcData += layout.bindings[j].descriptorCount;
+        srcData += descriptorCount;
 
         // will be cast to the appropriate type, we just need to increment
         // the dstData pointer by worst case size
         VkDescriptorBufferInfo *dstBuffer = dstData;
         VkDescriptorImageInfo *dstImage = (VkDescriptorImageInfo *)dstData;
         VkBufferView *dstTexelBuffer = (VkBufferView *)dstData;
-        dstData += layout.bindings[j].descriptorCount;
+        dstData += descriptorCount;
 
         // the correct one will be set below
-        writes[i].pBufferInfo = NULL;
-        writes[i].pImageInfo = NULL;
-        writes[i].pTexelBufferView = NULL;
+        writes[bind].pBufferInfo = NULL;
+        writes[bind].pImageInfo = NULL;
+        writes[bind].pTexelBufferView = NULL;
 
-        // check that the resources we need for this write are present,
-        // as some might have been skipped due to stale descriptor set
-        // slots or otherwise unreferenced objects (the descriptor set
-        // initial contents do not cause a frame reference for their
-        // resources
+        // check that the resources we need for this write are present, as some might have been
+        // skipped due to stale descriptor set slots or otherwise unreferenced objects (the
+        // descriptor set initial contents do not cause a frame reference for their resources).
         //
-        // While we go, we copy from the DescriptorSetSlot structures to
-        // the appropriate array in the VkWriteDescriptorSet for the
-        // descriptor type
-        bool valid = true;
+        // For the non-array case it's trivial as either the descriptor is valid, in which case it
+        // gets a write, or not, in which case we skip.
+        // For the array case we batch up updates as much as possible, iterating along the array and
+        // skipping any invalid descriptors.
 
-        // quick check for slots that were completely uninitialised
-        // and so don't have valid data
+        // quick check for slots that were completely uninitialised and so don't have valid data
         if(src->texelBufferView == VK_NULL_HANDLE && src->imageInfo.sampler == VK_NULL_HANDLE &&
            src->imageInfo.imageView == VK_NULL_HANDLE && src->bufferInfo.buffer == VK_NULL_HANDLE)
         {
-          valid = false;
+          // do nothing - don't increment bind so that the same write descriptor is used next time.
+          continue;
         }
         else
         {
-          switch(writes[i].descriptorType)
+          // first we copy the right data over unconditionally
+          switch(writes[bind].descriptorType)
           {
             case VK_DESCRIPTOR_TYPE_SAMPLER:
-            {
-              for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
-              {
-                dstImage[d] = src[d].imageInfo;
-                valid &= (src[d].imageInfo.sampler != VK_NULL_HANDLE);
-              }
-              writes[i].pImageInfo = dstImage;
-              break;
-            }
             case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-            {
-              for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
-              {
-                dstImage[d] = src[d].imageInfo;
-                valid &= (src[d].imageInfo.sampler != VK_NULL_HANDLE) ||
-                         (layout.bindings[j].immutableSampler &&
-                          layout.bindings[j].immutableSampler[d] != ResourceId());
-                valid &= (src[d].imageInfo.imageView != VK_NULL_HANDLE);
-              }
-              writes[i].pImageInfo = dstImage;
-              break;
-            }
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
             {
-              for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
-              {
+              for(uint32_t d = 0; d < descriptorCount; d++)
                 dstImage[d] = src[d].imageInfo;
-                valid &= (src[d].imageInfo.imageView != VK_NULL_HANDLE);
-              }
-              writes[i].pImageInfo = dstImage;
+
+              writes[bind].pImageInfo = dstImage;
+              // NULL the others
+              dstBuffer = NULL;
+              dstTexelBuffer = NULL;
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
             case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             {
-              for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
-              {
+              for(uint32_t d = 0; d < descriptorCount; d++)
                 dstTexelBuffer[d] = src[d].texelBufferView;
-                valid &= (src[d].texelBufferView != VK_NULL_HANDLE);
-              }
-              writes[i].pTexelBufferView = dstTexelBuffer;
+
+              writes[bind].pTexelBufferView = dstTexelBuffer;
+              // NULL the others
+              dstBuffer = NULL;
+              dstImage = NULL;
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -698,31 +720,75 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
             {
-              for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
-              {
+              for(uint32_t d = 0; d < descriptorCount; d++)
                 dstBuffer[d] = src[d].bufferInfo;
-                valid &= (src[d].bufferInfo.buffer != VK_NULL_HANDLE);
-              }
-              writes[i].pBufferInfo = dstBuffer;
+
+              writes[bind].pBufferInfo = dstBuffer;
+              // NULL the others
+              dstImage = NULL;
+              dstTexelBuffer = NULL;
               break;
             }
             default:
             {
-              RDCERR("Unexpected descriptor type %d", writes[i].descriptorType);
+              RDCERR("Unexpected descriptor type %d", writes[bind].descriptorType);
               ret = false;
             }
           }
-        }
 
-        // if this write is not valid, skip it
-        // and start writing the next one in here
-        if(!valid)
-          validBinds--;
-        else
-          i++;
+          // iterate over all the descriptors coalescing valid writes. At all times writes[bind] is
+          // the 'current' batched update
+          for(uint32_t d = 0; d < descriptorCount; d++)
+          {
+            // is this array element in the write valid? Note that below when we encounter an
+            // invalid write, the next one starts from a later point in the array, so we need to
+            // check relative to the dstArrayElement
+            if(IsValid(writes[bind], d - writes[bind].dstArrayElement))
+            {
+              // if this descriptor is valid, just increment the number of descriptors. The data
+              // and dstArrayElement is pointing to the start of the valid range
+              writes[bind].descriptorCount++;
+            }
+            else
+            {
+              // if this descriptor is *invalid* we must skip it. First see if we have some
+              // previously valid range and commit it
+              if(writes[bind].descriptorCount)
+              {
+                bind++;
+
+                // copy over the previous data for the sake of the things that won't be reset below
+                writes[bind] = writes[bind - 1];
+              }
+
+              // now offset to the next potentially valid descriptor. Note that at the end of the
+              // iteration there is no next descriptor so these pointer values will be off the end
+              // of the array, but descriptorCount will be 0 so this will be treated as invalid and
+              // skipped
+              writes[bind].dstArrayElement = d;
+
+              // start counting from 0 again
+              writes[bind].descriptorCount = 0;
+
+              // offset the array being used
+              if(dstBuffer)
+                writes[bind].pBufferInfo = dstBuffer + d;
+              else if(dstImage)
+                writes[bind].pImageInfo = dstImage + d;
+              else if(dstTexelBuffer)
+                writes[bind].pTexelBufferView = dstTexelBuffer + d;
+            }
+          }
+
+          // after the loop there may be a valid write which hasn't been accounted for. If the
+          // current write has a descriptor count that means it has some descriptors, so
+          // increment i and validBinds so that it's accounted for.
+          if(writes[bind].descriptorCount)
+            bind++;
+        }
       }
 
-      initialContents.numDescriptors = validBinds;
+      initialContents.numDescriptors = bind;
 
       GetResourceManager()->SetInitialContents(id, initialContents);
     }
