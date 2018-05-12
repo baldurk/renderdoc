@@ -241,7 +241,11 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
       return ret;
     }
 
-    Vec4f v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
+    Vec4f v;
+    if(fmt.compType == CompType::SNorm)
+      v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
+    else
+      v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
     ret.x = v.x;
     ret.y = v.y;
     ret.z = v.z;
