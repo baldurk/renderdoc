@@ -133,18 +133,15 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
   }
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, func, suffix)                              \
-  if(cond)                                                                         \
-  {                                                                                \
-    DeviceGPA(func);                                                               \
-    DeviceGPA(CONCAT(func, suffix));                                               \
-    RDCASSERT(table->func == table->CONCAT(func, suffix) || table->func == NULL || \
-                  table->CONCAT(func, suffix) == NULL,                             \
-              (void *)table->func, (void *)table->CONCAT(func, suffix));           \
-    if(table->func == NULL)                                                        \
-      table->func = table->CONCAT(func, suffix);                                   \
-    if(table->CONCAT(func, suffix) == NULL)                                        \
-      table->CONCAT(func, suffix) = table->func;                                   \
+#define HookInitPromotedExtension(cond, func, suffix) \
+  if(cond)                                            \
+  {                                                   \
+    DeviceGPA(func);                                  \
+    DeviceGPA(CONCAT(func, suffix));                  \
+    if(table->func == NULL)                           \
+      table->func = table->CONCAT(func, suffix);      \
+    if(table->CONCAT(func, suffix) == NULL)           \
+      table->CONCAT(func, suffix) = table->func;      \
   }
 
   CheckInstanceExts();
