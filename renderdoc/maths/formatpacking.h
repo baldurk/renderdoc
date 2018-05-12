@@ -34,6 +34,34 @@ inline Vec4f ConvertFromR10G10B10A2(uint32_t data)
                float((data >> 20) & 0x3ff) / 1023.0f, float((data >> 30) & 0x003) / 3.0f);
 }
 
+inline Vec4f ConvertFromR10G10B10A2SNorm(uint32_t data)
+{
+  int r = int(data >> 0) & 0x3ff;
+  int g = int(data >> 10) & 0x3ff;
+  int b = int(data >> 20) & 0x3ff;
+  int a = int(data >> 30) & 3;
+
+  if(r >= 512)
+    r -= 1024;
+  if(g >= 512)
+    g -= 1024;
+  if(b >= 512)
+    b -= 1024;
+  if(a >= 2)
+    a -= 4;
+
+  if(r == -512)
+    r = -511;
+  if(g == -512)
+    g = -511;
+  if(b == -512)
+    b = -511;
+  if(a == -2)
+    a = -1;
+
+  return Vec4f(float(r) / 511.0f, float(g) / 511.0f, float(b) / 511.0f, float(a) / 1.0f);
+}
+
 inline uint32_t ConvertToR10G10B10A2(Vec4f data)
 {
   float x = data.x < 1.0f ? (data.x > 0.0f ? data.x : 0.0f) : 1.0f;
