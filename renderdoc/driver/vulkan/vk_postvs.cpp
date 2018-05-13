@@ -1468,7 +1468,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
         if(IsDoubleFormat(origFormat))
           expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
-        if(IsUIntFormat(origFormat))
+        else if(IsUIntFormat(origFormat))
           expandedFormat = VK_FORMAT_R32G32B32A32_UINT;
         else if(IsSIntFormat(origFormat))
           expandedFormat = VK_FORMAT_R32G32B32A32_SINT;
