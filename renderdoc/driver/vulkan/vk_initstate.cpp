@@ -1164,27 +1164,28 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {
       RDCASSERT(writes[i].dstBinding < bindings.size());
-      RDCASSERT(writes[i].dstArrayElement == 0);
 
       DescriptorSetSlot *bind = bindings[writes[i].dstBinding];
 
       for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
       {
+        uint32_t idx = writes[i].dstArrayElement + d;
+
         if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          bind[d].texelBufferView = writes[i].pTexelBufferView[d];
+          bind[idx].texelBufferView = writes[i].pTexelBufferView[idx];
         }
         else if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
         {
-          bind[d].bufferInfo = writes[i].pBufferInfo[d];
+          bind[idx].bufferInfo = writes[i].pBufferInfo[idx];
         }
         else
         {
-          bind[d].imageInfo = writes[i].pImageInfo[d];
+          bind[idx].imageInfo = writes[i].pImageInfo[idx];
         }
       }
     }
