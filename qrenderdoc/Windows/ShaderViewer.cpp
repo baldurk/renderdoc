@@ -202,6 +202,8 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   m_Scintillas.removeOne(m_DisassemblyView);
   ui->docking->removeToolWindow(m_DisassemblyFrame);
 
+  m_DisassemblyView = NULL;
+
   // hide watch, constants, variables
   ui->watch->hide();
   ui->variables->hide();
