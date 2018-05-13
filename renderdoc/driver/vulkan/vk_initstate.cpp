@@ -765,18 +765,18 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
               // iteration there is no next descriptor so these pointer values will be off the end
               // of the array, but descriptorCount will be 0 so this will be treated as invalid and
               // skipped
-              writes[bind].dstArrayElement = d;
+              writes[bind].dstArrayElement = d + 1;
 
               // start counting from 0 again
               writes[bind].descriptorCount = 0;
 
               // offset the array being used
               if(dstBuffer)
-                writes[bind].pBufferInfo = dstBuffer + d;
+                writes[bind].pBufferInfo = dstBuffer + d + 1;
               else if(dstImage)
-                writes[bind].pImageInfo = dstImage + d;
+                writes[bind].pImageInfo = dstImage + d + 1;
               else if(dstTexelBuffer)
-                writes[bind].pTexelBufferView = dstTexelBuffer + d;
+                writes[bind].pTexelBufferView = dstTexelBuffer + d + 1;
             }
           }
 
