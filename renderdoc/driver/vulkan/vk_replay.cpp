@@ -1345,6 +1345,9 @@ void VulkanReplay::SavePipelineState()
                 dst.bindings[b].binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
                 dst.bindings[b].binds[a].numMips = c.m_ImageView[viewid].range.levelCount;
                 dst.bindings[b].binds[a].numSlices = c.m_ImageView[viewid].range.layerCount;
+
+                // temporary hack, store image layout enum in byteOffset as it's not used for images
+                dst.bindings[b].binds[a].byteOffset = info[a].imageInfo.imageLayout;
               }
               else
               {
