@@ -620,7 +620,7 @@ int array_setsubscript(arrayType *thisptr, PyObject *idxobj, PyObject *val)
         // if we're stepping forwards, erasing the earlier indices will have moved the ones to
         // delete, so adjust the index based on how many we've deleted.
         // if we're stepping backwards then there's no need to change anything
-        if(step > 1)
+        if(step >= 1)
           idx -= count;
 
         ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at((size_t)idx));
