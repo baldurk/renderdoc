@@ -1220,15 +1220,27 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-  VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
+  WrappedVkRes *res = m_pDriver->GetResourceManager()->GetCurrentResource(buff);
 
-  if(srcBuf == VK_NULL_HANDLE)
+  if(res == VK_NULL_HANDLE)
   {
-    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    RDCERR("Getting buffer data for unknown buffer/memory %llu!", buff);
     return;
   }
 
-  uint64_t bufsize = m_pDriver->m_CreationInfo.m_Buffer[buff].size;
+  VkBuffer srcBuf = VK_NULL_HANDLE;
+  uint64_t bufsize = 0;
+
+  if(WrappedVkDeviceMemory::IsAlloc(res))
+  {
+    srcBuf = m_pDriver->m_CreationInfo.m_Memory[buff].wholeMemBuf;
+    bufsize = m_pDriver->m_CreationInfo.m_Memory[buff].size;
+  }
+  else
+  {
+    srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
+    bufsize = m_pDriver->m_CreationInfo.m_Buffer[buff].size;
+  }
 
   if(offset >= bufsize)
   {
