@@ -1356,7 +1356,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_
       GetResourceManager()->AddLiveResource(pHeap, ret);
     }
 
-    AddResource(pHeap, ResourceType::Pool, "Heap");
+    AddResource(pHeap, ResourceType::Memory, "Heap");
   }
 
   return true;
