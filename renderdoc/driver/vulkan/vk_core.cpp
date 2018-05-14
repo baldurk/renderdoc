@@ -91,7 +91,8 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
-    VkMarkerRegion::vk = this;
+    if(VkMarkerRegion::vk == NULL)
+      VkMarkerRegion::vk = this;
 
     m_State = CaptureState::LoadingReplaying;
   }
@@ -169,6 +170,9 @@ WrappedVulkan::~WrappedVulkan()
     m_FrameCaptureRecord->Delete(GetResourceManager());
     m_FrameCaptureRecord = NULL;
   }
+
+  if(VkMarkerRegion::vk == this)
+    VkMarkerRegion::vk = NULL;
 
   // in case the application leaked some objects, avoid crashing trying
   // to release them ourselves by clearing the resource manager.
