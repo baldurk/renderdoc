@@ -1290,6 +1290,8 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   {
     VkDeviceSize chunkSize = RDCMIN(sizeRemaining, STAGE_BUFFER_BYTE_SIZE);
 
+    cmd = m_pDriver->GetNextCmd();
+
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
