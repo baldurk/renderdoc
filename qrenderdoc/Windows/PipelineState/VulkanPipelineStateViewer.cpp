@@ -184,7 +184,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
                                tr("Stride"), tr("Byte Length"), tr("Go")});
     header->setColumnStretchHints({1, 4, 2, 2, 2, 2, 3, -1});
 
-    ui->viBuffers->setHoverIconColumn(6, action, action_hover);
+    ui->viBuffers->setHoverIconColumn(7, action, action_hover);
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
     ui->viBuffers->setInstantTooltips(true);
   }
