@@ -30,6 +30,8 @@
 
 #define DLL_NAME "d3d11.dll"
 
+ID3D11Resource *UnwrapDXResource(void *dxObject);
+
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
 {
   if(WrappedID3D11Device::IsAlloc(dev))
@@ -56,6 +58,47 @@ typedef HRESULT (*PFNNVCreateDeviceAndSwapChain)(
     _In_opt_ CONST DXGI_SWAP_CHAIN_DESC *, _COM_Outptr_opt_ IDXGISwapChain **,
     _COM_Outptr_opt_ ID3D11Device **, _Out_opt_ D3D_FEATURE_LEVEL *,
     _COM_Outptr_opt_ ID3D11DeviceContext **, NVAPI_DEVICE_FEATURE_LEVEL *);
+
+#define NVENCAPI __stdcall
+enum NVENCSTATUS
+{
+  NV_ENC_SUCCESS = 0,
+  NV_ENC_ERR_INVALID_PTR = 6,
+};
+
+enum NV_ENC_INPUT_RESOURCE_TYPE
+{
+  NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX = 0x0,
+  NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR = 0x1,
+  NV_ENC_INPUT_RESOURCE_TYPE_CUDAARRAY = 0x2,
+  NV_ENC_INPUT_RESOURCE_TYPE_OPENGL_TEX = 0x3
+};
+
+struct NV_ENC_REGISTER_RESOURCE
+{
+  uint32_t version;
+  NV_ENC_INPUT_RESOURCE_TYPE resourceType;
+  uint32_t dummy[4];
+  void *resourceToRegister;
+
+  // there is more data here but we don't allocate this structure only patch the above pointer, so
+  // we don't need it
+};
+
+typedef NVENCSTATUS(NVENCAPI *PNVENCREGISTERRESOURCE)(void *, NV_ENC_REGISTER_RESOURCE *params);
+
+struct NV_ENCODE_API_FUNCTION_LIST
+{
+  uint32_t version;
+  uint32_t reserved;
+  void *otherFunctions[30];    // other functions in the dispatch table
+  PNVENCREGISTERRESOURCE nvEncRegisterResource;
+
+  // there is more data here but we don't allocate this structure only patch the above pointer, so
+  // we don't need it
+};
+
+typedef NVENCSTATUS(NVENCAPI *PFN_NvEncodeAPICreateInstance)(NV_ENCODE_API_FUNCTION_LIST *);
 
 class D3D11Hook : LibraryHook
 {
@@ -102,6 +145,15 @@ public:
     nvapi_QueryInterface.Initialize("nvapi_QueryInterface", "nvapi.dll", nvapi_QueryInterface_hook);
 #endif
 
+// we need to wrap nvcodec to handle unwrapping D3D11 pointers passed to it
+#if ENABLED(RDOC_X64)
+    NvEncodeCreate.Initialize("NvEncodeAPICreateInstance", "nvEncodeAPI64.dll",
+                              NvEncodeAPICreateInstance_hook);
+#else
+    NvEncodeCreate.Initialize("NvEncodeAPICreateInstance", "nvEncodeAPI.dll",
+                              NvEncodeAPICreateInstance_hook);
+#endif
+
     if(!success)
       return false;
 
@@ -138,6 +190,7 @@ private:
   // optional extension hooks
   Hook<PFNAmdDxExtCreate11> AmdCreate11;
   Hook<PFNNVQueryInterface> nvapi_QueryInterface;
+  Hook<PFN_NvEncodeAPICreateInstance> NvEncodeCreate;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate;
@@ -514,6 +567,63 @@ private:
     }
 
     return real;
+  }
+
+  PNVENCREGISTERRESOURCE real_nvEncRegisterResource = NULL;
+
+  static NVENCSTATUS NVENCAPI NvEncodeAPIRegisterResource_hook(void *encoder,
+                                                               NV_ENC_REGISTER_RESOURCE *params)
+  {
+    if(!d3d11hooks.real_nvEncRegisterResource)
+    {
+      RDCERR("nvEncRegisterResource called without hooking NvEncodeAPICreateInstance!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    // only directx textures need to be unwrapped
+    if(!encoder || !params || params->resourceType != NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX)
+      return d3d11hooks.real_nvEncRegisterResource(encoder, params);
+
+    // attempt to unwrap the handle in place
+    void *origHandle = params->resourceToRegister;
+    params->resourceToRegister = UnwrapDXResource(origHandle);
+    if(params->resourceToRegister == NULL)
+    {
+      RDCERR("Failed to unwrap DX handle %p, falling back to pass-through", origHandle);
+      params->resourceToRegister = origHandle;
+    }
+
+    // call out to the actual function
+    NVENCSTATUS ret = d3d11hooks.real_nvEncRegisterResource(encoder, params);
+
+    // restore the handle to the original value
+    params->resourceToRegister = origHandle;
+
+    return ret;
+  }
+
+  static NVENCSTATUS NVENCAPI NvEncodeAPICreateInstance_hook(NV_ENCODE_API_FUNCTION_LIST *functions)
+  {
+    NVENCSTATUS ret = d3d11hooks.NvEncodeCreate()(functions);
+
+    if(ret == NV_ENC_SUCCESS && functions && functions->nvEncRegisterResource)
+    {
+      // this is an encoded struct version, 7 is a magic value, 8.1 is the major.minor of nvcodec
+      // and 2 is the struct version
+      const uint32_t expectedVersion = 7 << 28 | 8 << 1 | 1 << 24 | 2 << 16;
+      if(functions->version != expectedVersion)
+        RDCWARN("Call to NvEncodeAPICreateInstance with version %x, expected %x",
+                functions->version, expectedVersion);
+
+      // we don't handle multiple different pointers coming back, but that seems unlikely.
+      RDCASSERT(d3d11hooks.real_nvEncRegisterResource == NULL ||
+                d3d11hooks.real_nvEncRegisterResource == functions->nvEncRegisterResource);
+      d3d11hooks.real_nvEncRegisterResource = functions->nvEncRegisterResource;
+
+      functions->nvEncRegisterResource = &NvEncodeAPIRegisterResource_hook;
+    }
+
+    return ret;
   }
 };
 
