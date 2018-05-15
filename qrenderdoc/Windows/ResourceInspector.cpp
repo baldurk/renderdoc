@@ -199,7 +199,11 @@ void ResourceInspector::Inspect(ResourceId id)
 
   m_Entries.clear();
 
-  m_ResourceModel->reset();
+  if(m_ResourceCacheID != m_Ctx.ResourceNameCacheID())
+  {
+    m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
+    m_ResourceModel->reset();
+  }
 
   if(m_Ctx.HasResourceCustomName(id))
     ui->resetName->show();
@@ -316,6 +320,7 @@ void ResourceInspector::OnCaptureLoaded()
   ui->renameResource->setEnabled(true);
 
   m_ResourceModel->reset();
+  m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
 }
 
 void ResourceInspector::OnCaptureClosed()
@@ -340,7 +345,11 @@ void ResourceInspector::OnEventChanged(uint32_t eventId)
 {
   Inspect(m_Resource);
 
-  m_ResourceModel->reset();
+  if(m_ResourceCacheID != m_Ctx.ResourceNameCacheID())
+  {
+    m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
+    m_ResourceModel->reset();
+  }
 }
 
 void ResourceInspector::on_renameResource_clicked()
