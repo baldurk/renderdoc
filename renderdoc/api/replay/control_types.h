@@ -175,56 +175,56 @@ struct TextureDisplay
   ResourceId resourceId;
 
   DOCUMENT("An optional :class:`CompType` hint to use when displaying a typeless texture.");
-  CompType typeHint;
+  CompType typeHint = CompType::Typeless;
 
   DOCUMENT("The value in each channel to map to the black point.");
-  float rangeMin;
+  float rangeMin = 0.0f;
 
   DOCUMENT("The value in each channel to map to the white point.");
-  float rangeMax;
+  float rangeMax = 1.0f;
 
   DOCUMENT(R"(The scale to apply to the texture when rendering as a floating point value.
 
 ``1.0`` corresponds to ``100%``
 )");
-  float scale;
+  float scale = 1.0f;
 
   DOCUMENT(R"(``True`` if the red channel should be visible.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool red;
+  bool red = true;
 
   DOCUMENT(R"(``True`` if the green channel should be visible.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool green;
+  bool green = true;
 
   DOCUMENT(R"(``True`` if the blue channel should be visible.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool blue;
+  bool blue = true;
 
   DOCUMENT(R"(``True`` if the alpha channel should be visible. If enabled with any of RGB, the
 texture will be blended to the background color or checkerboard.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool alpha;
+  bool alpha = false;
 
   DOCUMENT("``True`` if the texture should be flipped vertically when rendering.");
-  bool flipY;
+  bool flipY = false;
 
   DOCUMENT("If ``>= 0.0`` the RGBA values will be viewed as HDRM with this as the multiplier.");
-  float hdrMultiplier;
+  float hdrMultiplier = -1.0f;
 
   DOCUMENT(R"(``True`` if the texture should be interpreted as gamma.
 
 See :ref:`the FAQ entry <gamma-linear-display>`.
 )");
-  bool linearDisplayAsGamma;
+  bool linearDisplayAsGamma = true;
 
   DOCUMENT(R"(The :class:`ResourceId` of a custom shader to use when rendering.
 
@@ -233,30 +233,30 @@ See :meth:`ReplayController.BuildCustomShader` for creating an appropriate custo
   ResourceId customShaderId;
 
   DOCUMENT("Select the mip of the texture to display.");
-  uint32_t mip;
+  uint32_t mip = 0;
 
   DOCUMENT("Select the slice or face of the texture to display if it's an array, 3D, or cube tex.");
-  uint32_t sliceFace;
+  uint32_t sliceFace = 0;
 
   DOCUMENT(R"(Select the sample of the texture to display if it's a multi-sampled texture.
 
 If this is set to :data:`ResolveSamples` then a default resolve will be performed that averages all
 samples.
 )");
-  uint32_t sampleIdx;
+  uint32_t sampleIdx = 0;
 
   DOCUMENT(R"(``True`` if the rendered image should be as close as possible in value to the input.
 
 This is primarily useful when rendering to a floating point target for retrieving pixel data from
 the input texture in cases where it isn't easy to directly fetch the input texture data.
 )");
-  bool rawOutput;
+  bool rawOutput = false;
 
   DOCUMENT("The offset to pan in the X axis.");
-  float xOffset;
+  float xOffset = 0.0f;
 
   DOCUMENT("The offset to pan in the Y axis.");
-  float yOffset;
+  float yOffset = 0.0f;
 
   DOCUMENT(R"(The background color to use behind the texture display.
 
@@ -265,7 +265,7 @@ If set to (0, 0, 0, 0) the global checkerboard colors are used.
   FloatVector backgroundColor;
 
   DOCUMENT("Selects a :class:`DebugOverlay` to draw over the top of the texture.");
-  DebugOverlay overlay;
+  DebugOverlay overlay = DebugOverlay::NoOverlay;
 
   static const uint32_t ResolveSamples = ~0U;
 };
