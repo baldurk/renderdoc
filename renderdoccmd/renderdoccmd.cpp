@@ -1300,7 +1300,7 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
     clean_up();
     return ret;
   }
-  catch(std::exception e)
+  catch(std::exception &e)
   {
     fprintf(stderr, "Unexpected exception: %s\n", e.what());
 

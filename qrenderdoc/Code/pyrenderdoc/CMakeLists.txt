@@ -15,7 +15,13 @@ set(MODULE_INCLUDES
 set(MODULE_DEFINES
     PRIVATE -DRENDERDOC_PLATFORM_LINUX)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option -Wno-unused-private-field")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option -Wno-unused-private-field")
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-cast-function-type -Wno-stringop-truncation")
+endif()
 
 # Set up rpath to find librenderdoc.so
 set(CMAKE_SKIP_BUILD_RPATH TRUE)

@@ -97,9 +97,17 @@ add_definitions(-DAMD_EXTENSIONS)
 add_definitions(-DNV_EXTENSIONS)
 
 set_source_files_properties(${glslang_sources}
-    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-unknown-warning-option -Wno-inconsistent-missing-override")
+    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers")
+
+if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
+    set_source_files_properties(${glslang_dir}/glslang/MachineIndependent/reflection.cpp
+        PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough -Wno-ignored-qualifiers")
+endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_property(SOURCE "${glslang_sources}"
+        APPEND PROPERTY COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-inconsistent-missing-override")
+
     set_source_files_properties(${glslang_dir}/SPIRV/GlslangToSpv.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-tautological-constant-out-of-range-compare")
 endif()

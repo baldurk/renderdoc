@@ -125,13 +125,14 @@ file(WRITE
      "\n"
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
 
-# propagate build version info. Lots of escaping needed here to pass ""s into the define value
+# Ignore warnings - qmake has no way to do this per-file, so we must do it globally
 if(CMAKE_COMPILER_IS_GNUCXX)
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-        "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-implicit-fallthrough\n")
+        "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation\n")
 endif()
 
+# propagate build version info. Lots of escaping needed here to pass ""s into the define value
 file(APPEND
     ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
     "DEFINES+=GIT_COMMIT_HASH='\\\\\"${GIT_COMMIT_HASH}\\\\\"'\n")

@@ -222,7 +222,7 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
       temp_folder[--len] = 0;
   }
 
-  char temp_filename[2048] = {0};
+  char temp_filename[2048 + 128] = {0};
 
   snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.rdc",
            temp_folder, mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
