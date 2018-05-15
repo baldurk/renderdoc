@@ -341,6 +341,12 @@ void GLReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 
 vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &counters)
 {
+  if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
+  {
+    return vector<CounterResult>();
+  }
+
+  uint32_t sessionID = m_pAMDCounters->CreateSession();
   m_pAMDCounters->DisableAllCounters();
 
   // enable counters it needs
@@ -352,7 +358,7 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
     m_pAMDCounters->EnableCounter(counters[i]);
   }
 
-  uint32_t sessionID = m_pAMDCounters->BeginSession();
+  m_pAMDCounters->BeginSession(sessionID);
 
   uint32_t passCount = m_pAMDCounters->GetPassCount();
 
@@ -363,7 +369,7 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
   for(uint32_t p = 0; p < passCount; p++)
   {
     m_pAMDCounters->BeginPass();
-
+    m_pAMDCounters->BeginCommandList();
     uint32_t eventStartID = 0;
 
     sampleIndex = 0;
@@ -371,13 +377,18 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
     eventIDs.clear();
 
     FillTimersAMD(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootDraw());
-
+    m_pAMDCounters->EndCommandList();
     m_pAMDCounters->EndPass();
   }
 
-  m_pAMDCounters->EndSesssion();
+  m_pAMDCounters->EndSesssion(sessionID);
 
-  return m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
+  std::vector<CounterResult> ret =
+      m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
+
+  m_pAMDCounters->EndMeasurementMode();
+
+  return ret;
 }
 
 vector<CounterResult> GLReplay::FetchCounters(const vector<GPUCounter> &allCounters)
