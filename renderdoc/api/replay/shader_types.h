@@ -220,7 +220,7 @@ struct ShaderVariable
   DOCUMENT("``True`` if this variable is stored in rows in memory. Only relevant for matrices.");
   bool rowMajor;
 
-  DOCUMENT("The members of this variable as a list of :class:`ShaderValue`.");
+  DOCUMENT("The members of this variable as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> members;
 };
 
