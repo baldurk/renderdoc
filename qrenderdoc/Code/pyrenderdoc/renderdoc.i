@@ -63,6 +63,19 @@
 
 %include "pyconversion.i"
 
+// typemaps for windowing data
+%typemap(in) HWND (unsigned long long tmp, int err = 0) {
+  // convert windowing data pointers from just plain integers
+  err = SWIG_AsVal_unsigned_SS_long_SS_long($input, &tmp);
+  if (!SWIG_IsOK(err)) {
+    %argument_fail(err, "$*ltype", $symname, $argnum);
+  } 
+  $1 = ($1_type)tmp;
+}
+
+%typemap(in) Display* = HWND;
+%typemap(in) xcb_connection_t* = HWND;
+
 // completely ignore rdcdatetime, we custom convert to/from a native python datetime
 %ignore rdcdatetime;
 

@@ -357,7 +357,10 @@ struct ANativeWindow;
 // for swig bindings treat the windowing data struct as completely opaque
 #if defined(SWIG)
 
-struct WindowingData;
+DOCUMENT("An opaque structure created to hold windowing setup data");
+struct WindowingData
+{
+};
 
 #else
 
