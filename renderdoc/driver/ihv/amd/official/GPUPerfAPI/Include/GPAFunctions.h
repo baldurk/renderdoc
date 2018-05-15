@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2014-2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2014-2018 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  GPA required public function declarations wrapped in a macro
@@ -10,71 +10,75 @@
     #define NEED_TO_UNDEFINE_GPA_FUNCTION_PREFIX ///< used a a flag to indicate whether or not the macro needs to be undefined later
 #endif
 
+// GPA API Table
+GPA_FUNCTION_PREFIX(GPA_GetFuncTable)
+
+// Logging
 GPA_FUNCTION_PREFIX(GPA_RegisterLoggingCallback)
 
+// Init / Destroy GPA
 GPA_FUNCTION_PREFIX(GPA_Initialize)
 GPA_FUNCTION_PREFIX(GPA_Destroy)
 
-// Context
+// Context Startup / Finish
 GPA_FUNCTION_PREFIX(GPA_OpenContext)
 GPA_FUNCTION_PREFIX(GPA_CloseContext)
-GPA_FUNCTION_PREFIX(GPA_SelectContext)
+
+// Context Interrogation
+GPA_FUNCTION_PREFIX(GPA_GetSupportedSampleTypes)
+GPA_FUNCTION_PREFIX(GPA_GetDeviceAndRevisionId)
+GPA_FUNCTION_PREFIX(GPA_GetDeviceName)
 
 // Counter Interrogation
 GPA_FUNCTION_PREFIX(GPA_GetNumCounters)
 GPA_FUNCTION_PREFIX(GPA_GetCounterName)
-GPA_FUNCTION_PREFIX(GPA_GetCounterCategory)
+GPA_FUNCTION_PREFIX(GPA_GetCounterIndex)
+GPA_FUNCTION_PREFIX(GPA_GetCounterGroup)
 GPA_FUNCTION_PREFIX(GPA_GetCounterDescription)
 GPA_FUNCTION_PREFIX(GPA_GetCounterDataType)
 GPA_FUNCTION_PREFIX(GPA_GetCounterUsageType)
+GPA_FUNCTION_PREFIX(GPA_GetCounterUuid)
+GPA_FUNCTION_PREFIX(GPA_GetCounterSampleType)
 GPA_FUNCTION_PREFIX(GPA_GetDataTypeAsStr)
 GPA_FUNCTION_PREFIX(GPA_GetUsageTypeAsStr)
-GPA_FUNCTION_PREFIX(GPA_GetStatusAsStr)
 
-GPA_FUNCTION_PREFIX(GPA_EnableCounter)
-GPA_FUNCTION_PREFIX(GPA_DisableCounter)
-GPA_FUNCTION_PREFIX(GPA_GetEnabledCount)
-GPA_FUNCTION_PREFIX(GPA_GetEnabledIndex)
-
-GPA_FUNCTION_PREFIX(GPA_IsCounterEnabled)
-
-GPA_FUNCTION_PREFIX(GPA_EnableCounterStr)
-GPA_FUNCTION_PREFIX(GPA_DisableCounterStr)
-
-GPA_FUNCTION_PREFIX(GPA_EnableAllCounters)
-GPA_FUNCTION_PREFIX(GPA_DisableAllCounters)
-GPA_FUNCTION_PREFIX(GPA_GetCounterIndex)
-
-GPA_FUNCTION_PREFIX(GPA_GetPassCount)
-
+// Session handling
+GPA_FUNCTION_PREFIX(GPA_CreateSession)
+GPA_FUNCTION_PREFIX(GPA_DeleteSession)
 GPA_FUNCTION_PREFIX(GPA_BeginSession)
 GPA_FUNCTION_PREFIX(GPA_EndSession)
 
-GPA_FUNCTION_PREFIX(GPA_BeginPass)
-GPA_FUNCTION_PREFIX(GPA_EndPass)
+// Counter Scheduling
+GPA_FUNCTION_PREFIX(GPA_EnableCounter)
+GPA_FUNCTION_PREFIX(GPA_DisableCounter)
+GPA_FUNCTION_PREFIX(GPA_EnableCounterByName)
+GPA_FUNCTION_PREFIX(GPA_DisableCounterByName)
+GPA_FUNCTION_PREFIX(GPA_EnableAllCounters)
+GPA_FUNCTION_PREFIX(GPA_DisableAllCounters)
 
-GPA_FUNCTION_PREFIX(GPA_BeginSampleList)
-GPA_FUNCTION_PREFIX(GPA_EndSampleList)
-GPA_FUNCTION_PREFIX(GPA_BeginSampleInSampleList)
-GPA_FUNCTION_PREFIX(GPA_EndSampleInSampleList)
+// Query Counter Scheduling
+GPA_FUNCTION_PREFIX(GPA_GetPassCount)
+GPA_FUNCTION_PREFIX(GPA_GetNumEnabledCounters)
+GPA_FUNCTION_PREFIX(GPA_GetEnabledIndex)
+GPA_FUNCTION_PREFIX(GPA_IsCounterEnabled)
 
+// Sample Handling
+GPA_FUNCTION_PREFIX(GPA_BeginCommandList)
+GPA_FUNCTION_PREFIX(GPA_EndCommandList)
 GPA_FUNCTION_PREFIX(GPA_BeginSample)
 GPA_FUNCTION_PREFIX(GPA_EndSample)
-
+GPA_FUNCTION_PREFIX(GPA_ContinueSampleOnCommandList)
+GPA_FUNCTION_PREFIX(GPA_CopySecondarySamples)
 GPA_FUNCTION_PREFIX(GPA_GetSampleCount)
 
-GPA_FUNCTION_PREFIX(GPA_IsSampleReady)
-GPA_FUNCTION_PREFIX(GPA_IsSessionReady)
-GPA_FUNCTION_PREFIX(GPA_GetSampleUInt64)
-GPA_FUNCTION_PREFIX(GPA_GetSampleUInt32)
-GPA_FUNCTION_PREFIX(GPA_GetSampleFloat64)
-GPA_FUNCTION_PREFIX(GPA_GetSampleFloat32)
+// Query Results
+GPA_FUNCTION_PREFIX(GPA_IsPassComplete)
+GPA_FUNCTION_PREFIX(GPA_IsSessionComplete)
+GPA_FUNCTION_PREFIX(GPA_GetSampleResultSize)
+GPA_FUNCTION_PREFIX(GPA_GetSampleResult)
 
-GPA_FUNCTION_PREFIX(GPA_GetDeviceID)
-GPA_FUNCTION_PREFIX(GPA_GetDeviceDesc)
-
-GPA_FUNCTION_PREFIX(GPA_InternalSetDrawCallCounts)
-
+// Status / Error Query
+GPA_FUNCTION_PREFIX(GPA_GetStatusAsStr)
 
 #ifdef NEED_TO_UNDEFINE_GPA_FUNCTION_PREFIX
     #undef GPA_FUNCTION_PREFIX

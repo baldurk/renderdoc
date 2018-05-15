@@ -212,10 +212,10 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
     {
       m_begunCommandLists.insert(pWrappedCmdList->GetReal());
 
-      m_pReplay->GetAMDCounters()->BeginSampleList(pWrappedCmdList->GetReal());
+      m_pReplay->GetAMDCounters()->BeginCommandList(pWrappedCmdList->GetReal());
     }
 
-    m_pReplay->GetAMDCounters()->BeginSampleInSampleList(*m_pSampleId, pWrappedCmdList->GetReal());
+    m_pReplay->GetAMDCounters()->BeginSample(*m_pSampleId, pWrappedCmdList->GetReal());
 
     ++*m_pSampleId;
   }
@@ -224,7 +224,7 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
   {
     WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
 
-    m_pReplay->GetAMDCounters()->EndSampleInSampleList(pWrappedCmdList->GetReal());
+    m_pReplay->GetAMDCounters()->EndSample(pWrappedCmdList->GetReal());
     return false;
   }
 
@@ -236,7 +236,7 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
 
     if(iter != m_begunCommandLists.end())
     {
-      m_pReplay->GetAMDCounters()->EndSampleList(*iter);
+      m_pReplay->GetAMDCounters()->EndCommandList(*iter);
       m_begunCommandLists.erase(iter);
     }
   }
@@ -284,6 +284,14 @@ void D3D12Replay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 
 vector<CounterResult> D3D12Replay::FetchCountersAMD(const vector<GPUCounter> &counters)
 {
+  ID3D12Device *d3dDevice = m_pDevice->GetReal();
+
+  if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
+  {
+    return vector<CounterResult>();
+  }
+
+  uint32_t sessionID = m_pAMDCounters->CreateSession();
   m_pAMDCounters->DisableAllCounters();
 
   // enable counters it needs
@@ -295,7 +303,7 @@ vector<CounterResult> D3D12Replay::FetchCountersAMD(const vector<GPUCounter> &co
     m_pAMDCounters->EnableCounter(counters[i]);
   }
 
-  uint32_t sessionID = m_pAMDCounters->BeginSession();
+  m_pAMDCounters->BeginSession(sessionID);
 
   uint32_t passCount = m_pAMDCounters->GetPassCount();
 
@@ -318,7 +326,7 @@ vector<CounterResult> D3D12Replay::FetchCountersAMD(const vector<GPUCounter> &co
     m_pAMDCounters->EndPass();
   }
 
-  m_pAMDCounters->EndSesssion();
+  m_pAMDCounters->EndSesssion(sessionID);
 
   vector<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
@@ -349,6 +357,8 @@ vector<CounterResult> D3D12Replay::FetchCountersAMD(const vector<GPUCounter> &co
   }
 
   SAFE_DELETE(m_pAMDDrawCallback);
+
+  m_pAMDCounters->EndMeasurementMode();
 
   return ret;
 }

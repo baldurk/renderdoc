@@ -28,8 +28,7 @@
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 #include "driver/vulkan/official/vulkan.h"
-
-struct _GPAApi;
+#include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
 
 inline constexpr GPUCounter MakeAMDCounter(int index)
 {
@@ -47,37 +46,35 @@ public:
   };
 
   AMDCounters();
-  bool Init(ApiType apiType, void *pContext);
   ~AMDCounters();
 
+  bool Init(ApiType apiType, void *pContext);
   std::vector<GPUCounter> GetPublicCounterIds() const;
 
-  CounterDescription GetCounterDescription(GPUCounter index);
+  CounterDescription GetCounterDescription(GPUCounter counter);
 
-  void EnableCounter(GPUCounter index);
+  void EnableCounter(GPUCounter counter);
   void EnableAllCounters();
   void DisableAllCounters();
 
+  bool BeginMeasurementMode(ApiType apiType, void *pContext);
+  void EndMeasurementMode();
+
   uint32_t GetPassCount();
 
-  uint32_t BeginSession();
-  void EndSesssion();
+  uint32_t CreateSession();
 
-  // DX11 and OGL entry points
+  void BeginSession(uint32_t sessionId);
+  void EndSesssion(uint32_t sessionId);
+
   void BeginPass();
   void EndPass();
 
-  void BeginSample(uint32_t index);
-  void EndSample();
+  void BeginCommandList(void *pCommandList = nullptr);
+  void EndCommandList(void *pCommandList = nullptr);
 
-  // DX12 and VK entry points
-  void BeginSampleList(void *pSampleList);
-
-  void EndSampleList(void *pSampleList);
-
-  void BeginSampleInSampleList(uint32_t sampleID, void *pSampleList);
-
-  void EndSampleInSampleList(void *pSampleList);
+  void BeginSample(uint32_t sampleID, void *pCommandList = nullptr);
+  void EndSample(void *pCommandList = nullptr);
 
   // Session data retrieval
   std::vector<CounterResult> GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
@@ -85,21 +82,33 @@ public:
                                             const std::vector<GPUCounter> &counters);
 
 private:
-  _GPAApi *m_pGPUPerfAPI;
   bool IsSessionReady(uint32_t sessionIndex);
 
-  uint32_t GetSampleUint32(uint32_t session, uint32_t sample, GPUCounter counter);
+  GPAFunctionTable *m_pGPUPerfAPI;
+  GPA_ContextId m_gpaContextId;
 
-  uint64_t GetSampleUint64(uint32_t session, uint32_t sample, GPUCounter counter);
+  union GPACmdListInfo
+  {
+    GPA_CommandListId m_gpaCommandListId;
+    std::map<void *, GPA_CommandListId> *m_pCommandListMap;
 
-  float GetSampleFloat32(uint32_t session, uint32_t sample, GPUCounter counter);
+    GPACmdListInfo() : m_pCommandListMap(nullptr) {}
+    ~GPACmdListInfo() {}
+  };
 
-  double GetSampleFloat64(uint32_t session, uint32_t sample, GPUCounter counter);
+  GPACmdListInfo m_gpaCmdListInfo;
+  std::vector<GPA_SessionId> m_gpaSessionInfo;
 
-  CounterDescription InternalGetCounterDescription(uint32_t index);
+  ApiType m_apiType;
+  uint32_t m_gpaSessionCounter;
+  int m_passCounter;
+
+  void InitializeCmdInfo();
+  void DeInitializeCmdInfo();
+  void DeleteSession(uint32_t sessionId);
+  CounterDescription InternalGetCounterDescription(uint32_t internalIndex);
 
   std::map<uint32_t, CounterDescription> EnumerateCounters();
   std::map<uint32_t, CounterDescription> m_Counters;
-
   std::map<GPUCounter, uint32_t> m_PublicToInternalCounter;
 };

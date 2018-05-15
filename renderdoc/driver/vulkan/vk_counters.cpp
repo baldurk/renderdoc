@@ -219,10 +219,10 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
     {
       m_begunCommandBuffers.insert(realCmdBuffer);
 
-      m_pReplay->GetAMDCounters()->BeginSampleList(realCmdBuffer);
+      m_pReplay->GetAMDCounters()->BeginCommandList(realCmdBuffer);
     }
 
-    m_pReplay->GetAMDCounters()->BeginSampleInSampleList(*m_pSampleId, realCmdBuffer);
+    m_pReplay->GetAMDCounters()->BeginSample(*m_pSampleId, realCmdBuffer);
 
     ++*m_pSampleId;
   }
@@ -231,7 +231,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   {
     VkCommandBuffer realCmdBuffer = Unwrap(cmd);
 
-    m_pReplay->GetAMDCounters()->EndSampleInSampleList(realCmdBuffer);
+    m_pReplay->GetAMDCounters()->EndSample(realCmdBuffer);
     return false;
   }
 
@@ -243,7 +243,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 
     if(iter != m_begunCommandBuffers.end())
     {
-      m_pReplay->GetAMDCounters()->EndSampleList(*iter);
+      m_pReplay->GetAMDCounters()->EndCommandList(*iter);
       m_begunCommandBuffers.erase(iter);
     }
   }
@@ -293,6 +293,15 @@ void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 
 vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &counters)
 {
+  GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
+                                   Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
+
+  if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Vk, (void *)&context))
+  {
+    return vector<CounterResult>();
+  }
+
+  uint32_t sessionID = m_pAMDCounters->CreateSession();
   m_pAMDCounters->DisableAllCounters();
 
   // enable counters it needs
@@ -304,7 +313,7 @@ vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &c
     m_pAMDCounters->EnableCounter(counters[i]);
   }
 
-  uint32_t sessionID = m_pAMDCounters->BeginSession();
+  m_pAMDCounters->BeginSession(sessionID);
 
   uint32_t passCount = m_pAMDCounters->GetPassCount();
 
@@ -327,7 +336,7 @@ vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &c
     m_pAMDCounters->EndPass();
   }
 
-  m_pAMDCounters->EndSesssion();
+  m_pAMDCounters->EndSesssion(sessionID);
 
   std::vector<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
@@ -361,6 +370,8 @@ vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &c
 
   // sort so that the alias results appear in the right places
   std::sort(ret.begin(), ret.end());
+
+  m_pAMDCounters->EndMeasurementMode();
 
   return ret;
 }

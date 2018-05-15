@@ -1,15 +1,26 @@
 //==============================================================================
-// Copyright (c) 2015-2017 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2017-2018 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  This file should be included by an application that wishes to use
 ///         the Vulkan version of GPUPerfAPI. It defines structures that should
-///         be passed to the GPA_OpenContext and GPA_BeginSampleList calls when
-///         using GPUPerfAPI with Vulkan.
+///         be passed to the GPA_OpenContext calls when using GPUPerfAPI with
+///         Vulkan.
 //==============================================================================
 
 #ifndef _GPUPERFAPI_VK_H_
 #define _GPUPERFAPI_VK_H_
+
+/// Define the AMD GPA extension name
+#define VK_AMD_GPA_INTERFACE_EXTENSION_NAME "VK_AMD_gpa_interface"
+
+/// Define a macro to help developers include all instance-level extensions required to support the AMD GPA Interface.
+#define AMD_GPA_REQUIRED_INSTANCE_EXTENSION_NAME_LIST     \
+    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+
+/// Define a macro to help developers include all device-level extensions required to support the AMD GPA Interface.
+#define AMD_GPA_REQUIRED_DEVICE_EXTENSION_NAME_LIST       \
+    VK_AMD_GPA_INTERFACE_EXTENSION_NAME
 
 /// The struct that should be supplied to GPA_OpenContext().
 /// The instance, physicalDevice, and device should be set prior to
