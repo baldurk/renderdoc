@@ -185,6 +185,7 @@ private slots:
   void render_resize(QResizeEvent *e);
   void render_keyPress(QKeyEvent *e);
 
+  void textureTab_Menu(const QPoint &pos);
   void textureTab_Changed(int index);
   void textureTab_Closing(int index);
 

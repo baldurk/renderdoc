@@ -1591,6 +1591,58 @@ void TextureViewer::SetupTextureTabs()
                    &TextureViewer::textureTab_Closing);
 
   textureTabs->disableUserDrop();
+
+  textureTabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
+
+  QObject::connect(textureTabs->tabBar(), &QTabBar::customContextMenuRequested, this,
+                   &TextureViewer::textureTab_Menu);
+}
+
+void TextureViewer::textureTab_Menu(const QPoint &pos)
+{
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+  int tabIndex = textureTabs->tabBar()->tabAt(pos);
+
+  if(tabIndex == -1)
+    return;
+
+  QAction closeTab(tr("Close tab"), this);
+  QAction closeOtherTabs(tr("Close other tabs"), this);
+  QAction closeRightTabs(tr("Close tabs to the right"), this);
+
+  if(textureTabs->widget(tabIndex) == ui->renderContainer)
+    closeTab.setEnabled(false);
+
+  QMenu contextMenu(this);
+
+  contextMenu.addAction(&closeTab);
+  contextMenu.addAction(&closeOtherTabs);
+  contextMenu.addAction(&closeRightTabs);
+
+  QObject::connect(&closeTab, &QAction::triggered, [this, textureTabs, tabIndex]() {
+    // remove the tab at this index
+    textureTabs->removeTab(tabIndex);
+  });
+
+  QObject::connect(&closeRightTabs, &QAction::triggered, [this, textureTabs, tabIndex]() {
+    // remove all tabs with a greater index
+    while(textureTabs->count() > tabIndex + 1)
+      textureTabs->removeTab(tabIndex + 1);
+  });
+
+  QObject::connect(&closeOtherTabs, &QAction::triggered, [this, textureTabs, tabIndex]() {
+    // remove all tabs with a greater index
+    while(textureTabs->count() > tabIndex + 1)
+      textureTabs->removeTab(tabIndex + 1);
+
+    // remove all tabs at index 1 until there's only two, these are the ones between the locked tab
+    // 0 and the tabIndex
+    while(textureTabs->count() > 2)
+      textureTabs->removeTab(1);
+  });
+
+  RDDialog::show(&contextMenu, QCursor::pos());
 }
 
 void TextureViewer::textureTab_Changed(int index)
