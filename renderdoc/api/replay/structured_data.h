@@ -508,7 +508,7 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
 #endif
 
 DOCUMENT("Make a structured object out of a signed integer");
-inline SDObject *makeSDObject(const char *name, int64_t val)
+inline SDObject *makeSDInt64(const char *name, int64_t val)
 {
   SDObject *ret = new SDObject(name, "int64_t");
   ret->type.basetype = SDBasic::SignedInteger;
@@ -518,7 +518,7 @@ inline SDObject *makeSDObject(const char *name, int64_t val)
 }
 
 DOCUMENT("Make a structured object out of an unsigned integer");
-inline SDObject *makeSDObject(const char *name, uint64_t val)
+inline SDObject *makeSDUInt64(const char *name, uint64_t val)
 {
   SDObject *ret = new SDObject(name, "uint64_t");
   ret->type.basetype = SDBasic::UnsignedInteger;
@@ -527,8 +527,28 @@ inline SDObject *makeSDObject(const char *name, uint64_t val)
   return ret;
 }
 
+DOCUMENT("Make a structured object out of a integer, stored as signed 32-bits");
+inline SDObject *makeSDInt32(const char *name, int32_t val)
+{
+  SDObject *ret = new SDObject(name, "int32_t");
+  ret->type.basetype = SDBasic::SignedInteger;
+  ret->type.byteSize = 4;
+  ret->data.basic.u = val;
+  return ret;
+}
+
+DOCUMENT("Make a structured object out of a integer, stored as unsigned 32-bits");
+inline SDObject *makeSDUInt32(const char *name, uint32_t val)
+{
+  SDObject *ret = new SDObject(name, "uint32_t");
+  ret->type.basetype = SDBasic::UnsignedInteger;
+  ret->type.byteSize = 4;
+  ret->data.basic.u = val;
+  return ret;
+}
+
 DOCUMENT("Make a structured object out of a floating point value");
-inline SDObject *makeSDObject(const char *name, float val)
+inline SDObject *makeSDFloat(const char *name, float val)
 {
   SDObject *ret = new SDObject(name, "float");
   ret->type.basetype = SDBasic::Float;
@@ -537,8 +557,18 @@ inline SDObject *makeSDObject(const char *name, float val)
   return ret;
 }
 
+DOCUMENT("Make a structured object out of a boolean value");
+inline SDObject *makeSDBool(const char *name, bool val)
+{
+  SDObject *ret = new SDObject(name, "bool");
+  ret->type.basetype = SDBasic::Boolean;
+  ret->type.byteSize = 1;
+  ret->data.basic.b = val;
+  return ret;
+}
+
 DOCUMENT("Make a structured object out of a string");
-inline SDObject *makeSDObject(const char *name, const char *val)
+inline SDObject *makeSDString(const char *name, const char *val)
 {
   SDObject *ret = new SDObject(name, "string");
   ret->type.basetype = SDBasic::String;
@@ -548,7 +578,7 @@ inline SDObject *makeSDObject(const char *name, const char *val)
 }
 
 DOCUMENT("Make a structured object out of a ResourceId");
-inline SDObject *makeSDObject(const char *name, ResourceId val)
+inline SDObject *makeSDResourceId(const char *name, ResourceId val)
 {
   SDObject *ret = new SDObject(name, "ResourceId");
   ret->type.basetype = SDBasic::Resource;
@@ -557,7 +587,17 @@ inline SDObject *makeSDObject(const char *name, ResourceId val)
   return ret;
 }
 
-DOCUMENT("Make an array-type structured object out of a string");
+DOCUMENT("Make a structured object out of an enumeration value");
+inline SDObject *makeSDEnum(const char *name, uint32_t val)
+{
+  SDObject *ret = new SDObject(name, "enum");
+  ret->type.basetype = SDBasic::Enum;
+  ret->type.byteSize = 4;
+  ret->data.basic.u = val;
+  return ret;
+}
+
+DOCUMENT("Make an array-type structured object");
 inline SDObject *makeSDArray(const char *name)
 {
   SDObject *ret = new SDObject(name, "array");
@@ -565,35 +605,34 @@ inline SDObject *makeSDArray(const char *name)
   return ret;
 }
 
-DOCUMENT("Make an array-type structured object out of a string");
-inline SDObject *makeSDStruct(const char *name)
+DOCUMENT("Make an struct-type structured object");
+inline SDObject *makeSDStruct(const char *name, const char *structtype)
 {
-  SDObject *ret = new SDObject(name, "struct");
+  SDObject *ret = new SDObject(name, structtype);
   ret->type.basetype = SDBasic::Struct;
   return ret;
 }
 
-// some extra overloads that we don't bother exposing since python doesn't have the concept of
-// different width types like 32-bit vs 64-bit ints
+// an overloaded function calling into the named equivalents above, since python doesn't have the
+// concept of different width types like 32-bit vs 64-bit ints
 #if !defined(SWIG)
 
-inline SDObject *makeSDObject(const char *name, int32_t val)
-{
-  SDObject *ret = new SDObject(name, "int32_t");
-  ret->type.basetype = SDBasic::SignedInteger;
-  ret->type.byteSize = 4;
-  ret->data.basic.u = val;
-  return ret;
-}
+#define SDOBJECT_MAKER(basetype, makeSDFunc)                      \
+  inline SDObject *makeSDObject(const char *name, basetype value) \
+  {                                                               \
+    return makeSDFunc(name, value);                               \
+  }
 
-inline SDObject *makeSDObject(const char *name, uint32_t val)
-{
-  SDObject *ret = new SDObject(name, "uint32_t");
-  ret->type.basetype = SDBasic::UnsignedInteger;
-  ret->type.byteSize = 4;
-  ret->data.basic.u = val;
-  return ret;
-}
+SDOBJECT_MAKER(int64_t, makeSDInt64);
+SDOBJECT_MAKER(uint64_t, makeSDUInt64);
+SDOBJECT_MAKER(int32_t, makeSDInt32);
+SDOBJECT_MAKER(uint32_t, makeSDUInt32);
+SDOBJECT_MAKER(float, makeSDFloat);
+SDOBJECT_MAKER(bool, makeSDBool);
+SDOBJECT_MAKER(const char *, makeSDString);
+SDOBJECT_MAKER(ResourceId, makeSDResourceId);
+
+#undef SDOBJECT_MAKER
 
 #endif
 
