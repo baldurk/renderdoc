@@ -436,22 +436,67 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
     ret = GetCPUHandle(FIRST_TMP_RTV);
     ret.ptr += idx * sizeof(D3D12Descriptor);
 
-    m_pDevice->CreateRenderTargetView(desc.nonsamp.resource, &desc.nonsamp.rtv, ret);
+    const D3D12_RENDER_TARGET_VIEW_DESC *rtvdesc = &desc.nonsamp.rtv;
+    if(rtvdesc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
+    {
+      rtvdesc = NULL;
+
+      const std::map<ResourceId, DXGI_FORMAT> &bbs = m_pDevice->GetBackbufferFormats();
+
+      auto it = bbs.find(GetResID(desc.nonsamp.resource));
+
+      // fixup for backbuffers
+      if(it != bbs.end())
+      {
+        D3D12_RENDER_TARGET_VIEW_DESC bbDesc = {};
+        bbDesc.Format = it->second;
+        bbDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+        m_pDevice->CreateRenderTargetView(desc.nonsamp.resource, &bbDesc, ret);
+        return ret;
+      }
+    }
+
+    m_pDevice->CreateRenderTargetView(desc.nonsamp.resource, rtvdesc, ret);
   }
   else if(desc.GetType() == D3D12DescriptorType::DSV)
   {
     ret = GetCPUHandle(TMP_DSV);
 
-    m_pDevice->CreateDepthStencilView(desc.nonsamp.resource, &desc.nonsamp.dsv, ret);
+    const D3D12_DEPTH_STENCIL_VIEW_DESC *dsvdesc = &desc.nonsamp.dsv;
+    if(dsvdesc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
+      dsvdesc = NULL;
+
+    m_pDevice->CreateDepthStencilView(desc.nonsamp.resource, dsvdesc, ret);
   }
   else if(desc.GetType() == D3D12DescriptorType::UAV)
   {
     // need a non-shader visible heap for this one
     ret = GetCPUHandle(TMP_UAV);
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc.nonsamp.uav.desc.AsDesc();
+    D3D12_UNORDERED_ACCESS_VIEW_DESC unpacked = desc.nonsamp.uav.desc.AsDesc();
+
+    const D3D12_UNORDERED_ACCESS_VIEW_DESC *uavdesc = &unpacked;
+    if(uavdesc->ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+    {
+      uavdesc = NULL;
+
+      const std::map<ResourceId, DXGI_FORMAT> &bbs = m_pDevice->GetBackbufferFormats();
+
+      auto it = bbs.find(GetResID(desc.nonsamp.resource));
+
+      // fixup for backbuffers
+      if(it != bbs.end())
+      {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = {};
+        bbDesc.Format = it->second;
+        bbDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        m_pDevice->CreateUnorderedAccessView(desc.nonsamp.resource, NULL, &bbDesc, ret);
+        return ret;
+      }
+    }
+
     m_pDevice->CreateUnorderedAccessView(desc.nonsamp.resource, desc.nonsamp.uav.counterResource,
-                                         &uavDesc, ret);
+                                         uavdesc, ret);
   }
   else
   {
