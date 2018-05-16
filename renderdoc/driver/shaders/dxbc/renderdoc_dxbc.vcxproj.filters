@@ -23,10 +23,19 @@
       <Filter>PCH</Filter>
     </ClInclude>
     <ClInclude Include="dxbc_reflect.h" />
+    <ClInclude Include="official\cvconst.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\cvinfo.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">
       <UniqueIdentifier>{d5365360-5495-44cc-9598-d66610687125}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official">
+      <UniqueIdentifier>{50b7a8d7-4c3c-46be-bbe3-081d29851267}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

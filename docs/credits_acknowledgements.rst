@@ -104,6 +104,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to connect securely to RenderDoc's servers for update checks and bug reports.
 
+* `Microsoft PDB Information <https://github.com/Microsoft/microsoft-pdb/>`_ - Copyright (c) 2015 Microsoft Corporation. Distributed under the MIT License.
+
+  Used to recover debug information from DXBC shaders on D3D11/D3D12.
+
 Thanks
 ------
 
