@@ -26,6 +26,7 @@
 #include <algorithm>
 #include "dxbc_inspect.h"
 
+#include "official/cvinfo.h"
 #include "dxbc_spdb.h"
 
 using std::make_pair;
@@ -33,43 +34,6 @@ using std::make_pair;
 namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
-
-uint32_t ReadVarLenUInt(byte *&s)
-{
-  // check top two bits. 0b00 (or 0b01) means we just return the byte value.
-  // 0b10 means we take this byte as high-end byte and next as the low-end
-  // in a word. (with top two bits masked off)
-  // 0b11 similar, but for a dword.
-
-  if((*s & 0xC0) == 0x00 || (*s & 0xC0) == 0x40)
-  {
-    return (uint32_t) * (s++);
-  }
-  else if((*s & 0xC0) == 0x80)
-  {
-    byte first = *(s++);
-    first &= 0x7f;
-    byte second = *(s++);
-
-    return (uint32_t(first) << 8) | uint32_t(second);
-  }
-  else if((*s & 0xC0) == 0xC0)
-  {
-    byte first = *(s++);
-    first &= 0x3f;
-    byte second = *(s++);
-    byte third = *(s++);
-    byte fourth = *(s++);
-
-    return (uint32_t(first) << 24) | (uint32_t(second) << 16) | (uint32_t(third) << 8) |
-           uint32_t(fourth);
-  }
-  else
-  {
-    // impossible
-    return 0;
-  }
-}
 
 SPDBChunk::SPDBChunk(void *chunk)
 {
@@ -506,7 +470,7 @@ SPDBChunk::SPDBChunk(void *chunk)
           }
           else if(opcode == FunctionEndNoAdvance)
           {
-            uint32_t value = ReadVarLenUInt(iterator);
+            uint32_t value = CodeViewInfo::CVUncompressData(iterator);
 
             // RDCDEBUG("                      type %02x: %02x: adjust line by 4(?!) & bytes by %x",
             // opcode, value, value);
@@ -548,8 +512,8 @@ SPDBChunk::SPDBChunk(void *chunk)
           {
             // RDCDEBUG("type %02x:", opcode);
 
-            uint32_t retlen = ReadVarLenUInt(iterator);
-            uint32_t byteAdv = ReadVarLenUInt(iterator);
+            uint32_t retlen = CodeViewInfo::CVUncompressData(iterator);
+            uint32_t byteAdv = CodeViewInfo::CVUncompressData(iterator);
 
             // RDCDEBUG("           retlen=%x, byteAdv=%x", retlen, byteAdv);
 
@@ -573,13 +537,13 @@ SPDBChunk::SPDBChunk(void *chunk)
           }
           else if(opcode == SetByteOffset)
           {
-            currentBytes = ReadVarLenUInt(iterator);
+            currentBytes = CodeViewInfo::CVUncompressData(iterator);
             // RDCDEBUG("                      type %02x: start at byte offset %x", opcode,
             // currentBytes);
           }
           else if(opcode == AdvanceBytes)
           {
-            uint32_t offs = ReadVarLenUInt(iterator);
+            uint32_t offs = CodeViewInfo::CVUncompressData(iterator);
 
             currentBytes += offs;
 
@@ -600,7 +564,7 @@ SPDBChunk::SPDBChunk(void *chunk)
           }
           else if(opcode == AdvanceLines)
           {
-            uint32_t linesAdv = ReadVarLenUInt(iterator);
+            uint32_t linesAdv = CodeViewInfo::CVUncompressData(iterator);
 
             if(linesAdv & 0x1)
               currentLine -= (linesAdv / 2);
@@ -612,12 +576,12 @@ SPDBChunk::SPDBChunk(void *chunk)
           }
           else if(opcode == ColumnStart)
           {
-            currentColStart = ReadVarLenUInt(iterator);
+            currentColStart = CodeViewInfo::CVUncompressData(iterator);
             // RDCDEBUG("                      type %02x: col < %u", opcode, currentColStart);
           }
           else if(opcode == ColumnEnd)
           {
-            currentColEnd = ReadVarLenUInt(iterator);
+            currentColEnd = CodeViewInfo::CVUncompressData(iterator);
             // RDCDEBUG("                      type %02x: col > %u", opcode, currentColEnd);
           }
           else if(opcode == EndStream)
