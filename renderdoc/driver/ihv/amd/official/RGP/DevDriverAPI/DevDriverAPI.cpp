@@ -204,16 +204,17 @@ static unsigned int ToInt(const char* &pString)
 #endif
 
 //-----------------------------------------------------------------------------
-/// Get the video driver version number.
-/// indirectly returns the major and minor version numbers in the parameters
-/// \param outMajorVersion The major version number returned
-/// \param outMinorVersion The minor version number returned
+/// Get the video driver version number, including the subminor version.
+/// indirectly returns the major, minor and subminor version numbers in the parameters
+/// \param pMajorVersion The major version number returned
+/// \param pMinorVersion The minor version number returned
+/// \param pSubminorVersion The minor version number returned
 /// \return DEV_DRIVER_STATUS_SUCCESS if successful, or a DevDriverStatus error
 ///  code if not. If an error is returned, the version nunbers passed in are
 ///  unmodified.
 //-----------------------------------------------------------------------------
 static DevDriverStatus DEV_DRIVER_API_CALL
-GetDriverVersion(DevDriverAPIContext handle, unsigned int& outMajorVersion, unsigned int& outMinorVersion)
+GetFullDriverVersion(DevDriverAPIContext handle, unsigned int* pMajorVersion, unsigned int* pMinorVersion, unsigned int* pSubminorVersion)
 {
     if (handle == nullptr)
     {
@@ -221,9 +222,11 @@ GetDriverVersion(DevDriverAPIContext handle, unsigned int& outMajorVersion, unsi
     }
 
     bool result = false;
-    unsigned int subMinorVer = 0;
+    unsigned int majorVersion = 0;
+    unsigned int minorVersion = 0;
+    unsigned int subminorVersion = 0;
 #ifdef _WIN32
-    result = ADLGetDriverVersion(outMajorVersion, outMinorVersion, subMinorVer);
+    result = ADLGetDriverVersion(majorVersion, minorVersion, subminorVersion);
 #else
     const int sysret = system("modinfo amdgpu | grep version > version.txt");
     if (sysret != 0)
@@ -260,11 +263,8 @@ GetDriverVersion(DevDriverAPIContext handle, unsigned int& outMajorVersion, unsi
                     pVersion++;
                 }
 
-                int majVer = 0;
-                int minVer = 0;
-
                 // get the major version number
-                majVer = ToInt(pVersion);
+                majorVersion = ToInt(pVersion);
 
                 DD_ASSERT(pVersion[0] == '.');
 
@@ -272,10 +272,17 @@ GetDriverVersion(DevDriverAPIContext handle, unsigned int& outMajorVersion, unsi
                 pVersion++;
 
                 // get the minor version
-                minVer = ToInt(pVersion);
+                minorVersion = ToInt(pVersion);
 
-                outMajorVersion = majVer;
-                outMinorVersion = minVer;
+                if (pVersion[0] == '.')
+                {
+                    // skip the delimiter
+                    pVersion++;
+
+                    // get the minor version
+                    subminorVersion = ToInt(pVersion);
+                }
+
                 result = true;
             }
         }
@@ -290,12 +297,32 @@ GetDriverVersion(DevDriverAPIContext handle, unsigned int& outMajorVersion, unsi
 
     if (result == true)
     {
+        *pMajorVersion = majorVersion;
+        *pMinorVersion = minorVersion;
+        *pSubminorVersion = subminorVersion;
         return DEV_DRIVER_STATUS_SUCCESS;
     }
     else
     {
         return DEV_DRIVER_STATUS_ERROR;
     }
+}
+
+//-----------------------------------------------------------------------------
+/// Get the video driver version number.
+/// indirectly returns the major and minor version numbers in the parameters
+/// \param outMajorVersion The major version number returned
+/// \param outMinorVersion The minor version number returned
+/// \return DEV_DRIVER_STATUS_SUCCESS if successful, or a DevDriverStatus error
+///  code if not. If an error is returned, the version nunbers passed in are
+///  unmodified.
+/// \warning This function is deprecated
+//-----------------------------------------------------------------------------
+static DevDriverStatus DEV_DRIVER_API_CALL
+GetDriverVersion(DevDriverAPIContext handle, unsigned int& outMajorVersion, unsigned int& outMinorVersion)
+{
+    unsigned int subminorVersion = 0;
+    return GetFullDriverVersion(handle, &outMajorVersion, &outMinorVersion, &subminorVersion);
 }
 
 //-----------------------------------------------------------------------------
@@ -338,6 +365,7 @@ DevDriverGetFuncTable(void* pApiTableOut)
     apiTable.GetRgpProfileName     = GetProfileName;
 
     apiTable.GetDriverVersion      = GetDriverVersion;
+    apiTable.GetFullDriverVersion  = GetFullDriverVersion;
 
     // only copy the functions supported by the incoming requested library
     memcpy(pApiTable, &apiTable, apiTable.minorVersion);

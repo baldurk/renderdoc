@@ -146,17 +146,24 @@ bool AMDRGPControl::HasCapture()
 
 bool AMDRGPControl::DriverSupportsInterop()
 {
-  // interop is supported on AMD driver version 18.10 or newer
+  // interop is supported on AMD driver version 18.10.1 or newer
   if(m_RGPContext == NULL)
     return false;
 
   unsigned int majorVersion = 0;
   unsigned int minorVersion = 0;
+  unsigned int subminorVersion = 0;
 
-  if(m_RGPDispatchTable->GetDriverVersion(m_RGPContext, majorVersion, minorVersion) ==
-     DEV_DRIVER_STATUS_SUCCESS)
+  if(m_RGPDispatchTable->GetFullDriverVersion(m_RGPContext, &majorVersion, &minorVersion,
+                                              &subminorVersion) == DEV_DRIVER_STATUS_SUCCESS)
   {
-    if(majorVersion > 18 || (majorVersion == 18 && minorVersion >= 10))
+    if(
+        // 19.x.x+
+        majorVersion > 18 ||
+        // 18.11.x+
+        (majorVersion == 18 && minorVersion >= 11) ||
+        // 18.10.2+
+        (majorVersion == 18 && minorVersion == 10 && subminorVersion > 1))
     {
       return true;
     }

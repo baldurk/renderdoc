@@ -16,6 +16,15 @@
 /// \return true if successful, or false on error
 //-----------------------------------------------------------------------------
 bool ADLGetDriverVersion(unsigned int& majorVer, unsigned int& minorVer, unsigned int& subminorVer);
+
+//-----------------------------------------------------------------------------
+/// Use ADL on Windows to retrieve the driver version string
+/// \param outVersionName Pointer to s string to receive the version number.
+///  Presetnly, the string should be at least ADL_MAX_PATH bytes long
+/// \return true if successful, or false on error
+//-----------------------------------------------------------------------------
+bool ADLGetDriverVersionString(char* outVersionString);
+
 #endif // _WIN32
 
 #endif // ADL_GET_DRIVER_VERSION_H_

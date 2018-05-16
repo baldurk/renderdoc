@@ -64,7 +64,7 @@ static bool parseDriverVersionString(char *versionString, unsigned int &major, u
 		// delimiter not found
 		return false;
 	}
-	
+
 	strToken = strDriverVersion.substr(0, pos);
 	ss.str(strToken);
 
@@ -73,7 +73,7 @@ static bool parseDriverVersionString(char *versionString, unsigned int &major, u
 		major = 0;
 		return false;
 	}
-	
+
 	strDriverVersion.erase(0, pos + strDelimiter.length());  // Delete section of string already parsed
 
 	// parse the minor driver version
@@ -178,6 +178,53 @@ bool ADLGetDriverVersion(unsigned int& majorVer, unsigned int& minorVer, unsigne
 		FreeLibrary(hDLL);
 	}
 	return retStatus;
+}
+
+//-----------------------------------------------------------------------------
+/// Use ADL on Windows to retrieve the driver version string
+/// \param outVersionName Pointer to s string to receive the version number.
+///  Presetnly, the string should be at least ADL_MAX_PATH bytes long
+/// \return true if successful, or false on error
+//-----------------------------------------------------------------------------
+bool ADLGetDriverVersionString(char* outVersionString)
+{
+    bool retStatus = false;
+
+    HINSTANCE hDLL = LoadLibrary(TEXT("atiadlxx.dll"));
+
+    if (NULL == hDLL)
+    {
+        // A 32 bit calling application on 64 bit OS will fail to LoadLIbrary.
+        // Try to load the 32 bit library (atiadlxy.dll) instead
+        hDLL = LoadLibrary(TEXT("atiadlxy.dll"));
+    }
+
+    if (NULL != hDLL)
+    {
+        ADL2_MAIN_CONTROL_CREATE ADL2_Main_Control_Create = (ADL2_MAIN_CONTROL_CREATE)GetProcAddress(hDLL, "ADL2_Main_Control_Create");;
+        ADL2_MAIN_CONTROL_DESTROY ADL2_Main_Control_Destroy = (ADL2_MAIN_CONTROL_DESTROY)GetProcAddress(hDLL, "ADL2_Main_Control_Destroy");
+        ADL2_GRAPHICS_VERSION_GET ADL2_Graphics_Versions_Get = (ADL2_GRAPHICS_VERSION_GET)GetProcAddress(hDLL, "ADL2_Graphics_Versions_Get");
+
+        if (NULL != ADL2_Main_Control_Create &&
+            NULL != ADL2_Main_Control_Destroy &&
+            NULL != ADL2_Graphics_Versions_Get
+            )
+        {
+            ADL_CONTEXT_HANDLE adlContext = NULL;
+            if (ADL_OK == ADL2_Main_Control_Create(ADL_Main_Memory_Alloc, 1, &adlContext))
+            {
+                ADLVersionsInfo versionsInfo;
+                int ADLResult = ADL2_Graphics_Versions_Get(adlContext, &versionsInfo);
+                if (ADL_OK == ADLResult || ADL_OK_WARNING == ADLResult)
+                {
+                    strcpy_s(outVersionString, ADL_MAX_PATH, versionsInfo.strDriverVer);
+                }
+                ADL2_Main_Control_Destroy(adlContext);
+            }
+        }
+        FreeLibrary(hDLL);
+    }
+    return retStatus;
 }
 
 #endif // _WIN32

@@ -115,22 +115,27 @@ RGPClientInProcessModel::RGPClientInProcessModel() :
 {
     m_beginMarker.clear();
     m_endMarker.clear();
+    m_threadContext.m_pContext = nullptr;
+    m_threadContext.m_pClient = nullptr;
 }
 
 RGPClientInProcessModel::~RGPClientInProcessModel()
 {
-    Finish();
+    if (m_threadContext.m_pContext != nullptr && m_threadContext.m_pClient != nullptr)
+    {
+        Finish();
+    }
 }
 
 bool RGPClientInProcessModel::Init(bool rgpEnabled)
 {
-    InitDriverProtocols();
-    if (rgpEnabled)
+    bool success = InitDriverProtocols();
+    if (rgpEnabled == true && success == true)
     {
         CreateWorkerThreadToResumeDriverAndCollectRgpTrace();
+        return true;
     }
-
-    return true;
+    return false;
 }
 
 void RGPClientInProcessModel::Finish()

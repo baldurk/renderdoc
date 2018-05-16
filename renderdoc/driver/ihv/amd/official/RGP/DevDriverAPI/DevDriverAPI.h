@@ -141,8 +141,20 @@ typedef DevDriverStatus(DEV_DRIVER_API_CALL*
 /// \return DEV_DRIVER_STATUS_SUCCESS if successful, or a DevDriverStatus error
 ///  code if not. If an error is returned, the version nunbers passed in are
 ///  unmodified.
+/// \warning This function is deprecated
 typedef DevDriverStatus(DEV_DRIVER_API_CALL*
     DevDriverFnGetDriverVersion)(DevDriverAPIContext context, unsigned int& outMajorVersion, unsigned int& outMinorVersion);
+
+/// Get the video driver version number, including the subminor version.
+/// indirectly returns the major, minor and subminor version numbers in the parameters
+/// \param pMajorVersion The major version number returned
+/// \param pMinorVersion The minor version number returned
+/// \param pSubminorVersion The minor version number returned
+/// \return DEV_DRIVER_STATUS_SUCCESS if successful, or a DevDriverStatus error
+///  code if not. If an error is returned, the version nunbers passed in are
+///  unmodified.
+typedef DevDriverStatus(DEV_DRIVER_API_CALL*
+    DevDriverFnGetFullDriverVersion)(DevDriverAPIContext context, unsigned int* pMajorVersion, unsigned int* pMinorVersion, unsigned int* ptSubminorVersion);
 
 // structure containing the list of functions supported by this version of the API.
 // Also contains major and minor version numbers
@@ -158,6 +170,7 @@ typedef struct DevDriverAPI
     DevDriverFnIsRGPProfileCaptured IsRgpProfileCaptured;
     DevDriverFnGetRGPProfileName    GetRgpProfileName;
     DevDriverFnGetDriverVersion     GetDriverVersion;
+    DevDriverFnGetFullDriverVersion GetFullDriverVersion;
 } DevDriverAPI;
 
 /// Get the function table
