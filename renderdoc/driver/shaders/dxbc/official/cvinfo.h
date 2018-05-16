@@ -30,10 +30,6 @@
  *
  */
 
-#ifndef _VC_VER_INC
-#include "vcver.h"
-#endif
-
 #pragma once
 
 #include "cvconst.h"
@@ -3039,7 +3035,7 @@ typedef struct CV_PROCFLAGS {
     union {
         unsigned char   bAll;
         unsigned char   grfAll;
-        struct {
+        struct s {
             unsigned char CV_PFLAG_NOFPO     :1; // frame pointer present
             unsigned char CV_PFLAG_INT       :1; // interrupt return
             unsigned char CV_PFLAG_FAR       :1; // far return
@@ -3048,7 +3044,7 @@ typedef struct CV_PROCFLAGS {
             unsigned char CV_PFLAG_CUST_CALL :1; // custom calling convention
             unsigned char CV_PFLAG_NOINLINE  :1; // function marked as noinline
             unsigned char CV_PFLAG_OPTDBGINFO:1; // function has debug information for optimized code
-        };
+        } flags;
     };
 } CV_PROCFLAGS;
 
@@ -3058,7 +3054,7 @@ typedef struct CV_EXPROCFLAGS {
     CV_PROCFLAGS cvpf;
     union {
         unsigned char   grfAll;
-        struct {
+        struct s {
             unsigned char   __reserved_byte      :8; // must be zero
         };
     };
@@ -3684,7 +3680,7 @@ typedef enum CV_PUBSYMFLAGS_e
 
 typedef union CV_PUBSYMFLAGS {
     CV_pubsymflag_t grfFlags;
-    struct {
+    struct s {
         CV_pubsymflag_t fCode       :  1;    // set if public symbol refers to a code address
         CV_pubsymflag_t fFunction   :  1;    // set if public symbol is a function
         CV_pubsymflag_t fManaged    :  1;    // set if managed code (native or IL)
