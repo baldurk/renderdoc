@@ -998,6 +998,12 @@ SPDBChunk::SPDBChunk(void *chunk)
 
   delete[] pages;
 
+  // save the filenames in their original order
+  std::vector<std::string> filenames;
+  filenames.reserve(Files.size());
+  for(size_t i = 0; i < Files.size(); i++)
+    filenames.push_back(Files[i].first);
+
   // Sort files according to the order they come in the Names array, this seems to be more reliable
   // about placing the main file first.
   std::sort(Files.begin(), Files.end(), [&Names](const std::pair<std::string, std::string> &a,
@@ -1023,6 +1029,19 @@ SPDBChunk::SPDBChunk(void *chunk)
 
     return aIdx < bIdx;
   });
+
+  // create a map from filename -> index
+  std::map<std::string, int32_t> remapping;
+  for(size_t i = 0; i < Files.size(); i++)
+    remapping[Files[i].first] = (int32_t)i;
+
+  // remap the line info by looking up the original intended filename, then looking up the new index
+  for(auto it = m_LineNumbers.begin(); it != m_LineNumbers.end(); ++it)
+  {
+    if(it->second.fileIndex == -1)
+      continue;
+    it->second.first = remapping[filenames[it->second.first]];
+  }
 
   m_HasDebugInfo = true;
 }
