@@ -103,6 +103,8 @@
     <ClCompile Include="dxbc_disassemble.cpp" />
     <ClCompile Include="dxbc_inspect.cpp" />
     <ClCompile Include="dxbc_reflect.cpp" />
+    <ClCompile Include="dxbc_sdbg.cpp" />
+    <ClCompile Include="dxbc_spdb.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

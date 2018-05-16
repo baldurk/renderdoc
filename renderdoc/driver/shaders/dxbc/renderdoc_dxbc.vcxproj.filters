@@ -9,6 +9,8 @@
       <Filter>PCH</Filter>
     </ClCompile>
     <ClCompile Include="dxbc_reflect.cpp" />
+    <ClCompile Include="dxbc_spdb.cpp" />
+    <ClCompile Include="dxbc_sdbg.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
