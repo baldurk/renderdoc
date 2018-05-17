@@ -1044,20 +1044,28 @@ SPDBChunk::SPDBChunk(void *chunk)
   m_HasDebugInfo = true;
 }
 
-void SPDBChunk::GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx,
-                            int32_t &lineNum) const
+void SPDBChunk::GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx,
+                            int32_t &lineNum, std::string &func) const
 {
-  for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
+  auto it = m_Lines.lower_bound((uint32_t)offset);
+
+  if(it != m_Lines.end() && (uintptr_t)it->first <= offset)
   {
-    if((uintptr_t)it->first <= offset)
-    {
-      fileIdx = it->second.fileIndex;
-      lineNum = it->second.lineStart - 1;    // 0-indexed
-    }
-    else
-    {
-      return;
-    }
+    fileIdx = it->second.fileIndex;
+    lineNum = it->second.lineStart - 1;    // 0-indexed
+    func = it->second.stack.back();
+  }
+}
+
+void SPDBChunk::GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const
+{
+  auto it = m_Lines.lower_bound((uint32_t)offset);
+
+  if(it != m_Lines.end() && (uintptr_t)it->first <= offset)
+  {
+    stack.resize(it->second.stack.size());
+    for(size_t i = 0; i < stack.size(); i++)
+      stack[i] = it->second.stack[i];
   }
 }
 

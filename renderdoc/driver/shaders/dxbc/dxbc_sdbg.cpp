@@ -98,8 +98,8 @@ SDBGChunk::SDBGChunk(void *data)
   m_HasDebugInfo = true;
 }
 
-void SDBGChunk::GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx,
-                            int32_t &lineNum) const
+void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx,
+                            int32_t &lineNum, std::string &func) const
 {
   if(instruction < m_Instructions.size())
   {
@@ -110,8 +110,14 @@ void SDBGChunk::GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileI
 
       fileIdx = sym.fileID;
       lineNum = sym.lineNum - 1;
+      func = m_Entry;
     }
   }
+}
+
+void SDBGChunk::GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const
+{
+  stack = {"Stack not available"};
 }
 
 string SDBGChunk::GetSymbolName(int symbolID)

@@ -538,6 +538,22 @@
     </property>
    </column>
   </widget>
+  <widget class="QListWidget" name="callstack">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>80</y>
+     <width>256</width>
+     <height>192</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::NoSelection</enum>
+   </property>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>

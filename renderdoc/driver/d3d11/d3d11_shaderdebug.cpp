@@ -940,6 +940,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   vector<ShaderDebugState> states;
 
+  dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, initialState.callstack);
+
   states.push_back((State)initialState);
 
   D3D11MarkerRegion simloop("Simulation Loop");
@@ -950,6 +952,11 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
       break;
 
     initialState = initialState.GetNext(global, NULL);
+
+    {
+      const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
+      dxbc->m_DebugInfo->GetStack(initialState.nextInstruction, op.offset, initialState.callstack);
+    }
 
     states.push_back((State)initialState);
 
@@ -1810,6 +1817,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   vector<ShaderDebugState> states;
 
+  dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, quad[destIdx].callstack);
+
   states.push_back((State)quad[destIdx]);
 
   // ping pong between so that we can have 'current' quad to update into new one
@@ -1843,7 +1852,16 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     // if our destination quad is paused don't record multiple identical states.
     if(activeMask[destIdx])
-      states.push_back((State)curquad[destIdx]);
+    {
+      State &s = curquad[destIdx];
+
+      {
+        const ASMOperation &op = dxbc->GetInstruction((size_t)s.nextInstruction);
+        dxbc->m_DebugInfo->GetStack(s.nextInstruction, op.offset, s.callstack);
+      }
+
+      states.push_back(s);
+    }
 
     // we need to make sure that control flow which converges stays in lockstep so that
     // derivatives are still valid. While diverged, we don't have to keep threads in lockstep
@@ -1992,6 +2010,8 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   vector<ShaderDebugState> states;
 
+  dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, initialState.callstack);
+
   states.push_back((State)initialState);
 
   for(int cycleCounter = 0;; cycleCounter++)
@@ -2000,6 +2020,11 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
       break;
 
     initialState = initialState.GetNext(global, NULL);
+
+    {
+      const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
+      dxbc->m_DebugInfo->GetStack(initialState.nextInstruction, op.offset, initialState.callstack);
+    }
 
     states.push_back((State)initialState);
 

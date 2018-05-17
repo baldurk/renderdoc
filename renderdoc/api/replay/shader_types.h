@@ -235,7 +235,7 @@ struct ShaderDebugState
   bool operator==(const ShaderDebugState &o) const
   {
     return registers == o.registers && outputs == o.outputs && indexableTemps == o.indexableTemps &&
-           nextInstruction == o.nextInstruction && flags == o.flags;
+           nextInstruction == o.nextInstruction && flags == o.flags && callstack == o.callstack;
   }
   bool operator<(const ShaderDebugState &o) const
   {
@@ -249,6 +249,8 @@ struct ShaderDebugState
       return nextInstruction < o.nextInstruction;
     if(!(flags == o.flags))
       return flags < o.flags;
+    if(!(callstack == o.callstack))
+      return callstack < o.callstack;
     return false;
   }
   DOCUMENT("The temporary variables for this shader as a list of :class:`ShaderValue`.");
@@ -260,8 +262,12 @@ struct ShaderDebugState
       "Indexable temporary variables for this shader as a list of :class:`ShaderValue` lists.");
   rdcarray<ShaderVariable> indexableTemps;
 
+  DOCUMENT("An optional callstack listing function calls at the present instruction");
+  rdcarray<rdcstr> callstack;
+
   DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
-shader execution happened will have ``nextInstruction == 0``.)");
+shader execution happened will have ``nextInstruction == 0``.
+)");
   uint32_t nextInstruction;
 
   DOCUMENT("A set of :class:`ShaderEvents` flags that indicate what events happened on this step.");

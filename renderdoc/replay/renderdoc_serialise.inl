@@ -349,6 +349,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
   SERIALISE_MEMBER(indexableTemps);
   SERIALISE_MEMBER(nextInstruction);
   SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(callstack);
 
   SIZE_CHECK(56);
 }

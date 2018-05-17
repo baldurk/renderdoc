@@ -69,6 +69,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   ui->watch->setFont(Formatter::PreferredFont());
   ui->inputSig->setFont(Formatter::PreferredFont());
   ui->outputSig->setFont(Formatter::PreferredFont());
+  ui->callstack->setFont(Formatter::PreferredFont());
 
   // we create this up front so its state stays persistent as much as possible.
   m_FindReplace = new FindReplace(this);
@@ -204,10 +205,11 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
 
   m_DisassemblyView = NULL;
 
-  // hide watch, constants, variables
+  // hide debugging windows
   ui->watch->hide();
   ui->variables->hide();
   ui->constants->hide();
+  ui->callstack->hide();
 
   ui->snippets->setVisible(customShader);
 
@@ -459,6 +461,13 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                                                         ui->docking->areaOf(ui->variables), 0.5f));
     ui->docking->setToolWindowProperties(
         ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+
+    ui->callstack->setWindowTitle(tr("Callstack"));
+    ui->docking->addToolWindow(
+        ui->callstack, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                                        ui->docking->areaOf(ui->variables), 0.2f));
+    ui->docking->setToolWindowProperties(
+        ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     m_DisassemblyView->setMarginWidthN(1, 20.0 * devicePixelRatioF());
 
@@ -1226,6 +1235,11 @@ void ShaderViewer::updateDebugging()
       break;
     }
   }
+
+  ui->callstack->clear();
+
+  for(const rdcstr &s : state.callstack)
+    ui->callstack->insertItem(0, s);
 
   if(ui->constants->topLevelItemCount() == 0)
   {

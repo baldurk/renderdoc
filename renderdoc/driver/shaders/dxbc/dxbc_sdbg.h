@@ -260,7 +260,9 @@ public:
   string GetEntryFunction() const { return m_Entry; }
   string GetShaderProfile() const { return m_Profile; }
   uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
-  void GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum) const;
+  void GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum,
+                   std::string &func) const;
+  void GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const;
 
 private:
   SDBGChunk();

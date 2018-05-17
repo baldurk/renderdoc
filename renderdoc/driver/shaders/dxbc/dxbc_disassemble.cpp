@@ -667,6 +667,7 @@ void DXBCFile::MakeDisassemblyString()
 
   int32_t prevFile = -1;
   int32_t prevLine = -1;
+  std::string prevFunc;
 
   size_t debugInst = 0;
 
@@ -695,8 +696,9 @@ void DXBCFile::MakeDisassemblyString()
     {
       int32_t fileID = prevFile;
       int32_t lineNum = prevLine;
+      std::string func = prevFunc;
 
-      m_DebugInfo->GetFileLine(debugInst, m_Instructions[i].offset, fileID, lineNum);
+      m_DebugInfo->GetLineInfo(debugInst, m_Instructions[i].offset, fileID, lineNum, func);
 
       if(fileID >= 0 && lineNum >= 0 && (fileID != prevFile || lineNum != prevLine))
       {
@@ -722,13 +724,24 @@ void DXBCFile::MakeDisassemblyString()
 
         m_Disassembly += "\n";
 
-        if((fileID != prevFile && fileID < (int32_t)fileLines.size()) || line == "")
+        if(((fileID != prevFile || func != prevFunc) && fileID < (int32_t)fileLines.size()) ||
+           line == "")
         {
           m_Disassembly += "      ";    // "0000: "
           for(int in = 0; in < indent; in++)
             m_Disassembly += "  ";
-          m_Disassembly +=
-              StringFormat::Fmt("%s:%d\n", m_DebugInfo->Files[fileID].first.c_str(), lineNum + 1);
+
+          if(!func.empty())
+          {
+            m_Disassembly +=
+                StringFormat::Fmt("%s:%d - %s()\n", m_DebugInfo->Files[fileID].first.c_str(),
+                                  lineNum + 1, func.c_str());
+          }
+          else
+          {
+            m_Disassembly +=
+                StringFormat::Fmt("%s:%d\n", m_DebugInfo->Files[fileID].first.c_str(), lineNum + 1);
+          }
         }
 
         if(line != "")
@@ -742,6 +755,7 @@ void DXBCFile::MakeDisassemblyString()
 
       prevFile = fileID;
       prevLine = lineNum;
+      prevFunc = func;
     }
 
     char buf[64] = {0};
