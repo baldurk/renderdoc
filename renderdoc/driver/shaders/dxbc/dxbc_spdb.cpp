@@ -29,6 +29,13 @@
 #include "official/cvinfo.h"
 #include "dxbc_spdb.h"
 
+// uncomment the following to print (very verbose) debugging prints for SPDB processing
+//#define SPDBLOG(...) RDCDEBUG(__VA_ARGS__)
+
+#ifndef SPDBLOG
+#define SPDBLOG(...) (void)(__VA_ARGS__)
+#endif
+
 using std::make_pair;
 
 namespace DXBC
@@ -38,8 +45,6 @@ static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
 SPDBChunk::SPDBChunk(void *chunk)
 {
   m_HasDebugInfo = false;
-
-  uint32_t firstInstructionOffset = 0;
 
   byte *data = NULL;
 
@@ -86,9 +91,12 @@ SPDBChunk::SPDBChunk(void *chunk)
   streams.resize(*dirContents);
   dirContents++;
 
+  SPDBLOG("SPDB contains %zu streams", streams.size());
+
   for(size_t i = 0; i < streams.size(); i++)
   {
     streams[i].byteLength = *dirContents;
+    SPDBLOG("Stream[%zu] is %u bytes", i, streams[i].byteLength);
     dirContents++;
   }
 
@@ -140,6 +148,8 @@ SPDBChunk::SPDBChunk(void *chunk)
 
       StreamNames[streamName] = stream;
 
+      SPDBLOG("Stream %u is %s", stream, streamName);
+
       numset++;
     }
   }
@@ -156,6 +166,8 @@ SPDBChunk::SPDBChunk(void *chunk)
       const char *filename = (const char *)it->first.c_str();
       filename += sizeof("/src/files/") - 1;
 
+      SPDBLOG("Found file '%s' from stream %u", filename, it->second);
+
       if(filename[0] == 0)
         filename = "shader";
 
@@ -163,10 +175,10 @@ SPDBChunk::SPDBChunk(void *chunk)
     }
   }
 
-  vector<Function> functions;
-
   if(streams.size() >= 5)
   {
+    SPDBLOG("Got function calls stream");
+
     PDBStream &s = streams[4];
     PageMapping fileContents(pages, header->PageSize, &s.pageIndices[0],
                              (uint32_t)s.pageIndices.size());
@@ -174,36 +186,68 @@ SPDBChunk::SPDBChunk(void *chunk)
     byte *bytes = (byte *)fileContents.Data();
     byte *end = bytes + s.byteLength;
 
-    // seems to be accurate, but we'll just iterate to end
-    // uint32_t *u32 = (uint32_t *)bytes;
-    // uint32_t numFuncs = u32[6];
+    TPIHeader *tpi = (TPIHeader *)bytes;
 
     // skip header
-    bytes += 57;
+    bytes += tpi->headerSize;
+
+    RDCASSERT(bytes + tpi->dataSize == end);
+
+// this isn't needed, but this is the hash stream
+#if 0
+    PageMapping hashContents;
+
+    if(tpi->hash.streamNumber < streams.size())
+    {
+      PDBStream &hashstrm = streams[tpi->hash.streamNumber];
+      hashContents = PageMapping(pages, header->PageSize, &hashstrm.pageIndices[0],
+                                 (uint32_t)hashstrm.pageIndices.size());
+    }
+#endif
+
+    uint32_t id = tpi->typeMin;
 
     while(bytes < end)
     {
-      Function f;
-      memcpy(&f, bytes, 11);
-      bytes += 11;
-      f.funcName = (const char *)bytes;
-      bytes += 1 + f.funcName.length();
+      uint16_t length = *(uint16_t *)bytes;
+      bytes += 2;
 
-      while(*bytes)
+      lfFuncId *func = (lfFuncId *)bytes;
+      lfMFuncId *mfunc = (lfMFuncId *)bytes;
+      bytes += length;
+
+      if(func->leaf != LF_FUNC_ID && func->leaf != LF_MFUNC_ID)
       {
-        f.things.push_back(*(int8_t *)bytes);
-        bytes++;
+        SPDBLOG("Encountered leaf type %x, skipping as not function", func->leaf);
+        id++;
+        continue;
       }
 
-      functions.push_back(f);
+      if(func->leaf == LF_FUNC_ID && func->scopeId != 0)
+        SPDBLOG("Unexpected scope %u", func->scopeId);
+
+      Function f;
+      f.type = func->type;
+      f.name = (char *)func->name;
+
+      SPDBLOG("Function %x (%s) is type %x", id, f.name.c_str(), f.type);
+
+      if(func->leaf == LF_MFUNC_ID)
+        SPDBLOG("Member of %x", mfunc->parentType);
+
+      m_Functions[id] = f;
+
+      id++;
     }
+
+    RDCASSERT(id == tpi->typeMax);
   }
 
   {
     Function mainFunc;
-    mainFunc.funcName = "entrypoint";
+    mainFunc.name = "entrypoint";
 
-    functions.push_back(mainFunc);
+    m_Functions[0] = mainFunc;
   }
 
   map<uint32_t, string> Names;
@@ -233,7 +277,14 @@ SPDBChunk::SPDBChunk(void *chunk)
       contents++;
 
       if(idx != 0)
+      {
         Names[idx] = Strings + idx;
+
+        if(Names[idx].size() > 100)
+          SPDBLOG("Got Name %u: '%s...'", idx, Names[idx].substr(0, 100).c_str());
+        else
+          SPDBLOG("Got Name %u: '%s'", idx, Names[idx].c_str());
+      }
     }
   }
 
@@ -269,12 +320,16 @@ SPDBChunk::SPDBChunk(void *chunk)
       m.moduleName = moduleName;
       m.objectName = objectName;
 
+      SPDBLOG("Got module named %s from object %s", moduleName, objectName);
+
       modules.push_back(m);
     }
     RDCASSERT(cur == end);
   }
 
-  vector<FuncCallLineNumbers> funcCalls;
+  std::vector<Inlinee> inlines;
+
+  PROCSYM32 main = {};
 
   map<uint32_t, int32_t> FileMapping;    // mapping from hash chunk to index in Files[], or -1
 
@@ -288,58 +343,67 @@ SPDBChunk::SPDBChunk(void *chunk)
                            (uint32_t)s.pageIndices.size());
     uint32_t *moduledata = (uint32_t *)modMapping.Data();
 
-    RDCASSERT(moduledata[0] == 4);
+    SPDBLOG("Examining module %s with %u symbols", modules[m].moduleName.c_str(), modules[m].cbSyms);
 
-    byte *cur = (byte *)&moduledata[1];
+    RDCASSERT(moduledata[0] == CV_SIGNATURE_C13);
+
+    std::string localName;
+    CV_typ_t localType;
+
+    byte *basePtr = (byte *)&moduledata[1];
+
+    byte *cur = basePtr;
     byte *end = (byte *)moduledata + modules[m].cbSyms;
     while(cur < end)
     {
       uint16_t *sym = (uint16_t *)cur;
 
+      ptrdiff_t ptr = (byte *)(sym + 2) - basePtr;
+
       uint16_t len = sym[0];
-      uint16_t type = sym[1];
-      len -= sizeof(uint16_t);    // len includes type uint16, subtract for ease of use
+      SYM_ENUM_e type = (SYM_ENUM_e)sym[1];
+      cur += len + sizeof(uint16_t);    // len does not include itself
 
-      cur += sizeof(uint16_t) * 2;
-
-      byte *contents = cur;
-
-      if(type == 0x1110)
+      if(type == S_GPROC32)
       {
-        ProcHeader *proc = (ProcHeader *)contents;
-        // char *name = (char *)(proc + 1);
+        PROCSYM32 *gproc32 = (PROCSYM32 *)sym;
+        main = *gproc32;
 
-        firstInstructionOffset = proc->Offset;
+        m_Functions[0].name = (char *)gproc32->name;
 
-        // RDCDEBUG("Got global procedure start %s %x -> %x", name, proc->Offset,
-        // proc->Offset+proc->Length);
+        SPDBLOG("S_GPROC32 @ %llx: '%s' of type %x covering bytes %x -> %x", ptr, gproc32->name,
+                gproc32->typind, gproc32->off, gproc32->off + gproc32->len);
+
+        RDCASSERT(gproc32->DbgStart == 0);
+        RDCASSERT(gproc32->DbgEnd == gproc32->len);
       }
-      else if(type == 0x113c)
+      else if(type == S_COMPILE3)
       {
-        CompilandDetails *details = (CompilandDetails *)contents;
-        char *compilerString = (char *)&details->CompilerSig;
+        COMPILESYM3 *compile3 = (COMPILESYM3 *)sym;
 
-        memcpy(&m_CompilandDetails, details, sizeof(CompilandDetails) - sizeof(string));
-        m_CompilandDetails.CompilerSig = compilerString;
+        m_CompilerSig = compile3->verSz;
 
-        /*
-        RDCDEBUG("CompilandDetails: %s (%d.%d.%d.%d)", compilerString,
-            details->FrontendVersion.Major, details->FrontendVersion.Minor,
-            details->FrontendVersion.Build, details->FrontendVersion.QFE);*/
+        SPDBLOG("S_COMPILE3: %s (%d.%d.%d.%d)", compile3->verSz, compile3->verFEMajor,
+                compile3->verFEMinor, compile3->verFEBuild, compile3->verFEQFE);
 
         // for hlsl/fxc
-        // RDCASSERT(details->Language == 16 && details->Platform == 256);
+        RDCASSERT(compile3->flags.iLanguage == CV_CFL_HLSL &&
+                  compile3->machine == CV_CFL_D3D11_SHADER);
       }
-      else if(type == 0x113d)
+      else if(type == S_ENVBLOCK)
       {
-        // for hlsl/fxc?
-        // RDCASSERT(contents[0] == 0x1);
-        char *key = (char *)contents + 1;
+        ENVBLOCKSYM *envblock = (ENVBLOCKSYM *)sym;
+
+        RDCASSERT(envblock->flags.rev == 1);    // this is another edit & continue flag
+
+        SPDBLOG("S_ENVBLOCK:");
+
+        char *key = (char *)&envblock->rgsz[0];
         while(key[0])
         {
           char *value = key + strlen(key) + 1;
 
-          // RDCDEBUG("CompilandEnv: %s = \"%s\"", key, value);
+          SPDBLOG("  %s = \"%s\"", key, value);
 
           if(!strcmp(key, "hlslEntry"))
           {
@@ -428,287 +492,245 @@ SPDBChunk::SPDBChunk(void *chunk)
           key = value + strlen(value) + 1;
         }
       }
-      else if(type == 0x114D)
+      else if(type == S_INLINESITE)
       {
-        // RDCDEBUG("0x%04x, %d bytes", uint32_t(type), uint32_t(len));
+        INLINESITESYM *inlinesite = (INLINESITESYM *)sym;
 
-        FuncCallLineNumbers func;
-        func.fileOffs = 0;
-        func.baseLineNum = 0;
+        SPDBLOG("S_INLINESITE @ %llx: function '%s' inlined into %x", ptr,
+                m_Functions[inlinesite->inlinee].name.c_str(), inlinesite->pParent);
 
-        byte *iterator = (byte *)contents;
-        byte *callend = contents + len;
-
-        // uint32_t *adsf = (uint32_t *)iterator;
-
-        // RDCDEBUG("funcdef for %s (%x) flags??=0x%x offset/length??=0x%x",
-        // functions[adsf[2]&0xfff].funcName.c_str(), adsf[2], adsf[0], adsf[1]);
-        iterator += 3 * sizeof(uint32_t);
-
-        bool working = true;
-        uint32_t currentBytes = firstInstructionOffset;
+        uint32_t codeOffsetBase = 0;
+        uint32_t codeOffset = main.off;
+        uint32_t codeLength = 0;
         uint32_t currentLine = 0;
+        uint32_t currentLineLength = 1;
         uint32_t currentColStart = 1;
         uint32_t currentColEnd = 100000;
+        bool statement = true;
 
-        while(iterator < callend)
+        Inlinee inlinee;
+
+        inlinee.ptr = ptr;
+        inlinee.parentPtr = inlinesite->pParent;
+        inlinee.id = inlinesite->inlinee;
+
+        byte *iter = inlinesite->binaryAnnotations;
+        while(iter < cur)
         {
-          FuncCallBytestreamOpcodes opcode = (FuncCallBytestreamOpcodes)*iterator;
-          iterator++;
+          CodeViewInfo::BinaryAnnotationOpcode op = (CodeViewInfo::BinaryAnnotationOpcode)*iter;
 
-          if(opcode == PrologueEnd || opcode == EpilogueBegin)
-          {
-            // uint32_t value = ReadVarLenUInt(iterator);
-            // RDCDEBUG("type %02x: unk=%02x", opcode, value);
-
-            if(opcode == EpilogueBegin)
-            {
-              // RDCDEBUG("                          (endloc: %04x - %u [%u,%u] )", currentBytes,
-              // currentLine, currentColStart, currentColEnd);
-              working = false;
-            }
-          }
-          else if(opcode == FunctionEndNoAdvance)
-          {
-            uint32_t value = CodeViewInfo::CVUncompressData(iterator);
-
-            // RDCDEBUG("                      type %02x: %02x: adjust line by 4(?!) & bytes by %x",
-            // opcode, value, value);
-
-            if(working)
-            {
-              InstructionLocation loc;
-              loc.offset = currentBytes;
-              loc.line = currentLine;
-              loc.colStart = currentColStart;
-              loc.colEnd = currentColEnd;
-              func.locations.push_back(loc);
-
-              loc.offset = currentBytes + value;
-              loc.funcEnd = true;
-              func.locations.push_back(loc);
-
-              // RDCDEBUG("                          (loc: %04x - %u [%u,%u] )", currentBytes,
-              // currentLine, currentColStart, currentColEnd);
-            }
-
-            currentBytes += value;
-          }
-          else if(opcode == AdvanceBytesAndLines)
-          {
-            uint32_t value = (uint32_t)*iterator;
-            iterator++;
-
-            uint32_t byteMod = (value & 0xf);
-            uint32_t lineMod = (value >> 4);
-
-            currentBytes += byteMod;
-            currentLine += lineMod / 2;
-
-            // RDCDEBUG("                      type %02x: %02x: adjust line by %u & bytes by %x",
-            // type, value, lineMod/2, byteMod);
-          }
-          else if(opcode == EndOfFunction)
-          {
-            // RDCDEBUG("type %02x:", opcode);
-
-            uint32_t retlen = CodeViewInfo::CVUncompressData(iterator);
-            uint32_t byteAdv = CodeViewInfo::CVUncompressData(iterator);
-
-            // RDCDEBUG("           retlen=%x, byteAdv=%x", retlen, byteAdv);
-
-            currentBytes += byteAdv;
-
-            if(working)
-            {
-              InstructionLocation loc;
-              loc.offset = currentBytes;
-              loc.line = currentLine;
-              loc.colStart = currentColStart;
-              loc.colEnd = currentColEnd;
-              func.locations.push_back(loc);
-
-              loc.offset = currentBytes + retlen;
-              loc.funcEnd = true;
-              func.locations.push_back(loc);
-            }
-
-            currentBytes += retlen;
-          }
-          else if(opcode == SetByteOffset)
-          {
-            currentBytes = CodeViewInfo::CVUncompressData(iterator);
-            // RDCDEBUG("                      type %02x: start at byte offset %x", opcode,
-            // currentBytes);
-          }
-          else if(opcode == AdvanceBytes)
-          {
-            uint32_t offs = CodeViewInfo::CVUncompressData(iterator);
-
-            currentBytes += offs;
-
-            // RDCDEBUG("                      type %02x: advance %x bytes", opcode, offs);
-
-            if(working)
-            {
-              InstructionLocation loc;
-              loc.offset = currentBytes;
-              loc.line = currentLine;
-              loc.colStart = currentColStart;
-              loc.colEnd = currentColEnd;
-              func.locations.push_back(loc);
-
-              // RDCDEBUG("                          (loc: %04x - %u [%u,%u] )", currentBytes,
-              // currentLine, currentColStart, currentColEnd);
-            }
-          }
-          else if(opcode == AdvanceLines)
-          {
-            uint32_t linesAdv = CodeViewInfo::CVUncompressData(iterator);
-
-            if(linesAdv & 0x1)
-              currentLine -= (linesAdv / 2);
-            else
-              currentLine += (linesAdv / 2);
-
-            // RDCDEBUG("                      type %02x: advance %u (%u) lines", opcode,
-            // linesAdv/2, linesAdv);
-          }
-          else if(opcode == ColumnStart)
-          {
-            currentColStart = CodeViewInfo::CVUncompressData(iterator);
-            // RDCDEBUG("                      type %02x: col < %u", opcode, currentColStart);
-          }
-          else if(opcode == ColumnEnd)
-          {
-            currentColEnd = CodeViewInfo::CVUncompressData(iterator);
-            // RDCDEBUG("                      type %02x: col > %u", opcode, currentColEnd);
-          }
-          else if(opcode == EndStream)
-          {
-            while(*iterator == 0 && iterator < callend)
-              iterator++;
-            // RDCASSERT(iterator == callend); // seems like this isn't always true
-          }
-          else
-          {
-            RDCDEBUG("Unrecognised: %02x", opcode);
+          // stop when reaching this, there may be padding ahead
+          if(op == CodeViewInfo::BA_OP_Invalid)
             break;
+
+          iter++;
+
+          uint32_t parameter = CodeViewInfo::CVUncompressData(iter);
+
+          uint32_t parameter2 = 0;
+          if(CodeViewInfo::BinaryAnnotationInstructionOperandCount(op) == 2)
+            parameter2 = CodeViewInfo::CVUncompressData(iter);
+
+          bool apply = false;
+
+          // apply op to current state
+          switch(op)
+          {
+            case CodeViewInfo::BA_OP_Invalid: break;
+            case CodeViewInfo::BA_OP_CodeOffset: codeOffset = parameter; break;
+            case CodeViewInfo::BA_OP_ChangeCodeOffsetBase: codeOffsetBase = parameter; break;
+            case CodeViewInfo::BA_OP_ChangeCodeOffset:
+              codeOffset += parameter;
+              apply = true;
+              break;
+            case CodeViewInfo::BA_OP_ChangeCodeLength: codeLength = parameter; break;
+            case CodeViewInfo::BA_OP_ChangeFile:
+              RDCERR("Unsupported change of file within inline site!");
+              break;
+            case CodeViewInfo::BA_OP_ChangeLineOffset:
+            {
+              currentLine += CodeViewInfo::DecodeSignedInt32(parameter);
+              break;
+            }
+            case CodeViewInfo::BA_OP_ChangeLineEndDelta: currentLineLength = parameter; break;
+            case CodeViewInfo::BA_OP_ChangeRangeKind:
+            {
+              statement = (parameter == 1);
+              // unclear where this should be reset
+              codeLength = 0;
+              break;
+            }
+            case CodeViewInfo::BA_OP_ChangeColumnStart: currentColStart = parameter; break;
+            case CodeViewInfo::BA_OP_ChangeColumnEndDelta:
+            {
+              currentColEnd += CodeViewInfo::DecodeSignedInt32(parameter);
+              break;
+            }
+            case CodeViewInfo::BA_OP_ChangeCodeOffsetAndLineOffset:
+            {
+              uint32_t CodeDelta = parameter & 0xf;
+              uint32_t sourceDelta = parameter >> 4;
+              // not sure if this is a bug in the HLSL compiler or what, but the sourceDelta seems
+              // to come out double what it should be - so add an extra shift
+              sourceDelta >>= 1;
+              codeOffset += CodeDelta;
+              currentLine += sourceDelta;
+              apply = true;
+              break;
+            }
+            case CodeViewInfo::BA_OP_ChangeCodeLengthAndCodeOffset:
+            {
+              codeLength = parameter;
+              codeOffset += parameter2;
+              apply = true;
+              break;
+            }
+            case CodeViewInfo::BA_OP_ChangeColumnEnd: currentColEnd = parameter; break;
+          }
+
+          if(apply)
+          {
+            InstructionLocation loc;
+
+            loc.statement = statement;
+            loc.offsetStart = codeOffsetBase + codeOffset;
+            loc.offsetEnd = loc.offsetStart + codeLength;
+            loc.colStart = currentColStart;
+            loc.colEnd = currentColEnd;
+            loc.lineStart = currentLine;
+            loc.lineEnd = currentLine + currentLineLength;
+
+            // if we have a previous location with implicit length, fix it up now
+            if(!inlinee.locations.empty() &&
+               inlinee.locations.back().offsetEnd == inlinee.locations.back().offsetStart)
+            {
+              inlinee.locations.back().offsetEnd = loc.offsetStart;
+            }
+
+            inlinee.locations.push_back(loc);
+
+            SPDBLOG("inline annotation of %s, from %x (length %x), from %u:%u to %u:%u",
+                    statement ? "statement" : "expression", codeOffsetBase + codeOffset, codeLength,
+                    currentLine, currentColStart, currentLine + currentLineLength, currentColEnd);
           }
         }
 
-        if(func.locations.size() == 1)
+        inlines.push_back(inlinee);
+      }
+      else if(type == S_LOCAL)
+      {
+        LOCALSYM *local = (LOCALSYM *)sym;
+
+        SPDBLOG("S_LOCAL: '%s' of type %x", local->name, local->typind);
+
+        localName = (char *)local->name;
+        localType = local->typind;
+
+        if(local->flags.fIsParam)
+          SPDBLOG("  fIsParam: variable is a parameter");
+        if(local->flags.fAddrTaken)
+          SPDBLOG("  fAddrTaken: address is taken");
+        if(local->flags.fCompGenx)
+          SPDBLOG("  fCompGenx: variable is compiler generated");
+        if(local->flags.fIsAggregate)
+          SPDBLOG(
+              "  fIsAggregate: the symbol is splitted in temporaries, "
+              "which are treated by compiler as independent entities");
+        if(local->flags.fIsAggregated)
+          SPDBLOG("  fIsAggregated: variable is a part of a fIsAggregate symbol");
+        if(local->flags.fIsAliased)
+          SPDBLOG("  fIsAliased: variable has multiple simultaneous lifetimes");
+        if(local->flags.fIsAlias)
+          SPDBLOG("  fIsAlias: variable represents one of the multiple simultaneous lifetimes");
+        if(local->flags.fIsRetValue)
+          SPDBLOG("  fIsRetValue: variable represents a function return value");
+        if(local->flags.fIsOptimizedOut)
+          SPDBLOG("  fIsOptimizedOut: variable variable has no lifetimes");
+        if(local->flags.fIsEnregGlob)
+          SPDBLOG("  fIsEnregGlob: variable is an enregistered global");
+        if(local->flags.fIsEnregStat)
+          SPDBLOG("  fIsEnregStat: variable is an enregistered static");
+      }
+      else if(type == S_DEFRANGE_HLSL)
+      {
+        DEFRANGESYMHLSL *defrange = (DEFRANGESYMHLSL *)sym;
+
+        const char *regtype = "";
+        const char *regprefix = "?";
+        switch((CV_HLSLREG_e)defrange->regType)
         {
-          // not sure what this means, but it seems to just be intended to match
-          // one instruction offset and we don't have an 0xc to 'cap' things off.
-          // just insert a dummy location at the same file line but with a slightly
-          // higher offset so we have a valid range to match against
-          auto loc = func.locations[0];
-          loc.offset++;
-          func.locations.push_back(loc);
+          case CV_HLSLREG_TEMP:
+            regtype = "temp";
+            regprefix = "r";
+            break;
+          case CV_HLSLREG_INPUT:
+            regtype = "input";
+            regprefix = "v";
+            break;
+          case CV_HLSLREG_OUTPUT:
+            regtype = "output";
+            regprefix = "o";
+            break;
+          case CV_HLSLREG_INDEXABLE_TEMP:
+            regtype = "indexable";
+            regprefix = "x";
+            break;
+          default: break;
         }
 
-        RDCASSERT(func.locations.size() > 1);
+        const char *space = "";
+        switch((CV_HLSLMemorySpace_e)defrange->memorySpace)
+        {
+          case CV_HLSL_MEMSPACE_DATA: space = "data"; break;
+          case CV_HLSL_MEMSPACE_SAMPLER: space = "sampler"; break;
+          case CV_HLSL_MEMSPACE_RESOURCE: space = "resource"; break;
+          case CV_HLSL_MEMSPACE_RWRESOURCE: space = "rwresource"; break;
+          default: break;
+        }
 
-        funcCalls.push_back(func);
+        SPDBLOG("S_DEFRANGE_HLSL: %u->%u bytes in parent: %s %s (dim %d) %s",
+                defrange->offsetParent, defrange->offsetParent + defrange->sizeInParent, regtype,
+                space, defrange->regIndices, defrange->spilledUdtMember ? "spilled" : "");
 
-        // RDCDEBUG("Lost %d bytes after we stopped processing", callend - iterator);
+        uint32_t regoffset = *CV_DEFRANGESYMHLSL_OFFSET_CONST_PTR(defrange);
+
+        char regcomps[] = "xyzw";
+
+        uint32_t regindex = regoffset / 16;
+        uint32_t regfirstcomp = (regoffset % 16) / 4;
+        uint32_t regnumcomps = defrange->sizeInParent / 4;
+
+        char *regswizzle = regcomps;
+        regswizzle += regfirstcomp;
+        regswizzle[regnumcomps] = 0;
+
+        SPDBLOG("Stored in %s%u.%s", regprefix, regindex, regswizzle);
+
+        SPDBLOG("Valid from %x to %x", defrange->range.offStart,
+                defrange->range.offStart + defrange->range.cbRange);
+
+        const CV_LVAR_ADDR_GAP *gaps = CV_DEFRANGESYMHLSL_GAPS_CONST_PTR(defrange);
+        size_t gapcount = CV_DEFRANGESYMHLSL_GAPS_COUNT(defrange);
+        if(gapcount > 0)
+          SPDBLOG("Except for in:");
+        for(size_t i = 0; i < gapcount; i++)
+        {
+          SPDBLOG("  Gap %zu: %x -> %x", i, defrange->range.offStart + gaps[i].gapStartOffset,
+                  defrange->range.offStart + gaps[i].gapStartOffset + gaps[i].cbRange);
+        }
       }
-      else if(type == 0x113E)
+      else if(type == S_INLINESITE_END)
       {
-        // not currently used
-        /*
-          //RDCDEBUG("0x%04x, %d bytes", uint32_t(type), uint32_t(len));
-
-          RegisterVariableAssign *var = (RegisterVariableAssign *)contents;
-
-          string funcName = "undefined";
-
-          if((size_t)(var->func&0xfff) < functions.size())
-            funcName = functions[var->func&0xfff].funcName;
-
-          //RDCDEBUG("     in %s (%x) flags??=%04x, %s:", funcName.c_str(), var->func,
-          var->unkflags, var->name);
-
-          byte *afterName = (byte *)var->name + (strlen(var->name) + 1);
-
-          byte *end = contents + len;
-
-          // seems to always be 0s
-          while(afterName < end)
-          {
-            RDCASSERT(*afterName == 0);
-            afterName++;
-          }
-          */
+        SPDBLOG("S_INLINESITE_END");
       }
-      else if(type == 0x1150)
+      else if(type == S_END)
       {
-        // not currently used
-        /*
-          RDCASSERT(len %4 == 0);
-          //RDCDEBUG("0x%04x, %d bytes", uint32_t(type), uint32_t(len));
-
-          RegisterVariableAssignComponent *comp = (RegisterVariableAssignComponent *)contents;
-
-          OperandType t = comp->Type();
-          const char *type = "";
-          switch(t)
-          {
-            case TYPE_TEMP: type = "r"; break;
-            case TYPE_INPUT: type = "v"; break;
-            case TYPE_OUTPUT: type = "o"; break;
-            case TYPE_INDEXABLE_TEMP: type = "x"; break;
-            case TYPE_INPUT_THREAD_ID: type = "globalIdx"; break;
-            case TYPE_INPUT_THREAD_ID_IN_GROUP: type = "localIdx"; break;
-            case TYPE_INPUT_THREAD_GROUP_ID: type = "groupIdx"; break;
-            default: break;
-          }
-
-          uint16_t destComp = comp->destComp;
-          if(len == 24)
-            destComp = comp->unkE;
-          if(len > 24)
-          {
-            uint16_t *end = (uint16_t *)(contents + len);
-
-            destComp = end[-1];
-          }
-
-          char comps[] = "xyzw";
-
-          //RDCDEBUG("%s%d.%c (%x, %x) <- <above>.%c @ 0x%x", type, (destComp)>>4,
-          comps[(destComp&0xf)>>2], comp->destComp, comp->unkE, comps[(comp->srcComp&0xf)>>2],
-          comp->instrOffset);
-
-          //RDCDEBUG("     A:%04x B:%04x C:%04x D:%04x", comp->unkA, comp->unkB, comp->unkC,
-          comp->unkD);
-          //RDCDEBUG("     E(d):%04x", comp->unkE);
-
-          uint32_t *extra = (uint32_t *)(comp+1);
-
-          for(uint16_t l=20; l < len; l+=4)
-          {
-            //RDCDEBUG("     %08x", extra[0]);
-            extra++;
-          }
-          */
-      }
-      else if(type == 0x114E)
-      {
-        RDCASSERT(len == 0);
-        // RDCDEBUG("0x%04x, %d bytes", uint32_t(type), uint32_t(len));
-      }
-      else if(type == 0x0006)
-      {
-        // RDCDEBUG("end");
+        SPDBLOG("S_END");
       }
       else
       {
-        // RDCDEBUG("(unexpected?) 0x%04x", uint32_t(type));
+        SPDBLOG("Unhandled type %04x", type);
       }
-
-      cur += len;
     }
     RDCASSERT(cur == end);
 
@@ -716,38 +738,62 @@ SPDBChunk::SPDBChunk(void *chunk)
 
     while(cur < end)
     {
-      uint16_t *type = (uint16_t *)cur;
+      CV_DebugSSubsectionHeader_t *subsection = (CV_DebugSSubsectionHeader_t *)cur;
 
-      if(*type == 0xF4)    // hash
+      byte *substart = (byte *)(subsection + 1);
+
+      cur += sizeof(CV_DebugSSubsectionHeader_t) + subsection->cbLen;
+
+      byte *subend = cur;
+
+      if(subsection->type == DEBUG_S_FILECHKSMS)    // hash
       {
-        uint32_t *len = (uint32_t *)(type + 2);
-
-        cur = (byte *)(len + 1);
-
-        byte *start = cur;
-        while(cur < start + *len)
+        byte *iter = substart;
+        while(iter < subend)
         {
-          uint32_t *hashData = (uint32_t *)cur;
-          cur += sizeof(uint32_t);
-          uint16_t *unknown = (uint16_t *)cur;
-          cur += sizeof(uint16_t);
+          FileChecksum *checksum = (FileChecksum *)iter;
 
-          uint32_t chunkOffs = uint32_t((byte *)hashData - start);
+          uint32_t chunkOffs = uint32_t(iter - substart);
 
-          uint32_t nameoffset = hashData[0];
+          iter += offsetof(FileChecksum, hashData);
 
-          // if this is 0, we don't have a hash
-          if(*unknown)
+          std::string name;
+
+          if(Names.find(checksum->nameIndex) != Names.end())
           {
-            byte hash[16];
-            memcpy(hash, cur, sizeof(hash));
-            cur += sizeof(hash);
+            name = Names[checksum->nameIndex];
+            if(name.empty())
+              name = Names[checksum->nameIndex] = "shader";
+          }
+          else
+          {
+            RDCERR("Encountered nameoffset %u that doesn't match any name.", checksum->nameIndex);
+          }
+
+          CV_SourceChksum_t hashType = (CV_SourceChksum_t)checksum->hashType;
+
+          if(hashType != CHKSUM_TYPE_NONE)
+          {
+            byte hash[256];
+            memcpy(hash, checksum->hashData, checksum->hashLength);
+
+            char hashstr[16 * 2 + 1] = {0};
+            char hex[] = "0123456789abcdef";
+
+            for(uint8_t i = 0; i < RDCMIN(uint8_t(16), checksum->hashLength); i++)
+            {
+              hashstr[i * 2 + 0] = hex[(hash[i] & 0xf0) >> 4];
+              hashstr[i * 2 + 1] = hex[(hash[i] & 0x0f) >> 0];
+            }
+
+            SPDBLOG("File %s has checksum %s%s", name.c_str(), hashstr,
+                    checksum->hashLength > 16 ? "..." : "");
 
             int32_t fileIdx = -1;
 
             for(size_t i = 0; i < Files.size(); i++)
             {
-              if(!_stricmp(Files[i].first.c_str(), Names[nameoffset].c_str()))
+              if(!_stricmp(Files[i].first.c_str(), name.c_str()))
               {
                 fileIdx = (int32_t)i;
                 break;
@@ -763,137 +809,106 @@ SPDBChunk::SPDBChunk(void *chunk)
             // as we won't be able to reliably get the real source lines back. The PDB lies
             // convincingly about the
             // source according to #line
-            if(Names.find(nameoffset) != Names.end())
+            if(!name.empty())
             {
-              string name = Names[nameoffset];
               Files.push_back(make_pair(name, ""));
 
               FileMapping[chunkOffs] = (int32_t)Files.size() - 1;
             }
             else
             {
-              RDCERR(
-                  "Processing SPDB chunk, encountered nameoffset %d that doesn't correspond to any "
-                  "name.",
-                  nameoffset);
-
               FileMapping[chunkOffs] = -1;
             }
           }
 
-          unknown = (uint16_t *)cur;
-          cur += sizeof(uint16_t);
-          // another unknown
+          iter = AlignUpPtr(iter + checksum->hashLength, 4);
         }
-        RDCASSERT(cur == start + *len);
+        RDCASSERT(iter == subend);
       }
-      else if(*type == 0xF2)
+      else if(subsection->type == DEBUG_S_LINES)
       {
-        uint32_t *len = (uint32_t *)(type + 2);
+        CV_DebugSLinesHeader_t *hdr = (CV_DebugSLinesHeader_t *)substart;
 
-        cur = (byte *)(len + 1);
+        bool hasColumns = (hdr->flags & CV_LINES_HAVE_COLUMNS);
 
-        byte *start = cur;
-
-        LineNumbersHeader *hdr = (LineNumbersHeader *)cur;
-
-        cur = (byte *)(hdr + 1);
-
-        bool hasExtra = (hdr->flags & 0x1);
-
-        while(cur < start + *len)
+        byte *iter = (byte *)(hdr + 1);
+        while(iter < subend)
         {
-          FileLineNumbers *file = (FileLineNumbers *)cur;
-          cur = (byte *)(file + 1);
+          CV_DebugSLinesFileBlockHeader_t *file = (CV_DebugSLinesFileBlockHeader_t *)iter;
+          CV_Line_t *lines = (CV_Line_t *)(file + 1);
+          CV_Column_t *columns = (CV_Column_t *)(lines + file->nLines);
 
-          uint32_t *linedata = (uint32_t *)cur;
-
-          cur += (sizeof(uint32_t) + sizeof(uint32_t)) * file->numLines;
-          if(hasExtra)
-            cur += (sizeof(uint16_t) + sizeof(uint16_t)) * file->numLines;
+          iter = (byte *)file + file->cbBlock;
 
           int32_t fileIdx = -1;
 
-          if(FileMapping.find(file->fileIdx) == FileMapping.end())
+          if(FileMapping.find(file->offFile) == FileMapping.end())
           {
             RDCERR(
                 "SPDB chunk - line numbers file references index %u not encountered in file "
                 "mapping",
-                file->fileIdx);
+                file->offFile);
           }
           else
           {
-            fileIdx = FileMapping[file->fileIdx];
+            fileIdx = FileMapping[file->offFile];
           }
 
-          for(uint32_t l = 0; l < file->numLines; l++)
+          for(CV_off32_t l = 0; l < file->nLines; l++)
           {
-            uint32_t offs = linedata[0];
-            uint32_t lineNum = linedata[1] & 0x00fffff;
-            // uint32_t unknown = linedata[1]>>24;
+            CV_Line_t &line = lines[l];
 
-            linedata += 2;
+            LineColumnInfo lineCol;
+            lineCol.fileIndex = fileIdx;
+            lineCol.lineStart = line.linenumStart;
+            lineCol.lineEnd = line.linenumStart + line.deltaLineEnd;
+            lineCol.statement = line.fStatement;
 
-            m_LineNumbers[offs] = make_pair(fileIdx, lineNum);
+            if(hasColumns)
+            {
+              CV_Column_t &col = columns[l];
+              lineCol.colStart = col.offColumnStart;
+              lineCol.colEnd = col.offColumnEnd;
+            }
 
-            // RDCDEBUG("Offset %x is line %d", offs, lineNum);
+            m_Lines[line.offset] = lineCol;
           }
-
-          uint16_t *extraData = (uint16_t *)linedata;
-
-          for(uint32_t l = 0; l < file->numLines; l++)
-          {
-            // uint16_t unkA = extraData[0];
-            // uint16_t unkB = extraData[1];
-
-            extraData += 2;
-          }
-
-          RDCASSERT((byte *)extraData == cur);
         }
-        RDCASSERT(cur == start + *len);
+        RDCASSERT(iter == subend);
       }
-      else if(*type == 0xF6)
+      else if(subsection->type == DEBUG_S_INLINEELINES)
       {
-        uint32_t *len = (uint32_t *)(type + 2);
+        byte *iter = substart;
+        uint32_t sourceLineType = *(uint32_t *)iter;
+        iter += sizeof(uint32_t);
 
-        cur = (byte *)(len + 1);
-
-        uint32_t *calls = (uint32_t *)cur;
-        uint32_t *callsend = (uint32_t *)(cur + *len);
-
-        // 0 seems to indicate no files, 1 indicates files but we don't need
-        // to care as we can just handle this below.
-        // RDCDEBUG("start: %x", calls[0]);
-        calls++;
-
-        int idx = 0;
-        while(calls < callsend)
+        if(sourceLineType == CV_INLINEE_SOURCE_LINE_SIGNATURE)
         {
-          // some kind of control bytes? they have n file mappings following but I'm not sure what
-          // they mean
-          if(calls[0] <= 0xfff)
+          CodeViewInfo::InlineeSourceLine *inlinee = (CodeViewInfo::InlineeSourceLine *)iter;
+          size_t count = (subend - iter) / sizeof(CodeViewInfo::InlineeSourceLine);
+          for(size_t i = 0; i < count; i++, inlinee++)
           {
-            calls += 1 + calls[0];
-          }
-          else
-          {
-            // function call - 3 uint32s: (function idx | 0x1000, FileMapping idx, line # of start
-            // of function)
-
-            // RDCDEBUG("Call to %s(%x) - file %x, line %d",
-            // functions[calls[0]&0xfff].funcName.c_str(), calls[0], calls[1], calls[2]);
-
-            funcCalls[idx].fileOffs = calls[1];
-            funcCalls[idx].baseLineNum = calls[2];
-
-            idx++;
-
-            calls += 3;
+            inlines[i].id = inlinee->inlinee;
+            inlines[i].fileOffs = inlinee->fileId;
+            inlines[i].baseLineNum = inlinee->sourceLineNum;
           }
         }
+        else if(sourceLineType == CV_INLINEE_SOURCE_LINE_SIGNATURE_EX)
+        {
+          size_t idx = 0;
+          while(iter < subend)
+          {
+            CodeViewInfo::InlineeSourceLineEx *inlinee = (CodeViewInfo::InlineeSourceLineEx *)iter;
 
-        cur += *len;
+            iter += sizeof(CodeViewInfo::InlineeSourceLineEx) +
+                    sizeof(CV_off32_t) * inlinee->countOfExtraFiles;
+
+            inlines[idx].id = inlinee->inlinee;
+            inlines[idx].fileOffs = inlinee->fileId;
+            inlines[idx].baseLineNum = inlinee->sourceLineNum;
+            idx++;
+          }
+        }
       }
       else
       {
@@ -902,61 +917,67 @@ SPDBChunk::SPDBChunk(void *chunk)
     }
   }
 
-  for(size_t i = 0; i < funcCalls.size(); i++)
+  for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
+    it->second.stack.push_back(m_Functions[0].name);
+
+  SPDBLOG("Applying %zu inline sites", inlines.size());
+
+  for(size_t i = 0; i < inlines.size(); i++)
   {
-    RDCASSERT(funcCalls[i].locations.size() > 1);
+    RDCASSERT(inlines[i].locations.size() > 1);
 
-    if(funcCalls[i].locations.empty() || funcCalls[i].locations.size() == 1)
+    if(inlines[i].locations.empty() || inlines[i].locations.size() == 1)
     {
-      RDCWARN("Skipping patching function call with %d locations", funcCalls[i].locations.size());
+      RDCWARN("Skipping patching function call with %d locations", inlines[i].locations.size());
       continue;
     }
 
-    RDCASSERT(FileMapping.find(funcCalls[i].fileOffs) != FileMapping.end());
+    RDCASSERT(FileMapping.find(inlines[i].fileOffs) != FileMapping.end());
 
-    if(FileMapping.find(funcCalls[i].fileOffs) == FileMapping.end())
+    if(FileMapping.find(inlines[i].fileOffs) == FileMapping.end())
     {
-      RDCWARN("Got function call patch with fileoffs %x - skipping", funcCalls[i].fileOffs);
+      RDCWARN("Got function call patch with fileoffs %x - skipping", inlines[i].fileOffs);
       continue;
     }
 
-    // RDCDEBUG("Function call %d", i);
+    SPDBLOG("Inline site %zu", i);
 
-    for(size_t j = 0; j < funcCalls[i].locations.size() - 1; j++)
+    int32_t fileIdx = FileMapping[inlines[i].fileOffs];
+
+    for(size_t j = 0; j < inlines[i].locations.size(); j++)
     {
-      auto &loc = funcCalls[i].locations[j];
-      auto &locNext = funcCalls[i].locations[j + 1];
+      InstructionLocation &loc = inlines[i].locations[j];
 
-      // don't apply between function end and next section (if there is one)
-      if(loc.funcEnd)
+      // don't apply expressions
+      if(!loc.statement)
         continue;
 
       int nPatched = 0;
 
-      for(auto it = m_LineNumbers.begin(); it != m_LineNumbers.end(); ++it)
+      for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
       {
-        if(it->first >= loc.offset && it->first < locNext.offset)
+        if(it->first >= loc.offsetStart && it->first < loc.offsetEnd)
         {
-          int32_t fileIdx = FileMapping[funcCalls[i].fileOffs];
+          SPDBLOG("Patching %x between [%x,%x) from (%d %u:%u -> %u:%u) into (%d %u:%u -> %u:%u)",
+                  it->first, loc.offsetStart, loc.offsetEnd, it->second.fileIndex,
+                  it->second.lineStart, it->second.colStart, it->second.lineEnd, it->second.colEnd,
+                  fileIdx, loc.lineStart + inlines[i].baseLineNum, loc.colStart,
+                  loc.lineEnd + inlines[i].baseLineNum, loc.colEnd);
 
-          /*
-          RDCDEBUG("Patching offset %x between [%x,%x] from (%d,%u) to (%d,%u [%u->%u])",
-            it->first, loc.offset, locNext.offset,
-            it->second.first, it->second.second,
-            fileIdx, loc.line+funcCalls[i].baseLineNum,
-            loc.colStart, loc.colEnd);
-            */
-
-          it->second.first = fileIdx;
-          it->second.second = loc.line + funcCalls[i].baseLineNum;
+          it->second.fileIndex = fileIdx;
+          it->second.funcIndex = inlines[i].id;
+          it->second.lineStart = loc.lineStart + inlines[i].baseLineNum;
+          it->second.lineEnd = loc.lineEnd + inlines[i].baseLineNum;
+          it->second.colStart = loc.colStart;
+          it->second.colEnd = loc.colEnd;
+          it->second.stack.push_back(m_Functions[inlines[i].id].name);
           nPatched++;
         }
       }
 
-      /*
       if(nPatched == 0)
-        RDCDEBUG("Can't find anything between offsets %x,%x as desired", loc.offset,
-      locNext.offset);*/
+        RDCWARN("Can't find anything between offsets %x,%x as desired", loc.offsetStart,
+                loc.offsetEnd);
     }
   }
 
@@ -1000,11 +1021,11 @@ SPDBChunk::SPDBChunk(void *chunk)
     remapping[Files[i].first] = (int32_t)i;
 
   // remap the line info by looking up the original intended filename, then looking up the new index
-  for(auto it = m_LineNumbers.begin(); it != m_LineNumbers.end(); ++it)
+  for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
   {
     if(it->second.fileIndex == -1)
       continue;
-    it->second.first = remapping[filenames[it->second.first]];
+    it->second.fileIndex = remapping[filenames[it->second.fileIndex]];
   }
 
   m_HasDebugInfo = true;
@@ -1013,12 +1034,12 @@ SPDBChunk::SPDBChunk(void *chunk)
 void SPDBChunk::GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx,
                             int32_t &lineNum) const
 {
-  for(auto it = m_LineNumbers.begin(); it != m_LineNumbers.end(); ++it)
+  for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
   {
     if((uintptr_t)it->first <= offset)
     {
-      fileIdx = it->second.first;
-      lineNum = it->second.second - 1;    // 0-indexed
+      fileIdx = it->second.fileIndex;
+      lineNum = it->second.lineStart - 1;    // 0-indexed
     }
     else
     {
