@@ -465,24 +465,37 @@ SPDBChunk::SPDBChunk(void *chunk)
                   break;
 
                 char *defstart = c;
-                char *defend = strchr(c, '=');
+                // the definition ends either at the next = or at the next whitespace, whichever
+                // comes first
+                char *defend = strpbrk(c, "= \t\n");
 
                 if(defend == 0)
                   break;
 
+                bool hasValue = defend[0] == '=';
+
                 c = defend + 1;
 
-                char *valstart = c;
+                if(hasValue)
+                {
+                  char *valstart = c;
 
-                // skip to end or next whitespace
-                while(*c && *c != ' ' && *c != '\t' && *c != '\n')
-                  c++;
+                  // skip to end or next whitespace
+                  while(*c && *c != ' ' && *c != '\t' && *c != '\n')
+                    c++;
 
-                char *valend = c;
+                  char *valend = c;
 
-                cmdlineDefines += "#define ";
-                cmdlineDefines += string(defstart, defend) + " " + string(valstart, valend);
-                cmdlineDefines += "\n";
+                  cmdlineDefines += "#define ";
+                  cmdlineDefines += string(defstart, defend) + " " + string(valstart, valend);
+                  cmdlineDefines += "\n";
+                }
+                else
+                {
+                  cmdlineDefines += "#define ";
+                  cmdlineDefines += string(defstart, defend);
+                  cmdlineDefines += "\n";
+                }
               }
             }
 
