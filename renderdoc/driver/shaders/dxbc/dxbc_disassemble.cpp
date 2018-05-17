@@ -509,14 +509,14 @@ void DXBCFile::MakeDisassemblyString()
         while(*c == '\t' || *c == ' ' || *c == '\r')
           c++;
 
-        if(c + 5 > end)
+        if(c == end)
         {
           // blank line, just advance line counter
           dstLine++;
           continue;
         }
 
-        if(strncmp(c, "#line", 5))
+        if(c + 5 > end || strncmp(c, "#line", 5))
         {
           // resize up to account for the current line, if necessary
           dstFile->resize(RDCMAX(dstLine + 1, dstFile->size()));
