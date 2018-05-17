@@ -66,6 +66,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 
   ui->constants->setFont(Formatter::PreferredFont());
   ui->variables->setFont(Formatter::PreferredFont());
+  ui->locals->setFont(Formatter::PreferredFont());
   ui->watch->setFont(Formatter::PreferredFont());
   ui->inputSig->setFont(Formatter::PreferredFont());
   ui->outputSig->setFont(Formatter::PreferredFont());
@@ -210,6 +211,7 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   ui->variables->hide();
   ui->constants->hide();
   ui->callstack->hide();
+  ui->locals->hide();
 
   ui->snippets->setVisible(customShader);
 
@@ -433,6 +435,12 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->variables->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->variables->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
+    ui->locals->setColumns({tr("Name"), tr("Register"), tr("Type"), tr("Value")});
+    ui->locals->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->locals->header()->setSectionResizeMode(1, QHeaderView::Interactive);
+    ui->locals->header()->setSectionResizeMode(2, QHeaderView::Interactive);
+    ui->locals->header()->setSectionResizeMode(3, QHeaderView::Stretch);
+
     ui->constants->setColumns({tr("Name"), tr("Type"), tr("Value")});
     ui->constants->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->constants->header()->setSectionResizeMode(1, QHeaderView::Interactive);
@@ -468,6 +476,20 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                                                         ui->docking->areaOf(ui->variables), 0.2f));
     ui->docking->setToolWindowProperties(
         ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+
+    if(m_Trace->hasLocals)
+    {
+      ui->locals->setWindowTitle(tr("Local Variables"));
+      ui->docking->addToolWindow(
+          ui->locals, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                       ui->docking->areaOf(ui->variables)));
+      ui->docking->setToolWindowProperties(
+          ui->locals, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    }
+    else
+    {
+      ui->locals->hide();
+    }
 
     m_DisassemblyView->setMarginWidthN(1, 20.0 * devicePixelRatioF());
 
@@ -526,6 +548,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->watch->hide();
     ui->variables->hide();
     ui->constants->hide();
+    ui->locals->hide();
+    ui->callstack->hide();
 
     // hide debugging toolbar buttons
     ui->debugSep->hide();
@@ -1357,6 +1381,117 @@ void ShaderViewer::updateDebugging()
     {
       ui->constants->setIndentation(20);
       ui->constants->setRootIsDecorated(true);
+    }
+  }
+
+  if(m_Trace->hasLocals)
+  {
+    ui->locals->clear();
+
+    for(size_t lidx = 0; lidx < state.locals.size(); lidx++)
+    {
+      // iterate in reverse order, so newest locals tend to end up on top
+      const LocalVariableMapping &l = state.locals[state.locals.size() - 1 - lidx];
+      const ShaderVariable *var = NULL;
+
+      switch(l.registerType)
+      {
+        case RegisterType::Input:
+          continue;    // skip inputs, they are immutable
+        case RegisterType::Temporary:
+          if(l.registerIndex < state.registers.size())
+            var = &state.registers[l.registerIndex];
+          break;
+        case RegisterType::IndexedTemporary:
+          if(l.registerIndex < state.indexableTemps.size())
+            var = &state.indexableTemps[l.registerIndex];
+          break;
+        case RegisterType::Output:
+          if(l.registerIndex < state.outputs.size())
+            var = &state.outputs[l.registerIndex];
+          break;
+      }
+
+      QString localName = l.localName;
+      QString regName = lit("-"), typeName = lit("-");
+      QString value = tr("<error>");
+
+      if(var)
+      {
+        value.clear();
+
+        regName = var->name;
+
+        if(l.variableType == VarType::UInt)
+          typeName = lit("uint");
+        else if(l.variableType == VarType::Int)
+          typeName = lit("int");
+        else if(l.variableType == VarType::Float)
+          typeName = lit("float");
+        else if(l.variableType == VarType::Double)
+          typeName = lit("double");
+
+        if(l.registerType == RegisterType::IndexedTemporary)
+        {
+          typeName += lit("[]");
+
+          regName = QFormatStr("x%1").arg(l.registerIndex);
+        }
+        else
+        {
+          for(int i = 1; i < 4; i++)
+          {
+            if(i == 3 || l.variableSwizzle[i] == -1)
+            {
+              typeName += QString::number(i);
+              break;
+            }
+          }
+
+          regName += lit(".");
+          localName += lit(".");
+
+          QString swizzle = lit("xyzw");
+
+          for(uint32_t i = 0; i < 4; i++)
+          {
+            if(l.variableSwizzle[i] != -1)
+            {
+              int8_t vs = l.variableSwizzle[i];
+              int8_t rs = l.registerSwizzle[i];
+
+              localName += swizzle[vs];
+              regName += swizzle[rs];
+              if(!value.isEmpty())
+                value += lit(", ");
+
+              if(l.variableType == VarType::UInt)
+                value += Formatter::Format(var->value.uv[rs]);
+              else if(l.variableType == VarType::Int)
+                value += Formatter::Format(var->value.iv[rs]);
+              else if(l.variableType == VarType::Float)
+                value += Formatter::Format(var->value.fv[rs]);
+              else if(l.variableType == VarType::Double)
+                value += Formatter::Format(var->value.dv[rs]);
+            }
+          }
+        }
+      }
+
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regName, typeName, value});
+
+      if(l.registerType == RegisterType::IndexedTemporary)
+      {
+        for(int t = 0; t < var->members.count(); t++)
+        {
+          node->addChild(new RDTreeWidgetItem({
+              QFormatStr("%1[%2]").arg(localName).arg(t), QFormatStr("%1[%2]").arg(regName).arg(t),
+              typeName, RowString(var->members[t], 0, l.variableType),
+          }));
+        }
+      }
+
+      ui->locals->addTopLevelItem(node);
     }
   }
 

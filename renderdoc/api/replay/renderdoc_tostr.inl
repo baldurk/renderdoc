@@ -684,6 +684,18 @@ std::string DoStringise(const VarType &el)
 }
 
 template <>
+std::string DoStringise(const RegisterType &el)
+{
+  BEGIN_ENUM_STRINGISE(RegisterType)
+  {
+    STRINGISE_ENUM_CLASS(Temporary);
+    STRINGISE_ENUM_CLASS(IndexedTemporary);
+    STRINGISE_ENUM_CLASS(Output);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const GPUCounter &el)
 {
   if(IsAMDCounter(el))

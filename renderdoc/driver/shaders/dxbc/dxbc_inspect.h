@@ -333,6 +333,10 @@ public:
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum,
                            std::string &funcName) const = 0;
   virtual void GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const = 0;
+
+  virtual bool HasLocals() const = 0;
+  virtual void GetLocals(size_t instruction, uintptr_t offset,
+                         rdcarray<LocalVariableMapping> &locals) const = 0;
 };
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);

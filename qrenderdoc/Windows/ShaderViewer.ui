@@ -137,15 +137,6 @@
    <property name="frameShape">
     <enum>QFrame::NoFrame</enum>
    </property>
-   <property name="indentation">
-    <number>0</number>
-   </property>
-   <property name="rootIsDecorated">
-    <bool>false</bool>
-   </property>
-   <property name="itemsExpandable">
-    <bool>false</bool>
-   </property>
    <property name="allColumnsShowFocus">
     <bool>true</bool>
    </property>
@@ -492,8 +483,8 @@
   <widget class="RDTableWidget" name="watch">
    <property name="geometry">
     <rect>
-     <x>390</x>
-     <y>90</y>
+     <x>790</x>
+     <y>60</y>
      <width>151</width>
      <height>131</height>
     </rect>
@@ -552,6 +543,22 @@
    </property>
    <property name="selectionMode">
     <enum>QAbstractItemView::NoSelection</enum>
+   </property>
+  </widget>
+  <widget class="RDTreeWidget" name="locals">
+   <property name="geometry">
+    <rect>
+     <x>290</x>
+     <y>90</y>
+     <width>256</width>
+     <height>192</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="allColumnsShowFocus">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>

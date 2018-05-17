@@ -175,6 +175,357 @@ SPDBChunk::SPDBChunk(void *chunk)
     }
   }
 
+  std::map<uint32_t, VarType> typeInfo;
+
+  // prepopulate with basic types
+  typeInfo[T_INT4] = VarType::Int;
+  typeInfo[T_INT2] = VarType::Int;
+  typeInfo[T_INT1] = VarType::Int;
+  typeInfo[T_LONG] = VarType::Int;
+  typeInfo[T_SHORT] = VarType::Int;
+  typeInfo[T_CHAR] = VarType::Int;
+  typeInfo[T_UINT4] = VarType::UInt;
+  typeInfo[T_UINT2] = VarType::UInt;
+  typeInfo[T_UINT1] = VarType::UInt;
+  typeInfo[T_ULONG] = VarType::UInt;
+  typeInfo[T_USHORT] = VarType::UInt;
+  typeInfo[T_UCHAR] = VarType::UInt;
+  typeInfo[T_REAL16] = VarType::Float;
+  typeInfo[T_REAL32] = VarType::Float;
+  typeInfo[T_REAL64] = VarType::Double;
+
+  if(streams.size() >= 3)
+  {
+    SPDBLOG("Got types stream");
+
+    PDBStream &s = streams[2];
+    PageMapping fileContents(pages, header->PageSize, &s.pageIndices[0],
+                             (uint32_t)s.pageIndices.size());
+
+    byte *bytes = (byte *)fileContents.Data();
+    byte *end = bytes + s.byteLength;
+
+    TPIHeader *tpi = (TPIHeader *)bytes;
+
+    // skip header
+    bytes += tpi->headerSize;
+
+    RDCASSERT(bytes + tpi->dataSize == end);
+
+// this isn't needed, but this is the hash stream
+#if 0
+    PageMapping hashContents;
+
+    if(tpi->hash.streamNumber < streams.size())
+    {
+      PDBStream &hashstrm = streams[tpi->hash.streamNumber];
+      hashContents = PageMapping(pages, header->PageSize, &hashstrm.pageIndices[0],
+                                 (uint32_t)hashstrm.pageIndices.size());
+    }
+#endif
+
+    uint32_t id = tpi->typeMin;
+
+    while(bytes < end)
+    {
+      uint16_t *leafheader = (uint16_t *)bytes;
+
+      uint16_t length = leafheader[0];
+      LEAF_ENUM_e type = (LEAF_ENUM_e)leafheader[1];
+
+      byte *leaf = (byte *)&leafheader[1];
+
+      bytes += 2 + length;
+
+      switch(type)
+      {
+        case LF_VECTOR:
+        {
+          lfVector *vector = (lfVector *)leaf;
+          // documentation isn't clear, but seems like byte size is always a uint16_t
+          uint16_t *bytelength = (uint16_t *)vector->data;
+          char *name = (char *)(bytelength + 1);
+          SPDBLOG("Type %x is '%s': a vector of %x with %u elements over %u bytes", id, name,
+                  vector->elemtype, vector->count, *bytelength);
+
+          typeInfo[id] = typeInfo[vector->elemtype];
+
+          break;
+        }
+        case LF_MATRIX:
+        {
+          lfMatrix *matrix = (lfMatrix *)leaf;
+          // documentation isn't clear, but seems like byte size is always a uint16_t
+          uint16_t *bytelength = (uint16_t *)matrix->data;
+          char *name = (char *)(bytelength + 1);
+          SPDBLOG(
+              "Type %x is '%s': a matrix of %x with %u rows, %u columns over %u bytes with %u "
+              "byte %s major stride",
+              id, name, matrix->elemtype, matrix->rows, matrix->cols, *bytelength,
+              matrix->majorStride, matrix->matattr.row_major ? "row" : "column");
+
+          typeInfo[id] = typeInfo[matrix->elemtype];
+
+          break;
+        }
+        case LF_HLSL:
+        {
+          lfHLSL *hlsl = (lfHLSL *)leaf;
+          // documentation mentions "numeric properties followed by byte size" but we don't need
+          // that
+
+          const char *hlslTypeName = "";
+          switch((CV_builtin_e)hlsl->kind)
+          {
+            case CV_BI_HLSL_INTERFACE_POINTER: hlslTypeName = "INTERFACE_POINTER"; break;
+            case CV_BI_HLSL_TEXTURE1D: hlslTypeName = "TEXTURE1D"; break;
+            case CV_BI_HLSL_TEXTURE1D_ARRAY: hlslTypeName = "TEXTURE1D_ARRAY"; break;
+            case CV_BI_HLSL_TEXTURE2D: hlslTypeName = "TEXTURE2D"; break;
+            case CV_BI_HLSL_TEXTURE2D_ARRAY: hlslTypeName = "TEXTURE2D_ARRAY"; break;
+            case CV_BI_HLSL_TEXTURE3D: hlslTypeName = "TEXTURE3D"; break;
+            case CV_BI_HLSL_TEXTURECUBE: hlslTypeName = "TEXTURECUBE"; break;
+            case CV_BI_HLSL_TEXTURECUBE_ARRAY: hlslTypeName = "TEXTURECUBE_ARRAY"; break;
+            case CV_BI_HLSL_TEXTURE2DMS: hlslTypeName = "TEXTURE2DMS"; break;
+            case CV_BI_HLSL_TEXTURE2DMS_ARRAY: hlslTypeName = "TEXTURE2DMS_ARRAY"; break;
+            case CV_BI_HLSL_SAMPLER: hlslTypeName = "SAMPLER"; break;
+            case CV_BI_HLSL_SAMPLERCOMPARISON: hlslTypeName = "SAMPLERCOMPARISON"; break;
+            case CV_BI_HLSL_BUFFER: hlslTypeName = "BUFFER"; break;
+            case CV_BI_HLSL_POINTSTREAM: hlslTypeName = "POINTSTREAM"; break;
+            case CV_BI_HLSL_LINESTREAM: hlslTypeName = "LINESTREAM"; break;
+            case CV_BI_HLSL_TRIANGLESTREAM: hlslTypeName = "TRIANGLESTREAM"; break;
+            case CV_BI_HLSL_INPUTPATCH: hlslTypeName = "INPUTPATCH"; break;
+            case CV_BI_HLSL_OUTPUTPATCH: hlslTypeName = "OUTPUTPATCH"; break;
+            case CV_BI_HLSL_RWTEXTURE1D: hlslTypeName = "RWTEXTURE1D"; break;
+            case CV_BI_HLSL_RWTEXTURE1D_ARRAY: hlslTypeName = "RWTEXTURE1D_ARRAY"; break;
+            case CV_BI_HLSL_RWTEXTURE2D: hlslTypeName = "RWTEXTURE2D"; break;
+            case CV_BI_HLSL_RWTEXTURE2D_ARRAY: hlslTypeName = "RWTEXTURE2D_ARRAY"; break;
+            case CV_BI_HLSL_RWTEXTURE3D: hlslTypeName = "RWTEXTURE3D"; break;
+            case CV_BI_HLSL_RWBUFFER: hlslTypeName = "RWBUFFER"; break;
+            case CV_BI_HLSL_BYTEADDRESS_BUFFER: hlslTypeName = "BYTEADDRESS_BUFFER"; break;
+            case CV_BI_HLSL_RWBYTEADDRESS_BUFFER: hlslTypeName = "RWBYTEADDRESS_BUFFER"; break;
+            case CV_BI_HLSL_STRUCTURED_BUFFER: hlslTypeName = "STRUCTURED_BUFFER"; break;
+            case CV_BI_HLSL_RWSTRUCTURED_BUFFER: hlslTypeName = "RWSTRUCTURED_BUFFER"; break;
+            case CV_BI_HLSL_APPEND_STRUCTURED_BUFFER:
+              hlslTypeName = "APPEND_STRUCTURED_BUFFER";
+              break;
+            case CV_BI_HLSL_CONSUME_STRUCTURED_BUFFER:
+              hlslTypeName = "CONSUME_STRUCTURED_BUFFER";
+              break;
+            case CV_BI_HLSL_MIN8FLOAT: hlslTypeName = "MIN8FLOAT"; break;
+            case CV_BI_HLSL_MIN10FLOAT: hlslTypeName = "MIN10FLOAT"; break;
+            case CV_BI_HLSL_MIN16FLOAT: hlslTypeName = "MIN16FLOAT"; break;
+            case CV_BI_HLSL_MIN12INT: hlslTypeName = "MIN12INT"; break;
+            case CV_BI_HLSL_MIN16INT: hlslTypeName = "MIN16INT"; break;
+            case CV_BI_HLSL_MIN16UINT: hlslTypeName = "MIN16UINT"; break;
+            default: hlslTypeName = "Unknown type";
+          }
+
+          SPDBLOG("Type %x is an hlsl %s[%u] (subtype %x)", id, hlslTypeName, hlsl->numprops,
+                  hlsl->subtype);
+          break;
+        }
+        case LF_MODIFIER_EX:
+        {
+          lfModifierEx *modifier = (lfModifierEx *)leaf;
+          SPDBLOG("Type %x is %x modified with:", id, modifier->type);
+
+          typeInfo[id] = typeInfo[modifier->type];
+
+          uint16_t *mods = (uint16_t *)modifier->mods;
+          for(unsigned short i = 0; i < modifier->count; i++)
+          {
+            CV_modifier_e mod = (CV_modifier_e)mods[i];
+
+            const char *modName = "";
+            switch(mod)
+            {
+              case CV_MOD_CONST: modName = "CONST"; break;
+              case CV_MOD_VOLATILE: modName = "VOLATILE"; break;
+              case CV_MOD_UNALIGNED: modName = "UNALIGNED"; break;
+              case CV_MOD_HLSL_UNIFORM: modName = "HLSL_UNIFORM"; break;
+              case CV_MOD_HLSL_LINE: modName = "HLSL_LINE"; break;
+              case CV_MOD_HLSL_TRIANGLE: modName = "HLSL_TRIANGLE"; break;
+              case CV_MOD_HLSL_LINEADJ: modName = "HLSL_LINEADJ"; break;
+              case CV_MOD_HLSL_TRIANGLEADJ: modName = "HLSL_TRIANGLEADJ"; break;
+              case CV_MOD_HLSL_LINEAR: modName = "HLSL_LINEAR"; break;
+              case CV_MOD_HLSL_CENTROID: modName = "HLSL_CENTROID"; break;
+              case CV_MOD_HLSL_CONSTINTERP: modName = "HLSL_CONSTINTERP"; break;
+              case CV_MOD_HLSL_NOPERSPECTIVE: modName = "HLSL_NOPERSPECTIVE"; break;
+              case CV_MOD_HLSL_SAMPLE: modName = "HLSL_SAMPLE"; break;
+              case CV_MOD_HLSL_CENTER: modName = "HLSL_CENTER"; break;
+              case CV_MOD_HLSL_SNORM: modName = "HLSL_SNORM"; break;
+              case CV_MOD_HLSL_UNORM: modName = "HLSL_UNORM"; break;
+              case CV_MOD_HLSL_PRECISE: modName = "HLSL_PRECISE"; break;
+              case CV_MOD_HLSL_UAV_GLOBALLY_COHERENT: modName = "HLSL_UAV_GLOBALLY_COHERENT"; break;
+              default: modName = "Unknown modification";
+            }
+
+            SPDBLOG("  + %s", modName);
+          }
+          break;
+        }
+        case LF_FIELDLIST:
+        {
+          lfFieldList *fieldList = (lfFieldList *)leaf;
+          SPDBLOG("Type %x is a field list containing:", id);
+
+          uint32_t idx = 0;
+
+          byte *iter = (byte *)fieldList->data;
+          while(iter < bytes)
+          {
+            if(*iter >= LF_PAD0)
+            {
+              iter += (*iter) - LF_PAD0;
+              continue;
+            }
+
+            LEAF_ENUM_e memberType = LEAF_ENUM_e(*(uint16_t *)iter);
+
+            switch(memberType)
+            {
+              case LF_MEMBER:
+              {
+                lfMember *member = (lfMember *)iter;
+
+                uint16_t *byteoffset = (uint16_t *)member->offset;
+                char *name = (char *)(byteoffset + 1);
+
+                char *access = "???";
+
+                if(member->attr.access == 1)
+                  access = "private";
+                else if(member->attr.access == 2)
+                  access = "protected";
+                else if(member->attr.access == 3)
+                  access = "public";
+
+                SPDBLOG("  [%u]: %x %s (%s) (at offset %u bytes)", idx, member->index, name, access,
+                        *byteoffset);
+
+                idx++;
+
+                iter = (byte *)(name + strlen(name) + 1);
+                break;
+              }
+              case LF_ONEMETHOD:
+              {
+                lfOneMethod *method = (lfOneMethod *)iter;
+
+                iter = (byte *)method->vbaseoff;
+
+                // MTintro = 0x04, MTpureintro = 0x06
+                if(method->attr.mprop == 0x04 || method->attr.mprop == 0x06)
+                {
+                  iter += 4;
+                }
+
+                char *name = (char *)iter;
+                iter += strlen(name) + 1;
+
+                char *access = "???";
+
+                if(method->attr.access == 1)
+                  access = "private";
+                else if(method->attr.access == 2)
+                  access = "protected";
+                else if(method->attr.access == 3)
+                  access = "public";
+
+                SPDBLOG("  [%u]: Method %s (%s) (at offset %u bytes)", idx, name, access);
+
+                idx++;
+                break;
+              }
+              case LF_BINTERFACE:
+              {
+                lfBClass *binterface = (lfBClass *)iter;
+
+                char *access = "???";
+
+                if(binterface->attr.access == 1)
+                  access = "private";
+                else if(binterface->attr.access == 2)
+                  access = "protected";
+                else if(binterface->attr.access == 3)
+                  access = "public";
+
+                SPDBLOG("  [%u]: %x Interface (%s)", idx, binterface->index, access);
+
+                iter = (byte *)binterface->offset + 2;
+
+                idx++;
+                break;
+              }
+              default:
+              {
+                RDCERR("Unexpected member type %x", memberType);
+                // skip the remaining data as we don't know how to safely advance - no length fields
+                // to use
+                iter = bytes;
+                break;
+              }
+            }
+          }
+          break;
+        }
+        case LF_ARGLIST:
+        {
+          lfArgList *argList = (lfArgList *)leaf;
+          SPDBLOG("Type %x is a field list containing:", id);
+
+          for(unsigned long i = 0; i < argList->count; i++)
+            SPDBLOG("  %x", argList->arg[i]);
+          break;
+        }
+        case LF_INTERFACE:
+        case LF_CLASS:
+        case LF_STRUCTURE:
+        {
+          lfStructure *structure = (lfStructure *)leaf;
+          // documentation isn't clear, but seems like byte size is always a uint16_t
+          uint16_t *bytelength = (uint16_t *)structure->data;
+          char *name = (char *)(bytelength + 1);
+
+          const char *structType = "struct";
+          if(type == LF_INTERFACE)
+            structType = "interface";
+          else if(type == LF_CLASS)
+            structType = "class";
+
+          SPDBLOG(
+              "Type %x is '%s': a %s with %u fields %x derived from %x and vshape %x over %u "
+              "bytes",
+              id, name, structType, structure->count, structure->field, structure->derived,
+              structure->vshape, *bytelength);
+          break;
+        }
+        case LF_PROCEDURE:
+        {
+          lfProc *procedure = (lfProc *)leaf;
+          SPDBLOG("Type %x is a procedure returning %x with %u args: %x", id, procedure->rvtype,
+                  procedure->parmcount, procedure->arglist);
+          break;
+        }
+        case LF_MFUNCTION:
+        {
+          lfMFunc *mfunction = (lfMFunc *)leaf;
+          SPDBLOG("Type %x is a member function of class %x returning %x with %u args: %x", id,
+                  mfunction->classtype, mfunction->rvtype, mfunction->parmcount, mfunction->arglist);
+          break;
+        }
+        default:
+        {
+          SPDBLOG("Encountered unknown type leaf %x", type);
+          break;
+        }
+      }
+      id++;
+    }
+
+    RDCASSERT(id == tpi->typeMax);
+  }
+
   if(streams.size() >= 5)
   {
     SPDBLOG("Got function calls stream");
@@ -668,25 +1019,33 @@ SPDBChunk::SPDBChunk(void *chunk)
       {
         DEFRANGESYMHLSL *defrange = (DEFRANGESYMHLSL *)sym;
 
+        LocalMapping mapping;
+
+        bool indexable = false;
         const char *regtype = "";
         const char *regprefix = "?";
         switch((CV_HLSLREG_e)defrange->regType)
         {
           case CV_HLSLREG_TEMP:
+            mapping.var.registerType = RegisterType::Temporary;
             regtype = "temp";
             regprefix = "r";
             break;
           case CV_HLSLREG_INPUT:
+            mapping.var.registerType = RegisterType::Input;
             regtype = "input";
             regprefix = "v";
             break;
           case CV_HLSLREG_OUTPUT:
+            mapping.var.registerType = RegisterType::Output;
             regtype = "output";
             regprefix = "o";
             break;
           case CV_HLSLREG_INDEXABLE_TEMP:
+            mapping.var.registerType = RegisterType::IndexedTemporary;
             regtype = "indexable";
             regprefix = "x";
+            indexable = true;
             break;
           default: break;
         }
@@ -709,9 +1068,9 @@ SPDBChunk::SPDBChunk(void *chunk)
 
         char regcomps[] = "xyzw";
 
-        uint32_t regindex = regoffset / 16;
+        uint32_t regindex = indexable ? regoffset : regoffset / 16;
         uint32_t regfirstcomp = (regoffset % 16) / 4;
-        uint32_t regnumcomps = defrange->sizeInParent / 4;
+        uint32_t regnumcomps = indexable ? 4 : defrange->sizeInParent / 4;
 
         char *regswizzle = regcomps;
         regswizzle += regfirstcomp;
@@ -719,8 +1078,22 @@ SPDBChunk::SPDBChunk(void *chunk)
 
         SPDBLOG("Stored in %s%u.%s", regprefix, regindex, regswizzle);
 
+        mapping.var.localName = localName;
+
+        mapping.var.variableType = typeInfo[localType];
+
+        mapping.var.registerIndex = regindex;
+        for(uint32_t i = 0; i < regnumcomps; i++)
+        {
+          mapping.var.registerSwizzle[i] = uint8_t(regfirstcomp + i);
+          mapping.var.variableSwizzle[i] = uint8_t((defrange->offsetParent % 16) / 4 + i);
+        }
+
         SPDBLOG("Valid from %x to %x", defrange->range.offStart,
                 defrange->range.offStart + defrange->range.cbRange);
+
+        mapping.range.startRange = defrange->range.offStart;
+        mapping.range.endRange = defrange->range.offStart + defrange->range.cbRange;
 
         const CV_LVAR_ADDR_GAP *gaps = CV_DEFRANGESYMHLSL_GAPS_CONST_PTR(defrange);
         size_t gapcount = CV_DEFRANGESYMHLSL_GAPS_COUNT(defrange);
@@ -730,7 +1103,16 @@ SPDBChunk::SPDBChunk(void *chunk)
         {
           SPDBLOG("  Gap %zu: %x -> %x", i, defrange->range.offStart + gaps[i].gapStartOffset,
                   defrange->range.offStart + gaps[i].gapStartOffset + gaps[i].cbRange);
+
+          LocalRange r = {defrange->range.offStart + gaps[i].gapStartOffset,
+                          defrange->range.offStart + gaps[i].gapStartOffset + gaps[i].cbRange};
+
+          mapping.gaps.push_back(r);
         }
+
+        // don't add input variables as they don't change
+        if(mapping.var.registerType != RegisterType::Input)
+          m_Locals.push_back(mapping);
       }
       else if(type == S_INLINESITE_END)
       {
@@ -1041,6 +1423,8 @@ SPDBChunk::SPDBChunk(void *chunk)
     it->second.fileIndex = remapping[filenames[it->second.fileIndex]];
   }
 
+  std::sort(m_Locals.begin(), m_Locals.end());
+
   m_HasDebugInfo = true;
 }
 
@@ -1066,6 +1450,110 @@ void SPDBChunk::GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> 
     stack.resize(it->second.stack.size());
     for(size_t i = 0; i < stack.size(); i++)
       stack[i] = it->second.stack[i];
+  }
+}
+
+bool SPDBChunk::HasLocals() const
+{
+  return true;
+}
+
+void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
+                          rdcarray<LocalVariableMapping> &locals) const
+{
+  locals.clear();
+
+  for(auto it = m_Locals.begin(); it != m_Locals.end(); ++it)
+  {
+    if(it->range.startRange > offset)
+      break;
+
+    if(it->range.endRange <= offset)
+      continue;
+
+    bool ingap = false;
+
+    for(auto gapit = it->gaps.begin(); gapit != it->gaps.end(); gapit++)
+    {
+      if(gapit->startRange >= offset && gapit->endRange < offset)
+      {
+        ingap = true;
+        break;
+      }
+    }
+
+    if(ingap)
+      continue;
+
+    bool added = false;
+
+    // check for duplicate registers
+    for(LocalVariableMapping &a : locals)
+    {
+      const LocalVariableMapping &b = it->var;
+
+      // if the mapping was the same register, same variable, etc
+      if(a.registerIndex == b.registerIndex && a.registerType == b.registerType &&
+         a.variableType == b.variableType && a.localName == b.localName)
+      {
+        // insert b into a, in variableSwizzle sorted order. Note the number of nested loops might
+        // seem scary but they only iterate up to 4 and in many cases will early out.
+        for(int i = 0; i < 4; i++)
+        {
+          if(b.variableSwizzle[i] == -1)
+            break;
+
+          for(int j = 0; j < 4; j++)
+          {
+            if(a.variableSwizzle[j] == b.variableSwizzle[i])
+            {
+              // allow overlaps as long as they come from the same register component
+              RDCASSERT(a.registerSwizzle[j] == b.registerSwizzle[i]);
+              break;
+            }
+            else if(a.variableSwizzle[j] == -1)
+            {
+              // if we reached the end of the swizzles, just append our swizzle here as we know it's
+              // in sorted order
+              a.variableSwizzle[j] = b.variableSwizzle[i];
+              RDCASSERT(a.registerSwizzle[j] == -1);
+              a.registerSwizzle[j] = b.registerSwizzle[i];
+              break;
+            }
+            else if(a.variableSwizzle[j] < b.variableSwizzle[i])
+            {
+              // keep going if we haven't found where we want to insert this component yet
+              continue;
+            }
+            else    // a.variableSwizzle[j] > b.variableSwizzle[i]
+            {
+              // we shouldn't reach here on the last element, since then we should have found an
+              // exact match above - there are only 4 possible components
+              RDCASSERT(j < 3);
+
+              // the hard case - we need to insert our new component in the middle.
+              // First, shift everything up by one starting from the end and moving j to j+1
+              for(int k = 3; k > j; k--)
+              {
+                a.variableSwizzle[k] = a.variableSwizzle[k - 1];
+                a.registerSwizzle[k] = a.registerSwizzle[k - 1];
+              }
+
+              // now insert our variable
+              a.variableSwizzle[j] = b.variableSwizzle[i];
+              a.registerSwizzle[j] = b.registerSwizzle[i];
+              break;
+            }
+          }
+        }
+
+        added = true;
+        break;
+      }
+    }
+
+    if(!added)
+      locals.push_back(it->var);
   }
 }
 

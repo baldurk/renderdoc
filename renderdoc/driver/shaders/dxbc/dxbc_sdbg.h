@@ -264,6 +264,9 @@ public:
                    std::string &func) const;
   void GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const;
 
+  bool HasLocals() const;
+  void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;
+
 private:
   SDBGChunk();
   SDBGChunk(const SDBGChunk &);

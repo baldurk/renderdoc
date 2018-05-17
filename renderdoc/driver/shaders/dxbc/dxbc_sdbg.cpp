@@ -120,6 +120,16 @@ void SDBGChunk::GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> 
   stack = {"Stack not available"};
 }
 
+bool SDBGChunk::HasLocals() const
+{
+  return false;
+}
+
+void SDBGChunk::GetLocals(size_t instruction, uintptr_t offset,
+                          rdcarray<LocalVariableMapping> &locals) const
+{
+}
+
 string SDBGChunk::GetSymbolName(int symbolID)
 {
   RDCASSERT(symbolID >= 0 && symbolID < (int)m_SymbolTable.size());

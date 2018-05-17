@@ -249,6 +249,26 @@ struct PDBStream
   vector<uint32_t> pageIndices;
 };
 
+struct LocalRange
+{
+  uint32_t startRange;
+  uint32_t endRange;
+
+  bool operator==(const LocalRange &o) const
+  {
+    return startRange == o.startRange && endRange == o.endRange;
+  }
+};
+
+struct LocalMapping
+{
+  bool operator<(const LocalMapping &o) const { return range.startRange < o.range.startRange; }
+  LocalRange range;
+  std::vector<LocalRange> gaps;
+
+  LocalVariableMapping var;
+};
+
 class SPDBChunk : public DXBCDebugChunk
 {
 public:
@@ -262,6 +282,9 @@ public:
                    std::string &func) const;
   void GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const;
 
+  bool HasLocals() const;
+  void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;
+
 private:
   SPDBChunk(const SPDBChunk &);
   SPDBChunk &operator=(const SPDBChunk &o);
@@ -274,6 +297,8 @@ private:
   std::string m_Profile;
 
   uint32_t m_ShaderFlags;
+
+  std::vector<LocalMapping> m_Locals;
 
   std::map<uint32_t, Function> m_Functions;
   std::map<uint32_t, LineColumnInfo> m_Lines;

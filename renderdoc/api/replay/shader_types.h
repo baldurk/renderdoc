@@ -226,6 +226,69 @@ struct ShaderVariable
 
 DECLARE_REFLECTION_STRUCT(ShaderVariable);
 
+DOCUMENT(R"(Refers to a shader variable in a :class:`ShaderDebugState` as a high-level local
+variable, with type information. Since locals don't always map directly this can change over time.
+
+Locals can also be split and mapped to multiple registers, so a given high level variable may appear
+several times with different subsections.
+)");
+struct LocalVariableMapping
+{
+  DOCUMENT("");
+  bool operator==(const LocalVariableMapping &o) const
+  {
+    return localName == o.localName && variableType == o.variableType &&
+           registerType == o.registerType && registerIndex == o.registerIndex &&
+           registerSwizzle == o.registerSwizzle;
+  }
+  bool operator<(const LocalVariableMapping &o) const
+  {
+    if(!(localName == o.localName))
+      return localName < o.localName;
+    if(!(variableType == o.variableType))
+      return variableType < o.variableType;
+    if(!(registerType == o.registerType))
+      return registerType < o.registerType;
+    if(!(registerIndex == o.registerIndex))
+      return registerIndex < o.registerIndex;
+    for(int i = 0; i < 4; i++)
+    {
+      if(!(registerSwizzle[i] == o.registerSwizzle[i]))
+        return registerSwizzle[i] < o.registerSwizzle[i];
+    }
+    for(int i = 0; i < 4; i++)
+    {
+      if(!(variableSwizzle[i] == o.variableSwizzle[i]))
+        return variableSwizzle[i] < o.variableSwizzle[i];
+    }
+    return false;
+  }
+  DOCUMENT("The name and member of this local variable that's being mapped from.");
+  rdcstr localName;
+
+  DOCUMENT("The variable type of the local being mapped from, if the register is untyped.");
+  VarType variableType = VarType::Unknown;
+
+  DOCUMENT("The :class:`RegisterType` of the register being mapped to.");
+  RegisterType registerType = RegisterType::Temporary;
+
+  DOCUMENT("The index of the register within its type.");
+  uint32_t registerIndex = 0;
+
+  DOCUMENT(R"(A swizzle mask - each element in the list is set to the component of the register to
+map the variable component to. If an element is -1, there is no source component (i.e. not all 4
+components are used). This list will have the same number of elements as :data:`variableSwizzle`.
+)");
+  int8_t registerSwizzle[4] = {-1, -1, -1, -1};
+
+  DOCUMENT(R"(A swizzle mask - each element in the list is set to the component of the variable
+being mapped from. If an element is -1, there is no source component (i.e. not all 4
+components are used). This list will have the same number of elements as :data:`registerSwizzle`.
+)");
+  int8_t variableSwizzle[4] = {-1, -1, -1, -1};
+};
+DECLARE_REFLECTION_STRUCT(LocalVariableMapping);
+
 DOCUMENT(R"(This stores the current state of shader debugging at one particular step in the shader,
 with all mutable variable contents.
 )");
@@ -235,7 +298,8 @@ struct ShaderDebugState
   bool operator==(const ShaderDebugState &o) const
   {
     return registers == o.registers && outputs == o.outputs && indexableTemps == o.indexableTemps &&
-           nextInstruction == o.nextInstruction && flags == o.flags && callstack == o.callstack;
+           locals == o.locals && nextInstruction == o.nextInstruction && flags == o.flags &&
+           callstack == o.callstack;
   }
   bool operator<(const ShaderDebugState &o) const
   {
@@ -245,6 +309,8 @@ struct ShaderDebugState
       return outputs < o.outputs;
     if(!(indexableTemps == o.indexableTemps))
       return indexableTemps < o.indexableTemps;
+    if(!(locals == o.locals))
+      return locals < o.locals;
     if(!(nextInstruction == o.nextInstruction))
       return nextInstruction < o.nextInstruction;
     if(!(flags == o.flags))
@@ -253,14 +319,18 @@ struct ShaderDebugState
       return callstack < o.callstack;
     return false;
   }
-  DOCUMENT("The temporary variables for this shader as a list of :class:`ShaderValue`.");
+  DOCUMENT("The temporary variables for this shader as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> registers;
-  DOCUMENT("The output variables for this shader as a list of :class:`ShaderValue`.");
+  DOCUMENT("The output variables for this shader as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> outputs;
 
-  DOCUMENT(
-      "Indexable temporary variables for this shader as a list of :class:`ShaderValue` lists.");
+  DOCUMENT("Indexable temporary variables for this shader as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> indexableTemps;
+
+  DOCUMENT(R"(An optional list of :class:`ShaderVariableRef` indicating which high-level locals map
+to which registers, and their type
+)");
+  rdcarray<LocalVariableMapping> locals;
 
   DOCUMENT("An optional callstack listing function calls at the present instruction");
   rdcarray<rdcstr> callstack;
@@ -295,6 +365,9 @@ Each entry in this list corresponds to a constant block with the same index in t
 instruction was executed
 )");
   rdcarray<ShaderDebugState> states;
+
+  DOCUMENT("A flag indicating whether this trace has locals information");
+  bool hasLocals = false;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugTrace);

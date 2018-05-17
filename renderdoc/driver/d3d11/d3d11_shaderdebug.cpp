@@ -941,6 +941,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   vector<ShaderDebugState> states;
 
   dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, initialState.callstack);
+  dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
 
   states.push_back((State)initialState);
 
@@ -956,6 +957,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     {
       const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
       dxbc->m_DebugInfo->GetStack(initialState.nextInstruction, op.offset, initialState.callstack);
+      dxbc->m_DebugInfo->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
     }
 
     states.push_back((State)initialState);
@@ -968,6 +970,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   }
 
   ret.states = states;
+
+  ret.hasLocals = dxbc->m_DebugInfo->HasLocals();
 
   return ret;
 }
@@ -1818,6 +1822,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   vector<ShaderDebugState> states;
 
   dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, quad[destIdx].callstack);
+  dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, quad[destIdx].locals);
 
   states.push_back((State)quad[destIdx]);
 
@@ -1858,6 +1863,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       {
         const ASMOperation &op = dxbc->GetInstruction((size_t)s.nextInstruction);
         dxbc->m_DebugInfo->GetStack(s.nextInstruction, op.offset, s.callstack);
+        dxbc->m_DebugInfo->GetLocals(s.nextInstruction, op.offset, s.locals);
       }
 
       states.push_back(s);
@@ -1953,6 +1959,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   traces[destIdx].states = states;
 
+  traces[destIdx].hasLocals = dxbc->m_DebugInfo->HasLocals();
+
   return traces[destIdx];
 }
 
@@ -2011,6 +2019,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   vector<ShaderDebugState> states;
 
   dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, initialState.callstack);
+  dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
 
   states.push_back((State)initialState);
 
@@ -2024,6 +2033,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     {
       const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
       dxbc->m_DebugInfo->GetStack(initialState.nextInstruction, op.offset, initialState.callstack);
+      dxbc->m_DebugInfo->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
     }
 
     states.push_back((State)initialState);
@@ -2036,6 +2046,8 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   }
 
   ret.states = states;
+
+  ret.hasLocals = dxbc->m_DebugInfo->HasLocals();
 
   return ret;
 }

@@ -342,16 +342,30 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, LocalVariableMapping &el)
+{
+  SERIALISE_MEMBER(localName);
+  SERIALISE_MEMBER(variableType);
+  SERIALISE_MEMBER(registerType);
+  SERIALISE_MEMBER(registerIndex);
+  SERIALISE_MEMBER(registerSwizzle);
+  SERIALISE_MEMBER(variableSwizzle);
+
+  SIZE_CHECK(40);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
 {
   SERIALISE_MEMBER(registers);
   SERIALISE_MEMBER(outputs);
   SERIALISE_MEMBER(indexableTemps);
+  SERIALISE_MEMBER(locals);
   SERIALISE_MEMBER(nextInstruction);
   SERIALISE_MEMBER(flags);
   SERIALISE_MEMBER(callstack);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(88);
 }
 
 template <typename SerialiserType>
@@ -360,8 +374,9 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   SERIALISE_MEMBER(inputs);
   SERIALISE_MEMBER(constantBlocks);
   SERIALISE_MEMBER(states);
+  SERIALISE_MEMBER(hasLocals);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(56);
 }
 
 template <typename SerialiserType>
@@ -2099,6 +2114,7 @@ INSTANTIATE_SERIALISE_TYPE(ShaderCompileFlags)
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugInfo)
 INSTANTIATE_SERIALISE_TYPE(ShaderReflection)
 INSTANTIATE_SERIALISE_TYPE(ShaderVariable)
+INSTANTIATE_SERIALISE_TYPE(LocalVariableMapping);
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugState)
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugTrace)
 INSTANTIATE_SERIALISE_TYPE(ResourceDescription)
