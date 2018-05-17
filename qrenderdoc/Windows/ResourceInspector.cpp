@@ -130,11 +130,15 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 
     ui->relatedResources->setColumns({tr("Type"), tr("Resource")});
     header->setColumnStretchHints({-1, 1});
-
-    ui->relatedResources->setClearSelectionOnFocusLoss(true);
   }
 
-  ui->resourceUsage->setColumns({tr("EID"), tr("Usage")});
+  {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->resourceUsage->setHeader(header);
+
+    ui->resourceUsage->setColumns({tr("EID"), tr("Usage")});
+    header->setColumnStretchHints({-1, 1});
+  }
 
   QObject::connect(ui->resourceList, &QListView::activated, this,
                    &ResourceInspector::resource_doubleClicked);
