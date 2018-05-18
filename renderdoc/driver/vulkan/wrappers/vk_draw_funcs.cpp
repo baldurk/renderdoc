@@ -1008,7 +1008,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
         DrawcallDescription draw;
         draw.name =
-            StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>", args->x, args->y, args->z);
+            StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>)", args->x, args->y, args->z);
         draw.dispatchDimension[0] = args->x;
         draw.dispatchDimension[1] = args->y;
         draw.dispatchDimension[2] = args->z;
