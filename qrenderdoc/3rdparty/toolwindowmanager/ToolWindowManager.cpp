@@ -533,7 +533,7 @@ void ToolWindowManager::raiseToolWindow(QWidget *toolWindow)
   // if the parent is a ToolWindowManagerArea, switch tabs
   QWidget *parent = toolWindow->parentWidget();
   ToolWindowManagerArea *area = qobject_cast<ToolWindowManagerArea *>(parent);
-  if(area == NULL)
+  if(area == NULL && parent)
     parent = parent->parentWidget();
 
   area = qobject_cast<ToolWindowManagerArea *>(parent);
