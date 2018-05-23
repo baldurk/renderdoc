@@ -633,6 +633,9 @@ void PosixHookApply()
   // we just leak this
   void *intercept = InitializeInterceptor();
 
+  std::set<std::string> fallbacklibs;
+  std::set<std::pair<std::string, void *>> fallbackhooks;
+
   for(const std::string &lib : libs)
   {
     void *handle = dlopen(lib.c_str(), RTLD_NOW);
@@ -679,9 +682,15 @@ void PosixHookApply()
           InterceptFunction(intercept, oldfunc, hook.second, &trampoline, &intercept_error);
 
       if(success)
+      {
         HOOK_DEBUG_PRINT("Hooked successfully, trampoline is %p", trampoline);
+      }
       else
+      {
         RDCERR("Failed to hook %s::%s!", lib.c_str(), hook.first.c_str());
+        fallbacklibs.insert(lib);
+        fallbackhooks.insert(hook);
+      }
 
       GetHookInfo().SetHooked(oldfunc);
 
@@ -702,6 +711,18 @@ void PosixHookApply()
   // Unfortunately, interceptor-lib can't hook this function so we need to set up the PLT hooking.
   // This is just a minimal setup to intercept that one function.
   GetHookInfo().ClearHooks();
+
+  for(const std::string &l : fallbacklibs)
+  {
+    RDCLOG("Falling back to PLT hooking for %s", l.c_str());
+    GetHookInfo().AddLibHook(l);
+  }
+
+  for(const std::pair<std::string, void *> &hook : fallbackhooks)
+  {
+    RDCLOG("Falling back to PLT hooking for %s", hook.first.c_str());
+    GetHookInfo().AddFunctionHook(hook.first, hook.second);
+  }
 
   // this already hooks dlopen (if possible) and android_dlopen_ext, which is enough
   PosixHookApplyCommon();
