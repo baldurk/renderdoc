@@ -1439,6 +1439,8 @@ bool WrappedOpenGL::Serialise_glBindFramebuffer(SerialiserType &ser, GLenum targ
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
     m_Real.glBindFramebuffer(target, framebuffer.name);
   }
 
