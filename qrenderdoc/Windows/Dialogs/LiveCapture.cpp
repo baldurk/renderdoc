@@ -396,7 +396,7 @@ void LiveCapture::childUpdate()
   }
 
   // enumerate processes outside of the lock
-  QProcessList processes = QProcessInfo::enumerate();
+  QProcessList processes = QProcessInfo::enumerate(false);
 
   // now since we're adding and removing, we lock around the whole rest of the function. It won't be
   // too slow.
