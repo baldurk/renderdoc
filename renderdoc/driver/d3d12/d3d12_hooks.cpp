@@ -211,7 +211,7 @@ private:
         if(SUCCEEDED(hr) && debug)
         {
           debug->EnableDebugLayer();
-
+          RenderDoc::Inst().SetDX12DebugLayerEnabled(true);
           RDCDEBUG("Enabling debug layer");
 
 // enable this to get GPU-based validation, where available, whenever we enable API validation
