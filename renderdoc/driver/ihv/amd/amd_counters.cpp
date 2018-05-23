@@ -25,6 +25,7 @@
 #include "amd_counters.h"
 #include "common/common.h"
 #include "common/timing.h"
+#include "core/core.h"
 #include "core/plugins.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPIFunctionTypes.h"
 #include "strings/string_utils.h"
@@ -111,9 +112,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
 
   bool disableCounters = false;
 
-#ifndef RELEASE
-
-  if(apiType == ApiType::Dx12)
+  if(apiType == ApiType::Dx12 && RenderDoc::Inst().IsDX12DebugLayerEnabled())
   {
     // Disable counters in DX12 Debug configuration
     void *versionFunc = Process::GetFunctionAddress(module, "GPA_GetVersion");
@@ -123,7 +122,6 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
       disableCounters = true;
     }
   }
-#endif
 
   if(disableCounters)
   {
@@ -147,7 +145,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   }
   else
   {
-    delete m_pGPUPerfAPI;
+    SAFE_DELETE(m_pGPUPerfAPI);
     RDCERR("Failed to get GPA function table. Invalid dynamic library?");
     return false;
   }
@@ -167,8 +165,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Initialization failed", status);
-    delete m_pGPUPerfAPI;
-    m_pGPUPerfAPI = NULL;
+    SAFE_DELETE(m_pGPUPerfAPI);
     return false;
   }
 
@@ -179,8 +176,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   {
     GPA_WARNING("Open context for counters failed", status);
     m_pGPUPerfAPI->GPA_Destroy();
-    delete m_pGPUPerfAPI;
-    m_pGPUPerfAPI = NULL;
+    SAFE_DELETE(m_pGPUPerfAPI);
     return false;
   }
 
@@ -218,7 +214,7 @@ AMDCounters::~AMDCounters()
       GPA_ERROR("Destroy failed", status);
     }
 
-    delete m_pGPUPerfAPI;
+    SAFE_DELETE(m_pGPUPerfAPI);
   }
 }
 
@@ -448,7 +444,7 @@ uint32_t AMDCounters::GetPassCount()
 uint32_t AMDCounters::CreateSession()
 {
   uint32_t sessionID = m_gpaSessionCounter;
-  GPA_SessionId gpaSessionId = nullptr;
+  GPA_SessionId gpaSessionId = NULL;
   GPA_Status status = m_pGPUPerfAPI->GPA_CreateSession(
       m_gpaContextId, GPA_SESSION_SAMPLE_TYPE_DISCRETE_COUNTER, &gpaSessionId);
 
@@ -498,7 +494,7 @@ void AMDCounters::InitializeCmdInfo()
     case ApiType::Ogl: break;
     case ApiType::Vk:
     case ApiType::Dx12:
-      if(nullptr == m_gpaCmdListInfo.m_pCommandListMap)
+      if(NULL == m_gpaCmdListInfo.m_pCommandListMap)
       {
         m_gpaCmdListInfo.m_pCommandListMap = new std::map<void *, GPA_CommandListId>();
       }
@@ -513,10 +509,7 @@ void AMDCounters::DeInitializeCmdInfo()
     case ApiType::Dx11:
     case ApiType::Ogl: break;
     case ApiType::Vk:
-    case ApiType::Dx12:
-      delete m_gpaCmdListInfo.m_pCommandListMap;
-      m_gpaCmdListInfo.m_pCommandListMap = nullptr;
-      break;
+    case ApiType::Dx12: SAFE_DELETE(m_gpaCmdListInfo.m_pCommandListMap); break;
   }
 }
 
@@ -656,7 +649,7 @@ void AMDCounters::BeginPass()
 
   if(m_apiType == ApiType::Dx12 || m_apiType == ApiType::Vk)
   {
-    if(nullptr != m_gpaCmdListInfo.m_pCommandListMap)
+    if(NULL != m_gpaCmdListInfo.m_pCommandListMap)
     {
       m_gpaCmdListInfo.m_pCommandListMap->clear();
     }
@@ -735,7 +728,7 @@ void AMDCounters::EndSample(void *pCommandList)
 
 void AMDCounters::BeginCommandList(void *pCommandList)
 {
-  void *cmdList = nullptr;
+  void *cmdList = NULL;
   GPA_Command_List_Type cmdType = GPA_COMMAND_LIST_NONE;
   switch(m_apiType)
   {
@@ -748,7 +741,7 @@ void AMDCounters::BeginCommandList(void *pCommandList)
       break;
   }
 
-  GPA_CommandListId gpaCmdId = nullptr;
+  GPA_CommandListId gpaCmdId = NULL;
   GPA_Status status = m_pGPUPerfAPI->GPA_BeginCommandList(m_gpaSessionInfo.back(), m_passCounter,
                                                           cmdList, cmdType, &gpaCmdId);
 

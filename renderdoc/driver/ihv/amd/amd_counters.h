@@ -70,11 +70,11 @@ public:
   void BeginPass();
   void EndPass();
 
-  void BeginCommandList(void *pCommandList = nullptr);
-  void EndCommandList(void *pCommandList = nullptr);
+  void BeginCommandList(void *pCommandList = NULL);
+  void EndCommandList(void *pCommandList = NULL);
 
-  void BeginSample(uint32_t sampleID, void *pCommandList = nullptr);
-  void EndSample(void *pCommandList = nullptr);
+  void BeginSample(uint32_t sampleID, void *pCommandList = NULL);
+  void EndSample(void *pCommandList = NULL);
 
   // Session data retrieval
   std::vector<CounterResult> GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
@@ -92,7 +92,7 @@ private:
     GPA_CommandListId m_gpaCommandListId;
     std::map<void *, GPA_CommandListId> *m_pCommandListMap;
 
-    GPACmdListInfo() : m_pCommandListMap(nullptr) {}
+    GPACmdListInfo() : m_pCommandListMap(NULL) {}
     ~GPACmdListInfo() {}
   };
 
