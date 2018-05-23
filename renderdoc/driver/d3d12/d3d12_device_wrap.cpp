@@ -371,9 +371,10 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 
       for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
       {
-        if(shaders[i]->BytecodeLength == 0)
+        if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
         {
           shaders[i]->pShaderBytecode = NULL;
+          shaders[i]->BytecodeLength = 0;
         }
         else
         {
