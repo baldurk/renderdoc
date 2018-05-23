@@ -29,6 +29,9 @@
 #include "core/core.h"
 #include "serialise/serialiser.h"
 
+ID3D11Resource *UnwrapDXResource(void *dxObject);
+IDXGIResource *UnwrapDXGIResource(void *dxgiObject);
+
 WRAPPED_POOL_INST(WrappedIDXGIDevice4);
 
 std::vector<D3DDeviceCallback> WrappedIDXGISwapChain4::m_D3DCallbacks;
@@ -827,6 +830,58 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void 
   }
 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+}
+
+std::vector<IDXGIResource *> UnwrapResourceSet(UINT NumResources, IDXGIResource *const *ppResources)
+{
+  std::vector<IDXGIResource *> resources;
+  resources.resize(NumResources);
+  for(UINT i = 0; i < NumResources; i++)
+  {
+    WrappedDXGIInterface<WrappedIDXGIOutput5> *wrapped =
+        (WrappedDXGIInterface<WrappedIDXGIOutput5> *)ppResources[i];
+    resources[i] = UnwrapDXGIResource(wrapped->GetWrapped());
+    if(resources[i] == NULL)
+    {
+      RDCERR("Unrecognised resource %p!", ppResources[i]);
+      resources[i] = ppResources[i];
+    }
+  }
+  return resources;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::OfferResources(UINT NumResources,
+                                                              IDXGIResource *const *ppResources,
+                                                              DXGI_OFFER_RESOURCE_PRIORITY Priority)
+{
+  std::vector<IDXGIResource *> resources = UnwrapResourceSet(NumResources, ppResources);
+  return m_pReal2->OfferResources(NumResources, resources.data(), Priority);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::ReclaimResources(UINT NumResources,
+                                                                IDXGIResource *const *ppResources,
+                                                                BOOL *pDiscarded)
+{
+  std::vector<IDXGIResource *> resources = UnwrapResourceSet(NumResources, ppResources);
+  return m_pReal2->ReclaimResources(NumResources, resources.data(), pDiscarded);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::OfferResources1(UINT NumResources,
+                                                               IDXGIResource *const *ppResources,
+                                                               DXGI_OFFER_RESOURCE_PRIORITY Priority,
+                                                               UINT Flags)
+{
+  std::vector<IDXGIResource *> resources = UnwrapResourceSet(NumResources, ppResources);
+  return m_pReal4->OfferResources1(NumResources, resources.data(), Priority, Flags);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::ReclaimResources1(UINT NumResources,
+                                                                 IDXGIResource *const *ppResources,
+
+                                                                 DXGI_RECLAIM_RESOURCE_RESULTS *pResults)
+{
+  std::vector<IDXGIResource *> resources = UnwrapResourceSet(NumResources, ppResources);
+  return m_pReal4->ReclaimResources1(NumResources, resources.data(), pResults);
 }
 
 WrappedIDXGIFactory5::WrappedIDXGIFactory5(IDXGIFactory *real)

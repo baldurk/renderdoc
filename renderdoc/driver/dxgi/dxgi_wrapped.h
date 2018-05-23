@@ -204,6 +204,7 @@ public:
     m_pDevice->Release();
   }
 
+  NestedType *GetWrapped() { return m_pWrapped; }
   //////////////////////////////
   // Implement IUnknown
   ULONG STDMETHODCALLTYPE AddRef() { return RefCountDXGIObject::AddRef(); }
@@ -1249,10 +1250,7 @@ public:
       /* [annotation][size_is][in] */
       _In_reads_(NumResources) IDXGIResource *const *ppResources,
       /* [annotation][in] */
-      _In_ DXGI_OFFER_RESOURCE_PRIORITY Priority)
-  {
-    return m_pReal2->OfferResources(NumResources, ppResources, Priority);
-  }
+      _In_ DXGI_OFFER_RESOURCE_PRIORITY Priority);
 
   virtual HRESULT STDMETHODCALLTYPE ReclaimResources(
       /* [annotation][in] */
@@ -1260,10 +1258,7 @@ public:
       /* [annotation][size_is][in] */
       _In_reads_(NumResources) IDXGIResource *const *ppResources,
       /* [annotation][size_is][out] */
-      _Out_writes_all_opt_(NumResources) BOOL *pDiscarded)
-  {
-    return m_pReal2->ReclaimResources(NumResources, ppResources, pDiscarded);
-  }
+      _Out_writes_all_opt_(NumResources) BOOL *pDiscarded);
 
   virtual HRESULT STDMETHODCALLTYPE EnqueueSetEvent(
       /* [annotation][in] */
@@ -1287,10 +1282,7 @@ public:
       /* [annotation][in] */
       _In_ DXGI_OFFER_RESOURCE_PRIORITY Priority,
       /* [annotation][in] */
-      _In_ UINT Flags)
-  {
-    return m_pReal4->OfferResources1(NumResources, ppResources, Priority, Flags);
-  }
+      _In_ UINT Flags);
 
   virtual HRESULT STDMETHODCALLTYPE ReclaimResources1(
       /* [annotation][in] */
@@ -1298,10 +1290,7 @@ public:
       /* [annotation][size_is][in] */
       _In_reads_(NumResources) IDXGIResource *const *ppResources,
       /* [annotation][size_is][out] */
-      _Out_writes_all_(NumResources) DXGI_RECLAIM_RESOURCE_RESULTS *pResults)
-  {
-    return m_pReal4->ReclaimResources1(NumResources, ppResources, pResults);
-  }
+      _Out_writes_all_(NumResources) DXGI_RECLAIM_RESOURCE_RESULTS *pResults);
 };
 
 class WrappedIDXGIFactory5 : public IDXGIFactory5, public RefCountDXGIObject
