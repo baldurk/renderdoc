@@ -280,8 +280,7 @@ struct D3D11RenderState
   }
   void SetDevice(WrappedID3D11Device *device) { m_pDevice = device; }
   void MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const;
-  void CacheViewportPartial();
-  bool IsViewportPartial() { return m_ViewportScissorPartial; }
+
 private:
   template <class SerialiserType>
   friend void DoSerialise(SerialiserType &ser, D3D11RenderState &el);
@@ -290,7 +289,6 @@ private:
   void ReleaseRefs();
 
   bool m_ImmediatePipeline;
-  bool m_ViewportScissorPartial;
   WrappedID3D11Device *m_pDevice;
 };
 

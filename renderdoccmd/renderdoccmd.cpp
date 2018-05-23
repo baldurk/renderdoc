@@ -1250,8 +1250,6 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
               "Capturing Option: Hooks any system API calls that create child processes.");
       cmd.add("opt-ref-all-resources", 0,
               "Capturing Option: Include all live resources, not just those used by a frame.");
-      cmd.add("opt-save-all-initials", 0,
-              "Capturing Option: Save all initial resource contents at frame start.");
       cmd.add("opt-capture-all-cmd-lists", 0,
               "Capturing Option: In D3D11, record all command lists from application start.");
     }
@@ -1281,8 +1279,6 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
         opts.hookIntoChildren = true;
       if(cmd.exist("opt-ref-all-resources"))
         opts.refAllResources = true;
-      if(cmd.exist("opt-save-all-initials"))
-        opts.saveAllInitials = true;
       if(cmd.exist("opt-capture-all-cmd-lists"))
         opts.captureAllCmdLists = true;
 

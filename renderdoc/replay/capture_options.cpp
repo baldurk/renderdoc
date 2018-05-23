@@ -45,7 +45,9 @@ int RENDERDOC_CC SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
     case eRENDERDOC_Option_VerifyMapWrites: opts.verifyMapWrites = (val != 0); break;
     case eRENDERDOC_Option_HookIntoChildren: opts.hookIntoChildren = (val != 0); break;
     case eRENDERDOC_Option_RefAllResources: opts.refAllResources = (val != 0); break;
-    case eRENDERDOC_Option_SaveAllInitials: opts.saveAllInitials = (val != 0); break;
+    case eRENDERDOC_Option_SaveAllInitials:
+      // option is deprecated
+      break;
     case eRENDERDOC_Option_CaptureAllCmdLists: opts.captureAllCmdLists = (val != 0); break;
     case eRENDERDOC_Option_DebugOutputMute: opts.debugOutputMute = (val != 0); break;
     default: RDCLOG("Unrecognised capture option '%d'", opt); return 0;
@@ -72,7 +74,9 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
     case eRENDERDOC_Option_VerifyMapWrites: opts.verifyMapWrites = (val != 0.0f); break;
     case eRENDERDOC_Option_HookIntoChildren: opts.hookIntoChildren = (val != 0.0f); break;
     case eRENDERDOC_Option_RefAllResources: opts.refAllResources = (val != 0.0f); break;
-    case eRENDERDOC_Option_SaveAllInitials: opts.saveAllInitials = (val != 0.0f); break;
+    case eRENDERDOC_Option_SaveAllInitials:
+      // option is deprecated
+      break;
     case eRENDERDOC_Option_CaptureAllCmdLists: opts.captureAllCmdLists = (val != 0.0f); break;
     case eRENDERDOC_Option_DebugOutputMute: opts.debugOutputMute = (val != 0.0f); break;
     default: RDCLOG("Unrecognised capture option '%d'", opt); return 0;
@@ -105,7 +109,8 @@ uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt)
     case eRENDERDOC_Option_RefAllResources:
       return (RenderDoc::Inst().GetCaptureOptions().refAllResources ? 1 : 0);
     case eRENDERDOC_Option_SaveAllInitials:
-      return (RenderDoc::Inst().GetCaptureOptions().saveAllInitials ? 1 : 0);
+      // option is deprecated - always enabled
+      return 1;
     case eRENDERDOC_Option_CaptureAllCmdLists:
       return (RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists ? 1 : 0);
     case eRENDERDOC_Option_DebugOutputMute:
@@ -140,7 +145,8 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
     case eRENDERDOC_Option_RefAllResources:
       return (RenderDoc::Inst().GetCaptureOptions().refAllResources ? 1.0f : 0.0f);
     case eRENDERDOC_Option_SaveAllInitials:
-      return (RenderDoc::Inst().GetCaptureOptions().saveAllInitials ? 1.0f : 0.0f);
+      // option is deprecated - always enabled
+      return 1.0f;
     case eRENDERDOC_Option_CaptureAllCmdLists:
       return (RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists ? 1.0f : 0.0f);
     case eRENDERDOC_Option_DebugOutputMute:
@@ -163,7 +169,6 @@ CaptureOptions::CaptureOptions()
   verifyMapWrites = false;
   hookIntoChildren = false;
   refAllResources = false;
-  saveAllInitials = false;
   captureAllCmdLists = false;
   debugOutputMute = true;
 }

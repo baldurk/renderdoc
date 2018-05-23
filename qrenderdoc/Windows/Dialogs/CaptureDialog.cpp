@@ -825,7 +825,6 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->CaptureCallstacksOnlyDraws->setChecked(settings.options.captureCallstacksOnlyDraws);
   ui->APIValidation->setChecked(settings.options.apiValidation);
   ui->RefAllResources->setChecked(settings.options.refAllResources);
-  ui->SaveAllInitials->setChecked(settings.options.saveAllInitials);
   ui->DelayForDebugger->setValue(settings.options.delayForDebugger);
   ui->VerifyMapWrites->setChecked(settings.options.verifyMapWrites);
   ui->AutoStart->setChecked(settings.autoStart);
@@ -860,7 +859,6 @@ CaptureSettings CaptureDialog::Settings()
   ret.options.captureCallstacksOnlyDraws = ui->CaptureCallstacksOnlyDraws->isChecked();
   ret.options.apiValidation = ui->APIValidation->isChecked();
   ret.options.refAllResources = ui->RefAllResources->isChecked();
-  ret.options.saveAllInitials = ui->SaveAllInitials->isChecked();
   ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
   ret.options.delayForDebugger = (uint32_t)ui->DelayForDebugger->value();
   ret.options.verifyMapWrites = ui->VerifyMapWrites->isChecked();

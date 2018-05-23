@@ -46,7 +46,6 @@ D3D11RenderState::D3D11RenderState(D3D11RenderState::EmptyInit)
   Clear();
 
   m_ImmediatePipeline = false;
-  m_ViewportScissorPartial = true;
   m_pDevice = NULL;
 }
 
@@ -90,8 +89,6 @@ void D3D11RenderState::CopyState(const D3D11RenderState &other)
 
   Predicate = other.Predicate;
   PredicateValue = other.PredicateValue;
-
-  m_ViewportScissorPartial = other.m_ViewportScissorPartial;
 
   AddRefs();
 }
@@ -243,9 +240,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     {
       ctx->MarkResourceReferenced(GetIDForResource(OM.RenderTargets[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
-      if(m_ViewportScissorPartial)
-        ctx->MarkResourceReferenced(GetViewResourceResID(OM.RenderTargets[i]),
-                                    initial ? eFrameRef_Unknown : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetViewResourceResID(OM.RenderTargets[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Write);
     }
@@ -271,9 +265,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
   {
     ctx->MarkResourceReferenced(GetIDForResource(OM.DepthView),
                                 initial ? eFrameRef_Unknown : eFrameRef_Read);
-    if(m_ViewportScissorPartial)
-      ctx->MarkResourceReferenced(GetViewResourceResID(OM.DepthView),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
     ctx->MarkResourceReferenced(GetViewResourceResID(OM.DepthView),
                                 initial ? eFrameRef_Unknown : eFrameRef_Write);
   }
@@ -282,96 +273,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
   {
     ctx->MarkResourceReferenced(GetIDForResource(Predicate),
                                 initial ? eFrameRef_Unknown : eFrameRef_Read);
-  }
-}
-
-void D3D11RenderState::CacheViewportPartial()
-{
-  // tracks the min region of the enabled viewports plus scissors, to see if we could potentially
-  // partially-update a render target (ie. we know for sure that we are only
-  // writing to a region in one of the viewports). In this case we mark the
-  // RT/DSV as read-write instead of just write, for initial state tracking.
-  D3D11_RECT viewportScissorMin = {0, 0, 0xfffffff, 0xfffffff};
-
-  D3D11_RASTERIZER_DESC rsdesc;
-  RDCEraseEl(rsdesc);
-  rsdesc.ScissorEnable = FALSE;
-  if(RS.State)
-    RS.State->GetDesc(&rsdesc);
-
-  for(UINT v = 0; v < RS.NumViews; v++)
-  {
-    D3D11_RECT scissor = {(LONG)RS.Viewports[v].TopLeftX, (LONG)RS.Viewports[v].TopLeftY,
-                          (LONG)RS.Viewports[v].Width, (LONG)RS.Viewports[v].Height};
-
-    // scissor (if set) is relative to matching viewport)
-    if(v < RS.NumScissors && rsdesc.ScissorEnable)
-    {
-      scissor.left += RS.Scissors[v].left;
-      scissor.top += RS.Scissors[v].top;
-      scissor.right = RDCMIN(scissor.right, RS.Scissors[v].right - RS.Scissors[v].left);
-      scissor.bottom = RDCMIN(scissor.bottom, RS.Scissors[v].bottom - RS.Scissors[v].top);
-    }
-
-    viewportScissorMin.left = RDCMAX(viewportScissorMin.left, scissor.left);
-    viewportScissorMin.top = RDCMAX(viewportScissorMin.top, scissor.top);
-    viewportScissorMin.right = RDCMIN(viewportScissorMin.right, scissor.right);
-    viewportScissorMin.bottom = RDCMIN(viewportScissorMin.bottom, scissor.bottom);
-  }
-
-  m_ViewportScissorPartial = false;
-
-  if(viewportScissorMin.left > 0 || viewportScissorMin.top > 0)
-  {
-    m_ViewportScissorPartial = true;
-  }
-  else
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.RenderTargets[0])
-      OM.RenderTargets[0]->GetResource(&res);
-    else if(OM.DepthView)
-      OM.DepthView->GetResource(&res);
-
-    if(res)
-    {
-      D3D11_RESOURCE_DIMENSION dim;
-      res->GetType(&dim);
-
-      if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
-      {
-        // assume partial
-        m_ViewportScissorPartial = true;
-      }
-      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
-      {
-        D3D11_TEXTURE1D_DESC desc;
-        ((ID3D11Texture1D *)res)->GetDesc(&desc);
-
-        if(viewportScissorMin.right < (LONG)desc.Width)
-          m_ViewportScissorPartial = true;
-      }
-      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
-      {
-        D3D11_TEXTURE2D_DESC desc;
-        ((ID3D11Texture2D *)res)->GetDesc(&desc);
-
-        if(viewportScissorMin.right < (LONG)desc.Width ||
-           viewportScissorMin.bottom < (LONG)desc.Height)
-          m_ViewportScissorPartial = true;
-      }
-      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D)
-      {
-        D3D11_TEXTURE3D_DESC desc;
-        ((ID3D11Texture3D *)res)->GetDesc(&desc);
-
-        if(viewportScissorMin.right < (LONG)desc.Width ||
-           viewportScissorMin.bottom < (LONG)desc.Height)
-          m_ViewportScissorPartial = true;
-      }
-    }
-
-    SAFE_RELEASE(res);
   }
 }
 

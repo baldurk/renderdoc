@@ -500,16 +500,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="SaveAllInitials">
-        <property name="toolTip">
-         <string>Save the initial API state of all API resources at the start of each captured frame</string>
-        </property>
-        <property name="text">
-         <string>Save all Initials</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QCheckBox" name="RefAllResources">
         <property name="toolTip">
          <string>Consider all resources to be included, even if unused in the capture frame</string>

@@ -2365,7 +2365,6 @@ void WrappedID3D11DeviceContext::RSSetViewports(UINT NumViewports, const D3D11_V
 
   m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.Viewports, pViewports, 0, NumViewports);
   m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.NumViews, NumViewports);
-  m_CurrentPipelineState->CacheViewportPartial();
   VerifyState();
 }
 
@@ -2412,7 +2411,6 @@ void WrappedID3D11DeviceContext::RSSetScissorRects(UINT NumRects, const D3D11_RE
 
   m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.Scissors, pRects, 0, NumRects);
   m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.NumScissors, NumRects);
-  m_CurrentPipelineState->CacheViewportPartial();
   VerifyState();
 }
 
@@ -2459,7 +2457,6 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
   }
 
   m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, pRasterizerState);
-  m_CurrentPipelineState->CacheViewportPartial();
 
   VerifyState();
 }
@@ -3108,8 +3105,6 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
       m_MissingTracks.insert(GetViewResourceResID(pDepthStencilView));
   }
 
-  m_CurrentPipelineState->CacheViewportPartial();
-
   if(IsActiveCapturing(m_State))
   {
     // make sure to mark resources referenced even if the OM state is invalid, so they aren't
@@ -3120,8 +3115,6 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
       if(ppRenderTargetViews && ppRenderTargetViews[i])
       {
         MarkResourceReferenced(GetIDForResource(ppRenderTargetViews[i]), eFrameRef_Read);
-        if(m_CurrentPipelineState->IsViewportPartial())
-          MarkResourceReferenced(GetViewResourceResID(ppRenderTargetViews[i]), eFrameRef_Read);
         MarkResourceReferenced(GetViewResourceResID(ppRenderTargetViews[i]), eFrameRef_Write);
       }
     }
@@ -3129,8 +3122,6 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
     if(pDepthStencilView)
     {
       MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
-      if(m_CurrentPipelineState->IsViewportPartial())
-        MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_Read);
       MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_Write);
     }
   }
@@ -3520,8 +3511,6 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
     else if(IsActiveCapturing(m_State))
       m_MissingTracks.insert(GetViewResourceResID(pDepthStencilView));
   }
-
-  m_CurrentPipelineState->CacheViewportPartial();
 
   VerifyState();
 }

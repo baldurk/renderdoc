@@ -109,7 +109,6 @@ void DoSerialise(SerialiserType &ser, CaptureOptions &el)
   SERIALISE_MEMBER(verifyMapWrites);
   SERIALISE_MEMBER(hookIntoChildren);
   SERIALISE_MEMBER(refAllResources);
-  SERIALISE_MEMBER(saveAllInitials);
   SERIALISE_MEMBER(captureAllCmdLists);
   SERIALISE_MEMBER(debugOutputMute);
 

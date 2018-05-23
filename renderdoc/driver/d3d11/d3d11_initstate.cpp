@@ -257,19 +257,6 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   return true;
 }
 
-bool WrappedID3D11Device::ShouldOmitInitState(D3D11_TEXTURE2D_DESC &desc, ResourceId Id)
-{
-  bool bigrt = ((desc.BindFlags & D3D11_BIND_RENDER_TARGET) != 0 ||
-                (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) != 0 ||
-                (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS) != 0) &&
-               (desc.Width > 64 && desc.Height > 64) && (desc.Width != desc.Height);
-
-  if(bigrt && m_ResourceManager->ReadBeforeWrite(Id))
-    bigrt = false;
-
-  return bigrt;
-}
-
 uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
 {
   // This function provides an upper bound on how much data Serialise_InitialState will write, so
@@ -334,10 +321,6 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
     if(multisampled)
       NumSubresources *= desc.SampleDesc.Count;
 
-    bool OmittedContents = ShouldOmitInitState(desc, tex->GetResourceID()) &&
-                           !RenderDoc::Inst().GetCaptureOptions().saveAllInitials;
-
-    if(!OmittedContents)
     {
       ret += 4;                      // number of subresources
       ret += 4 * NumSubresources;    // RowPitch for each subresource
@@ -687,22 +670,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
     if(multisampled)
       NumSubresources *= desc.SampleDesc.Count;
 
-    SERIALISE_ELEMENT_LOCAL(
-        OmittedContents,
-        ShouldOmitInitState(desc, Id) && !RenderDoc::Inst().GetCaptureOptions().saveAllInitials);
+    // this value is serialised here for compatibility with pre-v1.1 captures. In prior versions the
+    // 'save all initials' option, if disabled, meant a heuristic was used to determine if this
+    // initial state should be saved or skipped. We now always save all initial states.
+    SERIALISE_ELEMENT_LOCAL(OmittedContents, false);
 
-    if(OmittedContents)
-    {
-      if(ser.IsWriting())
-      {
-        RDCWARN("Not serialising texture 2D initial state. ID %llu", Id);
-        RDCWARN(
-            "Detected Write before Read of this target - assuming initial contents are "
-            "unneeded.\n"
-            "Capture again with Save All Initials if this is wrong");
-      }
-    }
-    else
     {
       D3D11_SUBRESOURCE_DATA *subData = NULL;
 

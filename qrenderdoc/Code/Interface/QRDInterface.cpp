@@ -102,7 +102,6 @@ CaptureSettings::operator QVariant() const
   opts[lit("verifyMapWrites")] = options.verifyMapWrites;
   opts[lit("hookIntoChildren")] = options.hookIntoChildren;
   opts[lit("refAllResources")] = options.refAllResources;
-  opts[lit("saveAllInitials")] = options.saveAllInitials;
   opts[lit("captureAllCmdLists")] = options.captureAllCmdLists;
   opts[lit("debugOutputMute")] = options.debugOutputMute;
   ret[lit("options")] = opts;
@@ -139,7 +138,6 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   options.verifyMapWrites = opts[lit("verifyMapWrites")].toBool();
   options.hookIntoChildren = opts[lit("hookIntoChildren")].toBool();
   options.refAllResources = opts[lit("refAllResources")].toBool();
-  options.saveAllInitials = opts[lit("saveAllInitials")].toBool();
   options.captureAllCmdLists = opts[lit("captureAllCmdLists")].toBool();
   options.debugOutputMute = opts[lit("debugOutputMute")].toBool();
 }

@@ -374,10 +374,6 @@ public:
   // That means this resource should be included in the final serialise out
   inline void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
 
-  // check if this resource was read before being written to - can be used to detect if
-  // initial states are necessary
-  bool ReadBeforeWrite(ResourceId id);
-
   ///////////////////////////////////////////
   // Replay-side methods
 
@@ -530,16 +526,6 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id, 
     if(record)
       record->AddRef();
   }
-}
-
-template <typename Configuration>
-bool ResourceManager<Configuration>::ReadBeforeWrite(ResourceId id)
-{
-  if(m_FrameReferencedResources.find(id) != m_FrameReferencedResources.end())
-    return m_FrameReferencedResources[id] == eFrameRef_ReadBeforeWrite ||
-           m_FrameReferencedResources[id] == eFrameRef_ReadOnly;
-
-  return false;
 }
 
 template <typename Configuration>

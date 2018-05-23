@@ -155,6 +155,10 @@ typedef enum {
   // 0 - only the resources referenced by the captured frame are included
   eRENDERDOC_Option_RefAllResources = 8,
 
+  // **NOTE**: As of RenderDoc v1.1 this option has been deprecated. Setting or
+  // getting it will be ignored, to allow compatibility with older versions.
+  // In v1.1 the option acts as if it's always enabled.
+  //
   // By default RenderDoc skips saving initial states for resources where the
   // previous contents don't appear to be used, assuming that writes before
   // reads indicate previous contents aren't used.

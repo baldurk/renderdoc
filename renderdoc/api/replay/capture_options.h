@@ -166,20 +166,6 @@ and available for inspection.
 )");
   bool refAllResources;
 
-  DOCUMENT(R"(By default RenderDoc skips saving initial states for resources where the
-previous contents don't appear to be used, assuming that writes before
-reads indicate previous contents aren't used.
-
-Default - disabled
-
-``True`` - initial contents at the start of each captured frame are saved, even if
-    they are later overwritten or cleared before being used.
-
-``False`` - unless a read is detected, initial contents will not be saved and will
-    appear as black or empty data.
-)");
-  bool saveAllInitials;
-
   DOCUMENT(R"(In APIs that allow for the recording of command lists to be replayed later,
 RenderDoc may choose to not capture command lists before a frame capture is
 triggered, to reduce overheads. This means any command lists recorded once

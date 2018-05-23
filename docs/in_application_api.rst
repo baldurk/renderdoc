@@ -122,10 +122,6 @@ The other way is a closer integration, where your code will explicitly load Rend
 
     specifies whether all live resources at the time of capture should be included in the capture, even if they are not referenced by the frame. Default is off.
 
-.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_SaveAllInitials
-
-    specifies whether all initial states of resources at the start of the frame should be saved, rather than omitting large resource contents which are detected to be likely unused. Default is off.
-
 .. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureAllCmdLists
 
     specifies whether all command lists should be captured on D3D11 where multithreaded submission is not optimal, rather than only capturing those recorded after frame capture begins. Default is off.
