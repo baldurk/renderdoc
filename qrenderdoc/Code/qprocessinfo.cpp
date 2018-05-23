@@ -67,7 +67,7 @@ static BOOL CALLBACK fillWindowTitles(HWND hwnd, LPARAM lp)
   return TRUE;
 }
 
-QProcessList QProcessInfo::enumerate()
+QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
 {
   QProcessList ret;
 
@@ -87,6 +87,9 @@ QProcessList QProcessInfo::enumerate()
     } while(Process32Next(h, &pe));
   }
   CloseHandle(h);
+
+  if(!includeWindowTitles)
+    return ret;
 
   HMODULE user32 = LoadLibraryA("user32.dll");
 
@@ -123,7 +126,7 @@ QProcessList QProcessInfo::enumerate()
 #include <QStandardPaths>
 #include <QTextStream>
 
-QProcessList QProcessInfo::enumerate()
+QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
 {
   QProcessList ret;
 
@@ -205,6 +208,7 @@ QProcessList QProcessInfo::enumerate()
     }
   }
 
+  if(includeWindowTitles)
   {
     // get a list of all windows. This is faster than searching with --pid
     // for every PID, and usually there will be fewer windows than PIDs.
@@ -334,7 +338,7 @@ QProcessList QProcessInfo::enumerate()
 
 #else
 
-QProcessList QProcessInfo::enumerate()
+QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
 {
   QProcessList ret;
 

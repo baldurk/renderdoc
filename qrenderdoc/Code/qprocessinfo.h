@@ -16,7 +16,7 @@ class QProcessInfo
 public:
   QProcessInfo();
 
-  static QProcessList enumerate();
+  static QProcessList enumerate(bool includeWindowTitles = true);
 
   uint32_t pid() const;
   void setPid(uint32_t pid);
