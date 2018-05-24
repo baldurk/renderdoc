@@ -228,7 +228,6 @@ RenderDoc::RenderDoc()
   m_TargetControlThreadShutdown = false;
   m_ControlClientThreadShutdown = false;
 
-  m_DX12DebugLayerEnabled = false;
 }
 
 void RenderDoc::Initialise()

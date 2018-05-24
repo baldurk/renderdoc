@@ -538,11 +538,6 @@ public:
 
   string GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
 
-  void SetDX12DebugLayerEnabled(const bool &enableDX12DebugLayer)
-  {
-    m_DX12DebugLayerEnabled = enableDX12DebugLayer;
-  }
-  bool IsDX12DebugLayerEnabled() const { return m_DX12DebugLayerEnabled; }
 private:
   RenderDoc();
   ~RenderDoc();
@@ -659,7 +654,6 @@ private:
 
   ICrashHandler *m_ExHandler;
 
-  bool m_DX12DebugLayerEnabled;
 };
 
 struct DriverRegistration

@@ -211,7 +211,7 @@ private:
         if(SUCCEEDED(hr) && debug)
         {
           debug->EnableDebugLayer();
-          RenderDoc::Inst().SetDX12DebugLayerEnabled(true);
+
           RDCDEBUG("Enabling debug layer");
 
 // enable this to get GPU-based validation, where available, whenever we enable API validation
@@ -285,7 +285,7 @@ private:
           dev = (ID3D12Device *)dev1;
         }
 
-        WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, &params);
+        WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, &params, EnableDebugLayer);
 
         RDCDEBUG("created wrapped device.");
 

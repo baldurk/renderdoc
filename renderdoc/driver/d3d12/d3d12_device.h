@@ -366,11 +366,14 @@ private:
   bool Serialise_CaptureScope(SerialiserType &ser);
   void EndCaptureFrame(ID3D12Resource *presentImage);
 
+  bool m_debugLayerEnabled;
+
 public:
   static const int AllocPoolCount = 4;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Device, AllocPoolCount);
 
-  WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params);
+  WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params, bool enabledDebugLayer);
+  bool IsDebugLayerEnabled() const { return m_debugLayerEnabled; }
   virtual ~WrappedID3D12Device();
 
   UINT GetUnwrappedDescriptorIncrement(D3D12_DESCRIPTOR_HEAP_TYPE type)

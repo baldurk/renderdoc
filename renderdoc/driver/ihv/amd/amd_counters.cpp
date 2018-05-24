@@ -58,7 +58,11 @@ static void GPA_LoggingCallback(GPA_Logging_Type messageType, const char *pMessa
 #define GPA_WARNING(text, status) \
   RDCWARN(text ". %s", m_pGPUPerfAPI->GPA_GetStatusAsStr((GPA_Status)status));
 
-AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL), m_gpaSessionCounter(0u), m_passCounter(-1)
+AMDCounters::AMDCounters(bool dx12DebugLayerEnabled)
+    : m_pGPUPerfAPI(NULL),
+      m_gpaSessionCounter(0u),
+      m_passCounter(-1),
+      m_dx12DebugLayerEnabled(dx12DebugLayerEnabled)
 {
 }
 
@@ -112,7 +116,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
 
   bool disableCounters = false;
 
-  if(apiType == ApiType::Dx12 && RenderDoc::Inst().IsDX12DebugLayerEnabled())
+  if(apiType == ApiType::Dx12 && m_dx12DebugLayerEnabled)
   {
     // Disable counters in DX12 Debug configuration
     void *versionFunc = Process::GetFunctionAddress(module, "GPA_GetVersion");

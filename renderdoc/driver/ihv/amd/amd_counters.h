@@ -45,7 +45,7 @@ public:
     Vk = 3
   };
 
-  AMDCounters();
+  AMDCounters(bool dx12DebugLayerEnabled = false);
   ~AMDCounters();
 
   bool Init(ApiType apiType, void *pContext);
@@ -102,6 +102,7 @@ private:
   ApiType m_apiType;
   uint32_t m_gpaSessionCounter;
   int m_passCounter;
+  bool m_dx12DebugLayerEnabled;
 
   void InitializeCmdInfo();
   void DeInitializeCmdInfo();
