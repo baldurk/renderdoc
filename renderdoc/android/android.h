@@ -32,7 +32,7 @@ namespace Android
 {
 bool IsHostADB(const char *hostname);
 ExecuteResult StartAndroidPackageForCapture(const char *host, const char *package,
-                                            const CaptureOptions &opts);
+                                            const char *intentArgs, const CaptureOptions &opts);
 void ResetCaptureSettings(const std::string &deviceID);
 void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::string &deviceID);
 Process::ProcessResult adbExecCommand(const std::string &deviceID, const std::string &args,

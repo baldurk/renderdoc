@@ -1602,6 +1602,9 @@ void MainWindow::messageCheck()
 
         m_Ctx.Replay().DisconnectFromRemoteServer();
       }
+
+      if(m_Ctx.HasCaptureDialog())
+        m_Ctx.GetCaptureDialog()->UpdateRemoteHost();
     });
   }
 }
@@ -1714,6 +1717,9 @@ void MainWindow::switchContext()
     statusText->setText(QString());
 
     SetTitle();
+
+    if(m_Ctx.HasCaptureDialog())
+      m_Ctx.GetCaptureDialog()->UpdateRemoteHost();
   }
   else
   {
@@ -1788,6 +1794,9 @@ void MainWindow::switchContext()
         }
 
         contextChooser->setEnabled(true);
+
+        if(m_Ctx.HasCaptureDialog())
+          m_Ctx.GetCaptureDialog()->UpdateRemoteHost();
       });
     });
     th->selfDelete(true);
@@ -1879,6 +1888,9 @@ void MainWindow::OnCaptureClosed()
         tr("Remote server disconnected. To attempt to reconnect please select it again."));
     contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
     m_Ctx.Replay().DisconnectFromRemoteServer();
+
+    if(m_Ctx.HasCaptureDialog())
+      m_Ctx.GetCaptureDialog()->UpdateRemoteHost();
   }
 }
 

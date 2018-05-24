@@ -386,6 +386,9 @@ struct ICaptureDialog
   DOCUMENT("Update the current state of the global hook, e.g. if it has been enabled.");
   virtual void UpdateGlobalHook() = 0;
 
+  DOCUMENT("Update the current state based on the current remote host, when that changes.");
+  virtual void UpdateRemoteHost() = 0;
+
 protected:
   ICaptureDialog() = default;
   ~ICaptureDialog() = default;

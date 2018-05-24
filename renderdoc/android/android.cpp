@@ -177,7 +177,7 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
 }
 
 ExecuteResult StartAndroidPackageForCapture(const char *host, const char *package,
-                                            const CaptureOptions &opts)
+                                            const char *intentArgs, const CaptureOptions &opts)
 {
   int index = 0;
   std::string deviceID;
@@ -244,8 +244,8 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
     RDCLOG("Setting up to launch the application as a debugger to inject.");
 
     // start the activity in this package with debugging enabled and force-stop after starting
-    adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D %s/%s", packageName.c_str(),
-                                               activityName.c_str()));
+    adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D %s/%s %s", packageName.c_str(),
+                                               activityName.c_str(), intentArgs));
 
     // adb shell ps | grep $PACKAGE | awk '{print $2}')
     pid = GetCurrentPID(deviceID, packageName);
@@ -255,8 +255,8 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
     RDCLOG("Not doing any injection - assuming APK is pre-loaded with RenderDoc capture library.");
 
     // start the activity in this package with debugging enabled and force-stop after starting
-    adbExecCommand(deviceID, StringFormat::Fmt("shell am start %s/%s", packageName.c_str(),
-                                               activityName.c_str()));
+    adbExecCommand(deviceID, StringFormat::Fmt("shell am start %s/%s %s", packageName.c_str(),
+                                               activityName.c_str(), intentArgs));
 
     // don't connect JDWP
     jdwpPort = 0;

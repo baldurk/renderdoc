@@ -73,6 +73,7 @@ public:
   void LoadSettings(const rdcstr &filename) override;
   void SaveSettings(const rdcstr &filename) override;
   void UpdateGlobalHook() override;
+  void UpdateRemoteHost() override;
 
 public slots:
   bool checkAllowClose();

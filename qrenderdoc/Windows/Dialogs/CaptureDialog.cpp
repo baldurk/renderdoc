@@ -984,6 +984,16 @@ void CaptureDialog::UpdateGlobalHook()
   }
 }
 
+void CaptureDialog::UpdateRemoteHost()
+{
+  const RemoteHost *host = m_Ctx.Replay().CurrentRemote();
+
+  if(host && host->IsADB())
+    ui->cmdLineLabel->setText(tr("Intent Arguments"));
+  else
+    ui->cmdLineLabel->setText(tr("Command-line Arguments"));
+}
+
 void CaptureDialog::SetEnvironmentModifications(const rdcarray<EnvironmentModification> &modifications)
 {
   m_EnvModifications = modifications;

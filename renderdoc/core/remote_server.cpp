@@ -1250,7 +1250,8 @@ public:
           ok = Ping();
       });
 
-      ExecuteResult ret = Android::StartAndroidPackageForCapture(host, app.c_str(), opts);
+      ExecuteResult ret =
+          Android::StartAndroidPackageForCapture(host, app.c_str(), cmdline.c_str(), opts);
 
       Atomic::Inc32(&done);
 
