@@ -602,7 +602,7 @@ std::vector<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint3
 
           if(desc.unit == CounterUnit::Percentage)
           {
-            value = RDCCLAMP(value, 0ULL, 100ULL);
+            value = RDCCLAMP(value, (uint64_t)0ULL, (uint64_t)100ULL);
           }
           ret.push_back(CounterResult(eventIDs[s], counters[c], (uint64_t)value));
         }
