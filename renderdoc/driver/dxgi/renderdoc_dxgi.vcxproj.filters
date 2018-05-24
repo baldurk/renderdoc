@@ -48,6 +48,9 @@
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>
     </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_6.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="official">

@@ -112,6 +112,7 @@
     <ClInclude Include="..\dx\official\dxgi1_3.h" />
     <ClInclude Include="..\dx\official\dxgi1_4.h" />
     <ClInclude Include="..\dx\official\dxgi1_5.h" />
+    <ClInclude Include="..\dx\official\dxgi1_6.h" />
     <ClInclude Include="..\dx\official\dxgiformat.h" />
     <ClInclude Include="..\dx\official\dxgitype.h" />
     <ClInclude Include="dxgi_common.h" />
