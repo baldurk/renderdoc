@@ -2048,6 +2048,8 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
   SERIALISE_MEMBER(compute);
   SERIALISE_MEMBER(graphics);
 
+  SERIALISE_MEMBER(pushconsts);
+
   SERIALISE_MEMBER(inputAssembly);
   SERIALISE_MEMBER(vertexInput);
 
@@ -2069,7 +2071,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(images);
 
-  SIZE_CHECK(1312);
+  SIZE_CHECK(1328);
 }
 
 #pragma endregion Vulkan pipeline state

@@ -802,6 +802,10 @@ void VulkanReplay::SavePipelineState()
 
   m_VulkanPipelineState = VKPipe::State();
 
+  m_VulkanPipelineState.pushconsts.resize(ARRAY_COUNT(state.pushconsts));
+  memcpy(m_VulkanPipelineState.pushconsts.data(), state.pushconsts,
+         m_VulkanPipelineState.pushconsts.size());
+
   // General pipeline properties
   m_VulkanPipelineState.compute.pipelineResourceId = rm->GetOriginalID(state.compute.pipeline);
   m_VulkanPipelineState.graphics.pipelineResourceId = rm->GetOriginalID(state.graphics.pipeline);

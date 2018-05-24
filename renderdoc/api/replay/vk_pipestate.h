@@ -734,6 +734,9 @@ struct State
   DOCUMENT("A :class:`VKPipeline` with the currently bound graphics pipeline, if any.");
   Pipeline graphics;
 
+  DOCUMENT("A ``bytes`` containing the raw push constant data.");
+  bytebuf pushconsts;
+
   DOCUMENT("A :class:`VKInputAssembly` describing the input assembly stage.");
   InputAssembly inputAssembly;
   DOCUMENT("A :class:`VKVertexInput` describing the vertex input stage.");
