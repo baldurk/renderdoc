@@ -69,6 +69,7 @@ AMDCounters::AMDCounters(bool dx12DebugLayerEnabled)
 bool AMDCounters::Init(ApiType apiType, void *pContext)
 {
 #if DISABLED(RDOC_WIN32) && DISABLED(RDOC_LINUX)
+  (void)m_dx12DebugLayerEnabled;
   return false;
 #else
 
