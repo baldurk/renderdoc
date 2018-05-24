@@ -35,7 +35,7 @@ if [ $? -eq 1 ] ; then
     TSS=${TSSLIST[0]}
     echo Signing $1 using timestamp server $TSS ...
     sleep 1
-    signtool sign //f "${BUILD_ROOT}"/support/key.pfx //fd sha256 //p $PASS //tr $TSS //td sha256 $1
+    signtool sign //d RenderDoc //f "${BUILD_ROOT}"/support/key.pfx //fd sha256 //p $PASS //tr $TSS //td sha256 $1
     if [ $? -eq 0 ] ; then
        # Successfully signed, return success
        exit 0
@@ -57,7 +57,7 @@ if [ $? -eq 1 ] ; then
         echo Signing failed, retry $RETRY. Using timestamp server $TSS ...
         sleep 4
         echo Retrying signing of $1
-        signtool sign //f "${BUILD_ROOT}"/support/key.pfx //p $PASS //tr $TSS  $1
+        signtool sign //d RenderDoc //f "${BUILD_ROOT}"/support/key.pfx //p $PASS //tr $TSS  $1
         if [ $? -eq 0 ] ; then
            # Successfully signed, return success
            exit 0
