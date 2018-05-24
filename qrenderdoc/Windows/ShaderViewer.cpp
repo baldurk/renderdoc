@@ -466,6 +466,19 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ui->locals->hide();
     }
 
+    m_Line2Inst.resize(m_ShaderDetails->debugInfo.files.count());
+
+    for(size_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
+    {
+      const LineColumnInfo &line = m_Trace->lineInfo[inst];
+
+      if(line.fileIndex < 0 || line.fileIndex >= m_Line2Inst.count())
+        continue;
+
+      for(uint32_t lineNum = line.lineStart; lineNum <= line.lineEnd; lineNum++)
+        m_Line2Inst[line.fileIndex][lineNum] = inst;
+    }
+
     QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
     QObject::connect(ui->stepNext, &QToolButton::clicked, this, &ShaderViewer::stepNext);
     QObject::connect(ui->runBack, &QToolButton::clicked, this, &ShaderViewer::runBack);
@@ -881,12 +894,6 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   contextMenu.addAction(&runCursor);
   contextMenu.addSeparator();
 
-  if(!isDisasm)
-  {
-    addBreakpoint.setEnabled(false);
-    runCursor.setEnabled(false);
-  }
-
   QAction copyText(tr("Copy"), this);
   QAction selectAll(tr("Select All"), this);
 
@@ -1150,15 +1157,48 @@ void ShaderViewer::runToCursor()
   if(!m_Trace)
     return;
 
-  sptr_t i = m_DisassemblyView->lineFromPosition(m_DisassemblyView->currentPos());
+  ScintillaEdit *cur = currentScintilla();
 
-  for(; i < m_DisassemblyView->lineCount(); i++)
+  if(cur != m_DisassemblyView)
   {
-    int line = instructionForLine(i);
-    if(line >= 0)
+    int scintillaIndex = m_Scintillas.indexOf(cur);
+
+    // the [0]'th scintilla is the disassembly, so the first valid index is 1
+    if(scintillaIndex < 1)
+      return;
+
+    // decrement to get an index into m_Line2Inst
+    scintillaIndex--;
+
+    sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
+
+    QMap<int32_t, size_t> &fileMap = m_Line2Inst[scintillaIndex];
+
+    // find the next line that maps to an instruction
+    for(; i < cur->lineCount(); i++)
     {
-      runTo(line, true);
-      break;
+      if(fileMap.contains(i))
+      {
+        runTo((int)fileMap[i], true);
+        return;
+      }
+    }
+
+    // if we didn't find one, just run
+    run();
+  }
+  else
+  {
+    sptr_t i = m_DisassemblyView->lineFromPosition(m_DisassemblyView->currentPos());
+
+    for(; i < m_DisassemblyView->lineCount(); i++)
+    {
+      int line = instructionForLine(i);
+      if(line >= 0)
+      {
+        runTo(line, true);
+        break;
+      }
     }
   }
 }
@@ -1911,15 +1951,46 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
 
   if(instruction == -1)
   {
+    ScintillaEdit *cur = currentScintilla();
+
     // search forward for an instruction
-    instLine = m_DisassemblyView->lineFromPosition(m_DisassemblyView->currentPos());
-
-    for(; instLine < m_DisassemblyView->lineCount(); instLine++)
+    if(cur != m_DisassemblyView)
     {
-      instruction = instructionForLine(instLine);
+      int scintillaIndex = m_Scintillas.indexOf(cur);
 
-      if(instruction >= 0)
-        break;
+      // the [0]'th scintilla is the disassembly, so the first valid index is 1
+      if(scintillaIndex < 1)
+        return;
+
+      // decrement to get an index into m_Line2Inst
+      scintillaIndex--;
+
+      // add one to go from scintilla line numbers (0-based) to ours (1-based)
+      sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
+
+      QMap<int32_t, size_t> &fileMap = m_Line2Inst[scintillaIndex];
+
+      // find the next line that maps to an instruction
+      for(; i < cur->lineCount(); i++)
+      {
+        if(fileMap.contains(i))
+        {
+          instruction = (int)fileMap[i];
+          break;
+        }
+      }
+    }
+    else
+    {
+      instLine = m_DisassemblyView->lineFromPosition(m_DisassemblyView->currentPos());
+
+      for(; instLine < m_DisassemblyView->lineCount(); instLine++)
+      {
+        instruction = instructionForLine(instLine);
+
+        if(instruction >= 0)
+          break;
+      }
     }
   }
 
@@ -1947,6 +2018,17 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
     {
       m_DisassemblyView->markerDelete(instLine, BREAKPOINT_MARKER);
       m_DisassemblyView->markerDelete(instLine, BREAKPOINT_MARKER + 1);
+
+      const LineColumnInfo &lineInfo = m_Trace->lineInfo[instruction];
+
+      if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
+      {
+        for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+        {
+          m_FileScintillas[lineInfo.fileIndex]->markerDelete(line - 1, BREAKPOINT_MARKER);
+          m_FileScintillas[lineInfo.fileIndex]->markerDelete(line - 1, BREAKPOINT_MARKER + 1);
+        }
+      }
     }
     m_Breakpoints.removeOne(instruction);
   }
@@ -1956,6 +2038,17 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
     {
       m_DisassemblyView->markerAdd(instLine, BREAKPOINT_MARKER);
       m_DisassemblyView->markerAdd(instLine, BREAKPOINT_MARKER + 1);
+
+      const LineColumnInfo &lineInfo = m_Trace->lineInfo[instruction];
+
+      if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
+      {
+        for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+        {
+          m_FileScintillas[lineInfo.fileIndex]->markerAdd(line - 1, BREAKPOINT_MARKER);
+          m_FileScintillas[lineInfo.fileIndex]->markerAdd(line - 1, BREAKPOINT_MARKER + 1);
+        }
+      }
     }
     m_Breakpoints.push_back(instruction);
   }

@@ -184,6 +184,9 @@ private:
   ScintillaEdit *m_FindResults = NULL;
   QList<ScintillaEdit *> m_Scintillas;
 
+  // a map per file, from line number to instruction index
+  QVector<QMap<int32_t, size_t>> m_Line2Inst;
+
   ScintillaEdit *m_CurInstructionScintilla = NULL;
   QList<ScintillaEdit *> m_FileScintillas;
 
