@@ -8,7 +8,7 @@
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
- /* File created by MIDL compiler version 8.01.0618 */
+ /* File created by MIDL compiler version 8.01.0622 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 
@@ -49,6 +49,13 @@
 typedef interface ID3D11Device4 ID3D11Device4;
 
 #endif 	/* __ID3D11Device4_FWD_DEFINED__ */
+
+
+#ifndef __ID3D11Device5_FWD_DEFINED__
+#define __ID3D11Device5_FWD_DEFINED__
+typedef interface ID3D11Device5 ID3D11Device5;
+
+#endif 	/* __ID3D11Device5_FWD_DEFINED__ */
 
 
 #ifndef __ID3D11Multithread_FWD_DEFINED__
@@ -913,6 +920,862 @@ EXTERN_C const IID IID_ID3D11Device4;
 
 
 #endif 	/* __ID3D11Device4_INTERFACE_DEFINED__ */
+
+
+#ifndef __ID3D11Device5_INTERFACE_DEFINED__
+#define __ID3D11Device5_INTERFACE_DEFINED__
+
+/* interface ID3D11Device5 */
+/* [unique][local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_ID3D11Device5;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("8ffde202-a0e7-45df-9e01-e837801b5ea0")
+    ID3D11Device5 : public ID3D11Device4
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE OpenSharedFence( 
+            /* [annotation] */ 
+            _In_  HANDLE hFence,
+            /* [annotation] */ 
+            _In_  REFIID ReturnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  void **ppFence) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE CreateFence( 
+            /* [annotation] */ 
+            _In_  UINT64 InitialValue,
+            /* [annotation] */ 
+            _In_  D3D11_FENCE_FLAG Flags,
+            /* [annotation] */ 
+            _In_  REFIID ReturnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  void **ppFence) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ID3D11Device5Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ID3D11Device5 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ID3D11Device5 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ID3D11Device5 * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateBuffer )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_BUFFER_DESC *pDesc,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_SUBRESOURCE_DATA *pInitialData,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Buffer **ppBuffer);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateTexture1D )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_TEXTURE1D_DESC *pDesc,
+            /* [annotation] */ 
+            _In_reads_opt_(_Inexpressible_(pDesc->MipLevels * pDesc->ArraySize))  const D3D11_SUBRESOURCE_DATA *pInitialData,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Texture1D **ppTexture1D);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateTexture2D )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_TEXTURE2D_DESC *pDesc,
+            /* [annotation] */ 
+            _In_reads_opt_(_Inexpressible_(pDesc->MipLevels * pDesc->ArraySize))  const D3D11_SUBRESOURCE_DATA *pInitialData,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Texture2D **ppTexture2D);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateTexture3D )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_TEXTURE3D_DESC *pDesc,
+            /* [annotation] */ 
+            _In_reads_opt_(_Inexpressible_(pDesc->MipLevels))  const D3D11_SUBRESOURCE_DATA *pInitialData,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Texture3D **ppTexture3D);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateShaderResourceView )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11ShaderResourceView **ppSRView);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateUnorderedAccessView )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11UnorderedAccessView **ppUAView);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateRenderTargetView )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11RenderTargetView **ppRTView);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDepthStencilView )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DepthStencilView **ppDepthStencilView);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateInputLayout )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(NumElements)  const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
+            /* [annotation] */ 
+            _In_range_( 0, D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT )  UINT NumElements,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecodeWithInputSignature,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11InputLayout **ppInputLayout);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateVertexShader )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11VertexShader **ppVertexShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateGeometryShader )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11GeometryShader **ppGeometryShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateGeometryShaderWithStreamOutput )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_reads_opt_(NumEntries)  const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
+            /* [annotation] */ 
+            _In_range_( 0, D3D11_SO_STREAM_COUNT * D3D11_SO_OUTPUT_COMPONENT_COUNT )  UINT NumEntries,
+            /* [annotation] */ 
+            _In_reads_opt_(NumStrides)  const UINT *pBufferStrides,
+            /* [annotation] */ 
+            _In_range_( 0, D3D11_SO_BUFFER_SLOT_COUNT )  UINT NumStrides,
+            /* [annotation] */ 
+            _In_  UINT RasterizedStream,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11GeometryShader **ppGeometryShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreatePixelShader )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11PixelShader **ppPixelShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateHullShader )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11HullShader **ppHullShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDomainShader )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DomainShader **ppDomainShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateComputeShader )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_reads_(BytecodeLength)  const void *pShaderBytecode,
+            /* [annotation] */ 
+            _In_  SIZE_T BytecodeLength,
+            /* [annotation] */ 
+            _In_opt_  ID3D11ClassLinkage *pClassLinkage,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11ComputeShader **ppComputeShader);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateClassLinkage )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _COM_Outptr_  ID3D11ClassLinkage **ppLinkage);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateBlendState )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_BLEND_DESC *pBlendStateDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11BlendState **ppBlendState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDepthStencilState )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DepthStencilState **ppDepthStencilState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateRasterizerState )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_RASTERIZER_DESC *pRasterizerDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11RasterizerState **ppRasterizerState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateSamplerState )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_SAMPLER_DESC *pSamplerDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11SamplerState **ppSamplerState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateQuery )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_QUERY_DESC *pQueryDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Query **ppQuery);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreatePredicate )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_QUERY_DESC *pPredicateDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Predicate **ppPredicate);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateCounter )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_COUNTER_DESC *pCounterDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Counter **ppCounter);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDeferredContext )( 
+            ID3D11Device5 * This,
+            UINT ContextFlags,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DeviceContext **ppDeferredContext);
+        
+        HRESULT ( STDMETHODCALLTYPE *OpenSharedResource )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  HANDLE hResource,
+            /* [annotation] */ 
+            _In_  REFIID ReturnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  void **ppResource);
+        
+        HRESULT ( STDMETHODCALLTYPE *CheckFormatSupport )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  DXGI_FORMAT Format,
+            /* [annotation] */ 
+            _Out_  UINT *pFormatSupport);
+        
+        HRESULT ( STDMETHODCALLTYPE *CheckMultisampleQualityLevels )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  DXGI_FORMAT Format,
+            /* [annotation] */ 
+            _In_  UINT SampleCount,
+            /* [annotation] */ 
+            _Out_  UINT *pNumQualityLevels);
+        
+        void ( STDMETHODCALLTYPE *CheckCounterInfo )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _Out_  D3D11_COUNTER_INFO *pCounterInfo);
+        
+        HRESULT ( STDMETHODCALLTYPE *CheckCounter )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_COUNTER_DESC *pDesc,
+            /* [annotation] */ 
+            _Out_  D3D11_COUNTER_TYPE *pType,
+            /* [annotation] */ 
+            _Out_  UINT *pActiveCounters,
+            /* [annotation] */ 
+            _Out_writes_opt_(*pNameLength)  LPSTR szName,
+            /* [annotation] */ 
+            _Inout_opt_  UINT *pNameLength,
+            /* [annotation] */ 
+            _Out_writes_opt_(*pUnitsLength)  LPSTR szUnits,
+            /* [annotation] */ 
+            _Inout_opt_  UINT *pUnitsLength,
+            /* [annotation] */ 
+            _Out_writes_opt_(*pDescriptionLength)  LPSTR szDescription,
+            /* [annotation] */ 
+            _Inout_opt_  UINT *pDescriptionLength);
+        
+        HRESULT ( STDMETHODCALLTYPE *CheckFeatureSupport )( 
+            ID3D11Device5 * This,
+            D3D11_FEATURE Feature,
+            /* [annotation] */ 
+            _Out_writes_bytes_(FeatureSupportDataSize)  void *pFeatureSupportData,
+            UINT FeatureSupportDataSize);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetPrivateData )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  REFGUID guid,
+            /* [annotation] */ 
+            _Inout_  UINT *pDataSize,
+            /* [annotation] */ 
+            _Out_writes_bytes_opt_(*pDataSize)  void *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *SetPrivateData )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  REFGUID guid,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(DataSize)  const void *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *SetPrivateDataInterface )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  REFGUID guid,
+            /* [annotation] */ 
+            _In_opt_  const IUnknown *pData);
+        
+        D3D_FEATURE_LEVEL ( STDMETHODCALLTYPE *GetFeatureLevel )( 
+            ID3D11Device5 * This);
+        
+        UINT ( STDMETHODCALLTYPE *GetCreationFlags )( 
+            ID3D11Device5 * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetDeviceRemovedReason )( 
+            ID3D11Device5 * This);
+        
+        void ( STDMETHODCALLTYPE *GetImmediateContext )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _Outptr_  ID3D11DeviceContext **ppImmediateContext);
+        
+        HRESULT ( STDMETHODCALLTYPE *SetExceptionMode )( 
+            ID3D11Device5 * This,
+            UINT RaiseFlags);
+        
+        UINT ( STDMETHODCALLTYPE *GetExceptionMode )( 
+            ID3D11Device5 * This);
+        
+        void ( STDMETHODCALLTYPE *GetImmediateContext1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _Outptr_  ID3D11DeviceContext1 **ppImmediateContext);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDeferredContext1 )( 
+            ID3D11Device5 * This,
+            UINT ContextFlags,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DeviceContext1 **ppDeferredContext);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateBlendState1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_BLEND_DESC1 *pBlendStateDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11BlendState1 **ppBlendState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateRasterizerState1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_RASTERIZER_DESC1 *pRasterizerDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11RasterizerState1 **ppRasterizerState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDeviceContextState )( 
+            ID3D11Device5 * This,
+            UINT Flags,
+            /* [annotation] */ 
+            _In_reads_( FeatureLevels )  const D3D_FEATURE_LEVEL *pFeatureLevels,
+            UINT FeatureLevels,
+            UINT SDKVersion,
+            REFIID EmulatedInterface,
+            /* [annotation] */ 
+            _Out_opt_  D3D_FEATURE_LEVEL *pChosenFeatureLevel,
+            /* [annotation] */ 
+            _Out_opt_  ID3DDeviceContextState **ppContextState);
+        
+        HRESULT ( STDMETHODCALLTYPE *OpenSharedResource1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  HANDLE hResource,
+            /* [annotation] */ 
+            _In_  REFIID returnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_  void **ppResource);
+        
+        HRESULT ( STDMETHODCALLTYPE *OpenSharedResourceByName )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  LPCWSTR lpName,
+            /* [annotation] */ 
+            _In_  DWORD dwDesiredAccess,
+            /* [annotation] */ 
+            _In_  REFIID returnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_  void **ppResource);
+        
+        void ( STDMETHODCALLTYPE *GetImmediateContext2 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _Outptr_  ID3D11DeviceContext2 **ppImmediateContext);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDeferredContext2 )( 
+            ID3D11Device5 * This,
+            UINT ContextFlags,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DeviceContext2 **ppDeferredContext);
+        
+        void ( STDMETHODCALLTYPE *GetResourceTiling )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pTiledResource,
+            /* [annotation] */ 
+            _Out_opt_  UINT *pNumTilesForEntireResource,
+            /* [annotation] */ 
+            _Out_opt_  D3D11_PACKED_MIP_DESC *pPackedMipDesc,
+            /* [annotation] */ 
+            _Out_opt_  D3D11_TILE_SHAPE *pStandardTileShapeForNonPackedMips,
+            /* [annotation] */ 
+            _Inout_opt_  UINT *pNumSubresourceTilings,
+            /* [annotation] */ 
+            _In_  UINT FirstSubresourceTilingToGet,
+            /* [annotation] */ 
+            _Out_writes_(*pNumSubresourceTilings)  D3D11_SUBRESOURCE_TILING *pSubresourceTilingsForNonPackedMips);
+        
+        HRESULT ( STDMETHODCALLTYPE *CheckMultisampleQualityLevels1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  DXGI_FORMAT Format,
+            /* [annotation] */ 
+            _In_  UINT SampleCount,
+            /* [annotation] */ 
+            _In_  UINT Flags,
+            /* [annotation] */ 
+            _Out_  UINT *pNumQualityLevels);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateTexture2D1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_TEXTURE2D_DESC1 *pDesc1,
+            /* [annotation] */ 
+            _In_reads_opt_(_Inexpressible_(pDesc1->MipLevels * pDesc1->ArraySize))  const D3D11_SUBRESOURCE_DATA *pInitialData,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Texture2D1 **ppTexture2D);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateTexture3D1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_TEXTURE3D_DESC1 *pDesc1,
+            /* [annotation] */ 
+            _In_reads_opt_(_Inexpressible_(pDesc1->MipLevels))  const D3D11_SUBRESOURCE_DATA *pInitialData,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Texture3D1 **ppTexture3D);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateRasterizerState2 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_RASTERIZER_DESC2 *pRasterizerDesc,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11RasterizerState2 **ppRasterizerState);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateShaderResourceView1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_SHADER_RESOURCE_VIEW_DESC1 *pDesc1,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11ShaderResourceView1 **ppSRView1);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateUnorderedAccessView1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_UNORDERED_ACCESS_VIEW_DESC1 *pDesc1,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11UnorderedAccessView1 **ppUAView1);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateRenderTargetView1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pResource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_RENDER_TARGET_VIEW_DESC1 *pDesc1,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11RenderTargetView1 **ppRTView1);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateQuery1 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  const D3D11_QUERY_DESC1 *pQueryDesc1,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11Query1 **ppQuery1);
+        
+        void ( STDMETHODCALLTYPE *GetImmediateContext3 )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _Outptr_  ID3D11DeviceContext3 **ppImmediateContext);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateDeferredContext3 )( 
+            ID3D11Device5 * This,
+            UINT ContextFlags,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  ID3D11DeviceContext3 **ppDeferredContext);
+        
+        void ( STDMETHODCALLTYPE *WriteToSubresource )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pDstResource,
+            /* [annotation] */ 
+            _In_  UINT DstSubresource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_BOX *pDstBox,
+            /* [annotation] */ 
+            _In_  const void *pSrcData,
+            /* [annotation] */ 
+            _In_  UINT SrcRowPitch,
+            /* [annotation] */ 
+            _In_  UINT SrcDepthPitch);
+        
+        void ( STDMETHODCALLTYPE *ReadFromSubresource )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _Out_  void *pDstData,
+            /* [annotation] */ 
+            _In_  UINT DstRowPitch,
+            /* [annotation] */ 
+            _In_  UINT DstDepthPitch,
+            /* [annotation] */ 
+            _In_  ID3D11Resource *pSrcResource,
+            /* [annotation] */ 
+            _In_  UINT SrcSubresource,
+            /* [annotation] */ 
+            _In_opt_  const D3D11_BOX *pSrcBox);
+        
+        HRESULT ( STDMETHODCALLTYPE *RegisterDeviceRemovedEvent )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  HANDLE hEvent,
+            /* [annotation] */ 
+            _Out_  DWORD *pdwCookie);
+        
+        void ( STDMETHODCALLTYPE *UnregisterDeviceRemoved )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  DWORD dwCookie);
+        
+        HRESULT ( STDMETHODCALLTYPE *OpenSharedFence )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  HANDLE hFence,
+            /* [annotation] */ 
+            _In_  REFIID ReturnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  void **ppFence);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateFence )( 
+            ID3D11Device5 * This,
+            /* [annotation] */ 
+            _In_  UINT64 InitialValue,
+            /* [annotation] */ 
+            _In_  D3D11_FENCE_FLAG Flags,
+            /* [annotation] */ 
+            _In_  REFIID ReturnedInterface,
+            /* [annotation] */ 
+            _COM_Outptr_opt_  void **ppFence);
+        
+        END_INTERFACE
+    } ID3D11Device5Vtbl;
+
+    interface ID3D11Device5
+    {
+        CONST_VTBL struct ID3D11Device5Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ID3D11Device5_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ID3D11Device5_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ID3D11Device5_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ID3D11Device5_CreateBuffer(This,pDesc,pInitialData,ppBuffer)	\
+    ( (This)->lpVtbl -> CreateBuffer(This,pDesc,pInitialData,ppBuffer) ) 
+
+#define ID3D11Device5_CreateTexture1D(This,pDesc,pInitialData,ppTexture1D)	\
+    ( (This)->lpVtbl -> CreateTexture1D(This,pDesc,pInitialData,ppTexture1D) ) 
+
+#define ID3D11Device5_CreateTexture2D(This,pDesc,pInitialData,ppTexture2D)	\
+    ( (This)->lpVtbl -> CreateTexture2D(This,pDesc,pInitialData,ppTexture2D) ) 
+
+#define ID3D11Device5_CreateTexture3D(This,pDesc,pInitialData,ppTexture3D)	\
+    ( (This)->lpVtbl -> CreateTexture3D(This,pDesc,pInitialData,ppTexture3D) ) 
+
+#define ID3D11Device5_CreateShaderResourceView(This,pResource,pDesc,ppSRView)	\
+    ( (This)->lpVtbl -> CreateShaderResourceView(This,pResource,pDesc,ppSRView) ) 
+
+#define ID3D11Device5_CreateUnorderedAccessView(This,pResource,pDesc,ppUAView)	\
+    ( (This)->lpVtbl -> CreateUnorderedAccessView(This,pResource,pDesc,ppUAView) ) 
+
+#define ID3D11Device5_CreateRenderTargetView(This,pResource,pDesc,ppRTView)	\
+    ( (This)->lpVtbl -> CreateRenderTargetView(This,pResource,pDesc,ppRTView) ) 
+
+#define ID3D11Device5_CreateDepthStencilView(This,pResource,pDesc,ppDepthStencilView)	\
+    ( (This)->lpVtbl -> CreateDepthStencilView(This,pResource,pDesc,ppDepthStencilView) ) 
+
+#define ID3D11Device5_CreateInputLayout(This,pInputElementDescs,NumElements,pShaderBytecodeWithInputSignature,BytecodeLength,ppInputLayout)	\
+    ( (This)->lpVtbl -> CreateInputLayout(This,pInputElementDescs,NumElements,pShaderBytecodeWithInputSignature,BytecodeLength,ppInputLayout) ) 
+
+#define ID3D11Device5_CreateVertexShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppVertexShader)	\
+    ( (This)->lpVtbl -> CreateVertexShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppVertexShader) ) 
+
+#define ID3D11Device5_CreateGeometryShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppGeometryShader)	\
+    ( (This)->lpVtbl -> CreateGeometryShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppGeometryShader) ) 
+
+#define ID3D11Device5_CreateGeometryShaderWithStreamOutput(This,pShaderBytecode,BytecodeLength,pSODeclaration,NumEntries,pBufferStrides,NumStrides,RasterizedStream,pClassLinkage,ppGeometryShader)	\
+    ( (This)->lpVtbl -> CreateGeometryShaderWithStreamOutput(This,pShaderBytecode,BytecodeLength,pSODeclaration,NumEntries,pBufferStrides,NumStrides,RasterizedStream,pClassLinkage,ppGeometryShader) ) 
+
+#define ID3D11Device5_CreatePixelShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppPixelShader)	\
+    ( (This)->lpVtbl -> CreatePixelShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppPixelShader) ) 
+
+#define ID3D11Device5_CreateHullShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppHullShader)	\
+    ( (This)->lpVtbl -> CreateHullShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppHullShader) ) 
+
+#define ID3D11Device5_CreateDomainShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppDomainShader)	\
+    ( (This)->lpVtbl -> CreateDomainShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppDomainShader) ) 
+
+#define ID3D11Device5_CreateComputeShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppComputeShader)	\
+    ( (This)->lpVtbl -> CreateComputeShader(This,pShaderBytecode,BytecodeLength,pClassLinkage,ppComputeShader) ) 
+
+#define ID3D11Device5_CreateClassLinkage(This,ppLinkage)	\
+    ( (This)->lpVtbl -> CreateClassLinkage(This,ppLinkage) ) 
+
+#define ID3D11Device5_CreateBlendState(This,pBlendStateDesc,ppBlendState)	\
+    ( (This)->lpVtbl -> CreateBlendState(This,pBlendStateDesc,ppBlendState) ) 
+
+#define ID3D11Device5_CreateDepthStencilState(This,pDepthStencilDesc,ppDepthStencilState)	\
+    ( (This)->lpVtbl -> CreateDepthStencilState(This,pDepthStencilDesc,ppDepthStencilState) ) 
+
+#define ID3D11Device5_CreateRasterizerState(This,pRasterizerDesc,ppRasterizerState)	\
+    ( (This)->lpVtbl -> CreateRasterizerState(This,pRasterizerDesc,ppRasterizerState) ) 
+
+#define ID3D11Device5_CreateSamplerState(This,pSamplerDesc,ppSamplerState)	\
+    ( (This)->lpVtbl -> CreateSamplerState(This,pSamplerDesc,ppSamplerState) ) 
+
+#define ID3D11Device5_CreateQuery(This,pQueryDesc,ppQuery)	\
+    ( (This)->lpVtbl -> CreateQuery(This,pQueryDesc,ppQuery) ) 
+
+#define ID3D11Device5_CreatePredicate(This,pPredicateDesc,ppPredicate)	\
+    ( (This)->lpVtbl -> CreatePredicate(This,pPredicateDesc,ppPredicate) ) 
+
+#define ID3D11Device5_CreateCounter(This,pCounterDesc,ppCounter)	\
+    ( (This)->lpVtbl -> CreateCounter(This,pCounterDesc,ppCounter) ) 
+
+#define ID3D11Device5_CreateDeferredContext(This,ContextFlags,ppDeferredContext)	\
+    ( (This)->lpVtbl -> CreateDeferredContext(This,ContextFlags,ppDeferredContext) ) 
+
+#define ID3D11Device5_OpenSharedResource(This,hResource,ReturnedInterface,ppResource)	\
+    ( (This)->lpVtbl -> OpenSharedResource(This,hResource,ReturnedInterface,ppResource) ) 
+
+#define ID3D11Device5_CheckFormatSupport(This,Format,pFormatSupport)	\
+    ( (This)->lpVtbl -> CheckFormatSupport(This,Format,pFormatSupport) ) 
+
+#define ID3D11Device5_CheckMultisampleQualityLevels(This,Format,SampleCount,pNumQualityLevels)	\
+    ( (This)->lpVtbl -> CheckMultisampleQualityLevels(This,Format,SampleCount,pNumQualityLevels) ) 
+
+#define ID3D11Device5_CheckCounterInfo(This,pCounterInfo)	\
+    ( (This)->lpVtbl -> CheckCounterInfo(This,pCounterInfo) ) 
+
+#define ID3D11Device5_CheckCounter(This,pDesc,pType,pActiveCounters,szName,pNameLength,szUnits,pUnitsLength,szDescription,pDescriptionLength)	\
+    ( (This)->lpVtbl -> CheckCounter(This,pDesc,pType,pActiveCounters,szName,pNameLength,szUnits,pUnitsLength,szDescription,pDescriptionLength) ) 
+
+#define ID3D11Device5_CheckFeatureSupport(This,Feature,pFeatureSupportData,FeatureSupportDataSize)	\
+    ( (This)->lpVtbl -> CheckFeatureSupport(This,Feature,pFeatureSupportData,FeatureSupportDataSize) ) 
+
+#define ID3D11Device5_GetPrivateData(This,guid,pDataSize,pData)	\
+    ( (This)->lpVtbl -> GetPrivateData(This,guid,pDataSize,pData) ) 
+
+#define ID3D11Device5_SetPrivateData(This,guid,DataSize,pData)	\
+    ( (This)->lpVtbl -> SetPrivateData(This,guid,DataSize,pData) ) 
+
+#define ID3D11Device5_SetPrivateDataInterface(This,guid,pData)	\
+    ( (This)->lpVtbl -> SetPrivateDataInterface(This,guid,pData) ) 
+
+#define ID3D11Device5_GetFeatureLevel(This)	\
+    ( (This)->lpVtbl -> GetFeatureLevel(This) ) 
+
+#define ID3D11Device5_GetCreationFlags(This)	\
+    ( (This)->lpVtbl -> GetCreationFlags(This) ) 
+
+#define ID3D11Device5_GetDeviceRemovedReason(This)	\
+    ( (This)->lpVtbl -> GetDeviceRemovedReason(This) ) 
+
+#define ID3D11Device5_GetImmediateContext(This,ppImmediateContext)	\
+    ( (This)->lpVtbl -> GetImmediateContext(This,ppImmediateContext) ) 
+
+#define ID3D11Device5_SetExceptionMode(This,RaiseFlags)	\
+    ( (This)->lpVtbl -> SetExceptionMode(This,RaiseFlags) ) 
+
+#define ID3D11Device5_GetExceptionMode(This)	\
+    ( (This)->lpVtbl -> GetExceptionMode(This) ) 
+
+
+#define ID3D11Device5_GetImmediateContext1(This,ppImmediateContext)	\
+    ( (This)->lpVtbl -> GetImmediateContext1(This,ppImmediateContext) ) 
+
+#define ID3D11Device5_CreateDeferredContext1(This,ContextFlags,ppDeferredContext)	\
+    ( (This)->lpVtbl -> CreateDeferredContext1(This,ContextFlags,ppDeferredContext) ) 
+
+#define ID3D11Device5_CreateBlendState1(This,pBlendStateDesc,ppBlendState)	\
+    ( (This)->lpVtbl -> CreateBlendState1(This,pBlendStateDesc,ppBlendState) ) 
+
+#define ID3D11Device5_CreateRasterizerState1(This,pRasterizerDesc,ppRasterizerState)	\
+    ( (This)->lpVtbl -> CreateRasterizerState1(This,pRasterizerDesc,ppRasterizerState) ) 
+
+#define ID3D11Device5_CreateDeviceContextState(This,Flags,pFeatureLevels,FeatureLevels,SDKVersion,EmulatedInterface,pChosenFeatureLevel,ppContextState)	\
+    ( (This)->lpVtbl -> CreateDeviceContextState(This,Flags,pFeatureLevels,FeatureLevels,SDKVersion,EmulatedInterface,pChosenFeatureLevel,ppContextState) ) 
+
+#define ID3D11Device5_OpenSharedResource1(This,hResource,returnedInterface,ppResource)	\
+    ( (This)->lpVtbl -> OpenSharedResource1(This,hResource,returnedInterface,ppResource) ) 
+
+#define ID3D11Device5_OpenSharedResourceByName(This,lpName,dwDesiredAccess,returnedInterface,ppResource)	\
+    ( (This)->lpVtbl -> OpenSharedResourceByName(This,lpName,dwDesiredAccess,returnedInterface,ppResource) ) 
+
+
+#define ID3D11Device5_GetImmediateContext2(This,ppImmediateContext)	\
+    ( (This)->lpVtbl -> GetImmediateContext2(This,ppImmediateContext) ) 
+
+#define ID3D11Device5_CreateDeferredContext2(This,ContextFlags,ppDeferredContext)	\
+    ( (This)->lpVtbl -> CreateDeferredContext2(This,ContextFlags,ppDeferredContext) ) 
+
+#define ID3D11Device5_GetResourceTiling(This,pTiledResource,pNumTilesForEntireResource,pPackedMipDesc,pStandardTileShapeForNonPackedMips,pNumSubresourceTilings,FirstSubresourceTilingToGet,pSubresourceTilingsForNonPackedMips)	\
+    ( (This)->lpVtbl -> GetResourceTiling(This,pTiledResource,pNumTilesForEntireResource,pPackedMipDesc,pStandardTileShapeForNonPackedMips,pNumSubresourceTilings,FirstSubresourceTilingToGet,pSubresourceTilingsForNonPackedMips) ) 
+
+#define ID3D11Device5_CheckMultisampleQualityLevels1(This,Format,SampleCount,Flags,pNumQualityLevels)	\
+    ( (This)->lpVtbl -> CheckMultisampleQualityLevels1(This,Format,SampleCount,Flags,pNumQualityLevels) ) 
+
+
+#define ID3D11Device5_CreateTexture2D1(This,pDesc1,pInitialData,ppTexture2D)	\
+    ( (This)->lpVtbl -> CreateTexture2D1(This,pDesc1,pInitialData,ppTexture2D) ) 
+
+#define ID3D11Device5_CreateTexture3D1(This,pDesc1,pInitialData,ppTexture3D)	\
+    ( (This)->lpVtbl -> CreateTexture3D1(This,pDesc1,pInitialData,ppTexture3D) ) 
+
+#define ID3D11Device5_CreateRasterizerState2(This,pRasterizerDesc,ppRasterizerState)	\
+    ( (This)->lpVtbl -> CreateRasterizerState2(This,pRasterizerDesc,ppRasterizerState) ) 
+
+#define ID3D11Device5_CreateShaderResourceView1(This,pResource,pDesc1,ppSRView1)	\
+    ( (This)->lpVtbl -> CreateShaderResourceView1(This,pResource,pDesc1,ppSRView1) ) 
+
+#define ID3D11Device5_CreateUnorderedAccessView1(This,pResource,pDesc1,ppUAView1)	\
+    ( (This)->lpVtbl -> CreateUnorderedAccessView1(This,pResource,pDesc1,ppUAView1) ) 
+
+#define ID3D11Device5_CreateRenderTargetView1(This,pResource,pDesc1,ppRTView1)	\
+    ( (This)->lpVtbl -> CreateRenderTargetView1(This,pResource,pDesc1,ppRTView1) ) 
+
+#define ID3D11Device5_CreateQuery1(This,pQueryDesc1,ppQuery1)	\
+    ( (This)->lpVtbl -> CreateQuery1(This,pQueryDesc1,ppQuery1) ) 
+
+#define ID3D11Device5_GetImmediateContext3(This,ppImmediateContext)	\
+    ( (This)->lpVtbl -> GetImmediateContext3(This,ppImmediateContext) ) 
+
+#define ID3D11Device5_CreateDeferredContext3(This,ContextFlags,ppDeferredContext)	\
+    ( (This)->lpVtbl -> CreateDeferredContext3(This,ContextFlags,ppDeferredContext) ) 
+
+#define ID3D11Device5_WriteToSubresource(This,pDstResource,DstSubresource,pDstBox,pSrcData,SrcRowPitch,SrcDepthPitch)	\
+    ( (This)->lpVtbl -> WriteToSubresource(This,pDstResource,DstSubresource,pDstBox,pSrcData,SrcRowPitch,SrcDepthPitch) ) 
+
+#define ID3D11Device5_ReadFromSubresource(This,pDstData,DstRowPitch,DstDepthPitch,pSrcResource,SrcSubresource,pSrcBox)	\
+    ( (This)->lpVtbl -> ReadFromSubresource(This,pDstData,DstRowPitch,DstDepthPitch,pSrcResource,SrcSubresource,pSrcBox) ) 
+
+
+#define ID3D11Device5_RegisterDeviceRemovedEvent(This,hEvent,pdwCookie)	\
+    ( (This)->lpVtbl -> RegisterDeviceRemovedEvent(This,hEvent,pdwCookie) ) 
+
+#define ID3D11Device5_UnregisterDeviceRemoved(This,dwCookie)	\
+    ( (This)->lpVtbl -> UnregisterDeviceRemoved(This,dwCookie) ) 
+
+
+#define ID3D11Device5_OpenSharedFence(This,hFence,ReturnedInterface,ppFence)	\
+    ( (This)->lpVtbl -> OpenSharedFence(This,hFence,ReturnedInterface,ppFence) ) 
+
+#define ID3D11Device5_CreateFence(This,InitialValue,Flags,ReturnedInterface,ppFence)	\
+    ( (This)->lpVtbl -> CreateFence(This,InitialValue,Flags,ReturnedInterface,ppFence) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ID3D11Device5_INTERFACE_DEFINED__ */
 
 
 #ifndef __ID3D11Multithread_INTERFACE_DEFINED__
@@ -2202,7 +3065,7 @@ EXTERN_C const IID IID_ID3D11VideoContext2;
 #endif 	/* __ID3D11VideoContext2_INTERFACE_DEFINED__ */
 
 
-/* interface __MIDL_itf_d3d11_4_0000_0003 */
+/* interface __MIDL_itf_d3d11_4_0000_0004 */
 /* [local] */ 
 
 typedef struct D3D11_FEATURE_DATA_D3D11_OPTIONS4
@@ -2213,12 +3076,13 @@ typedef struct D3D11_FEATURE_DATA_D3D11_OPTIONS4
 #endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) */
 #pragma endregion
 DEFINE_GUID(IID_ID3D11Device4,0x8992ab71,0x02e6,0x4b8d,0xba,0x48,0xb0,0x56,0xdc,0xda,0x42,0xc4);
+DEFINE_GUID(IID_ID3D11Device5,0x8ffde202,0xa0e7,0x45df,0x9e,0x01,0xe8,0x37,0x80,0x1b,0x5e,0xa0);
 DEFINE_GUID(IID_ID3D11Multithread,0x9B7E4E00,0x342C,0x4106,0xA1,0x9F,0x4F,0x27,0x04,0xF6,0x89,0xF0);
 DEFINE_GUID(IID_ID3D11VideoContext2,0xC4E7374C,0x6243,0x4D1B,0xAE,0x87,0x52,0xB4,0xF7,0x40,0xE2,0x61);
 
 
-extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0003_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0003_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0004_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0004_v0_0_s_ifspec;
 
 /* Additional Prototypes for ALL interfaces */
 
