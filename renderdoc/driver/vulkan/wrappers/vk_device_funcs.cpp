@@ -1305,7 +1305,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     vkr = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL,
                                                      &device);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    if(vkr != VK_SUCCESS)
+    {
+      RDCERR("Failed to create logical device: %s", ToStr(vkr).c_str());
+      return false;
+    }
 
     GetResourceManager()->WrapResource(device, device);
     GetResourceManager()->AddLiveResource(Device, device);
