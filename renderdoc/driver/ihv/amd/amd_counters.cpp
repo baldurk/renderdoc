@@ -591,9 +591,9 @@ std::vector<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint3
       {
         case CompType::UInt:
         {
-          gpa_uint64 value = 0;
+          uint64_t value = 0;
 
-          memcpy(&value, (gpa_uint64 *)(pSampleResult) + c, sizeof(gpa_uint64));
+          memcpy(&value, (uint64_t *)(pSampleResult) + c, sizeof(uint64_t));
           // normalise units as expected
           if(usageType == GPA_USAGE_TYPE_KILOBYTES)
           {
@@ -610,7 +610,7 @@ std::vector<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint3
         case CompType::Double:
         {
           double value = 0.0;
-          memcpy(&value, (gpa_float64 *)(pSampleResult) + c, sizeof(gpa_float64));
+          memcpy(&value, (double *)(pSampleResult) + c, sizeof(double));
 
           // normalise units as expected
           if(usageType == GPA_USAGE_TYPE_KILOBYTES)
