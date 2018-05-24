@@ -348,7 +348,7 @@ SPDBChunk::SPDBChunk(void *chunk)
     RDCASSERT(moduledata[0] == CV_SIGNATURE_C13);
 
     std::string localName;
-    CV_typ_t localType;
+    CV_typ_t localType = 0;
 
     byte *basePtr = (byte *)&moduledata[1];
 
