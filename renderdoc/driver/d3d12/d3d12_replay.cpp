@@ -128,7 +128,7 @@ void D3D12Replay::CreateResources()
     if(m_Vendor == GPUVendor::AMD)
     {
       RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-      counters = new AMDCounters();
+      counters = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
     }
     else
     {
@@ -3520,7 +3520,7 @@ static DriverRegistration D3D12DriverRegistration(RDCDriver::D3D12, &D3D12_Creat
 
 void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
-  WrappedID3D12Device device(NULL, NULL);
+  WrappedID3D12Device device(NULL, NULL, false);
 
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
