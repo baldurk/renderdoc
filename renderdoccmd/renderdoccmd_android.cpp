@@ -131,6 +131,8 @@ void DisplayGenericSplash()
   eglBindAPI(EGL_OPENGL_ES_API);
 
   EGLDisplay eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+  eglTerminate(eglDisplay);
+
   ANativeWindow *previewWindow = android_state->window;
 
   if(eglDisplay && previewWindow)
@@ -286,6 +288,7 @@ void main()
         eglMakeCurrent(eglDisplay, 0L, 0L, NULL);
         eglDestroyContext(eglDisplay, ctx);
         eglDestroySurface(eglDisplay, surface);
+        eglTerminate(eglDisplay);
       }
       else
       {
