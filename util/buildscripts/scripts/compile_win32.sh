@@ -47,14 +47,16 @@ export PATH=$PATH:$(cygpath -u $ANDROID_SDK/tools/)
 
 # Check that we're set up to build for android
 if [ ! -d $ANDROID_SDK/tools ] ; then
-	echo "\$ANDROID_SDK is not correctly configured: '$ANDROID_SDK'" >> /tmp/android.log
+	echo "\$ANDROID_SDK is not correctly configured: '$ANDROID_SDK'" > /tmp/android.log
+	cat /tmp/android.log
 	$ERROR_SCRIPT /tmp/android.log
 	# Don't return an error code, consider android errors non-fatal other than emailing
 	exit 0;
 fi
 
 if [ ! -d $LLVM_ARM32 ] || [ ! -d $LLVM_ARM64 ] ; then
-	echo "llvm is not available, expected $LLVM_ARM32 and $LLVM_ARM64 respectively." >> /tmp/android.log
+	echo "llvm is not available, expected $LLVM_ARM32 and $LLVM_ARM64 respectively." > /tmp/android.log
+	cat /tmp/android.log
 	$ERROR_SCRIPT /tmp/android.log
 	# Don't return an error code, consider android errors non-fatal other than emailing
 	exit 0;
