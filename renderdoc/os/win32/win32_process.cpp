@@ -50,9 +50,19 @@ static vector<EnvironmentModification> &GetEnvModifications()
   return envCallbacks;
 }
 
-static map<wstring, string> EnvStringToEnvMap(const wchar_t *envstring)
+struct InsensitiveComparison
 {
-  map<wstring, string> ret;
+  bool operator()(const std::wstring &a, const std::wstring &b) const
+  {
+    return lowercase(a) < lowercase(b);
+  }
+};
+
+typedef map<wstring, string, InsensitiveComparison> EnvMap;
+
+static EnvMap EnvStringToEnvMap(const wchar_t *envstring)
+{
+  EnvMap ret;
 
   const wchar_t *e = envstring;
 
@@ -66,8 +76,7 @@ static map<wstring, string> EnvStringToEnvMap(const wchar_t *envstring)
     name.assign(e, equals);
     value = equals + 1;
 
-    // set all names to lower case so we can do case-insensitive lookups
-    ret[lowercase(name)] = StringFormat::Wide2UTF8(value);
+    ret[name] = StringFormat::Wide2UTF8(value);
 
     e += name.size();     // jump to =
     e++;                  // advance past it
@@ -83,36 +92,21 @@ void Process::RegisterEnvironmentModification(EnvironmentModification modif)
   GetEnvModifications().push_back(modif);
 }
 
-// on windows we apply environment changes here, after process initialisation
-// but before any real work (in RenderDoc::Initialise) so that we support
-// injecting the dll into processes we didn't launch (ie didn't control the
-// starting environment for), or even the application loading the dll itself
-// without any interaction with our replay app.
-void Process::ApplyEnvironmentModification()
+static void ApplyEnvModifications(EnvMap &envValues,
+                                  const std::vector<EnvironmentModification> &modifications,
+                                  bool setToSystem)
 {
-  // turn environment string to a UTF-8 map
-  LPWCH envStrings = GetEnvironmentStringsW();
-  map<wstring, string> currentEnv = EnvStringToEnvMap(envStrings);
-  FreeEnvironmentStringsW(envStrings);
-  vector<EnvironmentModification> &modifications = GetEnvModifications();
-
   for(size_t i = 0; i < modifications.size(); i++)
   {
-    EnvironmentModification &m = modifications[i];
+    const EnvironmentModification &m = modifications[i];
 
-    // set all names to lower case so we can do case-insensitive lookups, but
-    // preserve the original name so that added variables maintain the same case
-    wstring name = StringFormat::UTF82Wide(m.name.c_str());
-    wstring lowername = lowercase(name);
+    std::wstring name = StringFormat::UTF82Wide(m.name.c_str());
 
-    string value;
+    std::string value;
 
-    auto it = currentEnv.find(lowername);
-    if(it != currentEnv.end())
-    {
+    auto it = envValues.find(name);
+    if(it != envValues.end())
       value = it->second;
-      name = lowername;
-    }
 
     switch(m.mod)
     {
@@ -148,8 +142,27 @@ void Process::ApplyEnvironmentModification()
       }
     }
 
-    SetEnvironmentVariableW(name.c_str(), StringFormat::UTF82Wide(value).c_str());
+    envValues[name] = value;
+
+    if(setToSystem)
+      SetEnvironmentVariableW(name.c_str(), StringFormat::UTF82Wide(value).c_str());
   }
+}
+
+// on windows we apply environment changes here, after process initialisation
+// but before any real work (in RenderDoc::Initialise) so that we support
+// injecting the dll into processes we didn't launch (ie didn't control the
+// starting environment for), or even the application loading the dll itself
+// without any interaction with our replay app.
+void Process::ApplyEnvironmentModification()
+{
+  // turn environment string to a UTF-8 map
+  LPWCH envStrings = GetEnvironmentStringsW();
+  EnvMap envValues = EnvStringToEnvMap(envStrings);
+  FreeEnvironmentStringsW(envStrings);
+  vector<EnvironmentModification> &modifications = GetEnvModifications();
+
+  ApplyEnvModifications(envValues, modifications, true);
 
   // these have been applied to the current process
   modifications.clear();
@@ -395,8 +408,8 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 }
 
 static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                      bool internal, HANDLE *phChildStdOutput_Rd,
-                                      HANDLE *phChildStdError_Rd)
+                                      const rdcarray<EnvironmentModification> &env, bool internal,
+                                      HANDLE *phChildStdOutput_Rd, HANDLE *phChildStdError_Rd)
 {
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
@@ -476,9 +489,32 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   if(!internal)
     RDCLOG("Running process %s", app);
 
+  // turn environment string to a UTF-8 map
+  std::wstring envString;
+
+  if(!env.empty())
+  {
+    LPWCH envStrings = GetEnvironmentStringsW();
+    EnvMap envValues = EnvStringToEnvMap(envStrings);
+    FreeEnvironmentStringsW(envStrings);
+
+    std::vector<EnvironmentModification> envMods;
+    envMods.insert(envMods.begin(), env.begin(), env.end());
+    ApplyEnvModifications(envValues, envMods, false);
+
+    for(auto it = envValues.begin(); it != envValues.end(); ++it)
+    {
+      envString += it->first;
+      envString += L"=";
+      envString += StringFormat::UTF82Wide(it->second);
+      envString.push_back(0);
+    }
+  }
+
   BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec,
                                  true,    // Need to inherit handles for ReadFile to read stdout
-                                 CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT, NULL,
+                                 CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+                                 envString.empty() ? NULL : (void *)envString.data(),
                                  workdir.c_str(), &si, &pi);
 
   if(phChildStdOutput_Rd)
@@ -926,7 +962,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   HANDLE hChildStdOutput_Rd, hChildStdError_Rd;
 
   PROCESS_INFORMATION pi =
-      RunProcess(app, workingDir, cmdLine, internal, result ? &hChildStdOutput_Rd : NULL,
+      RunProcess(app, workingDir, cmdLine, {}, internal, result ? &hChildStdOutput_Rd : NULL,
                  result ? &hChildStdError_Rd : NULL);
 
   if(pi.dwProcessId == 0)
@@ -1007,12 +1043,12 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
     return {ReplayStatus::InternalError, 0};
   }
 
-  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, false, NULL, NULL);
+  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, env, false, NULL, NULL);
 
   if(pi.dwProcessId == 0)
     return {ReplayStatus::InjectionFailed, 0};
 
-  ExecuteResult ret = InjectIntoProcess(pi.dwProcessId, env, logfile, opts, false);
+  ExecuteResult ret = InjectIntoProcess(pi.dwProcessId, {}, logfile, opts, false);
 
   CloseHandle(pi.hProcess);
   ResumeThread(pi.hThread);
