@@ -203,6 +203,29 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
   %rename("%s") count;
 }
 
+%extend SDObject {
+  %feature("docstring") R"(Interprets the object as an integer and returns its value.
+Invalid if the object is not actually an integer.
+)";
+  PyObject *AsInt()
+  {
+    if($self->type.basetype == SDBasic::UnsignedInteger)
+      return ConvertToPy($self->data.basic.u);
+    else
+      return ConvertToPy($self->data.basic.i);
+  }
+  
+  %feature("docstring") R"(Interprets the object as a floating point number and returns its value.
+Invalid if the object is not actually a floating point number.
+)";
+  PyObject *AsFloat() { return ConvertToPy($self->data.basic.d); }
+  
+  %feature("docstring") R"(Interprets the object as a string and returns its value.
+Invalid if the object is not actually a string.
+)";
+  PyObject *AsString() { return ConvertToPy($self->data.str); }
+}
+
 // add python array members that aren't in slots
 EXTEND_ARRAY_CLASS_METHODS(rdcarray)
 EXTEND_ARRAY_CLASS_METHODS(StructuredChunkList)

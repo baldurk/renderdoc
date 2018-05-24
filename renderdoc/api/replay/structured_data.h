@@ -364,6 +364,8 @@ struct SDObject
   DOCUMENT("The :class:`SDObjectData` with the contents of this object.");
   SDObjectData data;
 
+  DOCUMENT("Add a new child object by duplicating it.");
+  inline void AddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
   DOCUMENT("Find a child object by a given name.");
   inline SDObject *FindChild(const char *childName) const
   {
@@ -374,8 +376,57 @@ struct SDObject
     return NULL;
   }
 
-  DOCUMENT("Add a new child object by duplicating it.");
-  inline void AddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
+  DOCUMENT("Get a child object at a given index.");
+  inline SDObject *GetChild(size_t index) const
+  {
+    if(index < data.children.size())
+      return data.children[index];
+
+    return NULL;
+  }
+
+  DOCUMENT("Get a ``list`` of :class:`SDObject` children.");
+  inline StructuredObjectList &GetChildren() { return data.children; }
+#if !defined(SWIG)
+  // these are for C++ iteration so not defined when SWIG is generating interfaces
+  inline SDObject *const *begin() const { return data.children.begin(); }
+  inline SDObject *const *end() const { return data.children.end(); }
+  inline SDObject **begin() { return data.children.begin(); }
+  inline SDObject **end() { return data.children.end(); }
+#endif
+
+// C++ gets more extensive typecasts. We'll add a couple for python in the interface file
+#if !defined(SWIG)
+  // templated enum cast
+  template <typename EnumType>
+  EnumType AsEnum()
+  {
+    return (EnumType)data.basic.u;
+  }
+  inline double AsDouble() { return data.basic.d; }
+  inline float AsFloat() { return (float)data.basic.d; }
+  inline float AsChar() { return (float)data.basic.c; }
+  inline std::string AsString() { return data.str; }
+  inline uint64_t AsUInt64() { return (uint64_t)data.basic.u; }
+  inline int64_t AsInt64() { return (int64_t)data.basic.i; }
+  inline uint32_t AsUInt32() { return (uint32_t)data.basic.u; }
+  inline int32_t AsInt32() { return (int32_t)data.basic.i; }
+  inline uint16_t AsUInt16() { return (uint16_t)data.basic.u; }
+  inline int16_t AsInt16() { return (int16_t)data.basic.i; }
+  inline uint8_t AsUInt8() { return (uint8_t)data.basic.u; }
+  inline int8_t AsInt8() { return (int8_t)data.basic.i; }
+#endif
+
+  // these are common to both python and C++
+  DOCUMENT(R"(Interprets the object as a :class:`ResourceId` and returns its value.
+Invalid if the object is not actually a :class:`ResourceId`.
+)");
+  inline bool AsBool() { return data.basic.b; }
+  // these are common to both python and C++
+  DOCUMENT(R"(Interprets the object as a :class:`ResourceId` and returns its value.
+Invalid if the object is not actually a :class:`ResourceId`.
+)");
+  inline ResourceId AsResourceId() { return data.basic.id; }
 #if defined(RENDERDOC_QT_COMPAT)
   operator QVariant() const
   {
