@@ -653,6 +653,7 @@ private:
   static void TargetControlClientThread(uint32_t version, Network::Socket *client);
 
   ICrashHandler *m_ExHandler;
+
 };
 
 struct DriverRegistration

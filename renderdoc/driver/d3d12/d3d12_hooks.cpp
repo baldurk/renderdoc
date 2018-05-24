@@ -285,7 +285,7 @@ private:
           dev = (ID3D12Device *)dev1;
         }
 
-        WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, &params);
+        WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, &params, EnableDebugLayer);
 
         RDCDEBUG("created wrapped device.");
 
