@@ -418,8 +418,8 @@ struct SDObject
 #endif
 
   // these are common to both python and C++
-  DOCUMENT(R"(Interprets the object as a :class:`ResourceId` and returns its value.
-Invalid if the object is not actually a :class:`ResourceId`.
+  DOCUMENT(R"(Interprets the object as a ``bool`` and returns its value.
+Invalid if the object is not actually a ``bool``.
 )");
   inline bool AsBool() { return data.basic.b; }
   // these are common to both python and C++
