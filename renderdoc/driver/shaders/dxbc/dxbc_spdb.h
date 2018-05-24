@@ -205,17 +205,6 @@ struct FileChecksum
   uint8_t hashData[1];
 };
 
-struct LineColumnInfo
-{
-  int32_t fileIndex = -1;
-  uint32_t funcIndex = 0;
-  uint32_t lineStart = 0, lineEnd = 0;
-  uint32_t colStart = 0, colEnd = 0;
-  bool statement = true;
-
-  std::vector<std::string> stack;
-};
-
 struct InstructionLocation
 {
   bool statement = true;
@@ -278,9 +267,7 @@ public:
   std::string GetEntryFunction() const { return m_Entry; }
   std::string GetShaderProfile() const { return m_Profile; }
   uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
-  void GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum,
-                   std::string &func) const;
-  void GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const;
+  void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const;
 
   bool HasLocals() const;
   void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;

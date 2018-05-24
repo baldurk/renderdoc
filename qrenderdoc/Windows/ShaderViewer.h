@@ -117,7 +117,7 @@ private slots:
   // manual slots
   void readonly_keyPressed(QKeyEvent *event);
   void editable_keyPressed(QKeyEvent *event);
-  void disassembly_contextMenu(const QPoint &pos);
+  void debug_contextMenu(const QPoint &pos);
   void disassembly_buttonReleased(QMouseEvent *event);
   void disassemble_typeChanged(int index);
   void watch_keyPress(QKeyEvent *event);
@@ -162,6 +162,8 @@ private:
   void updateVariableTooltip();
   void hideVariableTooltip();
 
+  bool isSourceDebugging();
+
   VariableCategory m_TooltipVarCat = VariableCategory::Temporaries;
   int m_TooltipVarIdx = -1;
   int m_TooltipArrayIdx = -1;
@@ -181,6 +183,9 @@ private:
   ScintillaEdit *m_Errors = NULL;
   ScintillaEdit *m_FindResults = NULL;
   QList<ScintillaEdit *> m_Scintillas;
+
+  ScintillaEdit *m_CurInstructionScintilla = NULL;
+  QList<ScintillaEdit *> m_FileScintillas;
 
   FindReplace *m_FindReplace;
 
@@ -210,6 +215,9 @@ private:
   static const int CURRENT_MARKER = 0;
   static const int BREAKPOINT_MARKER = 2;
   static const int FINISHED_MARKER = 4;
+
+  static const int CURRENT_INDICATOR = 20;
+  static const int FINISHED_INDICATOR = 21;
 
   static const int INDICATOR_FINDRESULT = 0;
   static const int INDICATOR_REGHIGHLIGHT = 1;

@@ -1257,7 +1257,6 @@ SPDBChunk::SPDBChunk(void *chunk)
             lineCol.fileIndex = fileIdx;
             lineCol.lineStart = line.linenumStart;
             lineCol.lineEnd = line.linenumStart + line.deltaLineEnd;
-            lineCol.statement = line.fStatement;
 
             if(hasColumns)
             {
@@ -1313,7 +1312,7 @@ SPDBChunk::SPDBChunk(void *chunk)
   }
 
   for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
-    it->second.stack.push_back(m_Functions[0].name);
+    it->second.callstack.push_back(m_Functions[0].name);
 
   SPDBLOG("Applying %zu inline sites", inlines.size());
 
@@ -1360,12 +1359,11 @@ SPDBChunk::SPDBChunk(void *chunk)
                   loc.lineEnd + inlines[i].baseLineNum, loc.colEnd);
 
           it->second.fileIndex = fileIdx;
-          it->second.funcIndex = inlines[i].id;
           it->second.lineStart = loc.lineStart + inlines[i].baseLineNum;
           it->second.lineEnd = loc.lineEnd + inlines[i].baseLineNum;
           it->second.colStart = loc.colStart;
           it->second.colEnd = loc.colEnd;
-          it->second.stack.push_back(m_Functions[inlines[i].id].name);
+          it->second.callstack.push_back(m_Functions[inlines[i].id].name);
           nPatched++;
         }
       }
@@ -1428,29 +1426,12 @@ SPDBChunk::SPDBChunk(void *chunk)
   m_HasDebugInfo = true;
 }
 
-void SPDBChunk::GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx,
-                            int32_t &lineNum, std::string &func) const
+void SPDBChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
   auto it = m_Lines.lower_bound((uint32_t)offset);
 
   if(it != m_Lines.end() && (uintptr_t)it->first <= offset)
-  {
-    fileIdx = it->second.fileIndex;
-    lineNum = it->second.lineStart - 1;    // 0-indexed
-    func = it->second.stack.back();
-  }
-}
-
-void SPDBChunk::GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const
-{
-  auto it = m_Lines.lower_bound((uint32_t)offset);
-
-  if(it != m_Lines.end() && (uintptr_t)it->first <= offset)
-  {
-    stack.resize(it->second.stack.size());
-    for(size_t i = 0; i < stack.size(); i++)
-      stack[i] = it->second.stack[i];
-  }
+    lineInfo = it->second;
 }
 
 bool SPDBChunk::HasLocals() const

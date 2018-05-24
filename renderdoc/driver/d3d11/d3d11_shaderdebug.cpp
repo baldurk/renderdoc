@@ -940,8 +940,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   vector<ShaderDebugState> states;
 
-  dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, initialState.callstack);
-  dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
+  if(dxbc->m_DebugInfo)
+    dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
 
   states.push_back((State)initialState);
 
@@ -954,9 +954,9 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
     initialState = initialState.GetNext(global, NULL);
 
+    if(dxbc->m_DebugInfo)
     {
       const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
-      dxbc->m_DebugInfo->GetStack(initialState.nextInstruction, op.offset, initialState.callstack);
       dxbc->m_DebugInfo->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
     }
 
@@ -971,7 +971,14 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   ret.states = states;
 
-  ret.hasLocals = dxbc->m_DebugInfo->HasLocals();
+  ret.hasLocals = dxbc->m_DebugInfo && dxbc->m_DebugInfo->HasLocals();
+
+  ret.lineInfo.resize(dxbc->GetNumInstructions());
+  for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+  {
+    const ASMOperation &op = dxbc->GetInstruction(i);
+    dxbc->m_DebugInfo->GetLineInfo(i, op.offset, ret.lineInfo[i]);
+  }
 
   return ret;
 }
@@ -1821,8 +1828,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   vector<ShaderDebugState> states;
 
-  dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, quad[destIdx].callstack);
-  dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, quad[destIdx].locals);
+  if(dxbc->m_DebugInfo)
+    dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, quad[destIdx].locals);
 
   states.push_back((State)quad[destIdx]);
 
@@ -1860,9 +1867,9 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     {
       State &s = curquad[destIdx];
 
+      if(dxbc->m_DebugInfo)
       {
         const ASMOperation &op = dxbc->GetInstruction((size_t)s.nextInstruction);
-        dxbc->m_DebugInfo->GetStack(s.nextInstruction, op.offset, s.callstack);
         dxbc->m_DebugInfo->GetLocals(s.nextInstruction, op.offset, s.locals);
       }
 
@@ -1959,7 +1966,14 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   traces[destIdx].states = states;
 
-  traces[destIdx].hasLocals = dxbc->m_DebugInfo->HasLocals();
+  traces[destIdx].hasLocals = dxbc->m_DebugInfo && dxbc->m_DebugInfo->HasLocals();
+
+  traces[destIdx].lineInfo.resize(dxbc->GetNumInstructions());
+  for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+  {
+    const ASMOperation &op = dxbc->GetInstruction(i);
+    dxbc->m_DebugInfo->GetLineInfo(i, op.offset, traces[destIdx].lineInfo[i]);
+  }
 
   return traces[destIdx];
 }
@@ -2018,8 +2032,8 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   vector<ShaderDebugState> states;
 
-  dxbc->m_DebugInfo->GetStack(0, dxbc->GetInstruction(0).offset, initialState.callstack);
-  dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
+  if(dxbc->m_DebugInfo)
+    dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
 
   states.push_back((State)initialState);
 
@@ -2030,9 +2044,9 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
     initialState = initialState.GetNext(global, NULL);
 
+    if(dxbc->m_DebugInfo)
     {
       const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
-      dxbc->m_DebugInfo->GetStack(initialState.nextInstruction, op.offset, initialState.callstack);
       dxbc->m_DebugInfo->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
     }
 
@@ -2047,7 +2061,14 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ret.states = states;
 
-  ret.hasLocals = dxbc->m_DebugInfo->HasLocals();
+  ret.hasLocals = dxbc->m_DebugInfo && dxbc->m_DebugInfo->HasLocals();
+
+  ret.lineInfo.resize(dxbc->GetNumInstructions());
+  for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+  {
+    const ASMOperation &op = dxbc->GetInstruction(i);
+    dxbc->m_DebugInfo->GetLineInfo(i, op.offset, ret.lineInfo[i]);
+  }
 
   return ret;
 }

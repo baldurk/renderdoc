@@ -665,9 +665,7 @@ void DXBCFile::MakeDisassemblyString()
     }
   }
 
-  int32_t prevFile = -1;
-  int32_t prevLine = -1;
-  std::string prevFunc;
+  LineColumnInfo prevLineInfo;
 
   size_t debugInst = 0;
 
@@ -694,27 +692,33 @@ void DXBCFile::MakeDisassemblyString()
 
     if(m_DebugInfo)
     {
-      int32_t fileID = prevFile;
-      int32_t lineNum = prevLine;
-      std::string func = prevFunc;
+      LineColumnInfo lineInfo = prevLineInfo;
 
-      m_DebugInfo->GetLineInfo(debugInst, m_Instructions[i].offset, fileID, lineNum, func);
+      m_DebugInfo->GetLineInfo(debugInst, m_Instructions[i].offset, lineInfo);
 
-      if(fileID >= 0 && lineNum >= 0 && (fileID != prevFile || lineNum != prevLine))
+      if(lineInfo.fileIndex >= 0 && lineInfo.lineStart >= 0 &&
+         (lineInfo.fileIndex != prevLineInfo.fileIndex ||
+          lineInfo.lineStart != prevLineInfo.lineStart))
       {
         string line = "";
-        if(fileID >= (int32_t)fileLines.size())
+        if(lineInfo.fileIndex >= (int32_t)fileLines.size())
         {
           line = "Unknown file";
         }
-        else if(fileLines[fileID].empty())
+        else if(fileLines[lineInfo.fileIndex].empty())
         {
           line = "";
         }
         else
         {
-          int32_t lineIdx = RDCMIN(lineNum, (int32_t)fileLines[fileID].size() - 1);
-          line = fileLines[fileID][lineIdx];
+          std::vector<std::string> &lines = fileLines[lineInfo.fileIndex];
+
+          int32_t lineIdx = RDCMIN(lineInfo.lineStart, (uint32_t)lines.size() - 1);
+
+          // line numbers are 1-based but we want a 0-based index
+          if(lineIdx > 0)
+            lineIdx--;
+          line = lines[lineIdx];
         }
 
         size_t startLine = line.find_first_not_of(" \t");
@@ -724,23 +728,27 @@ void DXBCFile::MakeDisassemblyString()
 
         m_Disassembly += "\n";
 
-        if(((fileID != prevFile || func != prevFunc) && fileID < (int32_t)fileLines.size()) ||
+        if(((lineInfo.fileIndex != prevLineInfo.fileIndex ||
+             lineInfo.callstack.back() != prevLineInfo.callstack.back()) &&
+            lineInfo.fileIndex < (int32_t)fileLines.size()) ||
            line == "")
         {
           m_Disassembly += "      ";    // "0000: "
           for(int in = 0; in < indent; in++)
             m_Disassembly += "  ";
 
+          std::string func = lineInfo.callstack.back();
+
           if(!func.empty())
           {
-            m_Disassembly +=
-                StringFormat::Fmt("%s:%d - %s()\n", m_DebugInfo->Files[fileID].first.c_str(),
-                                  lineNum + 1, func.c_str());
+            m_Disassembly += StringFormat::Fmt("%s:%d - %s()\n",
+                                               m_DebugInfo->Files[lineInfo.fileIndex].first.c_str(),
+                                               lineInfo.lineStart, func.c_str());
           }
           else
           {
-            m_Disassembly +=
-                StringFormat::Fmt("%s:%d\n", m_DebugInfo->Files[fileID].first.c_str(), lineNum + 1);
+            m_Disassembly += StringFormat::Fmt(
+                "%s:%d\n", m_DebugInfo->Files[lineInfo.fileIndex].first.c_str(), lineInfo.lineStart);
           }
         }
 
@@ -753,9 +761,7 @@ void DXBCFile::MakeDisassemblyString()
         }
       }
 
-      prevFile = fileID;
-      prevLine = lineNum;
-      prevFunc = func;
+      prevLineInfo = lineInfo;
     }
 
     char buf[64] = {0};

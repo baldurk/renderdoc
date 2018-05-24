@@ -98,8 +98,7 @@ SDBGChunk::SDBGChunk(void *data)
   m_HasDebugInfo = true;
 }
 
-void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx,
-                            int32_t &lineNum, std::string &func) const
+void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
   if(instruction < m_Instructions.size())
   {
@@ -108,16 +107,14 @@ void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileI
     {
       const SDBGSymbol &sym = m_SymbolTable[symID];
 
-      fileIdx = sym.fileID;
-      lineNum = sym.lineNum - 1;
-      func = m_Entry;
+      lineInfo.fileIndex = sym.fileID;
+      lineInfo.lineStart = sym.lineNum;
+      lineInfo.lineEnd = sym.lineNum;
+      lineInfo.colStart = 0;
+      lineInfo.colEnd = 0;
+      lineInfo.callstack = {m_Entry};
     }
   }
-}
-
-void SDBGChunk::GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const
-{
-  stack = {"Stack not available"};
 }
 
 bool SDBGChunk::HasLocals() const

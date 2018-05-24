@@ -105,24 +105,6 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     QObject::connect(m_DisassemblyView, &ScintillaEdit::keyPressed, this,
                      &ShaderViewer::readonly_keyPressed);
 
-    // C# LightCoral
-    m_DisassemblyView->markerSetBack(CURRENT_MARKER, SCINTILLA_COLOUR(240, 128, 128));
-    m_DisassemblyView->markerSetBack(CURRENT_MARKER + 1, SCINTILLA_COLOUR(240, 128, 128));
-    m_DisassemblyView->markerDefine(CURRENT_MARKER, SC_MARK_SHORTARROW);
-    m_DisassemblyView->markerDefine(CURRENT_MARKER + 1, SC_MARK_BACKGROUND);
-
-    // C# LightSlateGray
-    m_DisassemblyView->markerSetBack(FINISHED_MARKER, SCINTILLA_COLOUR(119, 136, 153));
-    m_DisassemblyView->markerSetBack(FINISHED_MARKER + 1, SCINTILLA_COLOUR(119, 136, 153));
-    m_DisassemblyView->markerDefine(FINISHED_MARKER, SC_MARK_ROUNDRECT);
-    m_DisassemblyView->markerDefine(FINISHED_MARKER + 1, SC_MARK_BACKGROUND);
-
-    // C# Red
-    m_DisassemblyView->markerSetBack(BREAKPOINT_MARKER, SCINTILLA_COLOUR(255, 0, 0));
-    m_DisassemblyView->markerSetBack(BREAKPOINT_MARKER + 1, SCINTILLA_COLOUR(255, 0, 0));
-    m_DisassemblyView->markerDefine(BREAKPOINT_MARKER, SC_MARK_CIRCLE);
-    m_DisassemblyView->markerDefine(BREAKPOINT_MARKER + 1, SC_MARK_BACKGROUND);
-
     m_Scintillas.push_back(m_DisassemblyView);
 
     m_DisassemblyFrame = new QWidget(this);
@@ -355,7 +337,6 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   QObject::connect(m_DisassemblyView, &ScintillaEdit::buttonReleased, this,
                    &ShaderViewer::disassembly_buttonReleased);
 
-  // suppress the built-in context menu and hook up our own
   if(trace)
   {
     if(m_Stage == ShaderStage::Vertex)
@@ -371,13 +352,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ANALYTIC_SET(ShaderDebug.Compute, true);
     }
 
-    m_DisassemblyView->usePopUp(SC_POPUP_NEVER);
-
     m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);
-
-    m_DisassemblyView->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(m_DisassemblyView, &ScintillaEdit::customContextMenuRequested, this,
-                     &ShaderViewer::disassembly_contextMenu);
 
     m_DisassemblyView->setMouseDwellTime(500);
 
@@ -394,7 +369,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     else
       setWindowTitle(shader->entryPoint);
 
-    int fileIdx = 0;
+    m_FileScintillas.reserve(shader->debugInfo.files.count());
 
     QWidget *sel = NULL;
     for(const ShaderSourceFile &f : shader->debugInfo.files)
@@ -407,7 +382,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       if(sel == NULL)
         sel = scintilla;
 
-      fileIdx++;
+      m_FileScintillas.push_back(scintilla);
     }
 
     if(trace || sel == NULL)
@@ -491,14 +466,6 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ui->locals->hide();
     }
 
-    m_DisassemblyView->setMarginWidthN(1, 20.0 * devicePixelRatioF());
-
-    // display current line in margin 2, distinct from breakpoint in margin 1
-    sptr_t markMask = (1 << CURRENT_MARKER) | (1 << FINISHED_MARKER);
-
-    m_DisassemblyView->setMarginMaskN(1, m_DisassemblyView->marginMaskN(1) & ~markMask);
-    m_DisassemblyView->setMarginMaskN(2, m_DisassemblyView->marginMaskN(2) | markMask);
-
     QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
     QObject::connect(ui->stepNext, &QToolButton::clicked, this, &ShaderViewer::stepNext);
     QObject::connect(ui->runBack, &QToolButton::clicked, this, &ShaderViewer::runBack);
@@ -507,19 +474,38 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     QObject::connect(ui->runToSample, &QToolButton::clicked, this, &ShaderViewer::runToSample);
     QObject::connect(ui->runToNaNOrInf, &QToolButton::clicked, this, &ShaderViewer::runToNanOrInf);
 
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10), m_DisassemblyView),
-                     &QShortcut::activated, this, &ShaderViewer::stepNext);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10 | Qt::ShiftModifier), m_DisassemblyView),
+    for(ScintillaEdit *edit : m_Scintillas)
+    {
+      edit->setMarginWidthN(1, 20.0 * devicePixelRatioF());
+
+      // display current line in margin 2, distinct from breakpoint in margin 1
+      sptr_t markMask = (1 << CURRENT_MARKER) | (1 << FINISHED_MARKER);
+
+      edit->setMarginMaskN(1, edit->marginMaskN(1) & ~markMask);
+      edit->setMarginMaskN(2, edit->marginMaskN(2) | markMask);
+
+      // suppress the built-in context menu and hook up our own
+      edit->usePopUp(SC_POPUP_NEVER);
+
+      edit->setContextMenuPolicy(Qt::CustomContextMenu);
+      QObject::connect(edit, &ScintillaEdit::customContextMenuRequested, this,
+                       &ShaderViewer::debug_contextMenu);
+    }
+
+    // register the shortcuts globally for this shader viewer so it works regardless of the active
+    // scintilla
+    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10), this), &QShortcut::activated, this,
+                     &ShaderViewer::stepNext);
+    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10 | Qt::ShiftModifier), this),
                      &QShortcut::activated, this, &ShaderViewer::stepBack);
-    QObject::connect(
-        new QShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier), m_DisassemblyView),
-        &QShortcut::activated, this, &ShaderViewer::runToCursor);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5), m_DisassemblyView),
-                     &QShortcut::activated, this, &ShaderViewer::run);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier), m_DisassemblyView),
+    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier), this),
+                     &QShortcut::activated, this, &ShaderViewer::runToCursor);
+    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5), this), &QShortcut::activated, this,
+                     &ShaderViewer::run);
+    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier), this),
                      &QShortcut::activated, this, &ShaderViewer::runBack);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F9), m_DisassemblyView),
-                     &QShortcut::activated, [this]() { ToggleBreakpoint(); });
+    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F9), this), &QShortcut::activated,
+                     [this]() { ToggleBreakpoint(); });
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
@@ -541,6 +527,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     }
 
     ui->watch->resizeRowsToContents();
+
+    ToolWindowManager::raiseToolWindow(m_DisassemblyFrame);
   }
   else
   {
@@ -640,6 +628,41 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                                                         ui->docking->areaOf(ui->inputSig), 0.5f));
     ui->docking->setToolWindowProperties(
         ui->outputSig, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+  }
+
+  for(ScintillaEdit *edit : m_Scintillas)
+  {
+    // C# LightCoral
+    edit->markerSetBack(CURRENT_MARKER, SCINTILLA_COLOUR(240, 128, 128));
+    edit->markerSetBack(CURRENT_MARKER + 1, SCINTILLA_COLOUR(240, 128, 128));
+    edit->markerDefine(CURRENT_MARKER, SC_MARK_SHORTARROW);
+    edit->markerDefine(CURRENT_MARKER + 1, SC_MARK_BACKGROUND);
+    edit->indicSetFore(CURRENT_INDICATOR, SCINTILLA_COLOUR(240, 128, 128));
+    edit->indicSetAlpha(CURRENT_INDICATOR, 220);
+    edit->indicSetOutlineAlpha(CURRENT_INDICATOR, 255);
+    edit->indicSetUnder(CURRENT_INDICATOR, true);
+    edit->indicSetStyle(CURRENT_INDICATOR, INDIC_STRAIGHTBOX);
+    edit->indicSetHoverFore(CURRENT_INDICATOR, SCINTILLA_COLOUR(240, 128, 128));
+    edit->indicSetHoverStyle(CURRENT_INDICATOR, INDIC_STRAIGHTBOX);
+
+    // C# LightSlateGray
+    edit->markerSetBack(FINISHED_MARKER, SCINTILLA_COLOUR(119, 136, 153));
+    edit->markerSetBack(FINISHED_MARKER + 1, SCINTILLA_COLOUR(119, 136, 153));
+    edit->markerDefine(FINISHED_MARKER, SC_MARK_ROUNDRECT);
+    edit->markerDefine(FINISHED_MARKER + 1, SC_MARK_BACKGROUND);
+    edit->indicSetFore(FINISHED_INDICATOR, SCINTILLA_COLOUR(119, 136, 153));
+    edit->indicSetAlpha(FINISHED_INDICATOR, 220);
+    edit->indicSetOutlineAlpha(FINISHED_INDICATOR, 255);
+    edit->indicSetUnder(FINISHED_INDICATOR, true);
+    edit->indicSetStyle(FINISHED_INDICATOR, INDIC_STRAIGHTBOX);
+    edit->indicSetHoverFore(FINISHED_INDICATOR, SCINTILLA_COLOUR(119, 136, 153));
+    edit->indicSetHoverStyle(FINISHED_INDICATOR, INDIC_STRAIGHTBOX);
+
+    // C# Red
+    edit->markerSetBack(BREAKPOINT_MARKER, SCINTILLA_COLOUR(255, 0, 0));
+    edit->markerSetBack(BREAKPOINT_MARKER + 1, SCINTILLA_COLOUR(255, 0, 0));
+    edit->markerDefine(BREAKPOINT_MARKER, SC_MARK_CIRCLE);
+    edit->markerDefine(BREAKPOINT_MARKER + 1, SC_MARK_BACKGROUND);
   }
 }
 
@@ -793,11 +816,32 @@ void ShaderViewer::editable_keyPressed(QKeyEvent *event)
   }
 }
 
-void ShaderViewer::disassembly_contextMenu(const QPoint &pos)
+void ShaderViewer::debug_contextMenu(const QPoint &pos)
 {
-  int scintillaPos = m_DisassemblyView->positionFromPoint(pos.x(), pos.y());
+  ScintillaEdit *edit = qobject_cast<ScintillaEdit *>(QObject::sender());
+
+  bool isDisasm = (edit == m_DisassemblyView);
+
+  int scintillaPos = edit->positionFromPoint(pos.x(), pos.y());
 
   QMenu contextMenu(this);
+
+  QAction gotoOther(isDisasm ? tr("Go to Source") : tr("Go to Disassembly"), this);
+
+  QObject::connect(&gotoOther, &QAction::triggered, [this, isDisasm]() {
+    if(isDisasm && m_CurInstructionScintilla)
+    {
+      ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
+      m_CurInstructionScintilla->setFocus(Qt::MouseFocusReason);
+    }
+    else if(!isDisasm)
+    {
+      ToolWindowManager::raiseToolWindow(m_DisassemblyFrame);
+      m_DisassemblyFrame->setFocus(Qt::MouseFocusReason);
+    }
+
+    updateDebugging();
+  });
 
   QAction intDisplay(tr("Integer register display"), this);
   QAction floatDisplay(tr("Float register display"), this);
@@ -810,6 +854,12 @@ void ShaderViewer::disassembly_contextMenu(const QPoint &pos)
 
   QObject::connect(&intDisplay, &QAction::triggered, this, &ShaderViewer::on_intView_clicked);
   QObject::connect(&floatDisplay, &QAction::triggered, this, &ShaderViewer::on_floatView_clicked);
+
+  if(isDisasm && m_CurInstructionScintilla == NULL)
+    gotoOther.setEnabled(false);
+
+  contextMenu.addAction(&gotoOther);
+  contextMenu.addSeparator();
 
   contextMenu.addAction(&intDisplay);
   contextMenu.addAction(&floatDisplay);
@@ -831,22 +881,26 @@ void ShaderViewer::disassembly_contextMenu(const QPoint &pos)
   contextMenu.addAction(&runCursor);
   contextMenu.addSeparator();
 
+  if(!isDisasm)
+  {
+    addBreakpoint.setEnabled(false);
+    runCursor.setEnabled(false);
+  }
+
   QAction copyText(tr("Copy"), this);
   QAction selectAll(tr("Select All"), this);
 
-  copyText.setEnabled(!m_DisassemblyView->selectionEmpty());
+  copyText.setEnabled(!edit->selectionEmpty());
 
-  QObject::connect(&copyText, &QAction::triggered, [this] {
-    m_DisassemblyView->copyRange(m_DisassemblyView->selectionStart(),
-                                 m_DisassemblyView->selectionEnd());
-  });
-  QObject::connect(&selectAll, &QAction::triggered, [this] { m_DisassemblyView->selectAll(); });
+  QObject::connect(&copyText, &QAction::triggered,
+                   [this, edit] { edit->copyRange(edit->selectionStart(), edit->selectionEnd()); });
+  QObject::connect(&selectAll, &QAction::triggered, [this, edit] { edit->selectAll(); });
 
   contextMenu.addAction(&copyText);
   contextMenu.addAction(&selectAll);
   contextMenu.addSeparator();
 
-  RDDialog::show(&contextMenu, m_DisassemblyView->viewport()->mapToGlobal(pos));
+  RDDialog::show(&contextMenu, edit->viewport()->mapToGlobal(pos));
 }
 
 void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
@@ -1015,7 +1069,36 @@ bool ShaderViewer::stepBack()
   if(CurrentStep() == 0)
     return false;
 
-  SetCurrentStep(CurrentStep() - 1);
+  if(isSourceDebugging())
+  {
+    const ShaderDebugState &oldstate = m_Trace->states[CurrentStep()];
+
+    LineColumnInfo oldLine = m_Trace->lineInfo[oldstate.nextInstruction];
+
+    while(CurrentStep() < m_Trace->states.count())
+    {
+      m_CurrentStep--;
+
+      const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
+
+      if(m_Breakpoints.contains((int)state.nextInstruction))
+        break;
+
+      if(m_CurrentStep == 0)
+        break;
+
+      if(m_Trace->lineInfo[state.nextInstruction] == oldLine)
+        continue;
+
+      break;
+    }
+
+    SetCurrentStep(CurrentStep());
+  }
+  else
+  {
+    SetCurrentStep(CurrentStep() - 1);
+  }
 
   return true;
 }
@@ -1028,7 +1111,36 @@ bool ShaderViewer::stepNext()
   if(CurrentStep() + 1 >= m_Trace->states.count())
     return false;
 
-  SetCurrentStep(CurrentStep() + 1);
+  if(isSourceDebugging())
+  {
+    const ShaderDebugState &oldstate = m_Trace->states[CurrentStep()];
+
+    LineColumnInfo oldLine = m_Trace->lineInfo[oldstate.nextInstruction];
+
+    while(CurrentStep() < m_Trace->states.count())
+    {
+      m_CurrentStep++;
+
+      const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
+
+      if(m_Breakpoints.contains((int)state.nextInstruction))
+        break;
+
+      if(m_CurrentStep + 1 >= m_Trace->states.count())
+        break;
+
+      if(m_Trace->lineInfo[state.nextInstruction] == oldLine)
+        continue;
+
+      break;
+    }
+
+    SetCurrentStep(CurrentStep());
+  }
+  else
+  {
+    SetCurrentStep(CurrentStep() + 1);
+  }
 
   return true;
 }
@@ -1244,6 +1356,18 @@ void ShaderViewer::updateDebugging()
   m_DisassemblyView->markerDeleteAll(FINISHED_MARKER);
   m_DisassemblyView->markerDeleteAll(FINISHED_MARKER + 1);
 
+  if(m_CurInstructionScintilla)
+  {
+    m_CurInstructionScintilla->markerDeleteAll(CURRENT_MARKER);
+    m_CurInstructionScintilla->markerDeleteAll(CURRENT_MARKER + 1);
+    m_CurInstructionScintilla->markerDeleteAll(FINISHED_MARKER);
+    m_CurInstructionScintilla->markerDeleteAll(FINISHED_MARKER + 1);
+
+    m_CurInstructionScintilla->indicatorClearRange(0, m_CurInstructionScintilla->length());
+
+    m_CurInstructionScintilla = NULL;
+  }
+
   for(sptr_t i = 0; i < m_DisassemblyView->lineCount(); i++)
   {
     if(QString::fromUtf8(m_DisassemblyView->getLine(i).trimmed())
@@ -1262,8 +1386,64 @@ void ShaderViewer::updateDebugging()
 
   ui->callstack->clear();
 
-  for(const rdcstr &s : state.callstack)
-    ui->callstack->insertItem(0, s);
+  if(state.nextInstruction < m_Trace->lineInfo.size())
+  {
+    LineColumnInfo &lineInfo = m_Trace->lineInfo[state.nextInstruction];
+
+    for(const rdcstr &s : lineInfo.callstack)
+      ui->callstack->insertItem(0, s);
+
+    if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
+    {
+      m_CurInstructionScintilla = m_FileScintillas[lineInfo.fileIndex];
+
+      for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+      {
+        if(line == lineInfo.lineEnd)
+          m_CurInstructionScintilla->markerAdd(line - 1, done ? FINISHED_MARKER : CURRENT_MARKER);
+
+        if(lineInfo.colStart == 0)
+        {
+          // with no column info, add a marker on the whole line
+          m_CurInstructionScintilla->markerAdd(line - 1,
+                                               done ? FINISHED_MARKER + 1 : CURRENT_MARKER + 1);
+        }
+        else
+        {
+          // otherwise add an indicator on the column range.
+
+          // Start from the full position/length for this line
+          sptr_t pos = m_CurInstructionScintilla->positionFromLine(line - 1);
+          sptr_t len = m_CurInstructionScintilla->lineEndPosition(line - 1) - pos;
+
+          // if we're on the last line of the range, restrict the length to end on the last column
+          if(line == lineInfo.lineEnd && lineInfo.colEnd != 0)
+            len = lineInfo.colEnd;
+
+          // if we're on the start of the range (which may also be the last line above too), shift
+          // inwards towards the first column
+          if(line == lineInfo.lineStart)
+          {
+            pos += lineInfo.colStart - 1;
+            len -= lineInfo.colStart - 1;
+          }
+
+          m_CurInstructionScintilla->setIndicatorCurrent(done ? FINISHED_INDICATOR
+                                                              : CURRENT_INDICATOR);
+          m_CurInstructionScintilla->indicatorFillRange(pos, len);
+        }
+      }
+
+      if(isSourceDebugging() ||
+         ui->docking->areaOf(m_CurInstructionScintilla) != ui->docking->areaOf(m_DisassemblyFrame))
+        ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
+
+      int pos = m_CurInstructionScintilla->positionFromLine(lineInfo.lineStart - 1);
+      m_CurInstructionScintilla->setSelection(pos, pos);
+
+      ensureLineScrolled(m_CurInstructionScintilla, lineInfo.lineStart - 1);
+    }
+  }
 
   if(ui->constants->topLevelItemCount() == 0)
   {
@@ -1707,7 +1887,7 @@ void ShaderViewer::ensureLineScrolled(ScintillaEdit *s, int line)
   int linesVisible = s->linesOnScreen();
 
   if(s->isVisible() && (line < firstLine || line > (firstLine + linesVisible)))
-    s->scrollCaret();
+    s->setFirstVisibleLine(qMax(0, line - linesVisible / 2));
 }
 
 int ShaderViewer::CurrentStep()
@@ -2274,6 +2454,11 @@ void ShaderViewer::hideVariableTooltip()
 {
   QToolTip::hideText();
   m_TooltipVarIdx = -1;
+}
+
+bool ShaderViewer::isSourceDebugging()
+{
+  return !m_DisassemblyFrame->isVisible();
 }
 
 void ShaderViewer::on_findReplace_clicked()

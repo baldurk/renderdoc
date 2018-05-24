@@ -289,6 +289,61 @@ components are used). This list will have the same number of elements as :data:`
 };
 DECLARE_REFLECTION_STRUCT(LocalVariableMapping);
 
+DOCUMENT("Details the current region of code that an instruction maps to");
+struct LineColumnInfo
+{
+  DOCUMENT("");
+  bool operator==(const LineColumnInfo &o) const
+  {
+    return fileIndex == o.fileIndex && lineStart == o.lineStart && lineEnd == o.lineEnd &&
+           colStart == o.colStart && colEnd == o.colEnd && callstack == o.callstack;
+  }
+  bool operator<(const LineColumnInfo &o) const
+  {
+    if(!(fileIndex == o.fileIndex))
+      return fileIndex < o.fileIndex;
+    if(!(lineStart == o.lineStart))
+      return lineStart < o.lineStart;
+    if(!(lineEnd == o.lineEnd))
+      return lineEnd < o.lineEnd;
+    if(!(colStart == o.colStart))
+      return colStart < o.colStart;
+    if(!(colEnd == o.colEnd))
+      return colEnd < o.colEnd;
+    if(!(callstack == o.callstack))
+      return callstack < o.callstack;
+    return false;
+  }
+
+  DOCUMENT("The current file, as an index into the list of files for this shader.");
+  int32_t fileIndex = -1;
+
+  DOCUMENT("The line-number (starting from 1) of the start of the current section of code.");
+  uint32_t lineStart = 0;
+
+  DOCUMENT("The line-number (starting from 1) of the end of the current section of code.");
+  uint32_t lineEnd = 0;
+
+  DOCUMENT(R"(The column number (starting from 1) of the start of the code on the line specified by
+:data:`lineStart`. If set to 0, no column information is available and the whole lines should be
+treated as covering the code.
+)");
+  uint32_t colStart = 0;
+
+  DOCUMENT(R"(The column number (starting from 1) of the end of the code on the line specified by
+:data:`lineEnd`. If set to 0, no column information is available and the whole lines should be
+treated as covering the code.
+)");
+  uint32_t colEnd = 0;
+
+  DOCUMENT(R"(A ``list`` of ``str`` with each function call in the current callstack at this line.
+
+The oldest/outer function is first in the list, the newest/inner function is last.
+)");
+  rdcarray<rdcstr> callstack;
+};
+DECLARE_REFLECTION_STRUCT(LineColumnInfo);
+
 DOCUMENT(R"(This stores the current state of shader debugging at one particular step in the shader,
 with all mutable variable contents.
 )");
@@ -298,8 +353,7 @@ struct ShaderDebugState
   bool operator==(const ShaderDebugState &o) const
   {
     return registers == o.registers && outputs == o.outputs && indexableTemps == o.indexableTemps &&
-           locals == o.locals && nextInstruction == o.nextInstruction && flags == o.flags &&
-           callstack == o.callstack;
+           locals == o.locals && nextInstruction == o.nextInstruction && flags == o.flags;
   }
   bool operator<(const ShaderDebugState &o) const
   {
@@ -315,8 +369,6 @@ struct ShaderDebugState
       return nextInstruction < o.nextInstruction;
     if(!(flags == o.flags))
       return flags < o.flags;
-    if(!(callstack == o.callstack))
-      return callstack < o.callstack;
     return false;
   }
   DOCUMENT("The temporary variables for this shader as a list of :class:`ShaderVariable`.");
@@ -331,9 +383,6 @@ struct ShaderDebugState
 to which registers, and their type
 )");
   rdcarray<LocalVariableMapping> locals;
-
-  DOCUMENT("An optional callstack listing function calls at the present instruction");
-  rdcarray<rdcstr> callstack;
 
   DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
 shader execution happened will have ``nextInstruction == 0``.
@@ -368,6 +417,11 @@ instruction was executed
 
   DOCUMENT("A flag indicating whether this trace has locals information");
   bool hasLocals = false;
+
+  DOCUMENT(R"(A ``list`` of :class:`LineColumnInfo` detailing which source lines each instruction
+corresponds to
+)");
+  rdcarray<LineColumnInfo> lineInfo;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugTrace);

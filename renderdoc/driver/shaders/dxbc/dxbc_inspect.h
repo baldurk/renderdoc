@@ -330,9 +330,7 @@ public:
 
   vector<pair<string, string> > Files;    // <filename, source>
 
-  virtual void GetLineInfo(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum,
-                           std::string &funcName) const = 0;
-  virtual void GetStack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &stack) const = 0;
+  virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
 
   virtual bool HasLocals() const = 0;
   virtual void GetLocals(size_t instruction, uintptr_t offset,
