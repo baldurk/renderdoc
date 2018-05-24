@@ -675,6 +675,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
     // initial state should be saved or skipped. We now always save all initial states.
     SERIALISE_ELEMENT_LOCAL(OmittedContents, false);
 
+    if(OmittedContents)
+    {
+      // need to handle this case for legacy captures with omitted resources. Just skip
+    }
+    else
     {
       D3D11_SUBRESOURCE_DATA *subData = NULL;
 
