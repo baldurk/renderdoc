@@ -98,7 +98,7 @@ enum CaptureFailReason
   CaptureFailed_UncappedCmdlist,
 };
 
-class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext3
+class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext4
 {
 private:
   friend class WrappedID3D11DeviceContext;
@@ -145,6 +145,7 @@ private:
 
   ID3D11DeviceContext2 *m_pRealContext2;
   ID3D11DeviceContext3 *m_pRealContext3;
+  ID3D11DeviceContext4 *m_pRealContext4;
 
   bool m_NeedUpdateSubWorkaround;
 
@@ -888,4 +889,11 @@ public:
   virtual void STDMETHODCALLTYPE SetHardwareProtectionState(BOOL HwProtectionEnable);
 
   virtual void STDMETHODCALLTYPE GetHardwareProtectionState(BOOL *pHwProtectionEnable);
+
+  //////////////////////////////
+  // implement ID3D11DeviceContext4
+
+  virtual HRESULT STDMETHODCALLTYPE Signal(ID3D11Fence *pFence, UINT64 Value);
+
+  virtual HRESULT STDMETHODCALLTYPE Wait(ID3D11Fence *pFence, UINT64 Value);
 };

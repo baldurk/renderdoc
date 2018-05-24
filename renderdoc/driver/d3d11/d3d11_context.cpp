@@ -102,11 +102,13 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_pRealContext1 = NULL;
   m_pRealContext2 = NULL;
   m_pRealContext3 = NULL;
+  m_pRealContext4 = NULL;
   if(m_pRealContext)
   {
     m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **)&m_pRealContext1);
     m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&m_pRealContext2);
     m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext3), (void **)&m_pRealContext3);
+    m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext4), (void **)&m_pRealContext4);
   }
 
   m_NeedUpdateSubWorkaround = false;
@@ -205,6 +207,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   SAFE_RELEASE(m_pRealContext1);
   SAFE_RELEASE(m_pRealContext2);
   SAFE_RELEASE(m_pRealContext3);
+  SAFE_RELEASE(m_pRealContext4);
 
   SAFE_DELETE(m_DeferredSavedState);
 
@@ -1365,6 +1368,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
     if(m_pRealContext3)
     {
       *ppvObject = (ID3D11DeviceContext3 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D11DeviceContext4))
+  {
+    if(m_pRealContext4)
+    {
+      *ppvObject = (ID3D11DeviceContext4 *)this;
       AddRef();
       return S_OK;
     }

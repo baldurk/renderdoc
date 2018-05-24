@@ -56,6 +56,7 @@ WRAPPED_POOL_INST(WrappedID3D11Predicate);
 WRAPPED_POOL_INST(WrappedID3D11ClassInstance);
 WRAPPED_POOL_INST(WrappedID3D11ClassLinkage);
 WRAPPED_POOL_INST(WrappedID3DDeviceContextState);
+WRAPPED_POOL_INST(WrappedID3D11Fence);
 
 map<ResourceId, WrappedID3D11Texture1D::TextureEntry>
     WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC, ID3D11Texture1D>::m_TextureList;

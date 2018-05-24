@@ -304,7 +304,7 @@ struct DummyID3D11Debug : public ID3D11Debug
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
-class WrappedID3D11Device : public IFrameCapturer, public ID3DDevice, public ID3D11Device4
+class WrappedID3D11Device : public IFrameCapturer, public ID3DDevice, public ID3D11Device5
 {
 private:
   enum
@@ -348,6 +348,7 @@ private:
   ID3D11Device2 *m_pDevice2;
   ID3D11Device3 *m_pDevice3;
   ID3D11Device4 *m_pDevice4;
+  ID3D11Device5 *m_pDevice5;
   ID3D11InfoQueue *m_pInfoQueue;
   WrappedID3D11DeviceContext *m_pImmediateContext;
 
@@ -876,4 +877,12 @@ public:
   virtual HRESULT STDMETHODCALLTYPE RegisterDeviceRemovedEvent(HANDLE hEvent, DWORD *pdwCookie);
 
   virtual void STDMETHODCALLTYPE UnregisterDeviceRemoved(DWORD dwCookie);
+
+  //////////////////////////////
+  // implement ID3D11Device5
+
+  virtual HRESULT STDMETHODCALLTYPE CreateFence(UINT64 InitialValue, D3D11_FENCE_FLAG Flags,
+                                                REFIID riid, void **ppFence);
+
+  virtual HRESULT STDMETHODCALLTYPE OpenSharedFence(HANDLE hFence, REFIID riid, void **ppFence);
 };

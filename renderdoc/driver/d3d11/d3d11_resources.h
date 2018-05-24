@@ -1321,6 +1321,37 @@ public:
   virtual ~WrappedID3DDeviceContextState();
 };
 
+class WrappedID3D11Fence : public WrappedDeviceChild11<ID3D11Fence>
+{
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Fence);
+
+  WrappedID3D11Fence(ID3D11Fence *real, WrappedID3D11Device *device)
+      : WrappedDeviceChild11(real, device)
+  {
+  }
+  virtual ~WrappedID3D11Fence() { Shutdown(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    return WrappedDeviceChild11<ID3D11Fence>::QueryInterface(riid, ppvObject);
+  }
+
+  //////////////////////////////
+  // implement ID3D11Fence
+  virtual HRESULT STDMETHODCALLTYPE CreateSharedHandle(const SECURITY_ATTRIBUTES *pAttributes,
+                                                       DWORD dwAccess, LPCWSTR lpName,
+                                                       HANDLE *pHandle)
+  {
+    return m_pReal->CreateSharedHandle(pAttributes, dwAccess, lpName, pHandle);
+  }
+
+  virtual UINT64 STDMETHODCALLTYPE GetCompletedValue() { return m_pReal->GetCompletedValue(); }
+  virtual HRESULT STDMETHODCALLTYPE SetEventOnCompletion(UINT64 Value, HANDLE hEvent)
+  {
+    return m_pReal->SetEventOnCompletion(Value, hEvent);
+  }
+};
+
 #define GET_RANGE(wrapped, unwrapped)                                    \
   template <>                                                            \
   inline const ResourceRange &GetResourceRange(unwrapped *v)             \
@@ -1413,6 +1444,7 @@ GET_RES_ID(WrappedID3D11ClassInstance);
 GET_RES_ID(WrappedID3D11ClassLinkage);
 GET_RES_ID(WrappedID3DDeviceContextState);
 GET_RES_ID(WrappedID3D11CommandList);
+GET_RES_ID(WrappedID3D11Fence);
 
 // generic version that checks all the wrapped pools. We can use this for resource since it checks
 // buffer and textures first, and also for purely virtual interfaces like asynchronous even though

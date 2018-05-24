@@ -79,12 +79,14 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_pDevice2 = NULL;
   m_pDevice3 = NULL;
   m_pDevice4 = NULL;
+  m_pDevice5 = NULL;
   if(m_pDevice)
   {
     m_pDevice->QueryInterface(__uuidof(ID3D11Device1), (void **)&m_pDevice1);
     m_pDevice->QueryInterface(__uuidof(ID3D11Device2), (void **)&m_pDevice2);
     m_pDevice->QueryInterface(__uuidof(ID3D11Device3), (void **)&m_pDevice3);
     m_pDevice->QueryInterface(__uuidof(ID3D11Device4), (void **)&m_pDevice4);
+    m_pDevice->QueryInterface(__uuidof(ID3D11Device5), (void **)&m_pDevice5);
   }
 
   // refcounters implicitly construct with one reference, but we don't start with any soft
@@ -249,6 +251,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_RELEASE(m_pDevice2);
   SAFE_RELEASE(m_pDevice3);
   SAFE_RELEASE(m_pDevice4);
+  SAFE_RELEASE(m_pDevice5);
 
   SAFE_RELEASE(m_RealAnnotations);
 
@@ -545,6 +548,19 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       AddRef();
       *ppvObject = (ID3D11Device4 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D11Device5))
+  {
+    if(m_pDevice5)
+    {
+      AddRef();
+      *ppvObject = (ID3D11Device5 *)this;
       return S_OK;
     }
     else

@@ -998,6 +998,64 @@ void WrappedID3D11Device::UnregisterDeviceRemoved(DWORD dwCookie)
   return m_pDevice4->UnregisterDeviceRemoved(dwCookie);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// ID3D11Device5 interface
+
+HRESULT WrappedID3D11Device::CreateFence(UINT64 InitialValue, D3D11_FENCE_FLAG Flags, REFIID riid,
+                                         void **ppFence)
+{
+  if(m_pDevice5 == NULL)
+    return E_NOINTERFACE;
+
+  if(ppFence == NULL)
+    return E_INVALIDARG;
+
+  if(riid != __uuidof(ID3D11Fence))
+  {
+    RDCERR("Unsupported UUID '%s' in WrappedID3D11Device::CreateFence", ToStr(riid).c_str());
+    return E_NOINTERFACE;
+  }
+
+  ID3D11Fence *ret = NULL;
+  HRESULT hr = m_pDevice5->CreateFence(InitialValue, Flags, riid, (void **)&ret);
+
+  if(FAILED(hr) || ret == NULL)
+    return hr;
+
+  WrappedID3D11Fence *wrapped = new WrappedID3D11Fence(ret, this);
+
+  *ppFence = (void *)wrapped;
+
+  return S_OK;
+}
+
+HRESULT WrappedID3D11Device::OpenSharedFence(HANDLE hFence, REFIID riid, void **ppFence)
+{
+  if(m_pDevice5 == NULL)
+    return E_NOINTERFACE;
+
+  if(ppFence == NULL)
+    return E_INVALIDARG;
+
+  if(riid != __uuidof(ID3D11Fence))
+  {
+    RDCERR("Unsupported UUID '%s' in WrappedID3D11Device::OpenSharedFence", ToStr(riid).c_str());
+    return E_NOINTERFACE;
+  }
+
+  ID3D11Fence *ret = NULL;
+  HRESULT hr = m_pDevice5->OpenSharedFence(hFence, riid, (void **)&ret);
+
+  if(FAILED(hr) || ret == NULL)
+    return hr;
+
+  WrappedID3D11Fence *wrapped = new WrappedID3D11Fence(ret, this);
+
+  *ppFence = (void *)wrapped;
+
+  return S_OK;
+}
+
 #undef IMPLEMENT_FUNCTION_SERIALISED
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...)                                            \
   template bool WrappedID3D11Device::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
