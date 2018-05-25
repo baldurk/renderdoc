@@ -237,7 +237,11 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
-  // we can check other older versions we support here.
+  // 0xB -> 0xC - generally this is when we started serialising pNext chains that older RenderDoc
+  // couldn't support. But we don't need any special backwards compatibiltiy code as it's just added
+  // serialisation.
+  if(ver == 0xB)
+    return true;
 
   return false;
 }
