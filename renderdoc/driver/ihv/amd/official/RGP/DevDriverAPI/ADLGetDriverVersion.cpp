@@ -26,8 +26,8 @@ typedef int(*ADL2_GRAPHICS_VERSION_GET)(ADL_CONTEXT_HANDLE context, ADLVersionsI
 // Memory allocation function for use with ADL
 static void* __stdcall ADL_Main_Memory_Alloc(int iSize)
 {
-	void* lpBuffer = malloc(iSize);
-	return lpBuffer;
+    void* lpBuffer = malloc(iSize);
+    return lpBuffer;
 }
 
 //-----------------------------------------------------------------------------
@@ -37,99 +37,106 @@ static void* __stdcall ADL_Main_Memory_Alloc(int iSize)
 /// \param minor The minor version number
 /// \param subminor The subminor version number
 /// \return true if successful, or false on error
+/// NOTE: This function always returns true since it is assumed that all AMD
+/// drivers, including internal/mainline/staging builds with version numbers
+/// that are not properly set up are valid.
 //-----------------------------------------------------------------------------
 static bool parseDriverVersionString(char *versionString, unsigned int &major, unsigned int &minor, unsigned int &subminor)
 {
-	major = minor = subminor = 0;
-	std::string strDriverVersion(versionString);
+    static const unsigned int s_DEFAULT_VERSION_NUMBER = 9999;
+
+    // set version number to a known value to handle AMD drivers with differing version numbers. Custom drivers may
+    // not have a major version but they still need to pass this test
+    major = minor = subminor = s_DEFAULT_VERSION_NUMBER;
+    std::string strDriverVersion(versionString);
 
 #ifdef COMMAND_LINE_TEST
-	printf("\nVersion string from driver: %s\n", versionString);
+    printf("\nVersion string from driver: %s\n", versionString);
 #endif
 
-	// driver version looks like:  13.35.1005-140131a-167669E-ATI or 14.10-140115n-021649E-ATI, etc...
-	// truncate at the first dash
-	strDriverVersion = strDriverVersion.substr(0, strDriverVersion.find("-", 0));
+    // driver version looks like:  13.35.1005-140131a-167669E-ATI or 14.10-140115n-021649E-ATI, etc...
+    // truncate at the first dash
+    strDriverVersion = strDriverVersion.substr(0, strDriverVersion.find("-", 0));
 
-	size_t pos = 0;
-	std::string strToken;
-	std::string strDelimiter = ".";
-	std::stringstream ss;
+    size_t pos = 0;
+    std::string strToken;
+    std::string strDelimiter = ".";
+    std::stringstream ss;
 
-	// parse the major driver version (start of string to first ".")
-	pos = strDriverVersion.find(strDelimiter);
+    // parse the major driver version (start of string to first ".")
+    pos = strDriverVersion.find(strDelimiter);
 
-	if (pos == std::string::npos)
-	{
-		// delimiter not found
-		return false;
-	}
+    if (pos == std::string::npos)
+    {
+        // delimiter not found, so could be a custom driver
+        return true;
+    }
 
-	strToken = strDriverVersion.substr(0, pos);
-	ss.str(strToken);
+    strToken = strDriverVersion.substr(0, pos);
+    ss.str(strToken);
 
-	if ((ss >> major).fail())
-	{
-		major = 0;
-		return false;
-	}
+    if ((ss >> major).fail())
+    {
+        major = s_DEFAULT_VERSION_NUMBER;
+        return true;
+    }
 
-	strDriverVersion.erase(0, pos + strDelimiter.length());  // Delete section of string already parsed
+    strDriverVersion.erase(0, pos + strDelimiter.length());  // Delete section of string already parsed
 
-	// parse the minor driver version
-	bool subminorAvailable = false;
+    // parse the minor driver version
+    bool subminorAvailable = false;
 
-	pos = strDriverVersion.find(strDelimiter);
+    pos = strDriverVersion.find(strDelimiter);
 
-	if (pos != std::string::npos)
-	{
-		// Delimiter found
-		strToken = strDriverVersion.substr(0, pos);
-		strDriverVersion.erase(0, pos + strDelimiter.length());
-		subminorAvailable = true;
-	}
-	else
-	{
-		// No delimeter - use entire string
-		strToken = strDriverVersion;
-	}
+    if (pos != std::string::npos)
+    {
+        // Delimiter found
+        strToken = strDriverVersion.substr(0, pos);
+        strDriverVersion.erase(0, pos + strDelimiter.length());
+        subminorAvailable = true;
+    }
+    else
+    {
+        // No delimeter - use entire string
+        strToken = strDriverVersion;
+    }
 
-	ss.clear();
-	ss.str(strToken);
+    ss.clear();
+    ss.str(strToken);
 
-	if ((ss >> minor).fail())
-	{
-		major = 0;
-		minor = 0;
-		return false;
-	}
+    if ((ss >> minor).fail())
+    {
+        major = s_DEFAULT_VERSION_NUMBER;
+        minor = s_DEFAULT_VERSION_NUMBER;
+        return true;
+    }
 
-	// parse the sub-minor driver version
-	if (subminorAvailable)
-	{
-		pos = strDriverVersion.find(strDelimiter);
+    // parse the sub-minor driver version
+    if (subminorAvailable)
+    {
+        pos = strDriverVersion.find(strDelimiter);
 
-		if (pos != std::string::npos)
-		{
-			// Delimiter found
-			strToken = strDriverVersion.substr(0, pos);
-		}
-		else
-		{
-			strToken = strDriverVersion;
-		}
-		ss.clear();
-		ss.str(strToken);
+        if (pos != std::string::npos)
+        {
+            // Delimiter found
+            strToken = strDriverVersion.substr(0, pos);
+        }
+        else
+        {
+            strToken = strDriverVersion;
+        }
+        ss.clear();
+        ss.str(strToken);
 
-		if ((ss >> subminor).fail())
-		{
-			major = 0;
-			minor = 0;
-			subminor = 0;
-			return false;
-		}
-	}
-	return true;
+        if ((ss >> subminor).fail())
+        {
+            major = s_DEFAULT_VERSION_NUMBER;
+            minor = s_DEFAULT_VERSION_NUMBER;
+            subminor = s_DEFAULT_VERSION_NUMBER;
+            return true;
+        }
+    }
+    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -141,43 +148,43 @@ static bool parseDriverVersionString(char *versionString, unsigned int &major, u
 //-----------------------------------------------------------------------------
 bool ADLGetDriverVersion(unsigned int& majorVer, unsigned int& minorVer, unsigned int& subminorVer)
 {
-	bool retStatus = false;
+    bool retStatus = false;
 
-	HINSTANCE hDLL = LoadLibrary(TEXT("atiadlxx.dll"));
+    HINSTANCE hDLL = LoadLibrary(TEXT("atiadlxx.dll"));
 
-	if (NULL == hDLL)
-	{
-		// A 32 bit calling application on 64 bit OS will fail to LoadLIbrary.
-		// Try to load the 32 bit library (atiadlxy.dll) instead
-		hDLL = LoadLibrary(TEXT("atiadlxy.dll"));
-	}
+    if (NULL == hDLL)
+    {
+        // A 32 bit calling application on 64 bit OS will fail to LoadLIbrary.
+        // Try to load the 32 bit library (atiadlxy.dll) instead
+        hDLL = LoadLibrary(TEXT("atiadlxy.dll"));
+    }
 
-	if (NULL != hDLL)
-	{
-		ADL2_MAIN_CONTROL_CREATE ADL2_Main_Control_Create = (ADL2_MAIN_CONTROL_CREATE)GetProcAddress(hDLL, "ADL2_Main_Control_Create");;
-		ADL2_MAIN_CONTROL_DESTROY ADL2_Main_Control_Destroy = (ADL2_MAIN_CONTROL_DESTROY)GetProcAddress(hDLL, "ADL2_Main_Control_Destroy");
-		ADL2_GRAPHICS_VERSION_GET ADL2_Graphics_Versions_Get = (ADL2_GRAPHICS_VERSION_GET)GetProcAddress(hDLL, "ADL2_Graphics_Versions_Get");
+    if (NULL != hDLL)
+    {
+        ADL2_MAIN_CONTROL_CREATE ADL2_Main_Control_Create = (ADL2_MAIN_CONTROL_CREATE)GetProcAddress(hDLL, "ADL2_Main_Control_Create");;
+        ADL2_MAIN_CONTROL_DESTROY ADL2_Main_Control_Destroy = (ADL2_MAIN_CONTROL_DESTROY)GetProcAddress(hDLL, "ADL2_Main_Control_Destroy");
+        ADL2_GRAPHICS_VERSION_GET ADL2_Graphics_Versions_Get = (ADL2_GRAPHICS_VERSION_GET)GetProcAddress(hDLL, "ADL2_Graphics_Versions_Get");
 
-		if (NULL != ADL2_Main_Control_Create &&
-			NULL != ADL2_Main_Control_Destroy &&
-			NULL != ADL2_Graphics_Versions_Get
-			)
-		{
-			ADL_CONTEXT_HANDLE adlContext = NULL;
-			if (ADL_OK == ADL2_Main_Control_Create(ADL_Main_Memory_Alloc, 1, &adlContext))
-			{
-				ADLVersionsInfo versionsInfo;
-				int ADLResult = ADL2_Graphics_Versions_Get(adlContext, &versionsInfo);
-				if (ADL_OK == ADLResult || ADL_OK_WARNING == ADLResult)
-				{
-					retStatus = parseDriverVersionString(versionsInfo.strDriverVer, majorVer, minorVer, subminorVer);
-				}
-				ADL2_Main_Control_Destroy(adlContext);
-			}
-		}
-		FreeLibrary(hDLL);
-	}
-	return retStatus;
+        if (NULL != ADL2_Main_Control_Create &&
+            NULL != ADL2_Main_Control_Destroy &&
+            NULL != ADL2_Graphics_Versions_Get
+            )
+        {
+            ADL_CONTEXT_HANDLE adlContext = NULL;
+            if (ADL_OK == ADL2_Main_Control_Create(ADL_Main_Memory_Alloc, 1, &adlContext))
+            {
+                ADLVersionsInfo versionsInfo;
+                int ADLResult = ADL2_Graphics_Versions_Get(adlContext, &versionsInfo);
+                if (ADL_OK == ADLResult || ADL_OK_WARNING == ADLResult)
+                {
+                    retStatus = parseDriverVersionString(versionsInfo.strDriverVer, majorVer, minorVer, subminorVer);
+                }
+                ADL2_Main_Control_Destroy(adlContext);
+            }
+        }
+        FreeLibrary(hDLL);
+    }
+    return retStatus;
 }
 
 //-----------------------------------------------------------------------------
@@ -232,22 +239,22 @@ bool ADLGetDriverVersionString(char* outVersionString)
 #ifdef COMMAND_LINE_TEST
 int main()
 {
-	unsigned int major, minor, subminor;
+    unsigned int major, minor, subminor;
 
-	if (ADLGetDriverVersion(major, minor, subminor) == true)
-	{
-		printf("\nDriver Major Version: %d", major);
-		printf("\nDriver Minor Version: %d", minor);
-		if (subminor != 0)
-		{
-			printf("\nDriver SubMinor Version: %d", subminor);
-		}
-	}
-	else
-	{
-		printf("\nUnable to retrieve driver version information");
-	}
-	printf("\n");
+    if (ADLGetDriverVersion(major, minor, subminor) == true)
+    {
+        printf("\nDriver Major Version: %d", major);
+        printf("\nDriver Minor Version: %d", minor);
+        if (subminor != 0)
+        {
+            printf("\nDriver SubMinor Version: %d", subminor);
+        }
+    }
+    else
+    {
+        printf("\nUnable to retrieve driver version information");
+    }
+    printf("\n");
 
 }
 #endif
