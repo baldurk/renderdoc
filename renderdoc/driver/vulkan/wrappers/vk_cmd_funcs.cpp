@@ -626,6 +626,11 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       unwrappedBeginInfo.pInheritanceInfo = &unwrappedInheritInfo;
     }
 
+    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedBeginInfo.pNext));
+
+    UnwrapNextChain(m_State, "VkCommandBufferBeginInfo", tempMem,
+                    (VkGenericStruct *)&unwrappedBeginInfo);
+
     if(IsActiveReplaying(m_State))
     {
       const uint32_t length = m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount;
@@ -815,6 +820,10 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
 
     beginInfo.pInheritanceInfo = &unwrappedInfo;
   }
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(beginInfo.pNext));
+
+  UnwrapNextChain(m_State, "VkCommandBufferBeginInfo", tempMem, (VkGenericStruct *)&beginInfo);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
@@ -1039,6 +1048,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
     unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
     unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
 
+    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+    UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkGenericStruct *)&unwrappedInfo);
+
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
     if(IsActiveReplaying(m_State))
@@ -1113,6 +1126,11 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
   VkRenderPassBeginInfo unwrappedInfo = *pRenderPassBegin;
   unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
   unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+  UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkGenericStruct *)&unwrappedInfo);
+
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents));
 

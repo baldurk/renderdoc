@@ -174,8 +174,21 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
         // don't submit the fence, since we have nothing to wait on it being signalled, and we might
         // not have it correctly in the unsignalled state.
         VkSubmitInfo unwrapped = submitInfo;
-        unwrapped.pCommandBuffers =
-            UnwrapArray(unwrapped.pCommandBuffers, unwrapped.commandBufferCount);
+
+        size_t tempMemSize = unwrapped.commandBufferCount * sizeof(VkCommandBuffer) +
+                             GetNextPatchSize(unwrapped.pNext);
+
+        byte *tempMem = GetTempMemory(tempMemSize);
+
+        VkCommandBuffer *unwrappedCmds = (VkCommandBuffer *)tempMem;
+        unwrapped.pCommandBuffers = unwrappedCmds;
+        for(uint32_t i = 0; i < unwrapped.commandBufferCount; i++)
+          unwrappedCmds[i] = Unwrap(submitInfo.pCommandBuffers[i]);
+
+        tempMem += unwrapped.commandBufferCount * sizeof(VkCommandBuffer);
+
+        UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkGenericStruct *)&unwrapped);
+
         ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &unwrapped, VK_NULL_HANDLE);
 
         AddEvent();
@@ -448,56 +461,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     tempmemSize += pSubmits[i].signalSemaphoreCount * sizeof(VkSemaphore);
     tempmemSize += pSubmits[i].waitSemaphoreCount * sizeof(VkSemaphore);
 
-    VkGenericStruct *next = (VkGenericStruct *)pSubmits[i].pNext;
-    while(next)
-    {
-      if(next->sType == VK_STRUCTURE_TYPE_MAX_ENUM)
-      {
-        RDCERR("Invalid extension structure");
-      }
-      else if(next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV ||
-              next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR)
-      {
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-        // make sure the structures are still identical
-        RDCCOMPILE_ASSERT(sizeof(VkWin32KeyedMutexAcquireReleaseInfoNV) ==
-                              sizeof(VkWin32KeyedMutexAcquireReleaseInfoKHR),
-                          "Structs are different!");
-
-#define NV_DUMMY ((VkWin32KeyedMutexAcquireReleaseInfoNV *)NULL)
-#define KHR_DUMMY ((VkWin32KeyedMutexAcquireReleaseInfoKHR *)NULL)
-        RDCCOMPILE_ASSERT(&NV_DUMMY->acquireCount == &KHR_DUMMY->acquireCount,
-                          "Structs are different!");
-        RDCCOMPILE_ASSERT(&NV_DUMMY->releaseCount == &KHR_DUMMY->releaseCount,
-                          "Structs are different!");
-        RDCCOMPILE_ASSERT(&NV_DUMMY->pAcquireSyncs == &KHR_DUMMY->pAcquireSyncs,
-                          "Structs are different!");
-        RDCCOMPILE_ASSERT(&NV_DUMMY->pReleaseSyncs == &KHR_DUMMY->pReleaseSyncs,
-                          "Structs are different!");
-#undef NV_DUMMY
-#undef KHR_DUMMY
-
-        tempmemSize += sizeof(VkWin32KeyedMutexAcquireReleaseInfoKHR);
-
-        VkWin32KeyedMutexAcquireReleaseInfoKHR *info = (VkWin32KeyedMutexAcquireReleaseInfoKHR *)next;
-        tempmemSize += info->acquireCount * sizeof(VkDeviceMemory);
-        tempmemSize += info->releaseCount * sizeof(VkDeviceMemory);
-#else
-        RDCERR("Unexpected use of Win32 Keyed Mutex extension without support compiled in");
-#endif
-      }
-      else if(next->sType == VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR)
-      {
-        // nothing to do - this is plain old data with nothing to unwrap so we can keep it in the
-        // pNext chain as-is
-      }
-      else
-      {
-        RDCERR("Unexpected extension structure %d", next->sType);
-      }
-
-      next = (VkGenericStruct *)next->pNext;
-    }
+    tempmemSize += GetNextPatchSize(pSubmits[i].pNext);
   }
 
   byte *memory = GetTempMemory(tempmemSize);
@@ -535,49 +499,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     for(uint32_t o = 0; o < unwrappedSubmits[i].signalSemaphoreCount; o++)
       unwrappedSignalSems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
 
-    VkGenericStruct **nextptr = (VkGenericStruct **)&unwrappedSubmits[i].pNext;
-    while(*nextptr)
-    {
-      VkGenericStruct *next = *nextptr;
-
-      if(next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV ||
-         next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR)
-      {
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-        // allocate local unwrapped struct
-        VkWin32KeyedMutexAcquireReleaseInfoKHR *unwrappedMutexInfoKHR =
-            (VkWin32KeyedMutexAcquireReleaseInfoKHR *)memory;
-        memory += sizeof(VkWin32KeyedMutexAcquireReleaseInfoKHR);
-
-        // copy over info from original struct
-        VkWin32KeyedMutexAcquireReleaseInfoKHR *wrappedMutexInfoKHR =
-            (VkWin32KeyedMutexAcquireReleaseInfoKHR *)next;
-        *unwrappedMutexInfoKHR = *wrappedMutexInfoKHR;
-
-        // allocate unwrapped arrays
-        VkDeviceMemory *unwrappedAcquires = (VkDeviceMemory *)memory;
-        memory += sizeof(VkDeviceMemory) * unwrappedMutexInfoKHR->acquireCount;
-        VkDeviceMemory *unwrappedReleases = (VkDeviceMemory *)memory;
-        memory += sizeof(VkDeviceMemory) * unwrappedMutexInfoKHR->releaseCount;
-
-        // unwrap the arrays
-        for(uint32_t mem = 0; mem < unwrappedMutexInfoKHR->acquireCount; mem++)
-          unwrappedAcquires[mem] = Unwrap(wrappedMutexInfoKHR->pAcquireSyncs[mem]);
-        for(uint32_t mem = 0; mem < unwrappedMutexInfoKHR->releaseCount; mem++)
-          unwrappedReleases[mem] = Unwrap(wrappedMutexInfoKHR->pReleaseSyncs[mem]);
-
-        unwrappedMutexInfoKHR->pAcquireSyncs = unwrappedAcquires;
-        unwrappedMutexInfoKHR->pReleaseSyncs = unwrappedReleases;
-
-        // insert this struct into the chain.
-        // nextptr is pointing to the address of the pNext, so we can overwrite it to point to our
-        // locally-allocated unwrapped struct
-        *nextptr = (VkGenericStruct *)unwrappedMutexInfoKHR;
-#endif
-      }
-
-      nextptr = (VkGenericStruct **)&next->pNext;
-    }
+    UnwrapNextChain(m_State, "VkSubmitInfo", memory, (VkGenericStruct *)&unwrappedSubmits[i]);
   }
 
   VkResult ret;
@@ -911,6 +833,8 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
 
   for(uint32_t i = 0; i < bindInfoCount; i++)
   {
+    tempmemSize += GetNextPatchSize(pBindInfo[i].pNext);
+
     // within each batch, need to allocate space for each resource bind
     tempmemSize += pBindInfo[i].bufferBindCount * sizeof(VkSparseBufferMemoryBindInfo);
     tempmemSize += pBindInfo[i].imageOpaqueBindCount * sizeof(VkSparseImageOpaqueMemoryBindInfo);
@@ -938,6 +862,8 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
     // copy the original so we get all the params we don't need to change
     RDCASSERT(pBindInfo[i].sType == VK_STRUCTURE_TYPE_BIND_SPARSE_INFO && pBindInfo[i].pNext == NULL);
     unwrapped[i] = pBindInfo[i];
+
+    UnwrapNextChain(m_State, "VkBindSparseInfo", next, (VkGenericStruct *)&unwrapped[i]);
 
     // unwrap the signal semaphores into a new array
     VkSemaphore *signal = (VkSemaphore *)next;

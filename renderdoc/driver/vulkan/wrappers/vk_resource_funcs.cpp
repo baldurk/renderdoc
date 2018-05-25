@@ -174,7 +174,7 @@ VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindImageMemoryInfo *i
 
   for(uint32_t i = 0; i < count; i++)
   {
-    PatchNextChain("VkBindImageMemoryInfo", tempMem, (VkGenericStruct *)&ret[i]);
+    UnwrapNextChain(m_State, "VkBindImageMemoryInfo", tempMem, (VkGenericStruct *)&ret[i]);
     ret[i].image = Unwrap(ret[i].image);
     ret[i].memory = Unwrap(ret[i].memory);
   }
@@ -258,7 +258,13 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
     // appropriate index on replay
     AllocateInfo.memoryTypeIndex = m_PhysicalDeviceData.memIdxMap[AllocateInfo.memoryTypeIndex];
 
-    VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &AllocateInfo, NULL, &mem);
+    VkMemoryAllocateInfo patched = AllocateInfo;
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
+
+    UnwrapNextChain(m_State, "VkMemoryAllocateInfo", tempMem, (VkGenericStruct *)&patched);
+
+    VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &patched, NULL, &mem);
 
     if(ret != VK_SUCCESS)
     {
@@ -375,13 +381,15 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
   }
 
-  byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
+  VkMemoryAllocateInfo unwrapped = info;
 
-  PatchNextChain("VkMemoryAllocateInfo", tempMem, (VkGenericStruct *)&info);
+  byte *tempMem = GetTempMemory(GetNextPatchSize(unwrapped.pNext));
+
+  UnwrapNextChain(m_State, "VkMemoryAllocateInfo", tempMem, (VkGenericStruct *)&unwrapped);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, pAllocator, pMemory));
+      ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &unwrapped, pAllocator, pMemory));
 
   // restore the memoryTypeIndex to the original, as that's what we want to serialise,
   // but maintain any potential modifications we made to info.allocationSize
@@ -1001,7 +1009,13 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     // ensure we can always readback from buffers
     CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &CreateInfo, NULL, &buf);
+    VkBufferCreateInfo patched = CreateInfo;
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
+
+    UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkGenericStruct *)&patched);
+
+    VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &patched, NULL, &buf);
 
     if(CreateInfo.flags &
        (VK_BUFFER_CREATE_SPARSE_BINDING_BIT | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT))
@@ -1039,6 +1053,10 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
   // on replay, so that the memory requirements are the same
   adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
+
+  UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkGenericStruct *)&adjusted_info);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
@@ -1266,7 +1284,13 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       APIProps.SparseResources = true;
     }
 
-    VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &CreateInfo, NULL, &img);
+    VkImageCreateInfo patched = CreateInfo;
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
+
+    UnwrapNextChain(m_State, "VkImageCreateInfo", tempMem, (VkGenericStruct *)&patched);
+
+    VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &patched, NULL, &img);
 
     CreateInfo.usage = origusage;
 
@@ -1382,7 +1406,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo_adjusted.pNext));
 
-  PatchNextChain("VkImageCreateInfo", tempMem, (VkGenericStruct *)&createInfo_adjusted);
+  UnwrapNextChain(m_State, "VkImageCreateInfo", tempMem, (VkGenericStruct *)&createInfo_adjusted);
 
   VkResult ret;
   SERIALISE_TIME_CALL(

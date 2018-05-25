@@ -235,7 +235,8 @@ enum VkFlagWithNoBits
 };
 
 size_t GetNextPatchSize(const void *next);
-void PatchNextChain(const char *structName, byte *&tempMem, VkGenericStruct *infoStruct);
+void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
+                     VkGenericStruct *infoStruct);
 
 template <typename VkStruct>
 const VkGenericStruct *FindNextStruct(const VkStruct *haystack, VkStructureType needle)
@@ -627,6 +628,33 @@ DECLARE_REFLECTION_STRUCT(VkDebugUtilsLabelEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkRenderPassMultiviewCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueInfo2);
+DECLARE_REFLECTION_STRUCT(VkExportMemoryAllocateInfoNV);
+DECLARE_REFLECTION_STRUCT(VkExternalMemoryImageCreateInfoNV);
+DECLARE_REFLECTION_STRUCT(VkExternalMemoryImageCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkExportMemoryAllocateInfo);
+DECLARE_REFLECTION_STRUCT(VkExternalMemoryBufferCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkImportMemoryFdInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkExportSemaphoreCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkExportFenceCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkSwapchainCounterCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationMemoryAllocateInfoNV);
+DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationImageCreateInfoNV);
+DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationBufferCreateInfoNV);
+DECLARE_REFLECTION_STRUCT(VkMemoryDedicatedAllocateInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceQueueGlobalPriorityCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkBindImagePlaneMemoryInfo);
+DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceGroupSwapchainCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkBindImageMemorySwapchainInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkImageSwapchainCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkBindImageMemoryDeviceGroupInfo);
+DECLARE_REFLECTION_STRUCT(VkBindBufferMemoryDeviceGroupInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceGroupBindSparseInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceGroupSubmitInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceGroupCommandBufferBeginInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceGroupRenderPassBeginInfo);
+DECLARE_REFLECTION_STRUCT(VkMemoryAllocateFlagsInfo);
+DECLARE_REFLECTION_STRUCT(VkProtectedSubmitInfo);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -676,6 +704,62 @@ DECLARE_DESERIALISE_TYPE(VkDebugUtilsLabelEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueInfo2);
+DECLARE_DESERIALISE_TYPE(VkExportMemoryAllocateInfoNV);
+DECLARE_DESERIALISE_TYPE(VkExternalMemoryImageCreateInfoNV);
+DECLARE_DESERIALISE_TYPE(VkExportMemoryAllocateInfo);
+DECLARE_DESERIALISE_TYPE(VkExternalMemoryBufferCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkImportMemoryFdInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkExportSemaphoreCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkExportFenceCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkSwapchainCounterCreateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationMemoryAllocateInfoNV);
+DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationImageCreateInfoNV);
+DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationBufferCreateInfoNV);
+DECLARE_DESERIALISE_TYPE(VkMemoryDedicatedAllocateInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceQueueGlobalPriorityCreateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkBindImagePlaneMemoryInfo);
+DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceGroupSwapchainCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkBindImageMemorySwapchainInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkImageSwapchainCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkBindImageMemoryDeviceGroupInfo);
+DECLARE_DESERIALISE_TYPE(VkBindBufferMemoryDeviceGroupInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceGroupBindSparseInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceGroupSubmitInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceGroupCommandBufferBeginInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
+DECLARE_DESERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
+DECLARE_DESERIALISE_TYPE(VkProtectedSubmitInfo);
+
+#if defined(VK_KHR_external_memory_win32) || defined(VK_NV_external_memory_win32)
+DECLARE_REFLECTION_STRUCT(VkImportMemoryWin32HandleInfoNV);
+DECLARE_REFLECTION_STRUCT(VkExportMemoryWin32HandleInfoNV);
+DECLARE_REFLECTION_STRUCT(VkImportMemoryWin32HandleInfoKHR);
+
+DECLARE_DESERIALISE_TYPE(VkImportMemoryWin32HandleInfoNV);
+DECLARE_DESERIALISE_TYPE(VkExportMemoryWin32HandleInfoNV);
+DECLARE_DESERIALISE_TYPE(VkImportMemoryWin32HandleInfoKHR);
+#endif
+
+#ifdef VK_KHR_external_fence_win32
+DECLARE_REFLECTION_STRUCT(VkExportFenceWin32HandleInfoKHR);
+
+DECLARE_DESERIALISE_TYPE(VkExportFenceWin32HandleInfoKHR);
+#endif
+
+#ifdef VK_KHR_external_semaphore_win32
+DECLARE_REFLECTION_STRUCT(VkExportSemaphoreWin32HandleInfoKHR);
+
+DECLARE_DESERIALISE_TYPE(VkExportSemaphoreWin32HandleInfoKHR);
+#endif
+
+#if defined(VK_KHR_win32_keyed_mutex) || defined(VK_NV_win32_keyed_mutex)
+DECLARE_REFLECTION_STRUCT(VkWin32KeyedMutexAcquireReleaseInfoNV);
+DECLARE_REFLECTION_STRUCT(VkWin32KeyedMutexAcquireReleaseInfoKHR);
+
+DECLARE_DESERIALISE_TYPE(VkWin32KeyedMutexAcquireReleaseInfoNV);
+DECLARE_DESERIALISE_TYPE(VkWin32KeyedMutexAcquireReleaseInfoKHR);
+#endif
 
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
@@ -751,3 +835,11 @@ DECLARE_REFLECTION_ENUM(VkDeviceQueueCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkSubpassDescriptionFlagBits);
 DECLARE_REFLECTION_ENUM(VkDescriptorSetLayoutCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkSwapchainCreateFlagBitsKHR);
+DECLARE_REFLECTION_ENUM(VkExternalMemoryHandleTypeFlagBitsNV);
+DECLARE_REFLECTION_ENUM(VkExternalMemoryHandleTypeFlagBits);
+DECLARE_REFLECTION_ENUM(VkExternalSemaphoreHandleTypeFlagBits);
+DECLARE_REFLECTION_ENUM(VkExternalFenceHandleTypeFlagBits);
+DECLARE_REFLECTION_ENUM(VkSurfaceCounterFlagBitsEXT);
+DECLARE_REFLECTION_ENUM(VkQueueGlobalPriorityEXT);
+DECLARE_REFLECTION_ENUM(VkDeviceGroupPresentModeFlagBitsKHR);
+DECLARE_REFLECTION_ENUM(VkMemoryAllocateFlagBits);

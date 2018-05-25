@@ -87,7 +87,13 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
   {
     VkFence fence = VK_NULL_HANDLE;
 
-    VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &CreateInfo, NULL, &fence);
+    VkFenceCreateInfo patched = CreateInfo;
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
+
+    UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkGenericStruct *)&patched);
+
+    VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &patched, NULL, &fence);
 
     if(ret != VK_SUCCESS)
     {
@@ -110,9 +116,14 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
 VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *pCreateInfo,
                                       const VkAllocationCallbacks *pAllocator, VkFence *pFence)
 {
+  VkFenceCreateInfo info = *pCreateInfo;
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
+
+  UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkGenericStruct *)&info);
+
   VkResult ret;
-  SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pAllocator, pFence));
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, pAllocator, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -484,7 +495,13 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
   {
     VkSemaphore sem = VK_NULL_HANDLE;
 
-    VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &CreateInfo, NULL, &sem);
+    VkSemaphoreCreateInfo patched = CreateInfo;
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
+
+    UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkGenericStruct *)&patched);
+
+    VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &patched, NULL, &sem);
 
     if(ret != VK_SUCCESS)
     {
@@ -528,9 +545,15 @@ VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCrea
                                           const VkAllocationCallbacks *pAllocator,
                                           VkSemaphore *pSemaphore)
 {
+  VkSemaphoreCreateInfo info = *pCreateInfo;
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
+
+  UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkGenericStruct *)&info);
+
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), pCreateInfo, pAllocator, pSemaphore));
+      ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &info, pAllocator, pSemaphore));
 
   if(ret == VK_SUCCESS)
   {
