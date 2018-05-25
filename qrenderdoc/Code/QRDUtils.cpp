@@ -814,6 +814,9 @@ void GUIInvoke::init()
 
 void GUIInvoke::call(QObject *obj, const std::function<void()> &f)
 {
+  if(!obj)
+    qCritical() << "GUIInvoke::call called with NULL object";
+
   if(onUIThread())
   {
     if(obj)
@@ -826,6 +829,9 @@ void GUIInvoke::call(QObject *obj, const std::function<void()> &f)
 
 void GUIInvoke::defer(QObject *obj, const std::function<void()> &f)
 {
+  if(!obj)
+    qCritical() << "GUIInvoke::defer called with NULL object";
+
   GUIInvoke *invoke = new GUIInvoke(obj, f);
   invoke->moveToThread(qApp->thread());
   invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::QueuedConnection);
@@ -833,6 +839,9 @@ void GUIInvoke::defer(QObject *obj, const std::function<void()> &f)
 
 void GUIInvoke::blockcall(QObject *obj, const std::function<void()> &f)
 {
+  if(!obj)
+    qCritical() << "GUIInvoke::blockcall called with NULL object";
+
   if(onUIThread())
   {
     if(obj)
@@ -907,8 +916,16 @@ QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget
 {
   QMessageBox::StandardButton ret = defaultButton;
 
+  QObject *parentObj = parent;
+
+  if(parentObj == NULL)
+  {
+    // for 'global' message boxes with no parents, just use the app as the parent pointer
+    parentObj = qApp;
+  }
+
   // if we're already on the right thread, this boils down to a function call
-  GUIInvoke::blockcall(parent, [&]() {
+  GUIInvoke::blockcall(parentObj, [&]() {
     QMessageBox mb(icon, title, text, buttons, parent);
     mb.setDefaultButton(defaultButton);
     show(&mb);
