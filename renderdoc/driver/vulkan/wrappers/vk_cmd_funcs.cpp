@@ -1980,6 +1980,8 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
           RDCASSERT(start + length < (uint32_t)ARRAY_COUNT(m_RenderState.pushconsts));
 
           memcpy(m_RenderState.pushconsts + start, values, length);
+
+          m_RenderState.pushConstSize = RDCMAX(m_RenderState.pushConstSize, start + length);
         }
       }
     }

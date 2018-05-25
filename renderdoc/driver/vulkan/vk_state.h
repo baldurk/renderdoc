@@ -68,6 +68,8 @@ struct VulkanRenderState
 
   // this should be big enough for any implementation
   byte pushconsts[1024];
+  // the actual number of bytes that have been uploaded
+  uint32_t pushConstSize = 0;
 
   ResourceId renderPass;
   uint32_t subpass;
