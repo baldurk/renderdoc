@@ -438,6 +438,17 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
     RDCWARN("Forcibly disabling support for YCbCr Conversion");
     ycbcr->samplerYcbcrConversion = VK_FALSE;
   }
+
+  // if the user is requesting protected memory, make sure it's reported as NOT supported
+  VkPhysicalDeviceProtectedMemoryFeatures *protectedMem =
+      (VkPhysicalDeviceProtectedMemoryFeatures *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES);
+
+  if(protectedMem)
+  {
+    RDCWARN("Forcibly disabling support for protected memory");
+    protectedMem->protectedMemory = VK_FALSE;
+  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
