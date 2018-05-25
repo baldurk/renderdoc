@@ -2242,6 +2242,21 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
     }
   }
 
+  if(!displayTex)
+  {
+    // if still no texture was found, then use the biggest colour render target
+    for(const TextureDescription &tex : m_Ctx.GetTextures())
+    {
+      if((tex.creationFlags & TextureCategory::ColorTarget) &&
+         tex.format.compType != CompType::Depth && tex.format.type != ResourceFormatType::D16S8 &&
+         tex.format.type != ResourceFormatType::D24S8 && tex.format.type != ResourceFormatType::D32S8)
+      {
+        if(displayTex == NULL || tex.width * tex.height > displayTex->width * displayTex->height)
+          displayTex = &tex;
+      }
+    }
+  }
+
   ResourceId id;
 
   if(displayTex)
