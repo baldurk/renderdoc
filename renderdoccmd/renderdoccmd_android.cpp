@@ -110,6 +110,7 @@ void DisplayGenericSplash()
   DLSYM_GET(eglDestroyContext);
   DLSYM_GET(eglGetProcAddress);
   DLSYM_GET(eglSwapBuffers);
+  DLSYM_GET(eglTerminate);
 
   GPA_GET(glCreateShader);
   GPA_GET(glShaderSource);
