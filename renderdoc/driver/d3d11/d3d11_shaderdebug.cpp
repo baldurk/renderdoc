@@ -974,7 +974,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   ret.hasLocals = dxbc->m_DebugInfo && dxbc->m_DebugInfo->HasLocals();
 
   ret.lineInfo.resize(dxbc->GetNumInstructions());
-  for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+  for(size_t i = 0; dxbc->m_DebugInfo && i < dxbc->GetNumInstructions(); i++)
   {
     const ASMOperation &op = dxbc->GetInstruction(i);
     dxbc->m_DebugInfo->GetLineInfo(i, op.offset, ret.lineInfo[i]);
@@ -1969,7 +1969,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   traces[destIdx].hasLocals = dxbc->m_DebugInfo && dxbc->m_DebugInfo->HasLocals();
 
   traces[destIdx].lineInfo.resize(dxbc->GetNumInstructions());
-  for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+  for(size_t i = 0; dxbc->m_DebugInfo && i < dxbc->GetNumInstructions(); i++)
   {
     const ASMOperation &op = dxbc->GetInstruction(i);
     dxbc->m_DebugInfo->GetLineInfo(i, op.offset, traces[destIdx].lineInfo[i]);
@@ -2064,7 +2064,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   ret.hasLocals = dxbc->m_DebugInfo && dxbc->m_DebugInfo->HasLocals();
 
   ret.lineInfo.resize(dxbc->GetNumInstructions());
-  for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+  for(size_t i = 0; dxbc->m_DebugInfo && i < dxbc->GetNumInstructions(); i++)
   {
     const ASMOperation &op = dxbc->GetInstruction(i);
     dxbc->m_DebugInfo->GetLineInfo(i, op.offset, ret.lineInfo[i]);
