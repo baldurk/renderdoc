@@ -3390,7 +3390,7 @@ void TextureViewer::on_saveTex_clicked()
     bool ret = false;
     QString fn = saveDialog.filename();
 
-    m_Ctx.Replay().BlockInvoke([this, &ret, config, fn](IReplayController *r) {
+    m_Ctx.Replay().BlockInvoke([&ret, config, fn](IReplayController *r) {
       ret = r->SaveTexture(config, fn.toUtf8().data());
     });
 

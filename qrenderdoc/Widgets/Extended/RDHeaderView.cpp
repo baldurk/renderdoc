@@ -205,7 +205,7 @@ int RDHeaderView::visualIndexAt(int position) const
     search.offset = position;
     auto it = std::lower_bound(
         m_sections.begin(), m_sections.end(), search,
-        [this](const SectionData &a, const SectionData &b) { return a.offset <= b.offset; });
+        [](const SectionData &a, const SectionData &b) { return a.offset <= b.offset; });
 
     if(it != m_sections.begin())
       --it;

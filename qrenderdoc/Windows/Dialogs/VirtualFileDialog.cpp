@@ -449,7 +449,7 @@ private:
       return;
 
     Renderer.ListFolder(
-        makePath(node), true, [this, node](const char *path, const rdctype::array<PathEntry> &files) {
+        makePath(node), true, [node](const char *path, const rdctype::array<PathEntry> &files) {
 
           if(files.count == 1 && (files[0].flags & PathProperty::ErrorAccessDenied))
           {
