@@ -615,7 +615,7 @@ public:
   void SwapBuffers(void *windowHandle);
   void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
                                    GLsizei width, GLsizei height, GLint levels);
-  void HandleVRFrameMarkers(const GLchar *buf,GLsizei length);
+  void HandleVRFrameMarkers(const GLchar *buf, GLsizei length);
 
   void FirstFrame(void *ctx, void *wndHandle);
 
