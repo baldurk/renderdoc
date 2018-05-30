@@ -193,12 +193,12 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
 
 void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 {
-	if (strstr(buf, "vr-marker,frame_end,type,application") != NULL)
-	{
-		void *ctx = NULL, *wnd = NULL;
-		RenderDoc::Inst().GetActiveWindow(ctx, wnd);
-		SwapBuffers(wnd);
-	}
+  if(strstr(buf, "vr-marker,frame_end,type,application") != NULL)
+  {
+    void *ctx = NULL, *wnd = NULL;
+    RenderDoc::Inst().GetActiveWindow(ctx, wnd);
+    SwapBuffers(wnd);
+  }
 }
 
 void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity,
