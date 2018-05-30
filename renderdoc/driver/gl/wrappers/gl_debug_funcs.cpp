@@ -191,10 +191,22 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
   return true;
 }
 
+void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
+{
+	if (strstr(buf, "vr-marker,frame_end,type,application") != NULL)
+	{
+		void *ctx = NULL, *wnd = NULL;
+		RenderDoc::Inst().GetActiveWindow(ctx, wnd);
+		SwapBuffers(wnd);
+	}
+}
+
 void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity,
                                          GLsizei length, const GLchar *buf)
 {
   SERIALISE_TIME_CALL(m_Real.glDebugMessageInsert(source, type, id, severity, length, buf));
+
+  HandleVRFrameMarkers(buf, length);
 
   if(IsActiveCapturing(m_State) && type == eGL_DEBUG_TYPE_MARKER)
   {

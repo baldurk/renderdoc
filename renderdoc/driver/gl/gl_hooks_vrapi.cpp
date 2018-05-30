@@ -31,7 +31,6 @@
 #include "official/VrApi_Types.h"
 
 //-----------------------------------------------------------------------------------------------------------------
-typedef void (*PFN_vrapi_SubmitFrame)(ovrMobile *, const ovrFrameParms *);
 typedef int (*PFN_vrapi_GetTextureSwapChainLength)(ovrTextureSwapChain *);
 typedef unsigned int (*PFN_vrapi_GetTextureSwapChainHandle)(ovrTextureSwapChain *, int);
 typedef int (*PFN_vrapi_GetSystemPropertyInt)(const ovrJava *, const ovrSystemProperty);
@@ -48,8 +47,7 @@ class VRAPIHook : LibraryHook
 {
 public:
   VRAPIHook()
-      : vrapi_SubmitFrame_real(NULL),
-        vrapi_GetTextureSwapChainLength_real(NULL),
+      : vrapi_GetTextureSwapChainLength_real(NULL),
         vrapi_GetTextureSwapChainHandle_real(NULL),
         vrapi_GetSystemPropertyInt_real(NULL),
         m_PopulatedHooks(false),
@@ -57,7 +55,7 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook("libvrapi.so", this);
 
-    m_EnabledHooks = true;
+    m_EnabledHooks = false;
   }
   ~VRAPIHook() {}
   static void libHooked(void *realLib);
@@ -75,7 +73,6 @@ public:
   //---------------------------------------------------------------------------------------------------------
   PFN_vrapi_CreateTextureSwapChain2 vrapi_CreateTextureSwapChain2_real;
   PFN_vrapi_CreateTextureSwapChain vrapi_CreateTextureSwapChain_real;
-  PFN_vrapi_SubmitFrame vrapi_SubmitFrame_real;
 
   PFN_vrapi_GetTextureSwapChainLength vrapi_GetTextureSwapChainLength_real;
   PFN_vrapi_GetTextureSwapChainHandle vrapi_GetTextureSwapChainHandle_real;
@@ -93,9 +90,6 @@ public:
     if(vrapi_CreateTextureSwapChain_real == NULL)
       vrapi_CreateTextureSwapChain_real = (PFN_vrapi_CreateTextureSwapChain)PosixGetFunction(
           libvrapi_symHandle, "vrapi_CreateTextureSwapChain");
-    if(vrapi_SubmitFrame_real == NULL)
-      vrapi_SubmitFrame_real =
-          (PFN_vrapi_SubmitFrame)PosixGetFunction(libvrapi_symHandle, "vrapi_SubmitFrame");
 
     if(vrapi_GetTextureSwapChainLength_real == NULL)
       vrapi_GetTextureSwapChainLength_real = (PFN_vrapi_GetTextureSwapChainLength)PosixGetFunction(
@@ -107,7 +101,7 @@ public:
       vrapi_GetSystemPropertyInt_real = (PFN_vrapi_GetSystemPropertyInt)PosixGetFunction(
           libvrapi_symHandle, "vrapi_GetSystemPropertyInt");
 
-    return vrapi_SubmitFrame_real != NULL;
+    return vrapi_CreateTextureSwapChain2_real != NULL;
   }
 
 } vrapi_hooks;
@@ -232,23 +226,6 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
   return texture_swapchain;
 }
 
-__attribute__((visibility("default"))) void vrapi_SubmitFrame(ovrMobile *ovr,
-                                                              const ovrFrameParms *parms)
-{
-  if(vrapi_hooks.vrapi_SubmitFrame_real == NULL || vrapi_hooks.vrapi_GetSystemPropertyInt_real == NULL)
-  {
-    vrapi_hooks.SetupHooks();
-  }
-
-  if(m_GLDriver)
-  {
-    SCOPED_LOCK(glLock);
-
-    m_GLDriver->SwapBuffers(ovr);
-  }
-
-  vrapi_hooks.vrapi_SubmitFrame_real(ovr, parms);
-}
 }    // extern "C"
 
 void VRAPIHook::libHooked(void *realLib)
@@ -266,7 +243,6 @@ bool VRAPIHook::CreateHooks(const char *libName)
   {
     PosixHookFunction("vrapi_CreateTextureSwapChain2", (void *)&vrapi_CreateTextureSwapChain2);
     PosixHookFunction("vrapi_CreateTextureSwapChain", (void *)&vrapi_CreateTextureSwapChain);
-    PosixHookFunction("vrapi_SubmitFrame", (void *)&vrapi_SubmitFrame);
 
     PosixHookLibrary(libName, &libHooked);
     return true;
