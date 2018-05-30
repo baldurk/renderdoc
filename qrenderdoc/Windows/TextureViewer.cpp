@@ -1620,18 +1620,18 @@ void TextureViewer::textureTab_Menu(const QPoint &pos)
   contextMenu.addAction(&closeOtherTabs);
   contextMenu.addAction(&closeRightTabs);
 
-  QObject::connect(&closeTab, &QAction::triggered, [this, textureTabs, tabIndex]() {
+  QObject::connect(&closeTab, &QAction::triggered, [textureTabs, tabIndex]() {
     // remove the tab at this index
     textureTabs->removeTab(tabIndex);
   });
 
-  QObject::connect(&closeRightTabs, &QAction::triggered, [this, textureTabs, tabIndex]() {
+  QObject::connect(&closeRightTabs, &QAction::triggered, [textureTabs, tabIndex]() {
     // remove all tabs with a greater index
     while(textureTabs->count() > tabIndex + 1)
       textureTabs->removeTab(tabIndex + 1);
   });
 
-  QObject::connect(&closeOtherTabs, &QAction::triggered, [this, textureTabs, tabIndex]() {
+  QObject::connect(&closeOtherTabs, &QAction::triggered, [textureTabs, tabIndex]() {
     // remove all tabs with a greater index
     while(textureTabs->count() > tabIndex + 1)
       textureTabs->removeTab(tabIndex + 1);
