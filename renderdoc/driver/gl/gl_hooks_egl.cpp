@@ -464,6 +464,9 @@ bool EGLHook::PopulateHooks()
   if(m_PopulatedHooks)
     return true;
 
+  if(real.GetProcAddress == NULL)
+    return false;
+
   // dlsym can return GL symbols during a GLES context
   bool dlsymFirst = false;
 
