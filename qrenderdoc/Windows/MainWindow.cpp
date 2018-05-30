@@ -1516,7 +1516,7 @@ void MainWindow::on_action_Python_Shell_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
-  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) { r->InitResolver(); });
+  m_Ctx.Replay().AsyncInvoke([](IReplayController *r) { r->InitResolver(); });
 
   ShowProgressDialog(this, tr("Please Wait - Resolving Symbols"), [this]() {
     bool running = true;

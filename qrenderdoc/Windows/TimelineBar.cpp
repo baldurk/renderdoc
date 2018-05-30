@@ -261,7 +261,7 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
       if(!m_HistoryEvents.isEmpty())
       {
         auto it = std::find_if(m_HistoryEvents.begin(), m_HistoryEvents.end(),
-                               [this, eid](const PixelModification &mod) {
+                               [eid](const PixelModification &mod) {
                                  if(mod.eventID == eid)
                                    return true;
 
@@ -276,13 +276,13 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
 
       if(!m_UsageEvents.isEmpty())
       {
-        auto it = std::find_if(m_UsageEvents.begin(), m_UsageEvents.end(),
-                               [this, eid](const EventUsage &use) {
-                                 if(use.eventID == eid)
-                                   return true;
+        auto it =
+            std::find_if(m_UsageEvents.begin(), m_UsageEvents.end(), [eid](const EventUsage &use) {
+              if(use.eventID == eid)
+                return true;
 
-                                 return false;
-                               });
+              return false;
+            });
 
         if(it != m_UsageEvents.end())
           m_Ctx.SetEventID({}, eid, eid);
@@ -294,7 +294,7 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
     if(!m_Draws.isEmpty() && m_dataArea.contains(m_lastPos))
     {
       uint32_t eid = eventAt(x);
-      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [this, eid](uint32_t d) {
+      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [eid](uint32_t d) {
         if(d >= eid)
           return true;
 
