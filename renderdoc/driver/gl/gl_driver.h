@@ -117,6 +117,8 @@ private:
 
   bool m_MarkedActive = false;
 
+  bool m_UseVRMarkers;
+
   GLReplay m_Replay;
   RDCDriver m_DriverType;
 
@@ -616,6 +618,7 @@ public:
   void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
                                    GLsizei width, GLsizei height, GLint levels);
   void HandleVRFrameMarkers(const GLchar *buf, GLsizei length);
+  void DisableVRFrameMarkers();
 
   void FirstFrame(void *ctx, void *wndHandle);
 
