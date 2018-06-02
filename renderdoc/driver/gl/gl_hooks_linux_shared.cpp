@@ -867,6 +867,19 @@ DefineGLExtensionHooks();
         echo -en "\treturn CONCAT(unsupported_real_,function)(";
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo -e "); \\";
+        echo -e "\t} \\";
+
+        echo -en "\textern \"C\" __attribute__((visibility (\"default\"))) ret function(";
+            for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi;
+  done;
+        echo ") \\";
+
+        echo -e "\t{ \\";
+        echo -e "\tstatic bool hit = false; if(hit == false) { RDCERR(\"Function \" \\";
+        echo -e "\t\tSTRINGIZE(function)\" not supported - capture may be broken\");hit = true;}\\";
+        echo -en "\treturn CONCAT(unsupported_real_,function)(";
+            for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
+        echo -e "); \\";
         echo -e "\t}";
     }
 
@@ -902,6 +915,16 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)();                                       \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function()                      \
+  {                                                                                     \
+    static bool hit = false;                                                            \
+    if(hit == false)                                                                    \
+    {                                                                                   \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
+      hit = true;                                                                       \
+    }                                                                                   \
+    return CONCAT(unsupported_real_, function)();                                       \
   }
 
 #undef HookWrapper1
@@ -909,6 +932,16 @@ DefineGLExtensionHooks();
   typedef ret (*CONCAT(function, _hooktype))(t1);                                       \
   CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                                        \
+  {                                                                                     \
+    static bool hit = false;                                                            \
+    if(hit == false)                                                                    \
+    {                                                                                   \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
+      hit = true;                                                                       \
+    }                                                                                   \
+    return CONCAT(unsupported_real_, function)(p1);                                     \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1)                 \
   {                                                                                     \
     static bool hit = false;                                                            \
     if(hit == false)                                                                    \
@@ -932,6 +965,16 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)(p1, p2);                                 \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2)          \
+  {                                                                                     \
+    static bool hit = false;                                                            \
+    if(hit == false)                                                                    \
+    {                                                                                   \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
+      hit = true;                                                                       \
+    }                                                                                   \
+    return CONCAT(unsupported_real_, function)(p1, p2);                                 \
   }
 
 #undef HookWrapper3
@@ -947,66 +990,118 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)(p1, p2, p3);                             \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3)   \
+  {                                                                                     \
+    static bool hit = false;                                                            \
+    if(hit == false)                                                                    \
+    {                                                                                   \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
+      hit = true;                                                                       \
+    }                                                                                   \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3);                             \
   }
 
 #undef HookWrapper4
-#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                           \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                   \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4);                         \
+#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                          \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                    \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4);                              \
+  }                                                                                          \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4);                              \
   }
 
 #undef HookWrapper5
-#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)             \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)            \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5);                     \
+#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)                         \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                           \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
+  {                                                                                                 \
+    static bool hit = false;                                                                        \
+    if(hit == false)                                                                                \
+    {                                                                                               \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");             \
+      hit = true;                                                                                   \
+    }                                                                                               \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5);                                 \
+  }                                                                                                 \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
+  {                                                                                                 \
+    static bool hit = false;                                                                        \
+    if(hit == false)                                                                                \
+    {                                                                                               \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");             \
+      hit = true;                                                                                   \
+    }                                                                                               \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5);                                 \
   }
 
 #undef HookWrapper6
-#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)     \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6);                 \
+#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)          \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                        \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                    \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6);                      \
+  }                                                                                          \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
+                                                                 t5 p5, t6 p6)               \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6);                      \
   }
 
 #undef HookWrapper7
-#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                   \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)  \
-  {                                                                                         \
-    static bool hit = false;                                                                \
-    if(hit == false)                                                                        \
-    {                                                                                       \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");     \
-      hit = true;                                                                           \
-    }                                                                                       \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7);                 \
+#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7)  \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                    \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                    \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7);                  \
+  }                                                                                          \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
+                                                                 t5 p5, t6 p6, t7 p7)        \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7);                  \
   }
 
 #undef HookWrapper8
@@ -1014,6 +1109,17 @@ DefineGLExtensionHooks();
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8);                       \
   CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                           \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
+  {                                                                                                 \
+    static bool hit = false;                                                                        \
+    if(hit == false)                                                                                \
+    {                                                                                               \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");             \
+      hit = true;                                                                                   \
+    }                                                                                               \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8);                     \
+  }                                                                                                 \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,        \
+                                                                 t5 p5, t6 p6, t7 p7, t8 p8)        \
   {                                                                                                 \
     static bool hit = false;                                                                        \
     if(hit == false)                                                                                \
@@ -1039,6 +1145,17 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9);               \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                              \
+  {                                                                                               \
+    static bool hit = false;                                                                      \
+    if(hit == false)                                                                              \
+    {                                                                                             \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
+      hit = true;                                                                                 \
+    }                                                                                             \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9);               \
   }
 
 #undef HookWrapper10
@@ -1048,6 +1165,17 @@ DefineGLExtensionHooks();
   CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10)                                         \
+  {                                                                                               \
+    static bool hit = false;                                                                      \
+    if(hit == false)                                                                              \
+    {                                                                                             \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
+      hit = true;                                                                                 \
+    }                                                                                             \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);          \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
   {                                                                                               \
     static bool hit = false;                                                                      \
     if(hit == false)                                                                              \
@@ -1073,6 +1201,17 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);     \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)            \
+  {                                                                                               \
+    static bool hit = false;                                                                      \
+    if(hit == false)                                                                              \
+    {                                                                                             \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
+      hit = true;                                                                                 \
+    }                                                                                             \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);     \
   }
 
 #undef HookWrapper12
@@ -1082,6 +1221,17 @@ DefineGLExtensionHooks();
   CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9, t10 p10, t11 p11, t12 p12)                        \
+  {                                                                                                \
+    static bool hit = false;                                                                       \
+    if(hit == false)                                                                               \
+    {                                                                                              \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");            \
+      hit = true;                                                                                  \
+    }                                                                                              \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
+  }                                                                                                \
+  extern "C" __attribute__((visibility("default"))) ret function(                                  \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)    \
   {                                                                                                \
     static bool hit = false;                                                                       \
     if(hit == false)                                                                               \
@@ -1100,6 +1250,19 @@ DefineGLExtensionHooks();
   CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)              \
+  {                                                                                               \
+    static bool hit = false;                                                                      \
+    if(hit == false)                                                                              \
+    {                                                                                             \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
+      hit = true;                                                                                 \
+    }                                                                                             \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
+                                               p13);                                              \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
+      t13 p13)                                                                                    \
   {                                                                                               \
     static bool hit = false;                                                                      \
     if(hit == false)                                                                              \
@@ -1128,6 +1291,19 @@ DefineGLExtensionHooks();
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
                                                p13, p14);                                         \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
+      t13 p13, t14 p14)                                                                           \
+  {                                                                                               \
+    static bool hit = false;                                                                      \
+    if(hit == false)                                                                              \
+    {                                                                                             \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
+      hit = true;                                                                                 \
+    }                                                                                             \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
+                                               p13, p14);                                         \
   }
 
 #undef HookWrapper15
@@ -1139,6 +1315,19 @@ DefineGLExtensionHooks();
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,     \
                                           t15 p15)                                                \
+  {                                                                                               \
+    static bool hit = false;                                                                      \
+    if(hit == false)                                                                              \
+    {                                                                                             \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
+      hit = true;                                                                                 \
+    }                                                                                             \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
+                                               p13, p14, p15);                                    \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
+      t13 p13, t14 p14, t15 p15)                                                                  \
   {                                                                                               \
     static bool hit = false;                                                                      \
     if(hit == false)                                                                              \
@@ -1169,6 +1358,19 @@ DefineGLExtensionHooks();
     }                                                                                              \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12,  \
                                                p13, p14, p15, p16);                                \
+  }                                                                                                \
+  extern "C" __attribute__((visibility("default"))) ret function(                                  \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
+      t13 p13, t14 p14, t15 p15, t16 p16)                                                          \
+  {                                                                                                \
+    static bool hit = false;                                                                       \
+    if(hit == false)                                                                               \
+    {                                                                                              \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");            \
+      hit = true;                                                                                  \
+    }                                                                                              \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12,  \
+                                               p13, p14, p15, p16);                                \
   }
 
 #undef HookWrapper17
@@ -1181,6 +1383,19 @@ DefineGLExtensionHooks();
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,      \
                                           t15 p15, t16 p16, t17 p17)                               \
+  {                                                                                                \
+    static bool hit = false;                                                                       \
+    if(hit == false)                                                                               \
+    {                                                                                              \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");            \
+      hit = true;                                                                                  \
+    }                                                                                              \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12,  \
+                                               p13, p14, p15, p16, p17);                           \
+  }                                                                                                \
+  extern "C" __attribute__((visibility("default"))) ret function(                                  \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
+      t13 p13, t14 p14, t15 p15, t16 p16, t17 p17)                                                 \
   {                                                                                                \
     static bool hit = false;                                                                       \
     if(hit == false)                                                                               \
