@@ -69,7 +69,7 @@ Threading::CriticalSection &GetGLLock()
 
 #if 0    // debug print for each unsupported function requested (but not used)
 #define HandleUnsupported(funcPtrType, function)                                           \
-  if(lowername == STRINGIZE(function))                                                     \
+  if(!strcmp(func, STRINGIZE(function)))                                                   \
   {                                                                                        \
     CONCAT(unsupported_real_, function) = (CONCAT(function, _hooktype))realFunc;           \
     RDCDEBUG("Requesting function pointer for unsupported function " STRINGIZE(function)); \
@@ -77,7 +77,7 @@ Threading::CriticalSection &GetGLLock()
   }
 #else
 #define HandleUnsupported(funcPtrType, function)                                 \
-  if(lowername == STRINGIZE(function))                                           \
+  if(!strcmp(func, STRINGIZE(function)))                                         \
   {                                                                              \
     CONCAT(unsupported_real_, function) = (CONCAT(function, _hooktype))realFunc; \
     return (void *)&CONCAT(function, _renderdoc_hooked);                         \
@@ -1198,10 +1198,6 @@ void *SharedLookupFuncPtr(const char *func, void *realFunc)
 {
   DLLExportHooks();
   HookCheckGLExtensions();
-
-  // at the moment the unsupported functions are all lowercase (as their name is generated from the
-  // typedef name).
-  string lowername = strlower(string(func));
 
   CheckUnsupported();
 

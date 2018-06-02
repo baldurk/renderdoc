@@ -59,7 +59,7 @@
 
 #if 0    // debug print for each unsupported function requested (but not used)
 #define HandleUnsupported(funcPtrType, function)                                           \
-  if(lowername == STRINGIZE(function))                                                     \
+  if(!strcmp(func, STRINGIZE(function)))                                                   \
   {                                                                                        \
     glhooks.CONCAT(unsupported_real_, function) = (CONCAT(function, _hooktype))realFunc;   \
     RDCDEBUG("Requesting function pointer for unsupported function " STRINGIZE(function)); \
@@ -67,7 +67,7 @@
   }
 #else
 #define HandleUnsupported(funcPtrType, function)                                         \
-  if(lowername == STRINGIZE(function))                                                   \
+  if(!strcmp(func, STRINGIZE(function)))                                                 \
   {                                                                                      \
     glhooks.CONCAT(unsupported_real_, function) = (CONCAT(function, _hooktype))realFunc; \
     return (PROC)&glhooks.CONCAT(function, _hooked);                                     \
@@ -1365,10 +1365,6 @@ private:
     // assume wgl functions are safe to just pass straight through
     if(!strncmp(func, "wgl", 3))
       return realFunc;
-
-    // at the moment the unsupported functions are all lowercase (as their name is generated from
-    // the typedef name).
-    string lowername = strlower(string(func));
 
     CheckUnsupported();
 
