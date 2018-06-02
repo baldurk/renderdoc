@@ -96,6 +96,16 @@ my @dllexportfuncs = ();
 my @glextfuncs = ();
 my @processed = ();
 
+my %name_of;
+my $names = `grep -Eh 'APIENTRY gl[0-9a-Z_-]+' official/glcorearb.h official/glext.h official/gl32.h official/glesext.h official/wglext.h official/legacygl.h`;
+foreach my $name (split(/\n/, $names))
+{
+    if($name =~ /APIENTRY (gl[A-Za-z_0-9]+)\s?\(/)
+    {
+        $name_of{uc($1)} = $1;
+    }
+}
+
 my $typedefs = `grep -Eh PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h official/gl32.h official/glesext.h official/wglext.h official/legacygl.h`;
 foreach my $typedef (split(/\n/, $typedefs))
 {
@@ -122,7 +132,7 @@ foreach my $typedef (split(/\n/, $typedefs))
     $current = \@unsupported;
     my $name = $def;
     $name =~ s/^PFN(.*)PROC$/$1/g;
-    $name = lc($name); # todo, fetch the proper name instead of using lowercase (and insensitive compare)
+
     my $aliases = "";
 
     if($isused)
@@ -147,9 +157,14 @@ foreach my $typedef (split(/\n/, $typedefs))
         $current = \@glextfuncs;
       }
     }
-    elsif($name =~ /^wgl/i)
+    elsif($name =~ /^WGL/i)
     {
       $current = \@dropped;
+    }
+    else
+    {
+        print "SCRIPT ERROR: cannot find name for PFN '$1'\n" if not exists $name_of{$name};
+        $name = $name_of{$name};
     }
 
     my $funcdefmacro = "HookWrapper$argcount($returnType, $name";
