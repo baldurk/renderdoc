@@ -677,6 +677,56 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
       // nothing to do!
       return;
     }
+    case TYPE_OUTPUT_DEPTH:
+    case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+    case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+    case TYPE_OUTPUT_STENCIL_REF:
+    case TYPE_OUTPUT_COVERAGE_MASK:
+    {
+      // handle all semantic outputs together
+      ShaderBuiltin builtin = ShaderBuiltin::Count;
+      switch(dstoper.type)
+      {
+        case TYPE_OUTPUT_DEPTH: builtin = ShaderBuiltin::DepthOutput; break;
+        case TYPE_OUTPUT_DEPTH_LESS_EQUAL: builtin = ShaderBuiltin::DepthOutputLessEqual; break;
+        case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+          builtin = ShaderBuiltin::DepthOutputGreaterEqual;
+          break;
+        case TYPE_OUTPUT_STENCIL_REF: builtin = ShaderBuiltin::StencilReference; break;
+        case TYPE_OUTPUT_COVERAGE_MASK: builtin = ShaderBuiltin::MSAACoverage; break;
+        default: RDCERR("Invalid dest operand!"); break;
+      }
+
+      for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
+      {
+        if(dxbc->m_OutputSig[i].systemValue == builtin)
+        {
+          v = &outputs[i];
+          break;
+        }
+      }
+
+      if(!v)
+      {
+        RDCERR("Couldn't find type %d by semantic matching, falling back to string match",
+               dstoper.type);
+
+        std::string name = dstoper.toString(dxbc, ToString::ShowSwizzle);
+        for(size_t i = 0; i < outputs.size(); i++)
+        {
+          if(outputs[i].name == name)
+          {
+            v = &outputs[i];
+            break;
+          }
+        }
+
+        if(v)
+          break;
+      }
+
+      break;
+    }
     default:
     {
       RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
