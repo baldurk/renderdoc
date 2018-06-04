@@ -962,7 +962,23 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
               codeOffset += parameter;
               apply = true;
               break;
-            case CodeViewInfo::BA_OP_ChangeCodeLength: codeLength = parameter; break;
+            case CodeViewInfo::BA_OP_ChangeCodeLength:
+            {
+              // this applies to the previous/last instruction.
+              if(!inlinee.locations.empty() &&
+                 inlinee.locations.back().offsetEnd == inlinee.locations.back().offsetStart &&
+                 inlinee.locations.back().statement == statement)
+              {
+                inlinee.locations.back().offsetEnd += parameter;
+              }
+              else
+              {
+                RDCERR("No valid previous instruction to apply codeLength to");
+              }
+
+              codeOffset += parameter;
+              break;
+            }
             case CodeViewInfo::BA_OP_ChangeFile:
               RDCERR("Unsupported change of file within inline site!");
               break;
@@ -975,8 +991,6 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             case CodeViewInfo::BA_OP_ChangeRangeKind:
             {
               statement = (parameter == 1);
-              // unclear where this should be reset
-              codeLength = 0;
               break;
             }
             case CodeViewInfo::BA_OP_ChangeColumnStart: currentColStart = parameter; break;
@@ -989,11 +1003,8 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             {
               uint32_t CodeDelta = parameter & 0xf;
               uint32_t sourceDelta = parameter >> 4;
-              // not sure if this is a bug in the HLSL compiler or what, but the sourceDelta seems
-              // to come out double what it should be - so add an extra shift
-              sourceDelta >>= 1;
               codeOffset += CodeDelta;
-              currentLine += sourceDelta;
+              currentLine += CodeViewInfo::DecodeSignedInt32(sourceDelta);
               apply = true;
               break;
             }
@@ -1019,9 +1030,13 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             loc.lineStart = currentLine;
             loc.lineEnd = currentLine + currentLineLength;
 
+            // the behaviour seems to be that if codeLength is ephemeral, not sticky like the rest
+            codeLength = 0;
+
             // if we have a previous location with implicit length, fix it up now
             if(!inlinee.locations.empty() &&
-               inlinee.locations.back().offsetEnd == inlinee.locations.back().offsetStart)
+               inlinee.locations.back().offsetEnd == inlinee.locations.back().offsetStart &&
+               inlinee.locations.back().statement == loc.statement)
             {
               inlinee.locations.back().offsetEnd = loc.offsetStart;
             }
@@ -1029,8 +1044,9 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             inlinee.locations.push_back(loc);
 
             SPDBLOG("inline annotation of %s, from %x (length %x), from %u:%u to %u:%u",
-                    statement ? "statement" : "expression", codeOffsetBase + codeOffset, codeLength,
-                    currentLine, currentColStart, currentLine + currentLineLength, currentColEnd);
+                    statement ? "statement" : "expression", loc.offsetStart,
+                    loc.offsetEnd - loc.offsetStart, currentLine, currentColStart,
+                    currentLine + currentLineLength, currentColEnd);
           }
         }
 
@@ -1511,17 +1527,14 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
     {
       InstructionLocation &loc = inlines[i].locations[j];
 
-      // don't apply expressions
-      if(!loc.statement)
-        continue;
-
       int nPatched = 0;
 
       for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
       {
-        if(it->first >= loc.offsetStart && it->first < loc.offsetEnd)
+        if((it->first >= loc.offsetStart && it->first < loc.offsetEnd) ||
+           (it->first == loc.offsetStart && it->first == loc.offsetEnd))
         {
-          SPDBLOG("Patching %x between [%x,%x) from (%d %u:%u -> %u:%u) into (%d %u:%u -> %u:%u)",
+          SPDBLOG("Patching %x between [%x,%x] from (%d %u:%u -> %u:%u) into (%d %u:%u -> %u:%u)",
                   it->first, loc.offsetStart, loc.offsetEnd, it->second.fileIndex,
                   it->second.lineStart, it->second.colStart, it->second.lineEnd, it->second.colEnd,
                   fileIdx, loc.lineStart + inlines[i].baseLineNum, loc.colStart,
@@ -1532,7 +1545,8 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           it->second.lineEnd = loc.lineEnd + inlines[i].baseLineNum;
           it->second.colStart = loc.colStart;
           it->second.colEnd = loc.colEnd;
-          it->second.callstack.push_back(m_Functions[inlines[i].id].name);
+          if(loc.statement)
+            it->second.callstack.push_back(m_Functions[inlines[i].id].name);
           nPatched++;
         }
       }
