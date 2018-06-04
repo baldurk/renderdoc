@@ -175,24 +175,42 @@ SPDBChunk::SPDBChunk(void *chunk)
     }
   }
 
-  std::map<uint32_t, VarType> typeInfo;
+  struct TypeMember
+  {
+    std::string name;
+    uint16_t byteOffset;
+    uint32_t typeIndex;
+  };
+
+  struct TypeDesc
+  {
+    std::string name;
+    VarType baseType;
+    uint32_t byteSize;
+    uint16_t vecSize;
+    uint16_t matArrayStride;
+    std::vector<TypeMember> members;
+  };
+
+  std::map<uint32_t, TypeDesc> typeInfo;
 
   // prepopulate with basic types
-  typeInfo[T_INT4] = VarType::Int;
-  typeInfo[T_INT2] = VarType::Int;
-  typeInfo[T_INT1] = VarType::Int;
-  typeInfo[T_LONG] = VarType::Int;
-  typeInfo[T_SHORT] = VarType::Int;
-  typeInfo[T_CHAR] = VarType::Int;
-  typeInfo[T_UINT4] = VarType::UInt;
-  typeInfo[T_UINT2] = VarType::UInt;
-  typeInfo[T_UINT1] = VarType::UInt;
-  typeInfo[T_ULONG] = VarType::UInt;
-  typeInfo[T_USHORT] = VarType::UInt;
-  typeInfo[T_UCHAR] = VarType::UInt;
-  typeInfo[T_REAL16] = VarType::Float;
-  typeInfo[T_REAL32] = VarType::Float;
-  typeInfo[T_REAL64] = VarType::Double;
+  typeInfo[T_INT4] = {"int32_t", VarType::Int, 4, 1, 0, {}};
+  typeInfo[T_INT2] = {"int16_t", VarType::Int, 2, 1, 0, {}};
+  typeInfo[T_INT1] = {"int8_t", VarType::Int, 1, 1, 0, {}};
+  typeInfo[T_LONG] = {"int32_t", VarType::Int, 4, 1, 0, {}};
+  typeInfo[T_SHORT] = {"int16_t", VarType::Int, 2, 1, 0, {}};
+  typeInfo[T_CHAR] = {"char", VarType::Int, 1, 1, 0, {}};
+  typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, {}};
+  typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, {}};
+  typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, {}};
+  typeInfo[T_UINT1] = {"uint8_t", VarType::UInt, 1, 1, 0, {}};
+  typeInfo[T_ULONG] = {"uint32_t", VarType::UInt, 4, 1, 0, {}};
+  typeInfo[T_USHORT] = {"uint16_t", VarType::UInt, 2, 1, 0, {}};
+  typeInfo[T_UCHAR] = {"unsigned char", VarType::UInt, 1, 1, 0, {}};
+  typeInfo[T_REAL16] = {"half", VarType::Float, 2, 1, 0, {}};
+  typeInfo[T_REAL32] = {"float", VarType::Float, 4, 1, 0, {}};
+  typeInfo[T_REAL64] = {"double", VarType::Double, 8, 1, 0, {}};
 
   if(streams.size() >= 3)
   {
@@ -248,7 +266,10 @@ SPDBChunk::SPDBChunk(void *chunk)
           SPDBLOG("Type %x is '%s': a vector of %x with %u elements over %u bytes", id, name,
                   vector->elemtype, vector->count, *bytelength);
 
-          typeInfo[id] = typeInfo[vector->elemtype];
+          typeInfo[id] = {
+              name, typeInfo[vector->elemtype].baseType, *bytelength, (uint16_t)vector->count, 0,
+              {},
+          };
 
           break;
         }
@@ -264,7 +285,14 @@ SPDBChunk::SPDBChunk(void *chunk)
               id, name, matrix->elemtype, matrix->rows, matrix->cols, *bytelength,
               matrix->majorStride, matrix->matattr.row_major ? "row" : "column");
 
-          typeInfo[id] = typeInfo[matrix->elemtype];
+          typeInfo[id] = {
+              name,
+              typeInfo[matrix->elemtype].baseType,
+              *bytelength,
+              uint16_t(matrix->rows),
+              uint16_t(*bytelength / matrix->cols),
+              {},
+          };
 
           break;
         }
@@ -330,6 +358,7 @@ SPDBChunk::SPDBChunk(void *chunk)
           SPDBLOG("Type %x is %x modified with:", id, modifier->type);
 
           typeInfo[id] = typeInfo[modifier->type];
+          typeInfo[id].name = "modif " + typeInfo[id].name;
 
           uint16_t *mods = (uint16_t *)modifier->mods;
           for(unsigned short i = 0; i < modifier->count; i++)
@@ -371,6 +400,8 @@ SPDBChunk::SPDBChunk(void *chunk)
 
           uint32_t idx = 0;
 
+          std::vector<TypeMember> &members = typeInfo[id].members;
+
           byte *iter = (byte *)fieldList->data;
           while(iter < bytes)
           {
@@ -402,6 +433,8 @@ SPDBChunk::SPDBChunk(void *chunk)
 
                 SPDBLOG("  [%u]: %x %s (%s) (at offset %u bytes)", idx, member->index, name, access,
                         *byteoffset);
+
+                members.push_back({name, *byteoffset, member->index});
 
                 idx++;
 
@@ -437,6 +470,7 @@ SPDBChunk::SPDBChunk(void *chunk)
                 idx++;
                 break;
               }
+              case LF_BCLASS:
               case LF_BINTERFACE:
               {
                 lfBClass *binterface = (lfBClass *)iter;
@@ -450,7 +484,7 @@ SPDBChunk::SPDBChunk(void *chunk)
                 else if(binterface->attr.access == 3)
                   access = "public";
 
-                SPDBLOG("  [%u]: %x Interface (%s)", idx, binterface->index, access);
+                SPDBLOG("  [%u]: %x Base Class/Interface (%s)", idx, binterface->index, access);
 
                 iter = (byte *)binterface->offset + 2;
 
@@ -493,6 +527,10 @@ SPDBChunk::SPDBChunk(void *chunk)
           else if(type == LF_CLASS)
             structType = "class";
 
+          typeInfo[id] = {
+              name, VarType::Float, *bytelength, 1, 0, typeInfo[structure->field].members,
+          };
+
           SPDBLOG(
               "Type %x is '%s': a %s with %u fields %x derived from %x and vshape %x over %u "
               "bytes",
@@ -514,9 +552,26 @@ SPDBChunk::SPDBChunk(void *chunk)
                   mfunction->classtype, mfunction->rvtype, mfunction->parmcount, mfunction->arglist);
           break;
         }
+        case LF_STRIDED_ARRAY:
+        {
+          lfStridedArray *stridedArray = (lfStridedArray *)leaf;
+          // documentation isn't clear, but seems like byte size is always a uint16_t
+          uint16_t *bytelength = (uint16_t *)stridedArray->data;
+
+          typeInfo[id] = {
+              "",
+              typeInfo[stridedArray->elemtype].baseType,
+              *bytelength,
+              1,
+              uint16_t(stridedArray->stride),
+              {},
+          };
+
+          break;
+        }
         default:
         {
-          SPDBLOG("Encountered unknown type leaf %x", type);
+          RDCWARN("Encountered unknown type leaf %x", type);
           break;
         }
       }
@@ -1080,13 +1135,82 @@ SPDBChunk::SPDBChunk(void *chunk)
 
         mapping.var.localName = localName;
 
-        mapping.var.variableType = typeInfo[localType];
+        uint32_t varOffset = defrange->offsetParent;
+        uint32_t varLen = defrange->sizeInParent;
+
+        const TypeDesc *vartype = &typeInfo[localType];
+
+        RDCASSERT(varOffset + varLen <= vartype->byteSize);
+
+        // step through struct members
+        while(!vartype->members.empty())
+        {
+          bool found = false;
+
+          // find the child member this register corresponds to. We don't handle overlaps between
+          // members
+          for(const TypeMember &mem : vartype->members)
+          {
+            TypeDesc &childType = typeInfo[mem.typeIndex];
+
+            uint32_t memberOffset = mem.byteOffset;
+            uint32_t memberLen = childType.byteSize;
+
+            // if this member is before our variable, continue
+            if(memberOffset + memberLen <= varOffset)
+              continue;
+
+            // if this member is after our variable, continue (though if members are sorted, this
+            // means we won't find a candidate member)
+            if(varOffset + varLen <= memberOffset)
+              continue;
+
+            if(memberOffset > varOffset || memberOffset + memberLen < varOffset + varLen)
+            {
+              RDCERR("member %s of %s doesn't fully enclose variable [%u,%u] vs [%u,%u]",
+                     mem.name.c_str(), vartype->name.c_str(), memberOffset,
+                     memberOffset + memberLen, varOffset, varOffset + varLen);
+            }
+
+            mapping.var.localName = std::string(mapping.var.localName) + "." + mem.name;
+
+            // subtract off the offset of this member so we're now relative to it - since it might
+            // be a struct itself and we need to recurse.
+            varOffset -= memberOffset;
+
+            vartype = &childType;
+
+            found = true;
+
+            break;
+          }
+
+          if(!found)
+          {
+            RDCERR("No member of %s corresponds to variable range [%u,%u]", vartype->name.c_str(),
+                   varOffset, varOffset + varLen);
+            mapping.var.localName = std::string(mapping.var.localName) + ".__unknown__";
+            break;
+          }
+        }
+
+        // if it's an array or matrix, figure out the index
+        if(vartype->matArrayStride)
+        {
+          uint32_t idx = varOffset / vartype->matArrayStride;
+
+          mapping.var.localName = StringFormat::Fmt("%s[%u]", mapping.var.localName.c_str(), idx);
+
+          varOffset -= vartype->matArrayStride * idx;
+        }
+
+        mapping.var.variableType = vartype->baseType;
 
         mapping.var.registerIndex = regindex;
         for(uint32_t i = 0; i < regnumcomps; i++)
         {
           mapping.var.registerSwizzle[i] = uint8_t(regfirstcomp + i);
-          mapping.var.variableSwizzle[i] = uint8_t((defrange->offsetParent % 16) / 4 + i);
+          mapping.var.variableSwizzle[i] = uint8_t((varOffset % 16) / 4 + i);
         }
 
         SPDBLOG("Valid from %x to %x", defrange->range.offStart,
@@ -1477,6 +1601,36 @@ void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
       if(a.registerIndex == b.registerIndex && a.registerType == b.registerType &&
          a.variableType == b.variableType && a.localName == b.localName)
       {
+        // check to see if the same variable component is being mapped to multiple registers. This
+        // can be caused if the same local variable is used in two contexts, e.g. a function foo(a)
+        // calling a function bar(a) - the variable a will mean different things while inside bar().
+        // Or it could be a bug :).
+        bool alias = false;
+        for(int i = 0; i < 4; i++)
+        {
+          for(int j = 0; j < 4; j++)
+          {
+            if(a.variableSwizzle[j] == b.variableSwizzle[i] &&
+               a.registerSwizzle[j] != b.registerSwizzle[j])
+            {
+              alias = true;
+              break;
+            }
+          }
+
+          if(alias)
+            break;
+        }
+
+        // if we found aliasing, just add them as separate entries in the local list to be safe.
+        if(alias)
+        {
+          SPDBLOG(
+              "Found register mapping aliasing of %s, possible variable shadowing in function call",
+              a.localName.c_str());
+          continue;
+        }
+
         // insert b into a, in variableSwizzle sorted order. Note the number of nested loops might
         // seem scary but they only iterate up to 4 and in many cases will early out.
         for(int i = 0; i < 4; i++)
