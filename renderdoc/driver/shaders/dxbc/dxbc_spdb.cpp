@@ -210,6 +210,8 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
   typeInfo[T_UCHAR] = {"unsigned char", VarType::UInt, 1, 1, 0, {}};
   typeInfo[T_REAL16] = {"half", VarType::Float, 2, 1, 0, {}};
   typeInfo[T_REAL32] = {"float", VarType::Float, 4, 1, 0, {}};
+  // modern HLSL fake half
+  typeInfo[T_REAL32PP] = {"half", VarType::Float, 4, 1, 0, {}};
   typeInfo[T_REAL64] = {"double", VarType::Double, 8, 1, 0, {}};
 
   if(streams.size() >= 3)
@@ -1129,6 +1131,10 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           default: break;
         }
 
+        // this is a virtual register, not stored
+        if((OperandType)defrange->regType == TYPE_STREAM)
+          continue;
+
         const char *space = "";
         switch((CV_HLSLMemorySpace_e)defrange->memorySpace)
         {
@@ -1142,6 +1148,12 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         SPDBLOG("S_DEFRANGE_HLSL: %u->%u bytes in parent: %s %s (dim %d) %s",
                 defrange->offsetParent, defrange->offsetParent + defrange->sizeInParent, regtype,
                 space, defrange->regIndices, defrange->spilledUdtMember ? "spilled" : "");
+
+        if(defrange->regIndices > 1)
+        {
+          RDCWARN("More than one register index in mapping");
+          // this is used for geometry shader inputs for example
+        }
 
         uint32_t regoffset = *CV_DEFRANGESYMHLSL_OFFSET_CONST_PTR(defrange);
 
