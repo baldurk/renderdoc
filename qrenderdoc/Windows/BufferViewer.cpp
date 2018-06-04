@@ -3212,7 +3212,18 @@ void BufferViewer::exportData(const BufferExport &params)
         // offset and sizes
         for(int i = 0; i < model->rowCount(); i++)
         {
-          uint32_t idx = model->data(model->index(i, 1), Qt::DisplayRole).toUInt();
+          // manually calculate the index so that we get the real offset (not the displayed offset)
+          // in the case of vertex output.
+          uint32_t idx = i;
+
+          if(model->indices && model->indices->data)
+          {
+            idx = CalcIndex(model->indices, i, model->baseVertex);
+
+            // completely omit primitive restart indices
+            if(model->primRestart && idx == model->primRestart)
+              continue;
+          }
 
           for(int col = 0; col < cache.count(); col++)
           {
