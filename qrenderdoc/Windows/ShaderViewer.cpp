@@ -369,11 +369,20 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     else
       setWindowTitle(shader->entryPoint);
 
+    // add all the files, skipping any that have empty contents. We push a NULL in that case so the
+    // indices still match up with what the debug info expects. Debug info *shouldn't* point us at
+    // an empty file, but if it does we'll just bail out when we see NULL
     m_FileScintillas.reserve(shader->debugInfo.files.count());
 
     QWidget *sel = NULL;
     for(const ShaderSourceFile &f : shader->debugInfo.files)
     {
+      if(f.contents.isEmpty())
+      {
+        m_FileScintillas.push_back(NULL);
+        continue;
+      }
+
       QString name = QFileInfo(f.filename).fileName();
       QString text = f.contents;
 
@@ -1161,14 +1170,10 @@ void ShaderViewer::runToCursor()
 
   if(cur != m_DisassemblyView)
   {
-    int scintillaIndex = m_Scintillas.indexOf(cur);
+    int scintillaIndex = m_FileScintillas.indexOf(cur);
 
-    // the [0]'th scintilla is the disassembly, so the first valid index is 1
-    if(scintillaIndex < 1)
+    if(scintillaIndex < 0)
       return;
-
-    // decrement to get an index into m_Line2Inst
-    scintillaIndex--;
 
     sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
 
@@ -1437,51 +1442,54 @@ void ShaderViewer::updateDebugging()
     {
       m_CurInstructionScintilla = m_FileScintillas[lineInfo.fileIndex];
 
-      for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+      if(m_CurInstructionScintilla)
       {
-        if(line == lineInfo.lineEnd)
-          m_CurInstructionScintilla->markerAdd(line - 1, done ? FINISHED_MARKER : CURRENT_MARKER);
-
-        if(lineInfo.colStart == 0)
+        for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
         {
-          // with no column info, add a marker on the whole line
-          m_CurInstructionScintilla->markerAdd(line - 1,
-                                               done ? FINISHED_MARKER + 1 : CURRENT_MARKER + 1);
-        }
-        else
-        {
-          // otherwise add an indicator on the column range.
+          if(line == lineInfo.lineEnd)
+            m_CurInstructionScintilla->markerAdd(line - 1, done ? FINISHED_MARKER : CURRENT_MARKER);
 
-          // Start from the full position/length for this line
-          sptr_t pos = m_CurInstructionScintilla->positionFromLine(line - 1);
-          sptr_t len = m_CurInstructionScintilla->lineEndPosition(line - 1) - pos;
-
-          // if we're on the last line of the range, restrict the length to end on the last column
-          if(line == lineInfo.lineEnd && lineInfo.colEnd != 0)
-            len = lineInfo.colEnd;
-
-          // if we're on the start of the range (which may also be the last line above too), shift
-          // inwards towards the first column
-          if(line == lineInfo.lineStart)
+          if(lineInfo.colStart == 0)
           {
-            pos += lineInfo.colStart - 1;
-            len -= lineInfo.colStart - 1;
+            // with no column info, add a marker on the whole line
+            m_CurInstructionScintilla->markerAdd(line - 1,
+                                                 done ? FINISHED_MARKER + 1 : CURRENT_MARKER + 1);
           }
+          else
+          {
+            // otherwise add an indicator on the column range.
 
-          m_CurInstructionScintilla->setIndicatorCurrent(done ? FINISHED_INDICATOR
-                                                              : CURRENT_INDICATOR);
-          m_CurInstructionScintilla->indicatorFillRange(pos, len);
+            // Start from the full position/length for this line
+            sptr_t pos = m_CurInstructionScintilla->positionFromLine(line - 1);
+            sptr_t len = m_CurInstructionScintilla->lineEndPosition(line - 1) - pos;
+
+            // if we're on the last line of the range, restrict the length to end on the last column
+            if(line == lineInfo.lineEnd && lineInfo.colEnd != 0)
+              len = lineInfo.colEnd;
+
+            // if we're on the start of the range (which may also be the last line above too), shift
+            // inwards towards the first column
+            if(line == lineInfo.lineStart)
+            {
+              pos += lineInfo.colStart - 1;
+              len -= lineInfo.colStart - 1;
+            }
+
+            m_CurInstructionScintilla->setIndicatorCurrent(done ? FINISHED_INDICATOR
+                                                                : CURRENT_INDICATOR);
+            m_CurInstructionScintilla->indicatorFillRange(pos, len);
+          }
         }
+
+        if(isSourceDebugging() ||
+           ui->docking->areaOf(m_CurInstructionScintilla) != ui->docking->areaOf(m_DisassemblyFrame))
+          ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
+
+        int pos = m_CurInstructionScintilla->positionFromLine(lineInfo.lineStart - 1);
+        m_CurInstructionScintilla->setSelection(pos, pos);
+
+        ensureLineScrolled(m_CurInstructionScintilla, lineInfo.lineStart - 1);
       }
-
-      if(isSourceDebugging() ||
-         ui->docking->areaOf(m_CurInstructionScintilla) != ui->docking->areaOf(m_DisassemblyFrame))
-        ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
-
-      int pos = m_CurInstructionScintilla->positionFromLine(lineInfo.lineStart - 1);
-      m_CurInstructionScintilla->setSelection(pos, pos);
-
-      ensureLineScrolled(m_CurInstructionScintilla, lineInfo.lineStart - 1);
     }
   }
 
@@ -1956,14 +1964,10 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
     // search forward for an instruction
     if(cur != m_DisassemblyView)
     {
-      int scintillaIndex = m_Scintillas.indexOf(cur);
+      int scintillaIndex = m_FileScintillas.indexOf(cur);
 
-      // the [0]'th scintilla is the disassembly, so the first valid index is 1
-      if(scintillaIndex < 1)
+      if(scintillaIndex < 0)
         return;
-
-      // decrement to get an index into m_Line2Inst
-      scintillaIndex--;
 
       // add one to go from scintilla line numbers (0-based) to ours (1-based)
       sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
@@ -2025,8 +2029,12 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
       {
         for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
         {
-          m_FileScintillas[lineInfo.fileIndex]->markerDelete(line - 1, BREAKPOINT_MARKER);
-          m_FileScintillas[lineInfo.fileIndex]->markerDelete(line - 1, BREAKPOINT_MARKER + 1);
+          ScintillaEdit *s = m_FileScintillas[lineInfo.fileIndex];
+          if(s)
+          {
+            m_FileScintillas[lineInfo.fileIndex]->markerDelete(line - 1, BREAKPOINT_MARKER);
+            m_FileScintillas[lineInfo.fileIndex]->markerDelete(line - 1, BREAKPOINT_MARKER + 1);
+          }
         }
       }
     }
@@ -2045,8 +2053,12 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
       {
         for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
         {
-          m_FileScintillas[lineInfo.fileIndex]->markerAdd(line - 1, BREAKPOINT_MARKER);
-          m_FileScintillas[lineInfo.fileIndex]->markerAdd(line - 1, BREAKPOINT_MARKER + 1);
+          ScintillaEdit *s = m_FileScintillas[lineInfo.fileIndex];
+          if(s)
+          {
+            m_FileScintillas[lineInfo.fileIndex]->markerAdd(line - 1, BREAKPOINT_MARKER);
+            m_FileScintillas[lineInfo.fileIndex]->markerAdd(line - 1, BREAKPOINT_MARKER + 1);
+          }
         }
       }
     }
