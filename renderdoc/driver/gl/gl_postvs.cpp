@@ -752,7 +752,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   GLuint lastFeedbackProg = 0;
 
-  if(tesShad || gsShad)
+  if(tesRefl || gsRefl)
   {
     ShaderReflection *lastRefl = gsRefl;
 
