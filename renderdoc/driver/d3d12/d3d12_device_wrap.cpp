@@ -367,7 +367,8 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
       };
 
       AddResource(pPipelineState, ResourceType::PipelineState, "Graphics Pipeline State");
-      DerivedResource(Descriptor.pRootSignature, pPipelineState);
+      if(Descriptor.pRootSignature)
+        DerivedResource(Descriptor.pRootSignature, pPipelineState);
 
       for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
       {
@@ -467,7 +468,8 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
-      record->AddParent(GetRecord(pDesc->pRootSignature));
+      if(pDesc->pRootSignature)
+        record->AddParent(GetRecord(pDesc->pRootSignature));
 
       record->AddChunk(scope.Get());
     }
@@ -575,7 +577,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
       AddResourceCurChunk(entry->GetResourceID());
 
       AddResource(pPipelineState, ResourceType::PipelineState, "Compute Pipeline State");
-      DerivedResource(Descriptor.pRootSignature, pPipelineState);
+      if(Descriptor.pRootSignature)
+        DerivedResource(Descriptor.pRootSignature, pPipelineState);
       DerivedResource(entry->GetResourceID(), pPipelineState);
 
       wrapped->compute->CS.pShaderBytecode = entry;
@@ -620,7 +623,8 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
-      record->AddParent(GetRecord(pDesc->pRootSignature));
+      if(pDesc->pRootSignature)
+        record->AddParent(GetRecord(pDesc->pRootSignature));
 
       record->AddChunk(scope.Get());
     }
