@@ -1069,7 +1069,7 @@ SPDBChunk::SPDBChunk(void *chunk)
         char regcomps[] = "xyzw";
 
         uint32_t regindex = indexable ? regoffset : regoffset / 16;
-        uint32_t regfirstcomp = (regoffset % 16) / 4;
+        uint32_t regfirstcomp = indexable ? 0 : (regoffset % 16) / 4;
         uint32_t regnumcomps = indexable ? 4 : defrange->sizeInParent / 4;
 
         char *regswizzle = regcomps;
