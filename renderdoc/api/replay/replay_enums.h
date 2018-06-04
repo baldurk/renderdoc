@@ -744,6 +744,10 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 
   For indirect or multi-draw commands, the index of this draw call within the overall draw command.
 
+.. data:: StencilReference
+
+  The stencil reference to be used for stenciling operations on this fragment.
+
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -780,6 +784,7 @@ enum class ShaderBuiltin : uint32_t
   BaseVertex,
   BaseInstance,
   DrawIndex,
+  StencilReference,
   Count,
 };
 

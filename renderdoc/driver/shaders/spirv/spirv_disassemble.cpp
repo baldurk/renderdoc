@@ -3682,6 +3682,7 @@ ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el)
     case spv::BuiltInBaseInstance: return ShaderBuiltin::BaseInstance;
     case spv::BuiltInDrawIndex: return ShaderBuiltin::DrawIndex;
     case spv::BuiltInViewIndex: return ShaderBuiltin::ViewportIndex;
+    case spv::BuiltInFragStencilRefEXT: return ShaderBuiltin::StencilReference;
     default: break;
   }
 

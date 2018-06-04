@@ -1883,6 +1883,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
           sig.systemValue = ShaderBuiltin::DepthOutput;
         if(IS_BUILTIN("gl_SampleMask"))
           sig.systemValue = ShaderBuiltin::MSAACoverage;
+        if(IS_BUILTIN("gl_FragStencilRefARB"))
+          sig.systemValue = ShaderBuiltin::StencilReference;
 
         // CS built-in inputs
         if(IS_BUILTIN("gl_NumWorkGroups"))

@@ -518,6 +518,7 @@ std::string DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(DepthOutput, "Depth Output");
     STRINGISE_ENUM_CLASS_NAMED(DepthOutputGreaterEqual, "Depth Output (GEqual)");
     STRINGISE_ENUM_CLASS_NAMED(DepthOutputLessEqual, "Depth Output (LEqual)");
+    STRINGISE_ENUM_CLASS_NAMED(StencilReference, "Stencil Ref Value");
   }
   END_ENUM_STRINGISE();
 }

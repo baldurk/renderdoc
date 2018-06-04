@@ -177,6 +177,8 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
         v.name = "oDepthGreaterEqual";
       else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
         v.name = "oMask";
+      else if(sig.systemValue == ShaderBuiltin::StencilReference)
+        v.name = "oStencilRef";
       // if(sig.systemValue == TYPE_OUTPUT_CONTROL_POINT)							str = "oOutputControlPoint";
       else
       {
