@@ -1044,11 +1044,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_EXT_debug_marker");
     }
 
-    // enable VK_EXT_debug_marker if it's available, to fetch shader disassembly
+    // enable VK_AMD_SHADER_INFO_EXTENSION_NAME if it's available, to fetch shader disassembly
     if(supportedExtensions.find(VK_AMD_SHADER_INFO_EXTENSION_NAME) != supportedExtensions.end())
     {
       Extensions.push_back(VK_AMD_SHADER_INFO_EXTENSION_NAME);
       RDCLOG("Enabling VK_AMD_shader_info");
+    }
+
+    // enable VK_AMD_gpa_interface if it's available, for AMD counter support
+    if(supportedExtensions.find("VK_AMD_gpa_interface") != supportedExtensions.end())
+    {
+      Extensions.push_back("VK_AMD_gpa_interface");
+      RDCLOG("Enabling VK_AMD_gpa_interface");
     }
 
     createInfo.enabledLayerCount = (uint32_t)Layers.size();
