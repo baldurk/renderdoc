@@ -42,7 +42,7 @@ namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
 
-SPDBChunk::SPDBChunk(void *chunk)
+SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
 {
   m_HasDebugInfo = false;
 
@@ -1079,24 +1079,32 @@ SPDBChunk::SPDBChunk(void *chunk)
         bool indexable = false;
         const char *regtype = "";
         const char *regprefix = "?";
-        switch((CV_HLSLREG_e)defrange->regType)
+
+        // CV_HLSLREG_e == OperandType
+
+        switch((OperandType)defrange->regType)
         {
-          case CV_HLSLREG_TEMP:
+          case TYPE_TEMP:
             mapping.var.registerType = RegisterType::Temporary;
             regtype = "temp";
             regprefix = "r";
             break;
-          case CV_HLSLREG_INPUT:
+          case TYPE_INPUT:
             mapping.var.registerType = RegisterType::Input;
             regtype = "input";
             regprefix = "v";
             break;
-          case CV_HLSLREG_OUTPUT:
+          case TYPE_OUTPUT:
+          case TYPE_OUTPUT_DEPTH:
+          case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+          case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+          case TYPE_OUTPUT_STENCIL_REF:
+          case TYPE_OUTPUT_COVERAGE_MASK:
             mapping.var.registerType = RegisterType::Output;
             regtype = "output";
             regprefix = "o";
             break;
-          case CV_HLSLREG_INDEXABLE_TEMP:
+          case TYPE_INDEXABLE_TEMP:
             mapping.var.registerType = RegisterType::IndexedTemporary;
             regtype = "indexable";
             regprefix = "x";
@@ -1126,6 +1134,43 @@ SPDBChunk::SPDBChunk(void *chunk)
         uint32_t regindex = indexable ? regoffset : regoffset / 16;
         uint32_t regfirstcomp = indexable ? 0 : (regoffset % 16) / 4;
         uint32_t regnumcomps = indexable ? 4 : defrange->sizeInParent / 4;
+
+        ShaderBuiltin builtin = ShaderBuiltin::Undefined;
+        switch((OperandType)defrange->regType)
+        {
+          case TYPE_OUTPUT_DEPTH: builtin = ShaderBuiltin::DepthOutput; break;
+          case TYPE_OUTPUT_DEPTH_LESS_EQUAL: builtin = ShaderBuiltin::DepthOutputLessEqual; break;
+          case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+            builtin = ShaderBuiltin::DepthOutputGreaterEqual;
+            break;
+          case TYPE_OUTPUT_STENCIL_REF: builtin = ShaderBuiltin::StencilReference; break;
+          case TYPE_OUTPUT_COVERAGE_MASK: builtin = ShaderBuiltin::MSAACoverage; break;
+          default: break;
+        }
+
+        if(builtin != ShaderBuiltin::Undefined)
+        {
+          bool found = false;
+
+          for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
+          {
+            if(dxbc->m_OutputSig[i].systemValue == builtin)
+            {
+              regindex = (uint32_t)i;
+              regfirstcomp = 0;
+              found = true;
+              break;
+            }
+          }
+
+          if(!found)
+          {
+            RDCERR(
+                "Found variable mapping for %d but no matching register declared in out signature",
+                defrange->regType);
+            regindex = ~0U;
+          }
+        }
 
         char *regswizzle = regcomps;
         regswizzle += regfirstcomp;

@@ -261,7 +261,9 @@ struct LocalMapping
 class SPDBChunk : public DXBCDebugChunk
 {
 public:
-  SPDBChunk(void *data);
+  SPDBChunk(DXBCFile *dxbc, void *data);
+  SPDBChunk(const SPDBChunk &) = delete;
+  SPDBChunk &operator=(const SPDBChunk &o) = delete;
 
   std::string GetCompilerSig() const { return m_CompilerSig; }
   std::string GetEntryFunction() const { return m_Entry; }
@@ -273,9 +275,6 @@ public:
   void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;
 
 private:
-  SPDBChunk(const SPDBChunk &);
-  SPDBChunk &operator=(const SPDBChunk &o);
-
   bool m_HasDebugInfo;
 
   std::string m_CompilerSig;

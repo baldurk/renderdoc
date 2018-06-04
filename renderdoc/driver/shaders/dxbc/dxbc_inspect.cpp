@@ -1062,13 +1062,23 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
       char *c = (char *)fourcc;
       RDCWARN("Unknown chunk: %c%c%c%c", c[0], c[1], c[2], c[3]);
     }
-    else if(*fourcc == FOURCC_SDBG)
+  }
+
+  // initialise debug chunks last
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+
+    if(*fourcc == FOURCC_SDBG)
     {
       m_DebugInfo = new SDBGChunk(fourcc);
     }
     else if(*fourcc == FOURCC_SPDB)
     {
-      m_DebugInfo = new SPDBChunk(fourcc);
+      m_DebugInfo = new SPDBChunk(this, fourcc);
+    }
+  }
+
   // we do a mini-preprocess of the files from the debug info to handle #line directives.
   // This means that any lines that our source file declares to be in another filename via a #line
   // get put in the right place for what the debug information hopefully matches.
