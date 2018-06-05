@@ -1136,6 +1136,10 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
           gl_CurChunk = GLChunk::glBufferData;
           glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+
+          gl_CurChunk = GLChunk::glObjectLabel;
+          glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
+                        StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
         }
 
         gl_CurChunk = GLChunk::glBindBuffer;
@@ -1143,6 +1147,9 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
         gl_CurChunk = GLChunk::glGenBuffers;
         glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
+
+        gl_CurChunk = GLChunk::glObjectLabel;
+        glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1, "Client-memory pointer data (IB)");
       }
 
       if(IsCaptureMode(m_State))
