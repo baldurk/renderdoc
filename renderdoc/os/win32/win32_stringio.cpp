@@ -639,22 +639,64 @@ bool logfile_open(const char *filename)
   return logHandle != NULL;
 }
 
+static std::string logfile_readall_fallback(const wchar_t *filename)
+{
+  // if CreateFile/ReadFile failed, fall back and try regular stdio
+  FILE *f = NULL;
+  _wfopen_s(&f, filename, L"r");
+  if(f)
+  {
+    ::_fseeki64(f, 0, SEEK_END);
+    uint64_t filesize = ::_ftelli64(f);
+    ::_fseeki64(f, 0, SEEK_SET);
+
+    if(filesize > 10)
+    {
+      std::string ret;
+      ret.resize((size_t)filesize);
+
+      size_t numRead = ::fread(&ret[0], 1, (size_t)filesize, f);
+      ret.resize(numRead);
+
+      ::fclose(f);
+
+      return ret;
+    }
+
+    ::fclose(f);
+  }
+
+  return "";
+}
+
 std::string logfile_readall(const char *filename)
 {
+  if(!exists(filename))
+    return StringFormat::Fmt("Logfile '%s' doesn't exist", filename);
+
   wstring wfn = StringFormat::UTF82Wide(string(filename));
   HANDLE h = CreateFileW(wfn.c_str(), FILE_READ_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
   std::string ret;
 
-  if(h != NULL)
+  if(h == INVALID_HANDLE_VALUE)
+  {
+    DWORD err = GetLastError();
+
+    ret = logfile_readall_fallback(wfn.c_str());
+    ret += StringFormat::Fmt("\n\nCouldn't open logfile, CreateFile() threw %u\n\n", err);
+  }
+  else
   {
     DWORD len = GetFileSize(h, NULL);
 
     if(len == INVALID_FILE_SIZE)
     {
       DWORD err = GetLastError();
-      ret = StringFormat::Fmt("Failed to read logfile, GetFileSize() threw %u", err);
+
+      ret = logfile_readall_fallback(wfn.c_str());
+      ret += StringFormat::Fmt("\n\nFailed to read logfile, GetFileSize() threw %u", err);
     }
     else
     {
@@ -688,8 +730,7 @@ void logfile_close(const char *filename)
   if(filename)
   {
     // we can just try to delete the file. If it's open elsewhere in another process, the delete
-    // will
-    // fail.
+    // will fail.
     wstring wpath = StringFormat::UTF82Wide(string(filename));
     ::DeleteFileW(wpath.c_str());
   }

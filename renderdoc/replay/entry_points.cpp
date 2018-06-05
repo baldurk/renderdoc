@@ -200,7 +200,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkC
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *log)
 {
   if(log)
+  {
     RDCLOGFILE(log);
+
+    // need to recreate the crash handler to propagate the new log filename.
+    if(RenderDoc::Inst().GetCrashHandler() != NULL)
+      RenderDoc::Inst().RecreateCrashHandler();
+  }
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text)
