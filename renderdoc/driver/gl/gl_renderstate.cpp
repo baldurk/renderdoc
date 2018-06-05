@@ -1337,7 +1337,10 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
 
   m_Real->glActiveTexture(ActiveTexture);
 
-  m_Real->glBindVertexArray(VAO.name);
+  if(VAO.name)
+    m_Real->glBindVertexArray(VAO.name);
+  else
+    m_Real->glBindVertexArray(gl->GetFakeVAO0());
 
   if(HasExt[ARB_transform_feedback2])
     m_Real->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj.name);

@@ -356,6 +356,8 @@ private:
   GLuint m_FakeBB_DepthStencil;
   ResourceId m_FBO0_ID;
 
+  GLuint m_Fake_VAO0;
+
   uint32_t m_InitChunkIndex = 0;
 
   bool ProcessChunk(ReadSerialiser &ser, GLChunk chunk);
@@ -598,6 +600,7 @@ public:
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
+  GLuint GetFakeVAO0() { return m_Fake_VAO0; }
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventId);

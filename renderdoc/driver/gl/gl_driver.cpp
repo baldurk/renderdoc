@@ -2725,7 +2725,6 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
   {
     case GLChunk::DeviceInitialisation:
     {
-      // legacy behaviour where we had a single global VAO 0. Ignore
       ResourceId vao;
       SERIALISE_ELEMENT(vao).Hidden();
       SERIALISE_ELEMENT(m_FBO0_ID).Named("FBO 0 ID");
@@ -2734,6 +2733,19 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 
       if(IsReplayingAndReading())
       {
+        // legacy behaviour where we had a single global VAO 0. Create a corresponding VAO so that
+        // it can be bound and have initial contents applied to it
+        if(vao != ResourceId())
+        {
+          glGenVertexArrays(1, &m_Fake_VAO0);
+          glBindVertexArray(m_Fake_VAO0);
+          GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Fake_VAO0));
+          AddResource(vao, ResourceType::StateObject, "Vertex Array");
+          GetReplay()->GetResourceDesc(vao).SetCustomName("Default VAO");
+
+          GetReplay()->GetResourceDesc(vao).initialisationChunks.push_back(m_InitChunkIndex);
+        }
+
         GetResourceManager()->AddLiveResource(m_FBO0_ID, FramebufferRes(GetCtx(), m_FakeBB_FBO));
 
         AddResource(m_FBO0_ID, ResourceType::SwapchainImage, "");

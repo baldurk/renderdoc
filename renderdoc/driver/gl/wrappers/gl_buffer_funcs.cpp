@@ -3042,6 +3042,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
     GLuint prevVAO = 0;
@@ -3165,6 +3168,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
     GLuint prevVAO = 0;
@@ -3288,6 +3294,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
     GLuint prevVAO = 0;
@@ -3406,6 +3415,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribBindingEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     m_Real.glVertexArrayVertexAttribBindingEXT(vaobj.name, attribindex, bindingindex);
   }
   return true;
@@ -3488,6 +3500,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribFormatEXT(SerialiserType 
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     m_Real.glVertexArrayVertexAttribFormatEXT(vaobj.name, attribindex, size, type, normalized,
                                               relativeoffset);
   }
@@ -3576,6 +3591,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIFormatEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     m_Real.glVertexArrayVertexAttribIFormatEXT(vaobj.name, attribindex, size, type, relativeoffset);
   }
 
@@ -3660,6 +3678,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLFormatEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     m_Real.glVertexArrayVertexAttribLFormatEXT(vaobj.name, attribindex, size, type, relativeoffset);
   }
 
@@ -3741,6 +3762,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribDivisorEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     // at the time of writing, AMD driver seems to not have this entry point
     if(m_Real.glVertexArrayVertexAttribDivisorEXT)
     {
@@ -3828,6 +3852,9 @@ bool WrappedOpenGL::Serialise_glEnableVertexArrayAttribEXT(SerialiserType &ser, 
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     GLint prevVAO = 0;
     m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
 
@@ -3908,6 +3935,9 @@ bool WrappedOpenGL::Serialise_glDisableVertexArrayAttribEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     GLint prevVAO = 0;
     m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
 
@@ -4104,6 +4134,9 @@ bool WrappedOpenGL::Serialise_glBindVertexArray(SerialiserType &ser, GLuint vaob
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     m_Real.glBindVertexArray(vaobj.name);
   }
 
@@ -4152,6 +4185,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(SerialiserType &ser, GL
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     // might not have the live resource if this is a pre-capture chunk, and the buffer was never
     // referenced at all in the actual frame
     if(buffer.name)
@@ -4220,6 +4256,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(SerialiserType &s
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     if(buffer.name)
     {
       m_Buffers[GetResourceManager()->GetID(buffer)].curType = eGL_ARRAY_BUFFER;
@@ -4354,6 +4393,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
         offs.push_back((GLintptr)offsets[i]);
     }
 
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
@@ -4480,6 +4522,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBindingDivisorEXT(SerialiserTyp
 
   if(IsReplayingAndReading())
   {
+    if(vaobj.name == 0)
+      vaobj.name = m_Fake_VAO0;
+
     m_Real.glVertexArrayVertexBindingDivisorEXT(vaobj.name, bindingindex, divisor);
   }
 
