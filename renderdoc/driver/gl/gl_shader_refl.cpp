@@ -1515,6 +1515,9 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         if(last->type.descriptor.type == VarType::Double)
           size *= 2;
 
+        if(last->type.descriptor.elements > 1)
+          size *= last->type.descriptor.elements;
+
         stride += size;
 
         if(stride < desiredStride)
