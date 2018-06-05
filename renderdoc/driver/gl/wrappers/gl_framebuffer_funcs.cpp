@@ -163,6 +163,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glNamedFramebufferTextureEXT(framebuffer.name, attachment, texture.name, level);
 
     if(IsLoading(m_State) && texture.name)
@@ -301,6 +304,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(SerialiserType &ser
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glNamedFramebufferTexture1DEXT(framebuffer.name, attachment, textarget, texture.name,
                                           level);
 
@@ -443,6 +449,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(SerialiserType &ser
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glNamedFramebufferTexture2DEXT(framebuffer.name, attachment, textarget, texture.name,
                                           level);
 
@@ -586,6 +595,9 @@ bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     GLuint prevread = 0, prevdraw = 0;
     m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
     m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
@@ -691,6 +703,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(SerialiserType &ser
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glNamedFramebufferTexture3DEXT(framebuffer.name, attachment, textarget, texture.name,
                                           level, zoffset);
 
@@ -836,6 +851,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(SerialiserType &
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glNamedFramebufferRenderbufferEXT(framebuffer.name, attachment, renderbuffertarget,
                                              renderbuffer.name);
 
@@ -962,6 +980,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(SerialiserType &
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glNamedFramebufferTextureLayerEXT(framebuffer.name, attachment, texture.name, level,
                                              layer);
 
@@ -1300,6 +1321,9 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(SerialiserType &se
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     if(framebuffer.name)
       m_Real.glNamedFramebufferParameteriEXT(framebuffer.name, pname, param);
   }
@@ -1365,6 +1389,9 @@ bool WrappedOpenGL::Serialise_glFramebufferReadBufferEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     // since we are faking the default framebuffer with our own
     // to see the results, replace back/front/left/right with color attachment 0
     if(mode == eGL_BACK_LEFT || mode == eGL_BACK_RIGHT || mode == eGL_BACK ||
@@ -1441,6 +1468,7 @@ bool WrappedOpenGL::Serialise_glBindFramebuffer(SerialiserType &ser, GLenum targ
   {
     if(framebuffer.name == 0)
       framebuffer.name = m_FakeBB_FBO;
+
     m_Real.glBindFramebuffer(target, framebuffer.name);
   }
 
@@ -1482,6 +1510,9 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBufferEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     // since we are faking the default framebuffer with our own
     // to see the results, replace back/front/left/right with color attachment 0
     if(buf == eGL_BACK_LEFT || buf == eGL_BACK_RIGHT || buf == eGL_BACK || buf == eGL_FRONT_LEFT ||
@@ -1558,6 +1589,9 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
+
     GLenum *buffers = (GLenum *)bufs;
 
     for(GLsizei i = 0; i < n; i++)
@@ -1770,6 +1804,10 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    if(readFramebuffer.name == 0)
+      readFramebuffer.name = m_FakeBB_FBO;
+    if(drawFramebuffer.name == 0)
+      drawFramebuffer.name = m_FakeBB_FBO;
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
