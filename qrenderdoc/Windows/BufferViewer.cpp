@@ -1659,11 +1659,15 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     bool pi = false;
     bool pv = false;
 
+    uint32_t maxAttrOffset = 0;
+
     for(const FormatElement &col : m_ModelVSIn->columns)
     {
       if(col.buffer == vbIdx)
       {
         used = true;
+
+        maxAttrOffset = qMax(maxAttrOffset, col.offset);
 
         if(col.perinstance)
           pi = true;
@@ -1701,7 +1705,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     if(used)
     {
       bytebuf bufdata = r->GetBufferData(vb.resourceId, vb.byteOffset + offset * vb.byteStride,
-                                         (maxIdx + 1) * vb.byteStride);
+                                         (maxIdx + 1) * vb.byteStride + maxAttrOffset);
 
       buf->data = new byte[bufdata.size()];
       memcpy(buf->data, bufdata.data(), bufdata.size());
