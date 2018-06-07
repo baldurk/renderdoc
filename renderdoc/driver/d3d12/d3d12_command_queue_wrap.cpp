@@ -349,8 +349,8 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
     for(UINT i = 0; i < NumCommandLists; i++)
     {
-      WrappedID3D12GraphicsCommandList *wrapped =
-          (WrappedID3D12GraphicsCommandList *)ppCommandLists[i];
+      WrappedID3D12GraphicsCommandList2 *wrapped =
+          (WrappedID3D12GraphicsCommandList2 *)ppCommandLists[i];
       D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
 
       if(record->ContainsExecuteIndirect)

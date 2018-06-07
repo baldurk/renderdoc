@@ -28,18 +28,18 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 
-ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetCrackedList()
+ID3D12GraphicsCommandList2 *WrappedID3D12GraphicsCommandList2::GetCrackedList()
 {
   return Unwrap(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
 }
 
-ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetWrappedCrackedList()
+ID3D12GraphicsCommandList2 *WrappedID3D12GraphicsCommandList2::GetWrappedCrackedList()
 {
   return m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back();
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
+bool WrappedID3D12GraphicsCommandList2::Serialise_Close(SerialiserType &ser)
 {
   ResourceId BakedCommandList;
 
@@ -88,7 +88,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
     }
     else
     {
-      GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(CommandList)->Close();
+      GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList2>(CommandList)->Close();
 
       if(!m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.empty())
       {
@@ -129,10 +129,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
   return true;
 }
 
-HRESULT WrappedID3D12GraphicsCommandList::Close()
+HRESULT WrappedID3D12GraphicsCommandList2::Close()
 {
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pReal->Close());
+  SERIALISE_TIME_CALL(ret = m_pList->Close());
 
   if(IsCaptureMode(m_State))
   {
@@ -152,9 +152,9 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
-                                                       ID3D12CommandAllocator *pAllocator,
-                                                       ID3D12PipelineState *pInitialState)
+bool WrappedID3D12GraphicsCommandList2::Serialise_Reset(SerialiserType &ser,
+                                                        ID3D12CommandAllocator *pAllocator,
+                                                        ID3D12PipelineState *pInitialState)
 {
   // parameters to create the list with if needed
   SERIALISE_ELEMENT_LOCAL(riid, m_Init.riid).Hidden();
@@ -226,16 +226,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 
       if(rerecord)
       {
-        ID3D12GraphicsCommandList *list = NULL;
+        ID3D12GraphicsCommandList *listptr = NULL;
         HRESULT hr =
             m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
-                                         __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+                                         __uuidof(ID3D12GraphicsCommandList), (void **)&listptr);
 
         if(FAILED(hr))
         {
           RDCERR("Failed on resource serialise-creation, hr: %s", ToStr(hr).c_str());
           return false;
         }
+
+        // this is a safe upcast because it's a wrapped object
+        ID3D12GraphicsCommandList2 *list = (ID3D12GraphicsCommandList2 *)listptr;
 
         // we store under both baked and non baked ID.
         // The baked ID is the 'real' entry, the non baked is simply so it
@@ -296,7 +299,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       else
       {
         ID3D12GraphicsCommandList *list =
-            GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(BakedCommandList)->GetReal();
+            GetResourceManager()
+                ->GetLiveAs<WrappedID3D12GraphicsCommandList2>(BakedCommandList)
+                ->GetReal();
         list->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
       }
 
@@ -313,10 +318,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
             RDCASSERTEQUAL(hr, S_OK);
           }
 
-          ID3D12GraphicsCommandList *list = NULL;
+          ID3D12GraphicsCommandList *listptr = NULL;
           m_pDevice->CreateCommandList(
               nodeMask, type, m_Cmd->m_CrackedAllocators[GetResID(pAllocator)], pInitialState,
-              __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+              __uuidof(ID3D12GraphicsCommandList), (void **)&listptr);
+
+          // this is a safe upcast because it's a wrapped object
+          ID3D12GraphicsCommandList2 *list = (ID3D12GraphicsCommandList2 *)listptr;
 
           RDCASSERT(m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.empty());
           m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.push_back(list);
@@ -352,8 +360,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
   return true;
 }
 
-HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocator,
-                                                ID3D12PipelineState *pInitialState)
+HRESULT WrappedID3D12GraphicsCommandList2::Reset(ID3D12CommandAllocator *pAllocator,
+                                                 ID3D12PipelineState *pInitialState)
 {
   HRESULT ret = S_OK;
 
@@ -374,7 +382,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
 
     if(!firstTime)
     {
-      SERIALISE_TIME_CALL(ret = m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState)));
+      SERIALISE_TIME_CALL(ret = m_pList->Reset(Unwrap(pAllocator), Unwrap(pInitialState)));
     }
 
     m_ListRecord->bakedCommands =
@@ -404,19 +412,19 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
   }
   else
   {
-    ret = m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
+    ret = m_pList->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
   }
 
   return ret;
 }
 
-void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipelineState)
+void WrappedID3D12GraphicsCommandList2::ClearState(ID3D12PipelineState *pPipelineState)
 {
-  m_pReal->ClearState(Unwrap(pPipelineState));
+  m_pList->ClearState(Unwrap(pPipelineState));
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ResourceBarrier(
     SerialiserType &ser, UINT NumBarriers, const D3D12_RESOURCE_BARRIER *pBarriers)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -521,8 +529,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
-                                                       const D3D12_RESOURCE_BARRIER *pBarriers)
+void WrappedID3D12GraphicsCommandList2::ResourceBarrier(UINT NumBarriers,
+                                                        const D3D12_RESOURCE_BARRIER *pBarriers)
 {
   D3D12_RESOURCE_BARRIER *barriers = m_pDevice->GetTempArray<D3D12_RESOURCE_BARRIER>(NumBarriers);
 
@@ -545,7 +553,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
     }
   }
 
-  SERIALISE_TIME_CALL(m_pReal->ResourceBarrier(NumBarriers, barriers));
+  SERIALISE_TIME_CALL(m_pList->ResourceBarrier(NumBarriers, barriers));
 
   if(IsCaptureMode(m_State))
   {
@@ -563,7 +571,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
 #pragma region State Setting
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
+bool WrappedID3D12GraphicsCommandList2::Serialise_IASetPrimitiveTopology(
     SerialiserType &ser, D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -598,9 +606,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology)
+void WrappedID3D12GraphicsCommandList2::IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology)
 {
-  SERIALISE_TIME_CALL(m_pReal->IASetPrimitiveTopology(PrimitiveTopology));
+  SERIALISE_TIME_CALL(m_pList->IASetPrimitiveTopology(PrimitiveTopology));
 
   if(IsCaptureMode(m_State))
   {
@@ -613,9 +621,9 @@ void WrappedID3D12GraphicsCommandList::IASetPrimitiveTopology(D3D12_PRIMITIVE_TO
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(SerialiserType &ser,
-                                                                UINT NumViewports,
-                                                                const D3D12_VIEWPORT *pViewports)
+bool WrappedID3D12GraphicsCommandList2::Serialise_RSSetViewports(SerialiserType &ser,
+                                                                 UINT NumViewports,
+                                                                 const D3D12_VIEWPORT *pViewports)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -662,10 +670,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(SerialiserType &
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::RSSetViewports(UINT NumViewports,
-                                                      const D3D12_VIEWPORT *pViewports)
+void WrappedID3D12GraphicsCommandList2::RSSetViewports(UINT NumViewports,
+                                                       const D3D12_VIEWPORT *pViewports)
 {
-  SERIALISE_TIME_CALL(m_pReal->RSSetViewports(NumViewports, pViewports));
+  SERIALISE_TIME_CALL(m_pList->RSSetViewports(NumViewports, pViewports));
 
   if(IsCaptureMode(m_State))
   {
@@ -678,8 +686,9 @@ void WrappedID3D12GraphicsCommandList::RSSetViewports(UINT NumViewports,
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(SerialiserType &ser, UINT NumRects,
-                                                                   const D3D12_RECT *pRects)
+bool WrappedID3D12GraphicsCommandList2::Serialise_RSSetScissorRects(SerialiserType &ser,
+                                                                    UINT NumRects,
+                                                                    const D3D12_RECT *pRects)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -726,9 +735,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(SerialiserTyp
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::RSSetScissorRects(UINT NumRects, const D3D12_RECT *pRects)
+void WrappedID3D12GraphicsCommandList2::RSSetScissorRects(UINT NumRects, const D3D12_RECT *pRects)
 {
-  SERIALISE_TIME_CALL(m_pReal->RSSetScissorRects(NumRects, pRects));
+  SERIALISE_TIME_CALL(m_pList->RSSetScissorRects(NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -741,8 +750,8 @@ void WrappedID3D12GraphicsCommandList::RSSetScissorRects(UINT NumRects, const D3
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(SerialiserType &ser,
-                                                                  const FLOAT BlendFactor[4])
+bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetBlendFactor(SerialiserType &ser,
+                                                                   const FLOAT BlendFactor[4])
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -777,9 +786,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(SerialiserType
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::OMSetBlendFactor(const FLOAT BlendFactor[4])
+void WrappedID3D12GraphicsCommandList2::OMSetBlendFactor(const FLOAT BlendFactor[4])
 {
-  SERIALISE_TIME_CALL(m_pReal->OMSetBlendFactor(BlendFactor));
+  SERIALISE_TIME_CALL(m_pList->OMSetBlendFactor(BlendFactor));
 
   if(IsCaptureMode(m_State))
   {
@@ -792,7 +801,7 @@ void WrappedID3D12GraphicsCommandList::OMSetBlendFactor(const FLOAT BlendFactor[
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(SerialiserType &ser, UINT StencilRef)
+bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetStencilRef(SerialiserType &ser, UINT StencilRef)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -826,9 +835,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(SerialiserType 
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
+void WrappedID3D12GraphicsCommandList2::OMSetStencilRef(UINT StencilRef)
 {
-  SERIALISE_TIME_CALL(m_pReal->OMSetStencilRef(StencilRef));
+  SERIALISE_TIME_CALL(m_pList->OMSetStencilRef(StencilRef));
 
   if(IsCaptureMode(m_State))
   {
@@ -841,7 +850,7 @@ void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetDescriptorHeaps(
     SerialiserType &ser, UINT NumDescriptorHeaps, ID3D12DescriptorHeap *const *ppDescriptorHeaps)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -896,14 +905,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeaps,
-                                                          ID3D12DescriptorHeap *const *ppDescriptorHeaps)
+void WrappedID3D12GraphicsCommandList2::SetDescriptorHeaps(
+    UINT NumDescriptorHeaps, ID3D12DescriptorHeap *const *ppDescriptorHeaps)
 {
   ID3D12DescriptorHeap **heaps = m_pDevice->GetTempArray<ID3D12DescriptorHeap *>(NumDescriptorHeaps);
   for(UINT i = 0; i < NumDescriptorHeaps; i++)
     heaps[i] = Unwrap(ppDescriptorHeaps[i]);
 
-  SERIALISE_TIME_CALL(m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, heaps));
+  SERIALISE_TIME_CALL(m_pList->SetDescriptorHeaps(NumDescriptorHeaps, heaps));
 
   if(IsCaptureMode(m_State))
   {
@@ -918,8 +927,8 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType &ser,
-                                                                  const D3D12_INDEX_BUFFER_VIEW *pView)
+bool WrappedID3D12GraphicsCommandList2::Serialise_IASetIndexBuffer(SerialiserType &ser,
+                                                                   const D3D12_INDEX_BUFFER_VIEW *pView)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -935,7 +944,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         Unwrap(list)->IASetIndexBuffer(pView);
 
@@ -986,9 +995,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
+void WrappedID3D12GraphicsCommandList2::IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
 {
-  SERIALISE_TIME_CALL(m_pReal->IASetIndexBuffer(pView));
+  SERIALISE_TIME_CALL(m_pList->IASetIndexBuffer(pView));
 
   if(IsCaptureMode(m_State))
   {
@@ -1004,7 +1013,7 @@ void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
+bool WrappedID3D12GraphicsCommandList2::Serialise_IASetVertexBuffers(
     SerialiserType &ser, UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW *pViews)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1068,10 +1077,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT NumViews,
-                                                          const D3D12_VERTEX_BUFFER_VIEW *pViews)
+void WrappedID3D12GraphicsCommandList2::IASetVertexBuffers(UINT StartSlot, UINT NumViews,
+                                                           const D3D12_VERTEX_BUFFER_VIEW *pViews)
 {
-  SERIALISE_TIME_CALL(m_pReal->IASetVertexBuffers(StartSlot, NumViews, pViews));
+  SERIALISE_TIME_CALL(m_pList->IASetVertexBuffers(StartSlot, NumViews, pViews));
 
   if(IsCaptureMode(m_State))
   {
@@ -1087,7 +1096,7 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SOSetTargets(
     SerialiserType &ser, UINT StartSlot, UINT NumViews, const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1154,10 +1163,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumViews,
-                                                    const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
+void WrappedID3D12GraphicsCommandList2::SOSetTargets(UINT StartSlot, UINT NumViews,
+                                                     const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
-  SERIALISE_TIME_CALL(m_pReal->SOSetTargets(StartSlot, NumViews, pViews));
+  SERIALISE_TIME_CALL(m_pList->SOSetTargets(StartSlot, NumViews, pViews));
 
   if(IsCaptureMode(m_State))
   {
@@ -1173,8 +1182,8 @@ void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumView
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType &ser,
-                                                                  ID3D12PipelineState *pPipelineState)
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetPipelineState(SerialiserType &ser,
+                                                                   ID3D12PipelineState *pPipelineState)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -1208,9 +1217,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPipelineState)
+void WrappedID3D12GraphicsCommandList2::SetPipelineState(ID3D12PipelineState *pPipelineState)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetPipelineState(Unwrap(pPipelineState)));
+  SERIALISE_TIME_CALL(m_pList->SetPipelineState(Unwrap(pPipelineState)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1224,7 +1233,7 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPi
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
+bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
     SerialiserType &ser, UINT NumRenderTargetDescriptors,
     const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,
     BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor)
@@ -1355,7 +1364,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
+void WrappedID3D12GraphicsCommandList2::OMSetRenderTargets(
     UINT NumRenderTargetDescriptors, const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,
     BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor)
 {
@@ -1369,7 +1378,7 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
   D3D12_CPU_DESCRIPTOR_HANDLE dsv =
       pDepthStencilDescriptor ? Unwrap(*pDepthStencilDescriptor) : D3D12_CPU_DESCRIPTOR_HANDLE();
 
-  SERIALISE_TIME_CALL(m_pReal->OMSetRenderTargets(num, unwrapped, RTsSingleHandleToDescriptorRange,
+  SERIALISE_TIME_CALL(m_pList->OMSetRenderTargets(num, unwrapped, RTsSingleHandleToDescriptorRange,
                                                   pDepthStencilDescriptor ? &dsv : NULL));
 
   if(IsCaptureMode(m_State))
@@ -1401,7 +1410,7 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
 #pragma region Compute Root Signatures
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootSignature(
     SerialiserType &ser, ID3D12RootSignature *pRootSignature)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1452,9 +1461,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignature *pRootSignature)
+void WrappedID3D12GraphicsCommandList2::SetComputeRootSignature(ID3D12RootSignature *pRootSignature)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetComputeRootSignature(Unwrap(pRootSignature)));
+  SERIALISE_TIME_CALL(m_pList->SetComputeRootSignature(Unwrap(pRootSignature)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1471,7 +1480,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignatu
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootDescriptorTable(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1523,11 +1532,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
+void WrappedID3D12GraphicsCommandList2::SetComputeRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
   SERIALISE_TIME_CALL(
-      m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor)));
+      m_pList->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1579,7 +1588,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRoot32BitConstant(
     SerialiserType &ser, UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1630,12 +1639,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootParameterIndex,
-                                                                   UINT SrcData,
-                                                                   UINT DestOffsetIn32BitValues)
+void WrappedID3D12GraphicsCommandList2::SetComputeRoot32BitConstant(UINT RootParameterIndex,
+                                                                    UINT SrcData,
+                                                                    UINT DestOffsetIn32BitValues)
 {
   SERIALISE_TIME_CALL(
-      m_pReal->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues));
+      m_pList->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -1648,7 +1657,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootPara
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRoot32BitConstants(
     SerialiserType &ser, UINT RootParameterIndex, UINT Num32BitValuesToSet,
     const void *pSrcVoidData, UINT DestOffsetIn32BitValues)
 {
@@ -1705,12 +1714,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootParameterIndex,
-                                                                    UINT Num32BitValuesToSet,
-                                                                    const void *pSrcData,
-                                                                    UINT DestOffsetIn32BitValues)
+void WrappedID3D12GraphicsCommandList2::SetComputeRoot32BitConstants(UINT RootParameterIndex,
+                                                                     UINT Num32BitValuesToSet,
+                                                                     const void *pSrcData,
+                                                                     UINT DestOffsetIn32BitValues)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
+  SERIALISE_TIME_CALL(m_pList->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
                                                             pSrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
@@ -1725,7 +1734,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootPar
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootConstantBufferView(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1782,10 +1791,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferVie
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
+void WrappedID3D12GraphicsCommandList2::SetComputeRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation));
+  SERIALISE_TIME_CALL(m_pList->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -1803,7 +1812,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootShaderResourceView(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1860,10 +1869,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceVie
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
+void WrappedID3D12GraphicsCommandList2::SetComputeRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation));
+  SERIALISE_TIME_CALL(m_pList->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -1881,7 +1890,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootUnorderedAccessView(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -1938,10 +1947,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessVi
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
+void WrappedID3D12GraphicsCommandList2::SetComputeRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation));
+  SERIALISE_TIME_CALL(m_pList->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -1963,7 +1972,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
 #pragma region Graphics Root Signatures
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootSignature(
     SerialiserType &ser, ID3D12RootSignature *pRootSignature)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -2014,9 +2023,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignature *pRootSignature)
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRootSignature(ID3D12RootSignature *pRootSignature)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootSignature(Unwrap(pRootSignature)));
+  SERIALISE_TIME_CALL(m_pList->SetGraphicsRootSignature(Unwrap(pRootSignature)));
 
   if(IsCaptureMode(m_State))
   {
@@ -2033,7 +2042,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootDescriptorTable(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -2085,11 +2094,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
   SERIALISE_TIME_CALL(
-      m_pReal->SetGraphicsRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor)));
+      m_pList->SetGraphicsRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor)));
 
   if(IsCaptureMode(m_State))
   {
@@ -2141,7 +2150,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRoot32BitConstant(
     SerialiserType &ser, UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -2192,12 +2201,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant(UINT RootParameterIndex,
-                                                                    UINT SrcData,
-                                                                    UINT DestOffsetIn32BitValues)
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRoot32BitConstant(UINT RootParameterIndex,
+                                                                     UINT SrcData,
+                                                                     UINT DestOffsetIn32BitValues)
 {
   SERIALISE_TIME_CALL(
-      m_pReal->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues));
+      m_pList->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -2210,7 +2219,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant(UINT RootPar
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRoot32BitConstants(
     SerialiserType &ser, UINT RootParameterIndex, UINT Num32BitValuesToSet,
     const void *pSrcVoidData, UINT DestOffsetIn32BitValues)
 {
@@ -2267,12 +2276,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootParameterIndex,
-                                                                     UINT Num32BitValuesToSet,
-                                                                     const void *pSrcData,
-                                                                     UINT DestOffsetIn32BitValues)
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRoot32BitConstants(UINT RootParameterIndex,
+                                                                      UINT Num32BitValuesToSet,
+                                                                      const void *pSrcData,
+                                                                      UINT DestOffsetIn32BitValues)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRoot32BitConstants(
+  SERIALISE_TIME_CALL(m_pList->SetGraphicsRoot32BitConstants(
       RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
@@ -2287,7 +2296,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootConstantBufferView(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -2344,10 +2353,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation));
+  SERIALISE_TIME_CALL(m_pList->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2365,7 +2374,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootShaderResourceView(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -2422,10 +2431,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceVi
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation));
+  SERIALISE_TIME_CALL(m_pList->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2443,7 +2452,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootUnorderedAccessView(
     SerialiserType &ser, UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
@@ -2500,10 +2509,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessV
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
+void WrappedID3D12GraphicsCommandList2::SetGraphicsRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation));
+  SERIALISE_TIME_CALL(m_pList->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2525,9 +2534,9 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
 #pragma region Queries / Events
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(SerialiserType &ser,
-                                                            ID3D12QueryHeap *pQueryHeap,
-                                                            D3D12_QUERY_TYPE Type, UINT Index)
+bool WrappedID3D12GraphicsCommandList2::Serialise_BeginQuery(SerialiserType &ser,
+                                                             ID3D12QueryHeap *pQueryHeap,
+                                                             D3D12_QUERY_TYPE Type, UINT Index)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -2555,10 +2564,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(SerialiserType &ser,
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
-                                                  D3D12_QUERY_TYPE Type, UINT Index)
+void WrappedID3D12GraphicsCommandList2::BeginQuery(ID3D12QueryHeap *pQueryHeap,
+                                                   D3D12_QUERY_TYPE Type, UINT Index)
 {
-  SERIALISE_TIME_CALL(m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index));
+  SERIALISE_TIME_CALL(m_pList->BeginQuery(Unwrap(pQueryHeap), Type, Index));
 
   if(IsCaptureMode(m_State))
   {
@@ -2573,9 +2582,9 @@ void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(SerialiserType &ser,
-                                                          ID3D12QueryHeap *pQueryHeap,
-                                                          D3D12_QUERY_TYPE Type, UINT Index)
+bool WrappedID3D12GraphicsCommandList2::Serialise_EndQuery(SerialiserType &ser,
+                                                           ID3D12QueryHeap *pQueryHeap,
+                                                           D3D12_QUERY_TYPE Type, UINT Index)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -2603,10 +2612,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(SerialiserType &ser,
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
-                                                UINT Index)
+void WrappedID3D12GraphicsCommandList2::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
+                                                 UINT Index)
 {
-  SERIALISE_TIME_CALL(m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index));
+  SERIALISE_TIME_CALL(m_pList->EndQuery(Unwrap(pQueryHeap), Type, Index));
 
   if(IsCaptureMode(m_State))
   {
@@ -2622,7 +2631,7 @@ void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ResolveQueryData(
     SerialiserType &ser, ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type, UINT StartIndex,
     UINT NumQueries, ID3D12Resource *pDestinationBuffer, UINT64 AlignedDestinationBufferOffset)
 {
@@ -2655,35 +2664,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryHeap,
-                                                        D3D12_QUERY_TYPE Type, UINT StartIndex,
-                                                        UINT NumQueries,
-                                                        ID3D12Resource *pDestinationBuffer,
-                                                        UINT64 AlignedDestinationBufferOffset)
+void WrappedID3D12GraphicsCommandList2::ResolveQueryData(ID3D12QueryHeap *pQueryHeap,
+                                                         D3D12_QUERY_TYPE Type, UINT StartIndex,
+                                                         UINT NumQueries,
+                                                         ID3D12Resource *pDestinationBuffer,
+                                                         UINT64 AlignedDestinationBufferOffset)
 {
-  SERIALISE_TIME_CALL(m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
-                                                Unwrap(pDestinationBuffer),
-                                                AlignedDestinationBufferOffset));
-
-  if(IsCaptureMode(m_State))
-  {
-    CACHE_THREAD_SERIALISER();
-    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ResolveQueryData);
-    Serialise_ResolveQueryData(ser, pQueryHeap, Type, StartIndex, NumQueries, pDestinationBuffer,
-                               AlignedDestinationBufferOffset);
-
-    m_ListRecord->AddChunk(scope.Get());
-
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDestinationBuffer), eFrameRef_Write);
-  }
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetPredication(SerialiserType &ser,
-                                                                ID3D12Resource *pBuffer,
-                                                                UINT64 AlignedBufferOffset,
-                                                                D3D12_PREDICATION_OP Operation)
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetPredication(SerialiserType &ser,
+                                                                 ID3D12Resource *pBuffer,
+                                                                 UINT64 AlignedBufferOffset,
+                                                                 D3D12_PREDICATION_OP Operation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -2703,11 +2696,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPredication(SerialiserType &
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
-                                                      UINT64 AlignedBufferOffset,
-                                                      D3D12_PREDICATION_OP Operation)
+void WrappedID3D12GraphicsCommandList2::SetPredication(ID3D12Resource *pBuffer,
+                                                       UINT64 AlignedBufferOffset,
+                                                       D3D12_PREDICATION_OP Operation)
 {
-  SERIALISE_TIME_CALL(m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation));
+  SERIALISE_TIME_CALL(m_pList->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2721,70 +2714,7 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, UINT Metadata,
-                                                           const void *pData, UINT Size)
-{
-  std::string MarkerText = "";
-
-  if(ser.IsWriting() && pData && Size)
-    MarkerText = DecodeMarkerString(Metadata, pData, Size);
-
-  ID3D12GraphicsCommandList *pCommandList = this;
-  SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(MarkerText);
-
-  SERIALISE_CHECK_READ_ERRORS();
-
-  if(IsReplayingAndReading())
-  {
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
-
-    if(IsActiveReplaying(m_State))
-    {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
-
-        D3D12MarkerRegion::Set(list, MarkerText);
-      }
-    }
-    else
-    {
-      D3D12MarkerRegion::Set(pCommandList, MarkerText);
-      D3D12MarkerRegion::Set(GetWrappedCrackedList(), MarkerText);
-
-      DrawcallDescription draw;
-      draw.name = MarkerText;
-      draw.flags |= DrawFlags::SetMarker;
-
-      m_Cmd->AddEvent();
-      m_Cmd->AddDrawcall(draw, false);
-    }
-  }
-
-  return true;
-}
-
-void WrappedID3D12GraphicsCommandList::SetMarker(UINT Metadata, const void *pData, UINT Size)
-{
-  SERIALISE_TIME_CALL(m_pReal->SetMarker(Metadata, pData, Size));
-
-  if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
-    m_AMDMarkers->SetMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
-
-  if(IsCaptureMode(m_State))
-  {
-    CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetMarker);
-    Serialise_SetMarker(ser, Metadata, pData, Size);
-
-    m_ListRecord->AddChunk(scope.Get());
-  }
-}
-
-template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser, UINT Metadata,
+bool WrappedID3D12GraphicsCommandList2::Serialise_SetMarker(SerialiserType &ser, UINT Metadata,
                                                             const void *pData, UINT Size)
 {
   std::string MarkerText = "";
@@ -2806,7 +2736,70 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        D3D12MarkerRegion::Set(list, MarkerText);
+      }
+    }
+    else
+    {
+      D3D12MarkerRegion::Set(pCommandList, MarkerText);
+      D3D12MarkerRegion::Set(GetWrappedCrackedList(), MarkerText);
+
+      DrawcallDescription draw;
+      draw.name = MarkerText;
+      draw.flags |= DrawFlags::SetMarker;
+
+      m_Cmd->AddEvent();
+      m_Cmd->AddDrawcall(draw, false);
+    }
+  }
+
+  return true;
+}
+
+void WrappedID3D12GraphicsCommandList2::SetMarker(UINT Metadata, const void *pData, UINT Size)
+{
+  SERIALISE_TIME_CALL(m_pList->SetMarker(Metadata, pData, Size));
+
+  if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
+    m_AMDMarkers->SetMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetMarker);
+    Serialise_SetMarker(ser, Metadata, pData, Size);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList2::Serialise_BeginEvent(SerialiserType &ser, UINT Metadata,
+                                                             const void *pData, UINT Size)
+{
+  std::string MarkerText = "";
+
+  if(ser.IsWriting() && pData && Size)
+    MarkerText = DecodeMarkerString(Metadata, pData, Size);
+
+  ID3D12GraphicsCommandList *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(MarkerText);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].markerCount++;
 
@@ -2830,9 +2823,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::BeginEvent(UINT Metadata, const void *pData, UINT Size)
+void WrappedID3D12GraphicsCommandList2::BeginEvent(UINT Metadata, const void *pData, UINT Size)
 {
-  SERIALISE_TIME_CALL(m_pReal->BeginEvent(Metadata, pData, Size));
+  SERIALISE_TIME_CALL(m_pList->BeginEvent(Metadata, pData, Size));
 
   if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
     m_AMDMarkers->PushMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
@@ -2849,7 +2842,7 @@ void WrappedID3D12GraphicsCommandList::BeginEvent(UINT Metadata, const void *pDa
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
+bool WrappedID3D12GraphicsCommandList2::Serialise_EndEvent(SerialiserType &ser)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -2864,7 +2857,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         int &markerCount = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].markerCount;
         markerCount = RDCMAX(0, markerCount - 1);
@@ -2900,9 +2893,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::EndEvent()
+void WrappedID3D12GraphicsCommandList2::EndEvent()
 {
-  SERIALISE_TIME_CALL(m_pReal->EndEvent());
+  SERIALISE_TIME_CALL(m_pList->EndEvent());
 
   if(m_AMDMarkers)
     m_AMDMarkers->PopMarker();
@@ -2923,11 +2916,11 @@ void WrappedID3D12GraphicsCommandList::EndEvent()
 #pragma region Draws
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &ser,
-                                                               UINT VertexCountPerInstance,
-                                                               UINT InstanceCount,
-                                                               UINT StartVertexLocation,
-                                                               UINT StartInstanceLocation)
+bool WrappedID3D12GraphicsCommandList2::Serialise_DrawInstanced(SerialiserType &ser,
+                                                                UINT VertexCountPerInstance,
+                                                                UINT InstanceCount,
+                                                                UINT StartVertexLocation,
+                                                                UINT StartInstanceLocation)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -2946,7 +2939,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list);
 
@@ -2988,11 +2981,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::DrawInstanced(UINT VertexCountPerInstance,
-                                                     UINT InstanceCount, UINT StartVertexLocation,
-                                                     UINT StartInstanceLocation)
+void WrappedID3D12GraphicsCommandList2::DrawInstanced(UINT VertexCountPerInstance,
+                                                      UINT InstanceCount, UINT StartVertexLocation,
+                                                      UINT StartInstanceLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->DrawInstanced(VertexCountPerInstance, InstanceCount,
+  SERIALISE_TIME_CALL(m_pList->DrawInstanced(VertexCountPerInstance, InstanceCount,
                                              StartVertexLocation, StartInstanceLocation));
 
   if(IsCaptureMode(m_State))
@@ -3008,7 +3001,7 @@ void WrappedID3D12GraphicsCommandList::DrawInstanced(UINT VertexCountPerInstance
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
+bool WrappedID3D12GraphicsCommandList2::Serialise_DrawIndexedInstanced(
     SerialiserType &ser, UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation,
     INT BaseVertexLocation, UINT StartInstanceLocation)
 {
@@ -3030,7 +3023,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list);
 
@@ -3073,13 +3066,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::DrawIndexedInstanced(UINT IndexCountPerInstance,
-                                                            UINT InstanceCount,
-                                                            UINT StartIndexLocation,
-                                                            INT BaseVertexLocation,
-                                                            UINT StartInstanceLocation)
+void WrappedID3D12GraphicsCommandList2::DrawIndexedInstanced(UINT IndexCountPerInstance,
+                                                             UINT InstanceCount,
+                                                             UINT StartIndexLocation,
+                                                             INT BaseVertexLocation,
+                                                             UINT StartInstanceLocation)
 {
-  SERIALISE_TIME_CALL(m_pReal->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount,
+  SERIALISE_TIME_CALL(m_pList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount,
                                                     StartIndexLocation, BaseVertexLocation,
                                                     StartInstanceLocation));
 
@@ -3096,9 +3089,10 @@ void WrappedID3D12GraphicsCommandList::DrawIndexedInstanced(UINT IndexCountPerIn
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, UINT ThreadGroupCountX,
-                                                          UINT ThreadGroupCountY,
-                                                          UINT ThreadGroupCountZ)
+bool WrappedID3D12GraphicsCommandList2::Serialise_Dispatch(SerialiserType &ser,
+                                                           UINT ThreadGroupCountX,
+                                                           UINT ThreadGroupCountY,
+                                                           UINT ThreadGroupCountZ)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -3116,7 +3110,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
 
@@ -3152,10 +3146,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY,
-                                                UINT ThreadGroupCountZ)
+void WrappedID3D12GraphicsCommandList2::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY,
+                                                 UINT ThreadGroupCountZ)
 {
-  SERIALISE_TIME_CALL(m_pReal->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ));
+  SERIALISE_TIME_CALL(m_pList->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ));
 
   if(IsCaptureMode(m_State))
   {
@@ -3169,8 +3163,8 @@ void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT Thr
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &ser,
-                                                               ID3D12GraphicsCommandList *pBundle)
+bool WrappedID3D12GraphicsCommandList2::Serialise_ExecuteBundle(SerialiserType &ser,
+                                                                ID3D12GraphicsCommandList *pBundle)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -3188,7 +3182,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
 
@@ -3221,9 +3215,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
+void WrappedID3D12GraphicsCommandList2::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
-  SERIALISE_TIME_CALL(m_pReal->ExecuteBundle(Unwrap(pCommandList)));
+  SERIALISE_TIME_CALL(m_pList->ExecuteBundle(Unwrap(pCommandList)));
 
   if(IsCaptureMode(m_State))
   {
@@ -3261,9 +3255,9 @@ void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *
  * hand on the CPU.
  */
 
-void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsCommandList *list,
-                                                              WrappedID3D12CommandSignature *comSig,
-                                                              UINT maxCount)
+void WrappedID3D12GraphicsCommandList2::ReserveExecuteIndirect(ID3D12GraphicsCommandList *list,
+                                                               WrappedID3D12CommandSignature *comSig,
+                                                               UINT maxCount)
 {
   const bool multidraw = (maxCount > 1 || comSig->sig.numDraws > 1);
   const uint32_t sigSize = (uint32_t)comSig->sig.arguments.size();
@@ -3316,8 +3310,8 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
   }
 }
 
-void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &info,
-                                                            uint32_t executeIndex)
+void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &info,
+                                                             uint32_t executeIndex)
 {
   BakedCmdListInfo::ExecuteData &exec = info.executeEvents[executeIndex];
 
@@ -3788,7 +3782,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   }
 }
 
-void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsCommandList *list)
+void WrappedID3D12GraphicsCommandList2::ReplayExecuteIndirect(ID3D12GraphicsCommandList *list)
 {
   BakedCmdListInfo &cmdInfo = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID];
 
@@ -4162,7 +4156,7 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ExecuteIndirect(
     SerialiserType &ser, ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount,
     ID3D12Resource *pArgumentBuffer, UINT64 ArgumentBufferOffset, ID3D12Resource *pCountBuffer,
     UINT64 CountBufferOffset)
@@ -4186,7 +4180,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         ReplayExecuteIndirect(Unwrap(list));
       }
@@ -4255,9 +4249,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
         ResourceId allocid = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].allocator;
         ID3D12CommandAllocator *allocator = m_Cmd->m_CrackedAllocators[allocid];
 
-        ID3D12GraphicsCommandList *list = NULL;
+        ID3D12GraphicsCommandList *listptr = NULL;
         m_pDevice->CreateCommandList(nodeMask, type, allocator, NULL,
-                                     __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+                                     __uuidof(ID3D12GraphicsCommandList), (void **)&listptr);
+
+        // this is a safe upcast because it's a wrapped object
+        ID3D12GraphicsCommandList2 *list = (ID3D12GraphicsCommandList2 *)listptr;
 
         m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.push_back(list);
 
@@ -4285,14 +4282,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *pCommandSignature,
-                                                       UINT MaxCommandCount,
-                                                       ID3D12Resource *pArgumentBuffer,
-                                                       UINT64 ArgumentBufferOffset,
-                                                       ID3D12Resource *pCountBuffer,
-                                                       UINT64 CountBufferOffset)
+void WrappedID3D12GraphicsCommandList2::ExecuteIndirect(ID3D12CommandSignature *pCommandSignature,
+                                                        UINT MaxCommandCount,
+                                                        ID3D12Resource *pArgumentBuffer,
+                                                        UINT64 ArgumentBufferOffset,
+                                                        ID3D12Resource *pCountBuffer,
+                                                        UINT64 CountBufferOffset)
 {
-  SERIALISE_TIME_CALL(m_pReal->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount,
+  SERIALISE_TIME_CALL(m_pList->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount,
                                                Unwrap(pArgumentBuffer), ArgumentBufferOffset,
                                                Unwrap(pCountBuffer), CountBufferOffset));
   if(IsCaptureMode(m_State))
@@ -4318,7 +4315,7 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
 #pragma region Clears
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ClearDepthStencilView(
     SerialiserType &ser, D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags,
     FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
 {
@@ -4391,11 +4388,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
+void WrappedID3D12GraphicsCommandList2::ClearDepthStencilView(
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth,
     UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
 {
-  SERIALISE_TIME_CALL(m_pReal->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth,
+  SERIALISE_TIME_CALL(m_pList->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth,
                                                      Stencil, NumRects, pRects));
 
   if(IsCaptureMode(m_State))
@@ -4417,7 +4414,7 @@ void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ClearRenderTargetView(
     SerialiserType &ser, D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView, const FLOAT ColorRGBA[4],
     UINT NumRects, const D3D12_RECT *pRects)
 {
@@ -4485,12 +4482,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
+void WrappedID3D12GraphicsCommandList2::ClearRenderTargetView(
     D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView, const FLOAT ColorRGBA[4], UINT NumRects,
     const D3D12_RECT *pRects)
 {
   SERIALISE_TIME_CALL(
-      m_pReal->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects));
+      m_pList->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -4510,7 +4507,7 @@ void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ClearUnorderedAccessViewUint(
     SerialiserType &ser, D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap,
     D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle, ID3D12Resource *pResource, const UINT Values[4],
     UINT NumRects, const D3D12_RECT *pRects)
@@ -4582,11 +4579,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
+void WrappedID3D12GraphicsCommandList2::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  SERIALISE_TIME_CALL(m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap),
+  SERIALISE_TIME_CALL(m_pList->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap),
                                                             Unwrap(ViewCPUHandle), Unwrap(pResource),
                                                             Values, NumRects, pRects));
 
@@ -4615,7 +4612,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ClearUnorderedAccessViewFloat(
     SerialiserType &ser, D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap,
     D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle, ID3D12Resource *pResource, const FLOAT Values[4],
     UINT NumRects, const D3D12_RECT *pRects)
@@ -4687,11 +4684,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
+void WrappedID3D12GraphicsCommandList2::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  SERIALISE_TIME_CALL(m_pReal->ClearUnorderedAccessViewFloat(
+  SERIALISE_TIME_CALL(m_pList->ClearUnorderedAccessViewFloat(
       Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle), Unwrap(pResource), Values,
       NumRects, pRects));
 
@@ -4720,9 +4717,9 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType &ser,
-                                                                 ID3D12Resource *pResource,
-                                                                 const D3D12_DISCARD_REGION *pRegion)
+bool WrappedID3D12GraphicsCommandList2::Serialise_DiscardResource(SerialiserType &ser,
+                                                                  ID3D12Resource *pResource,
+                                                                  const D3D12_DISCARD_REGION *pRegion)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -4753,10 +4750,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource,
-                                                       const D3D12_DISCARD_REGION *pRegion)
+void WrappedID3D12GraphicsCommandList2::DiscardResource(ID3D12Resource *pResource,
+                                                        const D3D12_DISCARD_REGION *pRegion)
 {
-  SERIALISE_TIME_CALL(m_pReal->DiscardResource(Unwrap(pResource), pRegion));
+  SERIALISE_TIME_CALL(m_pList->DiscardResource(Unwrap(pResource), pRegion));
 
   if(IsCaptureMode(m_State))
   {
@@ -4774,11 +4771,11 @@ void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource
 #pragma region Copies
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType &ser,
-                                                                  ID3D12Resource *pDstBuffer,
-                                                                  UINT64 DstOffset,
-                                                                  ID3D12Resource *pSrcBuffer,
-                                                                  UINT64 SrcOffset, UINT64 NumBytes)
+bool WrappedID3D12GraphicsCommandList2::Serialise_CopyBufferRegion(SerialiserType &ser,
+                                                                   ID3D12Resource *pDstBuffer,
+                                                                   UINT64 DstOffset,
+                                                                   ID3D12Resource *pSrcBuffer,
+                                                                   UINT64 SrcOffset, UINT64 NumBytes)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -4798,7 +4795,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
                                        NumBytes);
       }
@@ -4844,11 +4841,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuffer,
-                                                        UINT64 DstOffset, ID3D12Resource *pSrcBuffer,
-                                                        UINT64 SrcOffset, UINT64 NumBytes)
+void WrappedID3D12GraphicsCommandList2::CopyBufferRegion(ID3D12Resource *pDstBuffer,
+                                                         UINT64 DstOffset, ID3D12Resource *pSrcBuffer,
+                                                         UINT64 SrcOffset, UINT64 NumBytes)
 {
-  SERIALISE_TIME_CALL(m_pReal->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
+  SERIALISE_TIME_CALL(m_pList->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
                                                 SrcOffset, NumBytes));
 
   if(IsCaptureMode(m_State))
@@ -4865,7 +4862,7 @@ void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuff
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
+bool WrappedID3D12GraphicsCommandList2::Serialise_CopyTextureRegion(
     SerialiserType &ser, const D3D12_TEXTURE_COPY_LOCATION *pDst, UINT DstX, UINT DstY, UINT DstZ,
     const D3D12_TEXTURE_COPY_LOCATION *pSrc, const D3D12_BOX *pSrcBox)
 {
@@ -4893,7 +4890,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->CopyTextureRegion(&unwrappedDst, DstX, DstY, DstZ, &unwrappedSrc, pSrcBox);
       }
     }
@@ -4942,10 +4939,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION *pDst,
-                                                         UINT DstX, UINT DstY, UINT DstZ,
-                                                         const D3D12_TEXTURE_COPY_LOCATION *pSrc,
-                                                         const D3D12_BOX *pSrcBox)
+void WrappedID3D12GraphicsCommandList2::CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION *pDst,
+                                                          UINT DstX, UINT DstY, UINT DstZ,
+                                                          const D3D12_TEXTURE_COPY_LOCATION *pSrc,
+                                                          const D3D12_BOX *pSrcBox)
 {
   D3D12_TEXTURE_COPY_LOCATION dst = *pDst;
   dst.pResource = Unwrap(dst.pResource);
@@ -4953,7 +4950,7 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
   D3D12_TEXTURE_COPY_LOCATION src = *pSrc;
   src.pResource = Unwrap(src.pResource);
 
-  SERIALISE_TIME_CALL(m_pReal->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox));
+  SERIALISE_TIME_CALL(m_pList->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox));
 
   if(IsCaptureMode(m_State))
   {
@@ -4969,9 +4966,9 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &ser,
-                                                              ID3D12Resource *pDstResource,
-                                                              ID3D12Resource *pSrcResource)
+bool WrappedID3D12GraphicsCommandList2::Serialise_CopyResource(SerialiserType &ser,
+                                                               ID3D12Resource *pDstResource,
+                                                               ID3D12Resource *pSrcResource)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -4988,7 +4985,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
       }
     }
@@ -5031,10 +5028,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource,
-                                                    ID3D12Resource *pSrcResource)
+void WrappedID3D12GraphicsCommandList2::CopyResource(ID3D12Resource *pDstResource,
+                                                     ID3D12Resource *pSrcResource)
 {
-  SERIALISE_TIME_CALL(m_pReal->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource)));
+  SERIALISE_TIME_CALL(m_pList->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource)));
 
   if(IsCaptureMode(m_State))
   {
@@ -5050,7 +5047,7 @@ void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
+bool WrappedID3D12GraphicsCommandList2::Serialise_ResolveSubresource(
     SerialiserType &ser, ID3D12Resource *pDstResource, UINT DstSubresource,
     ID3D12Resource *pSrcResource, UINT SrcSubresource, DXGI_FORMAT Format)
 {
@@ -5072,7 +5069,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandList2 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
                                          SrcSubresource, Format);
       }
@@ -5120,12 +5117,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstResource,
-                                                          UINT DstSubresource,
-                                                          ID3D12Resource *pSrcResource,
-                                                          UINT SrcSubresource, DXGI_FORMAT Format)
+void WrappedID3D12GraphicsCommandList2::ResolveSubresource(ID3D12Resource *pDstResource,
+                                                           UINT DstSubresource,
+                                                           ID3D12Resource *pSrcResource,
+                                                           UINT SrcSubresource, DXGI_FORMAT Format)
 {
-  SERIALISE_TIME_CALL(m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource,
+  SERIALISE_TIME_CALL(m_pList->ResolveSubresource(Unwrap(pDstResource), DstSubresource,
                                                   Unwrap(pSrcResource), SrcSubresource, Format));
 
   if(IsCaptureMode(m_State))
@@ -5143,7 +5140,7 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
+bool WrappedID3D12GraphicsCommandList2::Serialise_CopyTiles(
     SerialiserType &ser, ID3D12Resource *pTiledResource,
     const D3D12_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
@@ -5153,151 +5150,154 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList::CopyTiles(
+void WrappedID3D12GraphicsCommandList2::CopyTiles(
     ID3D12Resource *pTiledResource, const D3D12_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
     UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
 {
   D3D12NOTIMP("Tiled Resources");
-  m_pReal->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
+  m_pList->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
                      Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
 }
 
 #pragma endregion Copies
 
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, Close);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, Reset,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, Close);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, Reset,
                                 ID3D12CommandAllocator *pAllocator,
                                 ID3D12PipelineState *pInitialState);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ResourceBarrier,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ResourceBarrier,
                                 UINT NumBarriers, const D3D12_RESOURCE_BARRIER *pBarriers);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, IASetPrimitiveTopology,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, IASetPrimitiveTopology,
                                 D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, RSSetViewports,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, RSSetViewports,
                                 UINT NumViewports, const D3D12_VIEWPORT *pViewports);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, RSSetScissorRects,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, RSSetScissorRects,
                                 UINT NumRects, const D3D12_RECT *pRects);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, OMSetBlendFactor,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, OMSetBlendFactor,
                                 const FLOAT BlendFactor[4]);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, OMSetStencilRef,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, OMSetStencilRef,
                                 UINT StencilRef);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetDescriptorHeaps,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetDescriptorHeaps,
                                 UINT NumDescriptorHeaps,
                                 ID3D12DescriptorHeap *const *ppDescriptorHeaps);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, IASetIndexBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, IASetIndexBuffer,
                                 const D3D12_INDEX_BUFFER_VIEW *pView);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, IASetVertexBuffers,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, IASetVertexBuffers,
                                 UINT StartSlot, UINT NumViews,
                                 const D3D12_VERTEX_BUFFER_VIEW *pViews);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SOSetTargets, UINT StartSlot,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SOSetTargets, UINT StartSlot,
                                 UINT NumViews, const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetPipelineState,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetPipelineState,
                                 ID3D12PipelineState *pPipelineState);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, OMSetRenderTargets,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, OMSetRenderTargets,
                                 UINT NumRenderTargetDescriptors,
                                 const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,
                                 BOOL RTsSingleHandleToDescriptorRange,
                                 const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetComputeRootSignature,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetComputeRootSignature,
                                 ID3D12RootSignature *pRootSignature);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetComputeRootDescriptorTable,
-                                UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetComputeRoot32BitConstant,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
+                                SetComputeRootDescriptorTable, UINT RootParameterIndex,
+                                D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetComputeRoot32BitConstant,
                                 UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetComputeRoot32BitConstants,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetComputeRoot32BitConstants,
                                 UINT RootParameterIndex, UINT Num32BitValuesToSet,
                                 const void *pSrcData, UINT DestOffsetIn32BitValues);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetComputeRootConstantBufferView, UINT RootParameterIndex,
                                 D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetComputeRootShaderResourceView, UINT RootParameterIndex,
                                 D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetComputeRootUnorderedAccessView, UINT RootParameterIndex,
                                 D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetGraphicsRootSignature,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetGraphicsRootSignature,
                                 ID3D12RootSignature *pRootSignature);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetGraphicsRootDescriptorTable, UINT RootParameterIndex,
                                 D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetGraphicsRoot32BitConstant,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetGraphicsRoot32BitConstant,
                                 UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetGraphicsRoot32BitConstants,
-                                UINT RootParameterIndex, UINT Num32BitValuesToSet,
-                                const void *pSrcData, UINT DestOffsetIn32BitValues);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
+                                SetGraphicsRoot32BitConstants, UINT RootParameterIndex,
+                                UINT Num32BitValuesToSet, const void *pSrcData,
+                                UINT DestOffsetIn32BitValues);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetGraphicsRootConstantBufferView, UINT RootParameterIndex,
                                 D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetGraphicsRootShaderResourceView, UINT RootParameterIndex,
                                 D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
                                 SetGraphicsRootUnorderedAccessView, UINT RootParameterIndex,
                                 D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, BeginQuery,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, BeginQuery,
                                 ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type, UINT Index);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, EndQuery,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, EndQuery,
                                 ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type, UINT Index);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ResolveQueryData,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ResolveQueryData,
                                 ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type, UINT StartIndex,
                                 UINT NumQueries, ID3D12Resource *pDestinationBuffer,
                                 UINT64 AlignedDestinationBufferOffset);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetPredication,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetPredication,
                                 ID3D12Resource *pBuffer, UINT64 AlignedBufferOffset,
                                 D3D12_PREDICATION_OP Operation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetMarker, UINT Metadata,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetMarker, UINT Metadata,
                                 const void *pData, UINT Size);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, BeginEvent, UINT Metadata,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, BeginEvent, UINT Metadata,
                                 const void *pData, UINT Size);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, EndEvent);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, DrawInstanced,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, EndEvent);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, DrawInstanced,
                                 UINT VertexCountPerInstance, UINT InstanceCount,
                                 UINT StartVertexLocation, UINT StartInstanceLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, DrawIndexedInstanced,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, DrawIndexedInstanced,
                                 UINT IndexCountPerInstance, UINT InstanceCount,
                                 UINT StartIndexLocation, INT BaseVertexLocation,
                                 UINT StartInstanceLocation);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, Dispatch,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, Dispatch,
                                 UINT ThreadGroupCountX, UINT ThreadGroupCountY,
                                 UINT ThreadGroupCountZ);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ExecuteBundle,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ExecuteBundle,
                                 ID3D12GraphicsCommandList *pCommandList);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ExecuteIndirect,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ExecuteIndirect,
                                 ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount,
                                 ID3D12Resource *pArgumentBuffer, UINT64 ArgumentBufferOffset,
                                 ID3D12Resource *pCountBuffer, UINT64 CountBufferOffset);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ClearDepthStencilView,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ClearDepthStencilView,
                                 D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView,
                                 D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil,
                                 UINT NumRects, const D3D12_RECT *pRects);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ClearRenderTargetView,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ClearRenderTargetView,
                                 D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView,
                                 const FLOAT ColorRGBA[4], UINT NumRects, const D3D12_RECT *pRects);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ClearUnorderedAccessViewUint,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ClearUnorderedAccessViewUint,
                                 D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap,
                                 D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle, ID3D12Resource *pResource,
                                 const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ClearUnorderedAccessViewFloat,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2,
+                                ClearUnorderedAccessViewFloat,
                                 D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap,
                                 D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle, ID3D12Resource *pResource,
                                 const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, DiscardResource,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, DiscardResource,
                                 ID3D12Resource *pResource, const D3D12_DISCARD_REGION *pRegion);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, CopyBufferRegion,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, CopyBufferRegion,
                                 ID3D12Resource *pDstBuffer, UINT64 DstOffset,
                                 ID3D12Resource *pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, CopyTextureRegion,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, CopyTextureRegion,
                                 const D3D12_TEXTURE_COPY_LOCATION *pDst, UINT DstX, UINT DstY,
                                 UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION *pSrc,
                                 const D3D12_BOX *pSrcBox);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, CopyResource,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, CopyResource,
                                 ID3D12Resource *pDstResource, ID3D12Resource *pSrcResource);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ResolveSubresource,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ResolveSubresource,
                                 ID3D12Resource *pDstResource, UINT DstSubresource,
                                 ID3D12Resource *pSrcResource, UINT SrcSubresource,
                                 DXGI_FORMAT Format);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, CopyTiles,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, CopyTiles,
                                 ID3D12Resource *pTiledResource,
                                 const D3D12_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
                                 const D3D12_TILE_REGION_SIZE *pTileRegionSize,

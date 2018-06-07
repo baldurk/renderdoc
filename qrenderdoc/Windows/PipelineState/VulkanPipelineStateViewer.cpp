@@ -599,8 +599,8 @@ void VulkanPipelineStateViewer::clearState()
   ui->depthFunc->setText(lit("GREATER_EQUAL"));
   ui->depthWrite->setPixmap(tick);
 
-  ui->depthBounds->setText(lit("0.0-1.0"));
   ui->depthBounds->setPixmap(QPixmap());
+  ui->depthBounds->setText(lit("0.0-1.0"));
 
   ui->stencils->clear();
 }
@@ -1995,9 +1995,9 @@ void VulkanPipelineStateViewer::setState()
 
   if(state.depthStencil.depthBoundsEnable)
   {
+    ui->depthBounds->setPixmap(QPixmap());
     ui->depthBounds->setText(Formatter::Format(state.depthStencil.minDepthBounds) + lit("-") +
                              Formatter::Format(state.depthStencil.maxDepthBounds));
-    ui->depthBounds->setPixmap(QPixmap());
   }
   else
   {

@@ -678,3 +678,407 @@ std::string PIX3DecodeEventString(const UINT64 *pData)
   formatString = PIX3SprintfParams(formatString, pData);
   return formatString;
 }
+
+D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(
+    const D3D12_GRAPHICS_PIPELINE_STATE_DESC &graphics)
+{
+  pRootSignature = graphics.pRootSignature;
+  VS = graphics.VS;
+  PS = graphics.PS;
+  DS = graphics.DS;
+  HS = graphics.HS;
+  GS = graphics.GS;
+  StreamOutput = graphics.StreamOutput;
+  BlendState = graphics.BlendState;
+  SampleMask = graphics.SampleMask;
+  RasterizerState = graphics.RasterizerState;
+  {
+    DepthStencilState.DepthEnable = graphics.DepthStencilState.DepthEnable;
+    DepthStencilState.DepthWriteMask = graphics.DepthStencilState.DepthWriteMask;
+    DepthStencilState.DepthFunc = graphics.DepthStencilState.DepthFunc;
+    DepthStencilState.StencilEnable = graphics.DepthStencilState.StencilEnable;
+    DepthStencilState.StencilReadMask = graphics.DepthStencilState.StencilReadMask;
+    DepthStencilState.StencilWriteMask = graphics.DepthStencilState.StencilWriteMask;
+    DepthStencilState.FrontFace = graphics.DepthStencilState.FrontFace;
+    DepthStencilState.BackFace = graphics.DepthStencilState.BackFace;
+
+    // DepthBounds defaults to disabled
+    DepthStencilState.DepthBoundsTestEnable = FALSE;
+  }
+  InputLayout = graphics.InputLayout;
+  IBStripCutValue = graphics.IBStripCutValue;
+  PrimitiveTopologyType = graphics.PrimitiveTopologyType;
+  RTVFormats.NumRenderTargets = graphics.NumRenderTargets;
+  memcpy(RTVFormats.RTFormats, graphics.RTVFormats, 8 * sizeof(DXGI_FORMAT));
+  DSVFormat = graphics.DSVFormat;
+  SampleDesc = graphics.SampleDesc;
+  NodeMask = graphics.NodeMask;
+  CachedPSO = graphics.CachedPSO;
+  Flags = graphics.Flags;
+
+  // default state
+  ViewInstancing.Flags = D3D12_VIEW_INSTANCING_FLAG_NONE;
+  ViewInstancing.pViewInstanceLocations = NULL;
+  ViewInstancing.ViewInstanceCount = 0;
+}
+
+D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(
+    const D3D12_COMPUTE_PIPELINE_STATE_DESC &compute)
+{
+  pRootSignature = compute.pRootSignature;
+  CS = compute.CS;
+  NodeMask = compute.NodeMask;
+  CachedPSO = compute.CachedPSO;
+  Flags = compute.Flags;
+}
+
+// this awkward construction is to account for UINT and pointer aligned data on both 32-bit and
+// 64-bit.
+struct D3D12_PSO_SUBOBJECT
+{
+  D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type;
+};
+
+struct D3D12_U32_PSO_SUBOBJECT
+{
+  D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type;
+
+  union U32Data
+  {
+    UINT SampleMask;
+    DXGI_FORMAT DSVFormat;
+    UINT NodeMask;
+    D3D12_BLEND_DESC BlendState;
+    D3D12_RASTERIZER_DESC RasterizerState;
+    D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+    D3D12_DEPTH_STENCIL_DESC1 DepthStencilState1;
+    D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
+    D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
+    D3D12_RT_FORMAT_ARRAY RTVFormats;
+    DXGI_SAMPLE_DESC SampleDesc;
+    D3D12_PIPELINE_STATE_FLAGS Flags;
+  } data;
+};
+
+struct D3D12_PTR_PSO_SUBOBJECT
+{
+  D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type;
+
+#if ENABLED(RDOC_X64)
+  UINT padding;
+#endif
+
+  union PTRData
+  {
+    ID3D12RootSignature *pRootSignature;
+    D3D12_SHADER_BYTECODE shader;
+    D3D12_STREAM_OUTPUT_DESC StreamOutput;
+    D3D12_INPUT_LAYOUT_DESC InputLayout;
+    D3D12_CACHED_PIPELINE_STATE CachedPSO;
+    D3D12_VIEW_INSTANCING_DESC ViewInstancing;
+  } data;
+};
+
+D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(
+    const D3D12_PIPELINE_STATE_STREAM_DESC &stream)
+{
+  // ensure data is naturally aligned.
+  RDCCOMPILE_ASSERT(offsetof(D3D12_U32_PSO_SUBOBJECT, data.SampleMask) == 4,
+                    "D3D12_U32_PSO_SUBOBJECT UINT data is misaligned");
+  RDCCOMPILE_ASSERT(offsetof(D3D12_PTR_PSO_SUBOBJECT, data.pRootSignature) == sizeof(void *),
+                    "D3D12_PTR_PSO_SUBOBJECT Pointer data is misaligned");
+  RDCCOMPILE_ASSERT(offsetof(D3D12_PSO_SUBOBJECT, type) == 0,
+                    "D3D12_PSO_SUBOBJECT type member is misaligned");
+  RDCCOMPILE_ASSERT(offsetof(D3D12_U32_PSO_SUBOBJECT, type) == 0,
+                    "D3D12_U32_PSO_SUBOBJECT type member is misaligned");
+  RDCCOMPILE_ASSERT(offsetof(D3D12_PTR_PSO_SUBOBJECT, type) == 0,
+                    "D3D12_PTR_PSO_SUBOBJECT type member is misaligned");
+
+  // first set default state
+  pRootSignature = NULL;
+  RDCEraseEl(VS);
+  RDCEraseEl(HS);
+  RDCEraseEl(DS);
+  RDCEraseEl(GS);
+  RDCEraseEl(PS);
+  RDCEraseEl(CS);
+  NodeMask = 0;
+  RDCEraseEl(CachedPSO);
+  Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+  SampleMask = ~0U;
+  RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+  RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+  RasterizerState.FrontCounterClockwise = FALSE;
+  RasterizerState.DepthBias = 0;
+  RasterizerState.DepthBiasClamp = 0.0f;
+  RasterizerState.SlopeScaledDepthBias = 0.0f;
+  RasterizerState.DepthClipEnable = TRUE;
+  RasterizerState.MultisampleEnable = FALSE;
+  RasterizerState.AntialiasedLineEnable = FALSE;
+  RasterizerState.ForcedSampleCount = 0;
+  RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+  RDCEraseEl(StreamOutput);
+
+  BlendState.AlphaToCoverageEnable = FALSE;
+  BlendState.IndependentBlendEnable = FALSE;
+
+  for(int i = 0; i < 8; i++)
+  {
+    BlendState.RenderTarget[i].BlendEnable = FALSE;
+    BlendState.RenderTarget[i].LogicOpEnable = FALSE;
+    BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
+    BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO;
+    BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
+    BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
+    BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
+    BlendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
+    BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+  }
+
+  {
+    DepthStencilState.DepthEnable = TRUE;
+    DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+    DepthStencilState.StencilEnable = FALSE;
+    DepthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+    DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+    DepthStencilState.FrontFace.StencilFunc = DepthStencilState.BackFace.StencilFunc =
+        D3D12_COMPARISON_FUNC_ALWAYS;
+    DepthStencilState.FrontFace.StencilDepthFailOp = DepthStencilState.BackFace.StencilDepthFailOp =
+        D3D12_STENCIL_OP_KEEP;
+    DepthStencilState.FrontFace.StencilPassOp = DepthStencilState.BackFace.StencilPassOp =
+        D3D12_STENCIL_OP_KEEP;
+    DepthStencilState.FrontFace.StencilFailOp = DepthStencilState.BackFace.StencilFailOp =
+        D3D12_STENCIL_OP_KEEP;
+
+    // DepthBounds defaults to disabled
+    DepthStencilState.DepthBoundsTestEnable = FALSE;
+  }
+
+  RDCEraseEl(InputLayout);
+  IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+  RDCEraseEl(RTVFormats);
+  DSVFormat = DXGI_FORMAT_UNKNOWN;
+  SampleDesc.Count = 1;
+  SampleDesc.Quality = 0;
+
+  ViewInstancing.Flags = D3D12_VIEW_INSTANCING_FLAG_NONE;
+  ViewInstancing.pViewInstanceLocations = NULL;
+  ViewInstancing.ViewInstanceCount = 0;
+
+#define ITER_ADV(objtype)                    \
+  iter = iter + sizeof(obj->type);           \
+  iter = AlignUpPtr(iter, alignof(objtype)); \
+  iter += sizeof(objtype);
+
+  byte *iter = (byte *)stream.pPipelineStateSubobjectStream;
+  byte *end = iter + stream.SizeInBytes;
+  while(iter < end)
+  {
+    D3D12_PSO_SUBOBJECT *obj = (D3D12_PSO_SUBOBJECT *)iter;
+    D3D12_U32_PSO_SUBOBJECT *u32 = (D3D12_U32_PSO_SUBOBJECT *)obj;
+    D3D12_PTR_PSO_SUBOBJECT *ptr = (D3D12_PTR_PSO_SUBOBJECT *)obj;
+    switch(obj->type)
+    {
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE:
+      {
+        pRootSignature = ptr->data.pRootSignature;
+        ITER_ADV(ID3D12RootSignature *);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS:
+      {
+        VS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS:
+      {
+        PS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS:
+      {
+        GS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS:
+      {
+        DS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS:
+      {
+        GS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS:
+      {
+        GS = ptr->data.shader;
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_STREAM_OUTPUT:
+      {
+        StreamOutput = ptr->data.StreamOutput;
+        ITER_ADV(D3D12_STREAM_OUTPUT_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND:
+      {
+        BlendState = u32->data.BlendState;
+        ITER_ADV(D3D12_BLEND_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK:
+      {
+        SampleMask = u32->data.SampleMask;
+        ITER_ADV(UINT);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER:
+      {
+        RasterizerState = u32->data.RasterizerState;
+        ITER_ADV(D3D12_RASTERIZER_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL:
+      {
+        const D3D12_DEPTH_STENCIL_DESC &dsdesc = u32->data.DepthStencilState;
+        DepthStencilState.DepthEnable = dsdesc.DepthEnable;
+        DepthStencilState.DepthWriteMask = dsdesc.DepthWriteMask;
+        DepthStencilState.DepthFunc = dsdesc.DepthFunc;
+        DepthStencilState.StencilEnable = dsdesc.StencilEnable;
+        DepthStencilState.StencilReadMask = dsdesc.StencilReadMask;
+        DepthStencilState.StencilWriteMask = dsdesc.StencilWriteMask;
+        DepthStencilState.FrontFace = dsdesc.FrontFace;
+        DepthStencilState.BackFace = dsdesc.BackFace;
+        ITER_ADV(D3D12_DEPTH_STENCIL_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT:
+      {
+        InputLayout = ptr->data.InputLayout;
+        ITER_ADV(D3D12_INPUT_LAYOUT_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE:
+      {
+        IBStripCutValue = u32->data.IBStripCutValue;
+        ITER_ADV(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY:
+      {
+        PrimitiveTopologyType = u32->data.PrimitiveTopologyType;
+        ITER_ADV(D3D12_PRIMITIVE_TOPOLOGY_TYPE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS:
+      {
+        RTVFormats = u32->data.RTVFormats;
+        ITER_ADV(D3D12_RT_FORMAT_ARRAY);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT:
+      {
+        DSVFormat = u32->data.DSVFormat;
+        ITER_ADV(DXGI_FORMAT);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC:
+      {
+        SampleDesc = u32->data.SampleDesc;
+        ITER_ADV(DXGI_SAMPLE_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_NODE_MASK:
+      {
+        NodeMask = u32->data.NodeMask;
+        ITER_ADV(UINT);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CACHED_PSO:
+      {
+        CachedPSO = ptr->data.CachedPSO;
+        ITER_ADV(D3D12_CACHED_PIPELINE_STATE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_FLAGS:
+      {
+        Flags = u32->data.Flags;
+        ITER_ADV(D3D12_PIPELINE_STATE_FLAGS);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1:
+      {
+        DepthStencilState = u32->data.DepthStencilState1;
+        ITER_ADV(D3D12_DEPTH_STENCIL_DESC1);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING:
+      {
+        ViewInstancing = ptr->data.ViewInstancing;
+        ITER_ADV(D3D12_VIEW_INSTANCING_DESC);
+        break;
+      }
+      default:
+      {
+        RDCERR("Unknown subobject type %d", obj->type);
+        break;
+      }
+    }
+    iter = AlignUpPtr(iter, sizeof(void *));
+  }
+}
+
+void D3D12_PACKED_PIPELINE_STATE_STREAM_DESC::Unwrap()
+{
+  m_GraphicsStreamData.pRootSignature = ::Unwrap(m_GraphicsStreamData.pRootSignature);
+  m_ComputeStreamData.pRootSignature = ::Unwrap(m_ComputeStreamData.pRootSignature);
+}
+
+D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC::operator=(
+    const D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &expanded)
+{
+  if(expanded.CS.BytecodeLength > 0)
+  {
+    m_ComputeStreamData.pRootSignature = expanded.pRootSignature;
+    m_ComputeStreamData.CS = expanded.CS;
+    m_ComputeStreamData.NodeMask = expanded.NodeMask;
+    m_ComputeStreamData.CachedPSO = expanded.CachedPSO;
+    m_ComputeStreamData.Flags = expanded.Flags;
+  }
+  else
+  {
+    m_GraphicsStreamData.pRootSignature = expanded.pRootSignature;
+    m_GraphicsStreamData.VS = expanded.VS;
+    m_GraphicsStreamData.PS = expanded.PS;
+    m_GraphicsStreamData.DS = expanded.DS;
+    m_GraphicsStreamData.HS = expanded.HS;
+    m_GraphicsStreamData.GS = expanded.GS;
+    m_GraphicsStreamData.StreamOutput = expanded.StreamOutput;
+    m_GraphicsStreamData.BlendState = expanded.BlendState;
+    m_GraphicsStreamData.SampleMask = expanded.SampleMask;
+    m_GraphicsStreamData.RasterizerState = expanded.RasterizerState;
+    m_GraphicsStreamData.DepthStencilState = expanded.DepthStencilState;
+    m_GraphicsStreamData.InputLayout = expanded.InputLayout;
+    m_GraphicsStreamData.IBStripCutValue = expanded.IBStripCutValue;
+    m_GraphicsStreamData.PrimitiveTopologyType = expanded.PrimitiveTopologyType;
+    m_GraphicsStreamData.RTVFormats = expanded.RTVFormats;
+    m_GraphicsStreamData.DSVFormat = expanded.DSVFormat;
+    m_GraphicsStreamData.SampleDesc = expanded.SampleDesc;
+    m_GraphicsStreamData.NodeMask = expanded.NodeMask;
+    m_GraphicsStreamData.CachedPSO = expanded.CachedPSO;
+    m_GraphicsStreamData.Flags = expanded.Flags;
+    m_GraphicsStreamData.ViewInstancing = expanded.ViewInstancing;
+  }
+
+  return *this;
+}

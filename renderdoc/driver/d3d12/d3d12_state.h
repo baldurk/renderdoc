@@ -46,9 +46,9 @@ struct D3D12RenderState
   D3D12RenderState() = default;
   D3D12RenderState &operator=(const D3D12RenderState &o);
 
-  void ApplyState(ID3D12GraphicsCommandList *list) const;
-  void ApplyComputeRootElements(ID3D12GraphicsCommandList *cmd) const;
-  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList *cmd) const;
+  void ApplyState(ID3D12GraphicsCommandList2 *list) const;
+  void ApplyComputeRootElements(ID3D12GraphicsCommandList2 *cmd) const;
+  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList2 *cmd) const;
 
   vector<D3D12_VIEWPORT> views;
   vector<D3D12_RECT> scissors;
@@ -165,9 +165,19 @@ struct D3D12RenderState
 
   ResourceId pipe;
 
+  UINT viewInstMask = 0;
+
+  struct SamplePositions
+  {
+    UINT NumSamplesPerPixel, NumPixels;
+    std::vector<D3D12_SAMPLE_POSITION> Positions;
+  } samplePos;
+
   D3D12_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
   UINT stencilRef = 0;
   float blendFactor[4] = {};
+
+  float depthBoundsMin = 0.0f, depthBoundsMax = 1.0f;
 
   struct IdxBuffer
   {

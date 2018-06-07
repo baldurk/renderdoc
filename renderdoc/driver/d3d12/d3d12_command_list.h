@@ -31,11 +31,11 @@
 #include "d3d12_resources.h"
 
 struct IAmdExtD3DCommandListMarker;
-class WrappedID3D12GraphicsCommandList;
+class WrappedID3D12GraphicsCommandList2;
 
 struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList
 {
-  WrappedID3D12GraphicsCommandList *m_pList;
+  WrappedID3D12GraphicsCommandList2 *m_pList;
   ID3D12DebugCommandList *m_pReal;
 
   WrappedID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL) {}
@@ -82,9 +82,15 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList
   }
 };
 
-class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsCommandList>,
-                                         public ID3D12GraphicsCommandList
+class WrappedID3D12GraphicsCommandList2 : public ID3D12GraphicsCommandList2
 {
+private:
+  ID3D12GraphicsCommandList *m_pList = NULL;
+  ID3D12GraphicsCommandList1 *m_pList1 = NULL;
+  ID3D12GraphicsCommandList2 *m_pList2 = NULL;
+
+  RefCounter12<ID3D12GraphicsCommandList> m_RefCounter;
+
   WrappedID3D12Device *m_pDevice;
 
   WriteSerialiser &GetThreadSerialiser();
@@ -116,19 +122,21 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
 public:
   static const int AllocPoolCount = 8192;
   static const int AllocMaxByteSize = 2 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList, AllocPoolCount, AllocMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList2, AllocPoolCount, AllocMaxByteSize);
 
-  WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
-                                   CaptureState &state);
-  virtual ~WrappedID3D12GraphicsCommandList();
+  WrappedID3D12GraphicsCommandList2(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
+                                    CaptureState &state);
+  virtual ~WrappedID3D12GraphicsCommandList2();
 
   ResourceId GetResourceID() { return m_ResourceID; }
-  ID3D12GraphicsCommandList *GetReal() { return m_pReal; }
+  ID3D12GraphicsCommandList *GetReal() { return m_pList; }
+  ID3D12GraphicsCommandList1 *GetReal1() { return m_pList1; }
+  ID3D12GraphicsCommandList2 *GetReal2() { return m_pList2; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
-  ID3D12GraphicsCommandList *GetCrackedList();
-  ID3D12GraphicsCommandList *GetWrappedCrackedList();
+  ID3D12GraphicsCommandList2 *GetCrackedList();
+  ID3D12GraphicsCommandList2 *GetWrappedCrackedList();
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
@@ -143,9 +151,14 @@ public:
 
   //////////////////////////////
   // implement IUnknown
-
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::SoftRef(m_pDevice); }
-  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::SoftRelease(m_pDevice); }
+  ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.AddRef(); }
+  ULONG STDMETHODCALLTYPE Release()
+  {
+    unsigned int ret = m_RefCounter.Release();
+    if(ret == 0)
+      delete this;
+    return ret;
+  }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
   //////////////////////////////
@@ -153,7 +166,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
   {
-    return m_pReal->GetPrivateData(guid, pDataSize, pData);
+    return m_pList->GetPrivateData(guid, pDataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
@@ -161,12 +174,12 @@ public:
     if(guid == WKPDID_D3DDebugObjectName)
       m_pDevice->SetName(this, (const char *)pData);
 
-    return m_pReal->SetPrivateData(guid, DataSize, pData);
+    return m_pList->SetPrivateData(guid, DataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
   {
-    return m_pReal->SetPrivateDataInterface(guid, pData);
+    return m_pList->SetPrivateDataInterface(guid, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
@@ -174,7 +187,7 @@ public:
     string utf8 = StringFormat::Wide2UTF8(Name);
     m_pDevice->SetName(this, utf8.c_str());
 
-    return m_pReal->SetName(Name);
+    return m_pList->SetName(Name);
   }
 
   //////////////////////////////
@@ -198,7 +211,7 @@ public:
   //////////////////////////////
   // implement ID3D12CommandList
 
-  virtual D3D12_COMMAND_LIST_TYPE STDMETHODCALLTYPE GetType() { return m_pReal->GetType(); }
+  virtual D3D12_COMMAND_LIST_TYPE STDMETHODCALLTYPE GetType() { return m_pList->GetType(); }
   //////////////////////////////
   // implement ID3D12GraphicsCommandList
 
@@ -387,6 +400,43 @@ public:
                                 ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount,
                                 ID3D12Resource *pArgumentBuffer, UINT64 ArgumentBufferOffset,
                                 ID3D12Resource *pCountBuffer, UINT64 CountBufferOffset);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList1
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, AtomicCopyBufferUINT,
+                                ID3D12Resource *pDstBuffer, UINT64 DstOffset,
+                                ID3D12Resource *pSrcBuffer, UINT64 SrcOffset, UINT Dependencies,
+                                ID3D12Resource *const *ppDependentResources,
+                                const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, AtomicCopyBufferUINT64,
+                                ID3D12Resource *pDstBuffer, UINT64 DstOffset,
+                                ID3D12Resource *pSrcBuffer, UINT64 SrcOffset, UINT Dependencies,
+                                ID3D12Resource *const *ppDependentResources,
+                                const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, OMSetDepthBounds, FLOAT Min,
+                                FLOAT Max);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, SetSamplePositions,
+                                UINT NumSamplesPerPixel, UINT NumPixels,
+                                D3D12_SAMPLE_POSITION *pSamplePositions);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ResolveSubresourceRegion,
+                                ID3D12Resource *pDstResource, UINT DstSubresource, UINT DstX,
+                                UINT DstY, ID3D12Resource *pSrcResource, UINT SrcSubresource,
+                                D3D12_RECT *pSrcRect, DXGI_FORMAT Format,
+                                D3D12_RESOLVE_MODE ResolveMode);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, SetViewInstanceMask, UINT Mask);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList2
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, WriteBufferImmediate, UINT Count,
+                                const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER *pParams,
+                                const D3D12_WRITEBUFFERIMMEDIATE_MODE *pModes);
 };
 
 template <>
@@ -403,3 +453,16 @@ template <>
 D3D12ResourceRecord *GetRecord(ID3D12GraphicsCommandList *obj);
 template <>
 D3D12ResourceRecord *GetRecord(ID3D12CommandList *obj);
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList1 *obj);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList2 *obj);
+
+template <>
+ID3D12GraphicsCommandList1 *Unwrap(ID3D12GraphicsCommandList1 *obj);
+template <>
+ID3D12GraphicsCommandList2 *Unwrap(ID3D12GraphicsCommandList2 *obj);
+
+WrappedID3D12GraphicsCommandList2 *GetWrapped(ID3D12GraphicsCommandList1 *obj);
+WrappedID3D12GraphicsCommandList2 *GetWrapped(ID3D12GraphicsCommandList2 *obj);

@@ -111,7 +111,7 @@ public:
   void FillBuffer(ID3D12Resource *buf, size_t offset, const void *data, size_t size);
   D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
 
-  ID3D12GraphicsCommandList *ResetDebugList();
+  ID3D12GraphicsCommandList2 *ResetDebugList();
   void ResetDebugAlloc();
 
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(CBVUAVSRVSlot slot);
@@ -169,6 +169,6 @@ private:
   ID3D12Resource *m_ReadbackBuffer = NULL;
 
   // Debug lists
-  ID3D12GraphicsCommandList *m_DebugList = NULL;
+  ID3D12GraphicsCommandList2 *m_DebugList = NULL;
   ID3D12CommandAllocator *m_DebugAlloc = NULL;
 };

@@ -564,6 +564,8 @@ struct DepthStencilState
   bool depthEnable = false;
   DOCUMENT("``True`` if depth values should be written to the depth target.");
   bool depthWrites = false;
+  DOCUMENT("``True`` if depth bounds tests should be applied.");
+  bool depthBoundsEnable = false;
   DOCUMENT("The :class:`CompareFunction` to use for testing depth values.");
   CompareFunction depthFunction = CompareFunction::AlwaysTrue;
   DOCUMENT("``True`` if stencil operations should be performed.");
@@ -573,6 +575,11 @@ struct DepthStencilState
   StencilFace frontFace;
   DOCUMENT("A :class:`StencilFace` describing what happens for back-facing polygons.");
   StencilFace backFace;
+
+  DOCUMENT("The near plane bounding value.");
+  float minDepthBounds = 0.0f;
+  DOCUMENT("The far plane bounding value.");
+  float maxDepthBounds = 0.0f;
 };
 
 DOCUMENT("Describes the blend state in the PSO.");

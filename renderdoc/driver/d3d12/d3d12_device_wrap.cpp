@@ -223,7 +223,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
   SERIALISE_ELEMENT(pInitialState);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid");
   SERIALISE_ELEMENT_LOCAL(pCommandList,
-                          ((WrappedID3D12GraphicsCommandList *)*ppCommandList)->GetResourceID())
+                          ((WrappedID3D12GraphicsCommandList2 *)*ppCommandList)->GetResourceID())
       .TypedAs("ID3D12GraphicsCommandList *");
 
   // this chunk is purely for user information and consistency, the command buffer we allocate is
@@ -268,19 +268,31 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     return m_pDevice->CreateCommandList(nodeMask, type, Unwrap(pCommandAllocator),
                                         Unwrap(pInitialState), riid, NULL);
 
-  if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList))
+  if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList) &&
+     riid != __uuidof(ID3D12GraphicsCommandList1) && riid != __uuidof(ID3D12GraphicsCommandList2))
     return E_NOINTERFACE;
 
-  ID3D12GraphicsCommandList *real = NULL;
+  void *realptr = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateCommandList(
                           nodeMask, type, Unwrap(pCommandAllocator), Unwrap(pInitialState),
-                          __uuidof(ID3D12GraphicsCommandList), (void **)&real));
+                          __uuidof(ID3D12GraphicsCommandList), &realptr));
+
+  ID3D12GraphicsCommandList *real = NULL;
+
+  if(riid == __uuidof(ID3D12CommandList))
+    real = (ID3D12GraphicsCommandList *)(ID3D12CommandList *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList))
+    real = (ID3D12GraphicsCommandList *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList1))
+    real = (ID3D12GraphicsCommandList1 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList2))
+    real = (ID3D12GraphicsCommandList2 *)realptr;
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12GraphicsCommandList *wrapped =
-        new WrappedID3D12GraphicsCommandList(real, this, m_State);
+    WrappedID3D12GraphicsCommandList2 *wrapped =
+        new WrappedID3D12GraphicsCommandList2(real, this, m_State);
 
     if(m_pAMDExtObject)
     {
@@ -318,6 +330,10 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
 
     if(riid == __uuidof(ID3D12GraphicsCommandList))
       *ppCommandList = (ID3D12GraphicsCommandList *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList1))
+      *ppCommandList = (ID3D12GraphicsCommandList1 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList2))
+      *ppCommandList = (ID3D12GraphicsCommandList2 *)wrapped;
     else if(riid == __uuidof(ID3D12CommandList))
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
@@ -359,7 +375,7 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 
       WrappedID3D12PipelineState *wrapped = (WrappedID3D12PipelineState *)ret;
 
-      wrapped->graphics = new D3D12_GRAPHICS_PIPELINE_STATE_DESC(Descriptor);
+      wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
 
       D3D12_SHADER_BYTECODE *shaders[] = {
           &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
@@ -477,7 +493,7 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
     {
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
 
-      wrapped->graphics = new D3D12_GRAPHICS_PIPELINE_STATE_DESC(*pDesc);
+      wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
 
       D3D12_SHADER_BYTECODE *shaders[] = {
           &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
@@ -486,10 +502,15 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
 
       for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
       {
-        if(shaders[i]->BytecodeLength == 0)
+        if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
+        {
           shaders[i]->pShaderBytecode = NULL;
+          shaders[i]->BytecodeLength = 0;
+        }
         else
+        {
           shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, NULL);
+        }
       }
 
       if(wrapped->graphics->InputLayout.NumElements)
@@ -569,7 +590,7 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
       WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(ret, this);
       ret = wrapped;
 
-      wrapped->compute = new D3D12_COMPUTE_PIPELINE_STATE_DESC(Descriptor);
+      wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
 
       WrappedID3D12Shader *entry =
           WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, wrapped);
@@ -632,7 +653,7 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
     {
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
 
-      wrapped->compute = new D3D12_COMPUTE_PIPELINE_STATE_DESC(*pDesc);
+      wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
 
       wrapped->compute->CS.pShaderBytecode =
           WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, NULL);
@@ -1607,15 +1628,21 @@ bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 Init
   SERIALISE_ELEMENT(InitialValue);
   SERIALISE_ELEMENT(Flags);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid");
-  SERIALISE_ELEMENT_LOCAL(pFence, ((WrappedID3D12Fence *)*ppFence)->GetResourceID())
+  SERIALISE_ELEMENT_LOCAL(pFence, ((WrappedID3D12Fence1 *)*ppFence)->GetResourceID())
       .TypedAs("ID3D12Fence *");
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
+    void *realptr = NULL;
+    HRESULT hr = m_pDevice->CreateFence(InitialValue, Flags, guid, &realptr);
+
     ID3D12Fence *ret = NULL;
-    HRESULT hr = m_pDevice->CreateFence(InitialValue, Flags, guid, (void **)&ret);
+    if(guid == __uuidof(ID3D12Fence))
+      ret = (ID3D12Fence *)realptr;
+    else if(guid == __uuidof(ID3D12Fence))
+      ret = (ID3D12Fence1 *)realptr;
 
     if(FAILED(hr))
     {
@@ -1624,7 +1651,7 @@ bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 Init
     }
     else
     {
-      ret = new WrappedID3D12Fence(ret, this);
+      ret = new WrappedID3D12Fence1(ret, this);
 
       GetResourceManager()->AddLiveResource(pFence, ret);
     }
@@ -1641,16 +1668,23 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
   if(ppFence == NULL)
     return m_pDevice->CreateFence(InitialValue, Flags, riid, NULL);
 
-  if(riid != __uuidof(ID3D12Fence))
+  if(riid != __uuidof(ID3D12Fence) && riid != __uuidof(ID3D12Fence1))
     return E_NOINTERFACE;
 
-  ID3D12Fence *real = NULL;
+  void *realptr = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice->CreateFence(InitialValue, Flags, riid, (void **)&real));
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateFence(InitialValue, Flags, riid, &realptr));
+
+  ID3D12Fence *real = NULL;
+
+  if(riid == __uuidof(ID3D12Fence))
+    real = (ID3D12Fence *)realptr;
+  else if(riid == __uuidof(ID3D12Fence))
+    real = (ID3D12Fence1 *)realptr;
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Fence *wrapped = new WrappedID3D12Fence(real, this);
+    WrappedID3D12Fence1 *wrapped = new WrappedID3D12Fence1(real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2245,6 +2279,14 @@ HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
 HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
+  // don't support over sm6.0
+  if(Feature == D3D12_FEATURE_SHADER_MODEL)
+  {
+    D3D12_FEATURE_DATA_SHADER_MODEL *model = (D3D12_FEATURE_DATA_SHADER_MODEL *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_SHADER_MODEL) ||
+       model->HighestShaderModel >= D3D_SHADER_MODEL_6_0)
+      return E_INVALIDARG;
+  }
   return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
 
@@ -2301,7 +2343,7 @@ HRESULT WrappedID3D12Device::CreatePipelineLibrary(_In_reads_(BlobLength) const 
 
   RDCASSERT(riid == __uuidof(ID3D12PipelineLibrary));
 
-  *ppPipelineLibrary = (ID3D12PipelineLibrary *)(new WrappedID3D12PipelineLibrary(this));
+  *ppPipelineLibrary = (ID3D12PipelineLibrary *)(new WrappedID3D12PipelineLibrary1(this));
 
   return S_OK;
 }
@@ -2332,6 +2374,385 @@ HRESULT WrappedID3D12Device::SetResidencyPriority(UINT NumObjects,
     unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
 
   return m_pDevice1->SetResidencyPriority(NumObjects, unwrapped, pPriorities);
+}
+
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
+                                                        const D3D12_PIPELINE_STATE_STREAM_DESC *pDesc,
+                                                        REFIID riid, void **ppPipelineState)
+{
+  SERIALISE_ELEMENT_LOCAL(Descriptor, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc))
+      .Named("pDesc");
+  SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid");
+  SERIALISE_ELEMENT_LOCAL(pPipelineState,
+                          ((WrappedID3D12PipelineState *)*ppPipelineState)->GetResourceID())
+      .TypedAs("ID3D12PipelineState *");
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    D3D12_PACKED_PIPELINE_STATE_STREAM_DESC unwrappedDesc(Descriptor);
+    unwrappedDesc.Unwrap();
+
+    ID3D12PipelineState *ret = NULL;
+    HRESULT hr = E_NOINTERFACE;
+
+    if(m_pDevice3)
+      hr = m_pDevice3->CreatePipelineState(unwrappedDesc.AsDescStream(), guid, (void **)&ret);
+    else
+      RDCERR("Replaying a without D3D12.3 available");
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
+    }
+    else
+    {
+      ret = new WrappedID3D12PipelineState(ret, this);
+
+      WrappedID3D12PipelineState *wrapped = (WrappedID3D12PipelineState *)ret;
+
+      D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *storedDesc =
+          new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
+
+      D3D12_SHADER_BYTECODE *shaders[] = {
+          &storedDesc->VS, &storedDesc->HS, &storedDesc->DS,
+          &storedDesc->GS, &storedDesc->PS, &storedDesc->CS,
+      };
+
+      AddResource(pPipelineState, ResourceType::PipelineState, "Pipeline State");
+      DerivedResource(Descriptor.pRootSignature, pPipelineState);
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      {
+        if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
+        {
+          shaders[i]->pShaderBytecode = NULL;
+          shaders[i]->BytecodeLength = 0;
+        }
+        else
+        {
+          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this, wrapped);
+
+          shaders[i]->pShaderBytecode = entry;
+
+          AddResourceCurChunk(entry->GetResourceID());
+
+          DerivedResource(entry->GetResourceID(), pPipelineState);
+        }
+      }
+
+      if(storedDesc->CS.BytecodeLength > 0)
+      {
+        wrapped->compute = storedDesc;
+      }
+      else
+      {
+        wrapped->graphics = storedDesc;
+
+        if(wrapped->graphics->InputLayout.NumElements)
+        {
+          wrapped->graphics->InputLayout.pInputElementDescs =
+              new D3D12_INPUT_ELEMENT_DESC[wrapped->graphics->InputLayout.NumElements];
+          memcpy((void *)wrapped->graphics->InputLayout.pInputElementDescs,
+                 Descriptor.InputLayout.pInputElementDescs,
+                 sizeof(D3D12_INPUT_ELEMENT_DESC) * wrapped->graphics->InputLayout.NumElements);
+        }
+        else
+        {
+          wrapped->graphics->InputLayout.pInputElementDescs = NULL;
+        }
+
+        if(wrapped->graphics->StreamOutput.NumEntries)
+        {
+          wrapped->graphics->StreamOutput.pSODeclaration =
+              new D3D12_SO_DECLARATION_ENTRY[wrapped->graphics->StreamOutput.NumEntries];
+          memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
+                 Descriptor.StreamOutput.pSODeclaration,
+                 sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
+        }
+        else
+        {
+          wrapped->graphics->StreamOutput.pSODeclaration = NULL;
+        }
+
+        if(wrapped->graphics->StreamOutput.NumStrides)
+        {
+          wrapped->graphics->StreamOutput.pBufferStrides =
+              new UINT[wrapped->graphics->StreamOutput.NumStrides];
+          memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
+                 Descriptor.StreamOutput.pBufferStrides,
+                 sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+        }
+        else
+        {
+          wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+        }
+      }
+
+      GetResourceManager()->AddLiveResource(pPipelineState, ret);
+    }
+  }
+
+  return true;
+}
+
+HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STREAM_DESC *pDesc,
+                                                 REFIID riid, void **ppPipelineState)
+{
+  if(pDesc == NULL)
+    return m_pDevice3->CreatePipelineState(pDesc, riid, ppPipelineState);
+
+  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC expandedDesc = *pDesc;
+  D3D12_PACKED_PIPELINE_STATE_STREAM_DESC unwrappedDesc = expandedDesc;
+  unwrappedDesc.Unwrap();
+
+  if(ppPipelineState == NULL)
+    return m_pDevice3->CreatePipelineState(pDesc ? unwrappedDesc.AsDescStream() : NULL, riid,
+                                           ppPipelineState);
+
+  if(riid != __uuidof(ID3D12PipelineState))
+    return E_NOINTERFACE;
+
+  ID3D12PipelineState *real = NULL;
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice3->CreatePipelineState(unwrappedDesc.AsDescStream(), riid, (void **)&real));
+
+  if(SUCCEEDED(ret))
+  {
+    WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(real, this);
+
+    if(IsCaptureMode(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreatePipelineState);
+      Serialise_CreatePipelineState(ser, pDesc, riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_PipelineState;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      if(expandedDesc.pRootSignature)
+        record->AddParent(GetRecord(expandedDesc.pRootSignature));
+
+      record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+
+      D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *storedDesc =
+          new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(expandedDesc);
+
+      D3D12_SHADER_BYTECODE *shaders[] = {
+          &storedDesc->VS, &storedDesc->HS, &storedDesc->DS,
+          &storedDesc->GS, &storedDesc->PS, &storedDesc->CS,
+      };
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      {
+        if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
+        {
+          shaders[i]->pShaderBytecode = NULL;
+          shaders[i]->BytecodeLength = 0;
+        }
+        else
+        {
+          shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, NULL);
+        }
+      }
+
+      if(storedDesc->CS.BytecodeLength > 0)
+      {
+        wrapped->compute = storedDesc;
+      }
+      else
+      {
+        wrapped->graphics = storedDesc;
+
+        if(wrapped->graphics->InputLayout.NumElements)
+        {
+          wrapped->graphics->InputLayout.pInputElementDescs =
+              new D3D12_INPUT_ELEMENT_DESC[wrapped->graphics->InputLayout.NumElements];
+          memcpy((void *)wrapped->graphics->InputLayout.pInputElementDescs,
+                 expandedDesc.InputLayout.pInputElementDescs,
+                 sizeof(D3D12_INPUT_ELEMENT_DESC) * wrapped->graphics->InputLayout.NumElements);
+        }
+        else
+        {
+          wrapped->graphics->InputLayout.pInputElementDescs = NULL;
+        }
+
+        if(wrapped->graphics->StreamOutput.NumEntries)
+        {
+          wrapped->graphics->StreamOutput.pSODeclaration =
+              new D3D12_SO_DECLARATION_ENTRY[wrapped->graphics->StreamOutput.NumEntries];
+          memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
+                 expandedDesc.StreamOutput.pSODeclaration,
+                 sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
+        }
+        else
+        {
+          wrapped->graphics->StreamOutput.pSODeclaration = NULL;
+        }
+
+        if(wrapped->graphics->StreamOutput.NumStrides)
+        {
+          wrapped->graphics->StreamOutput.pBufferStrides =
+              new UINT[wrapped->graphics->StreamOutput.NumStrides];
+          memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
+                 expandedDesc.StreamOutput.pBufferStrides,
+                 sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+        }
+        else
+        {
+          wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+        }
+      }
+    }
+
+    *ppPipelineState = (ID3D12PipelineState *)wrapped;
+  }
+
+  return ret;
+}
+
+HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, REFIID riid,
+                                                         void **ppvHeap)
+{
+  if(ppvHeap == NULL)
+    return m_pDevice3->OpenExistingHeapFromAddress(pAddress, riid, ppvHeap);
+
+  if(riid != __uuidof(ID3D12Heap))
+    return E_NOINTERFACE;
+
+  ID3D12Heap *real = NULL;
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->OpenExistingHeapFromAddress(pAddress, riid, (void **)&real));
+
+  if(SUCCEEDED(ret))
+  {
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+
+    if(IsCaptureMode(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      D3D12_HEAP_DESC heapDesc = wrapped->GetDesc();
+
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeapFromAddress);
+      Serialise_CreateHeap(ser, &heapDesc, riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Heap;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    *ppvHeap = (ID3D12Heap *)wrapped;
+  }
+
+  return ret;
+}
+
+HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping, REFIID riid,
+                                                             void **ppvHeap)
+{
+  if(ppvHeap == NULL)
+    return m_pDevice3->OpenExistingHeapFromFileMapping(hFileMapping, riid, ppvHeap);
+
+  if(riid != __uuidof(ID3D12Heap))
+    return E_NOINTERFACE;
+
+  ID3D12Heap *real = NULL;
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice3->OpenExistingHeapFromFileMapping(hFileMapping, riid, (void **)&real));
+
+  if(SUCCEEDED(ret))
+  {
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+
+    if(IsCaptureMode(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      D3D12_HEAP_DESC heapDesc = wrapped->GetDesc();
+
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeapFromFileMapping);
+      Serialise_CreateHeap(ser, &heapDesc, riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Heap;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    *ppvHeap = (ID3D12Heap *)wrapped;
+  }
+
+  return ret;
+}
+
+HRESULT WrappedID3D12Device::EnqueueMakeResident(D3D12_RESIDENCY_FLAGS Flags, UINT NumObjects,
+                                                 ID3D12Pageable *const *ppObjects,
+                                                 ID3D12Fence *pFenceToSignal,
+                                                 UINT64 FenceValueToSignal)
+{
+  ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
+
+  // assume objects are immediately resident for the purposes of our tracking
+  for(UINT i = 0; i < NumObjects; i++)
+  {
+    if(WrappedID3D12DescriptorHeap::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)ppObjects[i];
+      heap->SetResident(true);
+      unwrapped[i] = heap->GetReal();
+    }
+    else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
+      res->SetResident(true);
+      unwrapped[i] = res->GetReal();
+    }
+    else
+    {
+      unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
+    }
+  }
+
+  bool capframe = false;
+
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = IsActiveCapturing(m_State);
+  }
+
+  if(capframe)
+  {
+    // serialise
+  }
+
+  return m_pDevice3->EnqueueMakeResident(Flags, NumObjects, unwrapped, Unwrap(pFenceToSignal),
+                                         FenceValueToSignal);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommandQueue,
@@ -2385,3 +2806,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommandSignatur
                                 void **ppvCommandSignature);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, DynamicDescriptorCopies,
                                 const std::vector<DynamicDescriptorCopy> &DescriptorCopies);
+INSTANTIATE_FUNCTION_SERIALISED(HRESULT, WrappedID3D12Device, CreatePipelineState,
+                                const D3D12_PIPELINE_STATE_STREAM_DESC *pDesc, REFIID riid,
+                                void **ppPipelineState);
+INSTANTIATE_FUNCTION_SERIALISED(HRESULT, WrappedID3D12Device, EnqueueMakeResident,
+                                D3D12_RESIDENCY_FLAGS Flags, UINT NumObjects,
+                                ID3D12Pageable *const *ppObjects, ID3D12Fence *pFenceToSignal,
+                                UINT64 FenceValueToSignal);

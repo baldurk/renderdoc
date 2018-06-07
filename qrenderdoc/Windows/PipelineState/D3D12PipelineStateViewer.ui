@@ -3256,6 +3256,37 @@
                <number>0</number>
               </property>
               <item row="1" column="0">
+               <widget class="QLabel" name="depthBoundsLabel">
+                <property name="text">
+                 <string>Bounds:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLabel" name="depthBounds">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="pixmap">
+                 <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <property name="margin">
+                 <number>4</number>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
                <widget class="QLabel" name="depthWriteLabel">
                 <property name="text">
                  <string>Write:</string>
@@ -3265,7 +3296,7 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="0">
+              <item row="3" column="0">
                <widget class="QLabel" name="depthFuncLabel">
                 <property name="text">
                  <string>Func:</string>
@@ -3301,7 +3332,7 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="2" column="1">
                <widget class="QLabel" name="depthWrite">
                 <property name="text">
                  <string/>
@@ -3317,7 +3348,7 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
+              <item row="3" column="1">
                <widget class="QLabel" name="depthFunc">
                 <property name="font">
                  <font>

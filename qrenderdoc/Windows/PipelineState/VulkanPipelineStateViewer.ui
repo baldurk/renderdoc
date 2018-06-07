@@ -2896,6 +2896,11 @@
               </item>
               <item row="1" column="1">
                <widget class="QLabel" name="depthBounds">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
                 <property name="text">
                  <string/>
                 </property>

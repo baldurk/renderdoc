@@ -1386,13 +1386,17 @@ void D3D12Replay::SavePipelineState()
     }
 
     {
-      D3D12_DEPTH_STENCIL_DESC &src = pipe->graphics->DepthStencilState;
+      D3D12_DEPTH_STENCIL_DESC1 &src = pipe->graphics->DepthStencilState;
 
       state.outputMerger.depthStencilState.depthEnable = src.DepthEnable == TRUE;
       state.outputMerger.depthStencilState.depthFunction = MakeCompareFunc(src.DepthFunc);
       state.outputMerger.depthStencilState.depthWrites =
           src.DepthWriteMask == D3D12_DEPTH_WRITE_MASK_ALL;
       state.outputMerger.depthStencilState.stencilEnable = src.StencilEnable == TRUE;
+      state.outputMerger.depthStencilState.depthBoundsEnable = src.DepthBoundsTestEnable == TRUE;
+
+      state.outputMerger.depthStencilState.minDepthBounds = rs.depthBoundsMin;
+      state.outputMerger.depthStencilState.maxDepthBounds = rs.depthBoundsMax;
 
       state.outputMerger.depthStencilState.frontFace.function =
           MakeCompareFunc(src.FrontFace.StencilFunc);
@@ -2755,7 +2759,7 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
 
         if(pipe->graphics)
         {
-          D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = *pipe->graphics;
+          D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc = *pipe->graphics;
 
           D3D12_SHADER_BYTECODE *shaders[] = {
               &desc.VS, &desc.HS, &desc.DS, &desc.GS, &desc.PS,
@@ -2774,18 +2778,16 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
             }
           }
 
-          m_pDevice->CreateGraphicsPipelineState(&desc, __uuidof(ID3D12PipelineState),
-                                                 (void **)&replpipe);
+          m_pDevice->CreatePipeState(desc, &replpipe);
         }
         else
         {
-          D3D12_COMPUTE_PIPELINE_STATE_DESC desc = *pipe->compute;
+          D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc = *pipe->compute;
 
           // replace the shader
           desc.CS = shDesc;
 
-          m_pDevice->CreateComputePipelineState(&desc, __uuidof(ID3D12PipelineState),
-                                                (void **)&replpipe);
+          m_pDevice->CreatePipeState(desc, &replpipe);
         }
 
         rm->ReplaceResource(id, GetResID(replpipe));

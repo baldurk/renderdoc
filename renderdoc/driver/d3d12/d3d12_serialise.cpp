@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "driver/dxgi/dxgi_common.h"
+#include "d3d12_command_list.h"
 #include "d3d12_common.h"
 #include "d3d12_resources.h"
 
@@ -277,6 +278,48 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
       break;
     }
   }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &el)
+{
+  SERIALISE_MEMBER(pRootSignature);
+  SERIALISE_MEMBER(VS);
+  SERIALISE_MEMBER(PS);
+  SERIALISE_MEMBER(DS);
+  SERIALISE_MEMBER(HS);
+  SERIALISE_MEMBER(GS);
+  SERIALISE_MEMBER(StreamOutput);
+  SERIALISE_MEMBER(BlendState);
+  SERIALISE_MEMBER(SampleMask);
+  SERIALISE_MEMBER(RasterizerState);
+  SERIALISE_MEMBER(DepthStencilState);
+  SERIALISE_MEMBER(InputLayout);
+  SERIALISE_MEMBER(IBStripCutValue);
+  SERIALISE_MEMBER(PrimitiveTopologyType);
+  SERIALISE_MEMBER(RTVFormats);
+  SERIALISE_MEMBER(DSVFormat);
+  SERIALISE_MEMBER(SampleDesc);
+  SERIALISE_MEMBER(NodeMask);
+  SERIALISE_MEMBER(CachedPSO);
+  SERIALISE_MEMBER(Flags);
+  SERIALISE_MEMBER(ViewInstancing);
+  SERIALISE_MEMBER(CS);
+}
+
+template <>
+void Deserialise(const D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &el)
+{
+  delete[] el.ViewInstancing.pViewInstanceLocations;
+  delete[] el.StreamOutput.pSODeclaration;
+  delete[] el.StreamOutput.pBufferStrides;
+  delete[] el.InputLayout.pInputElementDescs;
+  FreeAlignedBuffer((byte *)(el.VS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.PS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.DS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.HS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.GS.pShaderBytecode));
+  FreeAlignedBuffer((byte *)(el.CS.pShaderBytecode));
 }
 
 template <class SerialiserType>
@@ -1097,12 +1140,77 @@ void DoSerialise(SerialiserType &ser, D3D12_SAMPLER_DESC &el)
   SERIALISE_MEMBER(MaxLOD);
 }
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RT_FORMAT_ARRAY &el)
+{
+  SERIALISE_MEMBER(RTFormats);
+  SERIALISE_MEMBER(NumRenderTargets);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_DESC1 &el)
+{
+  SERIALISE_MEMBER(DepthEnable);
+  SERIALISE_MEMBER(DepthWriteMask);
+  SERIALISE_MEMBER(DepthFunc);
+  SERIALISE_MEMBER(StencilEnable);
+  SERIALISE_MEMBER(StencilReadMask);
+  SERIALISE_MEMBER(StencilWriteMask);
+  SERIALISE_MEMBER(FrontFace);
+  SERIALISE_MEMBER(BackFace);
+  SERIALISE_MEMBER(DepthBoundsTestEnable);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_VIEW_INSTANCE_LOCATION &el)
+{
+  SERIALISE_MEMBER(ViewportArrayIndex);
+  SERIALISE_MEMBER(RenderTargetArrayIndex);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_VIEW_INSTANCING_DESC &el)
+{
+  SERIALISE_MEMBER(ViewInstanceCount);
+  SERIALISE_MEMBER_ARRAY(pViewInstanceLocations, ViewInstanceCount);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_SAMPLE_POSITION &el)
+{
+  SERIALISE_MEMBER(X);
+  SERIALISE_MEMBER(Y);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RANGE_UINT64 &el)
+{
+  SERIALISE_MEMBER(Begin);
+  SERIALISE_MEMBER(End);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_SUBRESOURCE_RANGE_UINT64 &el)
+{
+  SERIALISE_MEMBER(Subresource);
+  SERIALISE_MEMBER(Range);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_WRITEBUFFERIMMEDIATE_PARAMETER &el)
+{
+  SERIALISE_MEMBER(Dest);
+  SERIALISE_MEMBER(Value);
+}
+
 INSTANTIATE_SERIALISE_TYPE(PortableHandle);
 INSTANTIATE_SERIALISE_TYPE(D3D12_CPU_DESCRIPTOR_HANDLE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_GPU_DESCRIPTOR_HANDLE);
 INSTANTIATE_SERIALISE_TYPE(DynamicDescriptorCopy);
 INSTANTIATE_SERIALISE_TYPE(D3D12BufferLocation);
 INSTANTIATE_SERIALISE_TYPE(D3D12Descriptor);
+INSTANTIATE_SERIALISE_TYPE(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC);
 
 INSTANTIATE_SERIALISE_TYPE(D3D12_RESOURCE_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_COMMAND_QUEUE_DESC);
@@ -1135,3 +1243,10 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_RANGE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_RECT);
 INSTANTIATE_SERIALISE_TYPE(D3D12_BOX);
 INSTANTIATE_SERIALISE_TYPE(D3D12_VIEWPORT);
+INSTANTIATE_SERIALISE_TYPE(D3D12_PIPELINE_STATE_STREAM_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RT_FORMAT_ARRAY);
+INSTANTIATE_SERIALISE_TYPE(D3D12_DEPTH_STENCIL_DESC1);
+INSTANTIATE_SERIALISE_TYPE(D3D12_VIEW_INSTANCING_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_SAMPLE_POSITION);
+INSTANTIATE_SERIALISE_TYPE(D3D12_SUBRESOURCE_RANGE_UINT64);
+INSTANTIATE_SERIALISE_TYPE(D3D12_WRITEBUFFERIMMEDIATE_PARAMETER);

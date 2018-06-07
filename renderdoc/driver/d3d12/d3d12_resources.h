@@ -418,21 +418,28 @@ public:
   }
 };
 
-class WrappedID3D12Fence : public WrappedDeviceChild12<ID3D12Fence>
+class WrappedID3D12Fence1 : public WrappedDeviceChild12<ID3D12Fence, ID3D12Fence1>
 {
+  ID3D12Fence1 *m_pReal1 = NULL;
+
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Fence);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Fence1);
 
   enum
   {
     TypeEnum = Resource_Fence,
   };
 
-  WrappedID3D12Fence(ID3D12Fence *real, WrappedID3D12Device *device)
+  WrappedID3D12Fence1(ID3D12Fence *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    real->QueryInterface(__uuidof(ID3D12Fence1), (void **)&m_pReal1);
   }
-  virtual ~WrappedID3D12Fence() { Shutdown(); }
+  virtual ~WrappedID3D12Fence1()
+  {
+    SAFE_RELEASE(m_pReal1);
+    Shutdown();
+  }
   //////////////////////////////
   // implement ID3D12Fence
 
@@ -443,6 +450,12 @@ public:
   }
 
   virtual HRESULT STDMETHODCALLTYPE Signal(UINT64 Value) { return m_pReal->Signal(Value); }
+  //////////////////////////////
+  // implement ID3D12Fence1
+  virtual D3D12_FENCE_FLAGS STDMETHODCALLTYPE GetCreationFlags()
+  {
+    return m_pReal1->GetCreationFlags();
+  }
 };
 
 class WrappedID3D12Heap : public WrappedDeviceChild12<ID3D12Heap>
@@ -473,8 +486,31 @@ public:
   static const int AllocMaxByteSize = 5 * 1024 * 1024;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState, AllocPoolCount, AllocMaxByteSize);
 
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC *graphics;
-  D3D12_COMPUTE_PIPELINE_STATE_DESC *compute;
+  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *graphics = NULL;
+  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *compute = NULL;
+
+  void Fill(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &desc)
+  {
+    if(graphics)
+    {
+      desc = *graphics;
+      if(VS())
+        desc.VS = VS()->GetDesc();
+      if(HS())
+        desc.HS = HS()->GetDesc();
+      if(DS())
+        desc.DS = DS()->GetDesc();
+      if(GS())
+        desc.GS = GS()->GetDesc();
+      if(PS())
+        desc.PS = PS()->GetDesc();
+    }
+    else
+    {
+      desc = *compute;
+      desc.CS = CS()->GetDesc();
+    }
+  }
 
   bool IsGraphics() { return graphics != NULL; }
   bool IsCompute() { return compute != NULL; }
@@ -658,58 +694,9 @@ public:
   ShaderEntry *GS() { return (ShaderEntry *)graphics->GS.pShaderBytecode; }
   ShaderEntry *PS() { return (ShaderEntry *)graphics->PS.pShaderBytecode; }
   ShaderEntry *CS() { return (ShaderEntry *)compute->CS.pShaderBytecode; }
-  D3D12_COMPUTE_PIPELINE_STATE_DESC GetComputeDesc()
-  {
-    D3D12_COMPUTE_PIPELINE_STATE_DESC ret = *compute;
-
-    ret.CS = CS()->GetDesc();
-
-    return ret;
-  }
-
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC GetGraphicsDesc()
-  {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC ret = *graphics;
-
-    ShaderEntry *vs = VS();
-    ShaderEntry *hs = HS();
-    ShaderEntry *ds = DS();
-    ShaderEntry *gs = GS();
-    ShaderEntry *ps = PS();
-
-    if(vs)
-      ret.VS = vs->GetDesc();
-    else
-      RDCEraseEl(ret.VS);
-
-    if(hs)
-      ret.HS = hs->GetDesc();
-    else
-      RDCEraseEl(ret.HS);
-
-    if(ds)
-      ret.DS = ds->GetDesc();
-    else
-      RDCEraseEl(ret.DS);
-
-    if(gs)
-      ret.GS = gs->GetDesc();
-    else
-      RDCEraseEl(ret.GS);
-
-    if(ps)
-      ret.PS = ps->GetDesc();
-    else
-      RDCEraseEl(ret.PS);
-
-    return ret;
-  }
-
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
-    graphics = NULL;
-    compute = NULL;
   }
   virtual ~WrappedID3D12PipelineState()
   {
@@ -894,18 +881,18 @@ public:
   virtual ~WrappedID3D12RootSignature() { Shutdown(); }
 };
 
-class WrappedID3D12PipelineLibrary : public WrappedDeviceChild12<ID3D12PipelineLibrary>
+class WrappedID3D12PipelineLibrary1 : public WrappedDeviceChild12<ID3D12PipelineLibrary1>
 {
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineLibrary);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineLibrary1);
 
   enum
   {
     TypeEnum = Resource_PipelineLibrary,
   };
 
-  WrappedID3D12PipelineLibrary(WrappedID3D12Device *device) : WrappedDeviceChild12(NULL, device) {}
-  virtual ~WrappedID3D12PipelineLibrary() { Shutdown(); }
+  WrappedID3D12PipelineLibrary1(WrappedID3D12Device *device) : WrappedDeviceChild12(NULL, device) {}
+  virtual ~WrappedID3D12PipelineLibrary1() { Shutdown(); }
   virtual HRESULT STDMETHODCALLTYPE StorePipeline(_In_opt_ LPCWSTR pName,
                                                   _In_ ID3D12PipelineState *pPipeline)
   {
@@ -948,19 +935,31 @@ public:
     memset(pData, 0, DummyBytes);
     return S_OK;
   }
+
+  //////////////////////////////
+  // implement ID3D12PipelineLibrary1
+
+  virtual HRESULT STDMETHODCALLTYPE LoadPipeline(LPCWSTR pName,
+                                                 const D3D12_PIPELINE_STATE_STREAM_DESC *pDesc,
+                                                 REFIID riid, void **ppPipelineState)
+  {
+    // pretend we don't have it - assume that the application won't store then
+    // load in the same run, or will handle that if it happens
+    return E_INVALIDARG;
+  }
 };
 
 #define ALL_D3D12_TYPES                     \
   D3D12_TYPE_MACRO(ID3D12CommandAllocator); \
   D3D12_TYPE_MACRO(ID3D12CommandSignature); \
   D3D12_TYPE_MACRO(ID3D12DescriptorHeap);   \
-  D3D12_TYPE_MACRO(ID3D12Fence);            \
+  D3D12_TYPE_MACRO(ID3D12Fence1);           \
   D3D12_TYPE_MACRO(ID3D12Heap);             \
   D3D12_TYPE_MACRO(ID3D12PipelineState);    \
   D3D12_TYPE_MACRO(ID3D12QueryHeap);        \
   D3D12_TYPE_MACRO(ID3D12Resource);         \
   D3D12_TYPE_MACRO(ID3D12RootSignature);    \
-  D3D12_TYPE_MACRO(ID3D12PipelineLibrary);
+  D3D12_TYPE_MACRO(ID3D12PipelineLibrary1);
 
 // template magic voodoo to unwrap types
 template <typename inner>
@@ -989,6 +988,20 @@ struct UnwrapHelper
 
 ALL_D3D12_TYPES;
 
+// extra helpers here for '1' or '2' extended interfaces
+#define D3D12_UNWRAP_EXTENDED(iface, ifaceX)                                              \
+  template <>                                                                             \
+  struct UnwrapHelper<iface>                                                              \
+  {                                                                                       \
+    typedef CONCAT(Wrapped, ifaceX) Outer;                                                \
+    static bool IsAlloc(void *ptr) { return Outer::IsAlloc(ptr); }                        \
+    static D3D12ResourceType GetTypeEnum() { return (D3D12ResourceType)Outer::TypeEnum; } \
+    static Outer *FromHandle(iface *wrapped) { return (Outer *)wrapped; }                 \
+  };
+
+D3D12_UNWRAP_EXTENDED(ID3D12Fence, ID3D12Fence1);
+D3D12_UNWRAP_EXTENDED(ID3D12PipelineLibrary, ID3D12PipelineLibrary1);
+
 D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr);
 
 #define WRAPPING_DEBUG 0
@@ -1011,6 +1024,8 @@ typename UnwrapHelper<iface>::Outer *GetWrapped(iface *obj)
 
   return wrapped;
 }
+
+class WrappedID3D12GraphicsCommandList2;
 
 template <typename ifaceptr>
 ifaceptr Unwrap(ifaceptr obj)

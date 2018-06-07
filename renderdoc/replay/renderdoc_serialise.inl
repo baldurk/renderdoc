@@ -1337,12 +1337,15 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::DepthStencilState &el)
 {
   SERIALISE_MEMBER(depthEnable);
   SERIALISE_MEMBER(depthWrites);
+  SERIALISE_MEMBER(depthBoundsEnable);
   SERIALISE_MEMBER(depthFunction);
   SERIALISE_MEMBER(stencilEnable);
   SERIALISE_MEMBER(frontFace);
   SERIALISE_MEMBER(backFace);
+  SERIALISE_MEMBER(minDepthBounds);
+  SERIALISE_MEMBER(maxDepthBounds);
 
-  SIZE_CHECK(68);
+  SIZE_CHECK(76);
 }
 
 template <typename SerialiserType>
@@ -1370,7 +1373,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::OM &el)
   SERIALISE_MEMBER(multiSampleCount);
   SERIALISE_MEMBER(multiSampleQuality);
 
-  SIZE_CHECK(264);
+  SIZE_CHECK(272);
 }
 
 template <typename SerialiserType>
@@ -1413,7 +1416,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1176);
+  SIZE_CHECK(1184);
 }
 
 #pragma endregion D3D12 pipeline state

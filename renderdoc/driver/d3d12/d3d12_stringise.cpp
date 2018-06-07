@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1086, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1096, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -160,6 +160,25 @@ std::string DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(Queue_BeginEvent, "ID3D12CommandQueue::BeginEvent");
     STRINGISE_ENUM_CLASS_NAMED(Queue_SetMarker, "ID3D12CommandQueue::SetMarker");
     STRINGISE_ENUM_CLASS_NAMED(Queue_EndEvent, "ID3D12CommandQueue::EndEvent");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreatePipelineState, "ID3D12Device2::CreatePipelineState");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateHeapFromAddress,
+                               "ID3D12Device3::OpenExistingHeapFromAddress");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateHeapFromFileMapping,
+                               "ID3D12Device3::OpenExistingHeapFromFileMapping");
+    STRINGISE_ENUM_CLASS_NAMED(List_AtomicCopyBufferUINT,
+                               "ID3D12GraphicsCommandList1::AtomicCopyBufferUINT");
+    STRINGISE_ENUM_CLASS_NAMED(List_AtomicCopyBufferUINT64,
+                               "ID3D12GraphicsCommandList1::AtomicCopyBufferUINT64");
+    STRINGISE_ENUM_CLASS_NAMED(List_OMSetDepthBounds,
+                               "ID3D12GraphicsCommandList1::OMSetDepthBounds");
+    STRINGISE_ENUM_CLASS_NAMED(List_ResolveSubresourceRegion,
+                               "ID3D12GraphicsCommandList1::ResolveSubresourceRegion");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetSamplePositions,
+                               "ID3D12GraphicsCommandList1::SetSamplePositions");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetViewInstanceMask,
+                               "ID3D12GraphicsCommandList1::SetViewInstanceMask");
+    STRINGISE_ENUM_CLASS_NAMED(List_WriteBufferImmediate,
+                               "ID3D12GraphicsCommandList2::WriteBufferImmediate");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -729,6 +748,31 @@ std::string DoStringise(const D3D12_TILED_RESOURCES_TIER &el)
 }
 
 template <>
+std::string DoStringise(const D3D12_RESOLVE_MODE &el)
+{
+  BEGIN_ENUM_STRINGISE(D3D12_RESOLVE_MODE);
+  {
+    STRINGISE_ENUM(D3D12_RESOLVE_MODE_AVERAGE)
+    STRINGISE_ENUM(D3D12_RESOLVE_MODE_DECOMPRESS)
+    STRINGISE_ENUM(D3D12_RESOLVE_MODE_MAX)
+    STRINGISE_ENUM(D3D12_RESOLVE_MODE_MIN)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const D3D12_WRITEBUFFERIMMEDIATE_MODE &el)
+{
+  BEGIN_ENUM_STRINGISE(D3D12_WRITEBUFFERIMMEDIATE_MODE);
+  {
+    STRINGISE_ENUM(D3D12_WRITEBUFFERIMMEDIATE_MODE_DEFAULT)
+    STRINGISE_ENUM(D3D12_WRITEBUFFERIMMEDIATE_MODE_MARKER_IN)
+    STRINGISE_ENUM(D3D12_WRITEBUFFERIMMEDIATE_MODE_MARKER_OUT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const D3D12_CLEAR_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_CLEAR_FLAGS);
@@ -954,6 +998,18 @@ std::string DoStringise(const D3D12_COLOR_WRITE_ENABLE &el)
     STRINGISE_BITFIELD_BIT(D3D12_COLOR_WRITE_ENABLE_GREEN);
     STRINGISE_BITFIELD_BIT(D3D12_COLOR_WRITE_ENABLE_BLUE);
     STRINGISE_BITFIELD_BIT(D3D12_COLOR_WRITE_ENABLE_ALPHA);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const D3D12_VIEW_INSTANCING_FLAGS &el)
+{
+  BEGIN_BITFIELD_STRINGISE(D3D12_VIEW_INSTANCING_FLAGS);
+  {
+    STRINGISE_BITFIELD_VALUE(D3D12_VIEW_INSTANCING_FLAG_NONE);
+
+    STRINGISE_BITFIELD_BIT(D3D12_VIEW_INSTANCING_FLAG_ENABLE_VIEW_INSTANCE_MASKING);
   }
   END_BITFIELD_STRINGISE();
 }

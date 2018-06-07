@@ -30,6 +30,10 @@
 
 #define DLL_NAME "d3d12.dll"
 
+typedef HRESULT(WINAPI *PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)(UINT NumFeatures, const IID *pIIDs,
+                                                                void *pConfigurationStructs,
+                                                                UINT *pConfigurationStructSizes);
+
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 {
   if(WrappedID3D12CommandQueue::IsAlloc(dev))
@@ -108,6 +112,8 @@ public:
     success &= CreateDevice.Initialize("D3D12CreateDevice", DLL_NAME, D3D12CreateDevice_hook);
     success &= GetDebugInterface.Initialize("D3D12GetDebugInterface", DLL_NAME,
                                             D3D12GetDebugInterface_hook);
+    success &= EnableExperimentalFeatures.Initialize("D3D12EnableExperimentalFeatures", DLL_NAME,
+                                                     D3D12EnableExperimentalFeatures_hook);
 
     if(!success)
       return false;
@@ -135,6 +141,7 @@ private:
 
   Hook<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
   Hook<PFN_D3D12_CREATE_DEVICE> CreateDevice;
+  Hook<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate;
@@ -173,7 +180,8 @@ private:
 
     m_InsideCreate = true;
 
-    if(riid != __uuidof(ID3D12Device) && riid != __uuidof(ID3D12Device1))
+    if(riid != __uuidof(ID3D12Device) && riid != __uuidof(ID3D12Device1) &&
+       riid != __uuidof(ID3D12Device2) && riid != __uuidof(ID3D12Device3))
     {
       RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr(riid).c_str());
       return E_NOINTERFACE;
@@ -281,7 +289,16 @@ private:
         if(riid == __uuidof(ID3D12Device1))
         {
           ID3D12Device1 *dev1 = (ID3D12Device1 *)*ppDevice;
-
+          dev = (ID3D12Device *)dev1;
+        }
+        else if(riid == __uuidof(ID3D12Device2))
+        {
+          ID3D12Device2 *dev1 = (ID3D12Device2 *)*ppDevice;
+          dev = (ID3D12Device *)dev1;
+        }
+        else if(riid == __uuidof(ID3D12Device3))
+        {
+          ID3D12Device3 *dev1 = (ID3D12Device3 *)*ppDevice;
           dev = (ID3D12Device *)dev1;
         }
 
@@ -292,9 +309,11 @@ private:
         *ppDevice = (ID3D12Device *)wrap;
 
         if(riid == __uuidof(ID3D12Device1))
-        {
           *ppDevice = (ID3D12Device1 *)wrap;
-        }
+        else if(riid == __uuidof(ID3D12Device2))
+          *ppDevice = (ID3D12Device2 *)wrap;
+        else if(riid == __uuidof(ID3D12Device3))
+          *ppDevice = (ID3D12Device3 *)wrap;
       }
     }
     else if(SUCCEEDED(ret))
@@ -316,6 +335,17 @@ private:
                                                void **ppDevice)
   {
     return d3d12hooks.Create_Internal(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+  }
+
+  static HRESULT WINAPI D3D12EnableExperimentalFeatures_hook(UINT NumFeatures, const IID *pIIDs,
+                                                             void *pConfigurationStructs,
+                                                             UINT *pConfigurationStructSizes)
+  {
+    // in future in theory we could whitelist some features. For now we don't allow any.
+
+    // header says "The call returns E_NOINTERFACE if an unrecognized feature is passed in or
+    // Windows Developer mode is not on." so this is the most appropriate error.
+    return E_NOINTERFACE;
   }
 
   static HRESULT WINAPI D3D12GetDebugInterface_hook(REFIID riid, void **ppvDebug)

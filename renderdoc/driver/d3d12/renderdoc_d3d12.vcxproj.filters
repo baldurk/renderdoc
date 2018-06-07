@@ -143,5 +143,8 @@
     <ClCompile Include="d3d12_rendertext.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_command_list1_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -73,7 +73,7 @@ ResourceId D3D12RenderState::GetDSVID() const
   return GetResID(dsv.nonsamp.resource);
 }
 
-void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
+void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList2 *cmd) const
 {
   D3D12_COMMAND_LIST_TYPE type = cmd->GetType();
 
@@ -93,6 +93,14 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
 
     cmd->OMSetStencilRef(stencilRef);
     cmd->OMSetBlendFactor(blendFactor);
+
+    if(GetWrapped(cmd)->GetReal1())
+    {
+      cmd->OMSetDepthBounds(depthBoundsMin, depthBoundsMax);
+
+      // safe to set this - if the pipeline has view instancing disabled, it will do nothing
+      cmd->SetViewInstanceMask(viewInstMask);
+    }
 
     if(ibuffer.buf != ResourceId())
     {
@@ -173,7 +181,7 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
   }
 }
 
-void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandList *cmd) const
+void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandList2 *cmd) const
 {
   for(size_t i = 0; i < compute.sigelems.size(); i++)
   {
@@ -192,7 +200,7 @@ void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandList *cmd) 
   }
 }
 
-void D3D12RenderState::ApplyGraphicsRootElements(ID3D12GraphicsCommandList *cmd) const
+void D3D12RenderState::ApplyGraphicsRootElements(ID3D12GraphicsCommandList2 *cmd) const
 {
   for(size_t i = 0; i < graphics.sigelems.size(); i++)
   {

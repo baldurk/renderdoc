@@ -160,7 +160,7 @@ D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
 
   ALL_D3D12_TYPES;
 
-  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+  if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
     return Resource_GraphicsCommandList;
   if(WrappedID3D12CommandQueue::IsAlloc(ptr))
     return Resource_CommandQueue;
@@ -201,8 +201,8 @@ ID3D12Object *Unwrap(ID3D12Object *ptr)
 
   ALL_D3D12_TYPES;
 
-  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
-    return (ID3D12Object *)(((WrappedID3D12GraphicsCommandList *)ptr)->GetReal());
+  if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
+    return (ID3D12Object *)(((WrappedID3D12GraphicsCommandList2 *)ptr)->GetReal());
   if(WrappedID3D12CommandQueue::IsAlloc(ptr))
     return (ID3D12Object *)(((WrappedID3D12CommandQueue *)ptr)->GetReal());
 
@@ -221,8 +221,8 @@ ResourceId GetResID(ID3D12Object *ptr)
 
   if(res == NULL)
   {
-    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
-      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceID();
+    if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
+      return ((WrappedID3D12GraphicsCommandList2 *)ptr)->GetResourceID();
     if(WrappedID3D12CommandQueue::IsAlloc(ptr))
       return ((WrappedID3D12CommandQueue *)ptr)->GetResourceID();
 
@@ -244,8 +244,8 @@ D3D12ResourceRecord *GetRecord(ID3D12Object *ptr)
 
   if(res == NULL)
   {
-    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
-      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceRecord();
+    if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
+      return ((WrappedID3D12GraphicsCommandList2 *)ptr)->GetResourceRecord();
     if(WrappedID3D12CommandQueue::IsAlloc(ptr))
       return ((WrappedID3D12CommandQueue *)ptr)->GetResourceRecord();
 

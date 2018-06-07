@@ -68,17 +68,17 @@ struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
   }
 };
 
-class WrappedID3D12GraphicsCommandList;
+class WrappedID3D12GraphicsCommandList2;
 
 class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
                                   public RefCounter12<ID3D12CommandQueue>,
                                   public ID3DDevice
 {
-  friend class WrappedID3D12GraphicsCommandList;
+  friend class WrappedID3D12GraphicsCommandList2;
 
   WrappedID3D12Device *m_pDevice;
 
-  WrappedID3D12GraphicsCommandList *m_ReplayList;
+  WrappedID3D12GraphicsCommandList2 *m_ReplayList;
 
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_QueueRecord;

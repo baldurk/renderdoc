@@ -164,7 +164,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   if(!origPSO->IsGraphics())
     return;
 
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = origPSO->GetGraphicsDesc();
+  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
+  origPSO->Fill(psoDesc);
 
   if(psoDesc.VS.BytecodeLength == 0)
     return;
@@ -307,13 +308,11 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 
     // disable outputs
-    psoDesc.NumRenderTargets = 0;
     RDCEraseEl(psoDesc.RTVFormats);
     psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
     ID3D12PipelineState *pipe = NULL;
-    hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
-                                                (void **)&pipe);
+    hr = m_pDevice->CreatePipeState(psoDesc, &pipe);
     if(FAILED(hr))
     {
       RDCERR("Couldn't create patched graphics pipeline: HRESULT: %s", ToStr(hr).c_str());
@@ -336,7 +335,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       recreate = true;
     }
 
-    ID3D12GraphicsCommandList *list = NULL;
+    ID3D12GraphicsCommandList2 *list = NULL;
 
     if(!(drawcall->flags & DrawFlags::UseIBuffer))
     {
@@ -809,8 +808,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     psoDesc.PrimitiveTopologyType = origPSO->graphics->PrimitiveTopologyType;
 
     ID3D12PipelineState *pipe = NULL;
-    hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
-                                                (void **)&pipe);
+    hr = m_pDevice->CreatePipeState(psoDesc, &pipe);
     if(FAILED(hr))
     {
       RDCERR("Couldn't create patched graphics pipeline: HRESULT: %s", ToStr(hr).c_str());
@@ -820,7 +818,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
 
-    ID3D12GraphicsCommandList *list = NULL;
+    ID3D12GraphicsCommandList2 *list = NULL;
 
     view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
@@ -1300,20 +1298,20 @@ struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
   ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
       m_Replay->InitPostVSBuffers(eid);
   }
 
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override { return false; }
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override {}
   // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
-  void PreCloseCommandList(ID3D12GraphicsCommandList *cmd) {}
-  void AliasEvent(uint32_t primary, uint32_t alias)
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override {}
+  void PreCloseCommandList(ID3D12GraphicsCommandList2 *cmd) override {}
+  void AliasEvent(uint32_t primary, uint32_t alias) override
   {
     if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
       m_Replay->AliasPostVSBuffers(primary, alias);

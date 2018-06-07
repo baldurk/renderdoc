@@ -99,6 +99,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d12_commands.cpp" />
+    <ClCompile Include="d3d12_command_list1_wrap.cpp" />
     <ClCompile Include="d3d12_command_list_wrap.cpp" />
     <ClCompile Include="d3d12_command_queue_wrap.cpp" />
     <ClCompile Include="d3d12_common.cpp" />

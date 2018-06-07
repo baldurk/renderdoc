@@ -935,6 +935,9 @@ void D3D12PipelineStateViewer::clearState()
   ui->depthFunc->setText(lit("GREATER_EQUAL"));
   ui->depthWrite->setPixmap(tick);
 
+  ui->depthBounds->setPixmap(QPixmap());
+  ui->depthBounds->setText(lit("0.0-1.0"));
+
   ui->stencilEnabled->setPixmap(cross);
   ui->stencilReadMask->setText(lit("FF"));
   ui->stencilWriteMask->setText(lit("FF"));
@@ -1618,6 +1621,19 @@ void D3D12PipelineStateViewer::setState()
   ui->depthEnabled->setPixmap(state.outputMerger.depthStencilState.depthEnable ? tick : cross);
   ui->depthFunc->setText(ToQStr(state.outputMerger.depthStencilState.depthFunction));
   ui->depthWrite->setPixmap(state.outputMerger.depthStencilState.depthWrites ? tick : cross);
+
+  if(state.outputMerger.depthStencilState.depthBoundsEnable)
+  {
+    ui->depthBounds->setPixmap(QPixmap());
+    ui->depthBounds->setText(Formatter::Format(state.outputMerger.depthStencilState.minDepthBounds) +
+                             lit("-") +
+                             Formatter::Format(state.outputMerger.depthStencilState.maxDepthBounds));
+  }
+  else
+  {
+    ui->depthBounds->setText(QString());
+    ui->depthBounds->setPixmap(cross);
+  }
 
   ui->stencilEnabled->setPixmap(state.outputMerger.depthStencilState.stencilEnable ? tick : cross);
   ui->stencilReadMask->setText(
@@ -2896,10 +2912,21 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function")},
-        {om.depthStencilState.depthEnable ? tr("Yes") : tr("No"),
-         om.depthStencilState.depthWrites ? tr("Yes") : tr("No"),
-         ToQStr(om.depthStencilState.depthFunction)});
+        xml,
+        {
+            tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function"),
+            tr("Depth Bounds"),
+        },
+        {
+            om.depthStencilState.depthEnable ? tr("Yes") : tr("No"),
+            om.depthStencilState.depthWrites ? tr("Yes") : tr("No"),
+            ToQStr(om.depthStencilState.depthFunction),
+            om.depthStencilState.depthBoundsEnable
+                ? QFormatStr("%1 - %2")
+                      .arg(Formatter::Format(om.depthStencilState.minDepthBounds))
+                      .arg(Formatter::Format(om.depthStencilState.maxDepthBounds))
+                : tr("Disabled"),
+        });
   }
 
   {

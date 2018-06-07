@@ -148,9 +148,13 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   RDCEraseEl(m_D3D12Opts);
 
   m_pDevice1 = NULL;
+  m_pDevice2 = NULL;
+  m_pDevice3 = NULL;
   if(m_pDevice)
   {
     m_pDevice->QueryInterface(__uuidof(ID3D12Device1), (void **)&m_pDevice1);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device2), (void **)&m_pDevice2);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device3), (void **)&m_pDevice3);
 
     for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
       m_DescriptorIncrements[i] =
@@ -456,6 +460,32 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       AddRef();
       *ppvObject = (ID3D12Device1 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device2))
+  {
+    if(m_pDevice2)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device2 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device3))
+  {
+    if(m_pDevice3)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device3 *)this;
       return S_OK;
     }
     else
@@ -1750,6 +1780,65 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
   }
 }
 
+HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &desc,
+                                             ID3D12PipelineState **state)
+{
+  if(m_pDevice3)
+  {
+    D3D12_PACKED_PIPELINE_STATE_STREAM_DESC packedDesc = desc;
+    return CreatePipelineState(packedDesc.AsDescStream(), __uuidof(ID3D12PipelineState),
+                               (void **)state);
+  }
+
+  if(desc.CS.BytecodeLength > 0)
+  {
+    D3D12_COMPUTE_PIPELINE_STATE_DESC compDesc;
+    compDesc.pRootSignature = desc.pRootSignature;
+    compDesc.CS = desc.CS;
+    compDesc.NodeMask = desc.NodeMask;
+    compDesc.CachedPSO = desc.CachedPSO;
+    compDesc.Flags = desc.Flags;
+    return CreateComputePipelineState(&compDesc, __uuidof(ID3D12PipelineState), (void **)state);
+  }
+  else
+  {
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc;
+    graphicsDesc.pRootSignature = desc.pRootSignature;
+    graphicsDesc.VS = desc.VS;
+    graphicsDesc.PS = desc.PS;
+    graphicsDesc.DS = desc.DS;
+    graphicsDesc.HS = desc.HS;
+    graphicsDesc.GS = desc.GS;
+    graphicsDesc.StreamOutput = desc.StreamOutput;
+    graphicsDesc.BlendState = desc.BlendState;
+    graphicsDesc.SampleMask = desc.SampleMask;
+    graphicsDesc.RasterizerState = desc.RasterizerState;
+    // graphicsDesc.DepthStencilState = desc.DepthStencilState;
+    {
+      graphicsDesc.DepthStencilState.DepthEnable = desc.DepthStencilState.DepthEnable;
+      graphicsDesc.DepthStencilState.DepthWriteMask = desc.DepthStencilState.DepthWriteMask;
+      graphicsDesc.DepthStencilState.DepthFunc = desc.DepthStencilState.DepthFunc;
+      graphicsDesc.DepthStencilState.StencilEnable = desc.DepthStencilState.StencilEnable;
+      graphicsDesc.DepthStencilState.StencilReadMask = desc.DepthStencilState.StencilReadMask;
+      graphicsDesc.DepthStencilState.StencilWriteMask = desc.DepthStencilState.StencilWriteMask;
+      graphicsDesc.DepthStencilState.FrontFace = desc.DepthStencilState.FrontFace;
+      graphicsDesc.DepthStencilState.BackFace = desc.DepthStencilState.BackFace;
+      // no DepthBoundsTestEnable
+    }
+    graphicsDesc.InputLayout = desc.InputLayout;
+    graphicsDesc.IBStripCutValue = desc.IBStripCutValue;
+    graphicsDesc.PrimitiveTopologyType = desc.PrimitiveTopologyType;
+    graphicsDesc.NumRenderTargets = desc.RTVFormats.NumRenderTargets;
+    memcpy(graphicsDesc.RTVFormats, desc.RTVFormats.RTFormats, 8 * sizeof(DXGI_FORMAT));
+    graphicsDesc.DSVFormat = desc.DSVFormat;
+    graphicsDesc.SampleDesc = desc.SampleDesc;
+    graphicsDesc.NodeMask = desc.NodeMask;
+    graphicsDesc.CachedPSO = desc.CachedPSO;
+    graphicsDesc.Flags = desc.Flags;
+    return CreateGraphicsPipelineState(&graphicsDesc, __uuidof(ID3D12PipelineState), (void **)state);
+  }
+}
+
 void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                           std::string d)
 {
@@ -1977,7 +2066,7 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
 {
   // don't allow naming device contexts or command lists so we know this chunk
   // is always on a pre-capture chunk.
-  if(IsCaptureMode(m_State) && !WrappedID3D12GraphicsCommandList::IsAlloc(pResource) &&
+  if(IsCaptureMode(m_State) && !WrappedID3D12GraphicsCommandList2::IsAlloc(pResource) &&
      !WrappedID3D12CommandQueue::IsAlloc(pResource))
   {
     D3D12ResourceRecord *record = GetRecord(pResource);
@@ -2236,9 +2325,9 @@ void WrappedID3D12Device::GPUSyncAllQueues()
     GPUSync(m_Queues[i], m_QueueFences[i]);
 }
 
-ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
+ID3D12GraphicsCommandList2 *WrappedID3D12Device::GetNewList()
 {
-  ID3D12GraphicsCommandList *ret = NULL;
+  ID3D12GraphicsCommandList2 *ret = NULL;
 
   if(!m_InternalCmds.freecmds.empty())
   {
@@ -2249,8 +2338,12 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
   }
   else
   {
+    ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
-                                   __uuidof(ID3D12GraphicsCommandList), (void **)&ret);
+                                   __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+
+    // safe to upcast because this is a wrapped object.
+    ret = (ID3D12GraphicsCommandList2 *)list;
 
     RDCASSERTEQUAL(hr, S_OK);
 
@@ -2268,7 +2361,7 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
   return ret;
 }
 
-ID3D12GraphicsCommandList *WrappedID3D12Device::GetInitialStateList()
+ID3D12GraphicsCommandList2 *WrappedID3D12Device::GetInitialStateList()
 {
   if(initStateCurBatch >= initialStateMaxBatch)
   {
@@ -2297,7 +2390,7 @@ void WrappedID3D12Device::CloseInitialStateList()
   initStateCurBatch = 0;
 }
 
-void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue)
+void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList2 *list, ID3D12CommandQueue *queue)
 {
   if(queue == NULL)
     queue = GetQueue();
@@ -2394,7 +2487,6 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Device_CreateCommandSignature:
       return Serialise_CreateCommandSignature(ser, NULL, NULL, IID(), NULL);
       break;
-
     case D3D12Chunk::Device_CreateHeap: return Serialise_CreateHeap(ser, NULL, IID(), NULL); break;
     case D3D12Chunk::Device_CreateCommittedResource:
       return Serialise_CreateCommittedResource(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
@@ -2421,6 +2513,14 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       break;
     case D3D12Chunk::CreateSwapBuffer:
       return Serialise_WrapSwapchainBuffer(ser, NULL, NULL, 0, NULL);
+      break;
+    case D3D12Chunk::Device_CreatePipelineState:
+      return Serialise_CreatePipelineState(ser, NULL, IID(), NULL);
+      break;
+    // these functions are serialised as-if they are a real heap.
+    case D3D12Chunk::Device_CreateHeapFromAddress:
+    case D3D12Chunk::Device_CreateHeapFromFileMapping:
+      return Serialise_CreateHeap(ser, NULL, IID(), NULL);
       break;
     default:
     {
@@ -2724,7 +2824,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     // has chosen a subsection that lies within a command list
     if(partial)
     {
-      ID3D12GraphicsCommandList *list = cmd.m_OutsideCmdList = GetNewList();
+      ID3D12GraphicsCommandList2 *list = cmd.m_OutsideCmdList = GetNewList();
 
       cmd.m_RenderState.ApplyState(list);
     }
