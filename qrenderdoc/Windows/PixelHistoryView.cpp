@@ -310,7 +310,7 @@ public:
           if(isEvent(index))
             return tr("Tex After\n\n") + modString(getMods(index).last().postMod);
           else
-            return tr("Tex After\n\n") + modString(getMod(index).shaderOut);
+            return tr("Tex After\n\n") + modString(getMod(index).postMod);
         }
       }
 
@@ -322,7 +322,7 @@ public:
           if(isEvent(index))
             return backgroundBrush(getMods(index).first().preMod);
           else
-            return backgroundBrush(getMod(index).shaderOut);
+            return backgroundBrush(getMod(index).preMod);
         }
         else if(col == 4)
         {
