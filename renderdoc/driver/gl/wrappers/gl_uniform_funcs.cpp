@@ -345,7 +345,7 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
       const paramtype vals[] = {ARRAYLIST};                                                      \
       Serialise_glProgramUniformVector(ser, PROGRAM, location, 1, vals,                          \
                                        CONCAT(CONCAT(VEC, count), CONCAT(suffix, v)));           \
-      m_ContextRecord->AddChunk(scope.Get());                                                    \
+      GetContextRecord()->AddChunk(scope.Get());                                                 \
     }                                                                                            \
     else if(IsBackgroundCapturing(m_State))                                                      \
     {                                                                                            \
@@ -448,7 +448,7 @@ UNIFORM_FUNC(4, d, GLdouble, GLdouble v0, GLdouble v1, GLdouble v2, GLdouble v3)
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                        \
       Serialise_glProgramUniformVector(ser, PROGRAM, location, count, value,                      \
                                        CONCAT(CONCAT(VEC, unicount), CONCAT(suffix, v)));         \
-      m_ContextRecord->AddChunk(scope.Get());                                                     \
+      GetContextRecord()->AddChunk(scope.Get());                                                  \
     }                                                                                             \
     else if(IsBackgroundCapturing(m_State))                                                       \
     {                                                                                             \
@@ -530,7 +530,7 @@ UNIFORM_FUNC(4, d, GLdouble)
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                   \
       Serialise_glProgramUniformMatrix(ser, PROGRAM, location, count, transpose, value,      \
                                        CONCAT(CONCAT(MAT, dim), suffix));                    \
-      m_ContextRecord->AddChunk(scope.Get());                                                \
+      GetContextRecord()->AddChunk(scope.Get());                                             \
     }                                                                                        \
     else if(IsBackgroundCapturing(m_State))                                                  \
     {                                                                                        \

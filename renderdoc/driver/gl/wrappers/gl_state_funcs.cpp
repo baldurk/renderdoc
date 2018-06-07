@@ -53,7 +53,7 @@ void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendFunc(ser, sfactor, dfactor);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -84,7 +84,7 @@ void WrappedOpenGL::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendFunci(ser, buf, src, dst);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -117,7 +117,7 @@ void WrappedOpenGL::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLflo
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendColor(ser, red, green, blue, alpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -152,7 +152,7 @@ void WrappedOpenGL::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GL
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendFuncSeparate(ser, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -189,7 +189,7 @@ void WrappedOpenGL::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum d
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendFuncSeparatei(ser, buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -218,7 +218,7 @@ void WrappedOpenGL::glBlendEquation(GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendEquation(ser, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -248,7 +248,7 @@ void WrappedOpenGL::glBlendEquationi(GLuint buf, GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendEquationi(ser, buf, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -279,7 +279,7 @@ void WrappedOpenGL::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendEquationSeparate(ser, modeRGB, modeAlpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -311,7 +311,7 @@ void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendEquationSeparatei(ser, buf, modeRGB, modeAlpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -341,7 +341,7 @@ void WrappedOpenGL::glBlendBarrierKHR()
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendBarrierKHR(ser);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -357,7 +357,7 @@ void WrappedOpenGL::glBlendBarrier()
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlendBarrierKHR(ser);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -386,7 +386,7 @@ void WrappedOpenGL::glLogicOp(GLenum opcode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glLogicOp(ser, opcode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -417,7 +417,7 @@ void WrappedOpenGL::glStencilFunc(GLenum func, GLint ref, GLuint mask)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glStencilFunc(ser, func, ref, mask);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -450,7 +450,7 @@ void WrappedOpenGL::glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, G
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glStencilFuncSeparate(ser, face, func, ref, mask);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -479,7 +479,7 @@ void WrappedOpenGL::glStencilMask(GLuint mask)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glStencilMask(ser, mask);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -509,7 +509,7 @@ void WrappedOpenGL::glStencilMaskSeparate(GLenum face, GLuint mask)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glStencilMaskSeparate(ser, face, mask);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -540,7 +540,7 @@ void WrappedOpenGL::glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glStencilOp(ser, fail, zfail, zpass);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -573,7 +573,7 @@ void WrappedOpenGL::glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glStencilOpSeparate(ser, face, sfail, dpfail, dppass);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -606,7 +606,7 @@ void WrappedOpenGL::glClearColor(GLclampf red, GLclampf green, GLclampf blue, GL
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearColor(ser, red, green, blue, alpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -635,7 +635,7 @@ void WrappedOpenGL::glClearStencil(GLint stencil)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearStencil(ser, stencil);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -667,7 +667,7 @@ void WrappedOpenGL::glClearDepth(GLdouble depth)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearDepth(ser, depth);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -681,7 +681,7 @@ void WrappedOpenGL::glClearDepthf(GLfloat depth)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearDepth(ser, depth);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -710,7 +710,7 @@ void WrappedOpenGL::glDepthFunc(GLenum func)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthFunc(ser, func);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -739,7 +739,7 @@ void WrappedOpenGL::glDepthMask(GLboolean flag)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthMask(ser, flag);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -767,7 +767,7 @@ void WrappedOpenGL::glDepthRange(GLdouble nearVal, GLdouble farVal)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthRange(ser, nearVal, farVal);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -795,7 +795,7 @@ void WrappedOpenGL::glDepthRangef(GLfloat nearVal, GLfloat farVal)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthRangef(ser, nearVal, farVal);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -830,7 +830,7 @@ void WrappedOpenGL::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthRangeIndexed(ser, index, nearVal, farVal);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -844,7 +844,7 @@ void WrappedOpenGL::glDepthRangeIndexedfOES(GLuint index, GLfloat nearVal, GLflo
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthRangeIndexed(ser, index, (GLdouble)nearVal, (GLdouble)farVal);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -889,7 +889,7 @@ void WrappedOpenGL::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdoub
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthRangeArrayv(ser, first, count, v);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -909,7 +909,7 @@ void WrappedOpenGL::glDepthRangeArrayfvOES(GLuint first, GLsizei count, const GL
 
     delete[] dv;
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -939,7 +939,7 @@ void WrappedOpenGL::glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDepthBoundsEXT(ser, nearVal, farVal);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -969,7 +969,7 @@ void WrappedOpenGL::glClipControl(GLenum origin, GLenum depth)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClipControl(ser, origin, depth);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -998,7 +998,7 @@ void WrappedOpenGL::glProvokingVertex(GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glProvokingVertex(ser, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1027,7 +1027,7 @@ void WrappedOpenGL::glPrimitiveRestartIndex(GLuint index)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPrimitiveRestartIndex(ser, index);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1067,7 +1067,7 @@ void WrappedOpenGL::glDisable(GLenum cap)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDisable(ser, cap);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1096,7 +1096,7 @@ void WrappedOpenGL::glEnable(GLenum cap)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glEnable(ser, cap);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1126,7 +1126,7 @@ void WrappedOpenGL::glDisablei(GLenum cap, GLuint index)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDisablei(ser, cap, index);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1156,7 +1156,7 @@ void WrappedOpenGL::glEnablei(GLenum cap, GLuint index)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glEnablei(ser, cap, index);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1185,7 +1185,7 @@ void WrappedOpenGL::glFrontFace(GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glFrontFace(ser, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1214,7 +1214,7 @@ void WrappedOpenGL::glCullFace(GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glCullFace(ser, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1244,7 +1244,7 @@ void WrappedOpenGL::glHint(GLenum target, GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glHint(ser, target, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1278,7 +1278,7 @@ void WrappedOpenGL::glColorMask(GLboolean red, GLboolean green, GLboolean blue, 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glColorMask(ser, red, green, blue, alpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1314,7 +1314,7 @@ void WrappedOpenGL::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLb
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glColorMaski(ser, buf, red, green, blue, alpha);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1344,7 +1344,7 @@ void WrappedOpenGL::glSampleMaski(GLuint maskNumber, GLbitfield mask)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSampleMaski(ser, maskNumber, mask);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1374,7 +1374,7 @@ void WrappedOpenGL::glSampleCoverage(GLfloat value, GLboolean invert)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSampleCoverage(ser, value, invert);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1403,7 +1403,7 @@ void WrappedOpenGL::glMinSampleShading(GLfloat value)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMinSampleShading(ser, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1434,7 +1434,7 @@ void WrappedOpenGL::glRasterSamplesEXT(GLuint samples, GLboolean fixedsampleloca
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glRasterSamplesEXT(ser, samples, fixedsamplelocations);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1464,7 +1464,7 @@ void WrappedOpenGL::glPatchParameteri(GLenum pname, GLint value)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPatchParameteri(ser, pname, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1495,7 +1495,7 @@ void WrappedOpenGL::glPatchParameterfv(GLenum pname, const GLfloat *values)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPatchParameterfv(ser, pname, values);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1524,7 +1524,7 @@ void WrappedOpenGL::glLineWidth(GLfloat width)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glLineWidth(ser, width);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1553,7 +1553,7 @@ void WrappedOpenGL::glPointSize(GLfloat size)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPointSize(ser, size);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1594,7 +1594,7 @@ void WrappedOpenGL::glPointParameteri(GLenum pname, GLint param)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPointParameteri(ser, pname, param);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1625,7 +1625,7 @@ void WrappedOpenGL::glPointParameteriv(GLenum pname, const GLint *params)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPointParameteriv(ser, pname, params);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1655,7 +1655,7 @@ void WrappedOpenGL::glPointParameterf(GLenum pname, GLfloat param)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPointParameterf(ser, pname, param);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1686,7 +1686,7 @@ void WrappedOpenGL::glPointParameterfv(GLenum pname, const GLfloat *params)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPointParameterfv(ser, pname, params);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1719,7 +1719,7 @@ void WrappedOpenGL::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glViewport(ser, x, y, width, height);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1751,7 +1751,7 @@ void WrappedOpenGL::glViewportArrayv(GLuint index, GLuint count, const GLfloat *
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glViewportArrayv(ser, index, count, v);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1795,7 +1795,7 @@ void WrappedOpenGL::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glScissor(ser, x, y, width, height);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1827,7 +1827,7 @@ void WrappedOpenGL::glScissorArrayv(GLuint first, GLsizei count, const GLint *v)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glScissorArrayv(ser, first, count, v);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1869,7 +1869,7 @@ void WrappedOpenGL::glPolygonMode(GLenum face, GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPolygonMode(ser, face, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1899,7 +1899,7 @@ void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPolygonOffset(ser, factor, units);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1931,7 +1931,7 @@ void WrappedOpenGL::glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLflo
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPolygonOffsetClampEXT(ser, factor, units, clamp);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1969,7 +1969,7 @@ void WrappedOpenGL::glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat m
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPrimitiveBoundingBox(ser, minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 

@@ -218,7 +218,7 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -280,7 +280,7 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -361,7 +361,7 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -425,7 +425,7 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -506,7 +506,7 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -570,7 +570,7 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -677,7 +677,7 @@ void WrappedOpenGL::glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum a
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -762,7 +762,7 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -827,7 +827,7 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -900,7 +900,7 @@ void WrappedOpenGL::glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(RenderbufferRes(GetCtx(), renderbuffer),
                                                         eFrameRef_Read);
@@ -955,7 +955,7 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment,
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(RenderbufferRes(GetCtx(), renderbuffer),
                                                         eFrameRef_Read);
@@ -1037,7 +1037,7 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -1101,7 +1101,7 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -1201,7 +1201,7 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -1300,7 +1300,7 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                         eFrameRef_Read);
@@ -1414,7 +1414,7 @@ void WrappedOpenGL::glFramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glFramebufferReadBufferEXT(ser, framebuffer, buf);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
@@ -1443,7 +1443,7 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_glFramebufferReadBufferEXT(ser, readrecord ? readrecord->Resource.name : 0, mode);
 
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       if(readrecord)
         GetResourceManager()->MarkFBOReferenced(readrecord->Resource, eFrameRef_ReadBeforeWrite);
     }
@@ -1485,7 +1485,7 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBindFramebuffer(ser, target, framebuffer);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
@@ -1535,7 +1535,7 @@ void WrappedOpenGL::glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glFramebufferDrawBufferEXT(ser, framebuffer, buf);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
@@ -1564,7 +1564,7 @@ void WrappedOpenGL::glDrawBuffer(GLenum buf)
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_glFramebufferDrawBufferEXT(ser, drawrecord ? drawrecord->Resource.name : 0, buf);
 
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       if(drawrecord)
         GetResourceManager()->MarkFBOReferenced(drawrecord->Resource, eFrameRef_ReadBeforeWrite);
     }
@@ -1619,7 +1619,7 @@ void WrappedOpenGL::glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, c
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glFramebufferDrawBuffersEXT(ser, framebuffer, n, bufs);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
@@ -1651,7 +1651,7 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
       else
         Serialise_glFramebufferDrawBuffersEXT(ser, 0, n, bufs);
 
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       if(drawrecord)
         GetResourceManager()->MarkFBOReferenced(drawrecord->Resource, eFrameRef_ReadBeforeWrite);
     }
@@ -1938,7 +1938,7 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
     Serialise_glBlitNamedFramebuffer(ser, readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1,
                                      srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
                                             eFrameRef_ReadBeforeWrite);
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer),
@@ -1969,7 +1969,7 @@ void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLi
     Serialise_glBlitNamedFramebuffer(ser, readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1,
                                      srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
                                             eFrameRef_ReadBeforeWrite);
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer),

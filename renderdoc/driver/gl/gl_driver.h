@@ -131,6 +131,7 @@ private:
   StreamReader *m_FrameReader = NULL;
 
   static std::map<uint64_t, GLWindowingData> m_ActiveContexts;
+  static std::map<uint64_t, ResourceId> m_ActiveContextResourceIDs;
 
   ContextPair m_EmptyPair;
   uint64_t m_CurCtxPairTLS;
@@ -139,6 +140,8 @@ private:
   uintptr_t m_ShareGroupID;
 
   std::vector<GLWindowingData> m_LastContexts;
+
+  std::set<uint64_t> m_AcceptedThreads;
 
 public:
   enum
@@ -377,7 +380,7 @@ private:
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {
     reason = m_FailureReason;
-    return m_SuccessfulCapture && m_ContextRecord->NumChunks() > 0;
+    return m_SuccessfulCapture && RecordingHasChunks();
   }
   void AttemptCapture();
   template <typename SerialiserType>
@@ -386,6 +389,7 @@ private:
   void FinishCapture();
   void ContextEndFrame();
 
+  void CleanupResourceRecord(GLResourceRecord *record);
   void CleanupCapture();
   void FreeCaptureData();
 
@@ -566,7 +570,9 @@ public:
   static std::string GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
-  ResourceId GetContextResourceID() { return m_ContextResourceID; }
+  ResourceId GetContextResourceID();
+  GLResourceRecord *GetContextRecord();
+  bool RecordingHasChunks();
   CaptureState GetState() { return m_State; }
   GLReplay *GetReplay() { return &m_Replay; }
   WriteSerialiser &GetSerialiser() { return m_ScratchSerialiser; }

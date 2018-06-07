@@ -184,7 +184,7 @@ BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObj
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_wglDXLockObjectsNV(ser, w->res);
 
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(w->res),
                                                         eFrameRef_Read);
     }

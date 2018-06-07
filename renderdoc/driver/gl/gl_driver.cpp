@@ -32,6 +32,7 @@
 #include "strings/string_utils.h"
 
 std::map<uint64_t, GLWindowingData> WrappedOpenGL::m_ActiveContexts;
+std::map<uint64_t, ResourceId> WrappedOpenGL::m_ActiveContextResourceIDs;
 
 void WrappedOpenGL::BuildGLExtensions()
 {
@@ -570,6 +571,8 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
     m_ContextRecord->Length = 0;
     m_ContextRecord->SpecialResource = true;
 
+    GetContextRecord();    // create context resourceId and record for future use
+
     // we register an ID for the backbuffer, this will be tied to the fake-created backbuffer on
     // replay, and every context's FBO 0 will be pointed to it with ReplaceResource
     m_FBO0_ID = ResourceIDGen::GetNewUniqueID();
@@ -739,6 +742,50 @@ std::string WrappedOpenGL::GetChunkName(uint32_t idx)
   return ToStr((GLChunk)idx);
 }
 
+ResourceId WrappedOpenGL::GetContextResourceID()
+{
+  uint64_t currentId = Threading::GetCurrentID();
+  if(m_ActiveContextResourceIDs.find(currentId) == m_ActiveContextResourceIDs.end())
+  {
+    m_ActiveContextResourceIDs[currentId] =
+        GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResContext));
+  }
+  return m_ActiveContextResourceIDs[currentId];
+}
+
+GLResourceRecord *WrappedOpenGL::GetContextRecord()
+{
+  ResourceId currentResourceId = GetContextResourceID();
+  if(!GetResourceManager()->HasResourceRecord(currentResourceId))
+  {
+    GLResourceRecord *contextRecord = GetResourceManager()->AddResourceRecord(currentResourceId);
+    contextRecord->DataInSerialiser = false;
+    contextRecord->Length = 0;
+    contextRecord->SpecialResource = true;
+  }
+  return GetResourceManager()->GetResourceRecord(currentResourceId);
+}
+
+bool WrappedOpenGL::RecordingHasChunks()
+{
+  if(m_ContextRecord->HasChunks())
+  {
+    return true;
+  }
+
+  for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
+  {
+    if(GetResourceManager()->HasCurrentResource(it->second))
+    {
+      if(GetResourceManager()->GetResourceRecord(it->second)->HasChunks())
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 WrappedOpenGL::~WrappedOpenGL()
 {
   if(m_FakeBB_FBO)
@@ -753,13 +800,24 @@ WrappedOpenGL::~WrappedOpenGL()
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
-  GetResourceManager()->ReleaseCurrentResource(m_ContextResourceID);
+
+  for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
+  {
+    if(GetResourceManager()->HasCurrentResource(it->second))
+    {
+      GLResourceRecord *record = GetResourceManager()->GetResourceRecord(it->second);
+      RDCASSERT(record->GetRefCount() == 1);
+      record->Delete(GetResourceManager());
+      GetResourceManager()->ReleaseCurrentResource(it->second);
+    }
+  }
+  m_ActiveContextResourceIDs.clear();
 
   if(m_ContextRecord)
   {
-    RDCASSERT(m_ContextRecord->GetRefCount() == 1);
     m_ContextRecord->Delete(GetResourceManager());
   }
+  GetResourceManager()->ReleaseCurrentResource(m_ContextResourceID);
 
   if(m_DeviceRecord)
   {
@@ -1006,7 +1064,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
       Serialise_BeginCaptureFrame(ser);
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
     }
 
     // also if there are any queued releases, process them now
@@ -1873,14 +1931,22 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       }
 
       {
-        RDCDEBUG("Getting Resource Record");
-
-        GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
-
-        RDCDEBUG("Accumulating context resource list");
-
+        RDCDEBUG("Accumulating context resource list for %d contexts",
+                 m_ActiveContextResourceIDs.size());
         map<int32_t, Chunk *> recordlist;
-        record->Insert(recordlist);
+        m_ContextRecord->Insert(recordlist);
+
+        for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
+        {
+          if(m_AcceptedThreads.empty() ||
+             m_AcceptedThreads.find(it->first) != m_AcceptedThreads.end())
+          {
+            GLResourceRecord *record = m_ResourceManager->GetResourceRecord(it->second);
+            RDCDEBUG("Getting Resource Record for thread ID %llu with %d chunks", it->first,
+                     record->NumChunks());
+            record->Insert(recordlist);
+          }
+        }
 
         RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());
 
@@ -2197,22 +2263,33 @@ void WrappedOpenGL::ContextEndFrame()
   m_ContextRecord->AddChunk(scope.Get());
 }
 
+void WrappedOpenGL::CleanupResourceRecord(GLResourceRecord *record)
+{
+  record->LockChunks();
+  while(record->HasChunks())
+  {
+    Chunk *chunk = record->GetLastChunk();
+
+    SAFE_DELETE(chunk);
+    record->PopChunk();
+  }
+  record->UnlockChunks();
+
+  record->FreeParents(GetResourceManager());
+}
+
 void WrappedOpenGL::CleanupCapture()
 {
   m_SuccessfulCapture = true;
   m_FailureReason = CaptureSucceeded;
 
-  m_ContextRecord->LockChunks();
-  while(m_ContextRecord->HasChunks())
+  CleanupResourceRecord(m_ContextRecord);
+
+  for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
   {
-    Chunk *chunk = m_ContextRecord->GetLastChunk();
-
-    SAFE_DELETE(chunk);
-    m_ContextRecord->PopChunk();
+    GLResourceRecord *contextRecord = GetResourceManager()->GetResourceRecord(it->second);
+    CleanupResourceRecord(contextRecord);
   }
-  m_ContextRecord->UnlockChunks();
-
-  m_ContextRecord->FreeParents(GetResourceManager());
 
   for(auto it = m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
   {
@@ -2287,15 +2364,16 @@ void WrappedOpenGL::AttemptCapture()
     m_SuccessfulCapture = true;
     m_FailureReason = CaptureSucceeded;
 
-    m_ContextRecord->LockChunks();
-    while(m_ContextRecord->HasChunks())
+    GLResourceRecord *contextRecord = GetContextRecord();
+    contextRecord->LockChunks();
+    while(contextRecord->HasChunks())
     {
-      Chunk *chunk = m_ContextRecord->GetLastChunk();
+      Chunk *chunk = contextRecord->GetLastChunk();
 
       SAFE_DELETE(chunk);
-      m_ContextRecord->PopChunk();
+      contextRecord->PopChunk();
     }
-    m_ContextRecord->UnlockChunks();
+    contextRecord->UnlockChunks();
   }
 }
 
