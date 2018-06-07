@@ -131,7 +131,7 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDispatchCompute(ser, num_groups_x, num_groups_y, num_groups_z);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -239,7 +239,7 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
     Serialise_glDispatchComputeGroupSizeARB(ser, num_groups_x, num_groups_y, num_groups_z,
                                             group_size_x, group_size_y, group_size_z);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -308,7 +308,7 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDispatchComputeIndirect(ser, indirect);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -353,7 +353,7 @@ void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMemoryBarrier(ser, barriers);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -389,7 +389,7 @@ void WrappedOpenGL::glMemoryBarrierByRegion(GLbitfield barriers)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMemoryBarrierByRegion(ser, barriers);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -416,7 +416,7 @@ void WrappedOpenGL::glTextureBarrier()
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glTextureBarrier(ser);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -474,7 +474,7 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawTransformFeedback(ser, mode, id);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -543,7 +543,7 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawTransformFeedbackInstanced(ser, mode, id, instancecount);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -611,7 +611,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawTransformFeedbackStream(ser, mode, id, stream);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -684,7 +684,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawTransformFeedbackStreamInstanced(ser, mode, id, stream, instancecount);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -915,7 +915,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawArrays(ser, mode, first, count);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -991,7 +991,7 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawArraysIndirect(ser, mode, indirect);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1062,7 +1062,7 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawArraysInstanced(ser, mode, first, count, instancecount);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1139,7 +1139,7 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawArraysInstancedBaseInstance(ser, mode, first, count, instancecount, baseinstance);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1229,7 +1229,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawElements(ser, mode, count, type, indices);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1311,7 +1311,7 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawElementsIndirect(ser, mode, type, indirect);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1388,7 +1388,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawRangeElements(ser, mode, start, end, count, type, indices);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1472,7 +1472,7 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawRangeElementsBaseVertex(ser, mode, start, end, count, type, indices, basevertex);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1550,7 +1550,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawElementsBaseVertex(ser, mode, count, type, indices, basevertex);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1628,7 +1628,7 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDrawElementsInstanced(ser, mode, count, type, indices, instancecount);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1713,7 +1713,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
     Serialise_glDrawElementsInstancedBaseInstance(ser, mode, count, type, indices, instancecount,
                                                   baseinstance);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1798,7 +1798,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
     Serialise_glDrawElementsInstancedBaseVertex(ser, mode, count, type, indices, instancecount,
                                                 basevertex);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -1884,7 +1884,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
     Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
         ser, mode, count, type, indices, instancecount, basevertex, baseinstance);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -2013,7 +2013,7 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMultiDrawArrays(ser, mode, first, count, drawcount);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -2164,7 +2164,7 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMultiDrawElements(ser, mode, count, type, indices, drawcount);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -2322,7 +2322,7 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMultiDrawElementsBaseVertex(ser, mode, count, type, indices, drawcount, basevertex);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -2509,7 +2509,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMultiDrawArraysIndirect(ser, mode, indirect, drawcount, stride);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -2708,7 +2708,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMultiDrawElementsIndirect(ser, mode, type, indirect, drawcount, stride);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -2907,7 +2907,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, const void *i
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glMultiDrawArraysIndirectCountARB(ser, mode, indirect, drawcount, maxdrawcount, stride);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -3117,7 +3117,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
     Serialise_glMultiDrawElementsIndirectCountARB(ser, mode, type, indirect, drawcount,
                                                   maxdrawcount, stride);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -3218,7 +3218,7 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferfv(ser, framebuffer, buffer, drawbuffer, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
 
     GLRenderState state(&m_Real);
     state.FetchState(this);
@@ -3249,7 +3249,7 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferfv(ser, framebuffer, buffer, drawbuffer, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3341,7 +3341,7 @@ void WrappedOpenGL::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer,
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferiv(ser, framebuffer, buffer, drawbuffer, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3363,7 +3363,7 @@ void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferiv(ser, framebuffer, buffer, drawbuffer, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3443,7 +3443,7 @@ void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferuiv(ser, framebuffer, buffer, drawbuffer, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3465,7 +3465,7 @@ void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLui
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferuiv(ser, framebuffer, buffer, drawbuffer, value);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3564,7 +3564,7 @@ void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferfi(ser, framebuffer, buffer, drawbuffer, depth, stencil);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3586,7 +3586,7 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedFramebufferfi(ser, framebuffer, buffer, drawbuffer, depth, stencil);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -3687,7 +3687,7 @@ void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalform
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearNamedBufferDataEXT(ser, buffer, internalformat, format, type, data);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
   else if(IsBackgroundCapturing(m_State))
   {
@@ -3719,7 +3719,7 @@ void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLen
         Serialise_glClearNamedBufferDataEXT(ser, record->Resource.name, internalformat, format,
                                             type, data);
 
-        m_ContextRecord->AddChunk(scope.Get());
+        GetContextRecord()->AddChunk(scope.Get());
       }
       else if(IsBackgroundCapturing(m_State))
       {
@@ -3832,7 +3832,7 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
     Serialise_glClearNamedBufferSubDataEXT(ser, buffer, internalformat, offset, size, format, type,
                                            data);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
   else if(IsBackgroundCapturing(m_State))
   {
@@ -3874,7 +3874,7 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
         Serialise_glClearNamedBufferSubDataEXT(ser, record->Resource.name, internalformat, offset,
                                                size, format, type, data);
 
-        m_ContextRecord->AddChunk(scope.Get());
+        GetContextRecord()->AddChunk(scope.Get());
       }
       else if(IsBackgroundCapturing(m_State))
       {
@@ -4032,7 +4032,7 @@ void WrappedOpenGL::glClear(GLbitfield mask)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClear(ser, mask);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -4131,7 +4131,7 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClearTexImage(ser, texture, level, format, type, data);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
   }
   else if(IsBackgroundCapturing(m_State))
@@ -4248,7 +4248,7 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
     Serialise_glClearTexSubImage(ser, texture, level, xoffset, yoffset, zoffset, width, height,
                                  depth, format, type, data);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
   }
   else if(IsBackgroundCapturing(m_State))

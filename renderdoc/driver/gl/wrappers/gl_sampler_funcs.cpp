@@ -174,7 +174,7 @@ void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBindSampler(ser, unit, sampler);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
   }
 }
@@ -222,7 +222,7 @@ void WrappedOpenGL::glBindSamplers(GLuint first, GLsizei count, const GLuint *sa
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBindSamplers(ser, first, count, samplers);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     for(GLsizei i = 0; i < count; i++)
       if(samplers != NULL && samplers[i] != 0)
         GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), samplers[i]),
@@ -279,7 +279,7 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
                                                         eFrameRef_Read);
     }
@@ -322,7 +322,7 @@ void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat pa
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
                                                         eFrameRef_Read);
     }
@@ -366,7 +366,7 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
                                                         eFrameRef_Read);
     }
@@ -410,7 +410,7 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
                                                         eFrameRef_Read);
     }
@@ -454,7 +454,7 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
                                                         eFrameRef_Read);
     }
@@ -498,7 +498,7 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
     }
     else
     {
-      m_ContextRecord->AddChunk(scope.Get());
+      GetContextRecord()->AddChunk(scope.Get());
       GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
                                                         eFrameRef_Read);
     }

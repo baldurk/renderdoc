@@ -110,7 +110,7 @@ GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
       chunk = scope.Get();
     }
 
-    m_ContextRecord->AddChunk(chunk);
+    GetContextRecord()->AddChunk(chunk);
   }
   else
   {
@@ -150,7 +150,7 @@ GLenum WrappedOpenGL::glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 t
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glClientWaitSync(ser, sync, flags, timeout);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 
   return ret;
@@ -185,7 +185,7 @@ void WrappedOpenGL::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glWaitSync(ser, sync, flags, timeout);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -351,7 +351,7 @@ void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBeginQuery(ser, target, id);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
   }
 }
@@ -386,7 +386,7 @@ void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBeginQueryIndexed(ser, target, index, id);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
   }
 }
@@ -422,7 +422,7 @@ void WrappedOpenGL::glEndQuery(GLenum target)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glEndQuery(ser, target);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -454,7 +454,7 @@ void WrappedOpenGL::glEndQueryIndexed(GLenum target, GLuint index)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glEndQueryIndexed(ser, target, index);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -487,7 +487,7 @@ void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBeginConditionalRender(ser, id, mode);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
   }
 }
@@ -515,7 +515,7 @@ void WrappedOpenGL::glEndConditionalRender()
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glEndConditionalRender(ser);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -543,7 +543,7 @@ void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glQueryCounter(ser, query, target);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), query), eFrameRef_Read);
   }
 }

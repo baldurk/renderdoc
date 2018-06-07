@@ -997,7 +997,7 @@ void WrappedOpenGL::glUniformSubroutinesuiv(GLenum shadertype, GLsizei count, co
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glUniformSubroutinesuiv(ser, shadertype, count, indices);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
@@ -1163,7 +1163,7 @@ void WrappedOpenGL::glUseProgram(GLuint program)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glUseProgram(ser, program);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
   }
 }
@@ -1300,7 +1300,7 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 
     if(IsActiveCapturing(m_State))
     {
-      m_ContextRecord->AddChunk(chunk);
+      GetContextRecord()->AddChunk(chunk);
     }
     else
     {
@@ -1503,7 +1503,7 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBindProgramPipeline(ser, pipeline);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(ProgramPipeRes(GetCtx(), pipeline),
                                                       eFrameRef_Read);
   }
