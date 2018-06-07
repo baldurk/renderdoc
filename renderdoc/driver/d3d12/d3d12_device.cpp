@@ -2176,6 +2176,8 @@ D3D12_CPU_DESCRIPTOR_HANDLE WrappedID3D12Device::AllocRTV()
   D3D12_CPU_DESCRIPTOR_HANDLE ret = m_FreeRTVs.back();
   m_FreeRTVs.pop_back();
 
+  m_UsedRTVs.push_back(ret);
+
   return ret;
 }
 
