@@ -323,7 +323,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     ID3D12Resource *idxBuf = NULL;
 
     bool recreate = false;
-    uint64_t outputSize = uint64_t(drawcall->numIndices) * drawcall->numInstances * stride;
+    // we add 64 to account for the stream-out data counter
+    uint64_t outputSize = uint64_t(drawcall->numIndices) * drawcall->numInstances * stride + 64;
 
     if(m_SOBufferSize < outputSize)
     {
