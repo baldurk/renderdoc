@@ -1125,6 +1125,9 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         GLuint prevArrayBuffer = 0;
         glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
 
+        GLuint prevElementArrayBuffer = 0;
+        glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&prevElementArrayBuffer);
+
         // Initialize VBOs used in case we copy from client memory.
         gl_CurChunk = GLChunk::glGenBuffers;
         glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
@@ -1137,19 +1140,32 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           gl_CurChunk = GLChunk::glBufferData;
           glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
 
+          if(HasExt[KHR_debug])
+          {
+            gl_CurChunk = GLChunk::glObjectLabel;
+            glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
+                          StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
+          }
+        }
+
+        gl_CurChunk = GLChunk::glGenBuffers;
+        glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
+
+        glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
+        glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+
+        if(HasExt[KHR_debug])
+        {
           gl_CurChunk = GLChunk::glObjectLabel;
-          glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
-                        StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
+          glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1,
+                        "Client-memory pointer data (IB)");
         }
 
         gl_CurChunk = GLChunk::glBindBuffer;
         glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
 
-        gl_CurChunk = GLChunk::glGenBuffers;
-        glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
-
-        gl_CurChunk = GLChunk::glObjectLabel;
-        glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1, "Client-memory pointer data (IB)");
+        gl_CurChunk = GLChunk::glBindBuffer;
+        glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, prevElementArrayBuffer);
       }
 
       if(IsCaptureMode(m_State))
