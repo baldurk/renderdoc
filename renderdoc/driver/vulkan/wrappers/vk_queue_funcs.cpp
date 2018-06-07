@@ -533,15 +533,24 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       // dirty.
       {
         SCOPED_LOCK(m_CapTransitionLock);
-        capframe = IsActiveCapturing(m_State);
+        if(IsActiveCapturing(m_State))
+        {
+          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+            GetResourceManager()->MarkPendingDirty(*it);
+
+          capframe = true;
+        }
+        else
+        {
+          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+            GetResourceManager()->MarkDirtyResource(*it);
+        }
       }
 
       if(capframe)
       {
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          GetResourceManager()->MarkPendingDirty(*it);
-
         // for each bound descriptor set, mark it referenced as well as all resources currently
         // bound to it
         for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
@@ -598,12 +607,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         }
 
         record->bakedCommands->AddRef();
-      }
-      else
-      {
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          GetResourceManager()->MarkDirtyResource(*it);
       }
 
       record->cmdInfo->dirtied.clear();
