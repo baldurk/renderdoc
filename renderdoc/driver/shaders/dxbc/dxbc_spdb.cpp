@@ -1108,6 +1108,18 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             regprefix = "r";
             break;
           case TYPE_INPUT:
+          case TYPE_INPUT_PRIMITIVEID:
+          case TYPE_INPUT_FORK_INSTANCE_ID:
+          case TYPE_INPUT_JOIN_INSTANCE_ID:
+          case TYPE_INPUT_CONTROL_POINT:
+          case TYPE_INPUT_PATCH_CONSTANT:
+          case TYPE_INPUT_DOMAIN_POINT:
+          case TYPE_INPUT_THREAD_ID:
+          case TYPE_INPUT_THREAD_GROUP_ID:
+          case TYPE_INPUT_THREAD_ID_IN_GROUP:
+          case TYPE_INPUT_COVERAGE_MASK:
+          case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+          case TYPE_INPUT_GS_INSTANCE_ID:
             mapping.var.registerType = RegisterType::Input;
             regtype = "input";
             regprefix = "v";
@@ -1163,16 +1175,39 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         uint32_t regfirstcomp = indexable ? 0 : (regoffset % 16) / 4;
         uint32_t regnumcomps = indexable ? 4 : defrange->sizeInParent / 4;
 
+        bool builtinoutput = false;
         ShaderBuiltin builtin = ShaderBuiltin::Undefined;
         switch((OperandType)defrange->regType)
         {
-          case TYPE_OUTPUT_DEPTH: builtin = ShaderBuiltin::DepthOutput; break;
-          case TYPE_OUTPUT_DEPTH_LESS_EQUAL: builtin = ShaderBuiltin::DepthOutputLessEqual; break;
+          case TYPE_OUTPUT_DEPTH:
+            builtinoutput = true;
+            builtin = ShaderBuiltin::DepthOutput;
+            break;
+          case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+            builtinoutput = true;
+            builtin = ShaderBuiltin::DepthOutputLessEqual;
+            break;
           case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+            builtinoutput = true;
             builtin = ShaderBuiltin::DepthOutputGreaterEqual;
             break;
-          case TYPE_OUTPUT_STENCIL_REF: builtin = ShaderBuiltin::StencilReference; break;
-          case TYPE_OUTPUT_COVERAGE_MASK: builtin = ShaderBuiltin::MSAACoverage; break;
+          case TYPE_OUTPUT_STENCIL_REF:
+            builtinoutput = true;
+            builtin = ShaderBuiltin::StencilReference;
+            break;
+          case TYPE_OUTPUT_COVERAGE_MASK:
+            builtinoutput = true;
+            builtin = ShaderBuiltin::MSAACoverage;
+            break;
+          case TYPE_INPUT_PRIMITIVEID: builtin = ShaderBuiltin::PrimitiveIndex; break;
+          case TYPE_INPUT_COVERAGE_MASK: builtin = ShaderBuiltin::MSAACoverage; break;
+          case TYPE_INPUT_THREAD_ID: builtin = ShaderBuiltin::DispatchThreadIndex; break;
+          case TYPE_INPUT_THREAD_GROUP_ID: builtin = ShaderBuiltin::GroupIndex; break;
+          case TYPE_INPUT_THREAD_ID_IN_GROUP: builtin = ShaderBuiltin::GroupThreadIndex; break;
+          case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+            builtin = ShaderBuiltin::GroupFlatIndex;
+            break;
+          case TYPE_INPUT_GS_INSTANCE_ID: builtin = ShaderBuiltin::GSInstanceIndex; break;
           default: break;
         }
 
@@ -1180,14 +1215,30 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         {
           bool found = false;
 
-          for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
+          if(builtinoutput)
           {
-            if(dxbc->m_OutputSig[i].systemValue == builtin)
+            for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
             {
-              regindex = (uint32_t)i;
-              regfirstcomp = 0;
-              found = true;
-              break;
+              if(dxbc->m_OutputSig[i].systemValue == builtin)
+              {
+                regindex = (uint32_t)i;
+                regfirstcomp = 0;
+                found = true;
+                break;
+              }
+            }
+          }
+          else
+          {
+            for(size_t i = 0; i < dxbc->m_InputSig.size(); i++)
+            {
+              if(dxbc->m_InputSig[i].systemValue == builtin)
+              {
+                regindex = (uint32_t)i;
+                regfirstcomp = 0;
+                found = true;
+                break;
+              }
             }
           }
 

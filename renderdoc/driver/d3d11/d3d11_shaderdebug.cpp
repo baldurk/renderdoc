@@ -2072,5 +2072,33 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     dxbc->m_DebugInfo->GetLineInfo(i, op.offset, ret.lineInfo[i]);
   }
 
+  for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+  {
+    const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+
+    if(decl.declaration == OPCODE_DCL_INPUT &&
+       (decl.operand.type == TYPE_INPUT_THREAD_ID || decl.operand.type == TYPE_INPUT_THREAD_GROUP_ID ||
+        decl.operand.type == TYPE_INPUT_THREAD_ID_IN_GROUP ||
+        decl.operand.type == TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED))
+    {
+      ShaderVariable v;
+
+      v.name = decl.operand.toString(dxbc, ToString::IsDecl);
+      v.rows = 1;
+      v.type = VarType::UInt;
+
+      switch(decl.operand.type)
+      {
+        case TYPE_INPUT_THREAD_GROUP_ID:
+        case TYPE_INPUT_THREAD_ID_IN_GROUP:
+        case TYPE_INPUT_THREAD_ID: v.columns = 3; break;
+        case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED: v.columns = 1; break;
+        default: v.columns = 4; break;
+      }
+
+      ret.inputs.push_back(v);
+    }
+  }
+
   return ret;
 }
