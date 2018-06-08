@@ -131,17 +131,16 @@ private:
   StreamReader *m_FrameReader = NULL;
 
   static std::map<uint64_t, GLWindowingData> m_ActiveContexts;
-  static std::map<uint64_t, ResourceId> m_ActiveContextResourceIDs;
 
-  ContextPair m_EmptyPair;
-  uint64_t m_CurCtxPairTLS;
-  std::vector<ContextPair *> m_CtxPairs;
+  GLContextTLSData m_EmptyTLSData;
+  uint64_t m_CurCtxDataTLS;
+  std::vector<GLContextTLSData *> m_CtxDataVector;
 
   uintptr_t m_ShareGroupID;
 
   std::vector<GLWindowingData> m_LastContexts;
 
-  std::set<uint64_t> m_AcceptedThreads;
+  std::set<void *> m_AcceptedCtx;
 
 public:
   enum
@@ -380,7 +379,7 @@ private:
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {
     reason = m_FailureReason;
-    return m_SuccessfulCapture && RecordingHasChunks();
+    return m_SuccessfulCapture;
   }
   void AttemptCapture();
   template <typename SerialiserType>
@@ -389,7 +388,7 @@ private:
   void FinishCapture();
   void ContextEndFrame();
 
-  void CleanupResourceRecord(GLResourceRecord *record);
+  void CleanupResourceRecord(GLResourceRecord *record, bool freeParents);
   void CleanupCapture();
   void FreeCaptureData();
 
@@ -409,13 +408,14 @@ private:
       CharSize = CharAspect = 0.0f;
       RDCEraseEl(m_TextureRecord);
       RDCEraseEl(m_BufferRecord);
-      m_VertexArrayRecord = m_FeedbackRecord = m_DrawFramebufferRecord = NULL;
+      m_VertexArrayRecord = m_FeedbackRecord = m_DrawFramebufferRecord = m_ContextDataRecord = NULL;
       m_ReadFramebufferRecord = NULL;
       m_Renderbuffer = ResourceId();
       m_TextureUnit = 0;
       m_ProgramPipeline = m_Program = 0;
       RDCEraseEl(m_ClientMemoryVBOs);
       m_ClientMemoryIBO = 0;
+      m_ContextDataResourceID = ResourceId();
     }
 
     void *ctx;
@@ -442,6 +442,8 @@ private:
     void AssociateWindow(WrappedOpenGL *gl, void *wndHandle);
 
     void CreateDebugData(const GLHookSet &gl);
+
+    void CreateResourceRecord(WrappedOpenGL *gl, void *suppliedCtx);
 
     bool Legacy()
     {
@@ -477,6 +479,9 @@ private:
     // temporary VBOs so that input mesh data is recorded. See struct ClientMemoryData
     GLuint m_ClientMemoryVBOs[16];
     GLuint m_ClientMemoryIBO;
+
+    ResourceId m_ContextDataResourceID;
+    GLResourceRecord *m_ContextDataRecord;
   };
 
   struct ClientMemoryData
@@ -570,9 +575,7 @@ public:
   static std::string GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
-  ResourceId GetContextResourceID();
-  GLResourceRecord *GetContextRecord();
-  bool RecordingHasChunks();
+  ResourceId GetContextResourceID() { return m_ContextResourceID; }
   CaptureState GetState() { return m_State; }
   GLReplay *GetReplay() { return &m_Replay; }
   WriteSerialiser &GetSerialiser() { return m_ScratchSerialiser; }
@@ -581,6 +584,8 @@ public:
   RDCDriver GetDriverType() { return m_DriverType; }
   GLInitParams &GetInitParams() { return m_InitParams; }
   ContextPair &GetCtx();
+  GLResourceRecord *GetContextRecord();
+
   void *ShareCtx(void *ctx) { return ctx ? m_ContextData[ctx].shareGroup : NULL; }
   void SetStructuredExport(uint64_t sectionVersion)
   {

@@ -32,7 +32,6 @@
 #include "strings/string_utils.h"
 
 std::map<uint64_t, GLWindowingData> WrappedOpenGL::m_ActiveContexts;
-std::map<uint64_t, ResourceId> WrappedOpenGL::m_ActiveContextResourceIDs;
 
 void WrappedOpenGL::BuildGLExtensions()
 {
@@ -571,8 +570,6 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
     m_ContextRecord->Length = 0;
     m_ContextRecord->SpecialResource = true;
 
-    GetContextRecord();    // create context resourceId and record for future use
-
     // we register an ID for the backbuffer, this will be tied to the fake-created backbuffer on
     // replay, and every context's FBO 0 will be pointed to it with ReplaceResource
     m_FBO0_ID = ResourceIDGen::GetNewUniqueID();
@@ -594,7 +591,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
   m_CurChunkOffset = 0;
   m_AddedDrawcall = false;
 
-  m_CurCtxPairTLS = Threading::AllocateTLSSlot();
+  m_CurCtxDataTLS = Threading::AllocateTLSSlot();
 }
 
 void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
@@ -742,50 +739,6 @@ std::string WrappedOpenGL::GetChunkName(uint32_t idx)
   return ToStr((GLChunk)idx);
 }
 
-ResourceId WrappedOpenGL::GetContextResourceID()
-{
-  uint64_t currentId = Threading::GetCurrentID();
-  if(m_ActiveContextResourceIDs.find(currentId) == m_ActiveContextResourceIDs.end())
-  {
-    m_ActiveContextResourceIDs[currentId] =
-        GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResContext));
-  }
-  return m_ActiveContextResourceIDs[currentId];
-}
-
-GLResourceRecord *WrappedOpenGL::GetContextRecord()
-{
-  ResourceId currentResourceId = GetContextResourceID();
-  if(!GetResourceManager()->HasResourceRecord(currentResourceId))
-  {
-    GLResourceRecord *contextRecord = GetResourceManager()->AddResourceRecord(currentResourceId);
-    contextRecord->DataInSerialiser = false;
-    contextRecord->Length = 0;
-    contextRecord->SpecialResource = true;
-  }
-  return GetResourceManager()->GetResourceRecord(currentResourceId);
-}
-
-bool WrappedOpenGL::RecordingHasChunks()
-{
-  if(m_ContextRecord->HasChunks())
-  {
-    return true;
-  }
-
-  for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
-  {
-    if(GetResourceManager()->HasCurrentResource(it->second))
-    {
-      if(GetResourceManager()->GetResourceRecord(it->second)->HasChunks())
-      {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 WrappedOpenGL::~WrappedOpenGL()
 {
   if(m_FakeBB_FBO)
@@ -801,20 +754,19 @@ WrappedOpenGL::~WrappedOpenGL()
 
   GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
 
-  for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
+  for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
   {
-    if(GetResourceManager()->HasCurrentResource(it->second))
+    if(it->second.m_ContextDataRecord)
     {
-      GLResourceRecord *record = GetResourceManager()->GetResourceRecord(it->second);
-      RDCASSERT(record->GetRefCount() == 1);
-      record->Delete(GetResourceManager());
-      GetResourceManager()->ReleaseCurrentResource(it->second);
+      RDCASSERT(it->second.m_ContextDataRecord->GetRefCount() == 1);
+      it->second.m_ContextDataRecord->Delete(GetResourceManager());
+      GetResourceManager()->ReleaseCurrentResource(it->second.m_ContextDataResourceID);
     }
   }
-  m_ActiveContextResourceIDs.clear();
 
   if(m_ContextRecord)
   {
+    RDCASSERT(m_ContextRecord->GetRefCount() == 1);
     m_ContextRecord->Delete(GetResourceManager());
   }
   GetResourceManager()->ReleaseCurrentResource(m_ContextResourceID);
@@ -835,10 +787,25 @@ WrappedOpenGL::~WrappedOpenGL()
 
 ContextPair &WrappedOpenGL::GetCtx()
 {
-  ContextPair *ret = (ContextPair *)Threading::GetTLSValue(m_CurCtxPairTLS);
+  GLContextTLSData *ret = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
   if(ret)
-    return *ret;
-  return m_EmptyPair;
+    return ret->ctxPair;
+  return m_EmptyTLSData.ctxPair;
+}
+
+GLResourceRecord *WrappedOpenGL::GetContextRecord()
+{
+  GLContextTLSData *ret = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
+  if(ret && ret->ctxRecord)
+  {
+    return ret->ctxRecord;
+  }
+  else
+  {
+    ContextData dat = GetCtxData();
+    dat.CreateResourceRecord(this, GetCtx().ctx);
+    return dat.m_ContextDataRecord;
+  }
 }
 
 WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
@@ -937,6 +904,21 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHan
   windows[wndHandle] = Timing::GetUnixTimestamp();
 }
 
+void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *gl, void *suppliedCtx)
+{
+  if(m_ContextDataResourceID == ResourceId::Null() ||
+     !gl->GetResourceManager()->HasResourceRecord(m_ContextDataResourceID))
+  {
+    m_ContextDataResourceID = gl->GetResourceManager()->RegisterResource(
+        GLResource(suppliedCtx, eResSpecial, eSpecialResContext));
+
+    m_ContextDataRecord = gl->GetResourceManager()->AddResourceRecord(m_ContextDataResourceID);
+    m_ContextDataRecord->DataInSerialiser = false;
+    m_ContextDataRecord->Length = 0;
+    m_ContextDataRecord->SpecialResource = true;
+  }
+}
+
 void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
                                   GLInitParams initParams, bool core, bool attribsCreate)
 {
@@ -1008,23 +990,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
     if(m_LastContexts.size() > 10)
       m_LastContexts.erase(m_LastContexts.begin());
-  }
-
-  // update thread-local context pair
-  {
-    ContextPair *ctx = (ContextPair *)Threading::GetTLSValue(m_CurCtxPairTLS);
-
-    if(ctx)
-    {
-      *ctx = {winData.ctx, ShareCtx(winData.ctx)};
-    }
-    else
-    {
-      ctx = new ContextPair({winData.ctx, ShareCtx(winData.ctx)});
-      m_CtxPairs.push_back(ctx);
-
-      Threading::SetTLSValue(m_CurCtxPairTLS, ctx);
-    }
   }
 
   // TODO: support multiple GL contexts more explicitly
@@ -1277,6 +1242,27 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
           m_DeviceRecord->AddChunk(scope.Get());
         }
+      }
+    }
+
+    ctxdata.CreateResourceRecord(this, winData.ctx);
+
+    // update thread-local context pair
+    {
+      GLContextTLSData *tlsData = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
+
+      if(tlsData)
+      {
+        tlsData->ctxPair = {winData.ctx, ShareCtx(winData.ctx)};
+        tlsData->ctxRecord = ctxdata.m_ContextDataRecord;
+      }
+      else
+      {
+        tlsData = new GLContextTLSData(ContextPair({winData.ctx, ShareCtx(winData.ctx)}),
+                                       ctxdata.m_ContextDataRecord);
+        m_CtxDataVector.push_back(tlsData);
+
+        Threading::SetTLSValue(m_CurCtxDataTLS, tlsData);
       }
     }
 
@@ -1931,20 +1917,22 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       }
 
       {
-        RDCDEBUG("Accumulating context resource list for %d contexts",
-                 m_ActiveContextResourceIDs.size());
+        RDCDEBUG("Accumulating context resource list");
+
         map<int32_t, Chunk *> recordlist;
         m_ContextRecord->Insert(recordlist);
 
-        for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
+        for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
         {
-          if(m_AcceptedThreads.empty() ||
-             m_AcceptedThreads.find(it->first) != m_AcceptedThreads.end())
+          if(m_AcceptedCtx.empty() || m_AcceptedCtx.find(it->first) != m_AcceptedCtx.end())
           {
-            GLResourceRecord *record = m_ResourceManager->GetResourceRecord(it->second);
-            RDCDEBUG("Getting Resource Record for thread ID %llu with %d chunks", it->first,
-                     record->NumChunks());
-            record->Insert(recordlist);
+            GLResourceRecord *record = it->second.m_ContextDataRecord;
+            if(record)
+            {
+              RDCDEBUG("Getting Resource Record for context ID %llu with %zu chunks",
+                       it->second.m_ContextDataResourceID, record->NumChunks());
+              record->Insert(recordlist);
+            }
           }
         }
 
@@ -2263,19 +2251,22 @@ void WrappedOpenGL::ContextEndFrame()
   m_ContextRecord->AddChunk(scope.Get());
 }
 
-void WrappedOpenGL::CleanupResourceRecord(GLResourceRecord *record)
+void WrappedOpenGL::CleanupResourceRecord(GLResourceRecord *record, bool freeParents)
 {
-  record->LockChunks();
-  while(record->HasChunks())
+  if(record)
   {
-    Chunk *chunk = record->GetLastChunk();
+    record->LockChunks();
+    while(record->HasChunks())
+    {
+      Chunk *chunk = record->GetLastChunk();
 
-    SAFE_DELETE(chunk);
-    record->PopChunk();
+      SAFE_DELETE(chunk);
+      record->PopChunk();
+    }
+    record->UnlockChunks();
+    if(freeParents)
+      record->FreeParents(GetResourceManager());
   }
-  record->UnlockChunks();
-
-  record->FreeParents(GetResourceManager());
 }
 
 void WrappedOpenGL::CleanupCapture()
@@ -2283,12 +2274,11 @@ void WrappedOpenGL::CleanupCapture()
   m_SuccessfulCapture = true;
   m_FailureReason = CaptureSucceeded;
 
-  CleanupResourceRecord(m_ContextRecord);
+  CleanupResourceRecord(m_ContextRecord, true);
 
-  for(auto it = m_ActiveContextResourceIDs.begin(); it != m_ActiveContextResourceIDs.end(); ++it)
+  for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
   {
-    GLResourceRecord *contextRecord = GetResourceManager()->GetResourceRecord(it->second);
-    CleanupResourceRecord(contextRecord);
+    CleanupResourceRecord(it->second.m_ContextDataRecord, true);
   }
 
   for(auto it = m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
@@ -2359,21 +2349,17 @@ void WrappedOpenGL::AttemptCapture()
   m_DebugMessages.clear();
 
   {
-    RDCDEBUG("GL Context %llu Attempting capture", GetContextResourceID());
+    RDCDEBUG("GL Context %llu Attempting capture", m_ContextResourceID);
 
     m_SuccessfulCapture = true;
     m_FailureReason = CaptureSucceeded;
 
-    GLResourceRecord *contextRecord = GetContextRecord();
-    contextRecord->LockChunks();
-    while(contextRecord->HasChunks())
-    {
-      Chunk *chunk = contextRecord->GetLastChunk();
+    CleanupResourceRecord(m_ContextRecord, false);
 
-      SAFE_DELETE(chunk);
-      contextRecord->PopChunk();
+    for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
+    {
+      CleanupResourceRecord(it->second.m_ContextDataRecord, false);
     }
-    contextRecord->UnlockChunks();
   }
 }
 
