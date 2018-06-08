@@ -1470,6 +1470,11 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
       if(!isArray)
         item->setText(0, item->text(0).mid(sepIndex + 1));
       parent->addChild(item);
+
+      if(item->background().color().isValid())
+        parent->setBackground(item->background());
+      if(item->foreground().color().isValid())
+        parent->setForeground(item->foreground());
     }
 
     // recurse and combine members of this object if a struct
@@ -1752,11 +1757,22 @@ void ShaderViewer::updateDebugging()
       else if(l.type == VarType::Double)
         typeName = lit("double");
 
+      bool modified = false;
+
       if(l.registers[0].type == RegisterType::IndexedTemporary)
       {
         typeName += lit("[]");
 
         regNames = QFormatStr("x%1").arg(l.registers[0].index);
+
+        for(const RegisterRange &mr : state.modified)
+        {
+          if(mr.type == RegisterType::IndexedTemporary && mr.index == l.registers[0].index)
+          {
+            modified = true;
+            break;
+          }
+        }
       }
       else
       {
@@ -1769,6 +1785,15 @@ void ShaderViewer::updateDebugging()
         {
           const RegisterRange &r = l.registers[i];
           const ShaderVariable *var = NULL;
+
+          for(const RegisterRange &mr : state.modified)
+          {
+            if(mr.type == r.type && mr.index == r.index && mr.component == r.component)
+            {
+              modified = true;
+              break;
+            }
+          }
 
           if(!value.isEmpty())
             value += lit(", ");
@@ -1832,6 +1857,9 @@ void ShaderViewer::updateDebugging()
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regNames, typeName, value});
 
+      if(modified)
+        node->setForegroundColor(QColor(Qt::red));
+
       if(l.registers[0].type == RegisterType::IndexedTemporary)
       {
         const ShaderVariable *var = NULL;
@@ -1891,15 +1919,52 @@ void ShaderViewer::updateDebugging()
 
     node->setText(2, stringRep(state.registers[i], false));
     node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Temporaries, i)));
+
+    bool modified = false;
+
+    for(const RegisterRange &mr : state.modified)
+    {
+      if(mr.type == RegisterType::Temporary && mr.index == i)
+      {
+        modified = true;
+        break;
+      }
+    }
+
+    if(modified)
+      node->setForegroundColor(QColor(Qt::red));
+    else
+      node->setForeground(QBrush());
   }
 
   for(int i = 0; i < state.indexableTemps.count(); i++)
   {
     RDTreeWidgetItem *node = ui->registers->topLevelItem(v++);
 
+    bool modified = false;
+
+    for(const RegisterRange &mr : state.modified)
+    {
+      if(mr.type == RegisterType::IndexedTemporary && mr.index == i)
+      {
+        modified = true;
+        break;
+      }
+    }
+
+    if(modified)
+      node->setForegroundColor(QColor(Qt::red));
+    else
+      node->setForeground(QBrush());
+
     for(int t = 0; t < state.indexableTemps[i].members.count(); t++)
     {
       RDTreeWidgetItem *child = node->child(t);
+
+      if(modified)
+        child->setForegroundColor(QColor(Qt::red));
+      else
+        child->setForeground(QBrush());
 
       child->setText(2, stringRep(state.indexableTemps[i].members[t], false));
       child->setTag(QVariant::fromValue(VariableTag(VariableCategory::IndexTemporaries, t, i)));
@@ -1912,6 +1977,22 @@ void ShaderViewer::updateDebugging()
 
     node->setText(2, stringRep(state.outputs[i], false));
     node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Outputs, i)));
+
+    bool modified = false;
+
+    for(const RegisterRange &mr : state.modified)
+    {
+      if(mr.type == RegisterType::Output && mr.index == i)
+      {
+        modified = true;
+        break;
+      }
+    }
+
+    if(modified)
+      node->setForegroundColor(QColor(Qt::red));
+    else
+      node->setForeground(QBrush());
   }
 
   ui->registers->endUpdate();

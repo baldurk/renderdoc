@@ -418,6 +418,9 @@ to which registers, and their type
 )");
   rdcarray<LocalVariableMapping> locals;
 
+  DOCUMENT("A list of registers that were modified.");
+  rdcarray<RegisterRange> modified;
+
   DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
 shader execution happened will have ``nextInstruction == 0``.
 )");

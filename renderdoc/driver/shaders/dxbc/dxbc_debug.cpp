@@ -587,7 +587,7 @@ bool State::Finished() const
   return dxbc && (done || nextInstruction >= (int)dxbc->GetNumInstructions());
 }
 
-void State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
+bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
                         uint32_t srcIndex)
 {
   if(src.type == VarType::Float)
@@ -603,7 +603,11 @@ void State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVari
       flags |= ShaderEvents::GeneratedNanOrInf;
   }
 
+  bool ret = (dst.value.uv[dstIndex] != src.value.uv[srcIndex]);
+
   dst.value.uv[dstIndex] = src.value.uv[srcIndex];
+
+  return ret;
 }
 
 void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const ShaderVariable &val)
@@ -629,10 +633,14 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     }
   }
 
+  RegisterRange range;
+  range.index = uint16_t(indices[0]);
+
   switch(dstoper.type)
   {
     case TYPE_TEMP:
     {
+      range.type = RegisterType::Temporary;
       RDCASSERT(indices[0] < (uint32_t)registers.size());
       if(indices[0] < (uint32_t)registers.size())
         v = &registers[(size_t)indices[0]];
@@ -640,6 +648,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     }
     case TYPE_INDEXABLE_TEMP:
     {
+      range.type = RegisterType::IndexedTemporary;
       RDCASSERT(dstoper.indices.size() == 2);
 
       if(dstoper.indices.size() == 2)
@@ -658,6 +667,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     }
     case TYPE_OUTPUT:
     {
+      range.type = RegisterType::Output;
       RDCASSERT(indices[0] < (uint32_t)outputs.size());
       if(indices[0] < (uint32_t)outputs.size())
         v = &outputs[(size_t)indices[0]];
@@ -772,7 +782,13 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCASSERT(dstoper.comps[0] != 0xff);
 
-      AssignValue(*v, dstoper.comps[0], right, 0);
+      bool changed = AssignValue(*v, dstoper.comps[0], right, 0);
+
+      if(changed && range.type != RegisterType::Undefined)
+      {
+        range.component = dstoper.comps[0];
+        modified.push_back(range);
+      }
     }
     else
     {
@@ -783,13 +799,27 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         if(dstoper.comps[i] != 0xff)
         {
           RDCASSERT(dstoper.comps[i] < v->columns);
-          AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i]);
+          bool changed = AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i]);
           compsWritten++;
+
+          if(changed && range.type != RegisterType::Undefined)
+          {
+            range.component = dstoper.comps[i];
+            modified.push_back(range);
+          }
         }
       }
 
       if(compsWritten == 0)
-        AssignValue(*v, 0, right, 0);
+      {
+        bool changed = AssignValue(*v, 0, right, 0);
+
+        if(changed && range.type != RegisterType::Undefined)
+        {
+          range.component = 0;
+          modified.push_back(range);
+        }
+      }
     }
   }
 }
@@ -1166,6 +1196,8 @@ static uint32_t PopCount(uint32_t x)
 State State::GetNext(GlobalState &global, State quad[4]) const
 {
   State s = *this;
+
+  s.modified.clear();
 
   if(s.nextInstruction >= s.dxbc->GetNumInstructions())
     return s;

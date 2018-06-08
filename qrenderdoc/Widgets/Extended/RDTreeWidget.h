@@ -97,6 +97,8 @@ public:
     m_fore = foreground;
     dataChanged(0, Qt::ForegroundRole);
   }
+  inline QBrush background() { return m_back; }
+  inline QBrush foreground() { return m_fore; }
   inline QString text(int column) const { return m_text[column].toString(); }
   inline void setText(int column, const QVariant &value)
   {

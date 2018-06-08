@@ -164,7 +164,7 @@ private:
   bool done;
 
   // validates assignment for generation of non-normal values
-  void AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
+  bool AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
                    uint32_t srcIndex);
   // sets the destination operand by looking up in the register
   // file and applying any masking or swizzling

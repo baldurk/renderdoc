@@ -385,10 +385,11 @@ void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
   SERIALISE_MEMBER(outputs);
   SERIALISE_MEMBER(indexableTemps);
   SERIALISE_MEMBER(locals);
+  SERIALISE_MEMBER(modified);
   SERIALISE_MEMBER(nextInstruction);
   SERIALISE_MEMBER(flags);
 
-  SIZE_CHECK(72);
+  SIZE_CHECK(88);
 }
 
 template <typename SerialiserType>
