@@ -125,7 +125,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="RDTreeWidget" name="variables">
+  <widget class="RDTreeWidget" name="registers">
    <property name="geometry">
     <rect>
      <x>310</x>

@@ -65,7 +65,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   ui->setupUi(this);
 
   ui->constants->setFont(Formatter::PreferredFont());
-  ui->variables->setFont(Formatter::PreferredFont());
+  ui->registers->setFont(Formatter::PreferredFont());
   ui->locals->setFont(Formatter::PreferredFont());
   ui->watch->setFont(Formatter::PreferredFont());
   ui->inputSig->setFont(Formatter::PreferredFont());
@@ -190,7 +190,7 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
 
   // hide debugging windows
   ui->watch->hide();
-  ui->variables->hide();
+  ui->registers->hide();
   ui->constants->hide();
   ui->callstack->hide();
   ui->locals->hide();
@@ -414,10 +414,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->inputSig->hide();
     ui->outputSig->hide();
 
-    ui->variables->setColumns({tr("Name"), tr("Type"), tr("Value")});
-    ui->variables->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->variables->header()->setSectionResizeMode(1, QHeaderView::Interactive);
-    ui->variables->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->registers->setColumns({tr("Name"), tr("Type"), tr("Value")});
+    ui->registers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->registers->header()->setSectionResizeMode(1, QHeaderView::Interactive);
+    ui->registers->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     ui->locals->setColumns({tr("Name"), tr("Register"), tr("Type"), tr("Value")});
     ui->locals->header()->setSectionResizeMode(0, QHeaderView::Interactive);
@@ -430,7 +430,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->constants->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->constants->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
-    ui->variables->setTooltipElidedItems(false);
+    ui->registers->setTooltipElidedItems(false);
     ui->constants->setTooltipElidedItems(false);
 
     ui->watch->setWindowTitle(tr("Watch"));
@@ -440,24 +440,24 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->setToolWindowProperties(
         ui->watch, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-    ui->variables->setWindowTitle(tr("Variables"));
+    ui->registers->setWindowTitle(tr("Registers"));
     ui->docking->addToolWindow(
-        ui->variables,
+        ui->registers,
         ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->docking->areaOf(ui->watch)));
     ui->docking->setToolWindowProperties(
-        ui->variables, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+        ui->registers, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     ui->constants->setWindowTitle(tr("Constants && Resources"));
     ui->docking->addToolWindow(
         ui->constants, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
-                                                        ui->docking->areaOf(ui->variables), 0.5f));
+                                                        ui->docking->areaOf(ui->registers), 0.5f));
     ui->docking->setToolWindowProperties(
         ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     ui->callstack->setWindowTitle(tr("Callstack"));
     ui->docking->addToolWindow(
         ui->callstack, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
-                                                        ui->docking->areaOf(ui->variables), 0.2f));
+                                                        ui->docking->areaOf(ui->registers), 0.2f));
     ui->docking->setToolWindowProperties(
         ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
@@ -466,7 +466,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ui->locals->setWindowTitle(tr("Local Variables"));
       ui->docking->addToolWindow(
           ui->locals, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                                       ui->docking->areaOf(ui->variables)));
+                                                       ui->docking->areaOf(ui->registers)));
       ui->docking->setToolWindowProperties(
           ui->locals, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
     }
@@ -531,7 +531,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
-    ui->variables->installEventFilter(this);
+    ui->registers->installEventFilter(this);
     ui->watch->installEventFilter(this);
 
     SetCurrentStep(0);
@@ -556,7 +556,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   {
     // hide watch, constants, variables
     ui->watch->hide();
-    ui->variables->hide();
+    ui->registers->hide();
     ui->constants->hide();
     ui->locals->hide();
     ui->callstack->hide();
@@ -941,9 +941,9 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
         start = 0;
         end = m_DisassemblyView->length();
 
-        for(int i = 0; i < ui->variables->topLevelItemCount(); i++)
+        for(int i = 0; i < ui->registers->topLevelItemCount(); i++)
         {
-          RDTreeWidgetItem *item = ui->variables->topLevelItem(i);
+          RDTreeWidgetItem *item = ui->registers->topLevelItem(i);
           if(item->tag().value<VariableTag>() == tag)
             item->setBackgroundColor(QColor::fromHslF(
                 0.333f, 1.0f, qBound(0.25, palette().color(QPalette::Base).lightnessF(), 0.85)));
@@ -1724,10 +1724,10 @@ void ShaderViewer::updateDebugging()
     }
   }
 
-  if(ui->variables->topLevelItemCount() == 0)
+  if(ui->registers->topLevelItemCount() == 0)
   {
     for(int i = 0; i < state.registers.count(); i++)
-      ui->variables->addTopLevelItem(
+      ui->registers->addTopLevelItem(
           new RDTreeWidgetItem({state.registers[i].name, lit("temporary"), QString()}));
 
     for(int i = 0; i < state.indexableTemps.count(); i++)
@@ -1737,21 +1737,21 @@ void ShaderViewer::updateDebugging()
       for(int t = 0; t < state.indexableTemps[i].members.count(); t++)
         node->addChild(new RDTreeWidgetItem(
             {state.indexableTemps[i].members[t].name, lit("indexable"), QString()}));
-      ui->variables->addTopLevelItem(node);
+      ui->registers->addTopLevelItem(node);
     }
 
     for(int i = 0; i < state.outputs.count(); i++)
-      ui->variables->addTopLevelItem(
+      ui->registers->addTopLevelItem(
           new RDTreeWidgetItem({state.outputs[i].name, lit("output"), QString()}));
   }
 
-  ui->variables->beginUpdate();
+  ui->registers->beginUpdate();
 
   int v = 0;
 
   for(int i = 0; i < state.registers.count(); i++)
   {
-    RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
+    RDTreeWidgetItem *node = ui->registers->topLevelItem(v++);
 
     node->setText(2, stringRep(state.registers[i], false));
     node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Temporaries, i)));
@@ -1759,7 +1759,7 @@ void ShaderViewer::updateDebugging()
 
   for(int i = 0; i < state.indexableTemps.count(); i++)
   {
-    RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
+    RDTreeWidgetItem *node = ui->registers->topLevelItem(v++);
 
     for(int t = 0; t < state.indexableTemps[i].members.count(); t++)
     {
@@ -1772,13 +1772,13 @@ void ShaderViewer::updateDebugging()
 
   for(int i = 0; i < state.outputs.count(); i++)
   {
-    RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
+    RDTreeWidgetItem *node = ui->registers->topLevelItem(v++);
 
     node->setText(2, stringRep(state.outputs[i], false));
     node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Outputs, i)));
   }
 
-  ui->variables->endUpdate();
+  ui->registers->endUpdate();
 
   ui->watch->setUpdatesEnabled(false);
 
@@ -1923,9 +1923,9 @@ void ShaderViewer::updateDebugging()
   ui->watch->setUpdatesEnabled(true);
 
   ui->constants->resizeColumnToContents(0);
-  ui->variables->resizeColumnToContents(0);
+  ui->registers->resizeColumnToContents(0);
   ui->constants->resizeColumnToContents(1);
-  ui->variables->resizeColumnToContents(1);
+  ui->registers->resizeColumnToContents(1);
 
   updateVariableTooltip();
 }
