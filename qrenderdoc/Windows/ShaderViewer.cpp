@@ -1723,6 +1723,11 @@ void ShaderViewer::updateDebugging()
 
   if(m_Trace->hasLocals)
   {
+    const QString stateprefix = lit("!!@");
+
+    RDTreeWidgetExpansionState expansion;
+    ui->locals->saveExpansion(expansion, stateprefix, ui->locals->invisibleRootItem(), 0);
+
     ui->locals->clear();
 
     const QString xyzw = lit("xyzw");
@@ -1851,6 +1856,8 @@ void ShaderViewer::updateDebugging()
 
     while(fakeroot.childCount() > 0)
       ui->locals->addTopLevelItem(fakeroot.takeChild(0));
+
+    ui->locals->applySavedExpansion(expansion, stateprefix, ui->locals->invisibleRootItem(), 0);
   }
 
   if(ui->registers->topLevelItemCount() == 0)
