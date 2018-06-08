@@ -1541,7 +1541,9 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
 
       int nPatched = 0;
 
-      for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
+      auto it = m_Lines.lower_bound(loc.offsetStart);
+
+      for(; it != m_Lines.end() && it->first <= loc.offsetEnd; ++it)
       {
         if((it->first >= loc.offsetStart && it->first < loc.offsetEnd) ||
            (it->first == loc.offsetStart && it->first == loc.offsetEnd))
