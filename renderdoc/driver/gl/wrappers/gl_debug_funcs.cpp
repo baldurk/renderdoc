@@ -206,8 +206,9 @@ void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 
     if(IsActiveCapturing(m_State))
     {
-      m_AcceptedThreads.clear();
-      m_AcceptedThreads.insert(Threading::GetCurrentID());
+      m_AcceptedCtx.clear();
+      m_AcceptedCtx.insert(GetCtx().ctx);
+      RDCDEBUG("Only resource ID accepted is %llu", GetCtxData().m_ContextDataResourceID);
     }
   }
 }

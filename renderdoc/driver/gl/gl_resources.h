@@ -321,3 +321,11 @@ private:
   byte *ShadowPtr[2];
   size_t ShadowSize;
 };
+
+struct GLContextTLSData
+{
+  GLContextTLSData() {}
+  GLContextTLSData(ContextPair p, GLResourceRecord *r) : ctxPair(p), ctxRecord(r) {}
+  ContextPair ctxPair;
+  GLResourceRecord *ctxRecord;
+};
