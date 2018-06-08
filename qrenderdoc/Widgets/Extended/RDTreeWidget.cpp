@@ -79,13 +79,12 @@ public:
     return createIndex(row, column, par->m_children[row]);
   }
 
-  void beginAddChild(RDTreeWidgetItem *item)
+  void beginInsertChild(RDTreeWidgetItem *item, int index)
   {
-    QModelIndex index = indexForItem(item, 0);
-    beginInsertRows(index, item->childCount(), item->childCount());
+    beginInsertRows(indexForItem(item, 0), index, index);
   }
 
-  void endAddChild(RDTreeWidgetItem *item) { endInsertRows(); }
+  void endInsertChild(RDTreeWidgetItem *item) { endInsertRows(); }
   void beginRemoveChildren(RDTreeWidgetItem *parent, int first, int last)
   {
     beginRemoveRows(indexForItem(parent, 0), first, last);
@@ -421,6 +420,11 @@ void RDTreeWidgetItem::setData(int column, int role, const QVariant &value)
 
 void RDTreeWidgetItem::addChild(RDTreeWidgetItem *item)
 {
+  insertChild(m_children.count(), item);
+}
+
+void RDTreeWidgetItem::insertChild(int index, RDTreeWidgetItem *item)
+{
   int colCount = item->m_text.count();
 
   if(m_widget && colCount < m_widget->m_headers.count())
@@ -445,13 +449,13 @@ void RDTreeWidgetItem::addChild(RDTreeWidgetItem *item)
     item->m_data->resize(qMax(item->m_data->count(), colCount));
 
   if(m_widget)
-    m_widget->beginAddChild(this);
+    m_widget->beginInsertChild(this, index);
 
   // add to our list of children
-  m_children.push_back(item);
+  m_children.insert(index, item);
 
   if(m_widget)
-    m_widget->endAddChild(this);
+    m_widget->endInsertChild(this, index);
 }
 
 void RDTreeWidgetItem::setWidget(RDTreeWidget *widget)
@@ -783,8 +787,8 @@ void RDTreeWidget::endUpdate()
 
       if(m_queuedChildren)
       {
-        m_model->beginAddChild(m_queuedItem);
-        m_model->endAddChild(m_queuedItem);
+        m_model->beginInsertChild(m_queuedItem, m_queuedItem->childCount());
+        m_model->endInsertChild(m_queuedItem);
       }
 
       if(!roles.isEmpty())
@@ -1179,7 +1183,7 @@ void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int column, int role)
   emit itemChanged(item, column);
 }
 
-void RDTreeWidget::beginAddChild(RDTreeWidgetItem *item)
+void RDTreeWidget::beginInsertChild(RDTreeWidgetItem *item, int index)
 {
   if(m_queueUpdates)
   {
@@ -1190,8 +1194,7 @@ void RDTreeWidget::beginAddChild(RDTreeWidgetItem *item)
       m_queuedItem = item;
       // make an update of row 0. This will be a bit pessimistic if there are later data changes
       // in a later row, but we're generally only changing data *or* adding children, not both,
-      // and
-      // in either case this is primarily about batching updates not providing a minimal update
+      // and in either case this is primarily about batching updates not providing a minimal update
       // set
       m_lowestIndex = qMakePair<int, int>(0, 0);
       m_highestIndex = qMakePair<int, int>(0, m_headers.count() - 1);
@@ -1211,13 +1214,13 @@ void RDTreeWidget::beginAddChild(RDTreeWidgetItem *item)
   }
   else
   {
-    m_model->beginAddChild(item);
+    m_model->beginInsertChild(item, index);
   }
 }
 
-void RDTreeWidget::endAddChild(RDTreeWidgetItem *item)
+void RDTreeWidget::endInsertChild(RDTreeWidgetItem *item, int index)
 {
-  // work is all done in beginAddChild
+  // work is all done in beginInsertChild
   if(!m_queueUpdates)
-    m_model->endAddChild(item);
+    m_model->endInsertChild(item);
 }

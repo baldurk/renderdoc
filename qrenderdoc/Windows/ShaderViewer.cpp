@@ -1380,6 +1380,114 @@ void ShaderViewer::addFileList()
       list, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 }
 
+void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
+{
+  RDTreeWidgetItem temp;
+
+  // we perform a filter moving from root to temp. At each point we check the node:
+  // * if the node has no struct or array prefix, it gets moved
+  // * if the node does have a prefix, we sweep finding all matching elements with the same prefix,
+  //   strip the prefix off them and make a combined node, then recurse to combine anything
+  //   underneath. We aren't greedy in picking prefixes so this should generate a struct/array tree.
+  // * in the event that a node has no matching elements we move it across as if it had no prefix.
+  // * we iterate from last to first, because when combining elements that may be spread out in the
+  //   list of children, we want to combine up to the position of the last item, not the position of
+  //   the first.
+
+  for(int c = root->childCount() - 1; c >= 0;)
+  {
+    RDTreeWidgetItem *child = root->takeChild(c);
+    c--;
+
+    QString name = child->text(0);
+
+    int dotIndex = name.indexOf(QLatin1Char('.'));
+    int arrIndex = name.indexOf(QLatin1Char('['));
+
+    // if this node doesn't have any segments, just move it across.
+    if(dotIndex < 0 && arrIndex < 0)
+    {
+      temp.insertChild(0, child);
+      continue;
+    }
+
+    // store the index of the first separator
+    int sepIndex = dotIndex;
+    bool isArray = false;
+    if(sepIndex == -1 || (arrIndex > 0 && arrIndex < sepIndex))
+    {
+      sepIndex = arrIndex;
+      isArray = true;
+    }
+
+    // we have a valid node to match against, record the prefix (including separator character)
+    QString prefix = name.mid(0, sepIndex + 1);
+
+    QVector<RDTreeWidgetItem *> matches = {child};
+
+    // iterate down from the next item
+    for(int n = c; n >= 0; n--)
+    {
+      RDTreeWidgetItem *testNode = root->child(n);
+
+      QString testName = testNode->text(0);
+
+      QString testprefix = testName.mid(0, sepIndex + 1);
+
+      // no match - continue
+      if(testprefix != prefix)
+        continue;
+
+      // match, take this child
+      matches.push_back(root->takeChild(n));
+
+      // also decrement c since we're taking a child ahead of where that loop will go.
+      c--;
+    }
+
+    // no other matches with the same prefix, just move across
+    if(matches.count() == 1)
+    {
+      temp.insertChild(0, child);
+      continue;
+    }
+
+    // sort the children by name
+    std::sort(matches.begin(), matches.end(),
+              [](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+                return a->text(0) < b->text(0);
+              });
+
+    // create a new parent with just the prefix
+    QVariantList values = {isArray ? name : name.mid(0, sepIndex)};
+    for(int i = 1; i < child->dataCount(); i++)
+      values.push_back(QVariant());
+    RDTreeWidgetItem *parent = new RDTreeWidgetItem(values);
+
+    // add all the children (stripping the prefix from their name)
+    for(RDTreeWidgetItem *item : matches)
+    {
+      if(!isArray)
+        item->setText(0, item->text(0).mid(sepIndex + 1));
+      parent->addChild(item);
+    }
+
+    // recurse and combine members of this object if a struct
+    if(!isArray)
+      combineStructures(parent);
+
+    // now add to the list
+    temp.insertChild(0, parent);
+  }
+
+  if(root->childCount() > 0)
+    qCritical() << "Some objects left on root!";
+
+  // move all the children back from the temp object into the parameter
+  while(temp.childCount() > 0)
+    root->addChild(temp.takeChild(0));
+}
+
 void ShaderViewer::updateDebugging()
 {
   if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
@@ -1619,6 +1727,8 @@ void ShaderViewer::updateDebugging()
 
     const QString xyzw = lit("xyzw");
 
+    RDTreeWidgetItem fakeroot;
+
     for(size_t lidx = 0; lidx < state.locals.size(); lidx++)
     {
       // iterate in reverse order, so newest locals tend to end up on top
@@ -1646,7 +1756,7 @@ void ShaderViewer::updateDebugging()
       else
       {
         if(l.rows > 1)
-          typeName += QFormatStr("%1x%1").arg(l.rows).arg(l.columns);
+          typeName += QFormatStr("%1x%2").arg(l.rows).arg(l.columns);
         else
           typeName += QString::number(l.columns);
 
@@ -1733,8 +1843,14 @@ void ShaderViewer::updateDebugging()
         }
       }
 
-      ui->locals->addTopLevelItem(node);
+      fakeroot.addChild(node);
     }
+
+    // recursively combine nodes with the same prefix together
+    combineStructures(&fakeroot);
+
+    while(fakeroot.childCount() > 0)
+      ui->locals->addTopLevelItem(fakeroot.takeChild(0));
   }
 
   if(ui->registers->topLevelItemCount() == 0)
