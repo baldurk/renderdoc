@@ -353,13 +353,6 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     }
 
     m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);
-
-    m_DisassemblyView->setMouseDwellTime(500);
-
-    QObject::connect(m_DisassemblyView, &ScintillaEdit::dwellStart, this,
-                     &ShaderViewer::disasm_tooltipShow);
-    QObject::connect(m_DisassemblyView, &ScintillaEdit::dwellEnd, this,
-                     &ShaderViewer::disasm_tooltipHide);
   }
 
   if(shader && !shader->debugInfo.files.isEmpty())
@@ -512,6 +505,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       edit->setContextMenuPolicy(Qt::CustomContextMenu);
       QObject::connect(edit, &ScintillaEdit::customContextMenuRequested, this,
                        &ShaderViewer::debug_contextMenu);
+
+      edit->setMouseDwellTime(500);
+
+      QObject::connect(edit, &ScintillaEdit::dwellStart, this, &ShaderViewer::disasm_tooltipShow);
+      QObject::connect(edit, &ScintillaEdit::dwellEnd, this, &ShaderViewer::disasm_tooltipHide);
     }
 
     // register the shortcuts globally for this shader viewer so it works regardless of the active
@@ -1763,6 +1761,8 @@ void ShaderViewer::updateDebugging()
       QString regNames, typeName;
       QString value;
 
+      bool modified = false;
+
       if(l.type == VarType::UInt)
         typeName = lit("uint");
       else if(l.type == VarType::Int)
@@ -1771,8 +1771,6 @@ void ShaderViewer::updateDebugging()
         typeName = lit("float");
       else if(l.type == VarType::Double)
         typeName = lit("double");
-
-      bool modified = false;
 
       if(l.registers[0].type == RegisterType::IndexedTemporary)
       {
@@ -1799,7 +1797,6 @@ void ShaderViewer::updateDebugging()
         for(uint32_t i = 0; i < l.regCount; i++)
         {
           const RegisterRange &r = l.registers[i];
-          const ShaderVariable *var = NULL;
 
           for(const RegisterRange &mr : state.modified)
           {
@@ -1815,28 +1812,14 @@ void ShaderViewer::updateDebugging()
           if(!regNames.isEmpty())
             regNames += lit(", ");
 
-          switch(r.type)
+          if(r.type == RegisterType::Undefined)
           {
-            case RegisterType::Undefined:
-              regNames += lit("-");
-              value += lit("?");
-              continue;
-            case RegisterType::Input:
-              if(r.index < m_Trace->inputs.size())
-                var = &m_Trace->inputs[r.index];
-              break;
-            case RegisterType::Temporary:
-              if(r.index < state.registers.size())
-                var = &state.registers[r.index];
-              break;
-            case RegisterType::IndexedTemporary:
-              qCritical() << "unexpected indexed temporary";
-              break;
-            case RegisterType::Output:
-              if(r.index < state.outputs.size())
-                var = &state.outputs[r.index];
-              break;
+            regNames += lit("-");
+            value += lit("?");
+            continue;
           }
+
+          const ShaderVariable *var = GetRegisterVariable(r);
 
           if(var)
           {
@@ -2192,6 +2175,35 @@ void ShaderViewer::updateDebugging()
   ui->registers->resizeColumnToContents(1);
 
   updateVariableTooltip();
+}
+
+const ShaderVariable *ShaderViewer::GetRegisterVariable(const RegisterRange &r)
+{
+  const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
+
+  const ShaderVariable *var = NULL;
+  switch(r.type)
+  {
+    case RegisterType::Undefined: break;
+    case RegisterType::Input:
+      if(r.index < m_Trace->inputs.size())
+        var = &m_Trace->inputs[r.index];
+      break;
+    case RegisterType::Temporary:
+      if(r.index < state.registers.size())
+        var = &state.registers[r.index];
+      break;
+    case RegisterType::IndexedTemporary:
+      if(r.index < state.indexableTemps.size())
+        var = &state.indexableTemps[r.index];
+      break;
+    case RegisterType::Output:
+      if(r.index < state.outputs.size())
+        var = &state.outputs[r.index];
+      break;
+  }
+
+  return var;
 }
 
 void ShaderViewer::ensureLineScrolled(ScintillaEdit *s, int line)
@@ -2674,27 +2686,39 @@ void ShaderViewer::disasm_tooltipShow(int x, int y)
   if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
     return;
 
-  // ignore any messages if we're already outside the viewport
-  if(!m_DisassemblyView->rect().contains(m_DisassemblyView->mapFromGlobal(QCursor::pos())))
+  ScintillaEdit *sc = qobject_cast<ScintillaEdit *>(QObject::sender());
+
+  if(!sc)
     return;
 
-  if(m_DisassemblyView->isVisible())
+  // ignore any messages if we're already outside the viewport
+  if(!sc->rect().contains(sc->mapFromGlobal(QCursor::pos())))
+    return;
+
+  if(sc->isVisible())
   {
-    sptr_t scintillaPos = m_DisassemblyView->positionFromPoint(x, y);
+    sptr_t scintillaPos = sc->positionFromPoint(x, y);
 
-    sptr_t start = m_DisassemblyView->wordStartPosition(scintillaPos, true);
-    sptr_t end = m_DisassemblyView->wordEndPosition(scintillaPos, true);
+    sptr_t start = sc->wordStartPosition(scintillaPos, true);
+    sptr_t end = sc->wordEndPosition(scintillaPos, true);
 
-    QString text = QString::fromUtf8(m_DisassemblyView->textRange(start, end));
+    do
+    {
+      // expand leftwards through simple struct . access
+      // TODO handle arrays
+      while(isspace(sc->charAt(start - 1)))
+        start--;
+
+      if(sc->charAt(start - 1) == '.')
+        start = sc->wordStartPosition(start - 2, true);
+      else
+        break;
+    } while(true);
+
+    QString text = QString::fromUtf8(sc->textRange(start, end)).trimmed();
 
     if(!text.isEmpty())
-    {
-      VariableTag tag;
-      getRegisterFromWord(text, tag.cat, tag.idx, tag.arrayIdx);
-
-      if(tag.cat != VariableCategory::Unknown && tag.idx >= 0 && tag.arrayIdx >= 0)
-        showVariableTooltip(tag.cat, tag.idx, tag.arrayIdx);
-    }
+      showVariableTooltip(text);
   }
 }
 
@@ -2714,8 +2738,26 @@ void ShaderViewer::showVariableTooltip(VariableCategory varCat, int varIdx, int 
   }
 
   m_TooltipVarCat = varCat;
+  m_TooltipName = QString();
   m_TooltipVarIdx = varIdx;
   m_TooltipArrayIdx = arrayIdx;
+  m_TooltipPos = QCursor::pos();
+
+  updateVariableTooltip();
+}
+
+void ShaderViewer::showVariableTooltip(QString name)
+{
+  VariableCategory varCat;
+  int varIdx;
+  int arrayIdx;
+  getRegisterFromWord(name, varCat, varIdx, arrayIdx);
+
+  if(varCat != VariableCategory::Unknown)
+    showVariableTooltip(varCat, varIdx, arrayIdx);
+
+  m_TooltipVarCat = VariableCategory::ByString;
+  m_TooltipName = name;
   m_TooltipPos = QCursor::pos();
 
   updateVariableTooltip();
@@ -2734,6 +2776,7 @@ const rdcarray<ShaderVariable> *ShaderViewer::GetVariableList(VariableCategory v
 
   switch(varCat)
   {
+    case VariableCategory::ByString:
     case VariableCategory::Unknown: vars = NULL; break;
     case VariableCategory::Temporaries: vars = &state.registers; break;
     case VariableCategory::IndexTemporaries:
@@ -2783,6 +2826,101 @@ void ShaderViewer::getRegisterFromWord(const QString &text, VariableCategory &va
 
 void ShaderViewer::updateVariableTooltip()
 {
+  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
+    return;
+
+  const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
+
+  if(m_TooltipVarCat == VariableCategory::ByString)
+  {
+    if(m_TooltipName.isEmpty())
+      return;
+
+    // first check the constants
+    QString bracketedName = lit("(") + m_TooltipName;
+    QString commaName = lit(", ") + m_TooltipName;
+    QList<ShaderVariable> constants;
+    for(ShaderVariable &block : m_Trace->constantBlocks)
+    {
+      for(ShaderVariable &c : block.members)
+      {
+        QString cname = c.name;
+
+        // this is a hack for now :(.
+        if(cname.startsWith(m_TooltipName) || cname.contains(bracketedName) ||
+           cname.contains(commaName))
+          constants.push_back(c);
+      }
+    }
+
+    if(constants.count() == 1)
+    {
+      QToolTip::showText(
+          m_TooltipPos,
+          QFormatStr("<pre>%1: %2</pre>").arg(constants[0].name).arg(RowString(constants[0], 0)));
+      return;
+    }
+    else if(constants.count() > 1)
+    {
+      QString tooltip =
+          QFormatStr("<pre>%1: %2\n").arg(m_TooltipName).arg(RowString(constants[0], 0));
+      QString spacing = QString(m_TooltipName.length(), QLatin1Char(' '));
+      for(int i = 1; i < constants.count(); i++)
+        tooltip += QFormatStr("%1  %2\n").arg(spacing).arg(RowString(constants[i], 0));
+      tooltip += lit("</pre>");
+      QToolTip::showText(m_TooltipPos, tooltip);
+      return;
+    }
+
+    // now check locals (if there are any)
+    for(const LocalVariableMapping &l : state.locals)
+    {
+      if(QString(l.localName) == m_TooltipName)
+      {
+        QString tooltip = QFormatStr("<pre>%1: ").arg(m_TooltipName);
+
+        for(uint32_t i = 0; i < l.regCount; i++)
+        {
+          const RegisterRange &r = l.registers[i];
+
+          if(i > 0)
+            tooltip += lit(", ");
+
+          if(r.type == RegisterType::Undefined)
+          {
+            tooltip += lit("?");
+            continue;
+          }
+
+          const ShaderVariable *var = GetRegisterVariable(r);
+
+          if(var)
+          {
+            if(l.type == VarType::UInt)
+              tooltip += Formatter::Format(var->value.uv[r.component]);
+            else if(l.type == VarType::Int)
+              tooltip += Formatter::Format(var->value.iv[r.component]);
+            else if(l.type == VarType::Float)
+              tooltip += Formatter::Format(var->value.fv[r.component]);
+            else if(l.type == VarType::Double)
+              tooltip += Formatter::Format(var->value.dv[r.component]);
+          }
+          else
+          {
+            tooltip += lit("&lt;error&gt;");
+          }
+        }
+
+        tooltip += lit("</pre>");
+
+        QToolTip::showText(m_TooltipPos, tooltip);
+        return;
+      }
+    }
+
+    return;
+  }
+
   if(m_TooltipVarIdx < 0)
     return;
 
@@ -2824,6 +2962,7 @@ void ShaderViewer::hideVariableTooltip()
 {
   QToolTip::hideText();
   m_TooltipVarIdx = -1;
+  m_TooltipName = QString();
 }
 
 bool ShaderViewer::isSourceDebugging()

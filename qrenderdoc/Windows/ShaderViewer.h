@@ -53,6 +53,7 @@ enum class VariableCategory
   IndexTemporaries,
   Temporaries,
   Outputs,
+  ByString,
 };
 
 class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
@@ -159,12 +160,14 @@ private:
   void updateWindowTitle();
 
   void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
+  void showVariableTooltip(QString name);
   void updateVariableTooltip();
   void hideVariableTooltip();
 
   bool isSourceDebugging();
 
   VariableCategory m_TooltipVarCat = VariableCategory::Temporaries;
+  QString m_TooltipName;
   int m_TooltipVarIdx = -1;
   int m_TooltipArrayIdx = -1;
   QPoint m_TooltipPos;
@@ -241,6 +244,8 @@ private:
   int instructionForLine(sptr_t line);
 
   void updateDebugging();
+
+  const ShaderVariable *GetRegisterVariable(const RegisterRange &r);
 
   void ensureLineScrolled(ScintillaEdit *s, int i);
 
