@@ -252,4 +252,5 @@ private:
   RDTreeWidgetItem *makeResourceRegister(const Bindpoint &bind, uint32_t idx,
                                          const BoundResource &ro, const ShaderResource &resources);
   void combineStructures(RDTreeWidgetItem *root);
+  RDTreeWidgetItem *findLocal(RDTreeWidgetItem *root, QString name);
 };

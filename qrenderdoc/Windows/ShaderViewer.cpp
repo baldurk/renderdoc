@@ -1459,7 +1459,7 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
               });
 
     // create a new parent with just the prefix
-    QVariantList values = {isArray ? name : name.mid(0, sepIndex)};
+    QVariantList values = {name.mid(0, sepIndex)};
     for(int i = 1; i < child->dataCount(); i++)
       values.push_back(QVariant());
     RDTreeWidgetItem *parent = new RDTreeWidgetItem(values);
@@ -1491,6 +1491,21 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
   // move all the children back from the temp object into the parameter
   while(temp.childCount() > 0)
     root->addChild(temp.takeChild(0));
+}
+
+RDTreeWidgetItem *ShaderViewer::findLocal(RDTreeWidgetItem *root, QString name)
+{
+  if(root->tag().toString() == name)
+    return root;
+
+  for(int i = 0; i < root->childCount(); i++)
+  {
+    RDTreeWidgetItem *ret = findLocal(root->child(i), name);
+    if(ret)
+      return ret;
+  }
+
+  return NULL;
 }
 
 void ShaderViewer::updateDebugging()
@@ -1857,6 +1872,8 @@ void ShaderViewer::updateDebugging()
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regNames, typeName, value});
 
+      node->setTag(localName);
+
       if(modified)
         node->setForegroundColor(QColor(Qt::red));
 
@@ -2131,6 +2148,36 @@ void ShaderViewer::updateDebugging()
         ui->watch->setItem(i, 2, item);
 
         continue;
+      }
+    }
+    else
+    {
+      regexp = QRegularExpression(lit("^(.+)(\\.[xyzwrgba]+)?(,[xfiudb])?$"));
+
+      match = regexp.match(reg);
+
+      if(match.hasMatch())
+      {
+        QString variablename = match.captured(1);
+
+        RDTreeWidgetItem *local = findLocal(ui->locals->invisibleRootItem(), match.captured(1));
+
+        if(local)
+        {
+          // TODO apply swizzle/typecast ?
+
+          if(local->childCount() > 0)
+          {
+            // can't display structs
+            ui->watch->setItem(i, 2, new QTableWidgetItem(lit("{...}")));
+          }
+          else
+          {
+            ui->watch->setItem(i, 2, new QTableWidgetItem(local->text(3)));
+          }
+
+          continue;
+        }
       }
     }
 
