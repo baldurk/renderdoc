@@ -928,6 +928,24 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
 
     QString text = QString::fromUtf8(m_DisassemblyView->textRange(start, end));
 
+    QRegularExpression regexp(lit("^[xyzwrgba]+$"));
+
+    // if we match a swizzle look before that for the register
+    if(regexp.match(text).hasMatch())
+    {
+      start--;
+      while(isspace(m_DisassemblyView->charAt(start)))
+        start--;
+
+      if(m_DisassemblyView->charAt(start) == '.')
+      {
+        end = m_DisassemblyView->wordEndPosition(start - 1, true);
+        start = m_DisassemblyView->wordStartPosition(start - 1, true);
+
+        text = QString::fromUtf8(m_DisassemblyView->textRange(start, end));
+      }
+    }
+
     if(!text.isEmpty())
     {
       VariableTag tag;
