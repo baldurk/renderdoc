@@ -226,66 +226,100 @@ struct ShaderVariable
 
 DECLARE_REFLECTION_STRUCT(ShaderVariable);
 
-DOCUMENT(R"(Refers to a shader variable in a :class:`ShaderDebugState` as a high-level local
-variable, with type information. Since locals don't always map directly this can change over time.
+DOCUMENT(
+    "A particular component of a variable register that a high-level variable component maps to");
+struct RegisterRange
+{
+  DOCUMENT("");
+  bool operator==(const RegisterRange &o) const
+  {
+    return type == o.type && index == o.index && component == o.component;
+  }
+  bool operator<(const RegisterRange &o) const
+  {
+    if(!(type == o.type))
+      return type < o.type;
+    if(!(index == o.index))
+      return index < o.index;
+    if(!(component == o.component))
+      return component < o.component;
+    return false;
+  }
 
-Locals can also be split and mapped to multiple registers, so a given high level variable may appear
-several times with different subsections.
+  DOCUMENT("The :class:`RegisterType` of the register being mapped to.");
+  RegisterType type = RegisterType::Undefined;
+
+  DOCUMENT("The index of the register within its type.");
+  uint16_t index = 0xFFFF;
+
+  DOCUMENT("The component of the register.");
+  uint16_t component = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(RegisterRange);
+
+DOCUMENT(R"(Maps the contents of a high-level local variable to one or more shader variables in a
+:class:`ShaderDebugState`, with type information.
+
+A single high-level variable may be represented by multiple mappings but only along regular
+boundaries, typically whole vectors. For example an array may have each element in a different
+mapping, or a matrix may have a mapping per row. The properties such as :data:`rows` and
+:data:`elements` reflect the *parent* object.
+
+Since locals don't always map directly this can change over time.
 )");
 struct LocalVariableMapping
 {
   DOCUMENT("");
   bool operator==(const LocalVariableMapping &o) const
   {
-    return localName == o.localName && variableType == o.variableType &&
-           registerType == o.registerType && registerIndex == o.registerIndex &&
-           registerSwizzle == o.registerSwizzle;
+    return localName == o.localName && type == o.type && builtin == o.builtin && rows == o.rows &&
+           columns == o.columns && elements == o.elements && registers == o.registers;
   }
   bool operator<(const LocalVariableMapping &o) const
   {
     if(!(localName == o.localName))
       return localName < o.localName;
-    if(!(variableType == o.variableType))
-      return variableType < o.variableType;
-    if(!(registerType == o.registerType))
-      return registerType < o.registerType;
-    if(!(registerIndex == o.registerIndex))
-      return registerIndex < o.registerIndex;
-    for(int i = 0; i < 4; i++)
-    {
-      if(!(registerSwizzle[i] == o.registerSwizzle[i]))
-        return registerSwizzle[i] < o.registerSwizzle[i];
-    }
-    for(int i = 0; i < 4; i++)
-    {
-      if(!(variableSwizzle[i] == o.variableSwizzle[i]))
-        return variableSwizzle[i] < o.variableSwizzle[i];
-    }
+    if(!(type == o.type))
+      return type < o.type;
+    if(!(builtin == o.builtin))
+      return builtin < o.builtin;
+    if(!(rows == o.rows))
+      return rows < o.rows;
+    if(!(columns == o.columns))
+      return columns < o.columns;
+    if(!(elements == o.elements))
+      return elements < o.elements;
+    if(!(registers == o.registers))
+      return registers < o.registers;
     return false;
   }
   DOCUMENT("The name and member of this local variable that's being mapped from.");
   rdcstr localName;
 
   DOCUMENT("The variable type of the local being mapped from, if the register is untyped.");
-  VarType variableType = VarType::Unknown;
+  VarType type = VarType::Unknown;
 
-  DOCUMENT("The :class:`RegisterType` of the register being mapped to.");
-  RegisterType registerType = RegisterType::Temporary;
+  DOCUMENT("The shader builtin this variable corresponds to.");
+  ShaderBuiltin builtin = ShaderBuiltin::Undefined;
 
-  DOCUMENT("The index of the register within its type.");
-  uint32_t registerIndex = 0;
+  DOCUMENT("The number of rows in this variable - 1 for vectors, >1 for matrices.");
+  uint32_t rows;
 
-  DOCUMENT(R"(A swizzle mask - each element in the list is set to the component of the register to
-map the variable component to. If an element is -1, there is no source component (i.e. not all 4
-components are used). This list will have the same number of elements as :data:`variableSwizzle`.
+  DOCUMENT("The number of columns in this variable.");
+  uint32_t columns;
+
+  DOCUMENT("The number of array elements in this variable.");
+  uint32_t elements;
+
+  DOCUMENT("The number of valid entries in :data:`registers`.");
+  uint32_t regCount;
+
+  DOCUMENT(R"(The registers that the components of this variable map to. Multiple ranges could refer
+to the same register if a contiguous range is mapped to - the mapping is component-by-component to
+greatly simplify algorithms at the expense of a small amount of storage space.
 )");
-  int8_t registerSwizzle[4] = {-1, -1, -1, -1};
-
-  DOCUMENT(R"(A swizzle mask - each element in the list is set to the component of the variable
-being mapped from. If an element is -1, there is no source component (i.e. not all 4
-components are used). This list will have the same number of elements as :data:`registerSwizzle`.
-)");
-  int8_t variableSwizzle[4] = {-1, -1, -1, -1};
+  RegisterRange registers[16];
 };
 DECLARE_REFLECTION_STRUCT(LocalVariableMapping);
 

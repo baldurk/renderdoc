@@ -342,16 +342,27 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, RegisterRange &el)
+{
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(index);
+  SERIALISE_MEMBER(component);
+
+  SIZE_CHECK(8);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, LocalVariableMapping &el)
 {
   SERIALISE_MEMBER(localName);
-  SERIALISE_MEMBER(variableType);
-  SERIALISE_MEMBER(registerType);
-  SERIALISE_MEMBER(registerIndex);
-  SERIALISE_MEMBER(registerSwizzle);
-  SERIALISE_MEMBER(variableSwizzle);
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(rows);
+  SERIALISE_MEMBER(columns);
+  SERIALISE_MEMBER(elements);
+  SERIALISE_MEMBER(regCount);
+  SERIALISE_MEMBER(registers);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(168);
 }
 
 template <typename SerialiserType>

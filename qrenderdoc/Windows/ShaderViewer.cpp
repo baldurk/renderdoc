@@ -419,7 +419,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->registers->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->registers->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
-    ui->locals->setColumns({tr("Name"), tr("Register"), tr("Type"), tr("Value")});
+    ui->locals->setColumns({tr("Name"), tr("Register(s)"), tr("Type"), tr("Value")});
     ui->locals->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->locals->header()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->locals->header()->setSectionResizeMode(2, QHeaderView::Interactive);
@@ -1090,7 +1090,7 @@ bool ShaderViewer::stepBack()
     const ShaderDebugState &oldstate = m_Trace->states[CurrentStep()];
 
     LineColumnInfo oldLine =
-        m_Trace->lineInfo[qMax(m_Trace->lineInfo.size() - 1, (size_t)oldstate.nextInstruction)];
+        m_Trace->lineInfo[qMin(m_Trace->lineInfo.size() - 1, (size_t)oldstate.nextInstruction)];
 
     while(CurrentStep() < m_Trace->states.count())
     {
@@ -1617,105 +1617,118 @@ void ShaderViewer::updateDebugging()
   {
     ui->locals->clear();
 
+    const QString xyzw = lit("xyzw");
+
     for(size_t lidx = 0; lidx < state.locals.size(); lidx++)
     {
       // iterate in reverse order, so newest locals tend to end up on top
       const LocalVariableMapping &l = state.locals[state.locals.size() - 1 - lidx];
-      const ShaderVariable *var = NULL;
-
-      switch(l.registerType)
-      {
-        case RegisterType::Input:
-          continue;    // skip inputs, they are immutable
-        case RegisterType::Temporary:
-          if(l.registerIndex < state.registers.size())
-            var = &state.registers[l.registerIndex];
-          break;
-        case RegisterType::IndexedTemporary:
-          if(l.registerIndex < state.indexableTemps.size())
-            var = &state.indexableTemps[l.registerIndex];
-          break;
-        case RegisterType::Output:
-          if(l.registerIndex < state.outputs.size())
-            var = &state.outputs[l.registerIndex];
-          break;
-      }
 
       QString localName = l.localName;
-      QString regName = lit("-"), typeName = lit("-");
-      QString value = tr("<error>");
+      QString regNames, typeName;
+      QString value;
 
-      if(var)
+      if(l.type == VarType::UInt)
+        typeName = lit("uint");
+      else if(l.type == VarType::Int)
+        typeName = lit("int");
+      else if(l.type == VarType::Float)
+        typeName = lit("float");
+      else if(l.type == VarType::Double)
+        typeName = lit("double");
+
+      if(l.registers[0].type == RegisterType::IndexedTemporary)
       {
-        value.clear();
+        typeName += lit("[]");
 
-        regName = var->name;
-
-        if(l.variableType == VarType::UInt)
-          typeName = lit("uint");
-        else if(l.variableType == VarType::Int)
-          typeName = lit("int");
-        else if(l.variableType == VarType::Float)
-          typeName = lit("float");
-        else if(l.variableType == VarType::Double)
-          typeName = lit("double");
-
-        if(l.registerType == RegisterType::IndexedTemporary)
-        {
-          typeName += lit("[]");
-
-          regName = QFormatStr("x%1").arg(l.registerIndex);
-        }
+        regNames = QFormatStr("x%1").arg(l.registers[0].index);
+      }
+      else
+      {
+        if(l.rows > 1)
+          typeName += QFormatStr("%1x%1").arg(l.rows).arg(l.columns);
         else
+          typeName += QString::number(l.columns);
+
+        for(uint32_t i = 0; i < l.regCount; i++)
         {
-          for(int i = 1; i < 4; i++)
+          const RegisterRange &r = l.registers[i];
+          const ShaderVariable *var = NULL;
+
+          if(!value.isEmpty())
+            value += lit(", ");
+          if(!regNames.isEmpty())
+            regNames += lit(", ");
+
+          switch(r.type)
           {
-            if(i == 3 || l.variableSwizzle[i] == -1)
-            {
-              typeName += QString::number(i);
+            case RegisterType::Undefined:
+              regNames += lit("-");
+              value += lit("?");
+              continue;
+            case RegisterType::Input:
+              if(r.index < m_Trace->inputs.size())
+                var = &m_Trace->inputs[r.index];
               break;
-            }
+            case RegisterType::Temporary:
+              if(r.index < state.registers.size())
+                var = &state.registers[r.index];
+              break;
+            case RegisterType::IndexedTemporary:
+              qCritical() << "unexpected indexed temporary";
+              break;
+            case RegisterType::Output:
+              if(r.index < state.outputs.size())
+                var = &state.outputs[r.index];
+              break;
           }
 
-          regName += lit(".");
-          localName += lit(".");
-
-          QString swizzle = lit("xyzw");
-
-          for(uint32_t i = 0; i < 4; i++)
+          if(var)
           {
-            if(l.variableSwizzle[i] != -1)
+            // if the previous register was the same, just append our component
+            if(i > 0 && r.type == l.registers[i - 1].type && r.index == l.registers[i - 1].index)
             {
-              int8_t vs = l.variableSwizzle[i];
-              int8_t rs = l.registerSwizzle[i];
-
-              localName += swizzle[vs];
-              regName += swizzle[rs];
-              if(!value.isEmpty())
-                value += lit(", ");
-
-              if(l.variableType == VarType::UInt)
-                value += Formatter::Format(var->value.uv[rs]);
-              else if(l.variableType == VarType::Int)
-                value += Formatter::Format(var->value.iv[rs]);
-              else if(l.variableType == VarType::Float)
-                value += Formatter::Format(var->value.fv[rs]);
-              else if(l.variableType == VarType::Double)
-                value += Formatter::Format(var->value.dv[rs]);
+              // remove the auto-appended ", " - there must be one because this isn't the first
+              // register
+              regNames.chop(2);
+              regNames += xyzw[r.component];
             }
+            else
+            {
+              regNames += QFormatStr("%1.%2").arg(var->name).arg(xyzw[r.component]);
+            }
+
+            if(l.type == VarType::UInt)
+              value += Formatter::Format(var->value.uv[r.component]);
+            else if(l.type == VarType::Int)
+              value += Formatter::Format(var->value.iv[r.component]);
+            else if(l.type == VarType::Float)
+              value += Formatter::Format(var->value.fv[r.component]);
+            else if(l.type == VarType::Double)
+              value += Formatter::Format(var->value.dv[r.component]);
+          }
+          else
+          {
+            regNames += lit("<error>");
+            value += lit("<error>");
           }
         }
       }
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regName, typeName, value});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regNames, typeName, value});
 
-      if(l.registerType == RegisterType::IndexedTemporary)
+      if(l.registers[0].type == RegisterType::IndexedTemporary)
       {
-        for(int t = 0; t < var->members.count(); t++)
+        const ShaderVariable *var = NULL;
+
+        if(l.registers[0].index < state.indexableTemps.size())
+          var = &state.indexableTemps[l.registers[0].index];
+
+        for(int t = 0; var && t < var->members.count(); t++)
         {
           node->addChild(new RDTreeWidgetItem({
-              QFormatStr("%1[%2]").arg(localName).arg(t), QFormatStr("%1[%2]").arg(regName).arg(t),
-              typeName, RowString(var->members[t], 0, l.variableType),
+              QFormatStr("%1[%2]").arg(localName).arg(t), QFormatStr("%1[%2]").arg(regNames).arg(t),
+              typeName, RowString(var->members[t], 0, l.type),
           }));
         }
       }

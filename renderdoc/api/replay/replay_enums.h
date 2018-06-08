@@ -97,6 +97,10 @@ DECLARE_REFLECTION_ENUM(SectionType);
 
 DOCUMENT(R"(Represents the type of register a local variable maps to.
 
+.. data:: Undefined
+
+  No defined register.
+
 .. data:: Input
 
   An input register.
@@ -115,6 +119,7 @@ DOCUMENT(R"(Represents the type of register a local variable maps to.
 )");
 enum class RegisterType : uint32_t
 {
+  Undefined,
   Input,
   Temporary,
   IndexedTemporary,

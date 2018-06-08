@@ -189,30 +189,31 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
     uint32_t byteSize;
     uint16_t vecSize;
     uint16_t matArrayStride;
+    LEAF_ENUM_e leafType;
     std::vector<TypeMember> members;
   };
 
   std::map<uint32_t, TypeDesc> typeInfo;
 
   // prepopulate with basic types
-  typeInfo[T_INT4] = {"int32_t", VarType::Int, 4, 1, 0, {}};
-  typeInfo[T_INT2] = {"int16_t", VarType::Int, 2, 1, 0, {}};
-  typeInfo[T_INT1] = {"int8_t", VarType::Int, 1, 1, 0, {}};
-  typeInfo[T_LONG] = {"int32_t", VarType::Int, 4, 1, 0, {}};
-  typeInfo[T_SHORT] = {"int16_t", VarType::Int, 2, 1, 0, {}};
-  typeInfo[T_CHAR] = {"char", VarType::Int, 1, 1, 0, {}};
-  typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, {}};
-  typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, {}};
-  typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, {}};
-  typeInfo[T_UINT1] = {"uint8_t", VarType::UInt, 1, 1, 0, {}};
-  typeInfo[T_ULONG] = {"uint32_t", VarType::UInt, 4, 1, 0, {}};
-  typeInfo[T_USHORT] = {"uint16_t", VarType::UInt, 2, 1, 0, {}};
-  typeInfo[T_UCHAR] = {"unsigned char", VarType::UInt, 1, 1, 0, {}};
-  typeInfo[T_REAL16] = {"half", VarType::Float, 2, 1, 0, {}};
-  typeInfo[T_REAL32] = {"float", VarType::Float, 4, 1, 0, {}};
+  typeInfo[T_INT4] = {"int32_t", VarType::Int, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT2] = {"int16_t", VarType::Int, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT1] = {"int8_t", VarType::Int, 1, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_LONG] = {"int32_t", VarType::Int, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_SHORT] = {"int16_t", VarType::Int, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_CHAR] = {"char", VarType::Int, 1, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_UINT1] = {"uint8_t", VarType::UInt, 1, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_ULONG] = {"uint32_t", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_USHORT] = {"uint16_t", VarType::UInt, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_UCHAR] = {"unsigned char", VarType::UInt, 1, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL16] = {"half", VarType::Float, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL32] = {"float", VarType::Float, 4, 1, 0, LF_NUMERIC, {}};
   // modern HLSL fake half
-  typeInfo[T_REAL32PP] = {"half", VarType::Float, 4, 1, 0, {}};
-  typeInfo[T_REAL64] = {"double", VarType::Double, 8, 1, 0, {}};
+  typeInfo[T_REAL32PP] = {"half", VarType::Float, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL64] = {"double", VarType::Double, 8, 1, 0, LF_NUMERIC, {}};
 
   if(streams.size() >= 3)
   {
@@ -269,7 +270,9 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
                   vector->elemtype, vector->count, *bytelength);
 
           typeInfo[id] = {
-              name, typeInfo[vector->elemtype].baseType, *bytelength, (uint16_t)vector->count, 0,
+              name,        typeInfo[vector->elemtype].baseType,
+              *bytelength, (uint16_t)vector->count,
+              0,           type,
               {},
           };
 
@@ -293,6 +296,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
               *bytelength,
               uint16_t(matrix->rows),
               uint16_t(*bytelength / matrix->cols),
+              type,
               {},
           };
 
@@ -530,7 +534,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             structType = "class";
 
           typeInfo[id] = {
-              name, VarType::Float, *bytelength, 1, 0, typeInfo[structure->field].members,
+              name, VarType::Float, *bytelength, 1, 0, type, typeInfo[structure->field].members,
           };
 
           SPDBLOG(
@@ -566,6 +570,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
               *bytelength,
               1,
               uint16_t(stridedArray->stride),
+              type,
               {},
           };
 
@@ -1093,6 +1098,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         DEFRANGESYMHLSL *defrange = (DEFRANGESYMHLSL *)sym;
 
         LocalMapping mapping;
+        RegisterRange &range = mapping.var.registers[0];
 
         bool indexable = false;
         const char *regtype = "";
@@ -1103,7 +1109,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         switch((OperandType)defrange->regType)
         {
           case TYPE_TEMP:
-            mapping.var.registerType = RegisterType::Temporary;
+            range.type = RegisterType::Temporary;
             regtype = "temp";
             regprefix = "r";
             break;
@@ -1120,7 +1126,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           case TYPE_INPUT_COVERAGE_MASK:
           case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
           case TYPE_INPUT_GS_INSTANCE_ID:
-            mapping.var.registerType = RegisterType::Input;
+            range.type = RegisterType::Input;
             regtype = "input";
             regprefix = "v";
             break;
@@ -1130,12 +1136,12 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
           case TYPE_OUTPUT_STENCIL_REF:
           case TYPE_OUTPUT_COVERAGE_MASK:
-            mapping.var.registerType = RegisterType::Output;
+            range.type = RegisterType::Output;
             regtype = "output";
             regprefix = "o";
             break;
           case TYPE_INDEXABLE_TEMP:
-            mapping.var.registerType = RegisterType::IndexedTemporary;
+            range.type = RegisterType::IndexedTemporary;
             regtype = "indexable";
             regprefix = "x";
             indexable = true;
@@ -1176,42 +1182,48 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         uint32_t regnumcomps = indexable ? 4 : defrange->sizeInParent / 4;
 
         bool builtinoutput = false;
-        ShaderBuiltin builtin = ShaderBuiltin::Undefined;
+        mapping.var.builtin = ShaderBuiltin::Undefined;
         switch((OperandType)defrange->regType)
         {
           case TYPE_OUTPUT_DEPTH:
             builtinoutput = true;
-            builtin = ShaderBuiltin::DepthOutput;
+            mapping.var.builtin = ShaderBuiltin::DepthOutput;
             break;
           case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
             builtinoutput = true;
-            builtin = ShaderBuiltin::DepthOutputLessEqual;
+            mapping.var.builtin = ShaderBuiltin::DepthOutputLessEqual;
             break;
           case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
             builtinoutput = true;
-            builtin = ShaderBuiltin::DepthOutputGreaterEqual;
+            mapping.var.builtin = ShaderBuiltin::DepthOutputGreaterEqual;
             break;
           case TYPE_OUTPUT_STENCIL_REF:
             builtinoutput = true;
-            builtin = ShaderBuiltin::StencilReference;
+            mapping.var.builtin = ShaderBuiltin::StencilReference;
             break;
           case TYPE_OUTPUT_COVERAGE_MASK:
             builtinoutput = true;
-            builtin = ShaderBuiltin::MSAACoverage;
+            mapping.var.builtin = ShaderBuiltin::MSAACoverage;
             break;
-          case TYPE_INPUT_PRIMITIVEID: builtin = ShaderBuiltin::PrimitiveIndex; break;
-          case TYPE_INPUT_COVERAGE_MASK: builtin = ShaderBuiltin::MSAACoverage; break;
-          case TYPE_INPUT_THREAD_ID: builtin = ShaderBuiltin::DispatchThreadIndex; break;
-          case TYPE_INPUT_THREAD_GROUP_ID: builtin = ShaderBuiltin::GroupIndex; break;
-          case TYPE_INPUT_THREAD_ID_IN_GROUP: builtin = ShaderBuiltin::GroupThreadIndex; break;
+          case TYPE_INPUT_PRIMITIVEID: mapping.var.builtin = ShaderBuiltin::PrimitiveIndex; break;
+          case TYPE_INPUT_COVERAGE_MASK: mapping.var.builtin = ShaderBuiltin::MSAACoverage; break;
+          case TYPE_INPUT_THREAD_ID:
+            mapping.var.builtin = ShaderBuiltin::DispatchThreadIndex;
+            break;
+          case TYPE_INPUT_THREAD_GROUP_ID: mapping.var.builtin = ShaderBuiltin::GroupIndex; break;
+          case TYPE_INPUT_THREAD_ID_IN_GROUP:
+            mapping.var.builtin = ShaderBuiltin::GroupThreadIndex;
+            break;
           case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-            builtin = ShaderBuiltin::GroupFlatIndex;
+            mapping.var.builtin = ShaderBuiltin::GroupFlatIndex;
             break;
-          case TYPE_INPUT_GS_INSTANCE_ID: builtin = ShaderBuiltin::GSInstanceIndex; break;
+          case TYPE_INPUT_GS_INSTANCE_ID:
+            mapping.var.builtin = ShaderBuiltin::GSInstanceIndex;
+            break;
           default: break;
         }
 
-        if(builtin != ShaderBuiltin::Undefined)
+        if(mapping.var.builtin != ShaderBuiltin::Undefined)
         {
           bool found = false;
 
@@ -1219,7 +1231,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           {
             for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
             {
-              if(dxbc->m_OutputSig[i].systemValue == builtin)
+              if(dxbc->m_OutputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
                 regfirstcomp = 0;
@@ -1232,7 +1244,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           {
             for(size_t i = 0; i < dxbc->m_InputSig.size(); i++)
             {
-              if(dxbc->m_InputSig[i].systemValue == builtin)
+              if(dxbc->m_InputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
                 regfirstcomp = 0;
@@ -1242,13 +1254,10 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             }
           }
 
+          // if not found in the signatures, then it's a fixed-function input like threadid - it
+          // will be matched by builtin
           if(!found)
-          {
-            RDCERR(
-                "Found variable mapping for %d but no matching register declared in out signature",
-                defrange->regType);
             regindex = ~0U;
-          }
         }
 
         char *regswizzle = regcomps;
@@ -1318,24 +1327,34 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           }
         }
 
+        mapping.var.type = vartype->baseType;
+        mapping.var.rows = 1;
+        mapping.var.columns = vartype->vecSize;
+
         // if it's an array or matrix, figure out the index
         if(vartype->matArrayStride)
         {
           uint32_t idx = varOffset / vartype->matArrayStride;
 
           mapping.var.localName = StringFormat::Fmt("%s[%u]", mapping.var.localName.c_str(), idx);
+          mapping.var.rows = RDCMAX(
+              1U, (vartype->byteSize + (vartype->matArrayStride - 1)) / vartype->matArrayStride);
 
           varOffset -= vartype->matArrayStride * idx;
         }
 
-        mapping.var.variableType = vartype->baseType;
-
-        mapping.var.registerIndex = regindex;
-        for(uint32_t i = 0; i < regnumcomps; i++)
+        if(vartype->leafType != LF_MATRIX)
         {
-          mapping.var.registerSwizzle[i] = uint8_t(regfirstcomp + i);
-          mapping.var.variableSwizzle[i] = uint8_t((varOffset % 16) / 4 + i);
+          mapping.var.elements = mapping.var.rows;
+          mapping.var.rows = 1;
         }
+
+        RDCASSERT(mapping.var.rows <= 4 && mapping.var.columns <= 4);
+
+        range.index = uint16_t(regindex & 0xffff);
+        mapping.regFirstComp = regfirstcomp;
+        mapping.varFirstComp = (varOffset % 16) / 4;
+        mapping.numComps = regnumcomps;
 
         SPDBLOG("Valid from %x to %x", defrange->range.offStart,
                 defrange->range.offStart + defrange->range.cbRange);
@@ -1358,9 +1377,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           mapping.gaps.push_back(r);
         }
 
-        // don't add input variables as they don't change
-        if(mapping.var.registerType != RegisterType::Input)
-          m_Locals.push_back(mapping);
+        m_Locals.push_back(mapping);
       }
       else if(type == S_INLINESITE_END)
       {
@@ -1716,103 +1733,55 @@ void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
 
     bool added = false;
 
-    // check for duplicate registers
+    // we apply each matching local over the top. Where there is an overlap (e.g. two variables with
+    // the same name) we take the last mapping as authoratitive. This is a good solution for the
+    // case where one function with a parameter/variable name calls an inner function with the same
+    // parameter name and there's shadowing. The later mapping will be for the inner function so we
+    // use it in preference.
+
+    // check if we already have a mapping for this variable
     for(LocalVariableMapping &a : locals)
     {
       const LocalVariableMapping &b = it->var;
 
-      // if the mapping was the same register, same variable, etc
-      if(a.registerIndex == b.registerIndex && a.registerType == b.registerType &&
-         a.variableType == b.variableType && a.localName == b.localName)
+      if(a.localName == b.localName)
       {
-        // check to see if the same variable component is being mapped to multiple registers. This
-        // can be caused if the same local variable is used in two contexts, e.g. a function foo(a)
-        // calling a function bar(a) - the variable a will mean different things while inside bar().
-        // Or it could be a bug :).
-        bool alias = false;
-        for(int i = 0; i < 4; i++)
-        {
-          for(int j = 0; j < 4; j++)
-          {
-            if(a.variableSwizzle[j] == b.variableSwizzle[i] &&
-               a.registerSwizzle[j] != b.registerSwizzle[j])
-            {
-              alias = true;
-              break;
-            }
-          }
+        RegisterRange range = b.registers[0];
 
-          if(alias)
-            break;
+        for(uint32_t i = 0; i < it->numComps; i++)
+        {
+          a.registers[it->varFirstComp + i].type = b.registers[0].type;
+          a.registers[it->varFirstComp + i].index = b.registers[0].index;
+          a.registers[it->varFirstComp + i].component = uint16_t(it->regFirstComp + i);
         }
 
-        // if we found aliasing, just add them as separate entries in the local list to be safe.
-        if(alias)
-        {
-          SPDBLOG(
-              "Found register mapping aliasing of %s, possible variable shadowing in function call",
-              a.localName.c_str());
-          continue;
-        }
+        a.regCount = RDCMAX(a.regCount, it->varFirstComp + it->numComps);
 
-        // insert b into a, in variableSwizzle sorted order. Note the number of nested loops might
-        // seem scary but they only iterate up to 4 and in many cases will early out.
-        for(int i = 0; i < 4; i++)
-        {
-          if(b.variableSwizzle[i] == -1)
-            break;
-
-          for(int j = 0; j < 4; j++)
-          {
-            if(a.variableSwizzle[j] == b.variableSwizzle[i])
-            {
-              // allow overlaps as long as they come from the same register component
-              RDCASSERT(a.registerSwizzle[j] == b.registerSwizzle[i]);
-              break;
-            }
-            else if(a.variableSwizzle[j] == -1)
-            {
-              // if we reached the end of the swizzles, just append our swizzle here as we know it's
-              // in sorted order
-              a.variableSwizzle[j] = b.variableSwizzle[i];
-              RDCASSERT(a.registerSwizzle[j] == -1);
-              a.registerSwizzle[j] = b.registerSwizzle[i];
-              break;
-            }
-            else if(a.variableSwizzle[j] < b.variableSwizzle[i])
-            {
-              // keep going if we haven't found where we want to insert this component yet
-              continue;
-            }
-            else    // a.variableSwizzle[j] > b.variableSwizzle[i]
-            {
-              // we shouldn't reach here on the last element, since then we should have found an
-              // exact match above - there are only 4 possible components
-              RDCASSERT(j < 3);
-
-              // the hard case - we need to insert our new component in the middle.
-              // First, shift everything up by one starting from the end and moving j to j+1
-              for(int k = 3; k > j; k--)
-              {
-                a.variableSwizzle[k] = a.variableSwizzle[k - 1];
-                a.registerSwizzle[k] = a.registerSwizzle[k - 1];
-              }
-
-              // now insert our variable
-              a.variableSwizzle[j] = b.variableSwizzle[i];
-              a.registerSwizzle[j] = b.registerSwizzle[i];
-              break;
-            }
-          }
-        }
-
+        // we've processed this, no need to add a new entry
         added = true;
         break;
       }
     }
 
     if(!added)
+    {
       locals.push_back(it->var);
+      LocalVariableMapping &a = locals.back();
+
+      // the register range is stored in [0] but we don't want to actually push that, so make it
+      // undefined and grab it locally
+      RegisterRange range;
+      std::swap(a.registers[0], range);
+
+      for(uint32_t i = 0; i < it->numComps; i++)
+      {
+        a.registers[it->varFirstComp + i].type = range.type;
+        a.registers[it->varFirstComp + i].index = range.index;
+        a.registers[it->varFirstComp + i].component = uint16_t(it->regFirstComp + i);
+      }
+
+      a.regCount = RDCMAX(it->var.columns, it->varFirstComp + it->numComps);
+    }
   }
 }
 

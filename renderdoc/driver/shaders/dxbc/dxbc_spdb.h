@@ -253,6 +253,9 @@ struct LocalMapping
 {
   bool operator<(const LocalMapping &o) const { return range.startRange < o.range.startRange; }
   LocalRange range;
+  uint32_t regFirstComp;
+  uint32_t varFirstComp;
+  uint32_t numComps;
   std::vector<LocalRange> gaps;
 
   LocalVariableMapping var;
