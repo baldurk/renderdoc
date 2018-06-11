@@ -802,7 +802,7 @@ GLResourceRecord *WrappedOpenGL::GetContextRecord()
   }
   else
   {
-    ContextData dat = GetCtxData();
+    ContextData &dat = GetCtxData();
     dat.CreateResourceRecord(this, GetCtx().ctx);
     return dat.m_ContextDataRecord;
   }
@@ -864,6 +864,14 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
     glDeleteBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
   if(ctxdata.m_ClientMemoryIBO)
     glDeleteBuffers(1, &ctxdata.m_ClientMemoryIBO);
+
+  if(ctxdata.m_ContextDataRecord)
+  {
+    RDCASSERT(ctxdata.m_ContextDataRecord->GetRefCount() == 1);
+    ctxdata.m_ContextDataRecord->Delete(GetResourceManager());
+    GetResourceManager()->ReleaseCurrentResource(ctxdata.m_ContextDataResourceID);
+    ctxdata.m_ContextDataRecord = NULL;
+  }
 
   for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
   {
