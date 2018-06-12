@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>873</width>
-    <height>532</height>
+    <width>883</width>
+    <height>660</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -164,7 +164,7 @@
    <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
-      <number>0</number>
+      <number>8</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -202,8 +202,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>473</height>
+            <width>883</width>
+            <height>601</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_6">
@@ -615,8 +615,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>424</height>
+            <width>883</width>
+            <height>552</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">
@@ -637,7 +637,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -689,7 +689,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -741,7 +741,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -793,7 +793,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -845,7 +845,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -891,6 +891,16 @@
               </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -1050,8 +1060,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>424</height>
+            <width>883</width>
+            <height>552</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_15">
@@ -1072,7 +1082,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1124,7 +1134,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1176,7 +1186,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1228,7 +1238,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1280,7 +1290,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1326,6 +1336,16 @@
               </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -1485,8 +1505,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>424</height>
+            <width>883</width>
+            <height>552</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -1507,7 +1527,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1559,7 +1579,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1611,7 +1631,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1663,7 +1683,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1715,7 +1735,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1761,6 +1781,16 @@
               </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -1920,8 +1950,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>857</width>
-            <height>538</height>
+            <width>883</width>
+            <height>552</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -1942,7 +1972,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -1994,7 +2024,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -2046,7 +2076,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>5</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -2098,7 +2128,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>4</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -2200,7 +2230,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -2252,7 +2282,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -2298,6 +2328,16 @@
               </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_5">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -3333,8 +3373,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>424</height>
+            <width>883</width>
+            <height>552</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -3355,7 +3395,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -3407,7 +3447,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -3459,7 +3499,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -3511,7 +3551,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -3563,7 +3603,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -3610,6 +3650,16 @@
              </layout>
             </widget>
            </item>
+           <item>
+            <spacer name="verticalSpacer_6">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+            </spacer>
+           </item>
           </layout>
          </widget>
         </widget>
@@ -3646,8 +3696,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>473</height>
+            <width>883</width>
+            <height>601</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -4275,8 +4325,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>873</width>
-            <height>424</height>
+            <width>883</width>
+            <height>552</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -4297,7 +4347,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -4349,7 +4399,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -4401,7 +4451,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -4453,7 +4503,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -4505,7 +4555,7 @@
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
+               <verstretch>1</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
@@ -4551,6 +4601,16 @@
               </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_7">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
