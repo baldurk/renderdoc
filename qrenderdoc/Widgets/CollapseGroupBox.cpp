@@ -130,7 +130,9 @@ void CollapseGroupBox::mouseReleaseEvent(QMouseEvent *event)
   // pretend we have a groupbox so we can hit-test for it
   option.subControls |= QStyle::SC_GroupBoxCheckBox;
 
-  if(style()->hitTestComplexControl(QStyle::CC_GroupBox, &option, event->pos(), this) ==
-     QStyle::SC_GroupBoxCheckBox)
+  if(style()->hitTestComplexControl(QStyle::CC_GroupBox, &option, event->pos(), this) &
+     (QStyle::SC_GroupBoxCheckBox | QStyle::SC_GroupBoxLabel))
+  {
     setCollapsed(!m_collapsed);
+  }
 }

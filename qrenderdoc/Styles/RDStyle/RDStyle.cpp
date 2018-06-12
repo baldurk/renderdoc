@@ -45,7 +45,8 @@ static const int CheckWidth = 14;
 static const int CheckHeight = 14;
 static const int CheckMargin = 3;
 
-static const int GroupMargin = 4;
+static const int GroupHMargin = 8;
+static const int GroupVMargin = 4;
 
 static const int ScrollButtonDim = 12;
 static const int ScrollBarMargin = 2;
@@ -357,6 +358,8 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
         ret.setHeight(labelHeight);
       }
 
+      ret.setWidth(group->fontMetrics.width(group->text));
+
       return ret;
     }
 
@@ -378,7 +381,7 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
 
     if(sc == QStyle::SC_GroupBoxContents)
     {
-      ret.setTop(ret.top() + labelHeight + Constants::GroupMargin);
+      ret.setTop(ret.top() + labelHeight + Constants::GroupHMargin);
 
       return ret;
     }
@@ -915,8 +918,8 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 
     QRect labelRect = subControlRect(CC_GroupBox, opt, QStyle::SC_GroupBoxLabel, widget);
 
-    labelRect.adjust(Constants::ButtonMargin + Constants::GroupMargin, Constants::ButtonBorder,
-                     -Constants::ButtonMargin, 0);
+    labelRect.adjust(Constants::GroupHMargin, Constants::GroupVMargin, Constants::GroupHMargin,
+                     Constants::GroupVMargin);
 
     QColor textColor = group->textColor;
     QPalette::ColorRole penRole = QPalette::WindowText;
@@ -930,7 +933,8 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
     drawItemText(p, labelRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextHideMnemonic, group->palette,
                  group->state & State_Enabled, group->text, penRole);
 
-    labelRect.adjust(-Constants::GroupMargin, 0, 0, Constants::GroupMargin / 2);
+    labelRect.setRight(subControlRect(CC_GroupBox, opt, QStyle::SC_GroupBoxFrame, widget).right());
+    labelRect.adjust(-Constants::GroupHMargin / 2, 0, -Constants::GroupHMargin, 0);
 
     p->setPen(QPen(opt->palette.brush(m_Scheme == Light ? QPalette::Mid : QPalette::Midlight), 1.0));
     p->drawLine(labelRect.bottomLeft(), labelRect.bottomRight());
