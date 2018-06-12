@@ -610,7 +610,7 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSparseProperties &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkQueueFamilyProperties &el)
 {
-  SERIALISE_MEMBER(queueFlags);
+  SERIALISE_MEMBER_TYPED(VkQueueFlagBits, queueFlags);
   SERIALISE_MEMBER(queueCount);
   SERIALISE_MEMBER(timestampValidBits);
   SERIALISE_MEMBER(minImageTransferGranularity);
@@ -2132,9 +2132,19 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   SERIALISE_MEMBER(imageUsage);
   SERIALISE_MEMBER(imageSharingMode);
 
-  // SHARING: queueFamilyCount, pQueueFamilyIndices
-  SERIALISE_MEMBER_EMPTY(queueFamilyIndexCount);
-  SERIALISE_MEMBER_ARRAY_EMPTY(pQueueFamilyIndices);
+  // pQueueFamilyIndices should *only* be read if the sharing mode is concurrent, and if the capture
+  // is new (old captures always ignored these fields)
+  if(ser.VersionAtLeast(0xD) && el.imageSharingMode == VK_SHARING_MODE_CONCURRENT)
+  {
+    SERIALISE_MEMBER(queueFamilyIndexCount);
+    SERIALISE_MEMBER_ARRAY(pQueueFamilyIndices, queueFamilyIndexCount);
+  }
+  else
+  {
+    // otherwise do a dummy serialise so the struct is the same either way
+    SERIALISE_MEMBER_EMPTY(queueFamilyIndexCount);
+    SERIALISE_MEMBER_ARRAY_EMPTY(pQueueFamilyIndices);
+  }
 
   SERIALISE_MEMBER(preTransform);
   SERIALISE_MEMBER(compositeAlpha);
@@ -2189,6 +2199,11 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ImageRegionState &el)
 {
+  if(ser.VersionAtLeast(0xD))
+  {
+    // added in 0xD
+    SERIALISE_MEMBER(dstQueueFamilyIndex);
+  }
   SERIALISE_MEMBER(subresourceRange);
   SERIALISE_MEMBER(oldLayout);
   SERIALISE_MEMBER(newLayout);
@@ -2197,6 +2212,11 @@ void DoSerialise(SerialiserType &ser, ImageRegionState &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ImageLayouts &el)
 {
+  if(ser.VersionAtLeast(0xD))
+  {
+    // added in 0xD
+    SERIALISE_MEMBER(queueFamilyIndex);
+  }
   SERIALISE_MEMBER(subresourceStates);
   SERIALISE_MEMBER(layerCount);
   SERIALISE_MEMBER(levelCount);

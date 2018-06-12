@@ -131,7 +131,8 @@ public:
 
   void SetVersion(uint64_t version) { m_Version = version; }
   // assume that we always write the latest version, so on writing the version check always passes.
-  bool VersionCheck(uint64_t req) { return IsWriting() || m_Version >= req; }
+  bool VersionAtLeast(uint64_t req) const { return IsWriting() || m_Version >= req; }
+  bool VersionLess(uint64_t req) const { return IsReading() && m_Version < req; }
   // enable 'streaming mode' for ephemeral transfers like temporary I/O over sockets, where there's
   // no need for the chunk length - avoids needing to seek internally in a stream that might not
   // support seeking to fixup lengths, while also not requiring conservative length estimates

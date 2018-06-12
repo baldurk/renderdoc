@@ -141,7 +141,6 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
   m_Device = VK_NULL_HANDLE;
   m_Queue = VK_NULL_HANDLE;
   m_QueueFamilyIdx = 0;
-  m_SupportedQueueFamily = 0;
   m_DbgMsgCallback = VK_NULL_HANDLE;
 
   m_HeaderChunk = NULL;
@@ -208,9 +207,13 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
   }
   else
   {
-    VkCommandBufferAllocateInfo cmdInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, NULL,
-                                           Unwrap(m_InternalCmds.cmdpool),
-                                           VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+    VkCommandBufferAllocateInfo cmdInfo = {
+        VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        NULL,
+        Unwrap(m_InternalCmds.cmdpool),
+        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        1,
+    };
     VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 
     if(m_SetDeviceLoaderData)
@@ -337,6 +340,51 @@ void WrappedVulkan::FlushQ()
                                    m_InternalCmds.submittedcmds.end());
     m_InternalCmds.submittedcmds.clear();
   }
+}
+
+VkCommandBuffer WrappedVulkan::GetExtQueueCmd(uint32_t queueFamilyIdx)
+{
+  if(queueFamilyIdx >= m_ExternalQueues.size())
+  {
+    RDCERR("Unsupported queue family %u", queueFamilyIdx);
+    return VK_NULL_HANDLE;
+  }
+
+  VkCommandBuffer buf = m_ExternalQueues[queueFamilyIdx].buffer;
+
+  ObjDisp(buf)->ResetCommandBuffer(Unwrap(buf), 0);
+
+  return buf;
+}
+
+void WrappedVulkan::SubmitAndFlushExtQueue(uint32_t queueFamilyIdx)
+{
+  if(queueFamilyIdx >= m_ExternalQueues.size())
+  {
+    RDCERR("Unsupported queue family %u", queueFamilyIdx);
+    return;
+  }
+
+  VkCommandBuffer buf = Unwrap(m_ExternalQueues[queueFamilyIdx].buffer);
+
+  VkSubmitInfo submitInfo = {
+      VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      NULL,
+      0,
+      NULL,
+      NULL,    // wait semaphores
+      1,
+      &buf,    // command buffers
+      0,
+      NULL,    // signal semaphores
+  };
+
+  VkQueue q = m_ExternalQueues[queueFamilyIdx].queue;
+
+  VkResult vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &submitInfo, VK_NULL_HANDLE);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  ObjDisp(q)->QueueWaitIdle(Unwrap(q));
 }
 
 uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type,
@@ -1032,6 +1080,38 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   // and go into the frame record.
   {
     SCOPED_LOCK(m_CapTransitionLock);
+
+    // wait for all work to finish and apply a memory barrier to ensure all memory is visible
+    for(size_t i = 0; i < m_QueueFamilies.size(); i++)
+    {
+      for(uint32_t q = 0; q < m_QueueFamilyCounts[i]; q++)
+      {
+        if(m_QueueFamilies[i][q] != VK_NULL_HANDLE)
+          ObjDisp(m_QueueFamilies[i][q])->QueueWaitIdle(Unwrap(m_QueueFamilies[i][q]));
+      }
+    }
+
+    {
+      VkMemoryBarrier memBarrier = {
+          VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL, VK_ACCESS_ALL_WRITE_BITS, VK_ACCESS_ALL_READ_BITS,
+      };
+
+      VkCommandBuffer cmd = GetNextCmd();
+
+      VkResult vkr = VK_SUCCESS;
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      DoPipelineBarrier(cmd, 1, &memBarrier);
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     GetResourceManager()->PrepareInitialContents();
 
     RDCDEBUG("Attempting capture");
@@ -1886,8 +1966,8 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     for(size_t i = 0; i < m_CleanupEvents.size(); i++)
       ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
 
-    vkFreeCommandBuffers(GetDev(), m_InternalCmds.cmdpool, (uint32_t)m_RerecordCmdList.size(),
-                         m_RerecordCmdList.data());
+    for(const std::pair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
+      vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
   }
 
   m_CleanupEvents.clear();

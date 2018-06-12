@@ -438,4 +438,7 @@ struct VulkanCreationInfo
   map<ResourceId, SwapchainInfo> m_SwapChain;
   map<ResourceId, DescSetLayout> m_DescSetLayout;
   map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;
+
+  // just contains the queueFamilyIndex (after remapping)
+  map<ResourceId, uint32_t> m_Queue;
 };

@@ -55,7 +55,7 @@ struct VkInitParams
   uint32_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xC;
+  static const uint64_t CurrentVersion = 0xD;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -68,7 +68,7 @@ struct VulkanDrawcallTreeNode
   DrawcallDescription draw;
   vector<VulkanDrawcallTreeNode> children;
 
-  vector<pair<ResourceId, EventUsage> > resourceUsage;
+  vector<pair<ResourceId, EventUsage>> resourceUsage;
 
   vector<ResourceId> executedCmds;
 
@@ -305,6 +305,7 @@ private:
       RDCEraseEl(props);
       RDCEraseEl(memProps);
       RDCEraseEl(fmtprops);
+      RDCEraseEl(queueProps);
     }
 
     uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps,
@@ -325,19 +326,31 @@ private:
     VkPhysicalDeviceProperties props;
     VkPhysicalDeviceMemoryProperties memProps;
     VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE];
+
+    uint32_t queueCount = 0;
+    VkQueueFamilyProperties queueProps[16];
   };
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
-  VkInstance m_Instance;                        // the instance corresponding to this WrappedVulkan
-  VkDebugReportCallbackEXT m_DbgMsgCallback;    // the instance's dbg msg callback handle
-  VkPhysicalDevice m_PhysicalDevice;            // the physical device we created m_Device with
-  VkDevice m_Device;                            // the device used for our own command buffer work
-  PhysicalDeviceData
-      m_PhysicalDeviceData;    // the data about the physical device used for the above device;
-  uint32_t
-      m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
-  VkQueue m_Queue;         // the queue used for our own command buffer work
+  // the instance corresponding to this WrappedVulkan
+  VkInstance m_Instance;
+  // the instance's dbg msg callback handle
+  VkDebugReportCallbackEXT m_DbgMsgCallback;
+  // the physical device we created m_Device with
+  VkPhysicalDevice m_PhysicalDevice;
+  // the device used for our own command buffer work
+  VkDevice m_Device;
+  // the data about the physical device used for the above device
+  PhysicalDeviceData m_PhysicalDeviceData;
+  // the family index that we've selected in CreateDevice for our queue. During replay, this is an
+  // index in the replay-time queues, not the capture-time queues (i.e. after remapping)
+  uint32_t m_QueueFamilyIdx;
+  // the queue used for our own command buffer work
+  VkQueue m_Queue;
+  // the last queue that submitted something during replay, to allow correct sync between
+  // submissions
+  VkQueue m_PrevQueue;
 
   // the physical devices. At capture time this is trivial, just the enumerated devices.
   // At replay time this is re-ordered from the real list to try and match
@@ -350,14 +363,33 @@ private:
   vector<VkPhysicalDevice> m_ReplayPhysicalDevices;
   vector<bool> m_ReplayPhysicalDevicesUsed;
 
-  // the single queue family supported for each physical device
-  vector<pair<uint32_t, VkQueueFamilyProperties> > m_SupportedQueueFamilies;
-
-  // the supported queue family for the created device
-  uint32_t m_SupportedQueueFamily;
-
   // the queue families (an array of count for each) for the created device
   vector<VkQueue *> m_QueueFamilies;
+  vector<uint32_t> m_QueueFamilyCounts;
+
+  // a small amount of helper code during capture for handling resources on different queues in init
+  // states
+  struct ExternalQueue
+  {
+    VkQueue queue = VK_NULL_HANDLE;
+    VkCommandPool pool = VK_NULL_HANDLE;
+    VkCommandBuffer buffer = VK_NULL_HANDLE;
+  };
+  vector<ExternalQueue> m_ExternalQueues;
+
+  VkCommandBuffer GetExtQueueCmd(uint32_t queueFamilyIdx);
+  void SubmitAndFlushExtQueue(uint32_t queueFamilyIdx);
+
+  struct QueueRemap
+  {
+    uint32_t family;
+    uint32_t index;
+  };
+
+  // for each queue family in the original captured physical device, we have a remapping vector.
+  // Each element in the vector is an available queue in that family, and the uint64 is packed as
+  // (targetQueueFamily << 32) | (targetQueueIndex)
+  std::vector<QueueRemap> m_QueueRemapping[16];
 
   vector<uint32_t *> m_MemIdxMaps;
   void RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap);
@@ -405,7 +437,7 @@ private:
 
   // Per memory scope, the size of the next allocation. This allows us to balance number of memory
   // allocation objects with size by incrementally allocating larger blocks.
-  VkDeviceSize m_MemoryBlockSize[arraydim<MemoryScope>()];
+  VkDeviceSize m_MemoryBlockSize[arraydim<MemoryScope>()] = {};
 
   MemoryAllocation AllocateMemoryForResource(VkImage im, MemoryScope scope, MemoryType type);
   MemoryAllocation AllocateMemoryForResource(VkBuffer buf, MemoryScope scope, MemoryType type);
@@ -450,7 +482,7 @@ private:
 
     int markerCount;
 
-    std::vector<std::pair<ResourceId, EventUsage> > resourceUsage;
+    std::vector<std::pair<ResourceId, EventUsage>> resourceUsage;
 
     struct CmdBufferState
     {
@@ -472,7 +504,7 @@ private:
       uint32_t subpass = 0;
     } state;
 
-    std::vector<std::pair<ResourceId, ImageRegionState> > imgbarriers;
+    std::vector<std::pair<ResourceId, ImageRegionState>> imgbarriers;
 
     ResourceId pushDescriptorID[64];
 
@@ -546,7 +578,7 @@ private:
     // event IDs, since they could be submitted multiple times in the frame and we don't want to
     // rebase all of them each time.
     // Map from bakeID -> vector<Submission>
-    std::map<ResourceId, std::vector<Submission> > cmdBufferSubmits;
+    std::map<ResourceId, std::vector<Submission>> cmdBufferSubmits;
 
     // identifies the baked ID of the command buffer that's actually partial at each level.
     ResourceId partialParent;
@@ -573,7 +605,7 @@ private:
   // we store the list here, since we need to keep all command buffers until the whole replay is
   // finished, but if a command buffer is re-recorded multiple times it would be overwritten in the
   // above map
-  std::vector<VkCommandBuffer> m_RerecordCmdList;
+  std::vector<std::pair<VkCommandPool, VkCommandBuffer>> m_RerecordCmdList;
 
   // There is only a state while currently partially replaying, it's
   // undefined/empty otherwise.
@@ -629,7 +661,7 @@ private:
   // immutable creation data
   VulkanCreationInfo m_CreationInfo;
 
-  map<ResourceId, vector<EventUsage> > m_ResourceUses;
+  map<ResourceId, vector<EventUsage>> m_ResourceUses;
 
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);
@@ -780,6 +812,8 @@ public:
   bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);
+
+  void RemapQueueFamilyIndices(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily);
 
   bool ReleaseResource(WrappedVkRes *res);
 

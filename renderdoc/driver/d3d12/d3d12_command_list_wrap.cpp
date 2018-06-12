@@ -1250,7 +1250,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
 
   std::vector<D3D12Descriptor> RTVs;
 
-  if(ser.VersionCheck(0x5))
+  if(ser.VersionAtLeast(0x5))
   {
     if(ser.IsWriting())
     {
@@ -1286,7 +1286,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
 
   D3D12Descriptor DSV = {};
 
-  if(ser.VersionCheck(0x5))
+  if(ser.VersionAtLeast(0x5))
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately.
@@ -4321,7 +4321,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearDepthStencilView(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  if(ser.VersionCheck(0x5))
+  if(ser.VersionAtLeast(0x5))
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
@@ -4420,7 +4420,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearRenderTargetView(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  if(ser.VersionCheck(0x5))
+  if(ser.VersionAtLeast(0x5))
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
@@ -4515,7 +4515,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearUnorderedAccessViewUint(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(ViewGPUHandleInCurrentHeap);
-  if(ser.VersionCheck(0x5))
+  if(ser.VersionAtLeast(0x5))
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately. This is only true for the CPU-side handle
@@ -4620,7 +4620,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearUnorderedAccessViewFloat(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(ViewGPUHandleInCurrentHeap);
-  if(ser.VersionCheck(0x5))
+  if(ser.VersionAtLeast(0x5))
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately. This is only true for the CPU-side handle

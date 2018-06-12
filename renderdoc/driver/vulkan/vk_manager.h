@@ -253,7 +253,7 @@ public:
   void MergeBarriers(vector<pair<ResourceId, ImageRegionState> > &dststates,
                      vector<pair<ResourceId, ImageRegionState> > &srcstates);
 
-  void ApplyBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
+  void ApplyBarriers(uint32_t queueFamilyIndex, vector<pair<ResourceId, ImageRegionState> > &states,
                      map<ResourceId, ImageLayouts> &layouts);
 
   template <typename SerialiserType>

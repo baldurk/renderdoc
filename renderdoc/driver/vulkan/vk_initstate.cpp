@@ -109,10 +109,18 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // INITSTATEBATCH
     VkCommandBuffer cmd = GetNextCmd();
 
+    VkCommandBuffer extQCmd = VK_NULL_HANDLE;
+
     ImageLayouts *layout = NULL;
     {
       SCOPED_LOCK(m_ImageLayoutsLock);
       layout = &m_ImageLayouts[im->id];
+    }
+
+    if(layout->queueFamilyIndex != m_QueueFamilyIdx)
+    {
+      // get a command buffer for giving up ownership before the copy and acquiring it afterwards.
+      extQCmd = GetExtQueueCmd(layout->queueFamilyIndex);
     }
 
     // must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
@@ -212,6 +220,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsStencilOnlyFormat(layout->format))
       aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -225,10 +239,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
+        layout->queueFamilyIndex,
+        m_QueueFamilyIdx,
         realim,
-        {aspectFlags, 0, (uint32_t)layout->levelCount, 0, (uint32_t)numLayers}};
+        {aspectFlags, 0, (uint32_t)layout->levelCount, 0, (uint32_t)numLayers},
+    };
 
     if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(layout->format))
       srcimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -248,21 +263,34 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
+    }
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      SubmitAndFlushExtQueue(layout->queueFamilyIndex);
     }
 
     if(arrayIm != VK_NULL_HANDLE)
     {
-      VkImageMemoryBarrier arrayimBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                             NULL,
-                                             0,
-                                             0,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL,
-                                             VK_QUEUE_FAMILY_IGNORED,
-                                             VK_QUEUE_FAMILY_IGNORED,
-                                             Unwrap(arrayIm),
-                                             {srcimBarrier.subresourceRange.aspectMask, 0,
-                                              VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+      VkImageMemoryBarrier arrayimBarrier = {
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          NULL,
+          0,
+          0,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_GENERAL,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(arrayIm),
+          {srcimBarrier.subresourceRange.aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0,
+           VK_REMAINING_ARRAY_LAYERS},
+      };
 
       DoPipelineBarrier(cmd, 1, &arrayimBarrier);
 
@@ -346,8 +374,17 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // transfer back to whatever it was
     srcimBarrier.oldLayout = srcimBarrier.newLayout;
 
+    // on whatever queue
+    std::swap(srcimBarrier.srcQueueFamilyIndex, srcimBarrier.dstQueueFamilyIndex);
+
     srcimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     srcimBarrier.dstAccessMask = 0;
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
 
     for(size_t si = 0; si < layout->subresourceStates.size(); si++)
     {
@@ -355,6 +392,17 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
       srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
+    }
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      SubmitAndFlushExtQueue(layout->queueFamilyIndex);
     }
 
     vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
@@ -401,9 +449,17 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
 
+    // we make the buffer concurrently accessible by all queue families to not invalidate the
+    // contents of the memory we're reading back from.
+    bufInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+    bufInfo.queueFamilyIndexCount = m_PhysicalDeviceData.queueCount;
+    std::vector<uint32_t> queues;
+    for(uint32_t i = 0; i < bufInfo.queueFamilyIndexCount; i++)
+      queues.push_back(i);
+    bufInfo.pQueueFamilyIndices = queues.data();
+
     // since this happens during capture, we don't want to start serialising extra buffer creates,
-    // so
-    // we manually create & then just wrap.
+    // so we manually create & then just wrap.
     VkBuffer srcBuf, dstBuf;
 
     bufInfo.size = datasize;

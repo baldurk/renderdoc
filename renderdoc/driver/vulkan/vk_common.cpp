@@ -237,6 +237,11 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0xC -> 0xD - supported multiple queues. This didn't cause a large change to the serialisation
+  // but there were some slight inconsistencies that required a version bump
+  if(ver == 0xC)
+    return true;
+
   // 0xB -> 0xC - generally this is when we started serialising pNext chains that older RenderDoc
   // couldn't support. But we don't need any special backwards compatibiltiy code as it's just added
   // serialisation.
@@ -753,16 +758,6 @@ void ReplacePresentableImageLayout(VkImageLayout &layout)
 {
   if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
     layout = VK_IMAGE_LAYOUT_GENERAL;
-}
-
-void ReplaceExternalQueueFamily(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily)
-{
-  if(srcQueueFamily == VK_QUEUE_FAMILY_EXTERNAL || dstQueueFamily == VK_QUEUE_FAMILY_EXTERNAL)
-  {
-    // we should ignore this family transition since we're not synchronising with an
-    // external access.
-    srcQueueFamily = dstQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-  }
 }
 
 int SampleCount(VkSampleCountFlagBits countFlag)

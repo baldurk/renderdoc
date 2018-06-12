@@ -830,7 +830,10 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);
 
 struct ImageRegionState
 {
-  ImageRegionState() : oldLayout(UNKNOWN_PREV_IMG_LAYOUT), newLayout(UNKNOWN_PREV_IMG_LAYOUT)
+  ImageRegionState()
+      : dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED),
+        oldLayout(UNKNOWN_PREV_IMG_LAYOUT),
+        newLayout(UNKNOWN_PREV_IMG_LAYOUT)
   {
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseArrayLayer = 0;
@@ -838,11 +841,12 @@ struct ImageRegionState
     subresourceRange.baseMipLevel = 0;
     subresourceRange.levelCount = 0;
   }
-  ImageRegionState(VkImageSubresourceRange r, VkImageLayout pr, VkImageLayout st)
-      : subresourceRange(r), oldLayout(pr), newLayout(st)
+  ImageRegionState(uint32_t queueIndex, VkImageSubresourceRange r, VkImageLayout pr, VkImageLayout st)
+      : dstQueueFamilyIndex(queueIndex), subresourceRange(r), oldLayout(pr), newLayout(st)
   {
   }
 
+  uint32_t dstQueueFamilyIndex;
   VkImageSubresourceRange subresourceRange;
   VkImageLayout oldLayout;
   VkImageLayout newLayout;
@@ -1101,6 +1105,7 @@ public:
     PipelineLayoutData *pipeLayoutInfo;            // only for pipeline layouts
     DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
     DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates
+    uint32_t queueFamilyIndex;               // only for queues
   };
 
   VkResourceRecord *bakedCommands;
@@ -1193,6 +1198,7 @@ struct ImageLayouts
     extent.width = extent.height = extent.depth = 1;
   }
 
+  uint32_t queueFamilyIndex = 0;
   vector<ImageRegionState> subresourceStates;
   int layerCount, levelCount, sampleCount;
   VkExtent3D extent;

@@ -60,6 +60,8 @@ void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageReg
     if(it->first != id)
       break;
 
+    it->second.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
+
     {
       // we've found a range that completely matches our region, doesn't matter if that's
       // a whole image and the barrier is the whole image, or it's one subresource.
@@ -185,7 +187,8 @@ void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageReg
   VkImageSubresourceRange subRange = t.subresourceRange;
   subRange.levelCount = nummips;
   subRange.layerCount = numslices;
-  dststates.insert(it, std::make_pair(id, ImageRegionState(subRange, t.oldLayout, t.newLayout)));
+  dststates.insert(it, std::make_pair(id, ImageRegionState(VK_QUEUE_FAMILY_IGNORED, subRange,
+                                                           t.oldLayout, t.newLayout)));
 }
 
 void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
@@ -280,9 +283,9 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
         // to get images into the right layout
         t.srcAccessMask = 0;
         t.dstAccessMask = 0;
-        // MULTIDEVICE need to handle multiple queues
-        t.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        t.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        t.srcQueueFamilyIndex = ImageState.queueFamilyIndex;
+        t.dstQueueFamilyIndex = ImageState.queueFamilyIndex;
+        m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
         t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
         t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         ReplacePresentableImageLayout(state.newLayout);
@@ -297,7 +300,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
       srcit++;
   }
 
-  ApplyBarriers(vec, states);
+  // we don't have to specify a queue here because all of the images have a specific queue above
+  ApplyBarriers(VK_QUEUE_FAMILY_IGNORED, vec, states);
 
   for(size_t i = 0; i < vec.size(); i++)
     barriers[i].oldLayout = vec[i].second.oldLayout;
@@ -376,7 +380,8 @@ void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
   }
 }
 
-void VulkanResourceManager::ApplyBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
+void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
+                                          vector<pair<ResourceId, ImageRegionState> > &states,
                                           map<ResourceId, ImageLayouts> &layouts)
 {
   TRDBG("Applying %u barriers", (uint32_t)states.size());
@@ -395,6 +400,13 @@ void VulkanResourceManager::ApplyBarriers(vector<pair<ResourceId, ImageRegionSta
       TRDBG("Didn't find ID in image layouts");
       continue;
     }
+
+    // apply any ownership transfer
+    stit->second.queueFamilyIndex = t.dstQueueFamilyIndex;
+
+    // if there's no ownership transfer, it's implicitly owned by the current queue
+    if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
+      stit->second.queueFamilyIndex = queueFamilyIndex;
 
     uint32_t nummips = t.subresourceRange.levelCount;
     uint32_t numslices = t.subresourceRange.layerCount;

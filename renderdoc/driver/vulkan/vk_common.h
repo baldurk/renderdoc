@@ -30,8 +30,6 @@
 // MULTIDEVICE - parts of the code that will need to be updated to support
 // multiple devices or queues.
 
-// SHARING - as above, for handling resource sharing between queues
-
 #include "common/common.h"
 
 #define VK_NO_PROTOTYPES
@@ -104,7 +102,6 @@ StencilOperation MakeStencilOp(VkStencilOp op);
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
 void ReplacePresentableImageLayout(VkImageLayout &layout);
-void ReplaceExternalQueueFamily(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily);
 
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers);
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers);

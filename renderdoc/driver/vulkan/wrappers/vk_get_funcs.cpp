@@ -87,17 +87,16 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties(VkPhysicalDevice physicalDevic
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
     VkPhysicalDevice physicalDevice, uint32_t *pCount, VkQueueFamilyProperties *pQueueFamilyProperties)
 {
-  // pretend to only have one queue, the one with graphics capability
-  if(pCount)
-    *pCount = 1;
+  // report the actual physical device properties - this will be remapped on replay if necessary
+  ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), pCount,
+                                               pQueueFamilyProperties);
 
-  if(pQueueFamilyProperties)
+  // remove any protected bits that might be set
+  if(pCount && pQueueFamilyProperties)
   {
-    // find the matching physical device
-    for(size_t i = 0; i < m_PhysicalDevices.size(); i++)
-      if(m_PhysicalDevices[i] == physicalDevice)
-        *pQueueFamilyProperties = m_SupportedQueueFamilies[i].second;
-    return;
+    for(uint32_t i = 0; i < *pCount; i++)
+      pQueueFamilyProperties[i].queueFlags &= ~VK_QUEUE_PROTECTED_BIT;
   }
 }
 

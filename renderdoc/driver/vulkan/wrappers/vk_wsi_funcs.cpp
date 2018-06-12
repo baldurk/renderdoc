@@ -338,8 +338,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | CreateInfo.imageUsage,
         CreateInfo.imageSharingMode,
-        0,
-        NULL,
+        CreateInfo.queueFamilyIndexCount,
+        CreateInfo.pQueueFamilyIndices,
         VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
@@ -407,8 +407,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       m_ImageLayouts[liveId].format = iminfo.format;
 
       m_ImageLayouts[liveId].subresourceStates.clear();
-      m_ImageLayouts[liveId].subresourceStates.push_back(
-          ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+      m_ImageLayouts[liveId].subresourceStates.push_back(ImageRegionState(
+          VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
     }
   }
 
@@ -540,8 +540,8 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         {
           SCOPED_LOCK(m_ImageLayoutsLock);
           m_ImageLayouts[imid].subresourceStates.clear();
-          m_ImageLayouts[imid].subresourceStates.push_back(
-              ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+          m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(
+              VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
         }
 
         {
@@ -679,6 +679,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
       VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
 
+      uint32_t swapQueueIndex = m_ImageLayouts[GetResID(im)].queueFamilyIndex;
+
       VkLayerDispatchTable *vt = ObjDisp(GetDev());
 
       TextPrintState textstate = {
@@ -696,21 +698,37 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkResult vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      VkImageMemoryBarrier bbBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                        NULL,
-                                        0,
-                                        0,
-                                        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                        VK_QUEUE_FAMILY_IGNORED,
-                                        VK_QUEUE_FAMILY_IGNORED,
-                                        Unwrap(im),
-                                        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+      VkImageMemoryBarrier bbBarrier = {
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          NULL,
+          0,
+          0,
+          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          swapQueueIndex,
+          m_QueueFamilyIdx,
+          Unwrap(im),
+          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+      };
 
       bbBarrier.srcAccessMask = VK_ACCESS_ALL_READ_BITS;
       bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
       DoPipelineBarrier(textstate.cmd, 1, &bbBarrier);
+
+      if(swapQueueIndex != m_QueueFamilyIdx)
+      {
+        VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
+
+        vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        DoPipelineBarrier(extQCmd, 1, &bbBarrier);
+
+        ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+
+        SubmitAndFlushExtQueue(swapQueueIndex);
+      }
 
       m_TextRenderer->BeginText(textstate);
 
@@ -722,6 +740,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       m_TextRenderer->EndText(textstate);
 
+      std::swap(bbBarrier.srcQueueFamilyIndex, bbBarrier.dstQueueFamilyIndex);
       std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
       bbBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
       bbBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
@@ -731,6 +750,20 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 
       SubmitCmds();
+
+      if(swapQueueIndex != m_QueueFamilyIdx)
+      {
+        VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
+
+        vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        DoPipelineBarrier(extQCmd, 1, &bbBarrier);
+
+        ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+
+        SubmitAndFlushExtQueue(swapQueueIndex);
+      }
 
       FlushQ();
     }

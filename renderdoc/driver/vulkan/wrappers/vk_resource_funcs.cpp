@@ -1009,6 +1009,14 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     // ensure we can always readback from buffers
     CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
+    // remap the queue family indices
+    if(CreateInfo.sharingMode == VK_SHARING_MODE_EXCLUSIVE)
+    {
+      uint32_t *queueFamiles = (uint32_t *)CreateInfo.pQueueFamilyIndices;
+      for(uint32_t q = 0; q < CreateInfo.queueFamilyIndexCount; q++)
+        queueFamiles[q] = m_QueueRemapping[queueFamiles[q]][0].family;
+    }
+
     VkBufferCreateInfo patched = CreateInfo;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
@@ -1061,8 +1069,6 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &adjusted_info, pAllocator, pBuffer));
-
-  // SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
   if(ret == VK_SUCCESS)
   {
@@ -1255,6 +1261,14 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
                         VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     CreateInfo.usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
 
+    // remap the queue family indices
+    if(CreateInfo.sharingMode == VK_SHARING_MODE_EXCLUSIVE)
+    {
+      uint32_t *queueFamiles = (uint32_t *)CreateInfo.pQueueFamilyIndices;
+      for(uint32_t q = 0; q < CreateInfo.queueFamilyIndexCount; q++)
+        queueFamiles[q] = m_QueueRemapping[queueFamiles[q]][0].family;
+    }
+
     // ensure we can cast multisampled images, for copying to arrays
     if((int)CreateInfo.samples > 1)
     {
@@ -1328,8 +1342,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       else if(IsDepthOrStencilFormat(CreateInfo.format))
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
-      layouts.subresourceStates.push_back(
-          ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+      layouts.subresourceStates.push_back(ImageRegionState(
+          VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
     }
 
     const char *prefix = "Image";
@@ -1411,8 +1425,6 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->CreateImage(Unwrap(device), &createInfo_adjusted, pAllocator, pImage));
-
-  // SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
   if(ret == VK_SUCCESS)
   {
@@ -1556,8 +1568,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     else if(IsDepthOrStencilFormat(pCreateInfo->format))
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
-    layout->subresourceStates.push_back(
-        ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+    layout->subresourceStates.push_back(ImageRegionState(
+        VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
   }
 
   return ret;

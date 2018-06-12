@@ -39,13 +39,20 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
   if(IsReplayingAndReading())
   {
     VkQueue queue;
-    // MULTIQUEUE - re-map the queue family/index instead of using the supported family
-    ObjDisp(device)->GetDeviceQueue(Unwrap(device), m_SupportedQueueFamily, 0, &queue);
+
+    uint32_t remapFamily = m_QueueRemapping[queueFamilyIndex][queueIndex].family;
+    uint32_t remapIndex = m_QueueRemapping[queueFamilyIndex][queueIndex].index;
+
+    if(remapFamily != queueFamilyIndex || remapIndex != queueIndex)
+      RDCLOG("Remapped Queue %u/%u from capture to %u/%u on replay", queueFamilyIndex, queueIndex,
+             remapFamily, remapIndex);
+
+    ObjDisp(device)->GetDeviceQueue(Unwrap(device), remapFamily, remapIndex, &queue);
 
     GetResourceManager()->WrapResource(Unwrap(device), queue);
     GetResourceManager()->AddLiveResource(Queue, queue);
 
-    if(queueFamilyIndex == m_QueueFamilyIdx)
+    if(remapFamily == m_QueueFamilyIdx && m_Queue == VK_NULL_HANDLE)
     {
       m_Queue = queue;
 
@@ -53,6 +60,8 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
       // manager on vkCreateDevice)
       SubmitCmds();
     }
+
+    m_CreationInfo.m_Queue[GetResID(queue)] = remapFamily;
 
     AddResource(Queue, ResourceType::Queue, "Queue");
     DerivedResource(device, Queue);
@@ -101,6 +110,8 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
         RDCASSERT(record);
 
+        record->queueFamilyIndex = queueFamilyIndex;
+
         VkResourceRecord *instrecord = GetRecord(m_Instance);
 
         // treat queues as pool members of the instance (ie. freed when the instance dies)
@@ -114,6 +125,16 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
       }
 
       m_QueueFamilies[queueFamilyIndex][queueIndex] = *pQueue;
+
+      if(queueFamilyIndex < m_ExternalQueues.size())
+      {
+        if(m_ExternalQueues[queueFamilyIndex].queue == VK_NULL_HANDLE)
+          m_ExternalQueues[queueFamilyIndex].queue = *pQueue;
+      }
+      else
+      {
+        RDCERR("Unexpected queue family index %u", queueFamilyIndex);
+      }
 
       if(queueFamilyIndex == m_QueueFamilyIdx)
       {
@@ -142,6 +163,18 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
   if(IsReplayingAndReading())
   {
+    // if there are multiple queue submissions in flight, wait for the previous queue to finish
+    // before executing this, as we don't have the sync information to properly sync.
+    if(m_PrevQueue != queue)
+    {
+      RDCDEBUG("Previous queue execution was on queue %llu, now executing %llu, syncing GPU",
+               GetResID(m_PrevQueue), GetResID(queue));
+      if(m_PrevQueue != VK_NULL_HANDLE)
+        ObjDisp(m_PrevQueue)->QueueWaitIdle(Unwrap(m_PrevQueue));
+
+      m_PrevQueue = queue;
+    }
+
     // if we ever waited on any semaphores, wait for idle here.
     bool doWait = false;
     for(uint32_t i = 0; i < submitCount; i++)
@@ -205,7 +238,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
-          GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
+          GetResourceManager()->ApplyBarriers(m_CreationInfo.m_Queue[GetResID(queue)],
+                                              m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
 
           std::string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)",
                                                basename.c_str(), c, ToStr(cmd).c_str());
@@ -334,7 +368,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 #endif
               rerecordedCmds.push_back(Unwrap(cmd));
 
-              GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
+              GetResourceManager()->ApplyBarriers(m_CreationInfo.m_Queue[GetResID(queue)],
+                                                  m_BakedCmdBufferInfo[rerecord].imgbarriers,
                                                   m_ImageLayouts);
             }
             else
@@ -509,6 +544,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
   bool capframe = false;
   set<ResourceId> refdIDs;
 
+  VkResourceRecord *queueRecord = GetRecord(queue);
+
   for(uint32_t s = 0; s < submitCount; s++)
   {
     for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
@@ -519,7 +556,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
       {
         SCOPED_LOCK(m_ImageLayoutsLock);
-        GetResourceManager()->ApplyBarriers(record->bakedCommands->cmdInfo->imgbarriers,
+        GetResourceManager()->ApplyBarriers(queueRecord->queueFamilyIndex,
+                                            record->bakedCommands->cmdInfo->imgbarriers,
                                             m_ImageLayouts);
       }
 
@@ -1202,17 +1240,24 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
   if(IsReplayingAndReading())
   {
     uint32_t queueFamilyIndex = QueueInfo.queueFamilyIndex;
+    uint32_t queueIndex = QueueInfo.queueIndex;
+
+    uint32_t remapFamily = m_QueueRemapping[queueFamilyIndex][queueIndex].family;
+    uint32_t remapIndex = m_QueueRemapping[queueFamilyIndex][queueIndex].index;
+
+    if(remapFamily != queueFamilyIndex || remapIndex != queueIndex)
+      RDCLOG("Remapped Queue %u/%u from capture to %u/%u on replay", queueFamilyIndex, queueIndex,
+             remapFamily, remapIndex);
 
     VkQueue queue;
-    // MULTIQUEUE - re-map the queue family/index instead of using the supported family
-    QueueInfo.queueFamilyIndex = m_SupportedQueueFamily;
-    QueueInfo.queueIndex = 0;
+    QueueInfo.queueFamilyIndex = remapFamily;
+    QueueInfo.queueIndex = remapIndex;
     ObjDisp(device)->GetDeviceQueue2(Unwrap(device), &QueueInfo, &queue);
 
     GetResourceManager()->WrapResource(Unwrap(device), queue);
     GetResourceManager()->AddLiveResource(Queue, queue);
 
-    if(queueFamilyIndex == m_QueueFamilyIdx)
+    if(remapFamily == m_QueueFamilyIdx && m_Queue == VK_NULL_HANDLE)
     {
       m_Queue = queue;
 
@@ -1220,6 +1265,8 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
       // manager on vkCreateDevice)
       SubmitCmds();
     }
+
+    m_CreationInfo.m_Queue[GetResID(queue)] = remapFamily;
 
     AddResource(Queue, ResourceType::Queue, "Queue");
     DerivedResource(device, Queue);
@@ -1267,6 +1314,8 @@ void WrappedVulkan::vkGetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2 
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
         RDCASSERT(record);
 
+        record->queueFamilyIndex = pQueueInfo->queueFamilyIndex;
+
         VkResourceRecord *instrecord = GetRecord(m_Instance);
 
         // treat queues as pool members of the instance (ie. freed when the instance dies)
@@ -1280,6 +1329,16 @@ void WrappedVulkan::vkGetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2 
       }
 
       m_QueueFamilies[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex] = *pQueue;
+
+      if(pQueueInfo->queueFamilyIndex < m_ExternalQueues.size())
+      {
+        if(m_ExternalQueues[pQueueInfo->queueFamilyIndex].queue == VK_NULL_HANDLE)
+          m_ExternalQueues[pQueueInfo->queueFamilyIndex].queue = *pQueue;
+      }
+      else
+      {
+        RDCERR("Unexpected queue family index %u", pQueueInfo->queueFamilyIndex);
+      }
 
       if(pQueueInfo->queueFamilyIndex == m_QueueFamilyIdx)
       {
