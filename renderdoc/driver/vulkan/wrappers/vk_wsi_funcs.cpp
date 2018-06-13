@@ -975,6 +975,30 @@ VkResult WrappedVulkan::vkAcquireNextImage2KHR(VkDevice device,
   return ObjDisp(device)->AcquireNextImage2KHR(Unwrap(device), &unwrapped, pImageIndex);
 }
 
+VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceCapabilities2KHR(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+    VkSurfaceCapabilities2KHR *pSurfaceCapabilities)
+{
+  VkPhysicalDeviceSurfaceInfo2KHR unwrapped = *pSurfaceInfo;
+  unwrapped.surface = Unwrap(unwrapped.surface);
+
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceSurfaceCapabilities2KHR(Unwrap(physicalDevice), &unwrapped,
+                                                 pSurfaceCapabilities);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceFormats2KHR(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+    uint32_t *pSurfaceFormatCount, VkSurfaceFormat2KHR *pSurfaceFormats)
+{
+  VkPhysicalDeviceSurfaceInfo2KHR unwrapped = *pSurfaceInfo;
+  unwrapped.surface = Unwrap(unwrapped.surface);
+
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceSurfaceFormats2KHR(Unwrap(physicalDevice), &unwrapped, pSurfaceFormatCount,
+                                            pSurfaceFormats);
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,
                                 const VkSwapchainCreateInfoKHR *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkSwapchainKHR *pSwapchain);

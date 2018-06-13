@@ -298,7 +298,8 @@
   CheckExt(KHR_external_fence_capabilities, VK11);     \
   CheckExt(EXT_debug_utils, VKXX);                     \
   CheckExt(KHR_device_group_creation, VK11);           \
-  CheckExt(protected_memory, VK11);
+  CheckExt(protected_memory, VK11);                    \
+  CheckExt(KHR_get_surface_capabilities2, VKXX);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -379,6 +380,8 @@
   /* should always be present/not present together. Keying from the instance extension ensures */    \
   /* we'll load this function correctly when populating dispatch tables. */                          \
   HookInitExtension(KHR_device_group_creation &&KHR_surface, GetPhysicalDevicePresentRectanglesKHR); \
+  HookInitExtension(KHR_get_surface_capabilities2, GetPhysicalDeviceSurfaceFormats2KHR);             \
+  HookInitExtension(KHR_get_surface_capabilities2, GetPhysicalDeviceSurfaceCapabilities2KHR);        \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                                 \
@@ -928,6 +931,12 @@
               const VkAcquireNextImageInfoKHR *, pAcquireInfo, uint32_t *, pImageIndex);             \
   HookDefine3(void, vkGetDeviceQueue2, VkDevice, device, const VkDeviceQueueInfo2 *, pQueueInfo,     \
               VkQueue *, pQueue);                                                                    \
+  HookDefine3(VkResult, vkGetPhysicalDeviceSurfaceCapabilities2KHR, VkPhysicalDevice,                \
+              physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR *, pSurfaceInfo,                 \
+              VkSurfaceCapabilities2KHR *, pSurfaceCapabilities);                                    \
+  HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceFormats2KHR, VkPhysicalDevice, physicalDevice,     \
+              const VkPhysicalDeviceSurfaceInfo2KHR *, pSurfaceInfo, uint32_t *,                     \
+              pSurfaceFormatCount, VkSurfaceFormat2KHR *, pSurfaceFormats);                          \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

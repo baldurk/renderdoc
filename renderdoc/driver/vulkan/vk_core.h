@@ -1809,4 +1809,15 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceQueue2, VkDevice device,
                                 const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue);
+
+  // VK_KHR_get_surface_capabilities2
+
+  VkResult vkGetPhysicalDeviceSurfaceCapabilities2KHR(
+      VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+      VkSurfaceCapabilities2KHR *pSurfaceCapabilities);
+
+  VkResult vkGetPhysicalDeviceSurfaceFormats2KHR(VkPhysicalDevice physicalDevice,
+                                                 const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+                                                 uint32_t *pSurfaceFormatCount,
+                                                 VkSurfaceFormat2KHR *pSurfaceFormats);
 };
