@@ -33,7 +33,7 @@ Current support
 
 RenderDoc has initial support for Vulkan at the launch of version 1.0, but it contains some caveats. In addition, not all replay features are currently supported, but this is being actively worked on.
 
-* RenderDoc assumes that even if multiple GPUs are present, that only one VkDevice and one VkQueue will be created and used.
+* RenderDoc assumes that even if multiple GPUs are present, that only one VkDevice will be created and used.
 * RenderDoc captures will in general not be portable between different systems, only currently supporting capture and replay on the same or similar enough machines.
 * Sparse textures are only supported for non-arrayed 2D textures with no mips.
 * Pixel history is not implemented.
