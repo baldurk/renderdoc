@@ -35,7 +35,8 @@
 #include "strings/string_utils.h"
 #include "replay_proxy.h"
 
-static const uint32_t RemoteServerProtocolVersion = 3;
+static const uint32_t RemoteServerProtocolVersion =
+    uint32_t(RENDERDOC_VERSION_MAJOR * 1000) | RENDERDOC_VERSION_MINOR;
 
 enum RemoteServerPacket
 {
