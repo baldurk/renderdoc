@@ -40,7 +40,7 @@ vector<GPUCounter> D3D12Replay::EnumerateCounters()
   ret.push_back(GPUCounter::GSPrimitives);
   ret.push_back(GPUCounter::RasterizerInvocations);
   ret.push_back(GPUCounter::RasterizedPrimitives);
-  ret.push_back(GPUCounter::SamplesWritten);
+  ret.push_back(GPUCounter::SamplesPassed);
   ret.push_back(GPUCounter::VSInvocations);
   ret.push_back(GPUCounter::HSInvocations);
   ret.push_back(GPUCounter::DSInvocations);
@@ -125,8 +125,8 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
       desc.resultType = CompType::UInt;
       desc.unit = CounterUnit::Absolute;
       break;
-    case GPUCounter::SamplesWritten:
-      desc.name = "Samples Written";
+    case GPUCounter::SamplesPassed:
+      desc.name = "Samples Passed";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
       desc.resultType = CompType::UInt;
@@ -648,7 +648,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
         case GPUCounter::GSPrimitives: result.value.u64 = pipeStats.GSPrimitives; break;
         case GPUCounter::RasterizerInvocations: result.value.u64 = pipeStats.CInvocations; break;
         case GPUCounter::RasterizedPrimitives: result.value.u64 = pipeStats.CPrimitives; break;
-        case GPUCounter::SamplesWritten: result.value.u64 = occl; break;
+        case GPUCounter::SamplesPassed: result.value.u64 = occl; break;
         case GPUCounter::VSInvocations: result.value.u64 = pipeStats.VSInvocations; break;
         case GPUCounter::HSInvocations: result.value.u64 = pipeStats.HSInvocations; break;
         case GPUCounter::DSInvocations: result.value.u64 = pipeStats.DSInvocations; break;

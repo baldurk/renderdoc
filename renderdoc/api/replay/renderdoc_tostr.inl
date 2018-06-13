@@ -703,7 +703,7 @@ std::string DoStringise(const GPUCounter &el)
     STRINGISE_ENUM_CLASS(GSPrimitives);
     STRINGISE_ENUM_CLASS(RasterizerInvocations);
     STRINGISE_ENUM_CLASS(RasterizedPrimitives);
-    STRINGISE_ENUM_CLASS(SamplesWritten);
+    STRINGISE_ENUM_CLASS(SamplesPassed);
     STRINGISE_ENUM_CLASS(VSInvocations);
     STRINGISE_ENUM_CLASS(HSInvocations);
     STRINGISE_ENUM_CLASS(DSInvocations);

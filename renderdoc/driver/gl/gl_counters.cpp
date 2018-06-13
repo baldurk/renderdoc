@@ -76,7 +76,7 @@ vector<GPUCounter> GLReplay::EnumerateCounters()
   ret.push_back(GPUCounter::GSPrimitives);
   ret.push_back(GPUCounter::RasterizerInvocations);
   ret.push_back(GPUCounter::RasterizedPrimitives);
-  ret.push_back(GPUCounter::SamplesWritten);
+  ret.push_back(GPUCounter::SamplesPassed);
   ret.push_back(GPUCounter::VSInvocations);
   ret.push_back(GPUCounter::TCSInvocations);
   ret.push_back(GPUCounter::TESInvocations);
@@ -163,8 +163,8 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
       desc.resultType = CompType::UInt;
       desc.unit = CounterUnit::Absolute;
       break;
-    case GPUCounter::SamplesWritten:
-      desc.name = "Samples Written";
+    case GPUCounter::SamplesPassed:
+      desc.name = "Samples Passed";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
       desc.resultType = CompType::UInt;
@@ -244,7 +244,7 @@ GLenum glCounters[] = {
     eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB,    // GPUCounter::GSPrimitives
     eGL_CLIPPING_INPUT_PRIMITIVES_ARB,             // GPUCounter::RasterizerInvocations
     eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB,            // GPUCounter::RasterizedPrimitives
-    eGL_SAMPLES_PASSED,                            // GPUCounter::SamplesWritten
+    eGL_SAMPLES_PASSED,                            // GPUCounter::SamplesPassed
     eGL_VERTEX_SHADER_INVOCATIONS_ARB,             // GPUCounter::VSInvocations
     eGL_TESS_CONTROL_SHADER_PATCHES_ARB,           // GPUCounter::TCSInvocations
     eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB,    // GPUCounter::TESInvocations

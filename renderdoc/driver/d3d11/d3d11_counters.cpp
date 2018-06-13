@@ -41,7 +41,7 @@ vector<GPUCounter> D3D11Replay::EnumerateCounters()
   ret.push_back(GPUCounter::GSPrimitives);
   ret.push_back(GPUCounter::RasterizerInvocations);
   ret.push_back(GPUCounter::RasterizedPrimitives);
-  ret.push_back(GPUCounter::SamplesWritten);
+  ret.push_back(GPUCounter::SamplesPassed);
   ret.push_back(GPUCounter::VSInvocations);
   ret.push_back(GPUCounter::HSInvocations);
   ret.push_back(GPUCounter::DSInvocations);
@@ -140,8 +140,8 @@ CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
       desc.resultType = CompType::UInt;
       desc.unit = CounterUnit::Absolute;
       break;
-    case GPUCounter::SamplesWritten:
-      desc.name = "Samples Written";
+    case GPUCounter::SamplesPassed:
+      desc.name = "Samples Passed";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
       desc.resultType = CompType::UInt;
@@ -649,9 +649,9 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
                 ret.push_back(CounterResult(ctx.timers[i].eventId, GPUCounter::CSInvocations,
                                             pipelineStats.CSInvocations));
                 break;
-              case GPUCounter::SamplesWritten:
+              case GPUCounter::SamplesPassed:
                 ret.push_back(
-                    CounterResult(ctx.timers[i].eventId, GPUCounter::SamplesWritten, occlusion));
+                    CounterResult(ctx.timers[i].eventId, GPUCounter::SamplesPassed, occlusion));
                 break;
             }
           }
@@ -677,7 +677,7 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
               case GPUCounter::GSInvocations:
               case GPUCounter::PSInvocations:
               case GPUCounter::CSInvocations:
-              case GPUCounter::SamplesWritten:
+              case GPUCounter::SamplesPassed:
                 ret.push_back(
                     CounterResult(ctx.timers[i].eventId, d3dCounters[c], 0xFFFFFFFFFFFFFFFF));
                 break;

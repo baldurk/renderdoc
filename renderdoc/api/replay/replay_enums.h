@@ -2699,7 +2699,7 @@ enumerated with IDs in the appropriate ranges.
 
   Number of primitives that were rendered.
 
-.. data:: SamplesWritten
+.. data:: SamplesPassed
 
   Number of samples that passed depth/stencil test.
 
@@ -2772,7 +2772,7 @@ enum class GPUCounter : uint32_t
   GSPrimitives,
   RasterizerInvocations,
   RasterizedPrimitives,
-  SamplesWritten,
+  SamplesPassed,
   VSInvocations,
   HSInvocations,
   TCSInvocations = HSInvocations,

@@ -1765,7 +1765,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   if(availFeatures.occlusionQueryPrecise)
     enabledFeatures.occlusionQueryPrecise = true;
   else
-    RDCWARN("occlusionQueryPrecise = false, samples written counter will not work");
+    RDCWARN("occlusionQueryPrecise = false, samples passed counter will not be available");
 
   if(availFeatures.pipelineStatisticsQuery)
     enabledFeatures.pipelineStatisticsQuery = true;

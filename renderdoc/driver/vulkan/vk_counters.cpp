@@ -48,7 +48,7 @@ vector<GPUCounter> VulkanReplay::EnumerateCounters()
   }
 
   if(availableFeatures.occlusionQueryPrecise)
-    ret.push_back(GPUCounter::SamplesWritten);
+    ret.push_back(GPUCounter::SamplesPassed);
 
   if(availableFeatures.pipelineStatisticsQuery)
   {
@@ -138,8 +138,8 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
       desc.resultType = CompType::UInt;
       desc.unit = CounterUnit::Absolute;
       break;
-    case GPUCounter::SamplesWritten:
-      desc.name = "Samples Written";
+    case GPUCounter::SamplesPassed:
+      desc.name = "Samples Passed";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
       desc.resultType = CompType::UInt;
@@ -523,7 +523,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
       case GPUCounter::GSInvocations:
       case GPUCounter::PSInvocations:
       case GPUCounter::CSInvocations: statsNeeded = true; break;
-      case GPUCounter::SamplesWritten: occlNeeded = true; break;
+      case GPUCounter::SamplesPassed: occlNeeded = true; break;
       default: break;
     }
   }
@@ -633,7 +633,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
         case GPUCounter::RasterizedPrimitives:
           result.value.u64 = m_PipeStatsData[i * 11 + 6];
           break;
-        case GPUCounter::SamplesWritten: result.value.u64 = m_OcclusionData[i]; break;
+        case GPUCounter::SamplesPassed: result.value.u64 = m_OcclusionData[i]; break;
         case GPUCounter::VSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 2]; break;
         case GPUCounter::TCSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 8]; break;
         case GPUCounter::TESInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
