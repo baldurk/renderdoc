@@ -2294,6 +2294,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   VkImage tmpImage = VK_NULL_HANDLE;
   VkDeviceMemory tmpMemory = VK_NULL_HANDLE;
 
+  uint32_t srcQueueIndex = layouts.queueFamilyIndex;
+
   VkFramebuffer *tmpFB = NULL;
   VkImageView *tmpView = NULL;
   uint32_t numFBs = 0;
@@ -2317,6 +2319,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     wasms = true;
   }
+
+  VkCommandBuffer extQCmd = VK_NULL_HANDLE;
 
   if(params.remap != RemapTexture::NoRemap)
   {
@@ -2386,10 +2390,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        0,
-        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
         tmpImage,
-        {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+    };
 
     // move tmp image into transfer destination layout
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
@@ -2527,6 +2532,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     m_DebugHeight = oldH;
 
     srcImage = tmpImage;
+    srcQueueIndex = m_pDriver->GetQueueFamilyIndex();
 
     // fetch a new command buffer for copy & readback
     cmd = m_pDriver->GetNextCmd();
@@ -2594,10 +2600,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
+        srcQueueIndex,
+        m_pDriver->GetQueueFamilyIndex(),
         srcImage,
-        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+    };
 
     VkImageMemoryBarrier dstimBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -2606,21 +2613,41 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        0,
-        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
         tmpImage,
-        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+    };
 
     // ensure all previous writes have completed
     srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
     // before we go resolving
     srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
+    if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
+    {
+      extQCmd = m_pDriver->GetExtQueueCmd(srcimBarrier.srcQueueFamilyIndex);
+
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
+    }
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
     }
 
     srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -2635,12 +2662,23 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     vt->CmdResolveImage(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                         Unwrap(tmpImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolveRegion);
 
+    std::swap(srcimBarrier.srcQueueFamilyIndex, srcimBarrier.dstQueueFamilyIndex);
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     // image layout back to normal
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
     }
 
     // wait for resolve to finish before copy to buffer
@@ -2651,7 +2689,31 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      // ensure this resolve happens before handing back the source image to the original queue
+      vkr = vt->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
+
+      extQCmd = VK_NULL_HANDLE;
+
+      // fetch a new command buffer for remaining work
+      cmd = m_pDriver->GetNextCmd();
+
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     srcImage = tmpImage;
+    srcQueueIndex = m_pDriver->GetQueueFamilyIndex();
 
     // these have already been selected, don't need to fetch that subresource
     // when copying back to readback buffer
@@ -2697,10 +2759,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
+        srcQueueIndex,
+        m_pDriver->GetQueueFamilyIndex(),
         srcImage,
-        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+    };
 
     VkImageMemoryBarrier dstimBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -2709,21 +2772,41 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_GENERAL,
-        0,
-        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
         tmpImage,
-        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+    };
 
     // ensure all previous writes have completed
     srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
     // before we go copying to array
     srcimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
+    if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
+    {
+      extQCmd = m_pDriver->GetExtQueueCmd(srcimBarrier.srcQueueFamilyIndex);
+
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
+    }
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
     }
 
     srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -2750,6 +2833,14 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     srcimBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    std::swap(srcimBarrier.srcQueueFamilyIndex, srcimBarrier.dstQueueFamilyIndex);
+
     // image layout back to normal
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
@@ -2757,6 +2848,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
       srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
     }
 
     // wait for copy to finish before copy to buffer
@@ -2767,7 +2861,31 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      // ensure this resolve happens before handing back the source image to the original queue
+      vkr = vt->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
+
+      extQCmd = VK_NULL_HANDLE;
+
+      // fetch a new command buffer for remaining work
+      cmd = m_pDriver->GetNextCmd();
+
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     srcImage = tmpImage;
+    srcQueueIndex = m_pDriver->GetQueueFamilyIndex();
   }
 
   VkImageMemoryBarrier srcimBarrier = {
@@ -2777,10 +2895,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       0,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-      VK_QUEUE_FAMILY_IGNORED,
-      VK_QUEUE_FAMILY_IGNORED,
+      srcQueueIndex,
+      m_pDriver->GetQueueFamilyIndex(),
       srcImage,
-      {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+      {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+  };
 
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpImage == VK_NULL_HANDLE)
@@ -2790,11 +2909,30 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     // before we go resolving
     srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
+    if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
+    {
+      extQCmd = m_pDriver->GetExtQueueCmd(srcimBarrier.srcQueueFamilyIndex);
+
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
+    }
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
     }
   }
 
@@ -2914,6 +3052,14 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     // ensure transfer has completed
     srcimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
+    std::swap(srcimBarrier.srcQueueFamilyIndex, srcimBarrier.dstQueueFamilyIndex);
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     // image layout back to normal
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
@@ -2921,6 +3067,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
       srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
     }
   }
 
@@ -2943,6 +3092,16 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
+
+  if(extQCmd != VK_NULL_HANDLE)
+  {
+    vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
+
+    extQCmd = VK_NULL_HANDLE;
+  }
 
   // map the buffer and copy to return buffer
   byte *pData = NULL;

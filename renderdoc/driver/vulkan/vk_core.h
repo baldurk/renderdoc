@@ -814,7 +814,7 @@ public:
   void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);
 
   void RemapQueueFamilyIndices(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily);
-
+  uint32_t GetQueueFamilyIndex() { return m_QueueFamilyIdx; }
   bool ReleaseResource(WrappedVkRes *res);
 
   ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion);

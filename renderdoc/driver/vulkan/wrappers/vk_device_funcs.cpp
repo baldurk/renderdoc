@@ -567,10 +567,13 @@ void WrappedVulkan::Shutdown()
 
   for(size_t i = 0; i < m_ExternalQueues.size(); i++)
   {
-    GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].buffer);
+    if(m_ExternalQueues[i].buffer != VK_NULL_HANDLE)
+    {
+      GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].buffer);
 
-    ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_ExternalQueues[i].pool), NULL);
-    GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].pool);
+      ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_ExternalQueues[i].pool), NULL);
+      GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].pool);
+    }
   }
 
   FreeAllMemory(MemoryScope::InitialContents);
@@ -1538,6 +1541,38 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.cmdpool);
+    }
+
+    // for each queue family that isn't our own, create a command pool and command buffer on that
+    // queue
+    for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
+    {
+      uint32_t qidx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
+      m_ExternalQueues.resize(RDCMAX((uint32_t)m_ExternalQueues.size(), qidx + 1));
+
+      VkCommandPoolCreateInfo poolInfo = {
+          VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL,
+          VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qidx,
+      };
+      vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL,
+                                               &m_ExternalQueues[qidx].pool);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].pool);
+
+      VkCommandBufferAllocateInfo cmdInfo = {
+          VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+          NULL,
+          Unwrap(m_ExternalQueues[qidx].pool),
+          VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+          1,
+      };
+
+      vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
+                                                    &m_ExternalQueues[qidx].buffer);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].buffer);
     }
 
     ObjDisp(physicalDevice)

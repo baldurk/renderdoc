@@ -676,10 +676,11 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      0,
-      0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
       Unwrap(m_Custom.TexImg),
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, 1}};
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, 1},
+  };
 
   m_pDriver->m_ImageLayouts[GetResID(m_Custom.TexImg)].subresourceStates[0].newLayout =
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1735,10 +1736,11 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             VK_ACCESS_SHADER_READ_BIT,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            0,
-            0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
             Unwrap(DummyImages[index]),
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+            {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+        };
 
         DoPipelineBarrier(cmd, 1, &barrier);
 
@@ -2213,10 +2215,11 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      0,
-      0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
       Unwrap(Image),
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+  };
 
   DoPipelineBarrier(cmd, 1, &barrier);
 

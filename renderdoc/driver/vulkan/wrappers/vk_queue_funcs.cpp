@@ -61,6 +61,16 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
       SubmitCmds();
     }
 
+    if(remapFamily < m_ExternalQueues.size())
+    {
+      if(m_ExternalQueues[remapFamily].queue == VK_NULL_HANDLE)
+        m_ExternalQueues[remapFamily].queue = queue;
+    }
+    else
+    {
+      RDCERR("Unexpected queue family index %u", remapFamily);
+    }
+
     m_CreationInfo.m_Queue[GetResID(queue)] = remapFamily;
 
     AddResource(Queue, ResourceType::Queue, "Queue");
@@ -1264,6 +1274,16 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
       // we can now submit any cmds that were queued (e.g. from creating debug
       // manager on vkCreateDevice)
       SubmitCmds();
+    }
+
+    if(remapFamily < m_ExternalQueues.size())
+    {
+      if(m_ExternalQueues[remapFamily].queue == VK_NULL_HANDLE)
+        m_ExternalQueues[remapFamily].queue = queue;
+    }
+    else
+    {
+      RDCERR("Unexpected queue family index %u", remapFamily);
     }
 
     m_CreationInfo.m_Queue[GetResID(queue)] = remapFamily;

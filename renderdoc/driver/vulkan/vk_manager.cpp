@@ -286,6 +286,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
         t.srcQueueFamilyIndex = ImageState.queueFamilyIndex;
         t.dstQueueFamilyIndex = ImageState.queueFamilyIndex;
         m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
+        state.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
         t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
         t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         ReplacePresentableImageLayout(state.newLayout);

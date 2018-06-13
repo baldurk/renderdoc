@@ -406,8 +406,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
         VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        0,
-        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
         Unwrap(m_TextAtlas),
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
     };
@@ -453,8 +453,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
         VK_ACCESS_SHADER_READ_BIT,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        0,
-        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
         Unwrap(m_TextAtlas),
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
     };

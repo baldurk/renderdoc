@@ -69,10 +69,11 @@ VulkanReplay::OutputWindow::OutputWindow()
       0,
       VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_UNDEFINED,
-      0,
-      0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
       VK_NULL_HANDLE,
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+  };
   for(size_t i = 0; i < ARRAY_COUNT(colBarrier); i++)
     colBarrier[i] = t;
 

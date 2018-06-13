@@ -1297,6 +1297,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         {imInfo.extent.width, imInfo.extent.height, 1},
     };
 
+    uint32_t swapQueueIndex = m_ImageLayouts[GetResID(backbuffer)].queueFamilyIndex;
+
     VkImageMemoryBarrier bbBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         NULL,
@@ -1304,24 +1306,41 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         VK_ACCESS_TRANSFER_READ_BIT,
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        0,
-        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        swapQueueIndex,
+        m_QueueFamilyIdx,
         Unwrap(backbuffer),
-        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+    };
 
-    VkImageMemoryBarrier readBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                        NULL,
-                                        0,
-                                        VK_ACCESS_TRANSFER_WRITE_BIT,
-                                        VK_IMAGE_LAYOUT_UNDEFINED,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        VK_QUEUE_FAMILY_IGNORED,
-                                        VK_QUEUE_FAMILY_IGNORED,
-                                        Unwrap(readbackIm),
-                                        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+    VkImageMemoryBarrier readBarrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        0,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(readbackIm),
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+    };
 
     DoPipelineBarrier(cmd, 1, &bbBarrier);
     DoPipelineBarrier(cmd, 1, &readBarrier);
+
+    if(swapQueueIndex != m_QueueFamilyIdx)
+    {
+      VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
+
+      vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      DoPipelineBarrier(extQCmd, 1, &bbBarrier);
+
+      ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+
+      SubmitAndFlushExtQueue(swapQueueIndex);
+    }
 
     vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                      Unwrap(readbackIm), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
@@ -1329,6 +1348,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     // barrier to switch backbuffer back to present layout
     std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
     std::swap(bbBarrier.srcAccessMask, bbBarrier.dstAccessMask);
+    std::swap(bbBarrier.srcQueueFamilyIndex, bbBarrier.dstQueueFamilyIndex);
 
     readBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     readBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
@@ -1343,6 +1363,20 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     SubmitCmds();
     FlushQ();    // need to wait so we can readback
+
+    if(swapQueueIndex != m_QueueFamilyIdx)
+    {
+      VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
+
+      vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      DoPipelineBarrier(extQCmd, 1, &bbBarrier);
+
+      ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+
+      SubmitAndFlushExtQueue(swapQueueIndex);
+    }
 
     // map memory and readback
     byte *pData = NULL;

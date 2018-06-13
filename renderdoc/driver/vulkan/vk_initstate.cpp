@@ -1289,8 +1289,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
             0,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
+            m_ImageLayouts[id].queueFamilyIndex,
+            m_QueueFamilyIdx,
             ToHandle<VkImage>(live),
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
         };
@@ -1300,11 +1300,32 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
         // clear completes before subsequent operations
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
+        VkCommandBuffer extQCmd = VK_NULL_HANDLE;
+
+        if(barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
+        {
+          extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
+
+          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        }
+
         for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
           DoPipelineBarrier(cmd, 1, &barrier);
+
+          if(extQCmd != VK_NULL_HANDLE)
+            DoPipelineBarrier(extQCmd, 1, &barrier);
+        }
+
+        if(extQCmd != VK_NULL_HANDLE)
+        {
+          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          SubmitAndFlushExtQueue(barrier.srcQueueFamilyIndex);
         }
 
         VkClearColorValue clearval = {};
@@ -1320,16 +1341,39 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 
+        std::swap(barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
+
+        if(extQCmd != VK_NULL_HANDLE)
+        {
+          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        }
+
         for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
           barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
           DoPipelineBarrier(cmd, 1, &barrier);
+
+          if(extQCmd != VK_NULL_HANDLE)
+            DoPipelineBarrier(extQCmd, 1, &barrier);
         }
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        if(extQCmd != VK_NULL_HANDLE)
+        {
+          // ensure work is completed before we pass ownership back to original queue
+          SubmitCmds();
+          FlushQ();
+
+          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          SubmitAndFlushExtQueue(barrier.dstQueueFamilyIndex);
+        }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
         SubmitCmds();
@@ -1349,8 +1393,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
             0,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
+            m_ImageLayouts[id].queueFamilyIndex,
+            m_QueueFamilyIdx,
             ToHandle<VkImage>(live),
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
         };
@@ -1360,11 +1404,32 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
         // clear completes before subsequent operations
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
+        VkCommandBuffer extQCmd = VK_NULL_HANDLE;
+
+        if(barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
+        {
+          extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
+
+          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        }
+
         for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
           DoPipelineBarrier(cmd, 1, &barrier);
+
+          if(extQCmd != VK_NULL_HANDLE)
+            DoPipelineBarrier(extQCmd, 1, &barrier);
+        }
+
+        if(extQCmd != VK_NULL_HANDLE)
+        {
+          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          SubmitAndFlushExtQueue(barrier.srcQueueFamilyIndex);
         }
 
         VkClearDepthStencilValue clearval = {1.0f, 0};
@@ -1381,15 +1446,38 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 
+        std::swap(barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
+
+        if(extQCmd != VK_NULL_HANDLE)
+        {
+          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        }
+
         for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
           DoPipelineBarrier(cmd, 1, &barrier);
+
+          if(extQCmd != VK_NULL_HANDLE)
+            DoPipelineBarrier(extQCmd, 1, &barrier);
         }
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        if(extQCmd != VK_NULL_HANDLE)
+        {
+          // ensure work is completed before we pass ownership back to original queue
+          SubmitCmds();
+          FlushQ();
+
+          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          SubmitAndFlushExtQueue(barrier.dstQueueFamilyIndex);
+        }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
         SubmitCmds();
@@ -1430,8 +1518,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
           0,
           VK_IMAGE_LAYOUT_UNDEFINED,
           VK_IMAGE_LAYOUT_GENERAL,
-          VK_QUEUE_FAMILY_IGNORED,
-          VK_QUEUE_FAMILY_IGNORED,
+          m_ImageLayouts[id].queueFamilyIndex,
+          m_QueueFamilyIdx,
           ToHandle<VkImage>(live),
           {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
       };
@@ -1440,11 +1528,32 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
       barrier.dstAccessMask =
           VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+      VkCommandBuffer extQCmd = VK_NULL_HANDLE;
+
+      if(barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
+      {
+        extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
+
+        vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+
       for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
       {
         barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
         barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
         DoPipelineBarrier(cmd, 1, &barrier);
+
+        if(extQCmd != VK_NULL_HANDLE)
+          DoPipelineBarrier(extQCmd, 1, &barrier);
+      }
+
+      if(extQCmd != VK_NULL_HANDLE)
+      {
+        vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        SubmitAndFlushExtQueue(barrier.srcQueueFamilyIndex);
       }
 
       VkImage arrayIm = initial.img;
@@ -1467,16 +1576,39 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
           VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
       barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 
+      std::swap(barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
+
+      if(extQCmd != VK_NULL_HANDLE)
+      {
+        vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+
       for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
       {
         barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
         barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
         barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
         DoPipelineBarrier(cmd, 1, &barrier);
+
+        if(extQCmd != VK_NULL_HANDLE)
+          DoPipelineBarrier(extQCmd, 1, &barrier);
       }
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      if(extQCmd != VK_NULL_HANDLE)
+      {
+        // ensure work is completed before we pass ownership back to original queue
+        SubmitCmds();
+        FlushQ();
+
+        vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        SubmitAndFlushExtQueue(barrier.dstQueueFamilyIndex);
+      }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
       SubmitCmds();
@@ -1508,10 +1640,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
         0,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
+        m_ImageLayouts[id].queueFamilyIndex,
+        m_QueueFamilyIdx,
         ToHandle<VkImage>(live),
-        {aspectFlags, 0, 1, 0, (uint32_t)m_CreationInfo.m_Image[id].arrayLayers}};
+        {aspectFlags, 0, 1, 0, (uint32_t)m_CreationInfo.m_Image[id].arrayLayers},
+    };
 
     if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
       dstimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -1528,12 +1661,33 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
     dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
+    VkCommandBuffer extQCmd = VK_NULL_HANDLE;
+
+    if(dstimBarrier.srcQueueFamilyIndex != dstimBarrier.dstQueueFamilyIndex)
+    {
+      extQCmd = GetExtQueueCmd(dstimBarrier.srcQueueFamilyIndex);
+
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
     {
       dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
       dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
       dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
       DoPipelineBarrier(cmd, 1, &dstimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &dstimBarrier);
+    }
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      SubmitAndFlushExtQueue(dstimBarrier.srcQueueFamilyIndex);
     }
 
     // copy each slice/mip individually
@@ -1594,16 +1748,39 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
     dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     dstimBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 
+    std::swap(dstimBarrier.srcQueueFamilyIndex, dstimBarrier.dstQueueFamilyIndex);
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
     {
       dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
       dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
       dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &dstimBarrier);
+
+      if(extQCmd != VK_NULL_HANDLE)
+        DoPipelineBarrier(extQCmd, 1, &dstimBarrier);
     }
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    if(extQCmd != VK_NULL_HANDLE)
+    {
+      // ensure work is completed before we pass ownership back to original queue
+      SubmitCmds();
+      FlushQ();
+
+      vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      SubmitAndFlushExtQueue(dstimBarrier.dstQueueFamilyIndex);
+    }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
     SubmitCmds();
