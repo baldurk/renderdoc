@@ -68,6 +68,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
   gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 
+  gl.glDisable(eGL_CULL_FACE);
+
   if(cfg.position.unproject)
   {
     // the derivation of the projection matrix might not be right (hell, it could be an
