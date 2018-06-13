@@ -46,8 +46,9 @@ static VkApplicationInfo renderdocAppInfo = {
 // code expect to copy it into a wrapped object
 static VkPhysicalDevice MakePhysicalDeviceHandleFromIndex(uint32_t physDeviceIndex)
 {
-  static uintptr_t loaderTable(0x100 + physDeviceIndex);
-  return VkPhysicalDevice(&loaderTable);
+  static uintptr_t loaderTable[32];
+  loaderTable[physDeviceIndex] = (0x100 + physDeviceIndex);
+  return VkPhysicalDevice(&loaderTable[physDeviceIndex]);
 }
 
 static uint32_t GetPhysicalDeviceIndexFromHandle(VkPhysicalDevice physicalDevice)
