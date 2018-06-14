@@ -1836,9 +1836,21 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
     m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->mainToolArea());
     return;
   }
-  if(ref == DockReference::LeftToolArea)
+  else if(ref == DockReference::LeftToolArea)
   {
     m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->leftToolArea());
+    return;
+  }
+  else if(ref == DockReference::NewFloatingArea)
+  {
+    m_MainWindow->mainToolManager()->addToolWindow(
+        newWindow, ToolWindowManager::AreaReference(ToolWindowManager::NewFloatingArea));
+    return;
+  }
+  else if(ref == DockReference::LastUsedArea)
+  {
+    m_MainWindow->mainToolManager()->addToolWindow(
+        newWindow, ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea));
     return;
   }
 
