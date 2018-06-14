@@ -39,8 +39,11 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %}
 
 %typemap(in) QWidget * {
-  $1 = QWidgetFromPy($input);
-  if($input && !$1)
+  if($input == Py_None)
+    $1 = NULL;
+  else
+    $1 = QWidgetFromPy($input);
+  if($input && $input != Py_None && !$1)
   {
     SWIG_exception_fail(SWIG_TypeError, "in method '$symname' QWidget expected for argument $argnum of type '$1_basetype'");
   }
