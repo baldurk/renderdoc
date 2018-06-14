@@ -259,7 +259,7 @@ typically it is one parent to many derived.
 
 Can be empty if there are no parent resources.
 
-This is the inverse of :data:derivedResources in a potentially many:many relationship, but
+This is the inverse of :data:`derivedResources` in a potentially many:many relationship, but
 typically it is one parent to many derived.
 )");
   rdcarray<ResourceId> parentResources;
