@@ -824,6 +824,11 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         {
           ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, instIndex}));
         }
+        else if(builtin == ShaderBuiltin::ViewportIndex)
+        {
+          ops.push_back(SPIRVOperation(
+              spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(int32_t(0))}));
+        }
         else if(builtin == ShaderBuiltin::BaseVertex)
         {
           if(draw->flags & DrawFlags::UseIBuffer)
