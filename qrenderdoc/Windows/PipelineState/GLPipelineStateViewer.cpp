@@ -1233,7 +1233,7 @@ void GLPipelineStateViewer::setState()
 
   m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
 
-  bool ibufferUsed = draw && (draw->flags & DrawFlags::UseIBuffer);
+  bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
 
   if(ibufferUsed)
   {

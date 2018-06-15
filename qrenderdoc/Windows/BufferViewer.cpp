@@ -1419,7 +1419,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     m_ModelGSOut->primRestart = 0;
 
     if(m_Ctx.CurPipelineState().IsStripRestartEnabled() && draw &&
-       (draw->flags & DrawFlags::UseIBuffer) && IsStrip(draw->topology))
+       (draw->flags & DrawFlags::Indexed) && IsStrip(draw->topology))
     {
       m_ModelVSIn->primRestart = m_Ctx.CurPipelineState().GetStripRestartIndex();
 
@@ -1581,7 +1581,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   rdcarray<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
   bytebuf idata;
-  if(ib.resourceId != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
+  if(ib.resourceId != ResourceId() && draw && (draw->flags & DrawFlags::Indexed))
     idata = r->GetBufferData(ib.resourceId, ib.byteOffset + draw->indexOffset * draw->indexByteWidth,
                              draw->numIndices * draw->indexByteWidth);
 
@@ -1595,7 +1595,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     m_ModelVSIn->indices->data = (byte *)indices;
     m_ModelVSIn->indices->end = (byte *)(indices + draw->numIndices);
   }
-  else if(draw && (draw->flags & DrawFlags::UseIBuffer))
+  else if(draw && (draw->flags & DrawFlags::Indexed))
   {
     indices = new uint32_t[1];
     m_ModelVSIn->indices->data = (byte *)indices;
@@ -1723,7 +1723,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   m_ModelVSOut->baseVertex = m_PostVS.baseVertex;
   m_ModelVSOut->displayBaseVertex = m_ModelVSIn->baseVertex;
 
-  if(draw && m_PostVS.indexResourceId != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
+  if(draw && m_PostVS.indexResourceId != ResourceId() && (draw->flags & DrawFlags::Indexed))
     idata = r->GetBufferData(m_PostVS.indexResourceId, m_PostVS.indexByteOffset,
                              draw->numIndices * m_PostVS.indexByteStride);
 
@@ -2152,7 +2152,7 @@ void BufferViewer::updatePreviewColumns()
       m_VSInPosition.indexResourceId = ib.resourceId;
       m_VSInPosition.indexByteOffset = ib.byteOffset + draw->indexOffset * draw->indexByteWidth;
 
-      if((draw->flags & DrawFlags::UseIBuffer) && m_VSInPosition.indexByteStride == 0)
+      if((draw->flags & DrawFlags::Indexed) && m_VSInPosition.indexByteStride == 0)
         m_VSInPosition.indexByteStride = 4U;
 
       {
@@ -2252,7 +2252,7 @@ void BufferViewer::updatePreviewColumns()
 
     m_PostGSPosition.indexByteStride = 0;
 
-    if(!(draw->flags & DrawFlags::UseIBuffer))
+    if(!(draw->flags & DrawFlags::Indexed))
       m_PostVSPosition.indexByteStride = m_VSInPosition.indexByteStride = 0;
 
     m_PostGSPosition.unproject = true;
@@ -2319,7 +2319,7 @@ void BufferViewer::configureMeshColumns()
     // 0xdeadbeef) and we want to clamp.
     uint32_t numRowsUpperBound = 0;
 
-    if(draw->flags & DrawFlags::UseIBuffer)
+    if(draw->flags & DrawFlags::Indexed)
     {
       // In an indexed draw we clamp to however many indices are available in the index buffer
 

@@ -3104,7 +3104,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
   //////////////////////////////
   // Vertex input
 
-  if(d.flags & DrawFlags::UseIBuffer && state.ibuffer != ResourceId())
+  if(d.flags & DrawFlags::Indexed && state.ibuffer != ResourceId())
     drawNode.resourceUsage.push_back(
         std::make_pair(state.ibuffer, EventUsage(e, ResourceUsage::IndexBuffer)));
 

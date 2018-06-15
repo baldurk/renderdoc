@@ -909,7 +909,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     {
       uint32_t sv_vertid = vertid;
 
-      if(draw->flags & DrawFlags::UseIBuffer)
+      if(draw->flags & DrawFlags::Indexed)
         sv_vertid = idx;
 
       if(dxbc->m_InputSig[i].compType == CompType::Float)

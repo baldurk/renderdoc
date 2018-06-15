@@ -213,7 +213,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
         draw.baseVertex = vertexOffset;
         draw.instanceOffset = firstInstance;
 
-        draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced;
+        draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced;
 
         AddDrawcall(draw, true);
       }
@@ -753,8 +753,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         AddEvent();
 
         draw.name = name;
-        draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
-                     DrawFlags::Indirect;
+        draw.flags =
+            DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
         AddDrawcall(draw, true);
 
@@ -806,8 +806,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         multi.name = "vkCmdDrawIndexedIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) +
                      ", " + ToStr(multi.numInstances) + ">)";
 
-        multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
-                       DrawFlags::Indirect;
+        multi.flags |=
+            DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multi.name.c_str());

@@ -1213,7 +1213,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   {
     rootdata = &state.graphics;
 
-    if(d.flags & DrawFlags::UseIBuffer && state.ibuffer.buf != ResourceId())
+    if(d.flags & DrawFlags::Indexed && state.ibuffer.buf != ResourceId())
       drawNode.resourceUsage.push_back(
           std::make_pair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
 

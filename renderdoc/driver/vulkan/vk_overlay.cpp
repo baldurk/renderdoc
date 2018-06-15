@@ -333,7 +333,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   uint16_t *idx16 = NULL;
   uint32_t *idx32 = NULL;
 
-  if(draw->flags & DrawFlags::UseIBuffer)
+  if(draw->flags & DrawFlags::Indexed)
   {
     GetBufferData(rs.ibuffer.buf,
                   rs.ibuffer.offs + uint64_t(draw->indexOffset) * draw->indexByteWidth,

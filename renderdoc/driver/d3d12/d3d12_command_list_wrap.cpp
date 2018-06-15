@@ -3060,7 +3060,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_DrawIndexedInstanced(
       draw.baseVertex = BaseVertexLocation;
       draw.instanceOffset = StartInstanceLocation;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
       m_Cmd->AddDrawcall(draw, true);
     }
@@ -3512,8 +3512,8 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
           curDraw.baseVertex = args->BaseVertexLocation;
           curDraw.vertexOffset = args->StartIndexLocation;
           curDraw.instanceOffset = args->StartInstanceLocation;
-          curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
-                           DrawFlags::Indirect;
+          curDraw.flags |=
+              DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
           curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
                                            curDraw.numIndices, curDraw.numInstances);
 

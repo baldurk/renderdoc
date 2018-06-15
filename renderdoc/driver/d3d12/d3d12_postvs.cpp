@@ -338,7 +338,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     ID3D12GraphicsCommandList2 *list = NULL;
 
-    if(!(drawcall->flags & DrawFlags::UseIBuffer))
+    if(!(drawcall->flags & DrawFlags::Indexed))
     {
       if(recreate)
       {
@@ -709,7 +709,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     m_PostVSData[eventId].vsout.nearPlane = nearp;
     m_PostVSData[eventId].vsout.farPlane = farp;
 
-    m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
+    m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::Indexed);
     m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
 
     m_PostVSData[eventId].vsout.instStride = 0;
@@ -850,7 +850,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       list->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
       // because the result is expanded we don't have to remap index buffers or anything
-      if(drawcall->flags & DrawFlags::UseIBuffer)
+      if(drawcall->flags & DrawFlags::Indexed)
       {
         list->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
                                    drawcall->indexOffset, drawcall->baseVertex,
@@ -940,7 +940,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       // each instance wrote.
       for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
       {
-        if(drawcall->flags & DrawFlags::UseIBuffer)
+        if(drawcall->flags & DrawFlags::Indexed)
         {
           view.BufferFilledSizeLocation =
               m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
@@ -994,7 +994,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         list->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
         // because the result is expanded we don't have to remap index buffers or anything
-        if(drawcall->flags & DrawFlags::UseIBuffer)
+        if(drawcall->flags & DrawFlags::Indexed)
         {
           list->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
                                      drawcall->indexOffset, drawcall->baseVertex,

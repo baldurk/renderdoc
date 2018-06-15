@@ -1201,7 +1201,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
       draw.vertexOffset = 0;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1279,7 +1279,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
       draw.instanceOffset = params.baseInstance;
 
       draw.flags |=
-          DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced | DrawFlags::Indirect;
+          DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced | DrawFlags::Indirect;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1359,7 +1359,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
       draw.vertexOffset = 0;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1441,7 +1441,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
       draw.baseVertex = basevertex;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1521,7 +1521,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
       draw.baseVertex = basevertex;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1599,7 +1599,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
       draw.vertexOffset = 0;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1681,7 +1681,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
       draw.vertexOffset = 0;
       draw.instanceOffset = baseinstance;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1766,7 +1766,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
       draw.baseVertex = basevertex;
       draw.instanceOffset = 0;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -1850,7 +1850,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
       draw.baseVertex = basevertex;
       draw.instanceOffset = baseinstance;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
       draw.topology = MakePrimitiveTopology(m_Real, mode);
       draw.indexByteWidth = IdxSize;
@@ -2091,7 +2091,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         multidraw.name =
             StringFormat::Fmt("%s[%i](%u)", ToStr(gl_CurChunk).c_str(), i, multidraw.numIndices);
 
-        multidraw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+        multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
 
@@ -2244,7 +2244,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         multidraw.name =
             StringFormat::Fmt("%s[%i](%u)", ToStr(gl_CurChunk).c_str(), i, multidraw.numIndices);
 
-        multidraw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+        multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
         multidraw.indexByteWidth = IdxSize;
@@ -2596,8 +2596,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         multidraw.name = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
                                            multidraw.numIndices, multidraw.numInstances);
 
-        multidraw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced |
-                           DrawFlags::Indirect;
+        multidraw.flags |=
+            DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced | DrawFlags::Indirect;
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
         multidraw.indexByteWidth = IdxSize;
@@ -3002,8 +3002,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
         multidraw.name = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
                                            multidraw.numIndices, multidraw.numInstances);
 
-        multidraw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced |
-                           DrawFlags::Indirect;
+        multidraw.flags |=
+            DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced | DrawFlags::Indirect;
 
         multidraw.topology = MakePrimitiveTopology(m_Real, mode);
         multidraw.indexByteWidth = IdxSize;

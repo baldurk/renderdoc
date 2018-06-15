@@ -3573,7 +3573,7 @@ enum class DrawFlags : uint32_t
   PassBoundary = 0x1000,
 
   // flags
-  UseIBuffer = 0x010000,
+  Indexed = 0x010000,
   Instanced = 0x020000,
   Auto = 0x040000,
   Indirect = 0x080000,

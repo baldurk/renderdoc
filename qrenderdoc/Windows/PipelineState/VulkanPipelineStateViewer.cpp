@@ -1578,7 +1578,7 @@ void VulkanPipelineStateViewer::setState()
   ui->viBuffers->beginUpdate();
   ui->viBuffers->clear();
 
-  bool ibufferUsed = draw != NULL && (draw->flags & DrawFlags::UseIBuffer);
+  bool ibufferUsed = draw != NULL && (draw->flags & DrawFlags::Indexed);
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {

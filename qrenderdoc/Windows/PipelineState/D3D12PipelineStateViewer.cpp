@@ -1327,7 +1327,7 @@ void D3D12PipelineStateViewer::setState()
 
   m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
 
-  bool ibufferUsed = draw && (draw->flags & DrawFlags::UseIBuffer);
+  bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
 
   vs = ui->iaBuffers->verticalScrollBar()->value();
   ui->iaBuffers->beginUpdate();

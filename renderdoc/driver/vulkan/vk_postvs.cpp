@@ -518,7 +518,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   SPIRVId idxImagePtr = 0;
   SPIRVId idxSampledTypeID = 0;
 
-  if(draw->flags & DrawFlags::UseIBuffer)
+  if(draw->flags & DrawFlags::Indexed)
   {
     uint32Vec4ID = editor.DeclareType(SPIRVVector(scalar<uint32_t>(), 4));
 
@@ -747,7 +747,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       // if we're indexing, look up the index buffer. We don't have to apply vertexOffset - it was
       // already applied when we read back and uniq-ified the index buffer.
-      if(draw->flags & DrawFlags::UseIBuffer)
+      if(draw->flags & DrawFlags::Indexed)
       {
         // sampledimage idximg = *idximgPtr;
         uint32_t loaded = editor.MakeId();
@@ -792,7 +792,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       uint32_t vertexLookup = vertexIndex;
       uint32_t instanceLookup = instID;
 
-      if(!(draw->flags & DrawFlags::UseIBuffer))
+      if(!(draw->flags & DrawFlags::Indexed))
       {
         // for non-indexed draws, we manually apply the vertex offset, but here after we used the
         // 0-based one to calculate the array slot
@@ -831,7 +831,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         }
         else if(builtin == ShaderBuiltin::BaseVertex)
         {
-          if(draw->flags & DrawFlags::UseIBuffer)
+          if(draw->flags & DrawFlags::Indexed)
             ops.push_back(SPIRVOperation(
                 spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
                                                       int32_t(draw->vertexOffset & 0x7fffffff))}));
@@ -1206,7 +1206,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   uint32_t maxInstance = drawcall->instanceOffset + drawcall->numInstances - 1;
 
-  if(drawcall->flags & DrawFlags::UseIBuffer)
+  if(drawcall->flags & DrawFlags::Indexed)
   {
     bool index16 = (idxsize == 2);
     bytebuf idxdata;
@@ -2021,7 +2021,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   m_PostVSData[eventId].vsout.nearPlane = nearp;
   m_PostVSData[eventId].vsout.farPlane = farp;
 
-  m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
+  m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::Indexed);
   m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
 
   m_PostVSData[eventId].vsout.instStride = 0;

@@ -2414,7 +2414,7 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
         m_pImmediateContext->Begin(testQueries[0]);
 
         // do draw
-        if(draw->flags & DrawFlags::UseIBuffer)
+        if(draw->flags & DrawFlags::Indexed)
         {
           // TODO once pixel history distinguishes between instances, draw only the instance for
           // this fragment

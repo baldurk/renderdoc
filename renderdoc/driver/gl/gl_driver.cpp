@@ -4456,7 +4456,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   //////////////////////////////
   // Input
 
-  if(d.flags & DrawFlags::UseIBuffer)
+  if(d.flags & DrawFlags::Indexed)
   {
     GLuint ibuffer = 0;
     gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);

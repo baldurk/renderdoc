@@ -915,7 +915,7 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   //////////////////////////////
   // IA
 
-  if(d.flags & DrawFlags::UseIBuffer && pipe->IA.IndexBuffer != NULL)
+  if(d.flags & DrawFlags::Indexed && pipe->IA.IndexBuffer != NULL)
     m_ResourceUses[GetIDForResource(pipe->IA.IndexBuffer)].push_back(
         EventUsage(e, ResourceUsage::IndexBuffer));
 

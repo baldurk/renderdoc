@@ -3704,7 +3704,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(
       draw.baseVertex = BaseVertexLocation;
       draw.instanceOffset = StartInstanceLocation;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
       AddDrawcall(draw, true);
     }
@@ -3840,7 +3840,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(SerialiserType &ser, UINT
       draw.baseVertex = BaseVertexLocation;
       draw.indexOffset = StartIndexLocation;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
+      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
       AddDrawcall(draw, true);
     }
@@ -4135,7 +4135,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
       draw.name = name;
 
       draw.flags |=
-          DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer | DrawFlags::Indirect;
+          DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
       AddDrawcall(draw, true);
     }
