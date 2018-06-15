@@ -1256,9 +1256,12 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
     {
       if(RTsSingleHandleToDescriptorRange)
       {
-        const D3D12Descriptor *descs = GetWrapped(pRenderTargetDescriptors[0]);
+        if(pRenderTargetDescriptors && NumRenderTargetDescriptors > 0)
+        {
+          const D3D12Descriptor *descs = GetWrapped(pRenderTargetDescriptors[0]);
 
-        RTVs.insert(RTVs.begin(), descs, descs + NumRenderTargetDescriptors);
+          RTVs.insert(RTVs.begin(), descs, descs + NumRenderTargetDescriptors);
+        }
       }
       else
       {
