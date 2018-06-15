@@ -71,7 +71,7 @@ RenderDoc stores data in two folders:
 
 The UI stores data in a ``qrenderdoc`` folder underneath your OS's user settings folder. On windows this is ``%APPDATA%`` and on linux this will be somewhere in your home directory, perhaps in ``~/.local/share``. Nothing in this data is machine specific aside from paths, so you can back up and restore this directory at will.
 
-Deleting this folder will also reset QRenderDoc to the defaults - if you uninstall RenderDoc this folder will not be deleted.
+Deleting this folder will also reset the RenderDoc UI to the defaults - if you uninstall RenderDoc this folder will not be deleted.
 
 The core code may save cached data in a ``renderdoc`` folder - either ``%APPDATA%/renderdoc`` or ``~/.renderdoc/`` but this doesn't contain settings, so is not important to back up.
 

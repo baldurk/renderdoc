@@ -7,6 +7,7 @@ Table of Contents
 =================
 
 .. toctree::
+   :includehidden:
    :maxdepth: 2
 
    introduction
