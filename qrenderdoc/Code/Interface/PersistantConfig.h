@@ -167,6 +167,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureFilePath, "")                     \
                                                                                            \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastFileBrowsePath, "")                      \
+                                                                                           \
   CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureFiles)               \
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, LastCapturePath, "")                         \
@@ -331,6 +333,12 @@ For more information about some of these settings that are user-facing see
 .. data:: LastCaptureFilePath
 
   The path to the last capture to be opened, which is useful as a default location for browsing.
+
+.. data:: LastFileBrowsePath
+
+  The path to the last file browsed to in any dialog. Used as a default location for all file
+  browsers without another explicit default directory (such as opening capture files - see
+  :data:`LastCaptureFilePath`).
 
 .. data:: RecentCaptureFiles
 

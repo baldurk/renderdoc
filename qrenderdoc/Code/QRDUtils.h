@@ -442,6 +442,8 @@ struct RDDialog
 {
   static const QMessageBox::StandardButtons YesNoCancel;
 
+  static QString DefaultBrowsePath;
+
   static void show(QMenu *menu, QPoint pos);
   static int show(QDialog *dialog);
   static QMessageBox::StandardButton messageBox(

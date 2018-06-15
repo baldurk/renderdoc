@@ -859,6 +859,8 @@ bool GUIInvoke::onUIThread()
   return qApp->thread() == QThread::currentThread();
 }
 
+QString RDDialog::DefaultBrowsePath;
+
 const QMessageBox::StandardButtons RDDialog::YesNoCancel =
     QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
@@ -978,7 +980,11 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
                                   const QString &filter, QString *selectedFilter,
                                   QFileDialog::Options options)
 {
-  QFileDialog fd(parent, caption, dir, filter);
+  QString d = dir;
+  if(d.isEmpty())
+    d = DefaultBrowsePath;
+
+  QFileDialog fd(parent, caption, d, filter);
   fd.setFileMode(QFileDialog::ExistingFile);
   fd.setAcceptMode(QFileDialog::AcceptOpen);
   fd.setOptions(options);
@@ -991,7 +997,10 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
 
     QStringList files = fd.selectedFiles();
     if(!files.isEmpty())
+    {
+      DefaultBrowsePath = QFileInfo(files[0]).dir().absolutePath();
       return files[0];
+    }
   }
 
   return QString();
@@ -1000,6 +1009,10 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
 QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption, const QString &dir,
                                         QFileDialog::Options options)
 {
+  QString d = dir;
+  if(d.isEmpty())
+    d = DefaultBrowsePath;
+
   QString filter;
 
 #if defined(Q_OS_WIN32)
@@ -1007,7 +1020,7 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
   filter = QApplication::translate("RDDialog", "Executables (*.exe);;All Files (*)");
 #endif
 
-  QFileDialog fd(parent, caption, dir, filter);
+  QFileDialog fd(parent, caption, d, filter);
   fd.setOptions(options);
   fd.setAcceptMode(QFileDialog::AcceptOpen);
   fd.setFileMode(QFileDialog::ExistingFile);
@@ -1022,7 +1035,10 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
   {
     QStringList files = fd.selectedFiles();
     if(!files.isEmpty())
+    {
+      DefaultBrowsePath = QFileInfo(files[0]).dir().absolutePath();
       return files[0];
+    }
   }
 
   return QString();
@@ -1045,7 +1061,11 @@ QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const
                                   const QString &filter, QString *selectedFilter,
                                   QFileDialog::Options options)
 {
-  QFileDialog fd(parent, caption, dir, filter);
+  QString d = dir;
+  if(d.isEmpty())
+    d = DefaultBrowsePath;
+
+  QFileDialog fd(parent, caption, d, filter);
   fd.setAcceptMode(QFileDialog::AcceptSave);
   fd.setOptions(options);
   const QStringList &defaultSuffixes = getDefaultSuffixesFromFilter(filter);
@@ -1064,7 +1084,10 @@ QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const
 
     QStringList files = fd.selectedFiles();
     if(!files.isEmpty())
+    {
+      DefaultBrowsePath = QFileInfo(files[0]).dir().absolutePath();
       return files[0];
+    }
   }
 
   return QString();

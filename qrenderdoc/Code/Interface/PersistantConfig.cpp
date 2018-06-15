@@ -287,6 +287,8 @@ bool PersistantConfig::Load(const rdcstr &filename)
 
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
 
+  RDDialog::DefaultBrowsePath = LastFileBrowsePath;
+
   // localhost should always be available as a remote host
   bool foundLocalhost = false;
 
@@ -395,6 +397,8 @@ bool PersistantConfig::Save()
     RemoteHostList.push_back(*host);
 
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
+
+  LastFileBrowsePath = RDDialog::DefaultBrowsePath;
 
   return Serialize(m_Filename);
 }
