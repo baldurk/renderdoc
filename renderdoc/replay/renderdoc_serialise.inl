@@ -491,9 +491,8 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(copySource);
   SERIALISE_MEMBER(copyDestination);
 
-  SERIALISE_MEMBER(parent);
-  SERIALISE_MEMBER(previous);
-  SERIALISE_MEMBER(next);
+  if(ser.IsReading())
+    el.parent = el.previous = el.next = NULL;
 
   SERIALISE_MEMBER(outputs);
   SERIALISE_MEMBER(depthOut);

@@ -573,8 +573,8 @@ void EventBrowser::on_stepNext_clicked()
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  if(draw && draw->next > 0)
-    SelectEvent(draw->next);
+  if(draw && draw->next)
+    SelectEvent(draw->next->eventId);
 
   // special case for the first 'virtual' draw at EID 0
   if(m_Ctx.CurEvent() == 0)
@@ -588,8 +588,8 @@ void EventBrowser::on_stepPrev_clicked()
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  if(draw && draw->previous > 0)
-    SelectEvent(draw->previous);
+  if(draw && draw->previous)
+    SelectEvent(draw->previous->eventId);
 
   // special case for the first 'virtual' draw at EID 0
   if(m_Ctx.CurEvent() == m_Ctx.GetFirstDrawcall()->eventId)

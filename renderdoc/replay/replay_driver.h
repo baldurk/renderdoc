@@ -223,7 +223,7 @@ public:
 };
 
 // utility functions useful in any driver implementation
-DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> *drawcallTable,
+DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
                                            rdcarray<DrawcallDescription> &draws,
                                            DrawcallDescription *parent,
                                            DrawcallDescription *&previous);

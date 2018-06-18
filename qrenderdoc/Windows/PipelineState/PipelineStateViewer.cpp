@@ -291,11 +291,11 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
             const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
             QList<const DrawcallDescription *> drawstack;
-            const DrawcallDescription *parent = m_Ctx.GetDrawcall(draw->parent);
+            const DrawcallDescription *parent = draw->parent;
             while(parent)
             {
               drawstack.push_front(parent);
-              parent = m_Ctx.GetDrawcall(parent->parent);
+              parent = parent->parent;
             }
 
             for(const DrawcallDescription *d : drawstack)

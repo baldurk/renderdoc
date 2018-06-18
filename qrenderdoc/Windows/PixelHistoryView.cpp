@@ -199,11 +199,11 @@ public:
 
             QString ret;
             QList<const DrawcallDescription *> drawstack;
-            const DrawcallDescription *parent = m_Ctx.GetDrawcall(drawcall->parent);
+            const DrawcallDescription *parent = drawcall->parent;
             while(parent)
             {
               drawstack.push_back(parent);
-              parent = m_Ctx.GetDrawcall(parent->parent);
+              parent = parent->parent;
             }
 
             if(!drawstack.isEmpty())

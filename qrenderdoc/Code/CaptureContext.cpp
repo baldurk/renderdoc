@@ -74,6 +74,8 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   m_CurVulkanPipelineState = NULL;
   m_CurPipelineState = &m_DummyPipelineState;
 
+  m_Drawcalls = &m_EmptyDraws;
+
   m_StructuredFile = &m_DummySDFile;
 
   qApp->setApplicationVersion(QString::fromLatin1(RENDERDOC_GetVersionString()));
@@ -193,8 +195,8 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
     // make sure we're on a consistent event before invoking viewer forms
     if(m_LastDrawcall)
       SetEventID(viewers, m_LastDrawcall->eventId, true);
-    else if(!m_Drawcalls.empty())
-      SetEventID(viewers, m_Drawcalls.back().eventId, true);
+    else if(!m_Drawcalls->empty())
+      SetEventID(viewers, m_Drawcalls->back().eventId, true);
 
     GUIInvoke::blockcall(m_MainWindow, [&viewers]() {
       // notify all the registers viewers that a capture has been loaded
@@ -267,21 +269,22 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
 
   // fetch initial data like drawcalls, textures and buffers
   m_Renderer.BlockInvoke([this](IReplayController *r) {
+    if(Config().EventBrowser_AddFake)
+      r->AddFakeMarkers();
+
     m_FrameInfo = r->GetFrameInfo();
 
     m_APIProps = r->GetAPIProperties();
 
     m_PostloadProgress = 0.2f;
 
-    m_Drawcalls = r->GetDrawcalls();
+    m_Drawcalls = &r->GetDrawcalls();
 
-    AddFakeProfileMarkers();
-
-    m_FirstDrawcall = &m_Drawcalls[0];
+    m_FirstDrawcall = &m_Drawcalls->at(0);
     while(!m_FirstDrawcall->children.empty())
       m_FirstDrawcall = &m_FirstDrawcall->children[0];
 
-    m_LastDrawcall = &m_Drawcalls.back();
+    m_LastDrawcall = &m_Drawcalls->back();
     while(!m_LastDrawcall->children.empty())
       m_LastDrawcall = &m_LastDrawcall->children.back();
 
@@ -399,220 +402,6 @@ void CaptureContext::CacheResources()
 
   for(ResourceDescription &res : m_ResourceList)
     m_Resources[res.resourceId] = &res;
-}
-
-bool CaptureContext::PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b)
-{
-  // executing command lists can have children
-  if(!a.children.empty() || !b.children.empty())
-    return false;
-
-  // don't group draws and compute executes
-  if((a.flags & DrawFlags::Dispatch) != (b.flags & DrawFlags::Dispatch))
-    return false;
-
-  // don't group present with anything
-  if((a.flags & DrawFlags::Present) != (b.flags & DrawFlags::Present))
-    return false;
-
-  // don't group things with different depth outputs
-  if(a.depthOut != b.depthOut)
-    return false;
-
-  int numAOuts = 0, numBOuts = 0;
-  for(int i = 0; i < 8; i++)
-  {
-    if(a.outputs[i] != ResourceId())
-      numAOuts++;
-    if(b.outputs[i] != ResourceId())
-      numBOuts++;
-  }
-
-  int numSame = 0;
-
-  if(a.depthOut != ResourceId())
-  {
-    numAOuts++;
-    numBOuts++;
-    numSame++;
-  }
-
-  for(int i = 0; i < 8; i++)
-  {
-    if(a.outputs[i] != ResourceId())
-    {
-      for(int j = 0; j < 8; j++)
-      {
-        if(a.outputs[i] == b.outputs[j])
-        {
-          numSame++;
-          break;
-        }
-      }
-    }
-    else if(b.outputs[i] != ResourceId())
-    {
-      for(int j = 0; j < 8; j++)
-      {
-        if(a.outputs[j] == b.outputs[i])
-        {
-          numSame++;
-          break;
-        }
-      }
-    }
-  }
-
-  // use a kind of heuristic to group together passes where the outputs are similar enough.
-  // could be useful for example if you're rendering to a gbuffer and sometimes you render
-  // without one target, but the draws are still batched up.
-  if(numSame > qMax(numAOuts, numBOuts) / 2 && qMax(numAOuts, numBOuts) > 1)
-    return true;
-
-  if(numSame == qMax(numAOuts, numBOuts))
-    return true;
-
-  return false;
-}
-
-bool CaptureContext::ContainsMarker(const rdcarray<DrawcallDescription> &draws)
-{
-  bool ret = false;
-
-  for(const DrawcallDescription &d : draws)
-  {
-    ret |= (d.flags & DrawFlags::PushMarker) &&
-           !(d.flags & (DrawFlags::CmdList | DrawFlags::MultiDraw)) && !d.children.empty();
-    ret |= ContainsMarker(d.children);
-
-    if(ret)
-      break;
-  }
-
-  return ret;
-}
-
-void CaptureContext::AddFakeProfileMarkers()
-{
-  rdcarray<DrawcallDescription> &draws = m_Drawcalls;
-
-  if(!Config().EventBrowser_AddFake)
-    return;
-
-  if(ContainsMarker(draws))
-    return;
-
-  QList<DrawcallDescription> ret;
-
-  int depthpassID = 1;
-  int copypassID = 1;
-  int computepassID = 1;
-  int passID = 1;
-
-  int start = 0;
-  int refdraw = 0;
-
-  DrawFlags drawFlags = DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::SetMarker |
-                        DrawFlags::APICalls | DrawFlags::CmdList;
-
-  for(int32_t i = 1; i < draws.count(); i++)
-  {
-    if(draws[refdraw].flags & drawFlags)
-    {
-      refdraw = i;
-      continue;
-    }
-
-    if(draws[i].flags & drawFlags)
-      continue;
-
-    if(PassEquivalent(draws[i], draws[refdraw]))
-      continue;
-
-    int end = i - 1;
-
-    if(end - start < 2 || !draws[i].children.empty() || !draws[refdraw].children.empty())
-    {
-      for(int j = start; j <= end; j++)
-        ret.push_back(draws[j]);
-
-      start = i;
-      refdraw = i;
-      continue;
-    }
-
-    int minOutCount = 100;
-    int maxOutCount = 0;
-    bool copyOnly = true;
-
-    for(int j = start; j <= end; j++)
-    {
-      int outCount = 0;
-
-      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear)))
-        copyOnly = false;
-
-      for(ResourceId o : draws[j].outputs)
-        if(o != ResourceId())
-          outCount++;
-      minOutCount = qMin(minOutCount, outCount);
-      maxOutCount = qMax(maxOutCount, outCount);
-    }
-
-    DrawcallDescription mark;
-
-    mark.eventId = draws[start].eventId;
-    mark.drawcallId = draws[start].drawcallId;
-
-    mark.flags = DrawFlags::PushMarker;
-    memcpy(mark.outputs, draws[end].outputs, sizeof(mark.outputs));
-    mark.depthOut = draws[end].depthOut;
-
-    mark.name = "Guessed Pass";
-
-    minOutCount = qMax(1, minOutCount);
-
-    QString targets = draws[end].depthOut == ResourceId() ? tr("Targets") : tr("Targets + Depth");
-
-    if(copyOnly)
-      mark.name = tr("Copy/Clear Pass #%1").arg(copypassID++).toUtf8().data();
-    else if(draws[refdraw].flags & DrawFlags::Dispatch)
-      mark.name = tr("Compute Pass #%1").arg(computepassID++).toUtf8().data();
-    else if(maxOutCount == 0)
-      mark.name = tr("Depth-only Pass #%1").arg(depthpassID++).toUtf8().data();
-    else if(minOutCount == maxOutCount)
-      mark.name =
-          tr("Colour Pass #%1 (%2 %3)").arg(passID++).arg(minOutCount).arg(targets).toUtf8().data();
-    else
-      mark.name = tr("Colour Pass #%1 (%2-%3 %4)")
-                      .arg(passID++)
-                      .arg(minOutCount)
-                      .arg(maxOutCount)
-                      .arg(targets)
-                      .toUtf8()
-                      .data();
-
-    mark.children.resize(end - start + 1);
-
-    for(int j = start; j <= end; j++)
-    {
-      mark.children[j - start] = draws[j];
-      draws[j].parent = mark.eventId;
-    }
-
-    ret.push_back(mark);
-
-    start = i;
-    refdraw = i;
-  }
-
-  if(start < draws.count())
-  {
-    for(int j = start; j < draws.count(); j++)
-      ret.push_back(draws[j]);
-  }
-
-  m_Drawcalls = ret;
 }
 
 void CaptureContext::RecompressCapture()
@@ -857,7 +646,7 @@ void CaptureContext::CloseCapture()
   m_Bookmarks.clear();
   m_Notes.clear();
 
-  m_Drawcalls.clear();
+  m_Drawcalls = &m_EmptyDraws;
   m_FirstDrawcall = m_LastDrawcall = NULL;
 
   m_CurD3D11PipelineState = NULL;

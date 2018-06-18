@@ -2528,7 +2528,7 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
       return passEvents;
 
     // step back
-    const DrawcallDescription *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
+    const DrawcallDescription *prev = start->previous;
 
     // something went wrong, start->previous was non-zero but we didn't
     // get a draw. Abort
@@ -2556,7 +2556,7 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
     if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
       passEvents.push_back(start->eventId);
 
-    start = m_pDevice->GetDrawcall((uint32_t)start->next);
+    start = start->next;
   }
 
   return passEvents;

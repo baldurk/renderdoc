@@ -5,9 +5,9 @@ In this example we will show how to iterate over drawcalls.
 
 The drawcalls returned from :py:meth:`~renderdoc.ReplayController.GetDrawcalls` are draws or marker regions at the root level - with no parent marker region. There are multiple ways to iterate through the list of draws.
 
-The first way illustrated in this sample is to walk the tree using :py:attr:`~renderdoc.DrawcallDescription.children`, which contains the list of child draws at any point in the tree. There is also :py:attr:`~renderdoc.DrawcallDescription.parent` which contains the index of the parent drawcall.
+The first way illustrated in this sample is to walk the tree using :py:attr:`~renderdoc.DrawcallDescription.children`, which contains the list of child draws at any point in the tree. There is also :py:attr:`~renderdoc.DrawcallDescription.parent` which points to the parent drawcall.
 
-The second is to use :py:attr:`~renderdoc.DrawcallDescription.previous` and :py:attr:`~renderdoc.DrawcallDescription.next`, which contain the indices of the previous and next draw respectively in a linear fashion, regardless of nesting depth.
+The second is to use :py:attr:`~renderdoc.DrawcallDescription.previous` and :py:attr:`~renderdoc.DrawcallDescription.next`, which point to the previous and next draw respectively in a linear fashion, regardless of nesting depth.
 
 In the example we use this iteration to determine the number of passes, using the drawcall flags to denote the start of each pass by a starting clear call.
 

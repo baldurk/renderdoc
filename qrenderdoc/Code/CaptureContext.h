@@ -118,7 +118,7 @@ public:
   const DrawcallDescription *GetLastDrawcall() override { return m_LastDrawcall; };
   bool OpenRGPProfile(const rdcstr &filename) override;
   IRGPInterop *GetRGPInterop() override { return m_RGP; }
-  const rdcarray<DrawcallDescription> &CurDrawcalls() override { return m_Drawcalls; }
+  const rdcarray<DrawcallDescription> &CurDrawcalls() override { return *m_Drawcalls; }
   ResourceDescription *GetResource(ResourceId id) override { return m_Resources[id]; }
   const rdcarray<ResourceDescription> &GetResources() override { return m_ResourceList; }
   rdcstr GetResourceName(ResourceId id) override;
@@ -132,7 +132,7 @@ public:
   const rdcarray<BufferDescription> &GetBuffers() override { return m_BufferList; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId) override
   {
-    return GetDrawcall(m_Drawcalls, eventId);
+    return GetDrawcall(*m_Drawcalls, eventId);
   }
   const SDFile &GetStructuredFile() override { return *m_StructuredFile; }
   WindowingSystem CurWindowingSystem() override { return m_CurWinSystem; }
@@ -246,10 +246,6 @@ private:
   rdcarray<DebugMessage> m_DebugMessages;
   int m_UnreadMessageCount = 0;
 
-  bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
-  bool ContainsMarker(const rdcarray<DrawcallDescription> &m_Drawcalls);
-  void AddFakeProfileMarkers();
-
   void SaveChanges();
 
   bool SaveRenames();
@@ -293,12 +289,13 @@ private:
   }
 
   void setupDockWindow(QWidget *shad);
-  rdcarray<DrawcallDescription> m_Drawcalls;
+  const rdcarray<DrawcallDescription> *m_Drawcalls;
+  rdcarray<DrawcallDescription> m_EmptyDraws;
 
   APIProperties m_APIProps;
   FrameDescription m_FrameInfo;
-  DrawcallDescription *m_FirstDrawcall = NULL;
-  DrawcallDescription *m_LastDrawcall = NULL;
+  const DrawcallDescription *m_FirstDrawcall = NULL;
+  const DrawcallDescription *m_LastDrawcall = NULL;
 
   IRGPInterop *m_RGP = NULL;
 

@@ -1985,7 +1985,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
 
     DrawcallDescription *previous = NULL;
-    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
+    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
 
     struct SortEID
     {

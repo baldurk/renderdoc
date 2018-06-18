@@ -53,7 +53,7 @@ void DoSerialise(SerialiserType &ser, GetTextureDataParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(GetTextureDataParams);
 
-DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawcallTable,
+DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawcallTable,
                                            rdcarray<DrawcallDescription> &draws,
                                            DrawcallDescription *parent,
                                            DrawcallDescription *&previous)
@@ -64,15 +64,14 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
   {
     DrawcallDescription *draw = &draws[i];
 
-    draw->parent = parent ? parent->eventId : 0;
+    draw->parent = parent;
 
     if(!draw->children.empty())
     {
-      if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventId > drawcallTable->back()->eventId);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventId + 1)));
-        (*drawcallTable)[draw->eventId] = draw;
+        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId);
+        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
+        drawcallTable[draw->eventId] = draw;
       }
 
       ret = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
@@ -82,24 +81,25 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
       // don't want to set up previous/next links for markers, but still add them to the table
       // Some markers like Present or API Calls should have previous/next and are not markers
 
-      if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventId > drawcallTable->back()->eventId);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventId + 1)));
-        (*drawcallTable)[draw->eventId] = draw;
+        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId);
+        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
+        drawcallTable[draw->eventId] = draw;
       }
     }
     else
     {
-      if(previous != NULL)
-        previous->next = draw->eventId;
-      draw->previous = previous ? previous->eventId : 0;
+      if(previous)
+        previous->next = draw;
+      draw->previous = previous;
 
-      if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventId > drawcallTable->back()->eventId);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventId + 1)));
-        (*drawcallTable)[draw->eventId] = draw;
+        // we also allow equal EIDs for fake markers that don't have their own EIDs
+        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
+                  (draw->eventId == drawcallTable.back()->eventId &&
+                   (drawcallTable.back()->flags & DrawFlags::PushMarker)));
+        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
+        drawcallTable[draw->eventId] = draw;
       }
 
       ret = previous = draw;

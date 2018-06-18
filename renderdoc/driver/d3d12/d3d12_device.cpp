@@ -2721,7 +2721,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
     m_Queue->GetParentDrawcall().children.clear();
 
     DrawcallDescription *previous = NULL;
-    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
+    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
 
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 

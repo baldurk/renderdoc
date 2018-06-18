@@ -939,7 +939,14 @@ See :meth:`BuildTargetShader`.
 :return: The list of root-level drawcalls in the capture.
 :rtype: ``list`` of :class:`DrawcallDescription`
 )");
-  virtual rdcarray<DrawcallDescription> GetDrawcalls() = 0;
+  virtual void AddFakeMarkers() = 0;
+
+  DOCUMENT(R"(Retrieve the list of root-level drawcalls in the capture.
+
+:return: The list of root-level drawcalls in the capture.
+:rtype: ``list`` of :class:`DrawcallDescription`
+)");
+  virtual const rdcarray<DrawcallDescription> &GetDrawcalls() = 0;
 
   DOCUMENT(R"(Retrieve the values of a specified set of counters.
 

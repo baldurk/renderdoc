@@ -130,11 +130,11 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
 
     // if we've come to the start of the log we were outside of a render pass
     // to start with
-    if(start->previous == 0)
+    if(start->previous == NULL)
       return passEvents;
 
     // step back
-    start = m_pDriver->GetDrawcall((uint32_t)start->previous);
+    start = start->previous;
 
     // something went wrong, start->previous was non-zero but we didn't
     // get a draw. Abort
@@ -155,7 +155,7 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
     if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
       passEvents.push_back(start->eventId);
 
-    start = m_pDriver->GetDrawcall((uint32_t)start->next);
+    start = start->next;
   }
 
   return passEvents;

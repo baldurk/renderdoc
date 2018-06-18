@@ -963,9 +963,7 @@ struct DrawcallDescription
     copySource = ResourceId();
     copyDestination = ResourceId();
 
-    parent = 0;
-    previous = 0;
-    next = 0;
+    parent = previous = next = NULL;
 
     for(int i = 0; i < 8; i++)
       outputs[i] = ResourceId();
@@ -1044,19 +1042,17 @@ operation.
 )");
   ResourceId copyDestination;
 
-  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` of the parent of this drawcall, or ``0`` if there
-is no parent for this drawcall.
+  DOCUMENT(R"(The parent of this drawcall, or ``None`` if there is no parent for this drawcall.
 )");
-  int64_t parent;
+  const DrawcallDescription *parent;
 
-  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` of the previous drawcall in the frame, or ``0`` if
-this is the first drawcall in the frame.
+  DOCUMENT(R"(The previous drawcall in the frame, or ``None`` if this is the first drawcall in the
+frame.
 )");
-  int64_t previous;
-  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` of the next drawcall in the frame, or ``0`` if this
-is the last drawcall in the frame.
-)");
-  int64_t next;
+  const DrawcallDescription *previous;
+  DOCUMENT(
+      "The next drawcall in the frame, or ``None`` if this is the last drawcall in the frame.");
+  const DrawcallDescription *next;
 
   DOCUMENT(R"(A simple list of the :class:`ResourceId` ids for the color outputs, which can be used
 for very coarse bucketing of drawcalls into similar passes by their outputs.

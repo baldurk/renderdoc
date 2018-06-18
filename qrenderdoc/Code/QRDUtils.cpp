@@ -627,13 +627,13 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
       // last event was where we were - otherwise it's a new
       // distinct set of drawcalls and should have a separate
       // entry in the context menu
-      const DrawcallDescription *prev = ctx.GetDrawcall(draw->previous);
+      const DrawcallDescription *prev = draw->previous;
 
       while(prev != NULL && prev->eventId > end)
       {
         if(!(prev->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall | DrawFlags::CmdList)))
         {
-          prev = ctx.GetDrawcall(prev->previous);
+          prev = prev->previous;
         }
         else
         {

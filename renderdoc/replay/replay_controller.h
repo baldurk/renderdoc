@@ -159,7 +159,8 @@ public:
 
   FrameDescription GetFrameInfo();
   const SDFile &GetStructuredFile();
-  rdcarray<DrawcallDescription> GetDrawcalls();
+  const rdcarray<DrawcallDescription> &GetDrawcalls();
+  void AddFakeMarkers();
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
   rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
@@ -208,6 +209,8 @@ private:
   ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
 
   DrawcallDescription *GetDrawcallByEID(uint32_t eventId);
+  bool ContainsMarker(const rdcarray<DrawcallDescription> &draws);
+  bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;

@@ -649,6 +649,8 @@ private:
   FrameRecord m_FrameRecord;
   APIProperties m_APIProps;
 
+  std::vector<DrawcallDescription *> m_Drawcalls;
+
   SDFile m_StructuredFile;
 
   std::vector<ResourceDescription> m_Resources;

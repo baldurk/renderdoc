@@ -1,8 +1,5 @@
 import renderdoc as rd
 
-# Set up a hash for storing draw information by event
-draws = {}
-
 # Define a recursive function for iterating over draws
 def iterDraw(d, indent = ''):
 	global draws
@@ -10,16 +7,11 @@ def iterDraw(d, indent = ''):
 	# Print this drawcall
 	print('%s%d: %s' % (indent, d.eventId, d.name))
 
-	# Save the draw by eventId for use later
-	draws[d.eventId] = d
-
 	# Iterate over the draw's children
 	for d in d.children:
 		iterDraw(d, indent + '    ')
 
 def sampleCode(controller):
-	global draws
-
 	# Iterate over all of the root drawcalls
 	for d in controller.GetDrawcalls():
 		iterDraw(d)
@@ -54,9 +46,9 @@ def sampleCode(controller):
 			inpass = True
 
 		# Advance to the next drawcall
-		if not draw.next in draws:
+		draw = draw.next
+		if draw is None:
 			break
-		draw = draws[draw.next]
 
 	if inpass:
 		print("Pass #%d contained %d draws" % (passnum, passcontents))
@@ -82,7 +74,7 @@ def loadCapture(filename):
 	if status != rd.ReplayStatus.Succeeded:
 		raise RuntimeError("Couldn't initialise replay: " + str(status))
 
-	return controller
+	return cap,controller
 
 if 'pyrenderdoc' in globals():
 	pyrenderdoc.Replay().BlockInvoke(sampleCode)

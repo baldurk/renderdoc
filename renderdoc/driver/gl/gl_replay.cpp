@@ -98,10 +98,9 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   const DrawcallDescription *start = draw;
-  while(start && start->previous != 0 &&
-        !(m_pDriver->GetDrawcall((uint32_t)start->previous)->flags & DrawFlags::Clear))
+  while(start && start->previous && !(start->previous->flags & DrawFlags::Clear))
   {
-    const DrawcallDescription *prev = m_pDriver->GetDrawcall((uint32_t)start->previous);
+    const DrawcallDescription *prev = start->previous;
 
     if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
        start->depthOut != prev->depthOut)
@@ -118,7 +117,7 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
     if(start->flags & DrawFlags::Drawcall)
       passEvents.push_back(start->eventId);
 
-    start = m_pDriver->GetDrawcall((uint32_t)start->next);
+    start = start->next;
   }
 
   return passEvents;
