@@ -508,9 +508,9 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   if(view.type == D3D11ViewTag::OMDepth)
   {
-    if(m_Ctx.CurD3D11PipelineState().outputMerger.depthReadOnly)
+    if(m_Ctx.CurD3D11PipelineState()->outputMerger.depthReadOnly)
       text += tr("Depth component is read-only\n");
-    if(m_Ctx.CurD3D11PipelineState().outputMerger.stencilReadOnly)
+    if(m_Ctx.CurD3D11PipelineState()->outputMerger.stencilReadOnly)
       text += tr("Stencil component is read-only\n");
   }
 
@@ -594,8 +594,8 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
   bool viewDetails = false;
 
   if(view.type == D3D11ViewTag::OMDepth)
-    viewDetails = m_Ctx.CurD3D11PipelineState().outputMerger.depthReadOnly ||
-                  m_Ctx.CurD3D11PipelineState().outputMerger.stencilReadOnly;
+    viewDetails = m_Ctx.CurD3D11PipelineState()->outputMerger.depthReadOnly ||
+                  m_Ctx.CurD3D11PipelineState()->outputMerger.stencilReadOnly;
 
   bool filledSlot = (r.resourceResourceId != ResourceId());
   bool usedSlot = (map && map->used);
@@ -751,23 +751,23 @@ const D3D11Pipe::Shader *D3D11PipelineStateViewer::stageForSender(QWidget *widge
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx.CurD3D11PipelineState().vertexShader;
+      return &m_Ctx.CurD3D11PipelineState()->vertexShader;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx.CurD3D11PipelineState().vertexShader;
+      return &m_Ctx.CurD3D11PipelineState()->vertexShader;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx.CurD3D11PipelineState().hullShader;
+      return &m_Ctx.CurD3D11PipelineState()->hullShader;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx.CurD3D11PipelineState().domainShader;
+      return &m_Ctx.CurD3D11PipelineState()->domainShader;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx.CurD3D11PipelineState().geometryShader;
+      return &m_Ctx.CurD3D11PipelineState()->geometryShader;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx.CurD3D11PipelineState().pixelShader;
+      return &m_Ctx.CurD3D11PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx.CurD3D11PipelineState().pixelShader;
+      return &m_Ctx.CurD3D11PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx.CurD3D11PipelineState().pixelShader;
+      return &m_Ctx.CurD3D11PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx.CurD3D11PipelineState().computeShader;
+      return &m_Ctx.CurD3D11PipelineState()->computeShader;
 
     widget = widget->parentWidget();
   }
@@ -1107,7 +1107,7 @@ void D3D11PipelineStateViewer::setState()
     return;
   }
 
-  const D3D11Pipe::State &state = m_Ctx.CurD3D11PipelineState();
+  const D3D11Pipe::State &state = *m_Ctx.CurD3D11PipelineState();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   const QPixmap &tick = Pixmaps::tick(this);
@@ -1879,12 +1879,12 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       if(stage->stage == ShaderStage::Geometry)
       {
-        for(int i = 0; i < m_Ctx.CurD3D11PipelineState().streamOut.outputs.count(); i++)
+        for(int i = 0; i < m_Ctx.CurD3D11PipelineState()->streamOut.outputs.count(); i++)
         {
-          if(buf->resourceId == m_Ctx.CurD3D11PipelineState().streamOut.outputs[i].resourceId)
+          if(buf->resourceId == m_Ctx.CurD3D11PipelineState()->streamOut.outputs[i].resourceId)
           {
-            size -= m_Ctx.CurD3D11PipelineState().streamOut.outputs[i].byteOffset;
-            offs += m_Ctx.CurD3D11PipelineState().streamOut.outputs[i].byteOffset;
+            size -= m_Ctx.CurD3D11PipelineState()->streamOut.outputs[i].byteOffset;
+            offs += m_Ctx.CurD3D11PipelineState()->streamOut.outputs[i].byteOffset;
             break;
           }
         }
@@ -1906,7 +1906,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     // bound in the PS but only in an earlier stage.
     if(view.type == D3D11ViewTag::UAV && stage->stage != ShaderStage::Compute)
     {
-      const D3D11Pipe::State &state = m_Ctx.CurD3D11PipelineState();
+      const D3D11Pipe::State &state = *m_Ctx.CurD3D11PipelineState();
       const D3D11Pipe::Shader *nonCS[] = {&state.vertexShader, &state.domainShader, &state.hullShader,
                                           &state.geometryShader, &state.pixelShader};
 
@@ -2127,7 +2127,7 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const D3D11Pipe::InputAssembly &IA = m_Ctx.CurD3D11PipelineState().inputAssembly;
+  const D3D11Pipe::InputAssembly &IA = m_Ctx.CurD3D11PipelineState()->inputAssembly;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f,
                                 qBound(0.05, palette().color(QPalette::Base).lightnessF(), 0.95));
@@ -2172,7 +2172,7 @@ void D3D11PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const D3D11Pipe::InputAssembly &IA = m_Ctx.CurD3D11PipelineState().inputAssembly;
+  const D3D11Pipe::InputAssembly &IA = m_Ctx.CurD3D11PipelineState()->inputAssembly;
 
   if(idx.isValid())
   {
@@ -2246,7 +2246,7 @@ void D3D11PipelineStateViewer::shaderView_clicked()
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
   if(sender == ui->iaBytecode || sender == ui->iaBytecodeViewButton)
   {
-    shaderDetails = m_Ctx.CurD3D11PipelineState().inputAssembly.bytecode;
+    shaderDetails = m_Ctx.CurD3D11PipelineState()->inputAssembly.bytecode;
   }
   else
   {
@@ -2988,7 +2988,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
         continue;
 
       rows.push_back(exportViewHTML(om.uavs[i - om.uavStartSlot], i,
-                                    m_Ctx.CurD3D11PipelineState().pixelShader.reflection, QString()));
+                                    m_Ctx.CurD3D11PipelineState()->pixelShader.reflection, QString()));
     }
 
     m_Common.exportHTMLTable(xml,
@@ -3057,18 +3057,18 @@ void D3D11PipelineStateViewer::on_exportHTML_clicked()
 
       switch(stage)
       {
-        case 0: exportHTML(xml, m_Ctx.CurD3D11PipelineState().inputAssembly); break;
-        case 1: exportHTML(xml, m_Ctx.CurD3D11PipelineState().vertexShader); break;
-        case 2: exportHTML(xml, m_Ctx.CurD3D11PipelineState().hullShader); break;
-        case 3: exportHTML(xml, m_Ctx.CurD3D11PipelineState().domainShader); break;
+        case 0: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->inputAssembly); break;
+        case 1: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->vertexShader); break;
+        case 2: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->hullShader); break;
+        case 3: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->domainShader); break;
         case 4:
-          exportHTML(xml, m_Ctx.CurD3D11PipelineState().geometryShader);
-          exportHTML(xml, m_Ctx.CurD3D11PipelineState().streamOut);
+          exportHTML(xml, m_Ctx.CurD3D11PipelineState()->geometryShader);
+          exportHTML(xml, m_Ctx.CurD3D11PipelineState()->streamOut);
           break;
-        case 5: exportHTML(xml, m_Ctx.CurD3D11PipelineState().rasterizer); break;
-        case 6: exportHTML(xml, m_Ctx.CurD3D11PipelineState().pixelShader); break;
-        case 7: exportHTML(xml, m_Ctx.CurD3D11PipelineState().outputMerger); break;
-        case 8: exportHTML(xml, m_Ctx.CurD3D11PipelineState().computeShader); break;
+        case 5: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->rasterizer); break;
+        case 6: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->pixelShader); break;
+        case 7: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->outputMerger); break;
+        case 8: exportHTML(xml, m_Ctx.CurD3D11PipelineState()->computeShader); break;
       }
 
       xml.writeEndElement();
@@ -3097,7 +3097,7 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
   if(!draw)
     return;
 
-  ShaderReflection *shaderDetails = m_Ctx.CurD3D11PipelineState().computeShader.reflection;
+  ShaderReflection *shaderDetails = m_Ctx.CurD3D11PipelineState()->computeShader.reflection;
 
   if(!shaderDetails)
     return;

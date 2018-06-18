@@ -24,6 +24,7 @@
 
 #include <Python.h>
 #include <stdlib.h>
+#include <algorithm>
 
 #include "renderdoc_replay.h"
 
@@ -37,6 +38,8 @@ std::string DoStringise(const uint32_t &el)
 }
 
 #include "renderdoc_tostr.inl"
+
+#include "pipestate.inl"
 
 extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 {

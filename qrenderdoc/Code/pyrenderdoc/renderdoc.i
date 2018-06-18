@@ -192,6 +192,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %include "replay_enums.h"
 %include "shader_types.h"
 %include "vk_pipestate.h"
+%include "pipestate.h"
 
 %feature("docstring") "";
 
@@ -269,6 +270,10 @@ TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ShaderEntryPoint)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, Viewport)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, Scissor)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ColorBlend)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundVBuffer)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, VertexInputAttribute)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundResource)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundResourceArray)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, Attachment)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, BindingElement)
 TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(rdcarray, VKPipe, DescriptorBinding)

@@ -116,10 +116,10 @@ public:
   FrameRecord GetFrameRecord();
 
   void SavePipelineState();
-  const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11State; }
-  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12State; }
-  const GLPipe::State &GetGLPipelineState() { return m_CurPipelineState; }
-  const VKPipe::State &GetVulkanPipelineState() { return m_VKState; }
+  const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
+  const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
+  const GLPipe::State *GetGLPipelineState() { return &m_CurPipelineState; }
+  const VKPipe::State *GetVulkanPipelineState() { return NULL; }
   void FreeTargetResource(ResourceId id);
 
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
@@ -425,9 +425,6 @@ private:
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   GLPipe::State m_CurPipelineState;
-  D3D11Pipe::State m_D3D11State;
-  D3D12Pipe::State m_D3D12State;
-  VKPipe::State m_VKState;
 
   // AMD counter instance
   AMDCounters *m_pAMDCounters = NULL;

@@ -480,23 +480,23 @@ const GLPipe::Shader *GLPipelineStateViewer::stageForSender(QWidget *widget)
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx.CurGLPipelineState().vertexShader;
+      return &m_Ctx.CurGLPipelineState()->vertexShader;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx.CurGLPipelineState().vertexShader;
+      return &m_Ctx.CurGLPipelineState()->vertexShader;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx.CurGLPipelineState().tessControlShader;
+      return &m_Ctx.CurGLPipelineState()->tessControlShader;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx.CurGLPipelineState().tessEvalShader;
+      return &m_Ctx.CurGLPipelineState()->tessEvalShader;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx.CurGLPipelineState().geometryShader;
+      return &m_Ctx.CurGLPipelineState()->geometryShader;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx.CurGLPipelineState().fragmentShader;
+      return &m_Ctx.CurGLPipelineState()->fragmentShader;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx.CurGLPipelineState().fragmentShader;
+      return &m_Ctx.CurGLPipelineState()->fragmentShader;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx.CurGLPipelineState().fragmentShader;
+      return &m_Ctx.CurGLPipelineState()->fragmentShader;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx.CurGLPipelineState().computeShader;
+      return &m_Ctx.CurGLPipelineState()->computeShader;
 
     widget = widget->parentWidget();
   }
@@ -599,7 +599,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
 {
   ShaderReflection *shaderDetails = stage.reflection;
   const ShaderBindpointMapping &mapping = stage.bindpointMapping;
-  const GLPipe::State &state = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &state = *m_Ctx.CurGLPipelineState();
 
   if(stage.shaderResourceId == ResourceId())
   {
@@ -1148,7 +1148,7 @@ void GLPipelineStateViewer::setState()
     return;
   }
 
-  const GLPipe::State &state = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &state = *m_Ctx.CurGLPipelineState();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
@@ -2145,7 +2145,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState().vertexInput;
+  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState()->vertexInput;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f,
                                 qBound(0.05, palette().color(QPalette::Base).lightnessF(), 0.95));
@@ -2188,7 +2188,7 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState().vertexInput;
+  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState()->vertexInput;
 
   if(idx.isValid())
   {
@@ -2314,7 +2314,7 @@ void GLPipelineStateViewer::shaderSave_clicked()
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx)
 {
-  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   {
     xml.writeStartElement(tr("h3"));
     xml.writeCharacters(tr("Vertex Attributes"));
@@ -2463,7 +2463,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shader &sh)
 {
-  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   ShaderReflection *shaderDetails = sh.reflection;
   const ShaderBindpointMapping &mapping = sh.bindpointMapping;
 
@@ -2906,7 +2906,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Feedback &xfb)
 {
-  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   {
     xml.writeStartElement(tr("h3"));
     xml.writeCharacters(tr("States"));
@@ -2952,7 +2952,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Feed
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rasterizer &rs)
 {
-  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   xml.writeStartElement(tr("h3"));
   xml.writeCharacters(tr("Rasterizer"));
   xml.writeEndElement();
@@ -3069,7 +3069,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rast
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::FrameBuffer &fb)
 {
-  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   {
     xml.writeStartElement(tr("h3"));
     xml.writeCharacters(tr("Blend State"));
@@ -3315,18 +3315,18 @@ void GLPipelineStateViewer::on_exportHTML_clicked()
 
       switch(stage)
       {
-        case 0: exportHTML(xml, m_Ctx.CurGLPipelineState().vertexInput); break;
-        case 1: exportHTML(xml, m_Ctx.CurGLPipelineState().vertexShader); break;
-        case 2: exportHTML(xml, m_Ctx.CurGLPipelineState().tessControlShader); break;
-        case 3: exportHTML(xml, m_Ctx.CurGLPipelineState().tessEvalShader); break;
+        case 0: exportHTML(xml, m_Ctx.CurGLPipelineState()->vertexInput); break;
+        case 1: exportHTML(xml, m_Ctx.CurGLPipelineState()->vertexShader); break;
+        case 2: exportHTML(xml, m_Ctx.CurGLPipelineState()->tessControlShader); break;
+        case 3: exportHTML(xml, m_Ctx.CurGLPipelineState()->tessEvalShader); break;
         case 4:
-          exportHTML(xml, m_Ctx.CurGLPipelineState().geometryShader);
-          exportHTML(xml, m_Ctx.CurGLPipelineState().transformFeedback);
+          exportHTML(xml, m_Ctx.CurGLPipelineState()->geometryShader);
+          exportHTML(xml, m_Ctx.CurGLPipelineState()->transformFeedback);
           break;
-        case 5: exportHTML(xml, m_Ctx.CurGLPipelineState().rasterizer); break;
-        case 6: exportHTML(xml, m_Ctx.CurGLPipelineState().fragmentShader); break;
-        case 7: exportHTML(xml, m_Ctx.CurGLPipelineState().framebuffer); break;
-        case 8: exportHTML(xml, m_Ctx.CurGLPipelineState().computeShader); break;
+        case 5: exportHTML(xml, m_Ctx.CurGLPipelineState()->rasterizer); break;
+        case 6: exportHTML(xml, m_Ctx.CurGLPipelineState()->fragmentShader); break;
+        case 7: exportHTML(xml, m_Ctx.CurGLPipelineState()->framebuffer); break;
+        case 8: exportHTML(xml, m_Ctx.CurGLPipelineState()->computeShader); break;
       }
 
       xml.writeEndElement();

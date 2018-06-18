@@ -529,7 +529,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   bool viewdetails = false;
 
-  for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState().resourceStates)
+  for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState()->resourceStates)
   {
     if(im.resourceId == tex->resourceId)
     {
@@ -549,9 +549,9 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   if(view.space == D3D12ViewTag::OMDepth)
   {
-    if(m_Ctx.CurD3D12PipelineState().outputMerger.depthReadOnly)
+    if(m_Ctx.CurD3D12PipelineState()->outputMerger.depthReadOnly)
       text += tr("Depth component is read-only\n");
-    if(m_Ctx.CurD3D12PipelineState().outputMerger.stencilReadOnly)
+    if(m_Ctx.CurD3D12PipelineState()->outputMerger.stencilReadOnly)
       text += tr("Stencil component is read-only\n");
   }
 
@@ -605,7 +605,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   const D3D12Pipe::View &res = view.res;
 
-  for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState().resourceStates)
+  for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState()->resourceStates)
   {
     if(im.resourceId == buf->resourceId)
     {
@@ -683,8 +683,8 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
   bool viewDetails = false;
 
   if(view.type == D3D12ViewTag::OMDepth)
-    viewDetails = m_Ctx.CurD3D12PipelineState().outputMerger.depthReadOnly ||
-                  m_Ctx.CurD3D12PipelineState().outputMerger.stencilReadOnly;
+    viewDetails = m_Ctx.CurD3D12PipelineState()->outputMerger.depthReadOnly ||
+                  m_Ctx.CurD3D12PipelineState()->outputMerger.stencilReadOnly;
 
   QString rootel = r.immediate ? tr("#%1 Direct").arg(r.rootElement)
                                : tr("#%1 Table[%2]").arg(r.rootElement).arg(r.tableIndex);
@@ -842,23 +842,23 @@ const D3D12Pipe::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widge
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx.CurD3D12PipelineState().vertexShader;
+      return &m_Ctx.CurD3D12PipelineState()->vertexShader;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx.CurD3D12PipelineState().vertexShader;
+      return &m_Ctx.CurD3D12PipelineState()->vertexShader;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx.CurD3D12PipelineState().hullShader;
+      return &m_Ctx.CurD3D12PipelineState()->hullShader;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx.CurD3D12PipelineState().domainShader;
+      return &m_Ctx.CurD3D12PipelineState()->domainShader;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx.CurD3D12PipelineState().geometryShader;
+      return &m_Ctx.CurD3D12PipelineState()->geometryShader;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx.CurD3D12PipelineState().pixelShader;
+      return &m_Ctx.CurD3D12PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx.CurD3D12PipelineState().pixelShader;
+      return &m_Ctx.CurD3D12PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx.CurD3D12PipelineState().pixelShader;
+      return &m_Ctx.CurD3D12PipelineState()->pixelShader;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx.CurD3D12PipelineState().computeShader;
+      return &m_Ctx.CurD3D12PipelineState()->computeShader;
 
     widget = widget->parentWidget();
   }
@@ -952,7 +952,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
                                               RDTreeWidget *uavs)
 {
   ShaderReflection *shaderDetails = stage.reflection;
-  const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState();
+  const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
 
   rootSig->setText(ToQStr(state.rootSignatureResourceId));
 
@@ -1239,7 +1239,7 @@ void D3D12PipelineStateViewer::setState()
     return;
   }
 
-  const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState();
+  const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   const QPixmap &tick = Pixmaps::tick(this);
@@ -1777,14 +1777,14 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     {
       // last thing, see if it's a streamout buffer
 
-      if(stage == &m_Ctx.CurD3D12PipelineState().geometryShader)
+      if(stage == &m_Ctx.CurD3D12PipelineState()->geometryShader)
       {
-        for(int i = 0; i < m_Ctx.CurD3D12PipelineState().streamOut.outputs.count(); i++)
+        for(int i = 0; i < m_Ctx.CurD3D12PipelineState()->streamOut.outputs.count(); i++)
         {
-          if(buf->resourceId == m_Ctx.CurD3D12PipelineState().streamOut.outputs[i].resourceId)
+          if(buf->resourceId == m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].resourceId)
           {
-            size -= m_Ctx.CurD3D12PipelineState().streamOut.outputs[i].byteOffset;
-            offs += m_Ctx.CurD3D12PipelineState().streamOut.outputs[i].byteOffset;
+            size -= m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].byteOffset;
+            offs += m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].byteOffset;
             break;
           }
         }
@@ -1979,7 +1979,7 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const D3D12Pipe::InputAssembly &IA = m_Ctx.CurD3D12PipelineState().inputAssembly;
+  const D3D12Pipe::InputAssembly &IA = m_Ctx.CurD3D12PipelineState()->inputAssembly;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f,
                                 qBound(0.05, palette().color(QPalette::Base).lightnessF(), 0.95));
@@ -2022,7 +2022,7 @@ void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const D3D12Pipe::InputAssembly &IA = m_Ctx.CurD3D12PipelineState().inputAssembly;
+  const D3D12Pipe::InputAssembly &IA = m_Ctx.CurD3D12PipelineState()->inputAssembly;
 
   if(idx.isValid())
   {
@@ -2098,7 +2098,7 @@ void D3D12PipelineStateViewer::shaderView_clicked()
     return;
 
   IShaderViewer *shad =
-      m_Ctx.ViewShader(stage->reflection, m_Ctx.CurD3D12PipelineState().pipelineResourceId);
+      m_Ctx.ViewShader(stage->reflection, m_Ctx.CurD3D12PipelineState()->pipelineResourceId);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }
@@ -2378,7 +2378,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QString shadername = tr("Unknown");
 
-    const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState();
+    const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
 
     if(sh.resourceId == ResourceId())
       shadername = tr("Unbound");
@@ -3010,6 +3010,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
 void D3D12PipelineStateViewer::on_exportHTML_clicked()
 {
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
   QXmlStreamWriter *xmlptr = m_Common.beginHTMLExport();
 
   if(xmlptr)
@@ -3037,18 +3040,18 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
 
       switch(stage)
       {
-        case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState().inputAssembly); break;
-        case 1: exportHTML(xml, m_Ctx.CurD3D12PipelineState().vertexShader); break;
-        case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState().hullShader); break;
-        case 3: exportHTML(xml, m_Ctx.CurD3D12PipelineState().domainShader); break;
+        case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->inputAssembly); break;
+        case 1: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader); break;
+        case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader); break;
+        case 3: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader); break;
         case 4:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState().geometryShader);
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState().streamOut);
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader);
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->streamOut);
           break;
-        case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState().rasterizer); break;
-        case 6: exportHTML(xml, m_Ctx.CurD3D12PipelineState().pixelShader); break;
-        case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState().outputMerger); break;
-        case 8: exportHTML(xml, m_Ctx.CurD3D12PipelineState().computeShader); break;
+        case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
+        case 6: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader); break;
+        case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
+        case 8: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader); break;
       }
 
       xml.writeEndElement();

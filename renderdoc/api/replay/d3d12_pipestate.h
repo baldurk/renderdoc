@@ -665,6 +665,12 @@ struct ResourceData
 DOCUMENT("The full current D3D12 pipeline state.");
 struct State
 {
+#if !defined(RENDERDOC_EXPORTS)
+  // disallow creation/copy of this object externally
+  State() = delete;
+  State(const State &) = delete;
+#endif
+
   DOCUMENT("The :class:`ResourceId` of the pipeline state object.");
   ResourceId pipelineResourceId;
 

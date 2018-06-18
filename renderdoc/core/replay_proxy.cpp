@@ -1189,13 +1189,13 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
     m_Remote->SavePipelineState();
 
     if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
-      m_D3D11PipelineState = m_Remote->GetD3D11PipelineState();
+      m_D3D11PipelineState = *m_Remote->GetD3D11PipelineState();
     else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
-      m_D3D12PipelineState = m_Remote->GetD3D12PipelineState();
+      m_D3D12PipelineState = *m_Remote->GetD3D12PipelineState();
     else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
-      m_GLPipelineState = m_Remote->GetGLPipelineState();
+      m_GLPipelineState = *m_Remote->GetGLPipelineState();
     else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
-      m_VulkanPipelineState = m_Remote->GetVulkanPipelineState();
+      m_VulkanPipelineState = *m_Remote->GetVulkanPipelineState();
   }
 
   {

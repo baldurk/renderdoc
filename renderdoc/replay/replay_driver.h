@@ -112,10 +112,10 @@ public:
   virtual vector<EventUsage> GetUsage(ResourceId id) = 0;
 
   virtual void SavePipelineState() = 0;
-  virtual const D3D11Pipe::State &GetD3D11PipelineState() = 0;
-  virtual const D3D12Pipe::State &GetD3D12PipelineState() = 0;
-  virtual const GLPipe::State &GetGLPipelineState() = 0;
-  virtual const VKPipe::State &GetVulkanPipelineState() = 0;
+  virtual const D3D11Pipe::State *GetD3D11PipelineState() = 0;
+  virtual const D3D12Pipe::State *GetD3D12PipelineState() = 0;
+  virtual const GLPipe::State *GetGLPipelineState() = 0;
+  virtual const VKPipe::State *GetVulkanPipelineState() = 0;
 
   virtual FrameRecord GetFrameRecord() = 0;
 

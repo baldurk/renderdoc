@@ -476,13 +476,10 @@ DECLARE_REFLECTION_STRUCT(ResourceId);
 
 #include "capture_options.h"
 #include "control_types.h"
-#include "d3d11_pipestate.h"
-#include "d3d12_pipestate.h"
 #include "data_types.h"
-#include "gl_pipestate.h"
 #include "replay_enums.h"
 #include "shader_types.h"
-#include "vk_pipestate.h"
+#include "pipestate.h"
 
 DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
 struct GlobalEnvironment
@@ -775,43 +772,61 @@ function must be called from another thread.
 
   DOCUMENT(R"(Retrieve the current :class:`D3D11State` pipeline state.
 
-This pipeline state will be filled with default values if the capture is not using the D3D11 API.
+The return value will be ``None`` if the capture is not using the D3D11 API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
+
+See also :meth:`GetPipelineState`.
 
 :return: The current D3D11 pipeline state.
 :rtype: D3D11State
 )");
-  virtual const D3D11Pipe::State &GetD3D11PipelineState() = 0;
+  virtual const D3D11Pipe::State *GetD3D11PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`D3D12State` pipeline state.
 
-This pipeline state will be filled with default values if the capture is not using the D3D12 API.
+The return value will be ``None`` if the capture is not using the D3D12 API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
+
+See also :meth:`GetPipelineState`.
 
 :return: The current D3D12 pipeline state.
 :rtype: D3D12State
 )");
-  virtual const D3D12Pipe::State &GetD3D12PipelineState() = 0;
+  virtual const D3D12Pipe::State *GetD3D12PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`GLState` pipeline state.
 
-This pipeline state will be filled with default values if the capture is not using the OpenGL API.
+The return value will be ``None`` if the capture is not using the OpenGL API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
+
+See also :meth:`GetPipelineState`.
 
 :return: The current OpenGL pipeline state.
 :rtype: GLState
 )");
-  virtual const GLPipe::State &GetGLPipelineState() = 0;
+  virtual const GLPipe::State *GetGLPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`VKState` pipeline state.
 
-This pipeline state will be filled with default values if the capture is not using the Vulkan API.
+The return value will be ``None`` if the capture is not using the Vulkan API.
 You should use :meth:`GetAPIProperties` to determine the API of the capture.
+
+See also :meth:`GetPipelineState`.
 
 :return: The current Vulkan pipeline state.
 :rtype: VKState
 )");
-  virtual const VKPipe::State &GetVulkanPipelineState() = 0;
+  virtual const VKPipe::State *GetVulkanPipelineState() = 0;
+
+  DOCUMENT(R"(Retrieve the current :class:`PipeState` pipeline state abstraction.
+
+This pipeline state will always be valid, and allows queries that will work regardless of the
+capture's API.
+
+:return: The current pipeline state abstraction.
+:rtype: PipeState
+)");
+  virtual const PipeState &GetPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the list of possible disassembly targets for :meth:`DisassembleShader`. The
 values are implementation dependent but will always include a default target first which is the

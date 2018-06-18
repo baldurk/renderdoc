@@ -221,24 +221,29 @@ void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
   }
 }
 
-const D3D11Pipe::State &ReplayController::GetD3D11PipelineState()
+const D3D11Pipe::State *ReplayController::GetD3D11PipelineState()
 {
-  return *m_D3D11PipelineState;
+  return m_D3D11PipelineState;
 }
 
-const D3D12Pipe::State &ReplayController::GetD3D12PipelineState()
+const D3D12Pipe::State *ReplayController::GetD3D12PipelineState()
 {
-  return *m_D3D12PipelineState;
+  return m_D3D12PipelineState;
 }
 
-const GLPipe::State &ReplayController::GetGLPipelineState()
+const GLPipe::State *ReplayController::GetGLPipelineState()
 {
-  return *m_GLPipelineState;
+  return m_GLPipelineState;
 }
 
-const VKPipe::State &ReplayController::GetVulkanPipelineState()
+const VKPipe::State *ReplayController::GetVulkanPipelineState()
 {
-  return *m_VulkanPipelineState;
+  return m_VulkanPipelineState;
+}
+
+const PipeState &ReplayController::GetPipelineState()
+{
+  return m_PipeState;
 }
 
 rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
@@ -1732,8 +1737,11 @@ void ReplayController::FetchPipelineState()
 {
   m_pDevice->SavePipelineState();
 
-  m_D3D11PipelineState = &m_pDevice->GetD3D11PipelineState();
-  m_D3D12PipelineState = &m_pDevice->GetD3D12PipelineState();
-  m_GLPipelineState = &m_pDevice->GetGLPipelineState();
-  m_VulkanPipelineState = &m_pDevice->GetVulkanPipelineState();
+  m_D3D11PipelineState = m_pDevice->GetD3D11PipelineState();
+  m_D3D12PipelineState = m_pDevice->GetD3D12PipelineState();
+  m_GLPipelineState = m_pDevice->GetGLPipelineState();
+  m_VulkanPipelineState = m_pDevice->GetVulkanPipelineState();
+
+  m_PipeState.SetStates(m_APIProps, m_D3D11PipelineState, m_D3D12PipelineState, m_GLPipelineState,
+                        m_VulkanPipelineState);
 }

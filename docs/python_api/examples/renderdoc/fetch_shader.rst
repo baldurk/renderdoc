@@ -19,17 +19,21 @@ When disassembling a shader there may be more than one possible representation a
 
 Next we fetch any ancillary data that might be needed to disassemble - this varies by API depending on whether it supports multiple entry points per shader, or has a concept of pipeline state objects that are used together with a shader to disassemble.
 
-For the purposes of this example we use D3D11 which does not require either, so we set some default values and fetch the shader from the pipeline state. Finally we fetch the disassembled shader string with :py:meth:`~renderdoc.ReplayController.DisassembleShader` and print it:
+For the purposes of this example we use the API abstraction :py:class:`~renderdoc.PipeState` so that this code works on a capture from any API, so we fetch the state bindings that we need. Finally we fetch the disassembled shader string with :py:meth:`~renderdoc.ReplayController.DisassembleShader` and print it:
 
 .. highlight:: python
 .. code:: python
 
-    # For some APIs, it might be relevant to set the PSO id or entry point name
-    pipe = rd.ResourceId.Null()
-    entry = "main"
+	state = controller.GetPipelineState()
 
-    # Get the pixel shader's reflection object
-    ps = controller.GetD3D11PipelineState().pixelShader
+	# For some APIs, it might be relevant to set the PSO id or entry point name
+	pipe = state.GetGraphicsPipelineObject()
+	entry = state.GetShaderEntryPoint(rd.ShaderStage.Pixel)
+
+	# Get the pixel shader's reflection object
+	ps = state.GetShaderReflection(rd.ShaderStage.Pixel)
+
+	cb = state.GetConstantBuffer(rd.ShaderStage.Pixel, 0, 0)
 
     print("Pixel shader:")
     print(controller.DisassembleShader(pipe, ps.reflection, target))
@@ -39,7 +43,7 @@ Now we want to display the constants bound to this shader. Shader bindings is an
 .. highlight:: python
 .. code:: python
 
-    cbufferVars = controller.GetCBufferVariableContents(ps.resourceId, entry, 0, ps.constantBuffers[0].resourceId, 0)
+    cbufferVars = controller.GetCBufferVariableContents(ps.resourceId, entry, 0, cb.resourceId, 0)
 
 Since constants can contain structs of other constants, we want to define a recursive function that will iterate over a constant and print it along with its value. We want to handle both vectors and matrices so we need to iterate over both rows and columns for each variable.
 
@@ -188,16 +192,16 @@ Sample output:
         range:
         3.000 
     gLightPosV:
-    -2.022 0.200 6.306 -107374176.000 
+        -2.022 0.200 6.306 -107374176.000 
     gLigthDirES:
-    -0.298 -0.596 -0.745 
+        -0.298 -0.596 -0.745 
     gWorldViewProj:
-    1.567 0.000 0.000 0.000 
-    0.000 2.414 0.000 0.000 
-    0.000 0.000 1.002 1.000 
-    -3.169 0.483 5.896 6.306 
+        1.567 0.000 0.000 0.000 
+        0.000 2.414 0.000 0.000 
+        0.000 0.000 1.002 1.000 
+        -3.169 0.483 5.896 6.306 
     gWorldView:
-    1.000 0.000 0.000 0.000 
-    0.000 1.000 0.000 0.000 
-    0.000 0.000 1.000 0.000 
-    -2.022 0.200 6.306 1.000 
+        1.000 0.000 0.000 0.000 
+        0.000 1.000 0.000 0.000 
+        0.000 0.000 1.000 0.000 
+        -2.022 0.200 6.306 1.000 

@@ -136,10 +136,11 @@ public:
 
   void FetchPipelineState();
 
-  const D3D11Pipe::State &GetD3D11PipelineState();
-  const D3D12Pipe::State &GetD3D12PipelineState();
-  const GLPipe::State &GetGLPipelineState();
-  const VKPipe::State &GetVulkanPipelineState();
+  const D3D11Pipe::State *GetD3D11PipelineState();
+  const D3D12Pipe::State *GetD3D12PipelineState();
+  const GLPipe::State *GetGLPipelineState();
+  const VKPipe::State *GetVulkanPipelineState();
+  const PipeState &GetPipelineState();
 
   rdcarray<rdcstr> GetDisassemblyTargets();
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const char *target);
@@ -224,6 +225,7 @@ private:
   const D3D12Pipe::State *m_D3D12PipelineState;
   const GLPipe::State *m_GLPipelineState;
   const VKPipe::State *m_VulkanPipelineState;
+  PipeState m_PipeState;
 
   std::vector<ReplayOutput *> m_Outputs;
 

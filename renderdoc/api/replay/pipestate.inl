@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2016-2018 Baldur Karlsson
+ * Copyright (c) 2017-2018 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <QDebug>
-#include "Code/QRDUtils.h"
-#include "QRDInterface.h"
-
-rdcstr CommonPipelineState::GetResourceLayout(ResourceId id)
+rdcstr PipeState::GetResourceLayout(ResourceId id) const
 {
   if(IsCaptureLoaded())
   {
@@ -49,55 +45,52 @@ rdcstr CommonPipelineState::GetResourceLayout(ResourceId id)
     }
   }
 
-  return lit("Unknown");
+  return "Unknown";
 }
 
-rdcstr CommonPipelineState::Abbrev(ShaderStage stage)
+rdcstr PipeState::Abbrev(ShaderStage stage) const
 {
-  if(IsCaptureD3D11() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::D3D11) ||
-     IsCaptureD3D12() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::D3D12))
+  if(IsCaptureGL() || IsCaptureVK())
   {
     switch(stage)
     {
-      case ShaderStage::Vertex: return lit("VS");
-      case ShaderStage::Hull: return lit("HS");
-      case ShaderStage::Domain: return lit("DS");
-      case ShaderStage::Geometry: return lit("GS");
-      case ShaderStage::Pixel: return lit("PS");
-      case ShaderStage::Compute: return lit("CS");
+      case ShaderStage::Vertex: return "VS";
+      case ShaderStage::Tess_Control: return "TCS";
+      case ShaderStage::Tess_Eval: return "TES";
+      case ShaderStage::Geometry: return "GS";
+      case ShaderStage::Fragment: return "FS";
+      case ShaderStage::Compute: return "CS";
       default: break;
     }
   }
-  else if(IsCaptureGL() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::OpenGL) ||
-          IsCaptureVK() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::Vulkan))
+  else
   {
     switch(stage)
     {
-      case ShaderStage::Vertex: return lit("VS");
-      case ShaderStage::Tess_Control: return lit("TCS");
-      case ShaderStage::Tess_Eval: return lit("TES");
-      case ShaderStage::Geometry: return lit("GS");
-      case ShaderStage::Fragment: return lit("FS");
-      case ShaderStage::Compute: return lit("CS");
+      case ShaderStage::Vertex: return "VS";
+      case ShaderStage::Hull: return "HS";
+      case ShaderStage::Domain: return "DS";
+      case ShaderStage::Geometry: return "GS";
+      case ShaderStage::Pixel: return "PS";
+      case ShaderStage::Compute: return "CS";
       default: break;
     }
   }
 
-  return lit("?S");
+  return "?S";
 }
 
-rdcstr CommonPipelineState::OutputAbbrev()
+rdcstr PipeState::OutputAbbrev() const
 {
-  if(IsCaptureGL() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
-     (!IsCaptureLoaded() && defaultType == GraphicsAPI::Vulkan))
+  if(IsCaptureGL() || IsCaptureVK())
   {
-    return lit("FB");
+    return "FB";
   }
 
-  return lit("RT");
+  return "RT";
 }
 
-const D3D11Pipe::Shader &CommonPipelineState::GetD3D11Stage(ShaderStage stage)
+const D3D11Pipe::Shader &PipeState::GetD3D11Stage(ShaderStage stage) const
 {
   if(stage == ShaderStage::Vertex)
     return m_D3D11->vertexShader;
@@ -112,11 +105,11 @@ const D3D11Pipe::Shader &CommonPipelineState::GetD3D11Stage(ShaderStage stage)
   if(stage == ShaderStage::Compute)
     return m_D3D11->computeShader;
 
-  qCritical() << "Error - invalid stage " << (int)stage;
+  RENDERDOC_LogMessage(LogType::Error, "PIPE", __FILE__, __LINE__, "Error - invalid stage");
   return m_D3D11->computeShader;
 }
 
-const D3D12Pipe::Shader &CommonPipelineState::GetD3D12Stage(ShaderStage stage)
+const D3D12Pipe::Shader &PipeState::GetD3D12Stage(ShaderStage stage) const
 {
   if(stage == ShaderStage::Vertex)
     return m_D3D12->vertexShader;
@@ -131,11 +124,11 @@ const D3D12Pipe::Shader &CommonPipelineState::GetD3D12Stage(ShaderStage stage)
   if(stage == ShaderStage::Compute)
     return m_D3D12->computeShader;
 
-  qCritical() << "Error - invalid stage " << (int)stage;
+  RENDERDOC_LogMessage(LogType::Error, "PIPE", __FILE__, __LINE__, "Error - invalid stage");
   return m_D3D12->computeShader;
 }
 
-const GLPipe::Shader &CommonPipelineState::GetGLStage(ShaderStage stage)
+const GLPipe::Shader &PipeState::GetGLStage(ShaderStage stage) const
 {
   if(stage == ShaderStage::Vertex)
     return m_GL->vertexShader;
@@ -150,11 +143,11 @@ const GLPipe::Shader &CommonPipelineState::GetGLStage(ShaderStage stage)
   if(stage == ShaderStage::Compute)
     return m_GL->computeShader;
 
-  qCritical() << "Error - invalid stage " << (int)stage;
+  RENDERDOC_LogMessage(LogType::Error, "PIPE", __FILE__, __LINE__, "Error - invalid stage");
   return m_GL->computeShader;
 }
 
-const VKPipe::Shader &CommonPipelineState::GetVulkanStage(ShaderStage stage)
+const VKPipe::Shader &PipeState::GetVulkanStage(ShaderStage stage) const
 {
   if(stage == ShaderStage::Vertex)
     return m_Vulkan->vertexShader;
@@ -169,22 +162,21 @@ const VKPipe::Shader &CommonPipelineState::GetVulkanStage(ShaderStage stage)
   if(stage == ShaderStage::Compute)
     return m_Vulkan->computeShader;
 
-  qCritical() << "Error - invalid stage " << (int)stage;
+  RENDERDOC_LogMessage(LogType::Error, "PIPE", __FILE__, __LINE__, "Error - invalid stage");
   return m_Vulkan->computeShader;
 }
 
-rdcstr CommonPipelineState::GetShaderExtension()
+rdcstr PipeState::GetShaderExtension() const
 {
-  if(IsCaptureGL() || (!IsCaptureLoaded() && defaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
-     (!IsCaptureLoaded() && defaultType == GraphicsAPI::Vulkan))
+  if(IsCaptureGL() || IsCaptureVK())
   {
-    return lit("glsl");
+    return "glsl";
   }
 
-  return lit("hlsl");
+  return "hlsl";
 }
 
-Viewport CommonPipelineState::GetViewport(int index)
+Viewport PipeState::GetViewport(int index) const
 {
   Viewport ret = {};
 
@@ -211,7 +203,7 @@ Viewport CommonPipelineState::GetViewport(int index)
   return ret;
 }
 
-Scissor CommonPipelineState::GetScissor(int index)
+Scissor PipeState::GetScissor(int index) const
 {
   Scissor ret = {};
 
@@ -238,7 +230,7 @@ Scissor CommonPipelineState::GetScissor(int index)
   return ret;
 }
 
-const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderStage stage)
+const ShaderBindpointMapping &PipeState::GetBindpointMapping(ShaderStage stage) const
 {
   if(IsCaptureLoaded())
   {
@@ -301,7 +293,7 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
   return empty;
 }
 
-const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage stage)
+const ShaderReflection *PipeState::GetShaderReflection(ShaderStage stage) const
 {
   if(IsCaptureLoaded())
   {
@@ -362,7 +354,7 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
   return NULL;
 }
 
-ResourceId CommonPipelineState::GetComputePipelineObject()
+ResourceId PipeState::GetComputePipelineObject() const
 {
   if(IsCaptureLoaded() && IsCaptureVK())
   {
@@ -376,7 +368,7 @@ ResourceId CommonPipelineState::GetComputePipelineObject()
   return ResourceId();
 }
 
-ResourceId CommonPipelineState::GetGraphicsPipelineObject()
+ResourceId PipeState::GetGraphicsPipelineObject() const
 {
   if(IsCaptureLoaded() && IsCaptureVK())
   {
@@ -390,7 +382,7 @@ ResourceId CommonPipelineState::GetGraphicsPipelineObject()
   return ResourceId();
 }
 
-rdcstr CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
+rdcstr PipeState::GetShaderEntryPoint(ShaderStage stage) const
 {
   if(IsCaptureLoaded() && IsCaptureVK())
   {
@@ -406,10 +398,10 @@ rdcstr CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
     }
   }
 
-  return "";
+  return "main";
 }
 
-ResourceId CommonPipelineState::GetShader(ShaderStage stage)
+ResourceId PipeState::GetShader(ShaderStage stage) const
 {
   if(IsCaptureLoaded())
   {
@@ -470,82 +462,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
   return ResourceId();
 }
 
-rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
-{
-  if(IsCaptureLoaded())
-  {
-    if(IsCaptureD3D11())
-    {
-      switch(stage)
-      {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_D3D11->vertexShader.resourceId);
-        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_D3D11->domainShader.resourceId);
-        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_D3D11->hullShader.resourceId);
-        case ShaderStage::Geometry:
-          return m_Ctx.GetResourceName(m_D3D11->geometryShader.resourceId);
-        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_D3D11->pixelShader.resourceId);
-        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_D3D11->computeShader.resourceId);
-        default: break;
-      }
-    }
-    else if(IsCaptureD3D12())
-    {
-      switch(stage)
-      {
-        case ShaderStage::Vertex:
-          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" VS");
-        case ShaderStage::Domain:
-          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" DS");
-        case ShaderStage::Hull:
-          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" HS");
-        case ShaderStage::Geometry:
-          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" GS");
-        case ShaderStage::Pixel:
-          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" PS");
-        case ShaderStage::Compute:
-          return m_Ctx.GetResourceName(m_D3D12->pipelineResourceId) + lit(" CS");
-        default: break;
-      }
-    }
-    else if(IsCaptureGL())
-    {
-      switch(stage)
-      {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_GL->vertexShader.shaderResourceId);
-        case ShaderStage::Tess_Control:
-          return m_Ctx.GetResourceName(m_GL->tessControlShader.shaderResourceId);
-        case ShaderStage::Tess_Eval:
-          return m_Ctx.GetResourceName(m_GL->tessEvalShader.shaderResourceId);
-        case ShaderStage::Geometry:
-          return m_Ctx.GetResourceName(m_GL->geometryShader.shaderResourceId);
-        case ShaderStage::Fragment:
-          return m_Ctx.GetResourceName(m_GL->fragmentShader.shaderResourceId);
-        case ShaderStage::Compute:
-          return m_Ctx.GetResourceName(m_GL->computeShader.shaderResourceId);
-        default: break;
-      }
-    }
-    else if(IsCaptureVK())
-    {
-      switch(stage)
-      {
-        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_Vulkan->vertexShader.resourceId);
-        case ShaderStage::Domain:
-          return m_Ctx.GetResourceName(m_Vulkan->tessControlShader.resourceId);
-        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_Vulkan->tessEvalShader.resourceId);
-        case ShaderStage::Geometry:
-          return m_Ctx.GetResourceName(m_Vulkan->geometryShader.resourceId);
-        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_Vulkan->fragmentShader.resourceId);
-        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_Vulkan->computeShader.resourceId);
-        default: break;
-      }
-    }
-  }
-
-  return "";
-}
-
-BoundVBuffer CommonPipelineState::GetIBuffer()
+BoundVBuffer PipeState::GetIBuffer() const
 {
   ResourceId buf;
   uint64_t ByteOffset = 0;
@@ -581,7 +498,7 @@ BoundVBuffer CommonPipelineState::GetIBuffer()
   return ret;
 }
 
-bool CommonPipelineState::IsStripRestartEnabled()
+bool PipeState::IsStripRestartEnabled() const
 {
   if(IsCaptureLoaded())
   {
@@ -607,7 +524,7 @@ bool CommonPipelineState::IsStripRestartEnabled()
   return false;
 }
 
-uint32_t CommonPipelineState::GetStripRestartIndex()
+uint32_t PipeState::GetStripRestartIndex() const
 {
   if(IsCaptureLoaded())
   {
@@ -622,14 +539,14 @@ uint32_t CommonPipelineState::GetStripRestartIndex()
     }
     else if(IsCaptureGL())
     {
-      return qMin(UINT32_MAX, m_GL->vertexInput.restartIndex);
+      return std::min(UINT32_MAX, m_GL->vertexInput.restartIndex);
     }
   }
 
   return UINT32_MAX;
 }
 
-rdcarray<BoundVBuffer> CommonPipelineState::GetVBuffers()
+rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
 {
   rdcarray<BoundVBuffer> ret;
 
@@ -684,8 +601,19 @@ rdcarray<BoundVBuffer> CommonPipelineState::GetVBuffers()
   return ret;
 }
 
-rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
+rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
 {
+  auto striequal = [](const std::string &a, const std::string &b) {
+    if(a.length() != b.length())
+      return false;
+
+    for(size_t i = 0; i < a.length(); i++)
+      if(toupper(a[i]) == toupper(b[i]))
+        return false;
+
+    return true;
+  };
+
   if(IsCaptureLoaded())
   {
     if(IsCaptureD3D11())
@@ -698,12 +626,12 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
-        QString semName = layouts[i].semanticName;
+        std::string semName = layouts[i].semanticName;
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !semName.compare(layouts[j].semanticName, Qt::CaseInsensitive))
+          if(i != j && !striequal(semName, layouts[j].semanticName))
           {
             needsSemanticIdx = true;
             break;
@@ -719,8 +647,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         byteOffs[layouts[i].inputSlot] +=
             layouts[i].format.compByteWidth * layouts[i].format.compCount;
 
-        ret[i].name =
-            semName + (needsSemanticIdx ? QString::number(layouts[i].semanticIndex) : QString());
+        ret[i].name = semName + (needsSemanticIdx ? ToStr(layouts[i].semanticIndex) : "");
         ret[i].vertexBuffer = (int)layouts[i].inputSlot;
         ret[i].byteOffset = offs;
         ret[i].perInstance = layouts[i].perInstance;
@@ -735,7 +662,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
           rdcarray<SigParameter> &sig = m_D3D11->inputAssembly.bytecode->inputSignature;
           for(int ia = 0; ia < sig.count(); ia++)
           {
-            if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
+            if(!striequal(semName, sig[ia].semanticName) &&
                sig[ia].semanticIndex == layouts[i].semanticIndex)
             {
               ret[i].used = true;
@@ -757,12 +684,12 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
-        QString semName = layouts[i].semanticName;
+        std::string semName = layouts[i].semanticName;
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !semName.compare(QString(layouts[j].semanticName), Qt::CaseInsensitive))
+          if(i != j && !striequal(semName, std::string(layouts[j].semanticName)))
           {
             needsSemanticIdx = true;
             break;
@@ -778,8 +705,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         byteOffs[layouts[i].inputSlot] +=
             layouts[i].format.compByteWidth * layouts[i].format.compCount;
 
-        ret[i].name =
-            semName + (needsSemanticIdx ? QString::number(layouts[i].semanticIndex) : QString());
+        ret[i].name = semName + (needsSemanticIdx ? ToStr(layouts[i].semanticIndex) : "");
         ret[i].vertexBuffer = (int)layouts[i].inputSlot;
         ret[i].byteOffset = offs;
         ret[i].perInstance = layouts[i].perInstance;
@@ -794,7 +720,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
           rdcarray<SigParameter> &sig = m_D3D12->vertexShader.reflection->inputSignature;
           for(int ia = 0; ia < sig.count(); ia++)
           {
-            if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
+            if(!striequal(semName, sig[ia].semanticName) &&
                sig[ia].semanticIndex == layouts[i].semanticIndex)
             {
               ret[i].used = true;
@@ -828,7 +754,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       ret.resize(attrs.count());
       for(int i = 0; i < attrs.count() && a < num; i++)
       {
-        ret[a].name = lit("attr%1").arg(i);
+        ret[a].name = "attr" + ToStr((uint32_t)i);
         memset(&ret[a].genericValue, 0, sizeof(PixelValue));
         ret[a].vertexBuffer = (int)attrs[i].vertexBufferSlot;
         ret[a].byteOffset = attrs[i].byteOffset;
@@ -874,7 +800,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
             ret[a].perInstance = false;
             ret[a].instanceRate = 0;
             ret[a].format.compByteWidth = 4;
-            ret[a].format.compCount = compCount;
+            ret[a].format.compCount = (uint8_t)compCount;
             ret[a].format.compType = compType;
             ret[a].format.type = ResourceFormatType::Regular;
             ret[a].format.srgbCorrected = false;
@@ -912,7 +838,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       ret.resize(num);
       for(int i = 0; i < attrs.count() && a < num; i++)
       {
-        ret[a].name = lit("attr%1").arg(i);
+        ret[a].name = "attr" + ToStr((uint32_t)i);
         memset(&ret[a].genericValue, 0, sizeof(PixelValue));
         ret[a].vertexBuffer = (int)attrs[i].binding;
         ret[a].byteOffset = attrs[i].byteOffset;
@@ -952,8 +878,7 @@ rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
   return rdcarray<VertexInputAttribute>();
 }
 
-BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx,
-                                                    uint32_t ArrayIdx)
+BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx) const
 {
   ResourceId buf;
   uint64_t ByteOffset = 0;
@@ -1060,7 +985,7 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
   return ret;
 }
 
-rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderStage stage)
+rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) const
 {
   rdcarray<BoundResourceArray> ret;
 
@@ -1176,7 +1101,7 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderSta
   return ret;
 }
 
-rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderStage stage)
+rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage) const
 {
   rdcarray<BoundResourceArray> ret;
 
@@ -1205,7 +1130,7 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderSt
       {
         int uavstart = (int)m_D3D11->outputMerger.uavStartSlot;
 
-        ret.reserve(m_D3D11->outputMerger.uavs.size() + qMax(0, uavstart));
+        ret.reserve(m_D3D11->outputMerger.uavs.size() + std::max(0, uavstart));
 
         // up to UAVStartSlot treat these bindings as empty.
         for(int i = 0; i < uavstart; i++)
@@ -1313,7 +1238,7 @@ rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderSt
   return ret;
 }
 
-BoundResource CommonPipelineState::GetDepthTarget()
+BoundResource PipeState::GetDepthTarget() const
 {
   if(IsCaptureLoaded())
   {
@@ -1366,7 +1291,7 @@ BoundResource CommonPipelineState::GetDepthTarget()
   return BoundResource();
 }
 
-rdcarray<BoundResource> CommonPipelineState::GetOutputTargets()
+rdcarray<BoundResource> PipeState::GetOutputTargets() const
 {
   rdcarray<BoundResource> ret;
 

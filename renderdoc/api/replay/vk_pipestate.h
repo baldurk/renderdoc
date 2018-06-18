@@ -729,6 +729,12 @@ struct ImageData
 DOCUMENT("The full current Vulkan pipeline state.");
 struct State
 {
+#if !defined(RENDERDOC_EXPORTS)
+  // disallow creation/copy of this object externally
+  State() = delete;
+  State(const State &) = delete;
+#endif
+
   DOCUMENT("A :class:`VKPipeline` with the currently bound compute pipeline, if any.");
   Pipeline compute;
   DOCUMENT("A :class:`VKPipeline` with the currently bound graphics pipeline, if any.");

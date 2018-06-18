@@ -208,10 +208,10 @@ public:
   vector<DebugMessage> GetDebugMessages();
 
   void SavePipelineState();
-  const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11State; }
-  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12State; }
-  const GLPipe::State &GetGLPipelineState() { return m_GLState; }
-  const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
+  const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
+  const GLPipe::State *GetGLPipelineState() { return NULL; }
+  const VKPipe::State *GetVulkanPipelineState() { return &m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
@@ -578,9 +578,6 @@ private:
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   VKPipe::State m_VulkanPipelineState;
-  D3D11Pipe::State m_D3D11State;
-  D3D12Pipe::State m_D3D12State;
-  GLPipe::State m_GLState;
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs);
 

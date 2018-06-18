@@ -418,10 +418,10 @@ public:
 
   bool Tick(int type);
 
-  const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11PipelineState; }
-  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12PipelineState; }
-  const GLPipe::State &GetGLPipelineState() { return m_GLPipelineState; }
-  const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  const D3D11Pipe::State *GetD3D11PipelineState() { return &m_D3D11PipelineState; }
+  const D3D12Pipe::State *GetD3D12PipelineState() { return &m_D3D12PipelineState; }
+  const GLPipe::State *GetGLPipelineState() { return &m_GLPipelineState; }
+  const VKPipe::State *GetVulkanPipelineState() { return &m_VulkanPipelineState; }
   const SDFile &GetStructuredFile() { return m_StructuredFile; }
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 

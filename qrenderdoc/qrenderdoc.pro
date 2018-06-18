@@ -168,7 +168,6 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/pyrenderdoc/PythonContext.cpp \
     Code/Interface/QRDInterface.cpp \
     Code/Interface/Analytics.cpp \
-    Code/Interface/CommonPipelineState.cpp \
     Code/Interface/SPIRVDisassembler.cpp \
     Code/Interface/PersistantConfig.cpp \
     Code/Interface/RemoteHost.cpp \
@@ -244,7 +243,6 @@ HEADERS += Code/CaptureContext.h \
     Code/pyrenderdoc/interface_check.h \
     Code/Interface/QRDInterface.h \
     Code/Interface/Analytics.h \
-    Code/Interface/CommonPipelineState.h \
     Code/Interface/PersistantConfig.h \
     Code/Interface/RemoteHost.h \
     Styles/StyleData.h \

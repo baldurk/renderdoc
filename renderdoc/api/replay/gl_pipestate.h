@@ -624,6 +624,12 @@ struct Hints
 DOCUMENT("The full current OpenGL pipeline state.");
 struct State
 {
+#if !defined(RENDERDOC_EXPORTS)
+  // disallow creation/copy of this object externally
+  State() = delete;
+  State(const State &) = delete;
+#endif
+
   DOCUMENT("A :class:`GLVertexInput` describing the vertex input stage.");
   VertexInput vertexInput;
 

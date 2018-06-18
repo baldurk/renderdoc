@@ -151,7 +151,7 @@ public:
   // handle a couple of operations ourselves to return a simple fake log
   APIProperties GetAPIProperties() { return m_Props; }
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
-  const D3D11Pipe::State &GetD3D11PipelineState() { return m_PipelineState; }
+  const D3D11Pipe::State *GetD3D11PipelineState() { return &m_PipelineState; }
   // other operations are dropped/ignored, to avoid confusion
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
   {
@@ -170,9 +170,9 @@ public:
     return ret;
   }
   void SavePipelineState() {}
-  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12State; }
-  const GLPipe::State &GetGLPipelineState() { return m_GLState; }
-  const VKPipe::State &GetVulkanPipelineState() { return m_VKState; }
+  const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
+  const GLPipe::State *GetGLPipelineState() { return NULL; }
+  const VKPipe::State *GetVulkanPipelineState() { return NULL; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType) {}
   vector<uint32_t> GetPassEvents(uint32_t eventId) { return vector<uint32_t>(); }
   vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }
@@ -280,9 +280,6 @@ private:
   APIProperties m_Props;
   FrameRecord m_FrameRecord;
   D3D11Pipe::State m_PipelineState;
-  D3D12Pipe::State m_D3D12State;
-  VKPipe::State m_VKState;
-  GLPipe::State m_GLState;
   IReplayDriver *m_Proxy;
   string m_Filename;
   ResourceId m_TextureID;

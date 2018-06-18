@@ -553,6 +553,12 @@ struct Predication
 DOCUMENT("The full current D3D11 pipeline state.");
 struct State
 {
+#if !defined(RENDERDOC_EXPORTS)
+  // disallow creation/copy of this object externally
+  State() = delete;
+  State(const State &) = delete;
+#endif
+
   DOCUMENT("A :class:`D3D11InputAssembly` describing the input assembly pipeline stage.");
   InputAssembly inputAssembly;
 

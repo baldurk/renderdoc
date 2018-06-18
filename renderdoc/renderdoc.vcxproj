@@ -157,6 +157,7 @@
     <ClInclude Include="api\replay\d3d12_pipestate.h" />
     <ClInclude Include="api\replay\data_types.h" />
     <ClInclude Include="api\replay\gl_pipestate.h" />
+    <ClInclude Include="api\replay\pipestate.h" />
     <ClInclude Include="api\replay\renderdoc_replay.h" />
     <ClInclude Include="api\replay\replay_enums.h" />
     <ClInclude Include="api\replay\shader_types.h" />
@@ -484,6 +485,7 @@
     <ResourceCompile Include="data\renderdoc.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="api\replay\pipestate.inl" />
     <None Include="api\replay\renderdoc_tostr.inl" />
     <None Include="data\glsl\array2ms.comp" />
     <None Include="data\glsl\blit.vert" />

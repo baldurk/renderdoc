@@ -438,6 +438,9 @@
     <ClInclude Include="3rdparty\miniz\miniz.h">
       <Filter>3rdparty\miniz</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -860,6 +863,9 @@
       <Filter>API\Replay</Filter>
     </None>
     <None Include="replay\renderdoc_serialise.inl">
+      <Filter>Replay</Filter>
+    </None>
+    <None Include="api\replay\pipestate.inl">
       <Filter>Replay</Filter>
     </None>
   </ItemGroup>

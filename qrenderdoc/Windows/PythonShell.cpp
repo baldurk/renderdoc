@@ -116,20 +116,20 @@ struct CaptureContextInvoker : ICaptureContext
   virtual void MarkMessagesRead() override { return m_Ctx.MarkMessagesRead(); }
   virtual rdcstr GetNotes(const rdcstr &key) override { return m_Ctx.GetNotes(key); }
   virtual rdcarray<EventBookmark> GetBookmarks() override { return m_Ctx.GetBookmarks(); }
-  virtual const D3D11Pipe::State &CurD3D11PipelineState() override
+  virtual const D3D11Pipe::State *CurD3D11PipelineState() override
   {
     return m_Ctx.CurD3D11PipelineState();
   }
-  virtual const D3D12Pipe::State &CurD3D12PipelineState() override
+  virtual const D3D12Pipe::State *CurD3D12PipelineState() override
   {
     return m_Ctx.CurD3D12PipelineState();
   }
-  virtual const GLPipe::State &CurGLPipelineState() override { return m_Ctx.CurGLPipelineState(); }
-  virtual const VKPipe::State &CurVulkanPipelineState() override
+  virtual const GLPipe::State *CurGLPipelineState() override { return m_Ctx.CurGLPipelineState(); }
+  virtual const VKPipe::State *CurVulkanPipelineState() override
   {
     return m_Ctx.CurVulkanPipelineState();
   }
-  virtual CommonPipelineState &CurPipelineState() override { return m_Ctx.CurPipelineState(); }
+  virtual const PipeState &CurPipelineState() override { return m_Ctx.CurPipelineState(); }
   virtual PersistantConfig &Config() override { return m_Ctx.Config(); }
   //
   ///////////////////////////////////////////////////////////////////////

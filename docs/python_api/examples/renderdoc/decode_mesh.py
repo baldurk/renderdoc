@@ -64,14 +64,12 @@ def unpackData(fmt, data):
 
 # Get a list of MeshData objects describing the vertex inputs at this draw
 def getMeshInputs(controller, draw):
-	# This work is API-specific, but the APIs have a lot of similarities.
-	# Here we implement support for D3D11 since it's relatively simple
-	state = controller.GetD3D11PipelineState()
+	state = controller.GetPipelineState()
 
 	# Get the index & vertex buffers, and fixed vertex inputs
-	ib = state.inputAssembly.indexBuffer
-	vbs = state.inputAssembly.vertexBuffers
-	attrs = state.inputAssembly.layouts
+	ib = state.GetIBuffer()
+	vbs = state.GetVBuffers()
+	attrs = state.GetVertexInputs()
 
 	meshInputs = []
 
@@ -94,13 +92,11 @@ def getMeshInputs(controller, draw):
 			meshInput.indexResourceId = rd.ResourceId.Null()
 
 		# The total offset is the attribute offset from the base of the vertex
-		meshInput.vertexByteOffset = attr.byteOffset + vbs[attr.inputSlot].byteOffset
+		meshInput.vertexByteOffset = attr.byteOffset + vbs[attr.vertexBuffer].byteOffset
 		meshInput.format = attr.format
-		meshInput.vertexResourceId = vbs[attr.inputSlot].resourceId
-		meshInput.vertexByteStride = vbs[attr.inputSlot].byteStride
-
-		# We don't go into the details of semantic matching here, just use both as the name
-		meshInput.name = '%s%d' % (attr.semanticName, attr.semanticIndex)
+		meshInput.vertexResourceId = vbs[attr.vertexBuffer].resourceId
+		meshInput.vertexByteStride = vbs[attr.vertexBuffer].byteStride
+		meshInput.name = attr.name
 
 		meshInputs.append(meshInput)
 
@@ -111,8 +107,7 @@ def getMeshOutputs(controller, postvs):
 	meshOutputs = []
 	posidx = 0
 
-	state = controller.GetD3D11PipelineState()
-	vs = state.vertexShader.reflection
+	vs = controller.GetPipelineState().GetShaderReflection(rd.ShaderStage.Vertex)
 
 	# Repeat the process, but this time sourcing the data from postvs.
 	# Since these are outputs, we iterate over the list of outputs from the

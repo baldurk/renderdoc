@@ -61,7 +61,6 @@ class QWidget;
 #include "renderdoc_replay.h"
 
 #include "Analytics.h"
-#include "CommonPipelineState.h"
 #include "PersistantConfig.h"
 #include "RemoteHost.h"
 
@@ -1843,38 +1842,53 @@ currently docked.
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D11State` pipeline state.
 
+The return value will be ``None`` if the capture is not using the D3D11 API.
+You should determine the API of the capture first before fetching it.
+
 :return: The current D3D11 pipeline state.
 :rtype: ~renderdoc.D3D11State
 )");
-  virtual const D3D11Pipe::State &CurD3D11PipelineState() = 0;
+  virtual const D3D11Pipe::State *CurD3D11PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D12State` pipeline state.
+
+The return value will be ``None`` if the capture is not using the D3D12 API.
+You should determine the API of the capture first before fetching it.
 
 :return: The current D3D12 pipeline state.
 :rtype: ~renderdoc.D3D12State
 )");
-  virtual const D3D12Pipe::State &CurD3D12PipelineState() = 0;
+  virtual const D3D12Pipe::State *CurD3D12PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.GLState` pipeline state.
+
+The return value will be ``None`` if the capture is not using the OpenGL API.
+You should determine the API of the capture first before fetching it.
 
 :return: The current OpenGL pipeline state.
 :rtype: ~renderdoc.GLState
 )");
-  virtual const GLPipe::State &CurGLPipelineState() = 0;
+  virtual const GLPipe::State *CurGLPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.VKState` pipeline state.
+
+The return value will be ``None`` if the capture is not using the Vulkan API.
+You should determine the API of the capture first before fetching it.
 
 :return: The current Vulkan pipeline state.
 :rtype: ~renderdoc.VKState
 )");
-  virtual const VKPipe::State &CurVulkanPipelineState() = 0;
+  virtual const VKPipe::State *CurVulkanPipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current :class:`CommonPipelineState` abstracted pipeline state.
+  DOCUMENT(R"(Retrieve the current :class:`~renderdoc.PipeState` abstracted pipeline state.
+
+This pipeline state will always be valid, and allows queries that will work regardless of the
+capture's API.
 
 :return: The current API-agnostic abstracted pipeline state.
-:rtype: CommonPipelineState
+:rtype: ~renderdoc.PipeState
 )");
-  virtual CommonPipelineState &CurPipelineState() = 0;
+  virtual const PipeState &CurPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current persistant config.
 

@@ -218,11 +218,11 @@ public:
   void AddDockWindow(QWidget *newWindow, DockReference ref, QWidget *refWindow,
                      float percentage = 0.5f) override;
 
-  const D3D11Pipe::State &CurD3D11PipelineState() override { return *m_CurD3D11PipelineState; }
-  const D3D12Pipe::State &CurD3D12PipelineState() override { return *m_CurD3D12PipelineState; }
-  const GLPipe::State &CurGLPipelineState() override { return *m_CurGLPipelineState; }
-  const VKPipe::State &CurVulkanPipelineState() override { return *m_CurVulkanPipelineState; }
-  CommonPipelineState &CurPipelineState() override { return m_CurPipelineState; }
+  const D3D11Pipe::State *CurD3D11PipelineState() override { return m_CurD3D11PipelineState; }
+  const D3D12Pipe::State *CurD3D12PipelineState() override { return m_CurD3D12PipelineState; }
+  const GLPipe::State *CurGLPipelineState() override { return m_CurGLPipelineState; }
+  const VKPipe::State *CurVulkanPipelineState() override { return m_CurVulkanPipelineState; }
+  const PipeState &CurPipelineState() override { return *m_CurPipelineState; }
   PersistantConfig &Config() override { return m_Config; }
 private:
   ReplayManager m_Renderer;
@@ -231,12 +231,8 @@ private:
   const D3D12Pipe::State *m_CurD3D12PipelineState;
   const GLPipe::State *m_CurGLPipelineState;
   const VKPipe::State *m_CurVulkanPipelineState;
-  CommonPipelineState m_CurPipelineState;
-
-  D3D11Pipe::State m_DummyD3D11;
-  D3D12Pipe::State m_DummyD3D12;
-  GLPipe::State m_DummyGL;
-  VKPipe::State m_DummyVK;
+  const PipeState *m_CurPipelineState;
+  PipeState m_DummyPipelineState;
 
   PersistantConfig &m_Config;
 

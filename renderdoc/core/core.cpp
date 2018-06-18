@@ -37,6 +37,8 @@
 
 #include "api/replay/renderdoc_tostr.inl"
 
+#include "api/replay/pipestate.inl"
+
 #include "replay/renderdoc_serialise.inl"
 
 // this one is done by hand as we format it

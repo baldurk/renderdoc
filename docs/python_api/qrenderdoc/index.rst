@@ -7,9 +7,7 @@ qrenderdoc API Reference
   main
   windows
   config
-  pipeline
 
 * :doc:`main`
 * :doc:`windows`
 * :doc:`config`
-* :doc:`pipeline`

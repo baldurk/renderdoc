@@ -29,17 +29,21 @@ def sampleCode(controller):
 
 	target = targets[0]
 
+	state = controller.GetPipelineState()
+
 	# For some APIs, it might be relevant to set the PSO id or entry point name
-	pipe = rd.ResourceId.Null()
-	entry = "main"
+	pipe = state.GetGraphicsPipelineObject()
+	entry = state.GetShaderEntryPoint(rd.ShaderStage.Pixel)
 
 	# Get the pixel shader's reflection object
-	ps = controller.GetD3D11PipelineState().pixelShader
+	ps = state.GetShaderReflection(rd.ShaderStage.Pixel)
+
+	cb = state.GetConstantBuffer(rd.ShaderStage.Pixel, 0, 0)
 
 	print("Pixel shader:")
-	print(controller.DisassembleShader(pipe, ps.reflection, target))
+	print(controller.DisassembleShader(pipe, ps, target))
 
-	cbufferVars = controller.GetCBufferVariableContents(ps.resourceId, entry, 0, ps.constantBuffers[0].resourceId, 0)
+	cbufferVars = controller.GetCBufferVariableContents(ps.resourceId, entry, 0, cb.resourceId, 0)
 
 	for v in cbufferVars:
 		printVar(v)

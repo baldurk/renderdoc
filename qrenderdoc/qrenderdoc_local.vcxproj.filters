@@ -579,9 +579,6 @@
     <ClCompile Include="$(IntDir)generated\moc_PythonContext.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="Code\Interface\CommonPipelineState.cpp">
-      <Filter>Code\Interface</Filter>
-    </ClCompile>
     <ClCompile Include="Code\Interface\PersistantConfig.cpp">
       <Filter>Code\Interface</Filter>
     </ClCompile>
@@ -1000,9 +997,6 @@
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_FindReplace.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Code\Interface\CommonPipelineState.h">
-      <Filter>Code\Interface</Filter>
     </ClInclude>
     <ClInclude Include="Code\Interface\PersistantConfig.h">
       <Filter>Code\Interface</Filter>

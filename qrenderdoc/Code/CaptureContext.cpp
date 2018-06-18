@@ -55,9 +55,11 @@
 #include "QRDUtils.h"
 #include "RGPInterop.h"
 
+#include "pipestate.inl"
+
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
                                bool temp, PersistantConfig &cfg)
-    : m_Config(cfg), m_CurPipelineState(*this)
+    : m_Config(cfg)
 {
   m_CaptureLoaded = false;
   m_LoadInProgress = false;
@@ -66,10 +68,11 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   memset(&m_APIProps, 0, sizeof(m_APIProps));
 
-  m_CurD3D11PipelineState = &m_DummyD3D11;
-  m_CurD3D12PipelineState = &m_DummyD3D12;
-  m_CurGLPipelineState = &m_DummyGL;
-  m_CurVulkanPipelineState = &m_DummyVK;
+  m_CurD3D11PipelineState = NULL;
+  m_CurD3D12PipelineState = NULL;
+  m_CurGLPipelineState = NULL;
+  m_CurVulkanPipelineState = NULL;
+  m_CurPipelineState = &m_DummyPipelineState;
 
   m_StructuredFile = &m_DummySDFile;
 
@@ -325,12 +328,11 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
 
     m_PostloadProgress = 0.9f;
 
-    m_CurD3D11PipelineState = &r->GetD3D11PipelineState();
-    m_CurD3D12PipelineState = &r->GetD3D12PipelineState();
-    m_CurGLPipelineState = &r->GetGLPipelineState();
-    m_CurVulkanPipelineState = &r->GetVulkanPipelineState();
-    m_CurPipelineState.SetStates(m_APIProps, m_CurD3D11PipelineState, m_CurD3D12PipelineState,
-                                 m_CurGLPipelineState, m_CurVulkanPipelineState);
+    m_CurD3D11PipelineState = r->GetD3D11PipelineState();
+    m_CurD3D12PipelineState = r->GetD3D12PipelineState();
+    m_CurGLPipelineState = r->GetGLPipelineState();
+    m_CurVulkanPipelineState = r->GetVulkanPipelineState();
+    m_CurPipelineState = &r->GetPipelineState();
 
     m_UnreadMessageCount = 0;
     AddMessages(m_FrameInfo.debugMessages);
@@ -858,11 +860,11 @@ void CaptureContext::CloseCapture()
   m_Drawcalls.clear();
   m_FirstDrawcall = m_LastDrawcall = NULL;
 
-  m_CurD3D11PipelineState = &m_DummyD3D11;
-  m_CurD3D12PipelineState = &m_DummyD3D12;
-  m_CurGLPipelineState = &m_DummyGL;
-  m_CurVulkanPipelineState = &m_DummyVK;
-  m_CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
+  m_CurD3D11PipelineState = NULL;
+  m_CurD3D12PipelineState = NULL;
+  m_CurGLPipelineState = NULL;
+  m_CurVulkanPipelineState = NULL;
+  m_CurPipelineState = &m_DummyPipelineState;
 
   m_StructuredFile = &m_DummySDFile;
 
@@ -1025,12 +1027,11 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
 
   m_Renderer.BlockInvoke([this, eventId, force](IReplayController *r) {
     r->SetFrameEvent(eventId, force);
-    m_CurD3D11PipelineState = &r->GetD3D11PipelineState();
-    m_CurD3D12PipelineState = &r->GetD3D12PipelineState();
-    m_CurGLPipelineState = &r->GetGLPipelineState();
-    m_CurVulkanPipelineState = &r->GetVulkanPipelineState();
-    m_CurPipelineState.SetStates(m_APIProps, m_CurD3D11PipelineState, m_CurD3D12PipelineState,
-                                 m_CurGLPipelineState, m_CurVulkanPipelineState);
+    m_CurD3D11PipelineState = r->GetD3D11PipelineState();
+    m_CurD3D12PipelineState = r->GetD3D12PipelineState();
+    m_CurGLPipelineState = r->GetGLPipelineState();
+    m_CurVulkanPipelineState = r->GetVulkanPipelineState();
+    m_CurPipelineState = &r->GetPipelineState();
   });
 
   bool updateSelectedEvent = force || prevSelectedEventID != selectedEventID;

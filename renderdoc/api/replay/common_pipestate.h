@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "shader_types.h"
+
 DOCUMENT("Information about a viewport.");
 struct Viewport
 {
@@ -208,3 +210,176 @@ struct StencilFace
 };
 
 DECLARE_REFLECTION_STRUCT(StencilFace);
+
+DOCUMENT("Information about a single resource bound to a slot in an API-specific way.");
+struct BoundResource
+{
+  DOCUMENT("");
+  BoundResource()
+  {
+    resourceId = ResourceId();
+    firstMip = -1;
+    firstSlice = -1;
+    typeHint = CompType::Typeless;
+  }
+  BoundResource(ResourceId id)
+  {
+    resourceId = id;
+    firstMip = -1;
+    firstSlice = -1;
+    typeHint = CompType::Typeless;
+  }
+
+  bool operator==(const BoundResource &o) const
+  {
+    return resourceId == o.resourceId && firstMip == o.firstMip && firstSlice == o.firstSlice &&
+           typeHint == o.typeHint;
+  }
+  bool operator<(const BoundResource &o) const
+  {
+    if(resourceId != o.resourceId)
+      return resourceId < o.resourceId;
+    if(firstMip != o.firstMip)
+      return firstMip < o.firstMip;
+    if(firstSlice != o.firstSlice)
+      return firstSlice < o.firstSlice;
+    if(typeHint != o.typeHint)
+      return typeHint < o.typeHint;
+    return false;
+  }
+  DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the bound resource.");
+  ResourceId resourceId;
+  DOCUMENT("For textures, the highest mip level available on this binding, or -1 for all mips");
+  int firstMip;
+  DOCUMENT("For textures, the first array slice available on this binding. or -1 for all slices.");
+  int firstSlice;
+  DOCUMENT(
+      "For textures, a :class:`~renderdoc.CompType` hint for how to interpret typeless textures.");
+  CompType typeHint;
+};
+
+DECLARE_REFLECTION_STRUCT(BoundResource);
+
+// TODO this should be replaced with an rdcmap
+DOCUMENT(R"(Contains all of the bound resources at a particular bindpoint. In APIs that don't
+support resource arrays, there will only be one bound resource.
+)");
+struct BoundResourceArray
+{
+  DOCUMENT("");
+  BoundResourceArray() = default;
+  BoundResourceArray(Bindpoint b) : bindPoint(b) {}
+  BoundResourceArray(Bindpoint b, const rdcarray<BoundResource> &r) : bindPoint(b), resources(r) {}
+  // for convenience for searching the array, we compare only using the BindPoint
+  bool operator==(const BoundResourceArray &o) const { return bindPoint == o.bindPoint; }
+  bool operator!=(const BoundResourceArray &o) const { return !(bindPoint == o.bindPoint); }
+  bool operator<(const BoundResourceArray &o) const { return bindPoint < o.bindPoint; }
+  DOCUMENT("The bind point for this array of bound resources.");
+  Bindpoint bindPoint;
+
+  DOCUMENT("The resources at this bind point");
+  rdcarray<BoundResource> resources;
+};
+
+DECLARE_REFLECTION_STRUCT(BoundResourceArray);
+
+DOCUMENT("Information about a single vertex or index buffer binding.");
+struct BoundVBuffer
+{
+  DOCUMENT("");
+  bool operator==(const BoundVBuffer &o) const
+  {
+    return resourceId == o.resourceId && byteOffset == o.byteOffset && byteStride == o.byteStride;
+  }
+  bool operator<(const BoundVBuffer &o) const
+  {
+    if(resourceId != o.resourceId)
+      return resourceId < o.resourceId;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(byteStride != o.byteStride)
+      return byteStride < o.byteStride;
+    return false;
+  }
+  DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
+  ResourceId resourceId;
+  DOCUMENT("The offset in bytes from the start of the buffer to the data.");
+  uint64_t byteOffset = 0;
+  DOCUMENT("The stride in bytes between the start of one element and the start of the next.");
+  uint32_t byteStride = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(BoundVBuffer);
+
+DOCUMENT("Information about a single constant buffer binding.");
+struct BoundCBuffer
+{
+  DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
+  ResourceId resourceId;
+  DOCUMENT("The offset in bytes from the start of the buffer to the constant data.");
+  uint64_t byteOffset = 0;
+  DOCUMENT("The size in bytes for the constant buffer. Access outside this size returns 0.");
+  uint64_t byteSize = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(BoundCBuffer);
+
+DOCUMENT("Information about a vertex input attribute feeding the vertex shader.");
+struct VertexInputAttribute
+{
+  DOCUMENT("");
+  bool operator==(const VertexInputAttribute &o) const
+  {
+    return name == o.name && vertexBuffer == o.vertexBuffer && byteOffset == o.byteOffset &&
+           perInstance == o.perInstance && instanceRate == o.instanceRate && format == o.format &&
+           !memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) &&
+           genericEnabled == o.genericEnabled && used == o.used;
+  }
+  bool operator<(const VertexInputAttribute &o) const
+  {
+    if(name != o.name)
+      return name < o.name;
+    if(vertexBuffer != o.vertexBuffer)
+      return vertexBuffer < o.vertexBuffer;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(perInstance != o.perInstance)
+      return perInstance < o.perInstance;
+    if(instanceRate != o.instanceRate)
+      return instanceRate < o.instanceRate;
+    if(format != o.format)
+      return format < o.format;
+    if(memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) < 0)
+      return true;
+    if(genericEnabled != o.genericEnabled)
+      return genericEnabled < o.genericEnabled;
+    if(used != o.used)
+      return used < o.used;
+    return false;
+  }
+
+  DOCUMENT("The name of this input. This may be a variable name or a semantic name.");
+  rdcstr name;
+  DOCUMENT("The index of the vertex buffer used to provide this attribute.");
+  int vertexBuffer;
+  DOCUMENT("The byte offset from the start of the vertex data for this VB to this attribute.");
+  uint32_t byteOffset;
+  DOCUMENT("``True`` if this attribute runs at instance rate.");
+  bool perInstance;
+  DOCUMENT(R"(If :data:`perInstance` is ``True``, the number of instances that source the same value
+from the vertex buffer before advancing to the next value.
+)");
+  int instanceRate;
+  DOCUMENT("A :class:`~renderdoc.ResourceFormat` with the interpreted format of this attribute.");
+  ResourceFormat format;
+  DOCUMENT(R"(A :class:`~renderdoc.PixelValue` with the generic value for this attribute if it has
+no VB bound.
+)");
+  PixelValue genericValue;
+  DOCUMENT("``True`` if this attribute is using :data:`genericValue` for its data.");
+  bool genericEnabled;
+  DOCUMENT("``True`` if this attribute is enabled and used by the vertex shader.");
+  bool used;
+};
+
+DECLARE_REFLECTION_STRUCT(VertexInputAttribute);

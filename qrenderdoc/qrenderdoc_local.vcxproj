@@ -575,7 +575,6 @@
     </ClCompile>
     <ClCompile Include="Code\FormatElement.cpp" />
     <ClCompile Include="Code\Interface\Analytics.cpp" />
-    <ClCompile Include="Code\Interface\CommonPipelineState.cpp" />
     <ClCompile Include="Code\Interface\PersistantConfig.cpp" />
     <ClCompile Include="Code\Interface\QRDInterface.cpp" />
     <ClCompile Include="Code\Interface\RemoteHost.cpp" />
@@ -903,7 +902,6 @@
     </CustomBuild>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
     <ClInclude Include="Code\Interface\Analytics.h" />
-    <ClInclude Include="Code\Interface\CommonPipelineState.h" />
     <ClInclude Include="Code\Interface\PersistantConfig.h" />
     <ClInclude Include="Code\Interface\QRDInterface.h" />
     <ClInclude Include="Code\Interface\RemoteHost.h" />

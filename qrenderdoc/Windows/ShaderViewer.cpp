@@ -616,10 +616,12 @@ void ShaderViewer::updateWindowTitle()
   {
     QString shaderName = m_Ctx.GetResourceName(m_ShaderDetails->resourceId);
 
-    // if the shader is currently bound, look up the name through the pipeline state. This is purely
+    // On D3D12, get the shader name from the pipeline rather than the shader itself
     // for the benefit of D3D12 which doesn't have separate shader objects
-    if(m_Ctx.CurPipelineState().GetShader(m_Stage) == m_ShaderDetails->resourceId)
-      shaderName = m_Ctx.CurPipelineState().GetShaderName(m_Stage);
+    if(m_Ctx.CurPipelineState().IsCaptureD3D12())
+      shaderName = QFormatStr("%1 %2")
+                       .arg(m_Ctx.GetResourceName(m_Pipeline))
+                       .arg(m_Ctx.CurPipelineState().Abbrev(m_ShaderDetails->stage));
 
     if(m_Trace)
       setWindowTitle(QFormatStr("Debugging %1 - %2").arg(shaderName).arg(m_DebugContext));

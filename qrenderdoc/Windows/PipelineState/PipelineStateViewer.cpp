@@ -87,9 +87,6 @@ void PipelineStateViewer::OnCaptureClosed()
 
 void PipelineStateViewer::OnEventChanged(uint32_t eventId)
 {
-  if(m_Ctx.CurPipelineState().defaultType != m_Ctx.APIProps().pipelineType)
-    OnCaptureLoaded();
-
   if(m_Current)
     m_Current->OnEventChanged(eventId);
 }
@@ -156,7 +153,6 @@ void PipelineStateViewer::setToD3D11()
   m_D3D11 = new D3D11PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D11);
   m_Current = m_D3D11;
-  m_Ctx.CurPipelineState().defaultType = GraphicsAPI::D3D11;
 }
 
 void PipelineStateViewer::setToD3D12()
@@ -169,7 +165,6 @@ void PipelineStateViewer::setToD3D12()
   m_D3D12 = new D3D12PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D12);
   m_Current = m_D3D12;
-  m_Ctx.CurPipelineState().defaultType = GraphicsAPI::D3D12;
 }
 
 void PipelineStateViewer::setToGL()
@@ -182,7 +177,6 @@ void PipelineStateViewer::setToGL()
   m_GL = new GLPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_GL);
   m_Current = m_GL;
-  m_Ctx.CurPipelineState().defaultType = GraphicsAPI::OpenGL;
 }
 
 void PipelineStateViewer::setToVulkan()
@@ -195,7 +189,6 @@ void PipelineStateViewer::setToVulkan()
   m_Vulkan = new VulkanPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_Vulkan);
   m_Current = m_Vulkan;
-  m_Ctx.CurPipelineState().defaultType = GraphicsAPI::Vulkan;
 }
 
 QXmlStreamWriter *PipelineStateViewer::beginHTMLExport()
