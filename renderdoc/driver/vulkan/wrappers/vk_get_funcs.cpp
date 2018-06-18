@@ -522,10 +522,10 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDeviceGroups(
   // we ignore the 'real' physical device groups, and report one group per physical device. We use
   // our internal enumerate function to make sure we handle wrapping the objects.
   uint32_t numPhys = 0;
-  vkEnumeratePhysicalDevices(Unwrap(instance), &numPhys, NULL);
+  vkEnumeratePhysicalDevices(instance, &numPhys, NULL);
 
   VkPhysicalDevice *phys = new VkPhysicalDevice[numPhys];
-  vkEnumeratePhysicalDevices(Unwrap(instance), &numPhys, phys);
+  vkEnumeratePhysicalDevices(instance, &numPhys, phys);
 
   uint32_t outputSpace = pPhysicalDeviceGroupCount ? *pPhysicalDeviceGroupCount : 0;
 
