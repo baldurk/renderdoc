@@ -436,19 +436,22 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
 {
   D3D12_CPU_DESCRIPTOR_HANDLE ret = {};
 
+  ID3D12Resource *res =
+      m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(desc.GetResResourceId());
+
   if(desc.GetType() == D3D12DescriptorType::RTV)
   {
     ret = GetCPUHandle(FIRST_TMP_RTV);
     ret.ptr += idx * sizeof(D3D12Descriptor);
 
-    const D3D12_RENDER_TARGET_VIEW_DESC *rtvdesc = &desc.nonsamp.rtv;
+    const D3D12_RENDER_TARGET_VIEW_DESC *rtvdesc = &desc.GetRTV();
     if(rtvdesc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
     {
       rtvdesc = NULL;
 
       const std::map<ResourceId, DXGI_FORMAT> &bbs = m_pDevice->GetBackbufferFormats();
 
-      auto it = bbs.find(GetResID(desc.nonsamp.resource));
+      auto it = bbs.find(GetResID(res));
 
       // fixup for backbuffers
       if(it != bbs.end())
@@ -456,29 +459,32 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
         D3D12_RENDER_TARGET_VIEW_DESC bbDesc = {};
         bbDesc.Format = it->second;
         bbDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-        m_pDevice->CreateRenderTargetView(desc.nonsamp.resource, &bbDesc, ret);
+        m_pDevice->CreateRenderTargetView(res, &bbDesc, ret);
         return ret;
       }
     }
 
-    m_pDevice->CreateRenderTargetView(desc.nonsamp.resource, rtvdesc, ret);
+    m_pDevice->CreateRenderTargetView(res, rtvdesc, ret);
   }
   else if(desc.GetType() == D3D12DescriptorType::DSV)
   {
     ret = GetCPUHandle(TMP_DSV);
 
-    const D3D12_DEPTH_STENCIL_VIEW_DESC *dsvdesc = &desc.nonsamp.dsv;
+    const D3D12_DEPTH_STENCIL_VIEW_DESC *dsvdesc = &desc.GetDSV();
     if(dsvdesc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
       dsvdesc = NULL;
 
-    m_pDevice->CreateDepthStencilView(desc.nonsamp.resource, dsvdesc, ret);
+    m_pDevice->CreateDepthStencilView(res, dsvdesc, ret);
   }
   else if(desc.GetType() == D3D12DescriptorType::UAV)
   {
     // need a non-shader visible heap for this one
     ret = GetCPUHandle(TMP_UAV);
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC unpacked = desc.nonsamp.uav.desc.AsDesc();
+    ID3D12Resource *counterRes =
+        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(desc.GetCounterResourceId());
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC unpacked = desc.GetUAV();
 
     const D3D12_UNORDERED_ACCESS_VIEW_DESC *uavdesc = &unpacked;
     if(uavdesc->ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
@@ -487,7 +493,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
 
       const std::map<ResourceId, DXGI_FORMAT> &bbs = m_pDevice->GetBackbufferFormats();
 
-      auto it = bbs.find(GetResID(desc.nonsamp.resource));
+      auto it = bbs.find(GetResID(res));
 
       // fixup for backbuffers
       if(it != bbs.end())
@@ -495,13 +501,12 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
         D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = {};
         bbDesc.Format = it->second;
         bbDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-        m_pDevice->CreateUnorderedAccessView(desc.nonsamp.resource, NULL, &bbDesc, ret);
+        m_pDevice->CreateUnorderedAccessView(res, NULL, &bbDesc, ret);
         return ret;
       }
     }
 
-    m_pDevice->CreateUnorderedAccessView(desc.nonsamp.resource, desc.nonsamp.uav.counterResource,
-                                         uavdesc, ret);
+    m_pDevice->CreateUnorderedAccessView(res, counterRes, uavdesc, ret);
   }
   else
   {

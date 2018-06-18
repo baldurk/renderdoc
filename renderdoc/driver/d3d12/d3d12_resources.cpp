@@ -468,16 +468,7 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
 
   RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * numDescriptors);
   for(UINT i = 0; i < numDescriptors; i++)
-  {
-    // only need to set this once, it's aliased between samp and nonsamp
-    descriptors[i].samp.heap = this;
-    descriptors[i].samp.idx = i;
-
-    // initially descriptors are undefined. This way we just fill them with
-    // some null SRV descriptor so it's safe to copy around etc but is no
-    // less undefined for the application to use
-    descriptors[i].nonsamp.type = D3D12DescriptorType::Undefined;
-  }
+    descriptors[i].Setup(this, i);
 }
 
 WrappedID3D12DescriptorHeap::~WrappedID3D12DescriptorHeap()

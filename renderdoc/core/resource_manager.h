@@ -1309,6 +1309,9 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetC
 {
   SCOPED_LOCK(m_Lock);
 
+  if(id == ResourceId())
+    return (WrappedResourceType)RecordType::NullResource;
+
   if(m_Replacements.find(id) != m_Replacements.end())
     return GetCurrentResource(m_Replacements[id]);
 

@@ -62,7 +62,7 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
   for(UINT i = 0; i < rts.size(); i++)
   {
     RDCASSERT(rts[i].GetType() == D3D12DescriptorType::RTV);
-    ret.push_back(GetResID(rts[i].nonsamp.resource));
+    ret.push_back(rts[i].GetResResourceId());
   }
 
   return ret;
@@ -70,7 +70,7 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 
 ResourceId D3D12RenderState::GetDSVID() const
 {
-  return GetResID(dsv.nonsamp.resource);
+  return dsv.GetResResourceId();
 }
 
 void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList2 *cmd) const
@@ -138,12 +138,12 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList2 *cmd) const
       }
     }
 
-    if(!rts.empty() || dsv.nonsamp.resource)
+    if(!rts.empty() || dsv.GetResResourceId() != ResourceId())
     {
       D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
       D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
 
-      if(dsv.nonsamp.resource)
+      if(dsv.GetResResourceId() != ResourceId())
         dsvHandle = Unwrap(GetDebugManager()->GetTempDescriptor(dsv));
 
       for(size_t i = 0; i < rts.size(); i++)

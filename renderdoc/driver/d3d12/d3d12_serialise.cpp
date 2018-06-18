@@ -217,64 +217,116 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
   D3D12DescriptorType type = el.GetType();
   ser.Serialise("type", type);
 
-  ID3D12DescriptorHeap *heap = (ID3D12DescriptorHeap *)el.samp.heap;
+  ID3D12DescriptorHeap *heap = (ID3D12DescriptorHeap *)el.data.samp.heap;
 
   ser.Serialise("heap", heap);
-  ser.Serialise("index", el.samp.idx);
+  ser.Serialise("index", el.data.samp.idx);
 
   if(ser.IsReading())
   {
-    el.samp.heap = (WrappedID3D12DescriptorHeap *)heap;
+    el.data.samp.heap = (WrappedID3D12DescriptorHeap *)heap;
 
     // for sampler types, this will be overwritten when serialising the sampler descriptor
-    el.nonsamp.type = type;
+    el.data.nonsamp.type = type;
   }
+
+  // we serialise via a pointer. This means if the resource isn't present it becomes NULL and we set
+  // the ResourceId to 0 on replay, and otherwise we get the live ID as we want. As a benefit, it's
+  // also invisibly backwards compatible
+  D3D12ResourceManager *rm = (D3D12ResourceManager *)ser.GetUserData();
+
+  ID3D12Resource *resource = NULL;
+  ID3D12Resource *counterResource = NULL;
 
   switch(type)
   {
     case D3D12DescriptorType::Sampler:
     {
-      ser.Serialise("Descriptor", el.samp.desc);
+      ser.Serialise("Descriptor", el.data.samp.desc);
       RDCASSERTEQUAL(el.GetType(), D3D12DescriptorType::Sampler);
       break;
     }
     case D3D12DescriptorType::CBV:
     {
-      ser.Serialise("Descriptor", el.nonsamp.cbv);
+      ser.Serialise("Descriptor", el.data.nonsamp.cbv);
       break;
     }
     case D3D12DescriptorType::SRV:
     {
-      ser.Serialise("Resource", el.nonsamp.resource);
-      ser.Serialise("Descriptor", el.nonsamp.srv);
+      if(ser.IsWriting() && rm && rm->HasCurrentResource(el.data.nonsamp.resource))
+        resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+
+      ser.Serialise("Resource", resource);
+
+      if(ser.IsReading())
+        el.data.nonsamp.resource = GetResID(resource);
+
+      // special case because of squeezed descriptor
+      D3D12_SHADER_RESOURCE_VIEW_DESC desc;
+      if(ser.IsWriting())
+        desc = el.data.nonsamp.srv.AsDesc();
+      ser.Serialise("Descriptor", desc);
+      if(ser.IsReading())
+        el.data.nonsamp.srv.Init(desc);
       break;
     }
     case D3D12DescriptorType::RTV:
     {
-      ser.Serialise("Resource", el.nonsamp.resource);
-      ser.Serialise("Descriptor", el.nonsamp.rtv);
+      if(ser.IsWriting() && rm && rm->HasCurrentResource(el.data.nonsamp.resource))
+        resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+
+      ser.Serialise("Resource", resource);
+
+      if(ser.IsReading())
+        el.data.nonsamp.resource = GetResID(resource);
+
+      ser.Serialise("Descriptor", el.data.nonsamp.rtv);
       break;
     }
     case D3D12DescriptorType::DSV:
     {
-      ser.Serialise("Resource", el.nonsamp.resource);
-      ser.Serialise("Descriptor", el.nonsamp.dsv);
+      if(ser.IsWriting() && rm && rm->HasCurrentResource(el.data.nonsamp.resource))
+        resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+
+      ser.Serialise("Resource", resource);
+
+      if(ser.IsReading())
+        el.data.nonsamp.resource = GetResID(resource);
+
+      ser.Serialise("Descriptor", el.data.nonsamp.dsv);
       break;
     }
     case D3D12DescriptorType::UAV:
     {
-      ser.Serialise("Resource", el.nonsamp.resource);
-      ser.Serialise("CounterResource", el.nonsamp.uav.counterResource);
+      if(ser.IsWriting())
+      {
+        if(rm && rm->HasCurrentResource(el.data.nonsamp.resource))
+          resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+        if(rm && rm->HasCurrentResource(el.data.nonsamp.counterResource))
+          counterResource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.counterResource);
+      }
 
-      // special case because of extra resource and squeezed descriptor
-      D3D12_UNORDERED_ACCESS_VIEW_DESC desc = el.nonsamp.uav.desc.AsDesc();
+      ser.Serialise("Resource", resource);
+      ser.Serialise("CounterResource", counterResource);
+
+      if(ser.IsReading())
+      {
+        el.data.nonsamp.resource = GetResID(resource);
+        el.data.nonsamp.counterResource = GetResID(counterResource);
+      }
+
+      // special case because of squeezed descriptor
+      D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
+      if(ser.IsWriting())
+        desc = el.data.nonsamp.uav.AsDesc();
       ser.Serialise("Descriptor", desc);
-      el.nonsamp.uav.desc.Init(desc);
+      if(ser.IsReading())
+        el.data.nonsamp.uav.Init(desc);
       break;
     }
     case D3D12DescriptorType::Undefined:
     {
-      el.nonsamp.type = type;
+      el.data.nonsamp.type = type;
       break;
     }
   }

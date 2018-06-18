@@ -32,61 +32,61 @@
 void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC *pDesc)
 {
   if(pDesc)
-    samp.desc = *pDesc;
+    data.samp.desc = *pDesc;
   else
-    RDCEraseEl(samp.desc);
+    RDCEraseEl(data.samp.desc);
 }
 
 void D3D12Descriptor::Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc)
 {
-  nonsamp.type = D3D12DescriptorType::CBV;
-  nonsamp.resource = NULL;
+  data.nonsamp.type = D3D12DescriptorType::CBV;
+  data.nonsamp.resource = ResourceId();
   if(pDesc)
-    nonsamp.cbv = *pDesc;
+    data.nonsamp.cbv = *pDesc;
   else
-    RDCEraseEl(nonsamp.cbv);
+    RDCEraseEl(data.nonsamp.cbv);
 }
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc)
 {
-  nonsamp.type = D3D12DescriptorType::SRV;
-  nonsamp.resource = pResource;
+  data.nonsamp.type = D3D12DescriptorType::SRV;
+  data.nonsamp.resource = GetResID(pResource);
   if(pDesc)
-    nonsamp.srv = *pDesc;
+    data.nonsamp.srv.Init(*pDesc);
   else
-    RDCEraseEl(nonsamp.srv);
+    RDCEraseEl(data.nonsamp.srv);
 }
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, ID3D12Resource *pCounterResource,
                            const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc)
 {
-  nonsamp.type = D3D12DescriptorType::UAV;
-  nonsamp.resource = pResource;
-  nonsamp.uav.counterResource = pCounterResource;
+  data.nonsamp.type = D3D12DescriptorType::UAV;
+  data.nonsamp.resource = GetResID(pResource);
+  data.nonsamp.counterResource = GetResID(pCounterResource);
   if(pDesc)
-    nonsamp.uav.desc.Init(*pDesc);
+    data.nonsamp.uav.Init(*pDesc);
   else
-    RDCEraseEl(nonsamp.uav.desc);
+    RDCEraseEl(data.nonsamp.uav);
 }
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc)
 {
-  nonsamp.type = D3D12DescriptorType::RTV;
-  nonsamp.resource = pResource;
+  data.nonsamp.type = D3D12DescriptorType::RTV;
+  data.nonsamp.resource = GetResID(pResource);
   if(pDesc)
-    nonsamp.rtv = *pDesc;
+    data.nonsamp.rtv = *pDesc;
   else
-    RDCEraseEl(nonsamp.rtv);
+    RDCEraseEl(data.nonsamp.rtv);
 }
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc)
 {
-  nonsamp.type = D3D12DescriptorType::DSV;
-  nonsamp.resource = pResource;
+  data.nonsamp.type = D3D12DescriptorType::DSV;
+  data.nonsamp.resource = GetResID(pResource);
   if(pDesc)
-    nonsamp.dsv = *pDesc;
+    data.nonsamp.dsv = *pDesc;
   else
-    RDCEraseEl(nonsamp.dsv);
+    RDCEraseEl(data.nonsamp.dsv);
 }
 
 // these are used to create NULL descriptors where necessary
@@ -129,28 +129,45 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
 {
   D3D12DescriptorType type = GetType();
 
+  ID3D12Resource *res = NULL;
+  ID3D12Resource *countRes = NULL;
+
+  if(type != D3D12DescriptorType::Sampler && type != D3D12DescriptorType::CBV)
+    res = dev->GetResourceManager()->GetCurrentAs<ID3D12Resource>(data.nonsamp.resource);
+
+  // don't create a UAV with a counter resource but no main resource. This is fine because
+  // if the main resource wasn't present in the capture, this UAV isn't present - the counter
+  // must have been included for some other reference.
+  if(type == D3D12DescriptorType::UAV && res)
+    countRes = dev->GetResourceManager()->GetCurrentAs<ID3D12Resource>(data.nonsamp.counterResource);
+
   switch(type)
   {
     case D3D12DescriptorType::Sampler:
     {
-      dev->CreateSampler(&samp.desc, handle);
+      dev->CreateSampler(&data.samp.desc, handle);
       break;
     }
     case D3D12DescriptorType::CBV:
     {
-      dev->CreateConstantBufferView(&nonsamp.cbv, handle);
+      if(data.nonsamp.cbv.BufferLocation != 0)
+        dev->CreateConstantBufferView(&data.nonsamp.cbv, handle);
+      else
+        dev->CreateShaderResourceView(NULL, defaultSRV(), handle);
       break;
     }
     case D3D12DescriptorType::SRV:
     {
-      D3D12_SHADER_RESOURCE_VIEW_DESC *desc = &nonsamp.srv;
+      D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc = data.nonsamp.srv.AsDesc();
+
+      D3D12_SHADER_RESOURCE_VIEW_DESC *desc = &srvdesc;
       if(desc->ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
       {
-        desc = nonsamp.resource ? NULL : defaultSRV();
+        desc = res ? NULL : defaultSRV();
 
         const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
 
-        auto it = bbs.find(GetResID(nonsamp.resource));
+        auto it = bbs.find(GetResID(res));
 
         // fixup for backbuffers
         if(it != bbs.end())
@@ -160,68 +177,22 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           bbDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
           bbDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
           bbDesc.Texture2D.MipLevels = 1;
-          dev->CreateShaderResourceView(nonsamp.resource, &bbDesc, handle);
+          dev->CreateShaderResourceView(res, &bbDesc, handle);
           return;
         }
       }
-      else if(!nonsamp.resource)
+      else if(!res)
       {
-        // if we don't have a resource (which is possible if the descriptor is unused), use a
-        // default descriptor
+        // if we don't have a resource (which is possible if the descriptor is unused or invalidated
+        // by referring to a resource that was deleted), use a default descriptor
         desc = defaultSRV();
-      }
-
-      // it's possible to end up with invalid resource and descriptor combinations:
-      // 1. descriptor is created for ResID_1234 BC1_TYPELESS and a view BC1_UNORM
-      // 2. resource is freed.
-      // 3. some time later, new resource is created ResID_5678 BC3_UNORM
-      // 4. Key point is - descriptor has a pointer to the resource, and the slot is
-      //    re-allocated in 3.
-      // 5. We now have a descriptor that is BC3_UNORM resource and BC1_UNORM view.
-      //
-      // This is unavoidable without recording back-references from resources to the
-      // descriptors that use them. Instead, we just detect the invalid case here
-      // and since we know the descriptor is unused (since it's invalid to use it
-      // after the resource is freed, and it would have to be recreated with a valid
-      // format combination) we can just force a null resource.
-      //
-      // so need to check if
-      // a) we have a non-NULL resource (otherwise any descriptor is fine)
-      // b) descriptor and resource have a non-UNKNOWN format (buffers have UNKNOWN
-      //    type which can be cast arbitrarily by the view).
-      // c) when the resource is typed, the view must be identical, when it's typeless
-      //    the view format must be castable
-      if(nonsamp.resource && desc)
-      {
-        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
-        DXGI_FORMAT viewFormat = desc->Format;
-
-        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
-        {
-          if(!IsTypelessFormat(resFormat))
-          {
-            if(resFormat != viewFormat)
-            {
-              nonsamp.resource = NULL;
-              desc = defaultSRV();
-            }
-          }
-          else
-          {
-            if(resFormat != GetTypelessFormat(viewFormat))
-            {
-              nonsamp.resource = NULL;
-              desc = defaultSRV();
-            }
-          }
-        }
       }
 
       D3D12_SHADER_RESOURCE_VIEW_DESC planeDesc;
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
       // possible as it should be the application's responsibility to be valid too, but we fix it up
       // here anyway.
-      if(nonsamp.resource && desc)
+      if(res && desc)
       {
         D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
         formatInfo.Format = desc->Format;
@@ -261,19 +232,19 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
-      dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
+      dev->CreateShaderResourceView(res, desc, handle);
       break;
     }
     case D3D12DescriptorType::RTV:
     {
-      D3D12_RENDER_TARGET_VIEW_DESC *desc = &nonsamp.rtv;
+      D3D12_RENDER_TARGET_VIEW_DESC *desc = &data.nonsamp.rtv;
       if(desc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
       {
-        desc = nonsamp.resource ? NULL : defaultRTV();
+        desc = res ? NULL : defaultRTV();
 
         const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
 
-        auto it = bbs.find(GetResID(nonsamp.resource));
+        auto it = bbs.find(GetResID(res));
 
         // fixup for backbuffers
         if(it != bbs.end())
@@ -281,49 +252,22 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           D3D12_RENDER_TARGET_VIEW_DESC bbDesc = {};
           bbDesc.Format = it->second;
           bbDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-          dev->CreateRenderTargetView(nonsamp.resource, &bbDesc, handle);
+          dev->CreateRenderTargetView(res, &bbDesc, handle);
           return;
         }
       }
-      else if(!nonsamp.resource)
+      else if(!res)
       {
-        // if we don't have a resource (which is possible if the descriptor is unused), use a
-        // default descriptor
+        // if we don't have a resource (which is possible if the descriptor is unused or invalidated
+        // by referring to a resource that was deleted), use a default descriptor
         desc = defaultRTV();
-      }
-
-      // see comment above in SRV case for what this code is doing
-      if(nonsamp.resource && desc)
-      {
-        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
-        DXGI_FORMAT viewFormat = desc->Format;
-
-        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
-        {
-          if(!IsTypelessFormat(resFormat))
-          {
-            if(resFormat != viewFormat)
-            {
-              nonsamp.resource = NULL;
-              desc = defaultRTV();
-            }
-          }
-          else
-          {
-            if(resFormat != GetTypelessFormat(viewFormat))
-            {
-              nonsamp.resource = NULL;
-              desc = defaultRTV();
-            }
-          }
-        }
       }
 
       D3D12_RENDER_TARGET_VIEW_DESC planeDesc;
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
       // possible as it should be the application's responsibility to be valid too, but we fix it up
       // here anyway.
-      if(nonsamp.resource && desc)
+      if(res && desc)
       {
         D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
         formatInfo.Format = desc->Format;
@@ -363,65 +307,38 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
-      dev->CreateRenderTargetView(nonsamp.resource, desc, handle);
+      dev->CreateRenderTargetView(res, desc, handle);
       break;
     }
     case D3D12DescriptorType::DSV:
     {
-      D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &nonsamp.dsv;
+      D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &data.nonsamp.dsv;
       if(desc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
       {
-        desc = nonsamp.resource ? NULL : defaultDSV();
+        desc = res ? NULL : defaultDSV();
       }
-      else if(!nonsamp.resource)
+      else if(!res)
       {
-        // if we don't have a resource (which is possible if the descriptor is unused), use a
-        // default descriptor
+        // if we don't have a resource (which is possible if the descriptor is unused or invalidated
+        // by referring to a resource that was deleted), use a default descriptor
         desc = defaultDSV();
       }
 
-      // see comment above in SRV case for what this code is doing
-      if(nonsamp.resource && desc)
-      {
-        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
-        DXGI_FORMAT viewFormat = desc->Format;
-
-        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
-        {
-          if(!IsTypelessFormat(resFormat))
-          {
-            if(resFormat != viewFormat)
-            {
-              nonsamp.resource = NULL;
-              desc = defaultDSV();
-            }
-          }
-          else
-          {
-            if(resFormat != GetTypelessFormat(viewFormat))
-            {
-              nonsamp.resource = NULL;
-              desc = defaultDSV();
-            }
-          }
-        }
-      }
-
-      dev->CreateDepthStencilView(nonsamp.resource, desc, handle);
+      dev->CreateDepthStencilView(res, desc, handle);
       break;
     }
     case D3D12DescriptorType::UAV:
     {
-      D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = nonsamp.uav.desc.AsDesc();
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = data.nonsamp.uav.AsDesc();
 
       D3D12_UNORDERED_ACCESS_VIEW_DESC *desc = &uavdesc;
       if(uavdesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
       {
-        desc = nonsamp.resource ? NULL : defaultUAV();
+        desc = res ? NULL : defaultUAV();
 
         const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
 
-        auto it = bbs.find(GetResID(nonsamp.resource));
+        auto it = bbs.find(GetResID(res));
 
         // fixup for backbuffers
         if(it != bbs.end())
@@ -429,59 +346,25 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = {};
           bbDesc.Format = it->second;
           bbDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-          dev->CreateUnorderedAccessView(nonsamp.resource, NULL, &bbDesc, handle);
+          dev->CreateUnorderedAccessView(res, NULL, &bbDesc, handle);
           return;
         }
       }
-      else if(!nonsamp.resource)
+      else if(!res)
       {
         // if we don't have a resource (which is possible if the descriptor is unused), use a
         // default descriptor
         desc = defaultUAV();
       }
 
-      // don't create a UAV with a counter resource but no main resource. This is fine because
-      // if the main resource wasn't present in the capture, this UAV isn't present - the counter
-      // must have been included for some other reference.
-      ID3D12Resource *counter = nonsamp.uav.counterResource;
-      if(nonsamp.resource == NULL)
-        counter = NULL;
-
-      if(counter == NULL && desc && desc->ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+      if(countRes == NULL && desc && desc->ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
         desc->Buffer.CounterOffsetInBytes = 0;
-
-      // see comment above in SRV case for what this code is doing
-      if(nonsamp.resource && desc)
-      {
-        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
-        DXGI_FORMAT viewFormat = desc->Format;
-
-        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
-        {
-          if(!IsTypelessFormat(resFormat))
-          {
-            if(resFormat != viewFormat)
-            {
-              nonsamp.resource = NULL;
-              desc = defaultUAV();
-            }
-          }
-          else
-          {
-            if(resFormat != GetTypelessFormat(viewFormat))
-            {
-              nonsamp.resource = NULL;
-              desc = defaultUAV();
-            }
-          }
-        }
-      }
 
       D3D12_UNORDERED_ACCESS_VIEW_DESC planeDesc;
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
       // possible as it should be the application's responsibility to be valid too, but we fix it up
       // here anyway.
-      if(nonsamp.resource && desc)
+      if(res && desc)
       {
         D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
         formatInfo.Format = desc->Format;
@@ -521,7 +404,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
-      dev->CreateUnorderedAccessView(nonsamp.resource, counter, desc, handle);
+      dev->CreateUnorderedAccessView(res, countRes, desc, handle);
       break;
     }
     case D3D12DescriptorType::Undefined:
@@ -545,13 +428,13 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
 void D3D12Descriptor::CopyFrom(const D3D12Descriptor &src)
 {
   // save these so we can do a straight copy then restore them
-  WrappedID3D12DescriptorHeap *heap = samp.heap;
-  uint32_t index = samp.idx;
+  WrappedID3D12DescriptorHeap *heap = data.samp.heap;
+  uint32_t index = data.samp.idx;
 
   *this = src;
 
-  samp.heap = heap;
-  samp.idx = index;
+  data.samp.heap = heap;
+  data.samp.idx = index;
 }
 
 void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &ref)
@@ -567,18 +450,48 @@ void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &r
       // nothing to do - no resource here
       break;
     case D3D12DescriptorType::CBV:
-      id = WrappedID3D12Resource::GetResIDFromAddr(nonsamp.cbv.BufferLocation);
+      id = WrappedID3D12Resource::GetResIDFromAddr(data.nonsamp.cbv.BufferLocation);
       break;
-    case D3D12DescriptorType::SRV: id = GetResID(nonsamp.resource); break;
+    case D3D12DescriptorType::SRV: id = data.nonsamp.resource; break;
     case D3D12DescriptorType::UAV:
-      id2 = GetResID(nonsamp.uav.counterResource);
+      id2 = data.nonsamp.counterResource;
     // deliberate fall-through
     case D3D12DescriptorType::RTV:
     case D3D12DescriptorType::DSV:
       ref = eFrameRef_Write;
-      id = GetResID(nonsamp.resource);
+      id = data.nonsamp.resource;
       break;
   }
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12Descriptor::GetCPU() const
+{
+  return data.samp.heap->GetCPU(data.samp.idx);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12Descriptor::GetGPU() const
+{
+  return data.samp.heap->GetGPU(data.samp.idx);
+}
+
+PortableHandle D3D12Descriptor::GetPortableHandle() const
+{
+  return PortableHandle(GetResID(data.samp.heap), data.samp.idx);
+}
+
+ResourceId D3D12Descriptor::GetHeapResourceId() const
+{
+  return GetResID(data.samp.heap);
+}
+
+ResourceId D3D12Descriptor::GetResResourceId() const
+{
+  return data.nonsamp.resource;
+}
+
+ResourceId D3D12Descriptor::GetCounterResourceId() const
+{
+  return data.nonsamp.counterResource;
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE UnwrapCPU(D3D12Descriptor *handle)
@@ -587,7 +500,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE UnwrapCPU(D3D12Descriptor *handle)
   if(handle == NULL)
     return ret;
 
-  return handle->samp.heap->GetCPU(handle->samp.idx);
+  return handle->GetCPU();
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE UnwrapGPU(D3D12Descriptor *handle)
@@ -596,7 +509,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE UnwrapGPU(D3D12Descriptor *handle)
   if(handle == NULL)
     return ret;
 
-  return handle->samp.heap->GetGPU(handle->samp.idx);
+  return handle->GetGPU();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle)
@@ -620,7 +533,7 @@ PortableHandle ToPortableHandle(D3D12Descriptor *desc)
   if(desc == NULL)
     return PortableHandle(0);
 
-  return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
+  return desc->GetPortableHandle();
 }
 
 PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)

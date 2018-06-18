@@ -334,11 +334,12 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
   D3D12_RESOURCE_DESC depthTexDesc = {};
   D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc = {};
-  if(dsView.nonsamp.resource)
+  if(dsView.GetResResourceId() != ResourceId())
   {
-    ID3D12Resource *realDepth = dsView.nonsamp.resource;
+    ID3D12Resource *realDepth =
+        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(dsView.GetResResourceId());
 
-    dsViewDesc = dsView.nonsamp.dsv;
+    dsViewDesc = dsView.GetDSV();
 
     depthTexDesc = realDepth->GetDesc();
     depthTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -719,7 +720,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       {
         const D3D12Descriptor &desc = rts[i];
 
-        if(desc.nonsamp.resource)
+        if(desc.GetResResourceId() != ResourceId())
           Unwrap(list)->ClearRenderTargetView(Unwrap(GetDebugManager()->GetTempDescriptor(desc)),
                                               black, 0, NULL);
       }
@@ -878,7 +879,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
 
-      if(rs.dsv.nonsamp.resource)
+      if(rs.dsv.GetResResourceId() != ResourceId())
       {
         D3D12_CPU_DESCRIPTOR_HANDLE tmpdsv = GetDebugManager()->GetTempDescriptor(rs.dsv);
         list->OMSetRenderTargets(1, &rtv, TRUE, &tmpdsv);

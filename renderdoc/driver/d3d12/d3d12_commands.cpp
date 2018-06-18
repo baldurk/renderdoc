@@ -1342,7 +1342,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
               for(UINT i = 0; i < num; i++)
               {
                 ResourceId id =
-                    WrappedID3D12Resource::GetResIDFromAddr(desc->nonsamp.cbv.BufferLocation);
+                    WrappedID3D12Resource::GetResIDFromAddr(desc->GetCBV().BufferLocation);
 
                 AddUsage(drawNode, id, e, cb);
 
@@ -1365,7 +1365,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
             {
               for(UINT i = 0; i < num; i++)
               {
-                AddUsage(drawNode, GetResID(desc->nonsamp.resource), e, usage);
+                AddUsage(drawNode, desc->GetResResourceId(), e, usage);
 
                 desc++;
               }

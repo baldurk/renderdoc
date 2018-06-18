@@ -56,7 +56,7 @@ struct D3D12RenderState
   // these are D3D12Descriptor copies since the values of the descriptors are read during
   // OMSetRenderTargets and may not exist anywhere after that if they are immediately overwritten.
   vector<D3D12Descriptor> rts;
-  D3D12Descriptor dsv = {};
+  D3D12Descriptor dsv;
 
   vector<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;

@@ -54,7 +54,7 @@ DECLARE_REFLECTION_ENUM(D3D12ResourceType);
 
 class WrappedID3D12DescriptorHeap;
 
-// squeeze the descriptor a bit so that the below struct fits in 64 bytes
+// squeeze the descriptor a bit so that the D3D12Descriptor struct fits in 64 bytes
 struct D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED
 {
   // pull up and compress down to 1 byte the enums/flags that don't have any larger values
@@ -119,6 +119,75 @@ struct D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED
   }
 };
 
+struct D3D12_SHADER_RESOURCE_VIEW_DESC_SQUEEZED
+{
+  // pull up and compress down to 1 byte the enums that don't have any larger values.
+  // note Shader4ComponentMapping only uses the lower 2 bytes - 3 bits per component = 12 bits.
+  // Could even be bitpacked with ViewDimension if you wanted to get extreme.
+  UINT Shader4ComponentMapping;
+  uint8_t Format;
+  uint8_t ViewDimension;
+
+  // 2 more bytes here - below union is 8-byte aligned
+
+  union
+  {
+    D3D12_BUFFER_SRV Buffer;
+    D3D12_TEX1D_SRV Texture1D;
+    D3D12_TEX1D_ARRAY_SRV Texture1DArray;
+    D3D12_TEX2D_SRV Texture2D;
+    D3D12_TEX2D_ARRAY_SRV Texture2DArray;
+    D3D12_TEX2DMS_SRV Texture2DMS;
+    D3D12_TEX2DMS_ARRAY_SRV Texture2DMSArray;
+    D3D12_TEX3D_SRV Texture3D;
+    D3D12_TEXCUBE_SRV TextureCube;
+    D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;
+  };
+
+  void Init(const D3D12_SHADER_RESOURCE_VIEW_DESC &desc)
+  {
+    Format = (uint8_t)desc.Format;
+    ViewDimension = (uint8_t)desc.ViewDimension;
+    Shader4ComponentMapping = desc.Shader4ComponentMapping;
+
+    // D3D12_TEX2D_ARRAY_SRV should be the largest component, so we can copy it and ensure we've
+    // copied the rest.
+    RDCCOMPILE_ASSERT(sizeof(Buffer) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture1D) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture1DArray) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture2D) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture2DMS) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture2DMSArray) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture3D) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(TextureCube) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(TextureCubeArray) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+
+    Texture2DArray = desc.Texture2DArray;
+  }
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC AsDesc() const
+  {
+    D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+
+    desc.Format = (DXGI_FORMAT)Format;
+    desc.ViewDimension = (D3D12_SRV_DIMENSION)ViewDimension;
+    desc.Shader4ComponentMapping = Shader4ComponentMapping;
+
+    desc.Texture2DArray = Texture2DArray;
+
+    return desc;
+  }
+};
+
 enum class D3D12DescriptorType
 {
   // we start at 0x1000 since this element will alias with the filter
@@ -134,16 +203,103 @@ enum class D3D12DescriptorType
 
 DECLARE_REFLECTION_ENUM(D3D12DescriptorType);
 
+struct PortableHandle
+{
+  PortableHandle() : index(0) {}
+  PortableHandle(ResourceId id, uint32_t i) : heap(id), index(i) {}
+  PortableHandle(uint32_t i) : index(i) {}
+  ResourceId heap;
+  uint32_t index;
+};
+
+DECLARE_REFLECTION_STRUCT(PortableHandle);
+
+// the heap pointer & index are inside the data structs, because in the sampler case we don't need
+// to pad up for any alignment, and in the non-sampler case we declare the type before uint64/ptr
+// aligned elements come, so we don't get any padding waste.
+struct SamplerDescriptorData
+{
+  // same location in both structs
+  WrappedID3D12DescriptorHeap *heap;
+  uint32_t idx;
+
+  D3D12_SAMPLER_DESC desc;
+};
+
+struct NonSamplerDescriptorData
+{
+  // same location in both structs
+  WrappedID3D12DescriptorHeap *heap;
+  uint32_t idx;
+
+  // this element overlaps with the D3D12_FILTER in D3D12_SAMPLER_DESC,
+  // with values that are invalid for filter
+  D3D12DescriptorType type;
+
+  // we store the ResourceId instead of a pointer here so we can check for invalidation,
+  // in case the resource is freed and a different one is allocated in its place.
+  // This can happen if e.g. a descriptor is initialised with ResourceId(1234), then the
+  // resource is deleted and the descriptor is unused after that, but ResourceId(5678) is
+  // allocated with the same ID3D12Resource*. We'd serialise the descriptor pointing to
+  // ResourceId(5678) and it may well be completely invalid to create with the other parameters
+  // we have stored.
+  // We don't need anything but the ResourceId in high-traffic situations
+  ResourceId resource;
+
+  // this needs to be out here because we can't have the ResourceId with a constructor in the
+  // anonymous union
+  ResourceId counterResource;
+
+  union
+  {
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbv;
+    D3D12_SHADER_RESOURCE_VIEW_DESC_SQUEEZED srv;
+    D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED uav;
+    D3D12_RENDER_TARGET_VIEW_DESC rtv;
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsv;
+  };
+};
+
+union DescriptorData
+{
+  DescriptorData()
+  {
+    nonsamp.resource = ResourceId();
+    nonsamp.counterResource = ResourceId();
+  }
+  SamplerDescriptorData samp;
+  NonSamplerDescriptorData nonsamp;
+};
+
 struct D3D12Descriptor
 {
+public:
+  D3D12Descriptor()
+  {
+    data.samp.heap = NULL;
+    data.samp.idx = 0;
+  }
+
+  void Setup(WrappedID3D12DescriptorHeap *heap, UINT idx)
+  {
+    // only need to set this once, it's aliased between samp and nonsamp
+    data.samp.heap = heap;
+    data.samp.idx = idx;
+
+    // initially descriptors are undefined. This way we just fill them with
+    // some null SRV descriptor so it's safe to copy around etc but is no
+    // less undefined for the application to use
+    data.nonsamp.type = D3D12DescriptorType::Undefined;
+  }
+
   D3D12DescriptorType GetType() const
   {
     RDCCOMPILE_ASSERT(sizeof(D3D12Descriptor) <= 64, "D3D12Descriptor has gotten larger");
 
-    if(nonsamp.type < D3D12DescriptorType::CBV)
+    if(data.nonsamp.type < D3D12DescriptorType::CBV)
       return D3D12DescriptorType::Sampler;
 
-    return nonsamp.type;
+    return data.nonsamp.type;
   }
 
   operator D3D12_CPU_DESCRIPTOR_HANDLE() const
@@ -173,44 +329,40 @@ struct D3D12Descriptor
   void CopyFrom(const D3D12Descriptor &src);
   void GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &ref);
 
-  union
-  {
-    // keep the sampler outside as it's the largest descriptor
-    struct
-    {
-      // same location in both structs
-      WrappedID3D12DescriptorHeap *heap;
-      uint32_t idx;
+  WrappedID3D12DescriptorHeap *GetHeap() const { return data.samp.heap; }
+  uint32_t GetHeapIndex() const { return data.samp.idx; }
+  D3D12_CPU_DESCRIPTOR_HANDLE GetCPU() const;
+  D3D12_GPU_DESCRIPTOR_HANDLE GetGPU() const;
+  PortableHandle GetPortableHandle() const;
 
-      D3D12_SAMPLER_DESC desc;
-    } samp;
+  // these IDs are the live IDs during replay, not the original IDs. Treat them as if you called
+  // GetResID(resource).
+  //
+  // descriptor heap itself
+  ResourceId GetHeapResourceId() const;
+  //
+  // a resource - this covers RTV/DSV/SRV resource, UAV main resource (not counter - see below).
+  // It does NOT cover the CBV's address - fetch that via GetCBV().BufferLocation
+  ResourceId GetResResourceId() const;
+  //
+  // the counter resource for UAVs
+  ResourceId GetCounterResourceId() const;
 
-    struct
-    {
-      // same location in both structs
-      WrappedID3D12DescriptorHeap *heap;
-      uint32_t idx;
+  // Accessors for descriptor structs. The squeezed structs return only by value, others have const
+  // reference returns
+  const D3D12_SAMPLER_DESC &GetSampler() const { return data.samp.desc; }
+  const D3D12_RENDER_TARGET_VIEW_DESC &GetRTV() const { return data.nonsamp.rtv; }
+  const D3D12_DEPTH_STENCIL_VIEW_DESC &GetDSV() const { return data.nonsamp.dsv; }
+  const D3D12_CONSTANT_BUFFER_VIEW_DESC &GetCBV() const { return data.nonsamp.cbv; }
+  // squeezed descriptors
+  D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAV() const { return data.nonsamp.uav.AsDesc(); }
+  D3D12_SHADER_RESOURCE_VIEW_DESC GetSRV() const { return data.nonsamp.srv.AsDesc(); }
+private:
+  DescriptorData data;
 
-      // this element overlaps with the D3D12_FILTER in D3D12_SAMPLER_DESC,
-      // with values that are invalid for filter
-      D3D12DescriptorType type;
-
-      ID3D12Resource *resource;
-
-      union
-      {
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbv;
-        D3D12_SHADER_RESOURCE_VIEW_DESC srv;
-        struct
-        {
-          ID3D12Resource *counterResource;
-          D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED desc;
-        } uav;
-        D3D12_RENDER_TARGET_VIEW_DESC rtv;
-        D3D12_DEPTH_STENCIL_VIEW_DESC dsv;
-      };
-    } nonsamp;
-  };
+  // allow serialisation function access to the data
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, D3D12Descriptor &el);
 };
 
 DECLARE_REFLECTION_STRUCT(D3D12Descriptor);
@@ -229,17 +381,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 D3D12_CPU_DESCRIPTOR_HANDLE UnwrapCPU(D3D12Descriptor *handle);
 D3D12_GPU_DESCRIPTOR_HANDLE UnwrapGPU(D3D12Descriptor *handle);
-
-struct PortableHandle
-{
-  PortableHandle() : index(0) {}
-  PortableHandle(ResourceId id, uint32_t i) : heap(id), index(i) {}
-  PortableHandle(uint32_t i) : index(i) {}
-  ResourceId heap;
-  uint32_t index;
-};
-
-DECLARE_REFLECTION_STRUCT(PortableHandle);
 
 class D3D12ResourceManager;
 

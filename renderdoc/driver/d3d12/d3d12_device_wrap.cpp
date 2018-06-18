@@ -922,8 +922,6 @@ void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_V
   if(capframe)
   {
     DynamicDescriptorWrite write;
-    write.desc.samp.heap = NULL;
-    write.desc.samp.idx = 0;
     write.desc.Init(pDesc);
     write.dest = GetWrapped(DestDescriptor);
     {
@@ -966,8 +964,6 @@ void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
   if(capframe)
   {
     DynamicDescriptorWrite write;
-    write.desc.samp.heap = NULL;
-    write.desc.samp.idx = 0;
     write.desc.Init(pResource, pDesc);
     write.dest = GetWrapped(DestDescriptor);
     {
@@ -1018,8 +1014,6 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
   if(capframe)
   {
     DynamicDescriptorWrite write;
-    write.desc.samp.heap = NULL;
-    write.desc.samp.idx = 0;
     write.desc.Init(pResource, pCounterResource, pDesc);
     write.dest = GetWrapped(DestDescriptor);
     {
@@ -1064,8 +1058,6 @@ void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
   if(capframe)
   {
     DynamicDescriptorWrite write;
-    write.desc.samp.heap = NULL;
-    write.desc.samp.idx = 0;
     write.desc.Init(pResource, pDesc);
     write.dest = GetWrapped(DestDescriptor);
     {
@@ -1108,8 +1100,6 @@ void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
   if(capframe)
   {
     DynamicDescriptorWrite write;
-    write.desc.samp.heap = NULL;
-    write.desc.samp.idx = 0;
     write.desc.Init(pResource, pDesc);
     write.dest = GetWrapped(DestDescriptor);
     {
@@ -1148,8 +1138,6 @@ void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
   if(capframe)
   {
     DynamicDescriptorWrite write;
-    write.desc.samp.heap = NULL;
-    write.desc.samp.idx = 0;
     write.desc.Init(pDesc);
     write.dest = GetWrapped(DestDescriptor);
     {
@@ -2018,7 +2006,7 @@ void WrappedID3D12Device::CopyDescriptors(
     for(UINT i = 0; i < NumSrcDescriptorRanges; i++)
     {
       D3D12Descriptor *desc = GetWrapped(pSrcDescriptorRangeStarts[i]);
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+      GetResourceManager()->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
 
       // make sure we reference the resources in the source descriptors too
       const UINT srcSize = pSrcDescriptorRangeSizes ? pSrcDescriptorRangeSizes[i] : 1;
@@ -2040,7 +2028,7 @@ void WrappedID3D12Device::CopyDescriptors(
     for(UINT i = 0; i < NumDestDescriptorRanges; i++)
     {
       D3D12Descriptor *desc = GetWrapped(pDestDescriptorRangeStarts[i]);
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+      GetResourceManager()->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
     }
 
     {
@@ -2085,7 +2073,7 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
     // reference the heaps
     {
       D3D12Descriptor *desc = GetWrapped(SrcDescriptorRangeStart);
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+      GetResourceManager()->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
 
       // make sure we reference the resources in the source descriptors too
       for(UINT d = 0; d < NumDescriptors; d++)
@@ -2105,7 +2093,7 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 
     {
       D3D12Descriptor *desc = GetWrapped(DestDescriptorRangeStart);
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+      GetResourceManager()->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
     }
 
     std::vector<DynamicDescriptorCopy> copies;

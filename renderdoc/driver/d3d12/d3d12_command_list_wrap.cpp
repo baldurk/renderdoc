@@ -1287,7 +1287,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
 
   SERIALISE_ELEMENT_TYPED(bool, RTsSingleHandleToDescriptorRange);
 
-  D3D12Descriptor DSV = {};
+  D3D12Descriptor DSV;
 
   if(ser.VersionAtLeast(0x5))
   {
@@ -1329,7 +1329,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE unwrappedDSV = {};
-    if(DSV.nonsamp.resource)
+    if(DSV.GetResResourceId() != ResourceId())
     {
       unwrappedDSV = Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV));
     }
@@ -1395,15 +1395,15 @@ void WrappedID3D12GraphicsCommandList2::OMSetRenderTargets(
     for(UINT i = 0; i < numHandles; i++)
     {
       D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[i]);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Write);
     }
 
     if(pDepthStencilDescriptor)
     {
       D3D12Descriptor *desc = GetWrapped(*pDepthStencilDescriptor);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Write);
     }
   }
 }
@@ -1511,8 +1511,8 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootDescriptorTable(
 
           m_Cmd->m_RenderState.compute.sigelems[RootParameterIndex] =
               D3D12RenderState::SignatureElement(eRootTable,
-                                                 GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
-                                                 (UINT64)GetWrapped(BaseDescriptor)->nonsamp.idx);
+                                                 GetWrapped(BaseDescriptor)->GetHeapResourceId(),
+                                                 (UINT64)GetWrapped(BaseDescriptor)->GetHeapIndex());
         }
       }
     }
@@ -1527,8 +1527,8 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetComputeRootDescriptorTable(
         state.compute.sigelems.resize(RootParameterIndex + 1);
 
       state.compute.sigelems[RootParameterIndex] = D3D12RenderState::SignatureElement(
-          eRootTable, GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
-          (UINT64)GetWrapped(BaseDescriptor)->nonsamp.idx);
+          eRootTable, GetWrapped(BaseDescriptor)->GetHeapResourceId(),
+          (UINT64)GetWrapped(BaseDescriptor)->GetHeapIndex());
     }
   }
 
@@ -1548,13 +1548,14 @@ void WrappedID3D12GraphicsCommandList2::SetComputeRootDescriptorTable(
     Serialise_SetComputeRootDescriptorTable(ser, RootParameterIndex, BaseDescriptor);
 
     m_ListRecord->AddChunk(scope.Get());
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
+    m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
     vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurCompRootSig)->sig.params[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
+    UINT HeapNumDescriptors = base->GetHeap()->GetNumDescriptors();
 
     UINT prevTableOffset = 0;
 
@@ -1574,7 +1575,7 @@ void WrappedID3D12GraphicsCommandList2::SetComputeRootDescriptorTable(
       if(num == UINT_MAX)
       {
         // find out how many descriptors are left after rangeStart
-        num = base->samp.heap->GetNumDescriptors() - offset;
+        num = HeapNumDescriptors - offset;
       }
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
@@ -2073,8 +2074,8 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootDescriptorTable
 
           m_Cmd->m_RenderState.graphics.sigelems[RootParameterIndex] =
               D3D12RenderState::SignatureElement(eRootTable,
-                                                 GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
-                                                 (UINT64)GetWrapped(BaseDescriptor)->nonsamp.idx);
+                                                 GetWrapped(BaseDescriptor)->GetHeapResourceId(),
+                                                 (UINT64)GetWrapped(BaseDescriptor)->GetHeapIndex());
         }
       }
     }
@@ -2089,8 +2090,8 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetGraphicsRootDescriptorTable
         state.graphics.sigelems.resize(RootParameterIndex + 1);
 
       state.graphics.sigelems[RootParameterIndex] = D3D12RenderState::SignatureElement(
-          eRootTable, GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
-          (UINT64)GetWrapped(BaseDescriptor)->nonsamp.idx);
+          eRootTable, GetWrapped(BaseDescriptor)->GetHeapResourceId(),
+          (UINT64)GetWrapped(BaseDescriptor)->GetHeapIndex());
     }
   }
 
@@ -2110,13 +2111,14 @@ void WrappedID3D12GraphicsCommandList2::SetGraphicsRootDescriptorTable(
     Serialise_SetGraphicsRootDescriptorTable(ser, RootParameterIndex, BaseDescriptor);
 
     m_ListRecord->AddChunk(scope.Get());
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
+    m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
     vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurGfxRootSig)->sig.params[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
+    UINT HeapNumDescriptors = base->GetHeap()->GetNumDescriptors();
 
     UINT prevTableOffset = 0;
 
@@ -2136,7 +2138,7 @@ void WrappedID3D12GraphicsCommandList2::SetGraphicsRootDescriptorTable(
       if(num == UINT_MAX)
       {
         // find out how many descriptors are left after rangeStart
-        num = base->samp.heap->GetNumDescriptors() - offset;
+        num = HeapNumDescriptors - offset;
       }
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
@@ -4374,16 +4376,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearDepthStencilView(
         DrawcallDescription draw;
         draw.name = StringFormat::Fmt("ClearDepthStencilView(%f, %hhu)", Depth, Stencil);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
-        draw.copyDestination =
-            GetResourceManager()->GetOriginalID(GetResID(descriptor->nonsamp.resource));
+        draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
 
         m_Cmd->AddDrawcall(draw, true);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-        drawNode.resourceUsage.push_back(
-            std::make_pair(GetResID(descriptor->nonsamp.resource),
-                           EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            descriptor->GetResResourceId(), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -4410,8 +4410,8 @@ void WrappedID3D12GraphicsCommandList2::ClearDepthStencilView(
 
     {
       D3D12Descriptor *desc = GetWrapped(DepthStencilView);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Read);
     }
   }
 }
@@ -4468,16 +4468,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearRenderTargetView(
         draw.name = StringFormat::Fmt("ClearRenderTargetView(%f, %f, %f, %f)", ColorRGBA[0],
                                       ColorRGBA[0], ColorRGBA[0], ColorRGBA[0]);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
-        draw.copyDestination =
-            GetResourceManager()->GetOriginalID(GetResID(descriptor->nonsamp.resource));
+        draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
 
         m_Cmd->AddDrawcall(draw, true);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-        drawNode.resourceUsage.push_back(
-            std::make_pair(GetResID(descriptor->nonsamp.resource),
-                           EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            descriptor->GetResResourceId(), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -4503,8 +4501,8 @@ void WrappedID3D12GraphicsCommandList2::ClearRenderTargetView(
 
     {
       D3D12Descriptor *desc = GetWrapped(RenderTargetView);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Read);
     }
   }
 }
@@ -4602,12 +4600,12 @@ void WrappedID3D12GraphicsCommandList2::ClearUnorderedAccessViewUint(
 
     {
       D3D12Descriptor *desc = GetWrapped(ViewGPUHandleInCurrentHeap);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Write);
 
       desc = GetWrapped(ViewCPUHandle);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Write);
 
       m_ListRecord->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
     }
@@ -4707,12 +4705,12 @@ void WrappedID3D12GraphicsCommandList2::ClearUnorderedAccessViewFloat(
 
     {
       D3D12Descriptor *desc = GetWrapped(ViewGPUHandleInCurrentHeap);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Write);
 
       desc = GetWrapped(ViewCPUHandle);
-      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_Write);
 
       m_ListRecord->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
     }
