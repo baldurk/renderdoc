@@ -467,8 +467,6 @@ struct GPUAddressRangeTracker
   {
     SCOPED_WRITELOCK(addressLock);
     auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
-    RDCASSERT(it == addresses.begin() || it == addresses.end() || range.start < it->start ||
-              range.start >= it->end);
 
     addresses.insert(it, range);
   }
