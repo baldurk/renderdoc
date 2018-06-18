@@ -934,10 +934,8 @@ See :meth:`BuildTargetShader`.
 )");
   virtual const SDFile &GetStructuredFile() = 0;
 
-  DOCUMENT(R"(Retrieve the list of root-level drawcalls in the capture.
-
-:return: The list of root-level drawcalls in the capture.
-:rtype: ``list`` of :class:`DrawcallDescription`
+  DOCUMENT(R"(Add fake marker regions to the list of drawcalls in the capture, based on which
+textures are bound as outputs.
 )");
   virtual void AddFakeMarkers() = 0;
 
