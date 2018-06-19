@@ -87,6 +87,15 @@ void PipelineStateViewer::OnCaptureClosed()
 
 void PipelineStateViewer::OnEventChanged(uint32_t eventId)
 {
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D11)
+    setToD3D11();
+  else if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
+    setToD3D12();
+  else if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+    setToGL();
+  else if(m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan)
+    setToVulkan();
+
   if(m_Current)
     m_Current->OnEventChanged(eventId);
 }
