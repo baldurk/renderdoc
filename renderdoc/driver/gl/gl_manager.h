@@ -106,7 +106,7 @@ public:
     size_t count = 0;
     for(auto it = m_CurrentResourceIds.begin(); it != m_CurrentResourceIds.end(); it++)
     {
-      if(it->first.ContextShareGroup == context)
+      if(it->first.ContextShareGroup == context && it->first.Namespace != eResSpecial)
       {
         ++count;
         ResourceId res = it->second;
