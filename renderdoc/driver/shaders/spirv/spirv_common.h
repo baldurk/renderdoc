@@ -29,6 +29,7 @@
 #include <utility>
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
+#include "api/replay/renderdoc_replay.h"
 
 using std::string;
 using std::vector;
