@@ -268,20 +268,27 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   static VkPipelineShaderStageCreateInfo stages[6];
   static VkSpecializationInfo specInfo[6];
   static vector<VkSpecializationMapEntry> specMapEntries;
+  static std::vector<byte> specdata;
 
   size_t specEntries = 0;
+  size_t specSize = 0;
 
   for(uint32_t i = 0; i < 6; i++)
-    if(pipeInfo.shaders[i].module != ResourceId())
-      if(!pipeInfo.shaders[i].specialization.empty())
-        specEntries += pipeInfo.shaders[i].specialization.size();
+  {
+    specEntries += pipeInfo.shaders[i].specialization.size();
+    for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
+      specSize += pipeInfo.shaders[i].specialization[s].data.size();
+  }
 
   specMapEntries.resize(specEntries);
+  specdata.resize(specSize);
 
   VkSpecializationMapEntry *entry = &specMapEntries[0];
 
   uint32_t stageCount = 0;
+  specSize = 0;
 
+  // reserve space for spec constants
   for(uint32_t i = 0; i < 6; i++)
   {
     if(pipeInfo.shaders[i].module != ResourceId())
@@ -299,27 +306,20 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
         specInfo[i].pMapEntries = entry;
         specInfo[i].mapEntryCount = (uint32_t)pipeInfo.shaders[i].specialization.size();
 
-        byte *minDataPtr = NULL;
-        byte *maxDataPtr = NULL;
-
         for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
         {
           entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
-          entry[s].size = pipeInfo.shaders[i].specialization[s].size;
+          entry[s].size = pipeInfo.shaders[i].specialization[s].data.size();
+          entry[s].offset = (uint32_t)specSize;
 
-          if(minDataPtr == NULL)
-            minDataPtr = pipeInfo.shaders[i].specialization[s].data;
-          else
-            minDataPtr = RDCMIN(minDataPtr, pipeInfo.shaders[i].specialization[s].data);
+          specSize += entry[s].size;
 
-          maxDataPtr = RDCMAX(minDataPtr, pipeInfo.shaders[i].specialization[s].data + entry[s].size);
+          memcpy(&specdata[0] + entry[s].offset, pipeInfo.shaders[i].specialization[s].data.data(),
+                 entry[s].size);
         }
 
-        for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
-          entry[s].offset = (uint32_t)(pipeInfo.shaders[i].specialization[s].data - minDataPtr);
-
-        specInfo[i].dataSize = (maxDataPtr - minDataPtr);
-        specInfo[i].pData = (const void *)minDataPtr;
+        specInfo[i].dataSize = specdata.size();
+        specInfo[i].pData = specdata.data();
 
         entry += specInfo[i].mapEntryCount;
       }
@@ -531,13 +531,17 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   VkPipelineShaderStageCreateInfo stage;    // Returned by value
   static VkSpecializationInfo specInfo;
   static vector<VkSpecializationMapEntry> specMapEntries;
+  static std::vector<byte> specdata;
 
   const uint32_t i = 5;    // Compute stage
   RDCASSERT(pipeInfo.shaders[i].module != ResourceId());
 
-  size_t specEntries = 0;
-  if(!pipeInfo.shaders[i].specialization.empty())
-    specEntries += pipeInfo.shaders[i].specialization.size();
+  size_t specEntries = pipeInfo.shaders[i].specialization.size();
+  size_t specSize = 0;
+  for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
+    specSize += pipeInfo.shaders[i].specialization[s].data.size();
+
+  specdata.resize(specSize);
 
   specMapEntries.resize(specEntries);
   VkSpecializationMapEntry *entry = &specMapEntries[0];
@@ -550,35 +554,28 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   stage.pSpecializationInfo = NULL;
   stage.flags = VK_SHADER_STAGE_COMPUTE_BIT;
 
+  specSize = 0;
+
   if(!pipeInfo.shaders[i].specialization.empty())
   {
     stage.pSpecializationInfo = &specInfo;
     specInfo.pMapEntries = entry;
     specInfo.mapEntryCount = (uint32_t)pipeInfo.shaders[i].specialization.size();
 
-    byte *minDataPtr = NULL;
-    byte *maxDataPtr = NULL;
-
     for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
     {
       entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
-      entry[s].size = pipeInfo.shaders[i].specialization[s].size;
+      entry[s].size = pipeInfo.shaders[i].specialization[s].data.size();
+      entry[s].offset = (uint32_t)specSize;
 
-      if(minDataPtr == NULL)
-        minDataPtr = pipeInfo.shaders[i].specialization[s].data;
-      else
-        minDataPtr = RDCMIN(minDataPtr, pipeInfo.shaders[i].specialization[s].data);
+      specSize += entry[s].size;
 
-      maxDataPtr = RDCMAX(minDataPtr, pipeInfo.shaders[i].specialization[s].data + entry[s].size);
+      memcpy(&specdata[0] + entry[s].offset, pipeInfo.shaders[i].specialization[s].data.data(),
+             entry[s].size);
     }
 
-    for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
-      entry[s].offset = (uint32_t)(pipeInfo.shaders[i].specialization[s].data - minDataPtr);
-
-    specInfo.dataSize = (maxDataPtr - minDataPtr);
-    specInfo.pData = (const void *)minDataPtr;
-
-    entry += specInfo.mapEntryCount;
+    specInfo.dataSize = specdata.size();
+    specInfo.pData = specdata.data();
   }
 
   VkComputePipelineCreateInfo ret = {

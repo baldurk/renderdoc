@@ -172,17 +172,14 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
     {
-      shad.specdata.resize(pCreateInfo->pStages[i].pSpecializationInfo->dataSize);
-      memcpy(&shad.specdata[0], pCreateInfo->pStages[i].pSpecializationInfo->pData,
-             shad.specdata.size());
+      const byte *data = (const byte *)pCreateInfo->pStages[i].pSpecializationInfo->pData;
 
       const VkSpecializationMapEntry *maps = pCreateInfo->pStages[i].pSpecializationInfo->pMapEntries;
       for(uint32_t s = 0; s < pCreateInfo->pStages[i].pSpecializationInfo->mapEntryCount; s++)
       {
-        Shader::SpecInfo spec;
+        SpecConstant spec;
         spec.specID = maps[s].constantID;
-        spec.data = &shad.specdata[maps[s].offset];
-        spec.size = maps[s].size;
+        spec.data.assign(data + maps[s].offset, data + maps[s].offset + maps[s].size);
         // ignore maps[s].size, assume it's enough for the type
         shad.specialization.push_back(spec);
       }
@@ -423,16 +420,15 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     if(pCreateInfo->stage.pSpecializationInfo)
     {
-      shad.specdata.resize(pCreateInfo->stage.pSpecializationInfo->dataSize);
-      memcpy(&shad.specdata[0], pCreateInfo->stage.pSpecializationInfo->pData, shad.specdata.size());
+      const byte *data = (const byte *)pCreateInfo->stage.pSpecializationInfo->pData;
 
       const VkSpecializationMapEntry *maps = pCreateInfo->stage.pSpecializationInfo->pMapEntries;
       for(uint32_t s = 0; s < pCreateInfo->stage.pSpecializationInfo->mapEntryCount; s++)
       {
-        Shader::SpecInfo spec;
+        SpecConstant spec;
         spec.specID = maps[s].constantID;
-        spec.data = &shad.specdata[maps[s].offset];
-        spec.size = maps[s].size;
+        spec.data.assign(data + maps[s].offset, data + maps[s].offset + maps[s].size);
+        // ignore maps[s].size, assume it's enough for the type
         shad.specialization.push_back(spec);
       }
     }

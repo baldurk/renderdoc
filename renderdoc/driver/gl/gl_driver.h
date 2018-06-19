@@ -308,7 +308,21 @@ private:
     GLuint prog;
     int version;
 
-    void Compile(WrappedOpenGL &gl, ResourceId id, GLuint realShader);
+    // used for if the application actually uploaded SPIR-V
+    std::vector<uint32_t> spirvWords;
+
+    // the parameters passed to glSpecializeShader
+    std::string entryPoint;
+    std::vector<uint32_t> specIDs;
+    std::vector<uint32_t> specValues;
+
+    // pre-calculated bindpoint mapping for SPIR-V shaders. NOT valid for normal GLSL shaders
+    ShaderBindpointMapping mapping;
+
+    void ProcessCompilation(WrappedOpenGL &gl, ResourceId id, GLuint realShader);
+    void ProcessSPIRVCompilation(WrappedOpenGL &gl, ResourceId id, GLuint realShader,
+                                 const GLchar *pEntryPoint, GLuint numSpecializationConstants,
+                                 const GLuint *pConstantIndex, const GLuint *pConstantValue);
   };
 
   struct ProgramData
@@ -2241,6 +2255,10 @@ public:
                                                       GLsizei samples);
   void glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment, GLenum textarget,
                                             GLuint texture, GLint level, GLsizei samples);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, glSpecializeShader, GLuint shader, const GLchar *pEntryPoint,
+                                GLuint numSpecializationConstants, const GLuint *pConstantIndex,
+                                const GLuint *pConstantValue);
 };
 
 class ScopedDebugContext

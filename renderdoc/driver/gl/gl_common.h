@@ -1772,6 +1772,9 @@ enum class GLChunk : uint32_t
   glMaxShaderCompilerThreadsARB,
   glMaxShaderCompilerThreadsKHR,
 
+  glSpecializeShader,
+  glSpecializeShaderARB,
+
   Max,
 };
 

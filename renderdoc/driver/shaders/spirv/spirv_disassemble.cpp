@@ -4394,7 +4394,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
     // set something crazy so this doesn't overlap with a real buffer binding
     // also identify this as specialization constant data
-    bindmap.bindset = 123456;    // magic constants :(
+    bindmap.bindset = SpecializationConstantBindSet;
     bindmap.bind = -1;
     bindmap.arraySize = 1;
     bindmap.used = true;

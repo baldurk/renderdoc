@@ -54,11 +54,77 @@ std::string DoStringise(const GLshaderbitfield &el)
   END_BITFIELD_STRINGISE();
 }
 
-void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint realShader)
+void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &gl, ResourceId id,
+                                                        GLuint realShader, const GLchar *pEntryPoint,
+                                                        GLuint numSpecializationConstants,
+                                                        const GLuint *pConstantIndex,
+                                                        const GLuint *pConstantValue)
+{
+  reflection.resourceId = id;
+  reflection.entryPoint = pEntryPoint;
+  reflection.stage = MakeShaderStage(type);
+  reflection.encoding = ShaderEncoding::SPIRV;
+  reflection.rawBytes.assign((byte *)spirv.spirv.data(), spirv.spirv.size() * sizeof(uint32_t));
+
+  // we discard this too, because we don't need it - we don't do any SPIR-V patching in GL
+  SPIRVPatchData patchData;
+
+  spirv.MakeReflection(ShaderStage(ShaderIdx(type)), pEntryPoint, reflection, mapping, patchData);
+
+  version = 460;
+
+  entryPoint = pEntryPoint;
+  if(numSpecializationConstants > 0)
+  {
+    specIDs.assign(pConstantIndex, pConstantIndex + numSpecializationConstants);
+    specValues.assign(pConstantValue, pConstantValue + numSpecializationConstants);
+  }
+
+  const GLHookSet &real = gl.GetHookset();
+
+  GLuint sepshader = real.glCreateShader(type);
+  if(sepshader)
+  {
+    real.glShaderBinary(1, &sepshader, eGL_SHADER_BINARY_FORMAT_SPIR_V, reflection.rawBytes.data(),
+                        (GLsizei)reflection.rawBytes.size());
+
+    real.glSpecializeShader(sepshader, pEntryPoint, numSpecializationConstants, pConstantIndex,
+                            pConstantValue);
+
+    GLint compiled = 0;
+
+    real.glGetShaderiv(sepshader, eGL_COMPILE_STATUS, &compiled);
+
+    if(compiled)
+    {
+      prog = real.glCreateProgram();
+
+      real.glAttachShader(prog, sepshader);
+      real.glProgramParameteri(prog, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+      real.glLinkProgram(prog);
+
+      gl.glGetProgramiv(prog, eGL_LINK_STATUS, &compiled);
+
+      if(!compiled)
+      {
+        RDCERR("Re-compiled but couldn't link SPIR-V program");
+      }
+    }
+    else
+    {
+      RDCERR("Couldn't re-compile SPIR-V shader");
+    }
+    real.glDeleteShader(sepshader);
+  }
+}
+
+void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &gl, ResourceId id, GLuint realShader)
 {
   bool pointSizeUsed = false, clipDistanceUsed = false;
   if(type == eGL_VERTEX_SHADER)
     CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
+
+  entryPoint = "main";
 
   string concatenated;
 
@@ -374,7 +440,8 @@ bool WrappedOpenGL::Serialise_glCompileShader(SerialiserType &ser, GLuint shader
 
     m_Real.glCompileShader(shader.name);
 
-    m_Shaders[liveId].Compile(*this, GetResourceManager()->GetOriginalID(liveId), shader.name);
+    m_Shaders[liveId].ProcessCompilation(*this, GetResourceManager()->GetOriginalID(liveId),
+                                         shader.name);
 
     AddResourceInitChunk(shader);
   }
@@ -403,7 +470,7 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
   else
   {
     ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
-    m_Shaders[id].Compile(*this, id, shader);
+    m_Shaders[id].ProcessCompilation(*this, id, shader);
   }
 }
 
@@ -606,7 +673,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
     shadDetails.sources.swap(src);
     shadDetails.prog = sepprog;
 
-    shadDetails.Compile(*this, Program, 0);
+    shadDetails.ProcessCompilation(*this, Program, 0);
 
     GetResourceManager()->AddLiveResource(Program, res);
 
@@ -670,7 +737,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     shadDetails.sources.swap(src);
     shadDetails.prog = sepprog;
 
-    shadDetails.Compile(*this, id, 0);
+    shadDetails.ProcessCompilation(*this, id, 0);
   }
 
   return real;
@@ -1178,14 +1245,61 @@ void WrappedOpenGL::glValidateProgramPipeline(GLuint pipeline)
   m_Real.glValidateProgramPipeline(pipeline);
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glShaderBinary(SerialiserType &ser, GLsizei count,
+                                             const GLuint *shaders, GLenum binaryformat,
+                                             const void *binary, GLsizei length)
+{
+  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaders[0]));
+  SERIALISE_ELEMENT(binaryformat);
+  SERIALISE_ELEMENT_ARRAY(binary, length);
+  SERIALISE_ELEMENT(length);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ResourceId liveId = GetResourceManager()->GetID(shader);
+
+    m_Real.glShaderBinary(1, &shader.name, binaryformat, binary, length);
+
+    m_Shaders[liveId].spirvWords.assign((uint32_t *)binary, (uint32_t *)((byte *)binary + length));
+
+    AddResourceInitChunk(shader);
+  }
+
+  return true;
+}
+
 void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum binaryformat,
                                    const void *binary, GLsizei length)
 {
-  // deliberately don't forward on this call when writing, since we want to coax the app into
-  // providing non-binary shaders.
+  // conditionally forward on this call when capturing, since we want to coax the app into
+  // providing non-binary shaders unless it's a format we understand: SPIR-V.
   if(IsReplayMode(m_State))
   {
     m_Real.glShaderBinary(count, shaders, binaryformat, binary, length);
+  }
+  else if(IsCaptureMode(m_State) && binaryformat == eGL_SHADER_BINARY_FORMAT_SPIR_V)
+  {
+    SERIALISE_TIME_CALL(m_Real.glShaderBinary(count, shaders, binaryformat, binary, length));
+
+    for(GLsizei i = 0; i < count; i++)
+    {
+      GLResourceRecord *record =
+          GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shaders[i]));
+      RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                   shaders[i]);
+      if(record)
+      {
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+        Serialise_glShaderBinary(ser, 1, shaders + i, binaryformat, binary, length);
+
+        record->AddChunk(scope.Get());
+      }
+    }
   }
 }
 
@@ -1588,7 +1702,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
 
     m_Real.glCompileShaderIncludeARB(shader.name, count, path, NULL);
 
-    shadDetails.Compile(*this, GetResourceManager()->GetOriginalID(liveId), shader.name);
+    shadDetails.ProcessCompilation(*this, GetResourceManager()->GetOriginalID(liveId), shader.name);
 
     AddResourceInitChunk(shader);
   }
@@ -1627,7 +1741,7 @@ void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count,
     for(int32_t i = 0; i < count; i++)
       shadDetails.includepaths.push_back(path[i]);
 
-    shadDetails.Compile(*this, id, shader);
+    shadDetails.ProcessCompilation(*this, id, shader);
   }
 }
 
@@ -1717,7 +1831,63 @@ void WrappedOpenGL::glMaxShaderCompilerThreadsKHR(GLuint count)
   m_Real.glMaxShaderCompilerThreadsKHR(count);
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glSpecializeShader(SerialiserType &ser, GLuint shaderHandle,
+                                                 const GLchar *pEntryPoint,
+                                                 GLuint numSpecializationConstants,
+                                                 const GLuint *pConstantIndex,
+                                                 const GLuint *pConstantValue)
 {
+  SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
+  SERIALISE_ELEMENT(pEntryPoint);
+  SERIALISE_ELEMENT(numSpecializationConstants);
+  SERIALISE_ELEMENT_ARRAY(pConstantIndex, numSpecializationConstants);
+  SERIALISE_ELEMENT_ARRAY(pConstantValue, numSpecializationConstants);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ResourceId liveId = GetResourceManager()->GetID(shader);
+
+    m_Real.glSpecializeShader(shader.name, pEntryPoint, numSpecializationConstants, pConstantIndex,
+                              pConstantValue);
+
+    ParseSPIRV(m_Shaders[liveId].spirvWords.data(), m_Shaders[liveId].spirvWords.size(),
+               m_Shaders[liveId].spirv);
+
+    m_Shaders[liveId].ProcessSPIRVCompilation(*this, GetResourceManager()->GetOriginalID(liveId),
+                                              shader.name, pEntryPoint, numSpecializationConstants,
+                                              pConstantIndex, pConstantValue);
+
+    AddResourceInitChunk(shader);
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glSpecializeShader(GLuint shader, const GLchar *pEntryPoint,
+                                       GLuint numSpecializationConstants,
+                                       const GLuint *pConstantIndex, const GLuint *pConstantValue)
+{
+  SERIALISE_TIME_CALL(m_Real.glSpecializeShader(shader, pEntryPoint, numSpecializationConstants,
+                                                pConstantIndex, pConstantValue));
+
+  if(IsCaptureMode(m_State))
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 shader);
+    if(record)
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glSpecializeShader(ser, shader, pEntryPoint, numSpecializationConstants,
+                                   pConstantIndex, pConstantValue);
+
+      record->AddChunk(scope.Get());
+    }
+  }
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, glCreateShader, GLenum type, GLuint shader);
@@ -1757,3 +1927,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glCompileShaderIncludeARB, GLuint shaderHa
 INSTANTIATE_FUNCTION_SERIALISED(void, glNamedStringARB, GLenum type, GLint namelen,
                                 const GLchar *nameStr, GLint stringlen, const GLchar *valStr);
 INSTANTIATE_FUNCTION_SERIALISED(void, glDeleteNamedStringARB, GLint namelen, const GLchar *nameStr);
+INSTANTIATE_FUNCTION_SERIALISED(void, glShaderBinary, GLsizei count, const GLuint *shaders,
+                                GLenum binaryformat, const void *binary, GLsizei length);
+INSTANTIATE_FUNCTION_SERIALISED(void, glSpecializeShader, GLuint shader, const GLchar *pEntryPoint,
+                                GLuint numSpecializationConstants, const GLuint *pConstantIndex,
+                                const GLuint *pConstantValue);

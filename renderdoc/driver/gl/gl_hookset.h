@@ -662,6 +662,8 @@ struct GLHookSet
   // ARB_parallel_shader_compile
   PFNGLMAXSHADERCOMPILERTHREADSKHRPROC glMaxShaderCompilerThreadsKHR; // aliases glMaxShaderCompilerThreadsARB
 
+  // ARB_gl_spirv
+  PFNGLSPECIALIZESHADERPROC glSpecializeShader; // aliases glSpecializeShaderARB
 
   // EXT_direct_state_access below here. We only include the functions relevant for core 3.2+ GL,
   // not any

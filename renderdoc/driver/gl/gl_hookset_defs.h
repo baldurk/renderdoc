@@ -1082,6 +1082,8 @@
   HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
   HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsEXT); \
   HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
+  HookExtension(PFNGLSPECIALIZESHADERPROC, glSpecializeShader); \
+  HookExtensionAlias(PFNGLSPECIALIZESHADERPROC, glSpecializeShader, glSpecializeShaderARB); \
   HookExtension(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTPROC, glMultiDrawArraysIndirectCount); \
   HookExtensionAlias(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTPROC, glMultiDrawArraysIndirectCount, glMultiDrawArraysIndirectCountARB); \
   HookExtension(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC, glMultiDrawElementsIndirectCount); \
@@ -2342,6 +2344,8 @@
     HookAliasWrapper8(void, glReadnPixelsEXT, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper0(void, glTextureBarrier); \
+    HookAliasWrapper5(void, glSpecializeShaderARB, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
+    HookWrapper5(void, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
     HookAliasWrapper5(void, glMultiDrawArraysIndirectCountARB, glMultiDrawArraysIndirectCount, GLenum, mode, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
     HookWrapper5(void, glMultiDrawArraysIndirectCount, GLenum, mode, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
     HookAliasWrapper6(void, glMultiDrawElementsIndirectCountARB, glMultiDrawElementsIndirectCount, GLenum, mode, GLenum, type, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
@@ -2491,7 +2495,6 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper5(void, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
     HookWrapper8(void, glPrimitiveBoundingBoxARB, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper1(GLuint64, glGetTextureHandleARB, GLuint, texture); \
     HookWrapper2(GLuint64, glGetTextureSamplerHandleARB, GLuint, texture, GLuint, sampler); \
@@ -2511,7 +2514,6 @@
     HookWrapper3(void, glGetVertexAttribLui64vARB, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
     HookWrapper3(GLsync, glCreateSyncFromCLeventARB, struct _cl_context *, context, struct _cl_event *, event, GLbitfield, flags); \
     HookWrapper5(void, glFramebufferTextureFaceARB, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
-    HookWrapper5(void, glSpecializeShaderARB, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
     HookWrapper2(void, glUniform1i64ARB, GLint, location, GLint64, x); \
     HookWrapper3(void, glUniform2i64ARB, GLint, location, GLint64, x, GLint64, y); \
     HookWrapper4(void, glUniform3i64ARB, GLint, location, GLint64, x, GLint64, y, GLint64, z); \
@@ -4470,7 +4472,6 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLSPECIALIZESHADERPROC, glSpecializeShader); \
     HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXARBPROC, glPrimitiveBoundingBoxARB); \
     HandleUnsupported(PFNGLGETTEXTUREHANDLEARBPROC, glGetTextureHandleARB); \
     HandleUnsupported(PFNGLGETTEXTURESAMPLERHANDLEARBPROC, glGetTextureSamplerHandleARB); \
@@ -4490,7 +4491,6 @@
     HandleUnsupported(PFNGLGETVERTEXATTRIBLUI64VARBPROC, glGetVertexAttribLui64vARB); \
     HandleUnsupported(PFNGLCREATESYNCFROMCLEVENTARBPROC, glCreateSyncFromCLeventARB); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREFACEARBPROC, glFramebufferTextureFaceARB); \
-    HandleUnsupported(PFNGLSPECIALIZESHADERARBPROC, glSpecializeShaderARB); \
     HandleUnsupported(PFNGLUNIFORM1I64ARBPROC, glUniform1i64ARB); \
     HandleUnsupported(PFNGLUNIFORM2I64ARBPROC, glUniform2i64ARB); \
     HandleUnsupported(PFNGLUNIFORM3I64ARBPROC, glUniform3i64ARB); \

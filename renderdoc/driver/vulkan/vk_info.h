@@ -138,14 +138,7 @@ struct VulkanCreationInfo
       ShaderBindpointMapping *mapping;
       SPIRVPatchData *patchData;
 
-      vector<byte> specdata;
-      struct SpecInfo
-      {
-        uint32_t specID;
-        byte *data;
-        size_t size;
-      };
-      vector<SpecInfo> specialization;
+      vector<SpecConstant> specialization;
     };
     Shader shaders[6];
 

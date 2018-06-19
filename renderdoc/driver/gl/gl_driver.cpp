@@ -77,6 +77,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_ARB_geometry_shader4");
   m_GLExtensions.push_back("GL_ARB_get_program_binary");
   m_GLExtensions.push_back("GL_ARB_get_texture_sub_image");
+  m_GLExtensions.push_back("GL_ARB_gl_spirv");
   m_GLExtensions.push_back("GL_ARB_gpu_shader_fp64");
   m_GLExtensions.push_back("GL_ARB_gpu_shader5");
   m_GLExtensions.push_back("GL_ARB_half_float_pixel");
@@ -135,6 +136,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_ARB_shading_language_packing");
   m_GLExtensions.push_back("GL_ARB_shadow");
   m_GLExtensions.push_back("GL_ARB_shadow_ambient");
+  m_GLExtensions.push_back("GL_ARB_spirv_extensions");
   m_GLExtensions.push_back("GL_ARB_stencil_texturing");
   m_GLExtensions.push_back("GL_ARB_sync");
   m_GLExtensions.push_back("GL_ARB_tessellation_shader");
@@ -3917,6 +3919,12 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       // Just in case it gets exported and imported, completely ignore it.
       return true;
 
+    case GLChunk::glShaderBinary: return Serialise_glShaderBinary(ser, 0, NULL, eGL_NONE, NULL, 0);
+
+    case GLChunk::glSpecializeShaderARB:
+    case GLChunk::glSpecializeShader:
+      return Serialise_glSpecializeShader(ser, 0, NULL, 0, NULL, NULL);
+
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
     // where and how they're called).
@@ -4198,7 +4206,6 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glActiveShaderProgram:
     case GLChunk::glActiveShaderProgramEXT:
     case GLChunk::glProgramBinary:
-    case GLChunk::glShaderBinary:
     case GLChunk::glReleaseShaderCompiler:
     case GLChunk::glFrameTerminatorGREMEDY:
     case GLChunk::glDiscardFramebufferEXT:

@@ -847,6 +847,7 @@ void GLReplay::SavePipelineState()
   };
   ShaderReflection *refls[6] = {NULL};
   ShaderBindpointMapping *mappings[6] = {NULL};
+  bool spirv[6] = {false};
 
   for(int i = 0; i < 6; i++)
   {
@@ -879,10 +880,25 @@ void GLReplay::SavePipelineState()
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
           curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
-          stages[i]->reflection = refls[i] =
-              GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
-          GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i],
-                              stages[i]->bindpointMapping);
+
+          auto &shaderDetails = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
+
+          if(shaderDetails.prog == 0)
+            stages[i]->reflection = refls[i] = NULL;
+          else
+            stages[i]->reflection = refls[i] = &shaderDetails.reflection;
+
+          if(!shaderDetails.spirvWords.empty())
+          {
+            stages[i]->bindpointMapping = shaderDetails.mapping;
+            spirv[i] = true;
+          }
+          else
+          {
+            GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i],
+                                stages[i]->bindpointMapping);
+          }
+
           mappings[i] = &stages[i]->bindpointMapping;
 
           stages[i]->programResourceId = rm->GetOriginalID(pipeDetails.stagePrograms[i]);
@@ -906,8 +922,24 @@ void GLReplay::SavePipelineState()
     {
       if(progDetails.stageShaders[i] != ResourceId())
       {
-        stages[i]->reflection = refls[i] = GetShader(progDetails.stageShaders[i], ShaderEntryPoint());
-        GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->bindpointMapping);
+        auto &shaderDetails = m_pDriver->m_Shaders[progDetails.stageShaders[i]];
+
+        if(shaderDetails.prog == 0)
+          stages[i]->reflection = refls[i] = NULL;
+        else
+          stages[i]->reflection = refls[i] = &shaderDetails.reflection;
+
+        if(!shaderDetails.spirvWords.empty())
+        {
+          stages[i]->bindpointMapping = shaderDetails.mapping;
+          spirv[i] = true;
+        }
+        else
+        {
+          GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i],
+                              stages[i]->bindpointMapping);
+        }
+
         mappings[i] = &stages[i]->bindpointMapping;
 
         stages[i]->programResourceId = rm->GetOriginalID(id);
@@ -923,7 +955,13 @@ void GLReplay::SavePipelineState()
   // !!!NOTE!!! This function will MODIFY the refls[] binding arrays.
   // See inside this function for what it does and why.
   for(size_t i = 0; i < ARRAY_COUNT(refls); i++)
+  {
+    // don't resort if it's SPIR-V
+    if(spirv[i])
+      continue;
+
     ResortBindings(refls[i], mappings[i]);
+  }
 
   RDCEraseEl(pipe.transformFeedback);
 
@@ -1987,8 +2025,33 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
 
   const ConstantBlock &cblock = shaderDetails.reflection.constantBlocks[cbufSlot];
 
-  FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables,
-                       outvars, data);
+  if(shaderDetails.spirvWords.empty())
+  {
+    FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables,
+                         outvars, data);
+  }
+  else
+  {
+    if(shaderDetails.mapping.constantBlocks[cbufSlot].bindset == SpecializationConstantBindSet)
+    {
+      std::vector<SpecConstant> specconsts;
+
+      for(size_t i = 0; i < shaderDetails.specIDs.size(); i++)
+      {
+        SpecConstant spec;
+        spec.specID = shaderDetails.specIDs[i];
+        spec.data.resize(sizeof(shaderDetails.specValues[i]));
+        memcpy(&spec.data[0], &shaderDetails.specValues[i], spec.data.size());
+        specconsts.push_back(spec);
+      }
+
+      FillSpecConstantVariables(cblock.variables, outvars, specconsts);
+    }
+    else
+    {
+      SPIRVFillCBufferVariables(cblock.variables, outvars, data, 0);
+    }
+  }
 }
 
 void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,

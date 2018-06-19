@@ -1104,15 +1104,34 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
           }
         }
 
-        char **srcs = new char *[shadDetails.sources.size()];
-        for(size_t s = 0; s < shadDetails.sources.size(); s++)
-          srcs[s] = (char *)shadDetails.sources[s].c_str();
-        gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
+        if(!shadDetails.sources.empty())
+        {
+          char **srcs = new char *[shadDetails.sources.size()];
+          for(size_t s = 0; s < shadDetails.sources.size(); s++)
+            srcs[s] = (char *)shadDetails.sources[s].c_str();
+          gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
 
-        SAFE_DELETE_ARRAY(srcs);
-        gl.glCompileShader(shad);
-        gl.glAttachShader(initProg, shad);
-        gl.glDeleteShader(shad);
+          SAFE_DELETE_ARRAY(srcs);
+          gl.glCompileShader(shad);
+          gl.glAttachShader(initProg, shad);
+          gl.glDeleteShader(shad);
+        }
+        else if(!shadDetails.spirvWords.empty())
+        {
+          gl.glShaderBinary(1, &shad, eGL_SHADER_BINARY_FORMAT_SPIR_V, shadDetails.spirvWords.data(),
+                            (GLsizei)shadDetails.spirvWords.size() * sizeof(uint32_t));
+
+          gl.glSpecializeShader(shad, shadDetails.entryPoint.c_str(),
+                                (GLuint)shadDetails.specIDs.size(), shadDetails.specIDs.data(),
+                                shadDetails.specValues.data());
+
+          gl.glAttachShader(initProg, shad);
+          gl.glDeleteShader(shad);
+        }
+        else
+        {
+          RDCERR("Unexpectedly empty shader in program initial state!");
+        }
       }
 
       // Some drivers optimize out uniforms if they dont change any active vertex shader outputs.
