@@ -716,7 +716,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glPixelStoref, GLenum pname, GLfloat param);
   IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonMode, GLenum face, GLenum mode);
   IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffset, GLfloat factor, GLfloat units);
-  IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffsetClampEXT, GLfloat factor, GLfloat units,
+  IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffsetClamp, GLfloat factor, GLfloat units,
                                 GLfloat clamp);
   IMPLEMENT_FUNCTION_SERIALISED(void, glPatchParameteri, GLenum pname, GLint param);
   IMPLEMENT_FUNCTION_SERIALISED(void, glPatchParameterfv, GLenum pname, const GLfloat *params);
@@ -1688,10 +1688,10 @@ public:
                                 GLsizei drawcount, GLsizei stride);
   IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect, GLenum mode, GLenum type,
                                 const void *indirect, GLsizei drawcount, GLsizei stride);
-  IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCountARB, GLenum mode,
+  IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCount, GLenum mode,
                                 const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
-  IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCountARB, GLenum mode, GLenum type,
+  IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCount, GLenum mode, GLenum type,
                                 const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysIndirect, GLenum mode, const void *indirect);
@@ -2231,6 +2231,8 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glPrimitiveBoundingBox, GLfloat minX, GLfloat minY,
                                 GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY,
                                 GLfloat maxZ, GLfloat maxW);
+
+  void glMaxShaderCompilerThreadsKHR(GLuint count);
 
   template <typename SerialiserType>
   bool Serialise_glFramebufferTexture2DMultisampleEXT(SerialiserType &ser, GLuint framebuffer,

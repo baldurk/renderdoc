@@ -1082,9 +1082,15 @@
   HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
   HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsEXT); \
   HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
+  HookExtension(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTPROC, glMultiDrawArraysIndirectCount); \
+  HookExtensionAlias(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTPROC, glMultiDrawArraysIndirectCount, glMultiDrawArraysIndirectCountARB); \
+  HookExtension(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC, glMultiDrawElementsIndirectCount); \
+  HookExtensionAlias(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC, glMultiDrawElementsIndirectCount, glMultiDrawElementsIndirectCountARB); \
+  HookExtension(PFNGLPOLYGONOFFSETCLAMPPROC, glPolygonOffsetClamp); \
+  HookExtensionAlias(PFNGLPOLYGONOFFSETCLAMPPROC, glPolygonOffsetClamp, glPolygonOffsetClampEXT); \
   HookExtension(PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC, glDispatchComputeGroupSizeARB); \
-  HookExtension(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC, glMultiDrawArraysIndirectCountARB); \
-  HookExtension(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTARBPROC, glMultiDrawElementsIndirectCountARB); \
+  HookExtension(PFNGLMAXSHADERCOMPILERTHREADSARBPROC, glMaxShaderCompilerThreadsKHR); \
+  HookExtensionAlias(PFNGLMAXSHADERCOMPILERTHREADSARBPROC, glMaxShaderCompilerThreadsKHR, glMaxShaderCompilerThreadsARB); \
   HookExtension(PFNGLNAMEDSTRINGARBPROC, glNamedStringARB); \
   HookExtension(PFNGLDELETENAMEDSTRINGARBPROC, glDeleteNamedStringARB); \
   HookExtension(PFNGLCOMPILESHADERINCLUDEARBPROC, glCompileShaderIncludeARB); \
@@ -1196,7 +1202,6 @@
   HookExtension(PFNGLTEXTURESTORAGE3DMULTISAMPLEEXTPROC, glTextureStorage3DMultisampleEXT); \
   HookExtension(PFNGLVERTEXARRAYVERTEXATTRIBLOFFSETEXTPROC, glVertexArrayVertexAttribLOffsetEXT); \
   HookExtension(PFNGLVERTEXARRAYVERTEXATTRIBDIVISOREXTPROC, glVertexArrayVertexAttribDivisorEXT); \
-  HookExtension(PFNGLPOLYGONOFFSETCLAMPEXTPROC, glPolygonOffsetClampEXT); \
   HookExtension(PFNGLRASTERSAMPLESEXTPROC, glRasterSamplesEXT); \
   HookExtension(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR); \
   HookExtension(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT); \
@@ -2337,9 +2342,15 @@
     HookAliasWrapper8(void, glReadnPixelsEXT, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper0(void, glTextureBarrier); \
+    HookAliasWrapper5(void, glMultiDrawArraysIndirectCountARB, glMultiDrawArraysIndirectCount, GLenum, mode, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
+    HookWrapper5(void, glMultiDrawArraysIndirectCount, GLenum, mode, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
+    HookAliasWrapper6(void, glMultiDrawElementsIndirectCountARB, glMultiDrawElementsIndirectCount, GLenum, mode, GLenum, type, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
+    HookWrapper6(void, glMultiDrawElementsIndirectCount, GLenum, mode, GLenum, type, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
+    HookAliasWrapper3(void, glPolygonOffsetClampEXT, glPolygonOffsetClamp, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
+    HookWrapper3(void, glPolygonOffsetClamp, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
     HookWrapper6(void, glDispatchComputeGroupSizeARB, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z, GLuint, group_size_x, GLuint, group_size_y, GLuint, group_size_z); \
-    HookWrapper5(void, glMultiDrawArraysIndirectCountARB, GLenum, mode, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
-    HookWrapper6(void, glMultiDrawElementsIndirectCountARB, GLenum, mode, GLenum, type, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
+    HookAliasWrapper1(void, glMaxShaderCompilerThreadsARB, glMaxShaderCompilerThreadsKHR, GLuint, count); \
+    HookWrapper1(void, glMaxShaderCompilerThreadsKHR, GLuint, count); \
     HookWrapper5(void, glNamedStringARB, GLenum, type, GLint, namelen, const GLchar *, name, GLint, stringlen, const GLchar *, string); \
     HookWrapper2(void, glDeleteNamedStringARB, GLint, namelen, const GLchar *, name); \
     HookWrapper4(void, glCompileShaderIncludeARB, GLuint, shader, GLsizei, count, const GLchar *const*, path, const GLint *, length); \
@@ -2451,7 +2462,6 @@
     HookWrapper8(void, glTextureStorage3DMultisampleEXT, GLuint, texture, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
     HookWrapper7(void, glVertexArrayVertexAttribLOffsetEXT, GLuint, vaobj, GLuint, buffer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
     HookWrapper3(void, glVertexArrayVertexAttribDivisorEXT, GLuint, vaobj, GLuint, index, GLuint, divisor); \
-    HookWrapper3(void, glPolygonOffsetClampEXT, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
     HookWrapper2(void, glRasterSamplesEXT, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper6(void, glFramebufferTextureMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper2(void, glDepthBoundsEXT, GLclampd, zmin, GLclampd, zmax); \
@@ -2482,9 +2492,6 @@
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
     HookWrapper5(void, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
-    HookWrapper5(void, glMultiDrawArraysIndirectCount, GLenum, mode, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
-    HookWrapper6(void, glMultiDrawElementsIndirectCount, GLenum, mode, GLenum, type, const void *, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
-    HookWrapper3(void, glPolygonOffsetClamp, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
     HookWrapper8(void, glPrimitiveBoundingBoxARB, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper1(GLuint64, glGetTextureHandleARB, GLuint, texture); \
     HookWrapper2(GLuint64, glGetTextureSamplerHandleARB, GLuint, texture, GLuint, sampler); \
@@ -2541,7 +2548,6 @@
     HookWrapper4(void, glProgramUniform2ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
     HookWrapper4(void, glProgramUniform3ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
     HookWrapper4(void, glProgramUniform4ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
-    HookWrapper1(void, glMaxShaderCompilerThreadsARB, GLuint, count); \
     HookWrapper4(void, glFramebufferSampleLocationsfvARB, GLenum, target, GLuint, start, GLsizei, count, const GLfloat *, v); \
     HookWrapper4(void, glNamedFramebufferSampleLocationsfvARB, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
     HookWrapper0(void, glEvaluateDepthValuesARB); \
@@ -2549,7 +2555,6 @@
     HookWrapper4(void, glNamedBufferPageCommitmentEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
     HookWrapper4(void, glNamedBufferPageCommitmentARB, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
     HookWrapper9(void, glTexPageCommitmentARB, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
-    HookWrapper1(void, glMaxShaderCompilerThreadsKHR, GLuint, count); \
     HookWrapper3(void, glGetPerfMonitorGroupsAMD, GLint *, numGroups, GLsizei, groupsSize, GLuint *, groups); \
     HookWrapper5(void, glGetPerfMonitorCountersAMD, GLuint, group, GLint *, numCounters, GLint *, maxActiveCounters, GLsizei, counterSize, GLuint *, counters); \
     HookWrapper4(void, glGetPerfMonitorGroupStringAMD, GLuint, group, GLsizei, bufSize, GLsizei *, length, GLchar *, groupString); \
@@ -2561,6 +2566,8 @@
     HookWrapper1(void, glBeginPerfMonitorAMD, GLuint, monitor); \
     HookWrapper1(void, glEndPerfMonitorAMD, GLuint, monitor); \
     HookWrapper5(void, glGetPerfMonitorCounterDataAMD, GLuint, monitor, GLenum, pname, GLsizei, dataSize, GLuint *, data, GLint *, bytesWritten); \
+    HookWrapper3(void, glEGLImageTargetTexStorageEXT, GLenum, target, GLeglImageOES, image, const GLint*, attrib_list); \
+    HookWrapper3(void, glEGLImageTargetTextureStorageEXT, GLuint, texture, GLeglImageOES, image, const GLint*, attrib_list); \
     HookWrapper2(void, glMatrixLoadfEXT, GLenum, mode, const GLfloat *, m); \
     HookWrapper2(void, glMatrixLoaddEXT, GLenum, mode, const GLdouble *, m); \
     HookWrapper2(void, glMatrixMultfEXT, GLenum, mode, const GLfloat *, m); \
@@ -2638,6 +2645,7 @@
     HookWrapper2(void, glUseShaderProgramEXT, GLenum, type, GLuint, program); \
     HookWrapper1(void, glActiveProgramEXT, GLuint, program); \
     HookWrapper2(GLuint, glCreateShaderProgramEXT, GLenum, type, const GLchar *, string); \
+    HookWrapper0(void, glFramebufferFetchBarrierEXT); \
     HookWrapper3(void, glWindowRectanglesEXT, GLenum, mode, GLsizei, count, const GLint *, box); \
     HookWrapper0(void, glApplyFramebufferAttachmentCMAAINTEL); \
     HookWrapper1(void, glBeginPerfQueryINTEL, GLuint, queryHandle); \
@@ -4463,9 +4471,6 @@
 
 #define CheckUnsupported() \
     HandleUnsupported(PFNGLSPECIALIZESHADERPROC, glSpecializeShader); \
-    HandleUnsupported(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTPROC, glMultiDrawArraysIndirectCount); \
-    HandleUnsupported(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC, glMultiDrawElementsIndirectCount); \
-    HandleUnsupported(PFNGLPOLYGONOFFSETCLAMPPROC, glPolygonOffsetClamp); \
     HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXARBPROC, glPrimitiveBoundingBoxARB); \
     HandleUnsupported(PFNGLGETTEXTUREHANDLEARBPROC, glGetTextureHandleARB); \
     HandleUnsupported(PFNGLGETTEXTURESAMPLERHANDLEARBPROC, glGetTextureSamplerHandleARB); \
@@ -4522,7 +4527,6 @@
     HandleUnsupported(PFNGLPROGRAMUNIFORM2UI64VARBPROC, glProgramUniform2ui64vARB); \
     HandleUnsupported(PFNGLPROGRAMUNIFORM3UI64VARBPROC, glProgramUniform3ui64vARB); \
     HandleUnsupported(PFNGLPROGRAMUNIFORM4UI64VARBPROC, glProgramUniform4ui64vARB); \
-    HandleUnsupported(PFNGLMAXSHADERCOMPILERTHREADSARBPROC, glMaxShaderCompilerThreadsARB); \
     HandleUnsupported(PFNGLFRAMEBUFFERSAMPLELOCATIONSFVARBPROC, glFramebufferSampleLocationsfvARB); \
     HandleUnsupported(PFNGLNAMEDFRAMEBUFFERSAMPLELOCATIONSFVARBPROC, glNamedFramebufferSampleLocationsfvARB); \
     HandleUnsupported(PFNGLEVALUATEDEPTHVALUESARBPROC, glEvaluateDepthValuesARB); \
@@ -4530,7 +4534,6 @@
     HandleUnsupported(PFNGLNAMEDBUFFERPAGECOMMITMENTEXTPROC, glNamedBufferPageCommitmentEXT); \
     HandleUnsupported(PFNGLNAMEDBUFFERPAGECOMMITMENTARBPROC, glNamedBufferPageCommitmentARB); \
     HandleUnsupported(PFNGLTEXPAGECOMMITMENTARBPROC, glTexPageCommitmentARB); \
-    HandleUnsupported(PFNGLMAXSHADERCOMPILERTHREADSKHRPROC, glMaxShaderCompilerThreadsKHR); \
     HandleUnsupported(PFNGLGETPERFMONITORGROUPSAMDPROC, glGetPerfMonitorGroupsAMD); \
     HandleUnsupported(PFNGLGETPERFMONITORCOUNTERSAMDPROC, glGetPerfMonitorCountersAMD); \
     HandleUnsupported(PFNGLGETPERFMONITORGROUPSTRINGAMDPROC, glGetPerfMonitorGroupStringAMD); \
@@ -4542,6 +4545,8 @@
     HandleUnsupported(PFNGLBEGINPERFMONITORAMDPROC, glBeginPerfMonitorAMD); \
     HandleUnsupported(PFNGLENDPERFMONITORAMDPROC, glEndPerfMonitorAMD); \
     HandleUnsupported(PFNGLGETPERFMONITORCOUNTERDATAAMDPROC, glGetPerfMonitorCounterDataAMD); \
+    HandleUnsupported(PFNGLEGLIMAGETARGETTEXSTORAGEEXTPROC, glEGLImageTargetTexStorageEXT); \
+    HandleUnsupported(PFNGLEGLIMAGETARGETTEXTURESTORAGEEXTPROC, glEGLImageTargetTextureStorageEXT); \
     HandleUnsupported(PFNGLMATRIXLOADFEXTPROC, glMatrixLoadfEXT); \
     HandleUnsupported(PFNGLMATRIXLOADDEXTPROC, glMatrixLoaddEXT); \
     HandleUnsupported(PFNGLMATRIXMULTFEXTPROC, glMatrixMultfEXT); \
@@ -4619,6 +4624,7 @@
     HandleUnsupported(PFNGLUSESHADERPROGRAMEXTPROC, glUseShaderProgramEXT); \
     HandleUnsupported(PFNGLACTIVEPROGRAMEXTPROC, glActiveProgramEXT); \
     HandleUnsupported(PFNGLCREATESHADERPROGRAMEXTPROC, glCreateShaderProgramEXT); \
+    HandleUnsupported(PFNGLFRAMEBUFFERFETCHBARRIEREXTPROC, glFramebufferFetchBarrierEXT); \
     HandleUnsupported(PFNGLWINDOWRECTANGLESEXTPROC, glWindowRectanglesEXT); \
     HandleUnsupported(PFNGLAPPLYFRAMEBUFFERATTACHMENTCMAAINTELPROC, glApplyFramebufferAttachmentCMAAINTEL); \
     HandleUnsupported(PFNGLBEGINPERFQUERYINTELPROC, glBeginPerfQueryINTEL); \

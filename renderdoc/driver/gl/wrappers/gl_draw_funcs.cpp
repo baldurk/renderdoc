@@ -2722,10 +2722,10 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 }
 
 template <typename SerialiserType>
-bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &ser, GLenum mode,
-                                                                const void *indirect,
-                                                                GLintptr drawcountPtr,
-                                                                GLsizei maxdrawcount, GLsizei stride)
+bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser, GLenum mode,
+                                                             const void *indirect,
+                                                             GLintptr drawcountPtr,
+                                                             GLsizei maxdrawcount, GLsizei stride)
 {
   SERIALISE_ELEMENT(mode);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
@@ -2748,8 +2748,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
 
     if(IsLoading(m_State))
     {
-      m_Real.glMultiDrawArraysIndirectCountARB(mode, (const void *)offset, (GLintptr)drawcount,
-                                               maxdrawcount, stride);
+      m_Real.glMultiDrawArraysIndirectCount(mode, (const void *)offset, (GLintptr)drawcount,
+                                            maxdrawcount, stride);
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
@@ -2890,14 +2890,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
   return true;
 }
 
-void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, const void *indirect,
-                                                      GLintptr drawcount, GLsizei maxdrawcount,
-                                                      GLsizei stride)
+void WrappedOpenGL::glMultiDrawArraysIndirectCount(GLenum mode, const void *indirect,
+                                                   GLintptr drawcount, GLsizei maxdrawcount,
+                                                   GLsizei stride)
 {
   CoherentMapImplicitBarrier();
 
   SERIALISE_TIME_CALL(
-      m_Real.glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride));
+      m_Real.glMultiDrawArraysIndirectCount(mode, indirect, drawcount, maxdrawcount, stride));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2905,7 +2905,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, const void *i
 
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glMultiDrawArraysIndirectCountARB(ser, mode, indirect, drawcount, maxdrawcount, stride);
+    Serialise_glMultiDrawArraysIndirectCount(ser, mode, indirect, drawcount, maxdrawcount, stride);
 
     GetContextRecord()->AddChunk(scope.Get());
 
@@ -2921,11 +2921,10 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, const void *i
 }
 
 template <typename SerialiserType>
-bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType &ser, GLenum mode,
-                                                                  GLenum type, const void *indirect,
-                                                                  GLintptr drawcountPtr,
-                                                                  GLsizei maxdrawcount,
-                                                                  GLsizei stride)
+bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &ser, GLenum mode,
+                                                               GLenum type, const void *indirect,
+                                                               GLintptr drawcountPtr,
+                                                               GLsizei maxdrawcount, GLsizei stride)
 {
   SERIALISE_ELEMENT(mode);
   SERIALISE_ELEMENT(type);
@@ -2951,8 +2950,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
 
     if(IsLoading(m_State))
     {
-      m_Real.glMultiDrawElementsIndirectCountARB(mode, type, (const void *)offset,
-                                                 (GLintptr)drawcount, maxdrawcount, stride);
+      m_Real.glMultiDrawElementsIndirectCount(mode, type, (const void *)offset, (GLintptr)drawcount,
+                                              maxdrawcount, stride);
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
@@ -3099,14 +3098,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
   return true;
 }
 
-void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type,
-                                                        const void *indirect, GLintptr drawcount,
-                                                        GLsizei maxdrawcount, GLsizei stride)
+void WrappedOpenGL::glMultiDrawElementsIndirectCount(GLenum mode, GLenum type, const void *indirect,
+                                                     GLintptr drawcount, GLsizei maxdrawcount,
+                                                     GLsizei stride)
 {
   CoherentMapImplicitBarrier();
 
-  SERIALISE_TIME_CALL(m_Real.glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount,
-                                                                 maxdrawcount, stride));
+  SERIALISE_TIME_CALL(m_Real.glMultiDrawElementsIndirectCount(mode, type, indirect, drawcount,
+                                                              maxdrawcount, stride));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3114,8 +3113,8 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
 
     ser.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glMultiDrawElementsIndirectCountARB(ser, mode, type, indirect, drawcount,
-                                                  maxdrawcount, stride);
+    Serialise_glMultiDrawElementsIndirectCount(ser, mode, type, indirect, drawcount, maxdrawcount,
+                                               stride);
 
     GetContextRecord()->AddChunk(scope.Get());
 
@@ -4312,10 +4311,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirect, GLenum mode, co
                                 GLsizei drawcount, GLsizei stride);
 INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect, GLenum mode, GLenum type,
                                 const void *indirect, GLsizei drawcount, GLsizei stride);
-INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCountARB, GLenum mode,
+INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCount, GLenum mode,
                                 const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
-INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCountARB, GLenum mode, GLenum type,
+INSTANTIATE_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCount, GLenum mode, GLenum type,
                                 const void *indirect, GLintptr drawcount, GLsizei maxdrawcount,
                                 GLsizei stride);
 INSTANTIATE_FUNCTION_SERIALISED(void, glClearNamedFramebufferfv, GLuint framebufferHandle,

@@ -1711,6 +1711,15 @@ void WrappedOpenGL::glDeleteNamedStringARB(GLint namelen, const GLchar *name)
 
 #pragma endregion
 
+void WrappedOpenGL::glMaxShaderCompilerThreadsKHR(GLuint count)
+{
+  // pass through, don't record
+  m_Real.glMaxShaderCompilerThreadsKHR(count);
+}
+
+{
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, glCreateShader, GLenum type, GLuint shader);
 INSTANTIATE_FUNCTION_SERIALISED(void, glShaderSource, GLuint shaderHandle, GLsizei count,
                                 const GLchar *const *source, const GLint *length);

@@ -402,6 +402,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(33, 30, ARB_explicit_attrib_location)             \
   EXT_TO_CHECK(33, 30, ARB_sampler_objects)                      \
   EXT_TO_CHECK(33, 30, ARB_texture_swizzle)                      \
+  EXT_TO_CHECK(33, 30, ARB_occlusion_query2)                     \
   EXT_TO_CHECK(40, 32, ARB_draw_buffers_blend)                   \
   EXT_TO_CHECK(40, 31, ARB_draw_indirect)                        \
   EXT_TO_CHECK(40, 32, ARB_gpu_shader5)                          \
@@ -433,13 +434,14 @@ extern bool IsGLES;
   EXT_TO_CHECK(44, 99, ARB_enhanced_layouts)                     \
   EXT_TO_CHECK(44, 99, ARB_query_buffer_object)                  \
   EXT_TO_CHECK(45, 99, ARB_clip_control)                         \
+  EXT_TO_CHECK(46, 99, ARB_polygon_offset_clamp)                 \
+  EXT_TO_CHECK(46, 99, ARB_texture_filter_anisotropic)           \
+  EXT_TO_CHECK(46, 99, ARB_pipeline_statistics_query)            \
   EXT_TO_CHECK(99, 99, ARB_indirect_parameters)                  \
   EXT_TO_CHECK(99, 99, ARB_seamless_cubemap_per_texture)         \
   EXT_TO_CHECK(99, 99, EXT_depth_bounds_test)                    \
   EXT_TO_CHECK(99, 99, EXT_direct_state_access)                  \
-  EXT_TO_CHECK(99, 99, EXT_polygon_offset_clamp)                 \
   EXT_TO_CHECK(99, 99, EXT_raster_multisample)                   \
-  EXT_TO_CHECK(99, 99, EXT_texture_filter_anisotropic)           \
   EXT_TO_CHECK(99, 30, EXT_texture_swizzle)                      \
   EXT_TO_CHECK(99, 99, KHR_blend_equation_advanced_coherent)     \
   /* OpenGL ES extensions */                                     \
@@ -457,8 +459,12 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, NV_read_depth_stencil)                    \
   EXT_TO_CHECK(99, 99, EXT_disjoint_timer_query)
 
-// GL extensions and their roughly equivalent GLES alternatives
+// GL extensions equivalents
+// Either promoted extensions from EXT to ARB, or
+// desktop extensions and their roughly equivalent GLES alternatives
 #define EXTENSION_COMPATIBILITY_CHECKS()                                                    \
+  EXT_COMP_CHECK(ARB_polygon_offset_clamp, EXT_polygon_offset_clamp)                        \
+  EXT_COMP_CHECK(ARB_texture_filter_anisotropic, EXT_texture_filter_anisotropic)            \
   EXT_COMP_CHECK(ARB_base_instance, EXT_base_instance)                                      \
   EXT_COMP_CHECK(ARB_copy_image, EXT_copy_image)                                            \
   EXT_COMP_CHECK(ARB_copy_image, OES_copy_image)                                            \
@@ -1759,6 +1765,12 @@ enum class GLChunk : uint32_t
   glIndirectSubCommand,
 
   glContextInit,
+
+  glMultiDrawArraysIndirectCount,
+  glMultiDrawElementsIndirectCount,
+  glPolygonOffsetClamp,
+  glMaxShaderCompilerThreadsARB,
+  glMaxShaderCompilerThreadsKHR,
 
   Max,
 };

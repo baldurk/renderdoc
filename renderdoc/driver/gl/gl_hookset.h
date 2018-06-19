@@ -630,8 +630,8 @@ struct GLHookSet
   PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC glDispatchComputeGroupSizeARB;
 
   // ARB_indirect_parameters
-  PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC glMultiDrawArraysIndirectCountARB;
-  PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTARBPROC glMultiDrawElementsIndirectCountARB;
+  PFNGLMULTIDRAWARRAYSINDIRECTCOUNTPROC glMultiDrawArraysIndirectCount; // aliases glMultiDrawArraysIndirectCountARB
+  PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC glMultiDrawElementsIndirectCount; // aliases glMultiDrawElementsIndirectCountARB
 
   // EXT_raster_multisample
   PFNGLRASTERSAMPLESEXTPROC glRasterSamplesEXT;
@@ -639,8 +639,8 @@ struct GLHookSet
   // EXT_depth_bounds_test
   PFNGLDEPTHBOUNDSEXTPROC glDepthBoundsEXT;
 
-  // EXT_polygon_offset_clamp
-  PFNGLPOLYGONOFFSETCLAMPEXTPROC glPolygonOffsetClampEXT;
+  // EXT/ARB_polygon_offset_clamp
+  PFNGLPOLYGONOFFSETCLAMPPROC glPolygonOffsetClamp; // aliases glPolygonOffsetClampEXT
 
   // EXT_debug_marker
   PFNGLINSERTEVENTMARKEREXTPROC glInsertEventMarkerEXT;
@@ -658,6 +658,10 @@ struct GLHookSet
 
   // OVR_multiview_multisampled_render_to_texture
   PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR;
+
+  // ARB_parallel_shader_compile
+  PFNGLMAXSHADERCOMPILERTHREADSKHRPROC glMaxShaderCompilerThreadsKHR; // aliases glMaxShaderCompilerThreadsARB
+
 
   // EXT_direct_state_access below here. We only include the functions relevant for core 3.2+ GL,
   // not any

@@ -54,7 +54,7 @@
   {                                                      \
     if(glhooks.GL.function == NULL)                      \
       glhooks.GL.function = (funcPtrType)realFunc;       \
-    return (PROC)&glhooks.CONCAT(function, _hooked);     \
+    return (PROC)&glhooks.CONCAT(alias, _hooked);        \
   }
 
 #if 0    // debug print for each unsupported function requested (but not used)

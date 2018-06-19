@@ -1209,13 +1209,13 @@ void GLReplay::SavePipelineState()
           else
             gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &magf);
 
-          if(HasExt[EXT_texture_filter_anisotropic])
+          if(HasExt[ARB_texture_filter_anisotropic])
           {
             if(samp != 0)
-              gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+              gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY,
                                          &pipe.samplers[unit].maxAnisotropy);
             else
-              gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+              gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY,
                                      &pipe.samplers[unit].maxAnisotropy);
           }
           else

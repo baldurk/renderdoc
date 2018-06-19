@@ -1904,8 +1904,8 @@ void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
 }
 
 template <typename SerialiserType>
-bool WrappedOpenGL::Serialise_glPolygonOffsetClampEXT(SerialiserType &ser, GLfloat factor,
-                                                      GLfloat units, GLfloat clamp)
+bool WrappedOpenGL::Serialise_glPolygonOffsetClamp(SerialiserType &ser, GLfloat factor,
+                                                   GLfloat units, GLfloat clamp)
 {
   SERIALISE_ELEMENT(factor);
   SERIALISE_ELEMENT(units);
@@ -1915,21 +1915,21 @@ bool WrappedOpenGL::Serialise_glPolygonOffsetClampEXT(SerialiserType &ser, GLflo
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPolygonOffsetClampEXT(factor, units, clamp);
+    m_Real.glPolygonOffsetClamp(factor, units, clamp);
   }
 
   return true;
 }
 
-void WrappedOpenGL::glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
+void WrappedOpenGL::glPolygonOffsetClamp(GLfloat factor, GLfloat units, GLfloat clamp)
 {
-  SERIALISE_TIME_CALL(m_Real.glPolygonOffsetClampEXT(factor, units, clamp));
+  SERIALISE_TIME_CALL(m_Real.glPolygonOffsetClamp(factor, units, clamp));
 
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-    Serialise_glPolygonOffsetClampEXT(ser, factor, units, clamp);
+    Serialise_glPolygonOffsetClamp(ser, factor, units, clamp);
 
     GetContextRecord()->AddChunk(scope.Get());
   }
@@ -2042,7 +2042,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glScissor, GLint x, GLint y, GLsizei width
 INSTANTIATE_FUNCTION_SERIALISED(void, glScissorArrayv, GLuint first, GLsizei count, const GLint *v);
 INSTANTIATE_FUNCTION_SERIALISED(void, glPolygonMode, GLenum face, GLenum mode);
 INSTANTIATE_FUNCTION_SERIALISED(void, glPolygonOffset, GLfloat factor, GLfloat units);
-INSTANTIATE_FUNCTION_SERIALISED(void, glPolygonOffsetClampEXT, GLfloat factor, GLfloat units,
+INSTANTIATE_FUNCTION_SERIALISED(void, glPolygonOffsetClamp, GLfloat factor, GLfloat units,
                                 GLfloat clamp);
 INSTANTIATE_FUNCTION_SERIALISED(void, glPrimitiveBoundingBox, GLfloat minX, GLfloat minY,
                                 GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY,

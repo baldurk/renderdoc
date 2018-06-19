@@ -175,14 +175,14 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   GLXContext ctx = NULL;
 
-  // try to create all versions from 4.5 down to 3.2 in order to get the
+  // try to create all versions from 4.6 down to 3.2 in order to get the
   // highest versioned context we can
   struct
   {
     int major;
     int minor;
   } versions[] = {
-      {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
+      {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
   };
 
   {

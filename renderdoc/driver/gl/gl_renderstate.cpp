@@ -1257,8 +1257,8 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
 
   m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
   m_Real->glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
-  if(HasExt[EXT_polygon_offset_clamp])
-    m_Real->glGetFloatv(eGL_POLYGON_OFFSET_CLAMP_EXT, &PolygonOffset[2]);
+  if(HasExt[ARB_polygon_offset_clamp])
+    m_Real->glGetFloatv(eGL_POLYGON_OFFSET_CLAMP, &PolygonOffset[2]);
   else
     PolygonOffset[2] = 0.0f;
 
@@ -1646,8 +1646,8 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
   if(!IsGLES)
     m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 
-  if(HasExt[EXT_polygon_offset_clamp] && m_Real->glPolygonOffsetClampEXT)
-    m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
+  if(HasExt[ARB_polygon_offset_clamp])
+    m_Real->glPolygonOffsetClamp(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
   else
     m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
 

@@ -94,10 +94,12 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_ARB_multitexture");
   m_GLExtensions.push_back("GL_ARB_occlusion_query");
   m_GLExtensions.push_back("GL_ARB_occlusion_query2");
+  m_GLExtensions.push_back("GL_ARB_parallel_shader_compile");
   m_GLExtensions.push_back("GL_ARB_pixel_buffer_object");
   m_GLExtensions.push_back("GL_ARB_pipeline_statistics_query");
   m_GLExtensions.push_back("GL_ARB_point_parameters");
   m_GLExtensions.push_back("GL_ARB_point_sprite");
+  m_GLExtensions.push_back("GL_ARB_polygon_offset_clamp");
   m_GLExtensions.push_back("GL_ARB_post_depth_coverage");
   m_GLExtensions.push_back("GL_ARB_program_interface_query");
   m_GLExtensions.push_back("GL_ARB_provoking_vertex");
@@ -146,6 +148,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_ARB_texture_compression_rgtc");
   m_GLExtensions.push_back("GL_ARB_texture_cube_map");
   m_GLExtensions.push_back("GL_ARB_texture_cube_map_array");
+  m_GLExtensions.push_back("GL_ARB_texture_filter_anisotropic");
   m_GLExtensions.push_back("GL_ARB_texture_float");
   m_GLExtensions.push_back("GL_ARB_texture_gather");
   m_GLExtensions.push_back("GL_ARB_texture_mirror_clamp_to_edge");
@@ -240,6 +243,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_KHR_context_flush_control");
   m_GLExtensions.push_back("GL_KHR_debug");
   m_GLExtensions.push_back("GL_KHR_no_error");
+  m_GLExtensions.push_back("GL_KHR_parallel_shader_compile");
   m_GLExtensions.push_back("GL_KHR_robustness");
   m_GLExtensions.push_back("GL_KHR_robust_buffer_access_behavior");
 
@@ -272,7 +276,6 @@ void WrappedOpenGL::BuildGLExtensions()
                                            support if it's supported on replaying driver'?
   * GL_ARB_ES3_2_compatibility
   * GL_ARB_gpu_shader_int64
-  * GL_ARB_parallel_shader_compile
   * GL_ARB_sample_locations
   * GL_ARB_texture_filter_minmax
 
@@ -3212,9 +3215,11 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glMultiDrawElementsIndirect:
       return Serialise_glMultiDrawElementsIndirect(ser, eGL_NONE, eGL_NONE, 0, 0, 0);
     case GLChunk::glMultiDrawArraysIndirectCountARB:
-      return Serialise_glMultiDrawArraysIndirectCountARB(ser, eGL_NONE, 0, 0, 0, 0);
+    case GLChunk::glMultiDrawArraysIndirectCount:
+      return Serialise_glMultiDrawArraysIndirectCount(ser, eGL_NONE, 0, 0, 0, 0);
     case GLChunk::glMultiDrawElementsIndirectCountARB:
-      return Serialise_glMultiDrawElementsIndirectCountARB(ser, eGL_NONE, eGL_NONE, 0, 0, 0, 0);
+    case GLChunk::glMultiDrawElementsIndirectCount:
+      return Serialise_glMultiDrawElementsIndirectCount(ser, eGL_NONE, eGL_NONE, 0, 0, 0, 0);
     case GLChunk::glClearBufferfv:
     case GLChunk::glClearNamedFramebufferfv:
       return Serialise_glClearNamedFramebufferfv(ser, 0, eGL_NONE, 0, 0);
@@ -3526,7 +3531,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glScissorArrayv: return Serialise_glScissorArrayv(ser, 0, 0, 0);
     case GLChunk::glPolygonMode: return Serialise_glPolygonMode(ser, eGL_NONE, eGL_NONE);
     case GLChunk::glPolygonOffset: return Serialise_glPolygonOffset(ser, 0, 0);
-    case GLChunk::glPolygonOffsetClampEXT: return Serialise_glPolygonOffsetClampEXT(ser, 0, 0, 0);
+    case GLChunk::glPolygonOffsetClampEXT:
+    case GLChunk::glPolygonOffsetClamp: return Serialise_glPolygonOffsetClamp(ser, 0, 0, 0);
     case GLChunk::glPrimitiveBoundingBoxEXT:
     case GLChunk::glPrimitiveBoundingBoxOES:
     case GLChunk::glPrimitiveBoundingBox:

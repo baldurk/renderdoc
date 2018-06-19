@@ -71,18 +71,24 @@ vector<GPUCounter> GLReplay::EnumerateCounters()
   vector<GPUCounter> ret;
 
   ret.push_back(GPUCounter::EventGPUDuration);
-  ret.push_back(GPUCounter::InputVerticesRead);
-  ret.push_back(GPUCounter::IAPrimitives);
-  ret.push_back(GPUCounter::GSPrimitives);
-  ret.push_back(GPUCounter::RasterizerInvocations);
-  ret.push_back(GPUCounter::RasterizedPrimitives);
-  ret.push_back(GPUCounter::SamplesPassed);
-  ret.push_back(GPUCounter::VSInvocations);
-  ret.push_back(GPUCounter::TCSInvocations);
-  ret.push_back(GPUCounter::TESInvocations);
-  ret.push_back(GPUCounter::GSInvocations);
-  ret.push_back(GPUCounter::PSInvocations);
-  ret.push_back(GPUCounter::CSInvocations);
+
+  if(HasExt[ARB_occlusion_query2])
+    ret.push_back(GPUCounter::SamplesPassed);
+
+  if(HasExt[ARB_pipeline_statistics_query])
+  {
+    ret.push_back(GPUCounter::InputVerticesRead);
+    ret.push_back(GPUCounter::IAPrimitives);
+    ret.push_back(GPUCounter::GSPrimitives);
+    ret.push_back(GPUCounter::RasterizerInvocations);
+    ret.push_back(GPUCounter::RasterizedPrimitives);
+    ret.push_back(GPUCounter::VSInvocations);
+    ret.push_back(GPUCounter::TCSInvocations);
+    ret.push_back(GPUCounter::TESInvocations);
+    ret.push_back(GPUCounter::GSInvocations);
+    ret.push_back(GPUCounter::PSInvocations);
+    ret.push_back(GPUCounter::CSInvocations);
+  }
 
   if(m_pAMDCounters)
   {
