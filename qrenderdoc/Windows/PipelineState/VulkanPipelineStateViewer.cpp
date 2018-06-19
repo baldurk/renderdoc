@@ -576,6 +576,7 @@ void VulkanPipelineStateViewer::clearState()
 
   ui->conservativeRaster->setText(tr("Disabled"));
   ui->overestimationSize->setText(lit("0.0"));
+  ui->multiview->setText(tr("Disabled"));
 
   ui->sampleCount->setText(lit("1"));
   ui->sampleShading->setPixmap(tick);
@@ -1798,6 +1799,22 @@ void VulkanPipelineStateViewer::setState()
   ui->conservativeRaster->setText(ToQStr(state.rasterizer.conservativeRasterization));
   ui->overestimationSize->setText(
       Formatter::Format(state.rasterizer.extraPrimitiveOverestimationSize));
+
+  if(state.currentPass.renderpass.multiviews.isEmpty())
+  {
+    ui->multiview->setText(tr("Disabled"));
+  }
+  else
+  {
+    QString views = tr("Views: ");
+    for(int i = 0; i < state.currentPass.renderpass.multiviews.count(); i++)
+    {
+      if(i > 0)
+        views += lit(", ");
+      views += QString::number(state.currentPass.renderpass.multiviews[i]);
+    }
+    ui->multiview->setText(views);
+  }
 
   ui->sampleCount->setText(QString::number(state.multisample.rasterSamples));
   ui->sampleShading->setPixmap(state.multisample.sampleShadingEnable ? tick : cross);
