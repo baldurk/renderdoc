@@ -449,14 +449,16 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t 
 
     // used for post-VS output, calculate the offset of the element we're using as position,
     // relative to 0
-    MeshFormat fmt = m_pDevice->GetPostVSBuffers(
-        draw->eventId, m_RenderData.meshDisplay.curInstance, m_RenderData.meshDisplay.type);
+    MeshFormat fmt =
+        m_pDevice->GetPostVSBuffers(draw->eventId, m_RenderData.meshDisplay.curInstance,
+                                    m_RenderData.meshDisplay.curView, m_RenderData.meshDisplay.type);
     uint64_t elemOffset = cfg.position.vertexByteOffset - fmt.vertexByteOffset;
 
     for(uint32_t inst = firstInst; inst < maxInst; inst++)
     {
       // find the start of this buffer, and apply the element offset, then pick in that instance
-      fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, m_RenderData.meshDisplay.type);
+      fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, m_RenderData.meshDisplay.curView,
+                                        m_RenderData.meshDisplay.type);
       if(fmt.vertexResourceId != ResourceId())
         cfg.position.vertexByteOffset = fmt.vertexByteOffset + elemOffset;
 
@@ -819,9 +821,11 @@ void ReplayOutput::DisplayMesh()
         for(uint32_t inst = 0; inst < RDCMAX(1U, d->numInstances); inst++)
         {
           // get the 'most final' stage
-          MeshFormat fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, MeshDataStage::GSOut);
+          MeshFormat fmt = m_pDevice->GetPostVSBuffers(
+              passEvents[i], inst, m_RenderData.meshDisplay.curView, MeshDataStage::GSOut);
           if(fmt.vertexResourceId == ResourceId())
-            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, MeshDataStage::VSOut);
+            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, m_RenderData.meshDisplay.curView,
+                                              MeshDataStage::VSOut);
 
           fmt.meshColor = passDraws;
 
@@ -844,9 +848,11 @@ void ReplayOutput::DisplayMesh()
       for(uint32_t inst = 0; inst < maxInst; inst++)
       {
         // get the 'most final' stage
-        MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, MeshDataStage::GSOut);
+        MeshFormat fmt = m_pDevice->GetPostVSBuffers(
+            draw->eventId, inst, m_RenderData.meshDisplay.curView, MeshDataStage::GSOut);
         if(fmt.vertexResourceId == ResourceId())
-          fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, MeshDataStage::VSOut);
+          fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, m_RenderData.meshDisplay.curView,
+                                            MeshDataStage::VSOut);
 
         fmt.meshColor = otherInstances;
 

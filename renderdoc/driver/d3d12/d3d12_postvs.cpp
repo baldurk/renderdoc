@@ -1338,7 +1338,8 @@ void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
   m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
 }
 
-MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
+                                         MeshDataStage stage)
 {
   // go through any aliasing
   if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())
@@ -1346,6 +1347,9 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, Mesh
 
   D3D12PostVSData postvs;
   RDCEraseEl(postvs);
+
+  // no multiview support
+  (void)viewID;
 
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     postvs = m_PostVSData[eventId];

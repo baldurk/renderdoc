@@ -35,10 +35,11 @@ static const char *PatchedMeshOutputEntryPoint = "rdc";
 static const uint32_t MeshOutputDispatchWidth = 128;
 static const uint32_t MeshOutputTBufferArraySize = 16;
 
-static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                                       const char *entryName, std::vector<uint32_t> instDivisor,
-                                       uint32_t &descSet, const DrawcallDescription *draw,
-                                       int32_t indexOffset, uint64_t numFetchVerts, uint32_t numVerts,
+static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
+                                       const SPIRVPatchData &patchData, const char *entryName,
+                                       std::vector<uint32_t> instDivisor, uint32_t &descSet,
+                                       const DrawcallDescription *draw, int32_t indexOffset,
+                                       uint64_t numFetchVerts, uint32_t numVerts, uint32_t numViews,
                                        std::vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
   SPIRVEditor editor(modSpirv);
@@ -550,10 +551,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   SPIRVId numFetchVertsConstID = editor.AddConstantImmediate((int32_t)numFetchVerts);
   SPIRVId numVertsConstID = editor.AddConstantImmediate((int32_t)numVerts);
   SPIRVId numInstConstID = editor.AddConstantImmediate((int32_t)draw->numInstances);
+  SPIRVId numViewsConstID = editor.AddConstantImmediate((int32_t)numViews);
 
   editor.SetName(numFetchVertsConstID, "numFetchVerts");
   editor.SetName(numVertsConstID, "numVerts");
   editor.SetName(numInstConstID, "numInsts");
+  editor.SetName(numViewsConstID, "numViews");
 
   // declare the output buffer and its type
   {
@@ -716,17 +719,27 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       editor.SetName(intInvocationID, "invocation");
 
-      // int inst = intInvocationID / numFetchVerts
+      // int viewinst = intInvocationID / numFetchVerts
+      uint32_t viewinstID = editor.MakeId();
+      ops.push_back(SPIRVOperation(spv::OpSDiv,
+                                   {sint32ID, viewinstID, intInvocationID, numFetchVertsConstID}));
+
+      editor.SetName(viewinstID, "viewInstance");
+
       uint32_t instID = editor.MakeId();
-      ops.push_back(
-          SPIRVOperation(spv::OpSDiv, {sint32ID, instID, intInvocationID, numFetchVertsConstID}));
+      ops.push_back(SPIRVOperation(spv::OpSMod, {sint32ID, instID, viewinstID, numInstConstID}));
 
       editor.SetName(instID, "instanceID");
 
-      // bool inBounds = inst < numInstances;
+      uint32_t viewID = editor.MakeId();
+      ops.push_back(SPIRVOperation(spv::OpSDiv, {sint32ID, viewID, viewinstID, numInstConstID}));
+
+      editor.SetName(viewID, "viewID");
+
+      // bool inBounds = viewID < numViews;
       uint32_t inBounds = editor.MakeId();
-      ops.push_back(SPIRVOperation(
-          spv::OpULessThan, {editor.DeclareType(scalar<bool>()), inBounds, instID, numInstConstID}));
+      ops.push_back(SPIRVOperation(spv::OpULessThan, {editor.DeclareType(scalar<bool>()), inBounds,
+                                                      viewID, numViewsConstID}));
 
       // if(inBounds) goto continueLabel; else goto killLabel;
       uint32_t killLabel = editor.MakeId();
@@ -769,9 +782,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         ops.push_back(SPIRVOperation(spv::OpBitcast, {sint32ID, vertexIndex, uintIndex}));
       }
 
-      // int arraySlotID = inst * numVerts;
+      // int arraySlotID = viewinst * numVerts;
       uint32_t arraySlotTempID = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpIMul, {sint32ID, arraySlotTempID, instID, numVertsConstID}));
+      ops.push_back(
+          SPIRVOperation(spv::OpIMul, {sint32ID, arraySlotTempID, viewinstID, numVertsConstID}));
 
       // arraySlotID = arraySlotID + vertexIndex;
       uint32_t arraySlotTemp2ID = editor.MakeId();
@@ -826,8 +840,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         }
         else if(builtin == ShaderBuiltin::ViewportIndex)
         {
-          ops.push_back(SPIRVOperation(
-              spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(int32_t(0))}));
+          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, viewID}));
         }
         else if(builtin == ShaderBuiltin::BaseVertex)
         {
@@ -1150,6 +1163,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     m_PostVSData[eventId].vsout.buf = VK_NULL_HANDLE;
     m_PostVSData[eventId].vsout.instStride = 0;
     m_PostVSData[eventId].vsout.vertStride = 0;
+    m_PostVSData[eventId].vsout.numViews = 1;
     m_PostVSData[eventId].vsout.nearPlane = 0.0f;
     m_PostVSData[eventId].vsout.farPlane = 0.0f;
     m_PostVSData[eventId].vsout.useIndices = false;
@@ -1197,6 +1211,21 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   uint32_t numVerts = drawcall->numIndices;
   uint64_t numFetchVerts = drawcall->numIndices;
   VkDeviceSize bufSize = 0;
+
+  uint32_t numViews = 1;
+
+  {
+    const VulkanCreationInfo::RenderPass &rp = creationInfo.m_RenderPass[state.renderPass];
+
+    if(state.subpass < rp.subpasses.size())
+    {
+      numViews = RDCMAX(numViews, (uint32_t)rp.subpasses[state.subpass].multiviews.size());
+    }
+    else
+    {
+      RDCERR("Subpass is out of bounds to renderpass creation info");
+    }
+  }
 
   uint32_t idxsize = state.ibuffer.bytewidth;
 
@@ -1703,9 +1732,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     m_pDriver->vkUpdateDescriptorSets(dev, numWrites, descWrites, 0, NULL);
   }
 
-  ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
-                             pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor, descSet,
-                             drawcall, baseVertex, numFetchVerts, numVerts, modSpirv, bufStride);
+  ConvertToMeshOutputCompute(
+      *refl, *pipeInfo.shaders[0].patchData, pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor,
+      descSet, drawcall, baseVertex, numFetchVerts, numVerts, numViews, modSpirv, bufStride);
 
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 
@@ -1790,10 +1819,11 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     // have a compact 0-based index to index into the buffer. We must use
     // index-minIndex which is 0-based but potentially sparse, so this buffer may
     // be more or less wasteful
-    VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,          NULL, 0,
-        numVerts * drawcall->numInstances * bufStride, 0,
-    };
+    VkBufferCreateInfo bufInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+
+    // set bufSize
+    bufSize = bufInfo.size = uint64_t(numVerts) * uint64_t(drawcall->numInstances) *
+                             uint64_t(bufStride) * uint64_t(numViews);
 
     bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -1864,9 +1894,6 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     // finish.
     DoPipelineBarrier(cmd, 1, &globalbarrier);
 
-    // set bufSize
-    bufSize = numVerts * drawcall->numInstances * bufStride;
-
     // vkUpdateDescriptorSet desc set to point to buffer
     VkDescriptorBufferInfo fetchdesc = {0};
     fetchdesc.buffer = meshBuffer;
@@ -1880,7 +1907,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
     // do single draw
     modifiedstate.BindPipeline(cmd, VulkanRenderState::BindCompute, true);
-    uint64_t totalVerts = numFetchVerts * uint64_t(drawcall->numInstances);
+    uint64_t totalVerts = numFetchVerts * uint64_t(drawcall->numInstances) * uint64_t(numViews);
 
     // the validation layers will probably complain about this dispatch saying some arrays aren't
     // fully updated. That's because they don't statically analyse that only fixed indices are
@@ -2017,6 +2044,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   m_PostVSData[eventId].vsout.baseVertex = baseVertex + drawcall->baseVertex;
 
+  m_PostVSData[eventId].vsout.numViews = numViews;
+
   m_PostVSData[eventId].vsout.vertStride = bufStride;
   m_PostVSData[eventId].vsout.nearPlane = nearp;
   m_PostVSData[eventId].vsout.farPlane = farp;
@@ -2026,7 +2055,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   m_PostVSData[eventId].vsout.instStride = 0;
   if(drawcall->flags & DrawFlags::Instanced)
-    m_PostVSData[eventId].vsout.instStride = uint32_t(bufSize / drawcall->numInstances);
+    m_PostVSData[eventId].vsout.instStride = uint32_t(bufSize / (drawcall->numInstances * numViews));
 
   m_PostVSData[eventId].vsout.idxBuf = ResourceId();
   if(m_PostVSData[eventId].vsout.useIndices && state.ibuffer.buf != ResourceId())
@@ -2098,7 +2127,8 @@ void VulkanReplay::InitPostVSBuffers(const vector<uint32_t> &events)
   m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 }
 
-MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
+                                          MeshDataStage stage)
 {
   // go through any aliasing
   if(m_PostVSAlias.find(eventId) != m_PostVSAlias.end())
@@ -2110,7 +2140,19 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, Mes
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     postvs = m_PostVSData[eventId];
 
+  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+
+  uint32_t numInstances = 1;
+  if(drawcall && (drawcall->flags & DrawFlags::Instanced))
+    numInstances = drawcall->numInstances;
+
   VulkanPostVSData::StageData s = postvs.GetStage(stage);
+
+  // clamp viewID
+  if(s.numViews > 1)
+    viewID = RDCMIN(viewID, s.numViews - 1);
+  else
+    viewID = 0;
 
   MeshFormat ret;
 
@@ -2132,7 +2174,7 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, Mes
   else
     ret.vertexResourceId = ResourceId();
 
-  ret.vertexByteOffset = s.instStride * instID;
+  ret.vertexByteOffset = s.instStride * (instID + viewID * numInstances);
   ret.vertexByteStride = s.vertStride;
 
   ret.format.compCount = 4;

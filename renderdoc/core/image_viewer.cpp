@@ -196,7 +196,7 @@ public:
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}
   void InitPostVSBuffers(uint32_t eventId) {}
   void InitPostVSBuffers(const vector<uint32_t> &eventId) {}
-  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID, MeshDataStage stage)
   {
     MeshFormat ret;
     RDCEraseEl(ret);

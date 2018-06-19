@@ -130,7 +130,8 @@ public:
 
   virtual ResourceId GetLiveID(ResourceId id) = 0;
 
-  virtual MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage) = 0;
+  virtual MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
+                                      MeshDataStage stage) = 0;
 
   virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) = 0;
   virtual void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,

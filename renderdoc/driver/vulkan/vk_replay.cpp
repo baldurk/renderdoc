@@ -1124,6 +1124,9 @@ void VulkanReplay::SavePipelineState()
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
       m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+
+      m_VulkanPipelineState.currentPass.renderpass.multiviews =
+          c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews;
     }
 
     m_VulkanPipelineState.currentPass.framebuffer.resourceId = rm->GetOriginalID(state.framebuffer);

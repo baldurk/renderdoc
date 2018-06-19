@@ -134,6 +134,8 @@ struct MeshDisplay
   bool showWholePass;
   DOCUMENT("The index of the currently selected instance in the drawcall.");
   uint32_t curInstance;
+  DOCUMENT("The index of the currently selected multiview view in the drawcall.");
+  uint32_t curView;
 
   DOCUMENT("The index of the vertex to highlight, or :data:`NoHighlight` to select no vertex.");
   uint32_t highlightVert;

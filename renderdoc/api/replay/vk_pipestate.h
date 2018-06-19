@@ -573,6 +573,13 @@ struct RenderPass
 If there is no depth-stencil attachment, this index is ``-1``.
 )");
   int32_t depthstencilAttachment = -1;
+
+  DOCUMENT(R"(If multiview is enabled, contains a list of view indices to be broadcast to during
+rendering.
+
+If the list is empty, multiview is disabled and rendering is as normal.
+)");
+  rdcarray<uint32_t> multiviews;
 };
 
 DOCUMENT("Describes a single attachment in a framebuffer object.");

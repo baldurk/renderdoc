@@ -788,6 +788,20 @@
      </widget>
     </item>
     <item>
+     <widget class="QLabel" name="viewLabel">
+      <property name="text">
+       <string>View</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QSpinBox" name="viewIndex">
+      <property name="maximum">
+       <number>16</number>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="Line" name="byteRangeLine">
       <property name="orientation">
        <enum>Qt::Vertical</enum>

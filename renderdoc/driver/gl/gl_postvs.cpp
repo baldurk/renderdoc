@@ -1420,10 +1420,14 @@ void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
   }
 }
 
-MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage)
+MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
+                                      MeshDataStage stage)
 {
   GLPostVSData postvs;
   RDCEraseEl(postvs);
+
+  // no multiview support
+  (void)viewID;
 
   ContextPair ctx = {m_ReplayCtx.ctx, m_pDriver->ShareCtx(m_ReplayCtx.ctx)};
 

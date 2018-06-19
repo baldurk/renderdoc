@@ -1020,6 +1020,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   ui->rowOffset->setFont(Formatter::PreferredFont());
   ui->instance->setFont(Formatter::PreferredFont());
+  ui->viewIndex->setFont(Formatter::PreferredFont());
   ui->camSpeed->setFont(Formatter::PreferredFont());
   ui->fovGuess->setFont(Formatter::PreferredFont());
   ui->aspectGuess->setFont(Formatter::PreferredFont());
@@ -1147,6 +1148,8 @@ void BufferViewer::SetupRawView()
   ui->syncViews->setVisible(false);
   ui->instanceLabel->setVisible(false);
   ui->instance->setVisible(false);
+  ui->viewLabel->setVisible(false);
+  ui->viewIndex->setVisible(false);
 
   ui->vsinData->setWindowTitle(tr("Buffer Contents"));
   ui->vsinData->setFrameShape(QFrame::NoFrame);
@@ -1460,6 +1463,19 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   if(draw)
     ui->instance->setMaximum(qMax(0, int(draw->numInstances) - 1));
 
+  uint32_t numViews = m_Ctx.CurPipelineState().MultiviewBroadcastCount();
+
+  if(draw && numViews > 1)
+  {
+    ui->viewIndex->setEnabled(true);
+    ui->viewIndex->setMaximum(qMax(0, int(numViews) - 1));
+  }
+  else
+  {
+    ui->viewIndex->setEnabled(false);
+    ui->viewIndex->setValue(0);
+  }
+
   if(m_MeshView)
   {
     configureMeshColumns();
@@ -1716,7 +1732,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     m_ModelVSIn->buffers.push_back(buf);
   }
 
-  m_PostVS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::VSOut);
+  m_PostVS = r->GetPostVSData(m_Config.curInstance, m_Config.curView, MeshDataStage::VSOut);
 
   m_ModelVSOut->numRows = m_PostVS.numIndices;
   m_ModelVSOut->unclampedNumRows = 0;
@@ -1778,7 +1794,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     m_ModelVSOut->buffers.push_back(postvs);
   }
 
-  m_PostGS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::GSOut);
+  m_PostGS = r->GetPostVSData(m_Config.curInstance, m_Config.curView, MeshDataStage::GSOut);
 
   m_ModelGSOut->numRows = m_PostGS.numIndices;
   m_ModelGSOut->unclampedNumRows = 0;
@@ -3569,6 +3585,12 @@ void BufferViewer::on_camSpeed_valueChanged(double value)
 void BufferViewer::on_instance_valueChanged(int value)
 {
   m_Config.curInstance = value;
+  OnEventChanged(m_Ctx.CurEvent());
+}
+
+void BufferViewer::on_viewIndex_valueChanged(int value)
+{
+  m_Config.curView = value;
   OnEventChanged(m_Ctx.CurEvent());
 }
 

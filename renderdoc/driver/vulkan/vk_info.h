@@ -274,6 +274,8 @@ struct VulkanCreationInfo
       vector<VkImageLayout> inputLayouts;
       vector<VkImageLayout> colorLayouts;
       VkImageLayout depthstencilLayout;
+
+      std::vector<uint32_t> multiviews;
     };
     vector<Subpass> subpasses;
 

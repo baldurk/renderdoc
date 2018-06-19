@@ -105,6 +105,7 @@ private slots:
   void on_controlType_currentIndexChanged(int index);
   void on_camSpeed_valueChanged(double value);
   void on_instance_valueChanged(int value);
+  void on_viewIndex_valueChanged(int value);
   void on_rowOffset_valueChanged(int value);
   void on_byteRangeStart_valueChanged(int value);
   void on_byteRangeLength_valueChanged(int value);

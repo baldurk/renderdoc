@@ -133,6 +133,9 @@ public:
     return false;
   }
 
+  DOCUMENT("Returns the number of views being broadcast to simultaneously during rendering.");
+  uint32_t MultiviewBroadcastCount() const;
+
   DOCUMENT(R"(Determines whether or not the current capture supports binding arrays of resources.
 
 :return: A boolean indicating if binding arrays of resources is supported.

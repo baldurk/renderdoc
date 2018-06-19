@@ -180,7 +180,7 @@ public:
   ShaderDebugTrace *DebugThread(const uint32_t groupid[3], const uint32_t threadid[3]);
   void FreeTrace(ShaderDebugTrace *trace);
 
-  MeshFormat GetPostVSData(uint32_t instID, MeshDataStage stage);
+  MeshFormat GetPostVSData(uint32_t instID, uint32_t viewID, MeshDataStage stage);
 
   rdcarray<EventUsage> GetUsage(ResourceId id);
 

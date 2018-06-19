@@ -681,9 +681,9 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
       {
-        MeshFormat fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::GSOut);
+        MeshFormat fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
         if(fmt.vertexResourceId == ResourceId())
-          fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::VSOut);
+          fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::VSOut);
 
         if(fmt.vertexResourceId != ResourceId())
         {

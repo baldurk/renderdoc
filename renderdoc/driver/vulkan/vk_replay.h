@@ -140,6 +140,8 @@ struct VulkanPostVSData
     uint32_t vertStride;
     uint32_t instStride;
 
+    uint32_t numViews;
+
     bool useIndices;
     ResourceId idxBuf;
     VkDeviceSize idxOffset;
@@ -251,7 +253,8 @@ public:
   void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVSAlias[alias] = eventId; }
   void ClearPostVSCache();
 
-  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, MeshDataStage stage);
+  MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
+                              MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData);
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,

@@ -510,6 +510,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
   for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
     attachments.push_back(pCreateInfo->pAttachments[i]);
 
+  // VK_KHR_multiview
+  const VkRenderPassMultiviewCreateInfo *multiview =
+      (const VkRenderPassMultiviewCreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
+
   subpasses.resize(pCreateInfo->subpassCount);
   for(uint32_t subp = 0; subp < pCreateInfo->subpassCount; subp++)
   {
@@ -544,6 +549,16 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                                       src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
                                   ? src.pDepthStencilAttachment->layout
                                   : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    if(multiview && multiview->subpassCount > 0)
+    {
+      uint32_t mask = multiview->pViewMasks[subp];
+      for(uint32_t i = 0; i < 32; i++)
+      {
+        if(mask & (1 << i))
+          dst.multiviews.push_back(i);
+      }
+    }
   }
 }
 

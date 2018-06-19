@@ -1124,12 +1124,13 @@ texture to something compatible with the target file format.
 
   DOCUMENT(R"(Retrieve the generated data from one of the geometry processing shader stages.
 
-:param int instance: The index of the instance to retrieve data for.
+:param int instance: The index of the instance to retrieve data for, or 0 for non-instanced draws.
+:param int view: The index of the multiview view to retrieve data for, or 0 if multiview is disabled.
 :param MeshDataStage stage: The stage of the geometry processing pipeline to retrieve data from.
 :return: The information describing where the post-transform data is stored.
 :rtype: MeshFormat
 )");
-  virtual MeshFormat GetPostVSData(uint32_t instance, MeshDataStage stage) = 0;
+  virtual MeshFormat GetPostVSData(uint32_t instance, uint32_t view, MeshDataStage stage) = 0;
 
   DOCUMENT(R"(Retrieve the contents of a range of a buffer as a ``bytes``.
 

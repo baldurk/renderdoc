@@ -975,9 +975,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {
-          MeshFormat postvs = GetPostVSBuffers(events[i], inst, MeshDataStage::GSOut);
+          MeshFormat postvs = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
           if(postvs.vertexResourceId == ResourceId())
-            postvs = GetPostVSBuffers(events[i], inst, MeshDataStage::VSOut);
+            postvs = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::VSOut);
 
           if(postvs.vertexResourceId != ResourceId())
           {
