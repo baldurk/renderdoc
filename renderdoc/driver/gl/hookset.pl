@@ -97,7 +97,7 @@ my @glextfuncs = ();
 my @processed = ();
 
 my %name_of;
-my $names = `grep -Eh 'APIENTRY gl[0-9a-Z_-]+' official/glcorearb.h official/glext.h official/gl32.h official/glesext.h official/wglext.h official/legacygl.h`;
+my $names = `grep -Eh 'APIENTRY gl[0-9a-zA-Z_-]+' official/glcorearb.h official/glext.h official/gl32.h official/glesext.h official/wglext.h official/legacygl.h`;
 foreach my $name (split(/\n/, $names))
 {
     if($name =~ /APIENTRY (gl[A-Za-z_0-9]+)\s?\(/)
