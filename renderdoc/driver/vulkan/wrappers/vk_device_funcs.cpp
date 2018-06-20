@@ -1269,11 +1269,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
+    VkDeviceQueueCreateInfo *queueCreateInfos =
+        (VkDeviceQueueCreateInfo *)createInfo.pQueueCreateInfos;
+
     // now apply the remapping to the requested queues
     for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
     {
-      VkDeviceQueueCreateInfo &queueCreate =
-          (VkDeviceQueueCreateInfo &)createInfo.pQueueCreateInfos[i];
+      VkDeviceQueueCreateInfo &queueCreate = (VkDeviceQueueCreateInfo &)queueCreateInfos[i];
 
       uint32_t queueFamily = queueCreate.queueFamilyIndex;
       queueFamily = m_QueueRemapping[queueFamily][0].family;
@@ -1287,6 +1289,48 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       queueCreate.queueCount = queueCount;
     }
 
+    // remove any duplicates that have been created
+    std::vector<VkDeviceQueueCreateInfo> queueInfos;
+
+    for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
+    {
+      VkDeviceQueueCreateInfo &queue1 = (VkDeviceQueueCreateInfo &)queueCreateInfos[i];
+
+      // if we already have this one in the list, continue
+      bool already = false;
+      for(const VkDeviceQueueCreateInfo &queue2 : queueInfos)
+      {
+        if(queue1.queueFamilyIndex == queue2.queueFamilyIndex)
+        {
+          already = true;
+          break;
+        }
+      }
+
+      if(already)
+        continue;
+
+      // get the 'biggest' queue allocation from all duplicates. That way we ensure we have enough
+      // queues in the queue family to satisfy any remap.
+      VkDeviceQueueCreateInfo biggest = queue1;
+
+      for(uint32_t j = i + 1; j < createInfo.queueCreateInfoCount; j++)
+      {
+        VkDeviceQueueCreateInfo &queue2 = (VkDeviceQueueCreateInfo &)queueCreateInfos[j];
+
+        if(biggest.queueFamilyIndex == queue2.queueFamilyIndex)
+        {
+          if(queue2.queueCount > biggest.queueCount)
+            biggest = queue2;
+        }
+      }
+
+      queueInfos.push_back(biggest);
+    }
+
+    createInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
+    createInfo.pQueueCreateInfos = queueInfos.data();
+
     bool found = false;
     uint32_t qFamilyIdx = 0;
 
@@ -1295,9 +1339,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     // for queue priorities, if we need it
     float one = 1.0f;
-
-    // if we need to add a new requested queues, it will point to this
-    VkDeviceQueueCreateInfo *modQueues = NULL;
 
     for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
     {
@@ -1336,16 +1377,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       else
       {
         // we found the queue family, add it
-        modQueues = new VkDeviceQueueCreateInfo[createInfo.queueCreateInfoCount + 1];
-        for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
-          modQueues[i] = createInfo.pQueueCreateInfos[i];
+        VkDeviceQueueCreateInfo newQueue;
 
-        modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
-        modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
-        modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
+        newQueue.queueFamilyIndex = qFamilyIdx;
+        newQueue.queueCount = 1;
+        newQueue.pQueuePriorities = &one;
 
-        createInfo.pQueueCreateInfos = modQueues;
-        createInfo.queueCreateInfoCount++;
+        queueInfos.push_back(newQueue);
+
+        // reset these in case the vector resized
+        createInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
+        createInfo.pQueueCreateInfos = queueInfos.data();
       }
     }
 
@@ -1544,8 +1586,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.cmdpool);
     }
 
-    // for each queue family that isn't our own, create a command pool and command buffer on that
-    // queue
+    // for each queue family we've remapped to, ensure we have a command pool and command buffer on
+    // that queue, and we'll also use the first queue that the application creates (or fetch our
+    // own).
     for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
     {
       uint32_t qidx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
@@ -1621,7 +1664,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     m_Replay.CreateResources();
 
-    SAFE_DELETE_ARRAY(modQueues);
     SAFE_DELETE_ARRAY(layerArray);
     SAFE_DELETE_ARRAY(extArray);
   }

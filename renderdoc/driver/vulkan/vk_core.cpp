@@ -2018,6 +2018,24 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
 void WrappedVulkan::ApplyInitialContents()
 {
+  // check that we have all external queues necessary
+  for(size_t i = 0; i < m_ExternalQueues.size(); i++)
+  {
+    // if we created a pool (so this is a queue family we're using) but
+    // didn't get a queue at all, fetch our own queue for this family
+    if(m_ExternalQueues[i].queue != VK_NULL_HANDLE || m_ExternalQueues[i].pool == VK_NULL_HANDLE)
+      continue;
+
+    VkQueue queue;
+
+    ObjDisp(m_Device)->GetDeviceQueue(Unwrap(m_Device), (uint32_t)i, 0, &queue);
+
+    GetResourceManager()->WrapResource(Unwrap(m_Device), queue);
+    GetResourceManager()->AddLiveResource(ResourceIDGen::GetNewUniqueID(), queue);
+
+    m_ExternalQueues[i].queue = queue;
+  }
+
   // add a global memory barrier to ensure all writes have finished and are synchronised
   // add memory barrier to ensure this copy completes before any subsequent work
   // this is a very blunt instrument but it ensures we don't get random artifacts around
