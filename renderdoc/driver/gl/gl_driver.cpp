@@ -2250,6 +2250,14 @@ bool WrappedOpenGL::Serialise_ContextInit(SerialiserType &ser)
   if(IsReplayingAndReading())
   {
     GetResourceManager()->ReplaceResource(FBO0_ID, m_FBO0_ID);
+
+    AddResource(FBO0_ID, ResourceType::SwapchainImage, "");
+    GetReplay()->GetResourceDesc(FBO0_ID).SetCustomName("Window FBO");
+
+    // this is a hack, but we only support a single 'default' framebuffer so we set these
+    // replacements up as derived resources
+    GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(FBO0_ID);
+    GetReplay()->GetResourceDesc(FBO0_ID).parentResources.push_back(m_FBO0_ID);
   }
 
   return true;
