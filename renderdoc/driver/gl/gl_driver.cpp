@@ -919,7 +919,7 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHan
 
 void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *gl, void *suppliedCtx)
 {
-  if(m_ContextDataResourceID == ResourceId::Null() ||
+  if(m_ContextDataResourceID == ResourceId() ||
      !gl->GetResourceManager()->HasResourceRecord(m_ContextDataResourceID))
   {
     m_ContextDataResourceID = gl->GetResourceManager()->RegisterResource(
@@ -1069,6 +1069,27 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     }
 
     ContextData &ctxdata = m_ContextData[winData.ctx];
+
+    ctxdata.CreateResourceRecord(this, winData.ctx);
+
+    // update thread-local context pair
+    {
+      GLContextTLSData *tlsData = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
+
+      if(tlsData)
+      {
+        tlsData->ctxPair = {winData.ctx, ShareCtx(winData.ctx)};
+        tlsData->ctxRecord = ctxdata.m_ContextDataRecord;
+      }
+      else
+      {
+        tlsData = new GLContextTLSData(ContextPair({winData.ctx, ShareCtx(winData.ctx)}),
+                                       ctxdata.m_ContextDataRecord);
+        m_CtxDataVector.push_back(tlsData);
+
+        Threading::SetTLSValue(m_CurCtxDataTLS, tlsData);
+      }
+    }
 
     if(!ctxdata.built)
     {
@@ -1255,27 +1276,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
           m_DeviceRecord->AddChunk(scope.Get());
         }
-      }
-    }
-
-    ctxdata.CreateResourceRecord(this, winData.ctx);
-
-    // update thread-local context pair
-    {
-      GLContextTLSData *tlsData = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
-
-      if(tlsData)
-      {
-        tlsData->ctxPair = {winData.ctx, ShareCtx(winData.ctx)};
-        tlsData->ctxRecord = ctxdata.m_ContextDataRecord;
-      }
-      else
-      {
-        tlsData = new GLContextTLSData(ContextPair({winData.ctx, ShareCtx(winData.ctx)}),
-                                       ctxdata.m_ContextDataRecord);
-        m_CtxDataVector.push_back(tlsData);
-
-        Threading::SetTLSValue(m_CurCtxDataTLS, tlsData);
       }
     }
 
