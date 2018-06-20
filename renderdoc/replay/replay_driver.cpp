@@ -83,7 +83,10 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawca
       // Some markers like Present should have previous/next, but API Calls we also skip
 
       {
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId);
+        // we also allow equal EIDs for fake markers that don't have their own EIDs
+        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
+                  (draw->eventId == drawcallTable.back()->eventId &&
+                   (drawcallTable.back()->flags & DrawFlags::PushMarker)));
         drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
         drawcallTable[draw->eventId] = draw;
       }
