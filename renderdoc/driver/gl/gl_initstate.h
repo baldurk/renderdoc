@@ -78,6 +78,10 @@ struct FramebufferAttachmentData
   bool layered;
   int32_t layer;
   int32_t level;
+  int32_t numVirtualSamples;    // number of samples for mobile MSAA framebuffers, where the tiler
+                                // resolves into non-msaa textures
+  int32_t numViews;             // number of views for multiview framebuffers
+  int32_t startView;            // index of the first view for multiview framebuffers
   GLResource obj;
 };
 

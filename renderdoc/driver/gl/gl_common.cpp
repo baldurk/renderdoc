@@ -794,7 +794,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
-  // we can check other older versions we support here.
+  // 0x1A -> 0x1B - supported MSAA and Multiview framebuffer attachments, which added
+  // number of samples, number of views, and base view index to the serialized data
+  if(ver == 0x1A)
+    return true;
 
   return false;
 }

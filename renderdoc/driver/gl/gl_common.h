@@ -457,7 +457,9 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, NV_read_depth)                            \
   EXT_TO_CHECK(99, 99, NV_read_stencil)                          \
   EXT_TO_CHECK(99, 99, NV_read_depth_stencil)                    \
-  EXT_TO_CHECK(99, 99, EXT_disjoint_timer_query)
+  EXT_TO_CHECK(99, 99, EXT_disjoint_timer_query)                 \
+  EXT_TO_CHECK(99, 99, EXT_multisampled_render_to_texture)       \
+  EXT_TO_CHECK(99, 99, OVR_multiview)
 
 // GL extensions equivalents
 // Either promoted extensions from EXT to ARB, or

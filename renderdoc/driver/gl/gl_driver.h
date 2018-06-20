@@ -53,7 +53,7 @@ struct GLInitParams
   uint32_t height;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x1A;
+  static const uint64_t CurrentVersion = 0x1B;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
