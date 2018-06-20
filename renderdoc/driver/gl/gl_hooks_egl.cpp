@@ -369,7 +369,8 @@ __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy,
 
   eglhooks.GetDriver()->SetDriverType(RDCDriver::OpenGLES);
   eglhooks.GetDriver()->WindowSize(surface, width, height);
-  eglhooks.GetDriver()->SwapBuffers(surface);
+  if(!eglhooks.GetDriver()->UsesVRFrameMarkers())
+    eglhooks.GetDriver()->SwapBuffers(surface);
 
   return eglhooks.real.SwapBuffers(dpy, surface);
 }

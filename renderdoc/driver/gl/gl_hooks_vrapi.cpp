@@ -240,10 +240,9 @@ __attribute__((visibility("default"))) void vrapi_SubmitFrame(ovrMobile *ovr,
     vrapi_hooks.SetupHooks();
   }
 
-  if(m_GLDriver)
+  if(m_GLDriver && !m_GLDriver->UsesVRFrameMarkers())
   {
     SCOPED_LOCK(glLock);
-    m_GLDriver->DisableVRFrameMarkers();
     m_GLDriver->SwapBuffers(ovr);
   }
 

@@ -518,7 +518,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
 
   m_AppControlledCapture = false;
 
-  m_UseVRMarkers = true;
+  m_UsesVRMarkers = false;
 
   m_RealDebugFunc = NULL;
   m_RealDebugFuncParam = NULL;

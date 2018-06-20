@@ -191,18 +191,14 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
   return true;
 }
 
-void WrappedOpenGL::DisableVRFrameMarkers()
-{
-  m_UseVRMarkers = false;
-}
-
 void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 {
-  if(m_UseVRMarkers && strstr(buf, "vr-marker,frame_end,type,application") != NULL)
+  if(strstr(buf, "vr-marker,frame_end,type,application") != NULL)
   {
     void *ctx = NULL, *wnd = NULL;
     RenderDoc::Inst().GetActiveWindow(ctx, wnd);
     SwapBuffers(wnd);
+    m_UsesVRMarkers = true;
 
     if(IsActiveCapturing(m_State))
     {
