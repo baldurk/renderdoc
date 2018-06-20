@@ -781,6 +781,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
           {
             size_t size = GetCompressedByteSize(w, h, d, details.internalFormat);
 
+            if(details.curType == eGL_TEXTURE_CUBE_MAP)
+              size /= 6;
+
             byte *buf = new byte[size];
 
             if(IsGLES)
@@ -1475,8 +1478,11 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
                 {
                   if(IsGLES)
                   {
-                    details.compressedData[i].resize(size);
-                    memcpy(details.compressedData[i].data(), scratchBuf, size);
+                    size_t startOffs =
+                        IsCubeFace(targets[trg]) ? CubeTargetIndex(targets[trg]) * size : 0;
+
+                    details.compressedData[i].resize(startOffs + size);
+                    memcpy(details.compressedData[i].data() + startOffs, scratchBuf, size);
                   }
 
                   if(TextureState.dim == 1)
