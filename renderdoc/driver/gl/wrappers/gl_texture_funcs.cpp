@@ -664,8 +664,6 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
                                   GLenum internalformat, GLuint minlevel, GLuint numlevels,
                                   GLuint minlayer, GLuint numlayers)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureView(texture, target, origtexture, internalformat, minlevel,
                                            numlevels, minlayer, numlayers));
 
@@ -2156,8 +2154,6 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
                                         GLint internalformat, GLsizei width, GLint border,
                                         GLenum format, GLenum type, const void *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width,
                                                  border, format, type, pixels));
 
@@ -2168,8 +2164,6 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width,
                                  GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(
       m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels));
 
@@ -2194,8 +2188,6 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
                                          GLint internalformat, GLsizei width, GLint border,
                                          GLenum format, GLenum type, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glMultiTexImage1DEXT(texunit, target, level, internalformat, width,
                                                   border, format, type, pixels));
 
@@ -2395,8 +2387,6 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
                                         GLint internalformat, GLsizei width, GLsizei height,
                                         GLint border, GLenum format, GLenum type, const void *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width,
                                                  height, border, format, type, pixels));
 
@@ -2408,8 +2398,6 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
                                  GLsizei height, GLint border, GLenum format, GLenum type,
                                  const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glTexImage2D(target, level, internalformat, width, height, border,
                                           format, type, pixels));
 
@@ -2435,8 +2423,6 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
                                          GLint border, GLenum format, GLenum type,
                                          const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glMultiTexImage2DEXT(texunit, target, level, internalformat, width,
                                                   height, border, format, type, pixels));
 
@@ -2619,8 +2605,6 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
                                         GLsizei depth, GLint border, GLenum format, GLenum type,
                                         const void *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width,
                                                  height, depth, border, format, type, pixels));
 
@@ -2633,8 +2617,6 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
                                  GLsizei height, GLsizei depth, GLint border, GLenum format,
                                  GLenum type, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glTexImage3D(target, level, internalformat, width, height, depth,
                                           border, format, type, pixels));
 
@@ -2660,8 +2642,6 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
                                          GLsizei depth, GLint border, GLenum format, GLenum type,
                                          const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
-
   SERIALISE_TIME_CALL(m_Real.glMultiTexImage3DEXT(texunit, target, level, internalformat, width,
                                                   height, depth, border, format, type, pixels));
 
@@ -2843,8 +2823,6 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
                                                   GLenum internalformat, GLsizei width, GLint border,
                                                   GLsizei imageSize, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat,
                                                            width, border, imageSize, pixels));
 
@@ -2857,8 +2835,6 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
                                            GLsizei width, GLint border, GLsizei imageSize,
                                            const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedTexImage1D(target, level, internalformat, width, border,
                                                     imageSize, pixels));
 
@@ -2883,8 +2859,6 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
                                                    GLenum internalformat, GLsizei width, GLint border,
                                                    GLsizei imageSize, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexImage1DEXT(texunit, target, level, internalformat,
                                                             width, border, imageSize, pixels));
 
@@ -3196,8 +3170,6 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
                                                   GLsizei height, GLint border, GLsizei imageSize,
                                                   const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedTextureImage2DEXT(
       texture, target, level, internalformat, width, height, border, imageSize, pixels));
 
@@ -3210,8 +3182,6 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
                                            GLsizei width, GLsizei height, GLint border,
                                            GLsizei imageSize, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedTexImage2D(target, level, internalformat, width, height,
                                                     border, imageSize, pixels));
 
@@ -3237,8 +3207,6 @@ void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target
                                                    GLsizei height, GLint border, GLsizei imageSize,
                                                    const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexImage2DEXT(
       texunit, target, level, internalformat, width, height, border, imageSize, pixels));
 
@@ -3435,8 +3403,6 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
                                                   GLsizei height, GLsizei depth, GLint border,
                                                   GLsizei imageSize, const void *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedTextureImage3DEXT(
       texture, target, level, internalformat, width, height, depth, border, imageSize, pixels));
 
@@ -3449,8 +3415,6 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
                                            GLsizei width, GLsizei height, GLsizei depth,
                                            GLint border, GLsizei imageSize, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedTexImage3D(target, level, internalformat, width, height,
                                                     depth, border, imageSize, pixels));
 
@@ -3476,8 +3440,6 @@ void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target
                                                    GLsizei height, GLsizei depth, GLint border,
                                                    GLsizei imageSize, const GLvoid *pixels)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexImage3DEXT(
       texunit, target, level, internalformat, width, height, depth, border, imageSize, pixels));
 
@@ -3613,8 +3575,6 @@ void WrappedOpenGL::glCopyTextureImage1DEXT(GLuint texture, GLenum target, GLint
                                             GLenum internalformat, GLint x, GLint y, GLsizei width,
                                             GLint border)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
-
   SERIALISE_TIME_CALL(
       m_Real.glCopyTextureImage1DEXT(texture, target, level, internalformat, x, y, width, border));
 
@@ -3627,8 +3587,6 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
                                              GLenum internalformat, GLint x, GLint y, GLsizei width,
                                              GLint border)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
-
   SERIALISE_TIME_CALL(
       m_Real.glCopyMultiTexImage1DEXT(texunit, target, level, internalformat, x, y, width, border));
 
@@ -3644,8 +3602,6 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
 void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internalformat, GLint x,
                                      GLint y, GLsizei width, GLint border)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCopyTexImage1D(target, level, internalformat, x, y, width, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -3769,8 +3725,6 @@ void WrappedOpenGL::glCopyTextureImage2DEXT(GLuint texture, GLenum target, GLint
                                             GLenum internalformat, GLint x, GLint y, GLsizei width,
                                             GLsizei height, GLint border)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCopyTextureImage2DEXT(texture, target, level, internalformat, x, y,
                                                      width, height, border));
 
@@ -3783,8 +3737,6 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
                                              GLenum internalformat, GLint x, GLint y, GLsizei width,
                                              GLsizei height, GLint border)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glCopyMultiTexImage2DEXT(texunit, target, level, internalformat, x, y,
                                                       width, height, border));
 
@@ -3800,8 +3752,6 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
 void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x,
                                      GLint y, GLsizei width, GLsizei height, GLint border)
 {
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
-
   SERIALISE_TIME_CALL(
       m_Real.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border));
 
@@ -3901,8 +3851,6 @@ void WrappedOpenGL::Common_glTextureStorage1DEXT(ResourceId texId, GLenum target
 void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels,
                                           GLenum internalformat, GLsizei width)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width));
 
   Common_glTextureStorage1DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
@@ -3912,8 +3860,6 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 void WrappedOpenGL::glTextureStorage1D(GLuint texture, GLsizei levels, GLenum internalformat,
                                        GLsizei width)
 {
-  internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage1D(texture, levels, internalformat, width));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -3927,8 +3873,6 @@ void WrappedOpenGL::glTextureStorage1D(GLuint texture, GLsizei levels, GLenum in
 
 void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexStorage1D(target, levels, internalformat, width));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -4032,8 +3976,6 @@ void WrappedOpenGL::Common_glTextureStorage2DEXT(ResourceId texId, GLenum target
 void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
                                           GLenum internalformat, GLsizei width, GLsizei height)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(
       m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height));
 
@@ -4044,8 +3986,6 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 void WrappedOpenGL::glTextureStorage2D(GLuint texture, GLsizei levels, GLenum internalformat,
                                        GLsizei width, GLsizei height)
 {
-  internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage2D(texture, levels, internalformat, width, height));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -4060,8 +4000,6 @@ void WrappedOpenGL::glTextureStorage2D(GLuint texture, GLsizei levels, GLenum in
 void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat,
                                    GLsizei width, GLsizei height)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexStorage2D(target, levels, internalformat, width, height));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -4170,8 +4108,6 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
                                           GLenum internalformat, GLsizei width, GLsizei height,
                                           GLsizei depth)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(
       m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth));
 
@@ -4182,8 +4118,6 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 void WrappedOpenGL::glTextureStorage3D(GLuint texture, GLsizei levels, GLenum internalformat,
                                        GLsizei width, GLsizei height, GLsizei depth)
 {
-  internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
-
   SERIALISE_TIME_CALL(
       m_Real.glTextureStorage3D(texture, levels, internalformat, width, height, depth));
 
@@ -4199,8 +4133,6 @@ void WrappedOpenGL::glTextureStorage3D(GLuint texture, GLsizei levels, GLenum in
 void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat,
                                    GLsizei width, GLsizei height, GLsizei depth)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexStorage3D(target, levels, internalformat, width, height, depth));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -4314,8 +4246,6 @@ void WrappedOpenGL::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum targ
                                                      GLenum internalformat, GLsizei width,
                                                      GLsizei height, GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage2DMultisampleEXT(
       texture, target, samples, internalformat, width, height, fixedsamplelocations));
 
@@ -4328,8 +4258,6 @@ void WrappedOpenGL::glTextureStorage2DMultisample(GLuint texture, GLsizei sample
                                                   GLenum internalformat, GLsizei width,
                                                   GLsizei height, GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage2DMultisample(texture, samples, internalformat, width,
                                                            height, fixedsamplelocations));
 
@@ -4347,8 +4275,6 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
                                               GLsizei width, GLsizei height,
                                               GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexStorage2DMultisample(target, samples, internalformat, width,
                                                        height, fixedsamplelocations));
 
@@ -4373,8 +4299,6 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
                                             GLsizei width, GLsizei height,
                                             GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height,
                                                      fixedsamplelocations));
 
@@ -4496,8 +4420,6 @@ void WrappedOpenGL::glTextureStorage3DMultisampleEXT(GLuint texture, GLenum targ
                                                      GLsizei height, GLsizei depth,
                                                      GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage3DMultisampleEXT(
       texture, target, samples, internalformat, width, height, depth, fixedsamplelocations));
 
@@ -4511,8 +4433,6 @@ void WrappedOpenGL::glTextureStorage3DMultisample(GLuint texture, GLsizei sample
                                                   GLsizei height, GLsizei depth,
                                                   GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTextureStorage3DMultisample(texture, samples, internalformat, width,
                                                            height, depth, fixedsamplelocations));
 
@@ -4530,8 +4450,6 @@ void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GL
                                               GLsizei width, GLsizei height, GLsizei depth,
                                               GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexStorage3DMultisample(target, samples, internalformat, width,
                                                        height, depth, fixedsamplelocations));
 
@@ -4557,8 +4475,6 @@ void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLen
                                             GLsizei width, GLsizei height, GLsizei depth,
                                             GLboolean fixedsamplelocations)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   SERIALISE_TIME_CALL(m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height,
                                                      depth, fixedsamplelocations));
 

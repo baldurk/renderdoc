@@ -361,7 +361,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_R32I:
     case eGL_R32UI:
     case eGL_R16UI:
-    case eGL_R8UI: return eGL_RED_INTEGER;
+    case eGL_R8UI:
+    case eGL_RED_INTEGER: return eGL_RED_INTEGER;
     case eGL_RG8:
     case eGL_RG8_SNORM:
     case eGL_RG16:
@@ -374,7 +375,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RG16I:
     case eGL_RG16UI:
     case eGL_RG32I:
-    case eGL_RG32UI: return eGL_RG_INTEGER;
+    case eGL_RG32UI:
+    case eGL_RG_INTEGER: return eGL_RG_INTEGER;
     case eGL_R3_G3_B2:
     case eGL_RGB4:
     case eGL_RGB5:
@@ -396,7 +398,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGB16I:
     case eGL_RGB16UI:
     case eGL_RGB32I:
-    case eGL_RGB32UI: return eGL_RGB_INTEGER;
+    case eGL_RGB32UI:
+    case eGL_RGB_INTEGER: return eGL_RGB_INTEGER;
     case eGL_RGBA2:
     case eGL_RGBA4:
     case eGL_RGB5_A1:
@@ -416,19 +419,23 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGBA16I:
     case eGL_RGBA16UI:
     case eGL_RGBA32UI:
-    case eGL_RGBA32I: return eGL_RGBA_INTEGER;
-    case eGL_BGRA:
-    case eGL_BGRA8_EXT: return eGL_BGRA;
+    case eGL_RGBA32I:
+    case eGL_RGBA_INTEGER: return eGL_RGBA_INTEGER;
+    case eGL_BGRA8_EXT:
+    case eGL_BGRA: return eGL_BGRA;
     case eGL_DEPTH_COMPONENT16:
     case eGL_DEPTH_COMPONENT24:
     case eGL_DEPTH_COMPONENT32:
-    case eGL_DEPTH_COMPONENT32F: return eGL_DEPTH_COMPONENT;
+    case eGL_DEPTH_COMPONENT32F:
+    case eGL_DEPTH_COMPONENT: return eGL_DEPTH_COMPONENT;
     case eGL_DEPTH24_STENCIL8:
-    case eGL_DEPTH32F_STENCIL8: return eGL_DEPTH_STENCIL;
+    case eGL_DEPTH32F_STENCIL8:
+    case eGL_DEPTH_STENCIL: return eGL_DEPTH_STENCIL;
     case eGL_STENCIL_INDEX1:
     case eGL_STENCIL_INDEX4:
     case eGL_STENCIL_INDEX8:
-    case eGL_STENCIL_INDEX16: return eGL_STENCIL;
+    case eGL_STENCIL_INDEX16:
+    case eGL_STENCIL: return eGL_STENCIL;
     default: break;
   }
 
@@ -564,132 +571,6 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   }
 
   return RDCMAX(1, mips);
-}
-
-GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat, GLenum type)
-{
-  switch(internalFormat)
-  {
-    // pick sized format ourselves for generic formats
-    case eGL_COMPRESSED_RED: return eGL_COMPRESSED_RED_RGTC1;
-    case eGL_COMPRESSED_RG: return eGL_COMPRESSED_RG_RGTC2;
-    case eGL_COMPRESSED_RGB: return eGL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-    case eGL_COMPRESSED_RGBA: return eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-    case eGL_COMPRESSED_SRGB: return eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-    case eGL_COMPRESSED_SRGB_ALPHA:
-      return eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-
-    // only one sized format for SRGB
-    case eGL_SRGB: return eGL_SRGB8;
-    case eGL_SRGB_ALPHA: return eGL_SRGB8_ALPHA8;
-
-    case eGL_RED:
-    case eGL_RG:
-    case eGL_RGB:
-    case eGL_RGBA:
-    case eGL_DEPTH_COMPONENT:
-    case eGL_STENCIL:
-    case eGL_STENCIL_INDEX:
-    case eGL_DEPTH_STENCIL: break;
-    default:
-      return internalFormat;    // already explicitly sized
-  }
-
-  switch(type)
-  {
-    // some types imply a sized internalFormat
-    case eGL_UNSIGNED_SHORT_5_6_5: return eGL_RGB565;
-    case eGL_UNSIGNED_SHORT_4_4_4_4: return eGL_RGBA4;
-    case eGL_UNSIGNED_SHORT_5_5_5_1: return eGL_RGB5_A1;
-    default: break;
-  }
-
-  switch(target)
-  {
-    case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
-    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z: target = eGL_TEXTURE_CUBE_MAP;
-    default: break;
-  }
-
-  GLint red, depth, stencil;
-  if(HasExt[ARB_internalformat_query2] && gl.glGetInternalformativ)
-  {
-    gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint),
-                             &red);
-    gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_DEPTH_SIZE, sizeof(GLint),
-                             &depth);
-    gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_STENCIL_SIZE, sizeof(GLint),
-                             &stencil);
-  }
-  else
-  {
-    // without the query function, just default to sensible defaults
-    red = 8;
-    if(type == eGL_FLOAT)
-      depth = 32;
-    else if(type == eGL_UNSIGNED_SHORT)
-      depth = 16;
-    else
-      depth = 24;
-    stencil = 8;
-  }
-
-  switch(internalFormat)
-  {
-    case eGL_RED:
-      if(red == 32)
-        return eGL_R32F;
-      else if(red == 16)
-        return eGL_R16;
-      else
-        return eGL_R8;
-    case eGL_RG:
-      if(red == 32)
-        return eGL_RG32F;
-      else if(red == 16)
-        return eGL_RG16;
-      else
-        return eGL_RG8;
-    case eGL_RGB:
-      if(red == 32)
-        return eGL_RGB32F;
-      else if(red == 16)
-        return eGL_RGB16;
-      else
-        return eGL_RGB8;
-    case eGL_RGBA:
-      if(red == 32)
-        return eGL_RGBA32F;
-      else if(red == 16)
-        return eGL_RGBA16;
-      else
-        return eGL_RGBA8;
-    case eGL_STENCIL:
-    case eGL_STENCIL_INDEX:
-      if(stencil == 16)
-        return eGL_STENCIL_INDEX16;
-      else
-        return eGL_STENCIL_INDEX8;
-    case eGL_DEPTH_COMPONENT:
-      if(depth == 32)
-        return eGL_DEPTH_COMPONENT32F;
-      else if(depth == 16)
-        return eGL_DEPTH_COMPONENT16;
-      else
-        return eGL_DEPTH_COMPONENT24;
-    case eGL_DEPTH_STENCIL:
-      if(depth == 32)
-        return eGL_DEPTH32F_STENCIL8;
-      else
-        return eGL_DEPTH24_STENCIL8;
-    default: break;
-  }
-
-  return internalFormat;
 }
 
 void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
