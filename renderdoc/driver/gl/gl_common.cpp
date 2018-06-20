@@ -930,6 +930,7 @@ size_t GLTypeSize(GLenum type)
     case eGL_UNSIGNED_BYTE:
     case eGL_BYTE: return 1;
     case eGL_UNSIGNED_SHORT:
+    case eGL_UNSIGNED_SHORT_5_6_5:
     case eGL_SHORT:
     case eGL_HALF_FLOAT_OES:
     case eGL_HALF_FLOAT: return 2;
