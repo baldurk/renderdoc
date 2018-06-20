@@ -42,6 +42,9 @@ static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 
 VulkanReplay::VulkanReplay()
 {
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(VulkanReplay));
+
   m_pDriver = NULL;
   m_Proxy = false;
 

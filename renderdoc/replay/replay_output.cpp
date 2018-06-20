@@ -104,6 +104,9 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
   m_pDevice->GetOutputWindowDimensions(m_MainOutput.outputID, m_Width, m_Height);
 
   m_CustomShaderResourceId = ResourceId();
+
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
 ReplayOutput::~ReplayOutput()

@@ -178,6 +178,9 @@ ReplayController::ReplayController()
   m_D3D12PipelineState = NULL;
   m_GLPipelineState = NULL;
   m_VulkanPipelineState = NULL;
+
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
 ReplayController::~ReplayController()

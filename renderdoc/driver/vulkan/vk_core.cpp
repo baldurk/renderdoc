@@ -89,6 +89,9 @@ void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)
 
 WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
 {
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedVulkan));
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(VkMarkerRegion::vk == NULL)

@@ -37,6 +37,9 @@ static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 
 GLReplay::GLReplay()
 {
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(GLReplay));
+
   m_pDriver = NULL;
   m_Proxy = false;
 
