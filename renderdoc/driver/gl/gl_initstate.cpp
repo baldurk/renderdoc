@@ -1079,7 +1079,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
       {
         gl.glGenBuffers(1, &res.name);
         gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, res.name);
-        gl.glNamedBufferDataEXT(res.name, (GLsizeiptr)BufferContentsSize, NULL, eGL_STATIC_DRAW);
+        gl.glNamedBufferDataEXT(res.name, (GLsizeiptr)RDCMAX(BufferContentsSize, 4U), NULL,
+                                eGL_STATIC_DRAW);
         BufferContents = (byte *)gl.glMapNamedBufferEXT(res.name, eGL_WRITE_ONLY);
 
         SetInitialContents(
