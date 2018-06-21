@@ -1190,8 +1190,17 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
 
   m_Real->glGetIntegerv(eGL_STENCIL_CLEAR_VALUE, (GLint *)&StencilClearValue);
 
-  for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
-    m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
+  if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
+  {
+    for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
+      m_Real->glGetBooleani_v(eGL_COLOR_WRITEMASK, i, &ColorMasks[i].red);
+  }
+  else
+  {
+    m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[0].red);
+    for(size_t i = 1; i < ARRAY_COUNT(ColorMasks); i++)
+      memcpy(&ColorMasks[i], &ColorMasks[0], sizeof(ColorMask));
+  }
 
   m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
   m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
@@ -1615,9 +1624,17 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
 
   m_Real->glClearStencil((GLint)StencilClearValue);
 
-  for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
-    m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue,
-                         ColorMasks[i].alpha);
+  if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
+  {
+    for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
+      m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue,
+                           ColorMasks[i].alpha);
+  }
+  else
+  {
+    m_Real->glColorMask(ColorMasks[0].red, ColorMasks[0].green, ColorMasks[0].blue,
+                        ColorMasks[0].alpha);
+  }
 
   m_Real->glSampleMaski(0, (GLbitfield)SampleMask[0]);
   m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);

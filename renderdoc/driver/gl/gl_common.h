@@ -398,6 +398,7 @@ extern bool IsGLES;
 // 99 means the extension never became core, so you can easily just do a check of CoreVersion >= NN
 // and they will always fail.
 #define EXTENSION_CHECKS()                                       \
+  EXT_TO_CHECK(30, 30, EXT_draw_buffers2)                        \
   EXT_TO_CHECK(31, 99, ARB_texture_buffer_object)                \
   EXT_TO_CHECK(33, 30, ARB_explicit_attrib_location)             \
   EXT_TO_CHECK(33, 30, ARB_sampler_objects)                      \
