@@ -703,6 +703,7 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
   {
     case eGL_BLEND_ADVANCED_COHERENT_KHR: return HasExt[KHR_blend_equation_advanced_coherent];
     case eGL_RASTER_MULTISAMPLE_EXT: return HasExt[EXT_raster_multisample];
+    case eGL_RASTERIZER_DISCARD: return HasExt[EXT_transform_feedback];
     default: break;
   }
 
