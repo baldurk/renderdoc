@@ -284,6 +284,42 @@ struct GLMarkerRegion
   static const GLHookSet *gl;
 };
 
+// TODO ideally we'd support the full state vector, and only fetch&restore state we actually change
+// - i.e. change state through here, and track dirty bits.
+struct GLPushPopState
+{
+  bool enableBits[8];
+  GLenum ClipOrigin, ClipDepth;
+  GLenum EquationRGB, EquationAlpha;
+  GLenum SourceRGB, SourceAlpha;
+  GLenum DestinationRGB, DestinationAlpha;
+  GLenum PolygonMode;
+  GLfloat Viewportf[4];
+  GLint Viewport[4];
+  GLenum ActiveTexture;
+  GLuint tex0;
+  GLuint arraybuf;
+  GLuint ubo[3];
+  GLuint prog;
+  GLuint pipe;
+  GLuint VAO;
+  GLuint drawFBO;
+
+  GLboolean ColorMask[3];
+
+  // if the current context wasn't created with CreateContextAttribs we do an immediate mode render,
+  // so fewer states are pushed/popped.
+  // Note we don't assume a 1.0 context since that would be painful to handle. Instead we just skip
+  // bits of state we're not going to mess with. In some cases this might cause problems e.g. we
+  // don't use indexed enable states for blend and scissor test because we're assuming there's no
+  // separate blending.
+  //
+  // In the end, this is just a best-effort to keep going without crashing. Old GL versions aren't
+  // supported.
+  void Push(const GLHookSet &gl, bool modern);
+  void Pop(const GLHookSet &gl, bool modern);
+};
+
 size_t GLTypeSize(GLenum type);
 
 size_t BufferIdx(GLenum buf);

@@ -778,6 +778,276 @@ void GLMarkerRegion::End()
   gl->glPopDebugGroup();
 }
 
+void GLPushPopState::Push(const GLHookSet &gl, bool modern)
+{
+  enableBits[0] = gl.glIsEnabled(eGL_DEPTH_TEST) != 0;
+  enableBits[1] = gl.glIsEnabled(eGL_STENCIL_TEST) != 0;
+  enableBits[2] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
+  if(modern)
+  {
+    if(!IsGLES)
+      enableBits[3] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
+
+    if(HasExt[ARB_draw_buffers_blend])
+      enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
+    else
+      enableBits[4] = gl.glIsEnabled(eGL_BLEND) != 0;
+
+    if(HasExt[ARB_viewport_array])
+      enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+    else
+      enableBits[5] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+
+    if(HasExt[EXT_transform_feedback])
+      enableBits[6] = gl.glIsEnabled(eGL_RASTERIZER_DISCARD) != 0;
+  }
+  else
+  {
+    enableBits[3] = gl.glIsEnabled(eGL_BLEND) != 0;
+    enableBits[4] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+    enableBits[5] = gl.glIsEnabled(eGL_TEXTURE_2D) != 0;
+    enableBits[6] = gl.glIsEnabled(eGL_LIGHTING) != 0;
+    enableBits[7] = gl.glIsEnabled(eGL_ALPHA_TEST) != 0;
+  }
+
+  if(modern && HasExt[ARB_clip_control])
+  {
+    gl.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
+    gl.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+  }
+  else
+  {
+    ClipOrigin = eGL_LOWER_LEFT;
+    ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
+  }
+
+  if(modern && HasExt[ARB_draw_buffers_blend])
+  {
+    gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint *)&EquationRGB);
+    gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint *)&EquationAlpha);
+
+    gl.glGetIntegeri_v(eGL_BLEND_SRC_RGB, 0, (GLint *)&SourceRGB);
+    gl.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, 0, (GLint *)&SourceAlpha);
+
+    gl.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint *)&DestinationRGB);
+    gl.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint *)&DestinationAlpha);
+  }
+  else
+  {
+    gl.glGetIntegerv(eGL_BLEND_EQUATION_RGB, (GLint *)&EquationRGB);
+    gl.glGetIntegerv(eGL_BLEND_EQUATION_ALPHA, (GLint *)&EquationAlpha);
+
+    gl.glGetIntegerv(eGL_BLEND_SRC_RGB, (GLint *)&SourceRGB);
+    gl.glGetIntegerv(eGL_BLEND_SRC_ALPHA, (GLint *)&SourceAlpha);
+
+    gl.glGetIntegerv(eGL_BLEND_DST_RGB, (GLint *)&DestinationRGB);
+    gl.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&DestinationAlpha);
+  }
+
+  if(modern && (HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend]))
+  {
+    gl.glGetBooleani_v(eGL_COLOR_WRITEMASK, 0, ColorMask);
+  }
+  else
+  {
+    gl.glGetBooleanv(eGL_COLOR_WRITEMASK, ColorMask);
+  }
+
+  if(!VendorCheck[VendorCheck_AMD_polygon_mode_query] && !IsGLES)
+  {
+    GLenum dummy[2] = {eGL_FILL, eGL_FILL};
+    // docs suggest this is enumeration[2] even though polygon mode can't be set independently for
+    // front and back faces.
+    gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+    PolygonMode = dummy[0];
+  }
+  else
+  {
+    PolygonMode = eGL_FILL;
+  }
+
+  if(modern && HasExt[ARB_viewport_array])
+    gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewportf[0]);
+  else
+    gl.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
+
+  gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
+  gl.glActiveTexture(eGL_TEXTURE0);
+  gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&tex0);
+
+  gl.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&arraybuf);
+
+  // we get the current program but only try to restore it if it's non-0
+  prog = 0;
+  if(modern)
+    gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+
+  drawFBO = 0;
+  gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
+
+  // since we will use the fixed function pipeline, also need to check for program pipeline
+  // bindings (if we weren't, our program would override)
+  pipe = 0;
+  if(modern && HasExt[ARB_separate_shader_objects])
+    gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+
+  if(modern)
+  {
+    gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&ubo[0]);
+    gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint *)&ubo[1]);
+    gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint *)&ubo[2]);
+
+    gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+  }
+}
+
+void GLPushPopState::Pop(const GLHookSet &gl, bool modern)
+{
+  if(enableBits[0])
+    gl.glEnable(eGL_DEPTH_TEST);
+  else
+    gl.glDisable(eGL_DEPTH_TEST);
+  if(enableBits[1])
+    gl.glEnable(eGL_STENCIL_TEST);
+  else
+    gl.glDisable(eGL_STENCIL_TEST);
+  if(enableBits[2])
+    gl.glEnable(eGL_CULL_FACE);
+  else
+    gl.glDisable(eGL_CULL_FACE);
+
+  if(modern)
+  {
+    if(!IsGLES)
+    {
+      if(enableBits[3])
+        gl.glEnable(eGL_DEPTH_CLAMP);
+      else
+        gl.glDisable(eGL_DEPTH_CLAMP);
+    }
+
+    if(HasExt[ARB_draw_buffers_blend])
+    {
+      if(enableBits[4])
+        gl.glEnablei(eGL_BLEND, 0);
+      else
+        gl.glDisablei(eGL_BLEND, 0);
+    }
+    else
+    {
+      if(enableBits[4])
+        gl.glEnable(eGL_BLEND);
+      else
+        gl.glDisable(eGL_BLEND);
+    }
+
+    if(HasExt[ARB_viewport_array])
+    {
+      if(enableBits[5])
+        gl.glEnablei(eGL_SCISSOR_TEST, 0);
+      else
+        gl.glDisablei(eGL_SCISSOR_TEST, 0);
+    }
+    else
+    {
+      if(enableBits[5])
+        gl.glEnable(eGL_SCISSOR_TEST);
+      else
+        gl.glDisable(eGL_SCISSOR_TEST);
+    }
+
+    if(HasExt[EXT_transform_feedback])
+    {
+      if(enableBits[6])
+        gl.glEnable(eGL_RASTERIZER_DISCARD);
+      else
+        gl.glDisable(eGL_RASTERIZER_DISCARD);
+    }
+  }
+  else
+  {
+    if(enableBits[3])
+      gl.glEnable(eGL_BLEND);
+    else
+      gl.glDisable(eGL_BLEND);
+    if(enableBits[4])
+      gl.glEnable(eGL_SCISSOR_TEST);
+    else
+      gl.glDisable(eGL_SCISSOR_TEST);
+    if(enableBits[5])
+      gl.glEnable(eGL_TEXTURE_2D);
+    else
+      gl.glDisable(eGL_TEXTURE_2D);
+    if(enableBits[6])
+      gl.glEnable(eGL_LIGHTING);
+    else
+      gl.glDisable(eGL_LIGHTING);
+    if(enableBits[7])
+      gl.glEnable(eGL_ALPHA_TEST);
+    else
+      gl.glDisable(eGL_ALPHA_TEST);
+  }
+
+  if(modern && gl.glClipControl && HasExt[ARB_clip_control])
+    gl.glClipControl(ClipOrigin, ClipDepth);
+
+  if(modern && HasExt[ARB_draw_buffers_blend])
+  {
+    gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+    gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
+  }
+  else
+  {
+    gl.glBlendFuncSeparate(SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+    gl.glBlendEquationSeparate(EquationRGB, EquationAlpha);
+  }
+
+  if(modern && (HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend]))
+  {
+    gl.glColorMaski(0, ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+  }
+  else
+  {
+    gl.glColorMask(ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+  }
+
+  if(!IsGLES)
+    gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+
+  if(modern && HasExt[ARB_viewport_array])
+    gl.glViewportIndexedf(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
+  else
+    gl.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
+
+  gl.glActiveTexture(eGL_TEXTURE0);
+  gl.glBindTexture(eGL_TEXTURE_2D, tex0);
+  gl.glActiveTexture(ActiveTexture);
+
+  gl.glBindBuffer(eGL_ARRAY_BUFFER, arraybuf);
+
+  if(drawFBO != 0 && gl.glBindFramebuffer)
+    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFBO);
+
+  if(modern)
+  {
+    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
+    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
+    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
+
+    gl.glUseProgram(prog);
+
+    gl.glBindVertexArray(VAO);
+  }
+  else
+  {
+    // only restore these if there was a setting and the function pointer exists
+    if(gl.glUseProgram && prog != 0)
+      gl.glUseProgram(prog);
+    if(gl.glBindProgramPipeline && pipe != 0)
+      gl.glBindProgramPipeline(pipe);
+  }
+}
+
 GLInitParams::GLInitParams()
 {
   colorBits = 32;
