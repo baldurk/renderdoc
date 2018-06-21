@@ -1616,6 +1616,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                                                     &m_ExternalQueues[qidx].buffer);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+      if(m_SetDeviceLoaderData)
+        m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].buffer);
+      else
+        SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].buffer);
+
       GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].buffer);
     }
 
