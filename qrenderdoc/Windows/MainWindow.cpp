@@ -446,7 +446,7 @@ void MainWindow::importCapture(const CaptureFileFormat &fmt)
   QString title = fmt.name;
 
   QString filename =
-      RDDialog::getOpenFileName(this, tr("Select file to open"), m_Ctx.Config().LastCaptureFilePath,
+      RDDialog::getOpenFileName(this, tr("Select file to open"), QString(),
                                 tr("%1 Files (*.%2);;All Files (*)").arg(title).arg(ext));
 
   if(!filename.isEmpty())
