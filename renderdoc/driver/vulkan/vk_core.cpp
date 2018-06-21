@@ -738,6 +738,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_GET_SURFACE_CAPABILITIES_2_SPEC_VERSION,
     },
     {
+        VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME, VK_KHR_IMAGE_FORMAT_LIST_SPEC_VERSION,
+    },
+    {
         VK_KHR_MAINTENANCE1_EXTENSION_NAME, VK_KHR_MAINTENANCE1_SPEC_VERSION,
     },
     {

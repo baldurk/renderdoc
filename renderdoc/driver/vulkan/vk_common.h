@@ -652,6 +652,7 @@ DECLARE_REFLECTION_STRUCT(VkDeviceGroupCommandBufferBeginInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceGroupRenderPassBeginInfo);
 DECLARE_REFLECTION_STRUCT(VkMemoryAllocateFlagsInfo);
 DECLARE_REFLECTION_STRUCT(VkProtectedSubmitInfo);
+DECLARE_REFLECTION_STRUCT(VkImageFormatListCreateInfoKHR);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -727,6 +728,7 @@ DECLARE_DESERIALISE_TYPE(VkDeviceGroupCommandBufferBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
 DECLARE_DESERIALISE_TYPE(VkProtectedSubmitInfo);
+DECLARE_DESERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
 
 #if defined(VK_KHR_external_memory_win32) || defined(VK_NV_external_memory_win32)
 DECLARE_REFLECTION_STRUCT(VkImportMemoryWin32HandleInfoNV);

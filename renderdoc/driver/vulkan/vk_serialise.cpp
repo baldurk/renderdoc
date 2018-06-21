@@ -252,7 +252,10 @@ SERIALISE_VK_HANDLES();
                VkSamplerReductionModeCreateInfoEXT)                                                  \
                                                                                                      \
   /* VK_KHR_multiview */                                                                             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO, VkRenderPassMultiviewCreateInfo)
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO, VkRenderPassMultiviewCreateInfo) \
+                                                                                                     \
+  /* VK_KHR_image_format_list */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR, VkImageFormatListCreateInfoKHR)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2488,6 +2491,23 @@ void Deserialise(const VkRenderPassMultiviewCreateInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageFormatListCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(viewFormatCount);
+  SERIALISE_MEMBER_ARRAY(pViewFormats, viewFormatCount);
+}
+
+template <>
+void Deserialise(const VkImageFormatListCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pViewFormats;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDeviceQueueInfo2 &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2);
@@ -3074,6 +3094,7 @@ INSTANTIATE_SERIALISE_TYPE(VkDeviceGroupCommandBufferBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
 INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
+INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);
