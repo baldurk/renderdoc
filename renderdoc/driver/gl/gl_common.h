@@ -305,7 +305,7 @@ struct GLPushPopState
   GLuint VAO;
   GLuint drawFBO;
 
-  GLboolean ColorMask[3];
+  GLboolean ColorMask[4];
 
   // if the current context wasn't created with CreateContextAttribs we do an immediate mode render,
   // so fewer states are pushed/popped.
