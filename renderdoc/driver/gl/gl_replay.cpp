@@ -87,6 +87,13 @@ void GLReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
   m_pDriver->ReplayLog(0, endEventID, replayType);
+
+  // clear array cache
+  for(size_t i = 0; i < ARRAY_COUNT(m_GetTexturePrevData); i++)
+  {
+    delete[] m_GetTexturePrevData[i];
+    m_GetTexturePrevData[i] = NULL;
+  }
 }
 
 const SDFile &GLReplay::GetStructuredFile()
