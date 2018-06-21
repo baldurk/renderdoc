@@ -1437,8 +1437,8 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   hookset->glGetTexLevelParameteriv(target, level, eGL_TEXTURE_HEIGHT, &height);
   hookset->glGetTexLevelParameteriv(target, level, eGL_TEXTURE_DEPTH, &depth);
 
-  GLint texture = 0;
-  hookset->glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+  GLint boundTexture = 0;
+  hookset->glGetIntegerv(TextureBinding(target), (GLint *)&boundTexture);
 
   GLenum attachment = eGL_COLOR_ATTACHMENT0;
   if(format == eGL_DEPTH_COMPONENT)
@@ -1447,11 +1447,6 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     attachment = eGL_STENCIL_ATTACHMENT;
   else if(format == eGL_DEPTH_STENCIL)
     attachment = eGL_DEPTH_STENCIL_ATTACHMENT;
-
-  GLuint fbo = 0;
-  hookset->glGenFramebuffers(1, &fbo);
-
-  PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
 
   size_t sliceSize = GetByteSize(width, height, 1, format, type);
 
@@ -1465,6 +1460,168 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
              ToStr(type).c_str());
   }
 
+  GLuint readtex = boundTexture;
+  GLuint deltex = 0;
+
+  GLuint fbo = 0;
+  hookset->glGenFramebuffers(1, &fbo);
+
+  PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+  // ALPHA can't be bound to an FBO, so we need to blit to R8 by hand.
+  if(format == eGL_ALPHA)
+  {
+    RDCDEBUG("Doing manual blit from GL_ALPHA -> GL_R8 to allow readback");
+
+    GLint baseLevel = 0;
+    GLint maxLevel = 0;
+
+    // sample from only the right level of the source texture
+    hookset->glGetTexParameteriv(target, eGL_TEXTURE_BASE_LEVEL, &baseLevel);
+    hookset->glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+    hookset->glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, level);
+    hookset->glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, level);
+
+    // only support 2D textures for now
+    RDCASSERT(target == eGL_TEXTURE_2D, target);
+    hookset->glGenTextures(1, &readtex);
+    hookset->glBindTexture(target, readtex);
+
+    // allocate the R8 texture
+    hookset->glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
+    hookset->glTexImage2D(target, 0, eGL_R8, width, height, 0, eGL_RED, eGL_UNSIGNED_BYTE, NULL);
+
+    // render to it
+    hookset->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
+
+    // push rendering state
+    GLPushPopState textState;
+
+    textState.Push(*hookset, true);
+
+    // render a blit triangle to move alpha in the source to red in the dest
+    hookset->glDisable(eGL_BLEND);
+    hookset->glDisable(eGL_DEPTH_TEST);
+    hookset->glDisable(eGL_STENCIL_TEST);
+    hookset->glDisable(eGL_CULL_FACE);
+    hookset->glDisable(eGL_SCISSOR_TEST);
+    hookset->glViewport(0, 0, width, height);
+
+    hookset->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    hookset->glActiveTexture(eGL_TEXTURE0);
+    hookset->glBindTexture(eGL_TEXTURE_2D, boundTexture);
+
+    GLuint prog;
+
+    {
+      const char *vs =
+          "attribute vec2 pos;\n"
+          "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
+
+      const char *fs =
+          "precision highp float;\n"
+          "uniform vec2 res;\n"
+          "uniform sampler2D srcTex;\n"
+          "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res).aaaa; }";
+
+      GLuint vert = hookset->glCreateShader(eGL_VERTEX_SHADER);
+      GLuint frag = hookset->glCreateShader(eGL_FRAGMENT_SHADER);
+
+      hookset->glShaderSource(vert, 1, &vs, NULL);
+      hookset->glShaderSource(frag, 1, &fs, NULL);
+
+      hookset->glCompileShader(vert);
+      hookset->glCompileShader(frag);
+
+      char buffer[1024] = {0};
+      GLint status = 0;
+
+      hookset->glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
+      if(status == 0)
+      {
+        hookset->glGetShaderInfoLog(vert, 1024, NULL, buffer);
+        RDCERR("Shader error: %s", buffer);
+      }
+
+      hookset->glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
+      if(status == 0)
+      {
+        hookset->glGetShaderInfoLog(frag, 1024, NULL, buffer);
+        RDCERR("Shader error: %s", buffer);
+      }
+
+      prog = hookset->glCreateProgram();
+
+      hookset->glAttachShader(prog, vert);
+      hookset->glAttachShader(prog, frag);
+
+      hookset->glLinkProgram(prog);
+
+      hookset->glGetProgramiv(prog, eGL_LINK_STATUS, &status);
+      if(status == 0)
+      {
+        hookset->glGetProgramInfoLog(prog, 1024, NULL, buffer);
+        RDCERR("Link error: %s", buffer);
+      }
+
+      hookset->glDeleteShader(vert);
+      hookset->glDeleteShader(frag);
+    }
+
+    // fullscreen triangle
+    float verts[] = {
+        -1.0f, -1.0f,    // vertex 0
+        3.0f,  -1.0f,    // vertex 1
+        -1.0f, 3.0f,     // vertex 2
+    };
+
+    GLuint vb = 0;
+    hookset->glGenBuffers(1, &vb);
+    hookset->glBindBuffer(eGL_ARRAY_BUFFER, vb);
+    hookset->glBufferData(eGL_ARRAY_BUFFER, sizeof(verts), verts, eGL_STATIC_DRAW);
+
+    GLuint vao;
+    hookset->glGenVertexArrays(1, &vao);
+
+    hookset->glBindVertexArray(vao);
+
+    GLint loc = hookset->glGetAttribLocation(prog, "pos");
+    hookset->glVertexAttribPointer((GLuint)loc, 2, eGL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+    hookset->glEnableVertexAttribArray((GLuint)loc);
+
+    hookset->glUseProgram(prog);
+
+    loc = hookset->glGetUniformLocation(prog, "srcTex");
+    hookset->glUniform1i(loc, 0);
+    loc = hookset->glGetUniformLocation(prog, "res");
+    hookset->glUniform2f(loc, float(width), float(height));
+
+    hookset->glDrawArrays(eGL_TRIANGLES, 0, 3);
+
+    hookset->glDeleteVertexArrays(1, &vao);
+    hookset->glDeleteBuffers(1, &vb);
+    hookset->glDeleteProgram(prog);
+
+    // pop rendering state
+    textState.Pop(*hookset, true);
+
+    // delete this texture once we're done, at the end of the function
+    deltex = readtex;
+
+    // restore base/max level as we changed them to sample from the right level above
+    hookset->glBindTexture(target, boundTexture);
+    hookset->glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+    hookset->glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, maxLevel);
+
+    // read from the blitted texture from level 0, as red
+    hookset->glBindTexture(target, readtex);
+    level = 0;
+    format = eGL_RED;
+
+    RDCDEBUG("Done blit");
+  }
+
   for(GLint d = 0; d < depth; ++d)
   {
     switch(target)
@@ -1473,7 +1630,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
       case eGL_TEXTURE_2D_ARRAY:
       case eGL_TEXTURE_CUBE_MAP_ARRAY:
       case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-        hookset->glFramebufferTextureLayer(eGL_FRAMEBUFFER, attachment, texture, level, d);
+        hookset->glFramebufferTextureLayer(eGL_FRAMEBUFFER, attachment, readtex, level, d);
         break;
 
       case eGL_TEXTURE_CUBE_MAP:
@@ -1486,9 +1643,14 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
       case eGL_TEXTURE_2D:
       case eGL_TEXTURE_2D_MULTISAMPLE:
       default:
-        hookset->glFramebufferTexture2D(eGL_FRAMEBUFFER, attachment, target, texture, level);
+        hookset->glFramebufferTexture2D(eGL_FRAMEBUFFER, attachment, target, readtex, level);
         break;
     }
+
+    GLenum status = hookset->glCheckFramebufferStatus(eGL_FRAMEBUFFER);
+
+    if(status != eGL_FRAMEBUFFER_COMPLETE)
+      RDCERR("glReadPixels emulation FBO is %s", ToStr(status).c_str());
 
     byte *dst = (byte *)pixels + d * sliceSize;
     GLenum readFormat = fixBGRA ? eGL_RGBA : format;
@@ -1501,6 +1663,12 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
       for(GLint i = 0, n = width * height; i < n; ++i, b += 4)
         std::swap(*b, *(b + 2));
     }
+  }
+
+  if(deltex)
+  {
+    hookset->glDeleteTextures(1, &deltex);
+    hookset->glBindTexture(target, boundTexture);
   }
 
   hookset->glDeleteFramebuffers(1, &fbo);

@@ -517,6 +517,10 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GL
   else
   {
     gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
+    gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 
     bool isCompressed = IsCompressedFormat(internalFormat);
 
