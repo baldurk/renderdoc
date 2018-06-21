@@ -23,6 +23,8 @@ To change the current active event and move the cursor, you can call :py:meth:`~
 
 At this point you can use :py:meth:`~renderdoc.ReplayController.GetBufferData` and :py:meth:`~renderdoc.ReplayController.GetTextureData` to obtain the contents of a buffer or texture respectively. The pipeline state can be accessed via ``Get*PipelineState`` for each API - to determine the current capture's pipeline type you can fetch the API properties from :py:meth:`~renderdoc.ReplayController.GetAPIProperties`.
 
+There is also an API-agnostic pipeline abstraction to return information that is the same across APIs. Using :py:meth:`~renderdoc.GetPipelineState` returns a :py:class:`~renderdoc.PipeState` which has accessors for fetching the current vertex buffers, shaders, and colour outputs. This allows you to write generic code that will work on any API that RenderDoc supports. The API-specific pipelines are still available through ``Get*PipelineState``.
+
 For more examples of how to fetch data, see the concrete examples below.
 
 ReplayOutput
@@ -50,5 +52,3 @@ Functions such as :py:meth:`~qrenderdoc.CaptureContext.GetTextureViewer` will re
 You can also create new instances of windows such as buffer or shader viewers using :py:meth:`~qrenderdoc.CaptureContext.ViewBuffer` or :py:meth:`~qrenderdoc.CaptureContext.ViewShader`.
 
 The :py:class:`~qrenderdoc.CaptureContext` interface also provides useful utility functions such as :py:meth:`~qrenderdoc.CaptureContext.GetTexture` or :py:meth:`~qrenderdoc.CaptureContext.GetDrawcall` to look up objects by id instead of needing your own caching and lookup from the lists returned by the lower level interface.
-
-There is also an API-agnostic pipeline abstraction to return information that is the same across APIs. Using :py:meth:`~qrenderdoc.CaptureContext.CurPipelineState` returns a :py:class:`~qrenderdoc.CommonPipelineState` which has accessors for fetching the current vertex buffers, shaders, and colour outputs. This allows you to write generic code that will work on any API that RenderDoc supports. The API-specific pipelines are still available through ``Cur*PipelineState``.

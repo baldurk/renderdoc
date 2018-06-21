@@ -111,7 +111,7 @@
     <ClCompile Include="qrenderdoc_stub.cpp" />
     <CustomBuild Include="qrenderdoc.i">
       <FileType>Document</FileType>
-      <AdditionalInputs>%(Fullpath);$(ProjectDir)renderdoc.i;$(SolutionDir)renderdoc\api\replay\basic_types.h;$(SolutionDir)renderdoc\api\replay\capture_options.h;$(SolutionDir)renderdoc\api\replay\control_types.h;$(SolutionDir)renderdoc\api\replay\d3d11_pipestate.h;$(SolutionDir)renderdoc\api\replay\d3d12_pipestate.h;$(SolutionDir)renderdoc\api\replay\data_types.h;$(SolutionDir)renderdoc\api\replay\gl_pipestate.h;$(SolutionDir)renderdoc\api\replay\renderdoc_replay.h;$(SolutionDir)renderdoc\api\replay\replay_enums.h;$(SolutionDir)renderdoc\api\replay\shader_types.h;$(SolutionDir)renderdoc\api\replay\version.h;$(SolutionDir)renderdoc\api\replay\vk_pipestate.h;$(ProjectDir)..\Interface\CommonPipelineState.h;$(ProjectDir)..\Interface\PersistantConfig.h;$(ProjectDir)..\Interface\RemoteHost.h;$(ProjectDir)..\Interface\QRDInterface.h;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)renderdoc.i;$(SolutionDir)renderdoc\api\replay\basic_types.h;$(SolutionDir)renderdoc\api\replay\capture_options.h;$(SolutionDir)renderdoc\api\replay\control_types.h;$(SolutionDir)renderdoc\api\replay\d3d11_pipestate.h;$(SolutionDir)renderdoc\api\replay\d3d12_pipestate.h;$(SolutionDir)renderdoc\api\replay\data_types.h;$(SolutionDir)renderdoc\api\replay\gl_pipestate.h;$(SolutionDir)renderdoc\api\replay\renderdoc_replay.h;$(SolutionDir)renderdoc\api\replay\replay_enums.h;$(SolutionDir)renderdoc\api\replay\shader_types.h;$(SolutionDir)renderdoc\api\replay\version.h;$(SolutionDir)renderdoc\api\replay\vk_pipestate.h;$(ProjectDir)..\Interface\PersistantConfig.h;$(ProjectDir)..\Interface\RemoteHost.h;$(ProjectDir)..\Interface\QRDInterface.h;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)..\..\3rdparty\swig\swig.exe" -v -Wextra -Werror -O -interface %(Filename) -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I"$(ProjectDir)..\.." -I"$(SolutionDir)renderdoc\api\replay" -outdir "$(IntDir)generated" -o "$(IntDir)generated\%(Filename)_module_python.cxx" "%(FullPath)"</Command>
       <Message>Compiling SWIG interface</Message>
       <Outputs>$(IntDir)generated\%(Filename).py;$(IntDir)generated\%(Filename)_module_python.cxx;%(Outputs)</Outputs>
@@ -141,7 +141,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Interface\CommonPipelineState.h" />
     <ClInclude Include="..\Interface\PersistantConfig.h" />
     <ClInclude Include="..\Interface\QRDInterface.h" />
     <ClInclude Include="..\Interface\RemoteHost.h" />

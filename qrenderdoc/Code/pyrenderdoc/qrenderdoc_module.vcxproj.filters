@@ -16,9 +16,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Interface\CommonPipelineState.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="..\Interface\PersistantConfig.h">
       <Filter>Interface</Filter>
     </ClInclude>

@@ -1335,7 +1335,7 @@
     </CustomBuild>
     <CustomBuild Include="Code\pyrenderdoc\qrenderdoc.i">
       <FileType>Document</FileType>
-      <AdditionalInputs>%(Fullpath);Code\Interface\QRDInterface.h;Code\Interface\CommonPipelineState.h;Code\Interface\PersistantConfig.h;Code\Interface\RemoteHost.h;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>%(Fullpath);Code\Interface\QRDInterface.h;Code\Interface\PersistantConfig.h;Code\Interface\RemoteHost.h;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\swig\swig.exe" -v -Wextra -Werror -O -interface %(Filename) -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I"$(SolutionDir)renderdoc\api\replay" -I"$(ProjectDir)." -outdir "$(IntDir)generated" -o "$(IntDir)generated\%(Filename)_python.cxx" "%(FullPath)"</Command>
       <Message>Compiling SWIG interface</Message>
       <Outputs>$(IntDir)generated\%(Filename)_python.cxx;%(Outputs)</Outputs>
