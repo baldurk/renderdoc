@@ -1729,6 +1729,7 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
       case ResourceFormatType::ASTC: params.remap = RemapTexture::RGBA16; break;
       case ResourceFormatType::EAC:
       case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R4G4B4A4:
       case ResourceFormatType::ETC2: params.remap = RemapTexture::RGBA8; break;
       default:
         RDCERR("Don't know how to remap resource format type %u, falling back to RGBA32",
