@@ -3179,7 +3179,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.Width = templateTex.width;
+    desc.Width = RDCMAX(1U, templateTex.width);
 
     HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &throwaway);
     if(FAILED(hr))
@@ -3211,8 +3211,8 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.Width = templateTex.width;
-    desc.Height = templateTex.height;
+    desc.Width = RDCMAX(1U, templateTex.width);
+    desc.Height = RDCMAX(1U, templateTex.height);
     desc.SampleDesc.Count = RDCMAX(1U, templateTex.msSamp);
     desc.SampleDesc.Quality = templateTex.msQual;
 
@@ -3253,9 +3253,9 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.Width = templateTex.width;
-    desc.Height = templateTex.height;
-    desc.Depth = templateTex.depth;
+    desc.Width = RDCMAX(1U, templateTex.width);
+    desc.Height = RDCMAX(1U, templateTex.height);
+    desc.Depth = RDCMAX(1U, templateTex.depth);
 
     HRESULT hr = m_pDevice->CreateTexture3D(&desc, NULL, &throwaway);
     if(FAILED(hr))
