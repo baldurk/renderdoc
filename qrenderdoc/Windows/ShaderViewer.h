@@ -112,6 +112,7 @@ private slots:
   void on_refresh_clicked();
   void on_intView_clicked();
   void on_floatView_clicked();
+  void on_debugToggle_clicked();
 
   void on_watch_itemChanged(QTableWidgetItem *item);
 
@@ -158,6 +159,8 @@ private:
   void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx, int &arrayIdx);
 
   void updateWindowTitle();
+  void gotoSourceDebugging();
+  void gotoDisassemblyDebugging();
 
   void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
   void showVariableTooltip(QString name);

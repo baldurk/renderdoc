@@ -209,6 +209,8 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   ui->regFormatSep->hide();
   ui->intView->hide();
   ui->floatView->hide();
+  ui->debugToggleSep->hide();
+  ui->debugToggle->hide();
 
   // hide signatures
   ui->inputSig->hide();
@@ -407,6 +409,12 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->inputSig->hide();
     ui->outputSig->hide();
 
+    if(shader->debugInfo.files.isEmpty())
+    {
+      ui->debugToggle->setEnabled(false);
+      ui->debugToggle->setText(tr("HLSL Unavailable"));
+    }
+
     ui->registers->setColumns({tr("Name"), tr("Type"), tr("Value")});
     ui->registers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->registers->header()->setSectionResizeMode(1, QHeaderView::Interactive);
@@ -571,6 +579,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->regFormatSep->hide();
     ui->intView->hide();
     ui->floatView->hide();
+    ui->debugToggleSep->hide();
+    ui->debugToggle->hide();
 
     // show input and output signatures
     ui->inputSig->setColumns(
@@ -704,6 +714,21 @@ void ShaderViewer::updateWindowTitle()
     else
       setWindowTitle(shaderName);
   }
+}
+
+void ShaderViewer::gotoSourceDebugging()
+{
+  if(m_CurInstructionScintilla)
+  {
+    ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
+    m_CurInstructionScintilla->setFocus(Qt::MouseFocusReason);
+  }
+}
+
+void ShaderViewer::gotoDisassemblyDebugging()
+{
+  ToolWindowManager::raiseToolWindow(m_DisassemblyFrame);
+  m_DisassemblyFrame->setFocus(Qt::MouseFocusReason);
 }
 
 ShaderViewer::~ShaderViewer()
@@ -849,16 +874,10 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   QAction gotoOther(isDisasm ? tr("Go to Source") : tr("Go to Disassembly"), this);
 
   QObject::connect(&gotoOther, &QAction::triggered, [this, isDisasm]() {
-    if(isDisasm && m_CurInstructionScintilla)
-    {
-      ToolWindowManager::raiseToolWindow(m_CurInstructionScintilla);
-      m_CurInstructionScintilla->setFocus(Qt::MouseFocusReason);
-    }
-    else if(!isDisasm)
-    {
-      ToolWindowManager::raiseToolWindow(m_DisassemblyFrame);
-      m_DisassemblyFrame->setFocus(Qt::MouseFocusReason);
-    }
+    if(isDisasm)
+      gotoSourceDebugging();
+    else
+      gotoDisassemblyDebugging();
 
     updateDebugging();
   });
@@ -1528,6 +1547,14 @@ void ShaderViewer::updateDebugging()
 {
   if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
     return;
+
+  if(ui->debugToggle->isEnabled())
+  {
+    if(isSourceDebugging())
+      ui->debugToggle->setText(tr("Debug in Assembly"));
+    else
+      ui->debugToggle->setText(tr("Debug in HLSL"));
+  }
 
   const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
 
@@ -3037,6 +3064,16 @@ void ShaderViewer::on_floatView_clicked()
 {
   ui->floatView->setChecked(true);
   ui->intView->setChecked(false);
+
+  updateDebugging();
+}
+
+void ShaderViewer::on_debugToggle_clicked()
+{
+  if(isSourceDebugging())
+    gotoDisassemblyDebugging();
+  else
+    gotoSourceDebugging();
 
   updateDebugging();
 }
