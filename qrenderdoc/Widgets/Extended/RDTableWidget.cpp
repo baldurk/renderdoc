@@ -86,29 +86,8 @@ void RDTableWidget::keyPressEvent(QKeyEvent *e)
 {
   if(!m_customCopyPaste && e->matches(QKeySequence::Copy))
   {
-    QList<QTableWidgetItem *> items = selectedItems();
-
-    std::sort(items.begin(), items.end(), [this](QTableWidgetItem *a, QTableWidgetItem *b) {
-      if(row(a) != row(b))
-        return row(a) < row(b);
-      return column(a) < column(b);
-    });
-
-    int prevRow = row(items[0]);
-
-    QString clipboardText;
-    for(QTableWidgetItem *i : items)
-    {
-      clipboardText += i->text();
-
-      if(prevRow != row(i))
-        clipboardText += lit("\n");
-      else
-        clipboardText += lit(" | ");
-    }
-
-    QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setText(clipboardText.trimmed());
+    copySelection();
+    return;
   }
   else
   {
@@ -116,4 +95,31 @@ void RDTableWidget::keyPressEvent(QKeyEvent *e)
   }
 
   emit(keyPress(e));
+}
+
+void RDTableWidget::copySelection()
+{
+  QList<QTableWidgetItem *> items = selectedItems();
+
+  std::sort(items.begin(), items.end(), [this](QTableWidgetItem *a, QTableWidgetItem *b) {
+    if(row(a) != row(b))
+      return row(a) < row(b);
+    return column(a) < column(b);
+  });
+
+  int prevRow = row(items[0]);
+
+  QString clipboardText;
+  for(QTableWidgetItem *i : items)
+  {
+    clipboardText += i->text();
+
+    if(prevRow != row(i))
+      clipboardText += lit("\n");
+    else
+      clipboardText += lit(" | ");
+  }
+
+  QClipboard *clipboard = QApplication::clipboard();
+  clipboard->setText(clipboardText.trimmed());
 }

@@ -279,6 +279,8 @@ public:
   void collapseAllItems(RDTreeWidgetItem *item);
   void scrollToItem(RDTreeWidgetItem *node);
 
+  void copySelection();
+
   void clear();
 
 signals:
@@ -298,7 +300,6 @@ private:
   void leaveEvent(QEvent *e) override;
   void focusOutEvent(QFocusEvent *event) override;
   void keyPressEvent(QKeyEvent *e) override;
-
   void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
   void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;

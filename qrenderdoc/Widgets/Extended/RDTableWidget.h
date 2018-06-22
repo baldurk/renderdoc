@@ -32,6 +32,8 @@ class RDTableWidget : public QTableWidget
 public:
   explicit RDTableWidget(QWidget *parent = 0);
 
+  void copySelection();
+
   bool customCopyPasteHandler() { return m_customCopyPaste; }
   void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
 signals:

@@ -100,6 +100,8 @@ public:
 
   virtual void ShowErrors(const rdcstr &errors) override;
 
+  virtual void AddWatch(const rdcstr &variable) override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
@@ -120,6 +122,7 @@ private slots:
   void readonly_keyPressed(QKeyEvent *event);
   void editable_keyPressed(QKeyEvent *event);
   void debug_contextMenu(const QPoint &pos);
+  void variables_contextMenu(const QPoint &pos);
   void disassembly_buttonReleased(QMouseEvent *event);
   void disassemble_typeChanged(int index);
   void watch_keyPress(QKeyEvent *event);

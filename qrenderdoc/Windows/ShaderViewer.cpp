@@ -563,6 +563,16 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     QObject::connect(ui->watch, &RDTableWidget::keyPress, this, &ShaderViewer::watch_keyPress);
 
+    ui->watch->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->watch, &RDTableWidget::customContextMenuRequested, this,
+                     &ShaderViewer::variables_contextMenu);
+    ui->registers->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->registers, &RDTreeWidget::customContextMenuRequested, this,
+                     &ShaderViewer::variables_contextMenu);
+    ui->locals->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->locals, &RDTreeWidget::customContextMenuRequested, this,
+                     &ShaderViewer::variables_contextMenu);
+
     ui->watch->insertRow(0);
 
     for(int i = 0; i < ui->watch->columnCount(); i++)
@@ -953,6 +963,87 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   contextMenu.addSeparator();
 
   RDDialog::show(&contextMenu, edit->viewport()->mapToGlobal(pos));
+}
+
+void ShaderViewer::variables_contextMenu(const QPoint &pos)
+{
+  QAbstractItemView *w = qobject_cast<QAbstractItemView *>(QObject::sender());
+
+  QMenu contextMenu(this);
+
+  QAction copyValue(tr("Copy"), this);
+  QAction addWatch(tr("Add Watch"), this);
+  QAction deleteWatch(tr("Delete Watch"), this);
+  QAction clearAll(tr("Clear All"), this);
+
+  contextMenu.addAction(&copyValue);
+  contextMenu.addSeparator();
+  contextMenu.addAction(&addWatch);
+
+  if(QObject::sender() == ui->watch)
+  {
+    QObject::connect(&copyValue, &QAction::triggered, [this] { ui->watch->copySelection(); });
+
+    contextMenu.addAction(&deleteWatch);
+    contextMenu.addSeparator();
+    contextMenu.addAction(&clearAll);
+
+    // start with no row selected
+    int selRow = -1;
+
+    QList<QTableWidgetItem *> items = ui->watch->selectedItems();
+    for(QTableWidgetItem *item : items)
+    {
+      // if no row is selected, or the same as this item, set selected row to this item's
+      if(selRow == -1 || selRow == item->row())
+      {
+        selRow = item->row();
+      }
+      else
+      {
+        // we only get here if we see an item on a different row selected - that means too many rows
+        // so bail out
+        selRow = -1;
+        break;
+      }
+    }
+
+    // if we have a selected row that isn't the last one, we can add/delete this item
+    deleteWatch.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
+    addWatch.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
+
+    QObject::connect(&addWatch, &QAction::triggered, [this, selRow] {
+      QTableWidgetItem *item = ui->watch->item(selRow, 0);
+
+      if(item)
+        AddWatch(item->text());
+    });
+
+    QObject::connect(&deleteWatch, &QAction::triggered,
+                     [this, selRow] { ui->watch->removeRow(selRow); });
+
+    QObject::connect(&clearAll, &QAction::triggered, [this] {
+      while(ui->watch->rowCount() > 1)
+        ui->watch->removeRow(0);
+    });
+  }
+  else
+  {
+    RDTreeWidget *tree = qobject_cast<RDTreeWidget *>(w);
+
+    QObject::connect(&copyValue, &QAction::triggered, [this, tree] { tree->copySelection(); });
+
+    addWatch.setEnabled(tree->selectedItem() != NULL);
+
+    QObject::connect(&addWatch, &QAction::triggered, [this, tree] {
+      if(tree == ui->locals)
+        AddWatch(tree->selectedItem()->tag().toString());
+      else
+        AddWatch(tree->selectedItem()->text(0));
+    });
+  }
+
+  RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
 }
 
 void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
@@ -2066,7 +2157,6 @@ void ShaderViewer::updateDebugging()
   for(int i = 0; i < ui->watch->rowCount() - 1; i++)
   {
     QTableWidgetItem *item = ui->watch->item(i, 0);
-    ui->watch->setItem(i, 1, new QTableWidgetItem(tr("register", "watch type")));
 
     QString reg = item->text().trimmed();
 
@@ -2084,6 +2174,10 @@ void ShaderViewer::updateDebugging()
 
     if(match.hasMatch())
     {
+      item = new QTableWidgetItem(tr("register", "watch type"));
+      item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+      ui->watch->setItem(i, 2, item);
+
       QString regtype = match.captured(1);
       QString regidx = match.captured(2);
       QString swizzle = match.captured(3).replace(QLatin1Char('.'), QString());
@@ -2189,10 +2283,15 @@ void ShaderViewer::updateDebugging()
             val += lit(", ");
         }
 
+        item = new QTableWidgetItem(vr.name);
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+        ui->watch->setItem(i, 1, item);
+
         item = new QTableWidgetItem(val);
         item->setData(Qt::UserRole, QVariant::fromValue(VariableTag(varCat, regindex, arrIndex)));
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
 
-        ui->watch->setItem(i, 2, item);
+        ui->watch->setItem(i, 3, item);
 
         continue;
       }
@@ -2213,14 +2312,26 @@ void ShaderViewer::updateDebugging()
         {
           // TODO apply swizzle/typecast ?
 
+          item = new QTableWidgetItem(local->text(1));
+          item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+          ui->watch->setItem(i, 1, item);
+
+          item = new QTableWidgetItem(local->text(2));
+          item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+          ui->watch->setItem(i, 2, item);
+
           if(local->childCount() > 0)
           {
             // can't display structs
-            ui->watch->setItem(i, 2, new QTableWidgetItem(lit("{...}")));
+            item = new QTableWidgetItem(lit("{...}"));
+            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            ui->watch->setItem(i, 3, item);
           }
           else
           {
-            ui->watch->setItem(i, 2, new QTableWidgetItem(local->text(3)));
+            item = new QTableWidgetItem(local->text(3));
+            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            ui->watch->setItem(i, 3, item);
           }
 
           continue;
@@ -2228,7 +2339,13 @@ void ShaderViewer::updateDebugging()
       }
     }
 
-    ui->watch->setItem(i, 2, new QTableWidgetItem(tr("Error evaluating expression")));
+    item = new QTableWidgetItem();
+    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+    ui->watch->setItem(i, 2, item);
+
+    item = new QTableWidgetItem(tr("Error evaluating expression"));
+    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+    ui->watch->setItem(i, 3, item);
   }
 
   ui->watch->setUpdatesEnabled(true);
@@ -2415,6 +2532,18 @@ void ShaderViewer::ShowErrors(const rdcstr &errors)
     m_Errors->setText(errors.c_str());
     m_Errors->setReadOnly(true);
   }
+}
+
+void ShaderViewer::AddWatch(const rdcstr &variable)
+{
+  int newRow = ui->watch->rowCount() - 1;
+  ui->watch->insertRow(ui->watch->rowCount() - 1);
+
+  ui->watch->setItem(newRow, 0, new QTableWidgetItem(variable));
+
+  ToolWindowManager::raiseToolWindow(ui->watch);
+  ui->watch->activateWindow();
+  ui->watch->QWidget::setFocus();
 }
 
 int ShaderViewer::snippetPos()

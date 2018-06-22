@@ -557,6 +557,12 @@ struct IShaderViewer
 )");
   virtual void ShowErrors(const rdcstr &errors) = 0;
 
+  DOCUMENT(R"(Add an expression to the watch panel.
+
+:param str expression: The name of the expression to watch.
+)");
+  virtual void AddWatch(const rdcstr &expression) = 0;
+
 protected:
   IShaderViewer() = default;
   ~IShaderViewer() = default;

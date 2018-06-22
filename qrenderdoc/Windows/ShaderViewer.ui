@@ -509,9 +509,9 @@
   <widget class="RDTableWidget" name="watch">
    <property name="geometry">
     <rect>
-     <x>790</x>
+     <x>520</x>
      <y>60</y>
-     <width>151</width>
+     <width>421</width>
      <height>131</height>
     </rect>
    </property>
@@ -542,6 +542,11 @@
    <column>
     <property name="text">
      <string>Name</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>Register(s)</string>
     </property>
    </column>
    <column>
