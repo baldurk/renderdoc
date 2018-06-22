@@ -161,6 +161,9 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   m_RemoteProbe = new LambdaThread([this]() {
     while(m_RemoteProbeSemaphore.available())
     {
+      // do a remoteProbe immediately to populate the android hosts list on startup.
+      remoteProbe();
+
       // do several small sleeps so we can respond quicker when we need to shut down
       for(int i = 0; i < 50; i++)
       {
@@ -168,7 +171,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
         if(!m_RemoteProbeSemaphore.available())
           return;
       }
-      remoteProbe();
     }
   });
   m_RemoteProbe->start();
@@ -292,14 +294,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
 
   ui->action_Recompress_Capture->setEnabled(false);
-
-  LambdaThread *th = new LambdaThread([this]() {
-    m_Ctx.Config().AddAndroidHosts();
-    for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
-      host->CheckStatus();
-  });
-  th->selfDelete(true);
-  th->start();
 
 #if defined(Q_OS_WIN32)
   if(GetModuleHandleA("rdocself.dll"))
@@ -1513,20 +1507,61 @@ void MainWindow::remoteProbe()
 {
   if(!m_Ctx.IsCaptureLoaded() && !m_Ctx.IsCaptureLoading())
   {
-    GUIInvoke::call(this, [this] { m_Ctx.Config().AddAndroidHosts(); });
+    GUIInvoke::call(this, [this] {
+      m_Ctx.Config().AddAndroidHosts();
 
-    for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
+      // update the latest list by copy. Note this lock only protects m_ProbeRemoteHosts, not the
+      // actual RemoteHosts list itself - that is only accessed on the UI thread so is not locked.
+      {
+        QMutexLocker lock(&m_ProbeRemoteHostsLock);
+        m_ProbeRemoteHosts.clear();
+        for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
+          m_ProbeRemoteHosts.push_back(*host);
+      }
+    });
+
+    // fetch the latest list
+    rdcarray<RemoteHost> hosts;
+    {
+      QMutexLocker lock(&m_ProbeRemoteHostsLock);
+      hosts = m_ProbeRemoteHosts;
+    }
+
+    QList<QPair<RemoteHost, RemoteHost>> updates;
+
+    for(RemoteHost &host : hosts)
     {
       // don't mess with a host we're connected to - this is handled anyway
-      if(host->connected)
+      if(host.connected)
         continue;
 
-      host->CheckStatus();
+      RemoteHost updated = host;
+
+      updated.CheckStatus();
 
       // bail as soon as we notice that we're done
       if(!m_RemoteProbeSemaphore.available())
         return;
+
+      if(updated != host)
+        updates.push_back(qMakePair(host, updated));
     }
+
+    GUIInvoke::call(this, [this, updates] {
+      // this is a bit naive - it suffers from the A-B-A problem where the host could be updated
+      // then restored to its original state before we notice. In this case though we don't care
+      // about that, we just don't want to trash some important changes like the connected status
+      // changing or something.
+
+      for(const QPair<RemoteHost, RemoteHost> &u : updates)
+      {
+        for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
+        {
+          if(*host == u.first)
+            *host = u.second;
+        }
+      }
+    });
   }
 }
 

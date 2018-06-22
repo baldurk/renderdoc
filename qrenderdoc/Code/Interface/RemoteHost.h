@@ -37,6 +37,14 @@ public:
 
   VARIANT_CAST(RemoteHost);
 
+  DOCUMENT("");
+  bool operator==(const RemoteHost &o) const
+  {
+    return hostname == o.hostname && friendlyName == o.friendlyName && runCommand == o.runCommand &&
+           serverRunning == o.serverRunning && connected == o.connected && busy == o.busy &&
+           versionMismatch == o.versionMismatch;
+  }
+  bool operator!=(const RemoteHost &o) const { return !(*this == o); }
   DOCUMENT(
       "Ping the host to check current status - if the server is running, connection status, etc.");
   void CheckStatus();

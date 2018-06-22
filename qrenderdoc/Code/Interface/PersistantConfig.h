@@ -606,6 +606,9 @@ public:
   // Runtime list of dynamically allocated hosts.
   // Saved to/from private RemoteHostList in CONFIG_SETTINGS()
   // This is documented above in the docstring, similar to the values in CONFIG_SETTINGS()
+  // This must only be accessed on the UI thread to prevent races. For access on other threads (e.g.
+  // a background/asynchronous update), take a copy on the UI thread, update it in the background,
+  // then apply the updates.
   DOCUMENT("");
   rdcarray<RemoteHost *> RemoteHosts;
 #endif

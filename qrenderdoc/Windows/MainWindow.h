@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <QMainWindow>
+#include <QMutex>
 #include <QSemaphore>
 #include <QTimer>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
@@ -200,6 +201,11 @@ private:
   QTimer m_MessageTick;
   QSemaphore m_RemoteProbeSemaphore;
   LambdaThread *m_RemoteProbe;
+
+  // m_ProbeRemoteHosts is covered by a lock. On the UI thread we copy it from the config regularly,
+  // then apply any updates back.
+  rdcarray<RemoteHost> m_ProbeRemoteHosts;
+  QMutex m_ProbeRemoteHostsLock;
 
   QNetworkAccessManager *m_NetManager;
 
