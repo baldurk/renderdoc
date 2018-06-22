@@ -1417,8 +1417,10 @@ void *SharedLookupFuncPtr(const char *func, void *realFunc)
   CheckUnsupported();
 
   // for any other function, if it's not a core or extension function we know about,
-  // just return NULL
-  return NULL;
+  // return the real function pointer as this may be something internal
+  RDCLOG("Returning real pointer for entirely unknown function '%s': %p", func, realFunc);
+
+  return realFunc;
 }
 
 bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
