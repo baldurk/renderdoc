@@ -245,14 +245,30 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
   int32_t *iv = el.data.ival;
   uint32_t *uv = el.data.uval;
 
-  if(baseType == VarType::Double)
-    ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
-  else if(baseType == VarType::Float)
-    ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
-  else if(baseType == VarType::Int)
-    ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
-  else if(baseType == VarType::UInt)
-    ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
+  // originally the logic was backwards and floats were serialised with dv and doubles with fv.
+  // This caused extra garbage to be written for floats, and truncated double data.
+  if(ser.VersionAtLeast(0x1C))
+  {
+    if(baseType == VarType::Float)
+      ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
+    else if(baseType == VarType::Int)
+      ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
+    else if(baseType == VarType::UInt)
+      ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
+    else if(baseType == VarType::Double)
+      ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
+  }
+  else
+  {
+    if(baseType == VarType::Double)
+      ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
+    else if(baseType == VarType::Float)
+      ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
+    else if(baseType == VarType::Int)
+      ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
+    else if(baseType == VarType::UInt)
+      ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
+  }
 }
 
 template <typename SerialiserType>

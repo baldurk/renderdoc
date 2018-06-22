@@ -1069,6 +1069,11 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x1A)
     return true;
 
+  // 0x1B -> 0x1C - fixed incorrect float/double serialisation in serialisation of
+  // ProgramUniformValue
+  if(ver == 0x1B)
+    return true;
+
   return false;
 }
 
