@@ -328,7 +328,26 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         m_DisassemblyView->setText(disasm.c_str());
         m_DisassemblyView->setReadOnly(true);
 
+        bool preferSourceDebug = false;
+
+        for(const ShaderCompileFlag &flag : m_ShaderDetails->debugInfo.compileFlags.flags)
+        {
+          if(flag.name == "preferSourceDebug")
+          {
+            preferSourceDebug = true;
+            break;
+          }
+        }
+
         updateDebugging();
+
+        // we do updateDebugging() again because the first call finds the scintilla for the current
+        // source file, the second time jumps to it.
+        if(preferSourceDebug)
+        {
+          gotoSourceDebugging();
+          updateDebugging();
+        }
       });
     });
   }

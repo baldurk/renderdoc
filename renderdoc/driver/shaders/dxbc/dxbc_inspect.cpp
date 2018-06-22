@@ -27,6 +27,7 @@
 #include <algorithm>
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
+#include "driver/dx/official/d3dcompiler.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "dxbc_sdbg.h"
@@ -1662,6 +1663,11 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
   ShaderCompileFlags ret;
 
   ret.flags = {{"compileFlags", StringFormat::Fmt("%u", flags)}};
+
+  // If D3DCOMPILE_SKIP_OPTIMIZATION is set, then prefer source-level debugging as it should be
+  // accurate enough to work with.
+  if(flags & D3DCOMPILE_SKIP_OPTIMIZATION)
+    ret.flags.push_back({"preferSourceDebug", "1"});
 
   return ret;
 }
