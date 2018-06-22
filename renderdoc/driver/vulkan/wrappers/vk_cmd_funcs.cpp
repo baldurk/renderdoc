@@ -2082,11 +2082,11 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         RemapQueueFamilyIndices(bufBarriers.back().srcQueueFamilyIndex,
                                 bufBarriers.back().dstQueueFamilyIndex);
 
-        if (IsLoading(m_State))
+        if(IsLoading(m_State))
         {
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(std::make_pair(
-                GetResID(pBufferMemoryBarriers[i].buffer),
-                EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(std::make_pair(
+              GetResID(pBufferMemoryBarriers[i].buffer),
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
         }
       }
     }
