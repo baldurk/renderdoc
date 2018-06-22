@@ -2081,10 +2081,15 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         RemapQueueFamilyIndices(bufBarriers.back().srcQueueFamilyIndex,
                                 bufBarriers.back().dstQueueFamilyIndex);
+
+        if(IsLoading(m_State))
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(std::make_pair(
+              GetResID(pBufferMemoryBarriers[i].buffer),
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
+        }
       }
     }
-
-    ResourceId origcmd = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
     for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
     {
@@ -2100,9 +2105,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         if(IsLoading(m_State))
         {
-          m_BakedCmdBufferInfo[origcmd].resourceUsage.push_back(std::make_pair(
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(std::make_pair(
               GetResID(pImageMemoryBarriers[i].image),
-              EventUsage(m_BakedCmdBufferInfo[origcmd].curEventID, ResourceUsage::Barrier)));
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
         }
       }
     }
