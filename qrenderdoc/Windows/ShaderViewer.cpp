@@ -1726,9 +1726,9 @@ void ShaderViewer::updateDebugging()
 
       if(m_CurInstructionScintilla)
       {
-        for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+        for(sptr_t line = lineInfo.lineStart; line <= (sptr_t)lineInfo.lineEnd; line++)
         {
-          if(line == lineInfo.lineEnd)
+          if(line == (sptr_t)lineInfo.lineEnd)
             m_CurInstructionScintilla->markerAdd(line - 1, done ? FINISHED_MARKER : CURRENT_MARKER);
 
           if(lineInfo.colStart == 0)
@@ -1746,12 +1746,12 @@ void ShaderViewer::updateDebugging()
             sptr_t len = m_CurInstructionScintilla->lineEndPosition(line - 1) - pos;
 
             // if we're on the last line of the range, restrict the length to end on the last column
-            if(line == lineInfo.lineEnd && lineInfo.colEnd != 0)
+            if(line == (sptr_t)lineInfo.lineEnd && lineInfo.colEnd != 0)
               len = lineInfo.colEnd;
 
             // if we're on the start of the range (which may also be the last line above too), shift
             // inwards towards the first column
-            if(line == lineInfo.lineStart)
+            if(line == (sptr_t)lineInfo.lineStart)
             {
               pos += lineInfo.colStart - 1;
               len -= lineInfo.colStart - 1;
@@ -2485,7 +2485,7 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
 
       if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
       {
-        for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+        for(sptr_t line = lineInfo.lineStart; line <= (sptr_t)lineInfo.lineEnd; line++)
         {
           ScintillaEdit *s = m_FileScintillas[lineInfo.fileIndex];
           if(s)
@@ -2509,7 +2509,7 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
 
       if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
       {
-        for(sptr_t line = lineInfo.lineStart; line <= lineInfo.lineEnd; line++)
+        for(sptr_t line = lineInfo.lineStart; line <= (sptr_t)lineInfo.lineEnd; line++)
         {
           ScintillaEdit *s = m_FileScintillas[lineInfo.fileIndex];
           if(s)
