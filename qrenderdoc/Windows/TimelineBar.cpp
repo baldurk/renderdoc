@@ -674,22 +674,25 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       UsageCount,
     };
 
+    // colors taken from http://mkweb.bcgsc.ca/colorblind/ to be distinct for people with color
+    // blindness
+
     const QColor colors[UsageCount] = {
         // read
-        QColor(Qt::red),
+        QColor::fromRgb(230, 159, 0),
         // write
-        QColor(Qt::green),
+        QColor::fromRgb(86, 180, 233),
         // read/write
-        QColor(Qt::yellow),
+        QColor::fromRgb(240, 228, 66),
         // clear
-        QColor(Qt::blue),
+        QColor::fromRgb(0, 0, 0),
         // barrier
-        QColor(Qt::magenta),
+        QColor::fromRgb(204, 121, 167),
 
         // pass
-        QColor(Qt::green),
+        QColor::fromRgb(0, 158, 115),
         // fail
-        QColor(Qt::red),
+        QColor::fromRgb(213, 94, 0),
     };
 
     // draw the key
