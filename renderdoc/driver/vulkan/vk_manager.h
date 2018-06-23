@@ -303,6 +303,9 @@ public:
   {
     ResourceId id = GetResID(obj);
 
+    if(m_CurrentResourceMap.find(id) == m_CurrentResourceMap.end())
+      return;
+
     auto origit = m_OriginalIDs.find(id);
     if(origit != m_OriginalIDs.end())
       EraseLiveResource(origit->second);
