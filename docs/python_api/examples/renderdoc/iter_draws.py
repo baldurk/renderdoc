@@ -2,8 +2,6 @@ import renderdoc as rd
 
 # Define a recursive function for iterating over draws
 def iterDraw(d, indent = ''):
-	global draws
-
 	# Print this drawcall
 	print('%s%d: %s' % (indent, d.eventId, d.name))
 
