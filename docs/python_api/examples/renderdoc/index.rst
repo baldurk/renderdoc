@@ -28,6 +28,7 @@ In order to help with this, the examples are organised such that most code is wr
 .. toctree::
     iter_draws
     fetch_shader
+    fetch_counters
     save_texture
     decode_mesh
     display_window
