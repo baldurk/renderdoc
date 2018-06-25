@@ -166,7 +166,7 @@ bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &
     // if we haven't even found a start, check in these bytes
     if(diffStart > bufSize)
     {
-      offs = bufSize;
+      offs = alignedSize;
 
       for(size_t by = 0; by < numBytes; by++)
       {
