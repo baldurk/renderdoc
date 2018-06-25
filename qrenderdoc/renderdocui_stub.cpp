@@ -27,7 +27,7 @@
 int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
                     _In_ int nShowCmd)
 {
-  size_t len = wcslen(lpCmdLine) + 64;
+  size_t len = 512 + wcslen(lpCmdLine) + 64;
 
   wchar_t *paramsAlloc = new wchar_t[len + 1];
 
