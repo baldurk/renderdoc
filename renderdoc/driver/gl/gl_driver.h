@@ -374,6 +374,10 @@ private:
 
   GLuint m_Fake_VAO0;
 
+  GLuint m_IndirectBuffer = 0;
+  GLsizeiptr m_IndirectBufferSize = 0;
+  void BindIndirectBuffer(GLsizeiptr bufLength);
+
   uint32_t m_InitChunkIndex = 0;
 
   bool ProcessChunk(ReadSerialiser &ser, GLChunk chunk);

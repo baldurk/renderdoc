@@ -397,6 +397,11 @@ private:
   void WrapAndProcessCreatedSwapchain(VkDevice device, const VkSwapchainCreateInfoKHR *pCreateInfo,
                                       VkSwapchainKHR *pSwapChain);
 
+  GPUBuffer m_IndirectBuffer;
+  size_t m_IndirectBufferSize = 0;
+  VkCommandBuffer m_IndirectCommandBuffer = VK_NULL_HANDLE;
+  bool m_IndirectDraw = false;
+
   struct
   {
     void Reset()

@@ -753,6 +753,9 @@ WrappedOpenGL::~WrappedOpenGL()
   if(m_FakeBB_DepthStencil)
     m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
 
+  if(m_IndirectBuffer)
+    m_Real.glDeleteBuffers(1, &m_IndirectBuffer);
+
   SAFE_DELETE(m_FrameReader);
 
   GetResourceManager()->ClearReferencedResources();

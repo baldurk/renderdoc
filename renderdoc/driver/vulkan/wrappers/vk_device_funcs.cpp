@@ -553,6 +553,9 @@ void WrappedVulkan::Shutdown()
   for(size_t i = 0; i < m_InternalCmds.freecmds.size(); i++)
     GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
 
+  if(m_IndirectCommandBuffer != VK_NULL_HANDLE)
+    GetResourceManager()->ReleaseWrappedResource(m_IndirectCommandBuffer);
+
   // destroy the pool
   if(m_Device != VK_NULL_HANDLE && m_InternalCmds.cmdpool != VK_NULL_HANDLE)
   {
@@ -2037,6 +2040,9 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
   // data) here.
   for(size_t i = 0; i < m_InternalCmds.freecmds.size(); i++)
     GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
+
+  if(m_IndirectCommandBuffer != VK_NULL_HANDLE)
+    GetResourceManager()->ReleaseWrappedResource(m_IndirectCommandBuffer);
 
   // destroy our command pool
   if(m_InternalCmds.cmdpool != VK_NULL_HANDLE)

@@ -176,6 +176,8 @@ WrappedVulkan::~WrappedVulkan()
   if(VkMarkerRegion::vk == this)
     VkMarkerRegion::vk = NULL;
 
+  m_IndirectBuffer.Destroy();
+
   // in case the application leaked some objects, avoid crashing trying
   // to release them ourselves by clearing the resource manager.
   // In a well-behaved application, this should be a no-op.
@@ -1840,6 +1842,18 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
               m_InternalCmds.cmdpool != VK_NULL_HANDLE);
   }
 
+  // create indirect draw buffer
+  {
+    m_IndirectBufferSize = AlignUp(m_IndirectBufferSize + 63, (size_t)64);
+
+    m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize, 1, 0);
+
+    m_IndirectCommandBuffer = GetNextCmd();
+
+    // steal the command buffer out of the pending commands - we'll manage its lifetime ourselves
+    m_InternalCmds.pendingcmds.pop_back();
+  }
+
   return ReplayStatus::Succeeded;
 }
 
@@ -2023,6 +2037,27 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     for(const std::pair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
       vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
   }
+
+  // submit the indirect preparation command buffer, if we need to
+  if(m_IndirectDraw)
+  {
+    VkSubmitInfo submitInfo = {
+        VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        NULL,
+        0,
+        NULL,
+        NULL,    // wait semaphores
+        1,
+        UnwrapPtr(m_IndirectCommandBuffer),    // command buffers
+        0,
+        NULL,    // signal semaphores
+    };
+
+    VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  m_IndirectDraw = false;
 
   m_CleanupEvents.clear();
 

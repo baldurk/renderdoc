@@ -155,6 +155,9 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
   if(flags & eGPUBufferSSBO)
     bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
+  if(flags & eGPUBufferIndirectBuffer)
+    bufInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+
   VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 

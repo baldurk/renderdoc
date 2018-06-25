@@ -363,10 +363,73 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                 // otherwise we do the 'hard' case, draw only one multidraw
                 // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
                 // a single draw.
+                //
+                // We also need to draw the same number of draws so that DrawIndex is faithful. In
+                // order to preserve the draw index we write a custom indirect buffer that has zeros
+                // for the parameters of all previous draws.
                 drawidx = (curEID - baseEventID - 1);
 
                 offset += stride * drawidx;
-                count = 1;
+
+                // ensure the custom buffer is large enough
+                VkDeviceSize bufLength = sizeof(VkDrawIndirectCommand) * (drawidx + 1);
+
+                RDCASSERT(bufLength <= m_IndirectBufferSize, bufLength, m_IndirectBufferSize);
+
+                VkBufferMemoryBarrier bufBarrier = {
+                    VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                    NULL,
+                    VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    Unwrap(m_IndirectBuffer.buf),
+                    0,
+                    VK_WHOLE_SIZE,
+                };
+
+                VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                                      NULL,
+                                                      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->BeginCommandBuffer(Unwrap(m_IndirectCommandBuffer), &beginInfo);
+
+                // wait for any previous indirect draws to complete before filling/transferring
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                // initialise to 0 so all other draws don't draw anything
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->CmdFillBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(m_IndirectBuffer.buf),
+                                    0, m_IndirectBufferSize, 0);
+
+                // wait for fill to complete before copy
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                // copy over the actual parameter set into the right place
+                VkBufferCopy region = {offset, bufLength - sizeof(VkDrawIndirectCommand),
+                                       sizeof(VkDrawIndirectCommand)};
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->CmdCopyBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(buffer),
+                                    Unwrap(m_IndirectBuffer.buf), 1, &region);
+
+                // finally wait for copy to complete before drawing from it
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                ObjDisp(m_IndirectCommandBuffer)->EndCommandBuffer(Unwrap(m_IndirectCommandBuffer));
+
+                // draw from our custom buffer
+                m_IndirectDraw = true;
+                buffer = m_IndirectBuffer.buf;
+                offset = 0;
+                count = drawidx + 1;
+                stride = sizeof(VkDrawIndirectCommand);
               }
 
               if(IsDrawInRenderPass())
@@ -399,6 +462,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       bytebuf argbuf;
       GetDebugManager()->GetBufferData(
           GetResID(buffer), offset, sizeof(VkDrawIndirectCommand) + (count - 1) * stride, argbuf);
+
+      // add on the size we'll need for an indirect buffer in the worst case.
+      // Note that we'll only ever be partially replaying one draw at a time, so we only need the
+      // worst case.
+      m_IndirectBufferSize =
+          RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndirectCommand) + (count - 1) * stride);
 
       string name = "vkCmdDrawIndirect(" + ToStr(count) + ")";
 
@@ -675,10 +744,73 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                 // otherwise we do the 'hard' case, draw only one multidraw
                 // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
                 // a single draw.
+                //
+                // We also need to draw the same number of draws so that DrawIndex is faithful. In
+                // order to preserve the draw index we write a custom indirect buffer that has zeros
+                // for the parameters of all previous draws.
                 drawidx = (curEID - baseEventID - 1);
 
                 offset += stride * drawidx;
-                count = 1;
+
+                // ensure the custom buffer is large enough
+                VkDeviceSize bufLength = sizeof(VkDrawIndexedIndirectCommand) * (drawidx + 1);
+
+                RDCASSERT(bufLength <= m_IndirectBufferSize, bufLength, m_IndirectBufferSize);
+
+                VkBufferMemoryBarrier bufBarrier = {
+                    VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                    NULL,
+                    VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    Unwrap(m_IndirectBuffer.buf),
+                    0,
+                    VK_WHOLE_SIZE,
+                };
+
+                VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                                      NULL,
+                                                      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->BeginCommandBuffer(Unwrap(m_IndirectCommandBuffer), &beginInfo);
+
+                // wait for any previous indirect draws to complete before filling/transferring
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                // initialise to 0 so all other draws don't draw anything
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->CmdFillBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(m_IndirectBuffer.buf),
+                                    0, m_IndirectBufferSize, 0);
+
+                // wait for fill to complete before copy
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                // copy over the actual parameter set into the right place
+                VkBufferCopy region = {offset, bufLength - sizeof(VkDrawIndexedIndirectCommand),
+                                       sizeof(VkDrawIndexedIndirectCommand)};
+                ObjDisp(m_IndirectCommandBuffer)
+                    ->CmdCopyBuffer(Unwrap(m_IndirectCommandBuffer), Unwrap(buffer),
+                                    Unwrap(m_IndirectBuffer.buf), 1, &region);
+
+                // finally wait for copy to complete before drawing from it
+                bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+
+                DoPipelineBarrier(m_IndirectCommandBuffer, 1, &bufBarrier);
+
+                ObjDisp(m_IndirectCommandBuffer)->EndCommandBuffer(Unwrap(m_IndirectCommandBuffer));
+
+                // draw from our custom buffer
+                m_IndirectDraw = true;
+                buffer = m_IndirectBuffer.buf;
+                offset = 0;
+                count = drawidx + 1;
+                stride = sizeof(VkDrawIndexedIndirectCommand);
               }
 
               if(IsDrawInRenderPass())
@@ -714,6 +846,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       GetDebugManager()->GetBufferData(GetResID(buffer), offset,
                                        sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride,
                                        argbuf);
+
+      // add on the size we'll need for an indirect buffer in the worst case.
+      // Note that we'll only ever be partially replaying one draw at a time, so we only need the
+      // worst case.
+      m_IndirectBufferSize =
+          RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride);
 
       string name = "vkCmdDrawIndexedIndirect(" + ToStr(count) + ")";
 
