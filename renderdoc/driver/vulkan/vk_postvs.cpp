@@ -267,28 +267,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
     // remove any builtin decorations
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBuiltIn)
     {
-      SPIRVId id = it.word(1);
-
-      if(outputs.find(id) != outputs.end())
-      {
-        // outputs we don't have to do anything, discard the builtin information
-      }
-      else if(inputs.find(id) != inputs.end())
-      {
-        // for inputs, record the variable ID for this builtin
-        for(size_t i = 0; i < refl.inputSignature.size(); i++)
-        {
-          const SigParameter &sig = refl.inputSignature[i];
-
-          if(sig.systemValue ==
-             BuiltInToSystemAttribute(ShaderStage::Vertex, (spv::BuiltIn)it.word(3)))
-          {
-            ins[i].variableID = id;
-            break;
-          }
-        }
-      }
-
+      // we don't have to do anything, the ID mapping is in the SPIRVPatchData, so just discard the
+      // location information
       editor.Remove(it);
     }
 
@@ -312,27 +292,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationLocation)
     {
-      SPIRVId id = it.word(1);
-
-      if(outputs.find(id) != outputs.end())
-      {
-        // outputs we don't have to do anything, discard the location information
-      }
-      else if(inputs.find(id) != inputs.end())
-      {
-        // for inputs, record the variable ID for this location
-        for(size_t i = 0; i < refl.inputSignature.size(); i++)
-        {
-          const SigParameter &sig = refl.inputSignature[i];
-
-          if(sig.systemValue == ShaderBuiltin::Undefined && sig.regIndex == it.word(3))
-          {
-            ins[i].variableID = id;
-            break;
-          }
-        }
-      }
-
+      // we don't have to do anything, the ID mapping is in the SPIRVPatchData, so just discard the
+      // location information
       editor.Remove(it);
     }
   }
@@ -419,6 +380,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
     // constant for this index
     io.constID = editor.AddConstantImmediate(i);
+
+    io.variableID = patchData.inputs[i].ID;
 
     SPIRVScalar scalarType = scalar<uint32_t>();
 
