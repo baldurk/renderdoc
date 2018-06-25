@@ -2763,7 +2763,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
   {
     GLsizei realdrawcount = 0;
 
-    m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)drawcount, sizeof(realdrawcount),
+    m_Real.glGetBufferSubData(eGL_PARAMETER_BUFFER, (GLintptr)drawcount, sizeof(realdrawcount),
                               &realdrawcount);
 
     realdrawcount = RDCMIN(maxdrawcount, realdrawcount);
@@ -2965,7 +2965,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
     GLsizei realdrawcount = 0;
 
-    m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)drawcount, sizeof(realdrawcount),
+    m_Real.glGetBufferSubData(eGL_PARAMETER_BUFFER, (GLintptr)drawcount, sizeof(realdrawcount),
                               &realdrawcount);
 
     realdrawcount = RDCMIN(maxdrawcount, realdrawcount);
