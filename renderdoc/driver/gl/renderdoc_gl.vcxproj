@@ -146,9 +146,6 @@
     <ClCompile Include="gl_hooks_linux_shared.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="gl_hooks_vrapi.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="gl_hooks_win32.cpp" />
     <ClCompile Include="gl_initstate.cpp" />
     <ClCompile Include="gl_library_egl.cpp">

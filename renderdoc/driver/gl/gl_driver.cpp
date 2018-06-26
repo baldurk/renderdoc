@@ -1676,65 +1676,6 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   }
 }
 
-void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
-                                                GLsizei width, GLsizei height, GLint levels)
-{
-  GLResource res = TextureRes(GetCtx(), tex);
-  ResourceId id = GetResourceManager()->RegisterResource(res);
-
-  if(IsCaptureMode(m_State))
-  {
-    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-    RDCASSERT(record);
-
-    // this chunk is just a dummy, to indicate that this is where the emulated calls below come from
-    {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-
-      record->AddChunk(scope.Get());
-    }
-
-    {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(GLChunk::glGenTextures);
-      Serialise_glGenTextures(ser, 1, &tex);
-
-      record->AddChunk(scope.Get());
-    }
-
-    gl_CurChunk = GLChunk::glTexParameteri;
-    Common_glTextureParameteriEXT(record, textureType, eGL_TEXTURE_MAX_LEVEL, levels - 1);
-  }
-  else
-  {
-    GetResourceManager()->AddLiveResource(id, res);
-  }
-
-  for(GLint i = 0; i < levels; ++i)
-  {
-    if(textureType == eGL_TEXTURE_2D_ARRAY)
-    {
-      gl_CurChunk = GLChunk::glTexImage3D;
-      Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D_ARRAY, i, internalformat, width, height, 2, 0,
-                                 eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-    }
-    else if(textureType == eGL_TEXTURE_2D)
-    {
-      gl_CurChunk = GLChunk::glTexImage2D;
-      Common_glTextureImage2DEXT(id, eGL_TEXTURE_2D, i, internalformat, width, height, 0, eGL_RGBA,
-                                 eGL_UNSIGNED_BYTE, NULL);
-    }
-    else
-    {
-      RDCERR("Unexpected textureType (%u) in CreateVRAPITextureSwapChain", textureType);
-    }
-
-    width = RDCMAX(1, (width / 2));
-    height = RDCMAX(1, (height / 2));
-  }
-}
-
 void WrappedOpenGL::MakeValidContextCurrent(GLWindowingData &prevctx, void *favourWnd)
 {
   if(prevctx.ctx == NULL)

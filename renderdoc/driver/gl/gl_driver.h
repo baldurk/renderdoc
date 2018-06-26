@@ -647,8 +647,6 @@ public:
   void ActivateContext(GLWindowingData winData);
   void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
   void SwapBuffers(void *windowHandle);
-  void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
-                                   GLsizei width, GLsizei height, GLint levels);
   void HandleVRFrameMarkers(const GLchar *buf, GLsizei length);
   bool UsesVRFrameMarkers() { return m_UsesVRMarkers; }
   void FirstFrame(void *ctx, void *wndHandle);

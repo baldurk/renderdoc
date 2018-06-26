@@ -111,7 +111,9 @@
     <ClInclude Include="gl_library_egl.h">
       <Filter>OS\EGL</Filter>
     </ClInclude>
-    <ClInclude Include="gl_initstate.h" />
+    <ClInclude Include="gl_initstate.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">
@@ -218,9 +220,6 @@
     </ClCompile>
     <ClCompile Include="gl_initstate.cpp">
       <Filter>Util</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_hooks_vrapi.cpp">
-      <Filter>OS\EGL</Filter>
     </ClCompile>
     <ClCompile Include="gl_initstate.cpp">
       <Filter>Util</Filter>

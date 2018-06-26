@@ -74,14 +74,6 @@ else()
     endif()
 endif()
 
-if(ANDROID)
-	list(APPEND sources
-		official/VrApi_Config.h
-		official/VrApi_Ext.h
-		official/VrApi_Types.h
-		gl_hooks_vrapi.cpp)
-endif()
-
 add_library(rdoc_gl OBJECT ${sources})
 target_compile_definitions(rdoc_gl ${RDOC_DEFINITIONS})
 target_include_directories(rdoc_gl ${RDOC_INCLUDES})
