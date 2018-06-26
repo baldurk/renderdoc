@@ -92,7 +92,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
 private:
   static DXGIHook dxgihooks;
 

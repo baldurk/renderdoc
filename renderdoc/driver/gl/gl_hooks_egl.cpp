@@ -54,7 +54,6 @@ public:
 
   bool CreateHooks(const char *libName);
 
-  void OptionsUpdated(const char *libName) {}
   void PopulateEGLFunctions()
   {
     if(!m_PopulatedHooks)

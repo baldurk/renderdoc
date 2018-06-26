@@ -68,7 +68,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
 private:
   static D3D9Hook d3d9hooks;
 

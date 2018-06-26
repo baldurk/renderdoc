@@ -694,7 +694,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
   static OpenGLHook glhooks;
 
   void PopulateGLFunctions()

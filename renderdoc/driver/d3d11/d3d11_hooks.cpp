@@ -169,7 +169,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
 private:
   static D3D11Hook d3d11hooks;
 

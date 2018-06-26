@@ -53,7 +53,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
 private:
   static D3D8Hook d3d8hooks;
 

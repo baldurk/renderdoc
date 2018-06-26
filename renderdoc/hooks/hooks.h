@@ -83,7 +83,7 @@ private:
 struct LibraryHook
 {
   virtual bool CreateHooks(const char *libName) = 0;
-  virtual void OptionsUpdated(const char *libName) = 0;
+  virtual void OptionsUpdated(const char *libName) {}
 };
 
 // this singleton allows you to compile in code that defines a hook for a given library

@@ -122,7 +122,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
 private:
   static D3D12Hook d3d12hooks;
 

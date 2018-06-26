@@ -79,7 +79,6 @@ public:
     return true;
   }
 
-  void OptionsUpdated(const char *libName) {}
   // see callsite in glXSwapBuffers for explanation of why this is necessary
   XID UnwrapGLXWindow(XID id)
   {
