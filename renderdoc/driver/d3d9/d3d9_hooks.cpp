@@ -29,8 +29,6 @@
 #include "driver/dx/official/d3d9.h"
 #include "d3d9_device.h"
 
-#define DLL_NAME "d3d9.dll"
-
 typedef int(WINAPI *PFN_BEGIN_EVENT)(DWORD, WCHAR *);
 typedef int(WINAPI *PFN_END_EVENT)();
 typedef int(WINAPI *PFN_SET_MARKER_EVENT)(DWORD, WCHAR *);
@@ -42,31 +40,21 @@ typedef IDirect3D9 *(WINAPI *PFN_D3D9_CREATE)(UINT);
 class D3D9Hook : LibraryHook
 {
 public:
-  D3D9Hook() { m_HasHooks = false; }
   bool CreateHooks(const char *libName)
   {
-    bool success = true;
+    PERF_BeginEvent.Initialize("D3DPERF_BeginEvent", "d3d9.dll", PERF_BeginEvent_hook);
+    PERF_EndEvent.Initialize("D3DPERF_EndEvent", "d3d9.dll", PERF_EndEvent_hook);
+    PERF_SetMarker.Initialize("D3DPERF_SetMarker", "d3d9.dll", PERF_SetMarker_hook);
+    PERF_SetOptions.Initialize("D3DPERF_SetOptions", "d3d9.dll", PERF_SetOptions_hook);
+    PERF_GetStatus.Initialize("D3DPERF_GetStatus", "d3d9.dll", PERF_GetStatus_hook);
 
-    success &= PERF_BeginEvent.Initialize("D3DPERF_BeginEvent", DLL_NAME, PERF_BeginEvent_hook);
-    success &= PERF_EndEvent.Initialize("D3DPERF_EndEvent", DLL_NAME, PERF_EndEvent_hook);
-    success &= PERF_SetMarker.Initialize("D3DPERF_SetMarker", DLL_NAME, PERF_SetMarker_hook);
-    success &= PERF_SetOptions.Initialize("D3DPERF_SetOptions", DLL_NAME, PERF_SetOptions_hook);
-    success &= PERF_GetStatus.Initialize("D3DPERF_GetStatus", DLL_NAME, PERF_GetStatus_hook);
-
-    success &= Create9.Initialize("Direct3DCreate9", DLL_NAME, Create9_hook);
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
+    Create9.Initialize("Direct3DCreate9", "d3d9.dll", Create9_hook);
 
     return true;
   }
 
 private:
   static D3D9Hook d3d9hooks;
-
-  bool m_HasHooks;
 
   // D3DPERF api
   Hook<PFN_BEGIN_EVENT> PERF_BeginEvent;

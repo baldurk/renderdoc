@@ -44,11 +44,11 @@ public:
   ~Hook() {}
   FuncType operator()() { return (FuncType)orig_funcptr; }
   void SetFuncPtr(void *ptr) { orig_funcptr = ptr; }
-  bool Initialize(const char *function, const char *module_name, void *destination_function_ptr)
+  void Initialize(const char *function, const char *module_name, void *destination_function_ptr)
   {
     orig_funcptr = Process::GetFunctionAddress(Process::LoadModule(module_name), function);
 
-    return Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
+    Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
   }
 
 private:

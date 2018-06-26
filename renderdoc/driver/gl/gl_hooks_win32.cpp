@@ -31,14 +31,9 @@
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
 
-#define DLL_NAME "opengl32.dll"
-
-#define HookInit(function)                                                                          \
-  bool CONCAT(function, _success) =                                                                 \
-      CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
-  if(!CONCAT(function, _success))                                                                   \
-    RDCWARN("Couldn't hook %s", STRINGIZE(function));                                               \
-  success &= CONCAT(function, _success);                                                            \
+#define HookInit(function)                                                         \
+  CONCAT(function, _hook)                                                          \
+      .Initialize(STRINGIZE(function), "opengl32.dll", CONCAT(function, _hooked)); \
   GL.function = CONCAT(function, _hook)();
 
 #define HookExtension(funcPtrType, function)         \
@@ -669,8 +664,6 @@ public:
   {
     m_GLDriver = NULL;
 
-    m_HasHooks = false;
-
     m_HaveContextCreation = false;
 
     m_PopulatedHooks = false;
@@ -682,12 +675,7 @@ public:
   ~OpenGLHook() { delete m_GLDriver; }
   bool CreateHooks(const char *libName)
   {
-    bool success = SetupHooks();
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
+    SetupHooks();
 
     return true;
   }
@@ -960,7 +948,7 @@ private:
 
     if(glhooks.wglGetProcAddress_hook() == NULL)
       glhooks.wglGetProcAddress_hook.SetFuncPtr(
-          Process::GetFunctionAddress(DLL_NAME, "wglGetProcAddress"));
+          Process::GetFunctionAddress(Process::LoadModule("opengl32.dll"), "wglGetProcAddress"));
 
     if(glhooks.wglGetPixelFormatAttribivARB_realfunc == NULL)
       glhooks.wglGetProcAddress_hook()("wglGetPixelFormatAttribivARB");
@@ -1361,46 +1349,39 @@ private:
   WrappedOpenGL *m_GLDriver;
 
   bool m_PopulatedHooks;
-  bool m_HasHooks;
 
   set<HGLRC> m_Contexts;
 
-  bool SetupHooks()
+  void SetupHooks()
   {
-    bool success = true;
+    wglCreateContext_hook.Initialize("wglCreateContext", "opengl32.dll", wglCreateContext_hooked);
+    wglDeleteContext_hook.Initialize("wglDeleteContext", "opengl32.dll", wglDeleteContext_hooked);
+    wglCreateLayerContext_hook.Initialize("wglCreateLayerContext", "opengl32.dll",
+                                          wglCreateLayerContext_hooked);
+    wglMakeCurrent_hook.Initialize("wglMakeCurrent", "opengl32.dll", wglMakeCurrent_hooked);
 
-    success &=
-        wglCreateContext_hook.Initialize("wglCreateContext", DLL_NAME, wglCreateContext_hooked);
-    success &=
-        wglDeleteContext_hook.Initialize("wglDeleteContext", DLL_NAME, wglDeleteContext_hooked);
-    success &= wglCreateLayerContext_hook.Initialize("wglCreateLayerContext", DLL_NAME,
-                                                     wglCreateLayerContext_hooked);
-    success &= wglMakeCurrent_hook.Initialize("wglMakeCurrent", DLL_NAME, wglMakeCurrent_hooked);
-    success &=
-        wglGetProcAddress_hook.Initialize("wglGetProcAddress", DLL_NAME, wglGetProcAddress_hooked);
-    success &= wglSwapBuffers_hook.Initialize("wglSwapBuffers", DLL_NAME, wglSwapBuffers_hooked);
-    success &= wglSwapLayerBuffers_hook.Initialize("wglSwapLayerBuffers", DLL_NAME,
-                                                   wglSwapLayerBuffers_hooked);
-    success &= wglSwapMultipleBuffers_hook.Initialize("wglSwapMultipleBuffers", DLL_NAME,
-                                                      wglSwapMultipleBuffers_hooked);
-    success &= SwapBuffers_hook.Initialize("SwapBuffers", "gdi32.dll", SwapBuffers_hooked);
-    success &= ChangeDisplaySettingsA_hook.Initialize("ChangeDisplaySettingsA", "user32.dll",
-                                                      ChangeDisplaySettingsA_hooked);
-    success &= ChangeDisplaySettingsW_hook.Initialize("ChangeDisplaySettingsW", "user32.dll",
-                                                      ChangeDisplaySettingsW_hooked);
-    success &= ChangeDisplaySettingsExA_hook.Initialize("ChangeDisplaySettingsExA", "user32.dll",
-                                                        ChangeDisplaySettingsExA_hooked);
-    success &= ChangeDisplaySettingsExW_hook.Initialize("ChangeDisplaySettingsExW", "user32.dll",
-                                                        ChangeDisplaySettingsExW_hooked);
+    wglGetProcAddress_hook.Initialize("wglGetProcAddress", "opengl32.dll", wglGetProcAddress_hooked);
+    wglSwapBuffers_hook.Initialize("wglSwapBuffers", "opengl32.dll", wglSwapBuffers_hooked);
+    wglSwapLayerBuffers_hook.Initialize("wglSwapLayerBuffers", "opengl32.dll",
+                                        wglSwapLayerBuffers_hooked);
+    wglSwapMultipleBuffers_hook.Initialize("wglSwapMultipleBuffers", "opengl32.dll",
+                                           wglSwapMultipleBuffers_hooked);
+    SwapBuffers_hook.Initialize("SwapBuffers", "gdi32.dll", SwapBuffers_hooked);
+    ChangeDisplaySettingsA_hook.Initialize("ChangeDisplaySettingsA", "user32.dll",
+                                           ChangeDisplaySettingsA_hooked);
+    ChangeDisplaySettingsW_hook.Initialize("ChangeDisplaySettingsW", "user32.dll",
+                                           ChangeDisplaySettingsW_hooked);
+    ChangeDisplaySettingsExA_hook.Initialize("ChangeDisplaySettingsExA", "user32.dll",
+                                             ChangeDisplaySettingsExA_hooked);
+    ChangeDisplaySettingsExW_hook.Initialize("ChangeDisplaySettingsExW", "user32.dll",
+                                             ChangeDisplaySettingsExW_hooked);
 
     DLLExportHooks();
-
-    return success;
   }
 
   bool PopulateHooks()
   {
-    void *moduleHandle = Process::LoadModule(DLL_NAME);
+    void *moduleHandle = Process::LoadModule("opengl32.dll");
 
     if(wglGetProcAddress_hook() == NULL)
       wglGetProcAddress_hook.SetFuncPtr(

@@ -26,32 +26,20 @@
 #include "hooks/hooks.h"
 #include "d3d8_device.h"
 
-#define DLL_NAME "d3d8.dll"
-
 typedef IDirect3D8 *(WINAPI *PFN_D3D8_CREATE)(UINT);
 
 class D3D8Hook : LibraryHook
 {
 public:
-  D3D8Hook() { m_HasHooks = false; }
   bool CreateHooks(const char *libName)
   {
-    bool success = true;
-
-    success &= Create8.Initialize("Direct3DCreate8", DLL_NAME, Create8_hook);
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
+    Create8.Initialize("Direct3DCreate8", "d3d8.dll", Create8_hook);
 
     return true;
   }
 
 private:
   static D3D8Hook d3d8hooks;
-
-  bool m_HasHooks;
 
   Hook<PFN_D3D8_CREATE> Create8;
 

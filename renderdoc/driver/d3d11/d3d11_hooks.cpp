@@ -28,8 +28,6 @@
 #include "driver/ihv/amd/official/DXExt/AmdDxExtApi.h"
 #include "hooks/hooks.h"
 
-#define DLL_NAME "d3d11.dll"
-
 ID3D11Resource *UnwrapDXResource(void *dxObject);
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
@@ -111,16 +109,9 @@ typedef NVENCSTATUS(NVENCAPI *PFN_NvEncodeAPICreateInstance)(NV_ENCODE_API_FUNCT
 class D3D11Hook : LibraryHook
 {
 public:
-  D3D11Hook()
-  {
-    m_HasHooks = false;
-    m_InsideCreate = false;
-  }
-
+  D3D11Hook() { m_InsideCreate = false; }
   bool CreateHooks(const char *libName)
   {
-    bool success = true;
-
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
@@ -130,12 +121,12 @@ public:
       return false;
     }
 
-    success &= CreateDevice.Initialize("D3D11CreateDevice", DLL_NAME, D3D11CreateDevice_hook);
-    success &= CreateDeviceAndSwapChain.Initialize("D3D11CreateDeviceAndSwapChain", DLL_NAME,
-                                                   D3D11CreateDeviceAndSwapChain_hook);
+    CreateDevice.Initialize("D3D11CreateDevice", "d3d11.dll", D3D11CreateDevice_hook);
+    CreateDeviceAndSwapChain.Initialize("D3D11CreateDeviceAndSwapChain", "d3d11.dll",
+                                        D3D11CreateDeviceAndSwapChain_hook);
 
-// these are not required for success, but opportunistic to prevent AMD extensions from
-// activating and causing later crashes when not replayed correctly
+// these are hooked to prevent AMD extensions from activating and causing later crashes when not
+// replayed correctly
 #if ENABLED(RDOC_X64)
     AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx64.dll", AmdCreate11_hook);
 #else
@@ -160,18 +151,11 @@ public:
                               NvEncodeAPICreateInstance_hook);
 #endif
 
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
-
     return true;
   }
 
 private:
   static D3D11Hook d3d11hooks;
-
-  bool m_HasHooks;
 
   Hook<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
   Hook<PFN_D3D11_CREATE_DEVICE> CreateDevice;

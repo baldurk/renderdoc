@@ -29,8 +29,6 @@
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
 
-#define DLL_NAME "kernel32.dll"
-
 typedef int(WSAAPI *PFN_WSASTARTUP)(__in WORD wVersionRequested, __out LPWSADATA lpWSAData);
 typedef int(WSAAPI *PFN_WSACLEANUP)();
 
@@ -75,30 +73,27 @@ class SysHook : LibraryHook
 public:
   SysHook()
   {
-    m_HasHooks = false;
+    // we start with a refcount of 1 because we initialise WSA ourselves for our own sockets.
     m_WSARefCount = 1;
   }
 
   bool CreateHooks(const char *libName)
   {
-    bool success = true;
-
     // we want to hook CreateProcess purely so that we can recursively insert our hooks (if we so
     // wish)
-    success &= CreateProcessA.Initialize("CreateProcessA", "kernel32.dll", CreateProcessA_hook);
-    success &= CreateProcessW.Initialize("CreateProcessW", "kernel32.dll", CreateProcessW_hook);
+    CreateProcessA.Initialize("CreateProcessA", "kernel32.dll", CreateProcessA_hook);
+    CreateProcessW.Initialize("CreateProcessW", "kernel32.dll", CreateProcessW_hook);
 
-    success &= CreateProcessAsUserA.Initialize("CreateProcessAsUserA", "advapi32.dll",
-                                               CreateProcessAsUserA_hook);
-    success &= CreateProcessAsUserW.Initialize("CreateProcessAsUserW", "advapi32.dll",
-                                               CreateProcessAsUserW_hook);
+    CreateProcessAsUserA.Initialize("CreateProcessAsUserA", "advapi32.dll",
+                                    CreateProcessAsUserA_hook);
+    CreateProcessAsUserW.Initialize("CreateProcessAsUserW", "advapi32.dll",
+                                    CreateProcessAsUserW_hook);
 
-    success &= CreateProcessWithLogonW.Initialize("CreateProcessWithLogonW", "advapi32.dll",
-                                                  CreateProcessWithLogonW_hook);
+    CreateProcessWithLogonW.Initialize("CreateProcessWithLogonW", "advapi32.dll",
+                                       CreateProcessWithLogonW_hook);
 
     // handle API set exports if they exist. These don't really exist so we don't have to worry
-    // about
-    // double hooking, and also they call into the 'real' implementation in kernelbase.dll
+    // about double hooking, and also they call into the 'real' implementation in kernelbase.dll
     API110CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-0.dll",
                                     API110CreateProcessA_hook);
     API110CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-0.dll",
@@ -123,27 +118,17 @@ public:
                                           "api-ms-win-core-processthreads-l1-1-0.dll",
                                           API112CreateProcessAsUserW_hook);
 
-    success &= WSAStartup.Initialize("WSAStartup", "ws2_32.dll", WSAStartup_hook);
-    success &= WSACleanup.Initialize("WSACleanup", "ws2_32.dll", WSACleanup_hook);
-
-    // we start with a refcount of 1 because we initialise WSA ourselves for our own sockets.
-    m_WSARefCount = 1;
+    WSAStartup.Initialize("WSAStartup", "ws2_32.dll", WSAStartup_hook);
+    WSACleanup.Initialize("WSACleanup", "ws2_32.dll", WSACleanup_hook);
 
     m_RecurseSlot = Threading::AllocateTLSSlot();
     Threading::SetTLSValue(m_RecurseSlot, NULL);
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
 
     return true;
   }
 
 private:
   static SysHook syshooks;
-
-  bool m_HasHooks;
 
   int m_WSARefCount;
   uint64_t m_RecurseSlot = 0;

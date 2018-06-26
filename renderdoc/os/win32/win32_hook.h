@@ -25,7 +25,7 @@
 
 #pragma once
 
-bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function,
+void Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function,
                     void *destination_function_ptr);
 void Win32_IAT_BeginHooks();
 void Win32_IAT_EndHooks();

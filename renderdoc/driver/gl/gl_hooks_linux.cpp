@@ -49,8 +49,6 @@ class OpenGLHook : LibraryHook, public GLPlatform
 public:
   OpenGLHook()
   {
-    m_HasHooks = false;
-
     m_GLDriver = NULL;
 
     m_PopulatedHooks = false;
@@ -67,12 +65,7 @@ public:
     if(libName)
       PosixHookLibrary("libGL.so", &libHooked);
 
-    bool success = SetupHooks();
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
+    SetupHooks();
 
     return true;
   }
@@ -386,12 +379,9 @@ public:
   map<XID, XID> m_GLXWindowMap;
 
   bool m_PopulatedHooks;
-  bool m_HasHooks;
 
-  bool SetupHooks()
+  void SetupHooks()
   {
-    bool success = true;
-
     if(glXGetProcAddress_real == NULL)
       glXGetProcAddress_real =
           (PFNGLXGETPROCADDRESSPROC)dlsym(libGLdlsymHandle, "glXGetProcAddress");
@@ -436,8 +426,6 @@ public:
     if(glXCreateContextAttribsARB_real == NULL && glXGetProcAddress_real)
       glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress_real(
           (const GLubyte *)"glXCreateContextAttribsARB");
-
-    return success;
   }
 
   bool PopulateHooks();

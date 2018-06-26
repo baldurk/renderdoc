@@ -28,8 +28,6 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
-#define DLL_NAME "d3d12.dll"
-
 typedef HRESULT(WINAPI *PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)(UINT NumFeatures, const IID *pIIDs,
                                                                 void *pConfigurationStructs,
                                                                 UINT *pConfigurationStructSizes);
@@ -88,16 +86,8 @@ public:
 class D3D12Hook : LibraryHook
 {
 public:
-  D3D12Hook()
-  {
-    m_HasHooks = false;
-    m_InsideCreate = false;
-  }
-
   bool CreateHooks(const char *libName)
   {
-    bool success = true;
-
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
@@ -107,16 +97,10 @@ public:
       return false;
     }
 
-    success &= CreateDevice.Initialize("D3D12CreateDevice", DLL_NAME, D3D12CreateDevice_hook);
-    success &= GetDebugInterface.Initialize("D3D12GetDebugInterface", DLL_NAME,
-                                            D3D12GetDebugInterface_hook);
-    success &= EnableExperimentalFeatures.Initialize("D3D12EnableExperimentalFeatures", DLL_NAME,
-                                                     D3D12EnableExperimentalFeatures_hook);
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
+    CreateDevice.Initialize("D3D12CreateDevice", "d3d12.dll", D3D12CreateDevice_hook);
+    GetDebugInterface.Initialize("D3D12GetDebugInterface", "d3d12.dll", D3D12GetDebugInterface_hook);
+    EnableExperimentalFeatures.Initialize("D3D12EnableExperimentalFeatures", "d3d12.dll",
+                                          D3D12EnableExperimentalFeatures_hook);
 
     return true;
   }
@@ -124,14 +108,12 @@ public:
 private:
   static D3D12Hook d3d12hooks;
 
-  bool m_HasHooks;
-
   Hook<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
   Hook<PFN_D3D12_CREATE_DEVICE> CreateDevice;
   Hook<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
-  bool m_InsideCreate;
+  bool m_InsideCreate = false;
 
   HRESULT Create_Internal(IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
                           void **ppDevice)
@@ -140,22 +122,16 @@ private:
     // special. Just grab the trampolined function and call it.
     if(m_InsideCreate)
     {
-      PFN_D3D12_CREATE_DEVICE createFunc = NULL;
+      PFN_D3D12_CREATE_DEVICE createFunc = CreateDevice();
 
-      // shouldn't ever get in here if we're in the case without hooks but let's be safe.
-      if(m_HasHooks)
-      {
-        createFunc = CreateDevice();
-      }
-      else
+      if(!createFunc)
       {
         HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
 
         if(d3d12)
-        {
           createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
-        }
-        else
+
+        if(!createFunc)
         {
           RDCERR("Something went seriously wrong, d3d12.dll couldn't be loaded!");
           return E_UNEXPECTED;

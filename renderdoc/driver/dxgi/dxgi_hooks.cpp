@@ -27,8 +27,6 @@
 #include "hooks/hooks.h"
 #include "dxgi_wrapped.h"
 
-#define DLL_NAME "dxgi.dll"
-
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
 typedef HRESULT(WINAPI *PFN_GET_DEBUG_INTERFACE)(REFIID, void **);
@@ -76,17 +74,11 @@ class DXGIHook : LibraryHook
 public:
   bool CreateHooks(const char *libName)
   {
-    bool success = true;
-
-    success &= CreateDXGIFactory.Initialize("CreateDXGIFactory", DLL_NAME, CreateDXGIFactory_hook);
-    success &= CreateDXGIFactory1.Initialize("CreateDXGIFactory1", DLL_NAME, CreateDXGIFactory1_hook);
-    // don't mind if these dosn't succeed
-    CreateDXGIFactory2.Initialize("CreateDXGIFactory2", DLL_NAME, CreateDXGIFactory2_hook);
-    GetDebugInterface.Initialize("DXGIGetDebugInterface", DLL_NAME, DXGIGetDebugInterface_hook);
-    GetDebugInterface1.Initialize("DXGIGetDebugInterface1", DLL_NAME, DXGIGetDebugInterface1_hook);
-
-    if(!success)
-      return false;
+    CreateDXGIFactory.Initialize("CreateDXGIFactory", "dxgi.dll", CreateDXGIFactory_hook);
+    CreateDXGIFactory1.Initialize("CreateDXGIFactory1", "dxgi.dll", CreateDXGIFactory1_hook);
+    CreateDXGIFactory2.Initialize("CreateDXGIFactory2", "dxgi.dll", CreateDXGIFactory2_hook);
+    GetDebugInterface.Initialize("DXGIGetDebugInterface", "dxgi.dll", DXGIGetDebugInterface_hook);
+    GetDebugInterface1.Initialize("DXGIGetDebugInterface1", "dxgi.dll", DXGIGetDebugInterface1_hook);
 
     return true;
   }

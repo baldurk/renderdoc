@@ -845,7 +845,7 @@ void Win32_IAT_RemoveHooks()
   }
 }
 
-bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function,
+void Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function,
                     void *destination_function_ptr)
 {
   if(!_stricmp(module_name, "kernel32.dll"))
@@ -855,12 +855,11 @@ bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const cha
        !strcmp(function, "GetProcAddress"))
     {
       RDCERR("Cannot hook LoadLibrary* or GetProcAddress, as these are hooked internally");
-      return false;
+      return;
     }
   }
   s_HookData->DllHooks[strlower(string(module_name))].FunctionHooks.push_back(
       FunctionHook(function, orig_function_ptr, destination_function_ptr));
-  return true;
 }
 
 bool Win32_HookDetect(const char *identifier)
