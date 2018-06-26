@@ -90,7 +90,6 @@ class D3D12Hook : LibraryHook
 public:
   D3D12Hook()
   {
-    LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_HasHooks = false;
     m_InsideCreate = false;
   }

@@ -42,12 +42,7 @@ typedef IDirect3D9 *(WINAPI *PFN_D3D9_CREATE)(UINT);
 class D3D9Hook : LibraryHook
 {
 public:
-  D3D9Hook()
-  {
-    LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
-    m_HasHooks = false;
-  }
-
+  D3D9Hook() { m_HasHooks = false; }
   bool CreateHooks(const char *libName)
   {
     bool success = true;

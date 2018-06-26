@@ -47,7 +47,7 @@
 // set environment variables
 class VulkanHook : LibraryHook
 {
-  VulkanHook() { LibraryHooks::GetInstance().RegisterHook(VulkanLibraryName, this); }
+  VulkanHook() {}
   bool CreateHooks(const char *libName)
   {
     // we assume the implicit layer is registered - the UI will prompt the user about installing it.
@@ -55,12 +55,12 @@ class VulkanHook : LibraryHook
         EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
 
     // check options to set further variables, and apply
-    OptionsUpdated(libName);
+    OptionsUpdated();
 
     return true;
   }
 
-  void OptionsUpdated(const char *libName)
+  void OptionsUpdated()
   {
     if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {

@@ -667,8 +667,6 @@ class OpenGLHook : LibraryHook, public GLPlatform
 public:
   OpenGLHook()
   {
-    LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
-
     m_GLDriver = NULL;
 
     m_HasHooks = false;

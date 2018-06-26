@@ -74,7 +74,6 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
 class DXGIHook : LibraryHook
 {
 public:
-  DXGIHook() { LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this); }
   bool CreateHooks(const char *libName)
   {
     bool success = true;

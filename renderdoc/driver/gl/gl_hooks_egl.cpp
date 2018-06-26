@@ -37,8 +37,6 @@ class EGLHook : LibraryHook, public GLPlatform
 public:
   EGLHook()
   {
-    LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
-
     m_HasHooks = false;
 
     m_GLDriver = NULL;

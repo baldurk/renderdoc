@@ -33,12 +33,7 @@ typedef IDirect3D8 *(WINAPI *PFN_D3D8_CREATE)(UINT);
 class D3D8Hook : LibraryHook
 {
 public:
-  D3D8Hook()
-  {
-    LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
-    m_HasHooks = false;
-  }
-
+  D3D8Hook() { m_HasHooks = false; }
   bool CreateHooks(const char *libName)
   {
     bool success = true;

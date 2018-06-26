@@ -78,13 +78,7 @@ private:
 
 #endif
 
-// defines the interface that a library hooking class will implement.
-// the libName is the name they used when registering
-struct LibraryHook
-{
-  virtual bool CreateHooks(const char *libName) = 0;
-  virtual void OptionsUpdated(const char *libName) {}
-};
+struct LibraryHook;
 
 // this singleton allows you to compile in code that defines a hook for a given library
 // (and it will be registered). Then when the renderdoc library is initialised in the target
@@ -94,15 +88,21 @@ class LibraryHooks
 public:
   LibraryHooks() : m_HooksRemoved(false) {}
   static LibraryHooks &GetInstance();
-  void RegisterHook(const char *libName, LibraryHook *hook);
+  void RegisterLibrary(LibraryHook *lib);
   void CreateHooks();
   void OptionsUpdated();
   void RemoveHooks();
 
 private:
-  typedef map<const char *, LibraryHook *> HookMap;
-
   bool m_HooksRemoved;
 
-  HookMap m_Hooks;
+  std::vector<LibraryHook *> m_Libraries;
+};
+
+// defines the interface that a library hooking class will implement.
+struct LibraryHook
+{
+  LibraryHook() { LibraryHooks::GetInstance().RegisterLibrary(this); }
+  virtual bool CreateHooks(const char *dummy) = 0;
+  virtual void OptionsUpdated() {}
 };

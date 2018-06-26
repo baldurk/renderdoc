@@ -32,21 +32,16 @@ LibraryHooks &LibraryHooks::GetInstance()
   return instance;
 }
 
-void LibraryHooks::RegisterHook(const char *libName, LibraryHook *hook)
+void LibraryHooks::RegisterLibrary(LibraryHook *lib)
 {
-  m_Hooks[libName] = hook;
+  m_Libraries.push_back(lib);
 }
 
 void LibraryHooks::CreateHooks()
 {
   HOOKS_BEGIN();
-  for(auto it = m_Hooks.begin(); it != m_Hooks.end(); ++it)
-  {
-    RDCDEBUG("Hooking %s", it->first);
-
-    if(!it->second->CreateHooks(it->first))
-      RDCWARN("Couldn't hook into %s", it->first);
-  }
+  for(LibraryHook *lib : m_Libraries)
+    lib->CreateHooks("dummy");
   HOOKS_END();
 }
 
@@ -60,6 +55,6 @@ void LibraryHooks::RemoveHooks()
 
 void LibraryHooks::OptionsUpdated()
 {
-  for(auto it = m_Hooks.begin(); it != m_Hooks.end(); ++it)
-    it->second->OptionsUpdated(it->first);
+  for(LibraryHook *lib : m_Libraries)
+    lib->OptionsUpdated();
 }
