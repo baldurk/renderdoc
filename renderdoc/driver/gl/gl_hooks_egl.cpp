@@ -43,7 +43,6 @@ public:
 
     m_GLDriver = NULL;
 
-    m_EnabledHooks = true;
     m_PopulatedHooks = false;
   }
   ~EGLHook()
@@ -55,7 +54,6 @@ public:
 
   bool CreateHooks(const char *libName);
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
   void PopulateEGLFunctions()
   {
@@ -179,7 +177,6 @@ public:
 
   bool m_PopulatedHooks;
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   bool SetupHooks()
   {
@@ -415,9 +412,6 @@ void EGLHook::libHooked(void *realLib)
 
 bool EGLHook::CreateHooks(const char *libName)
 {
-  if(!m_EnabledHooks)
-    return false;
-
   if(libName)
   {
     // register our hooked functions for PLT hooking on android

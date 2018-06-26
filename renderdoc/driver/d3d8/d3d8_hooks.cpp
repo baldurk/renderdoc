@@ -37,7 +37,6 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_HasHooks = false;
-    m_EnabledHooks = true;
   }
 
   bool CreateHooks(const char *libName)
@@ -50,18 +49,15 @@ public:
       return false;
 
     m_HasHooks = true;
-    m_EnabledHooks = true;
 
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
 private:
   static D3D8Hook d3d8hooks;
 
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   Hook<PFN_D3D8_CREATE> Create8;
 

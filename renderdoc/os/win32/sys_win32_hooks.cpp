@@ -76,7 +76,6 @@ public:
   SysHook()
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
-    m_EnabledHooks = true;
     m_HasHooks = false;
     m_WSARefCount = 1;
   }
@@ -138,18 +137,15 @@ public:
       return false;
 
     m_HasHooks = true;
-    m_EnabledHooks = true;
 
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
 private:
   static SysHook syshooks;
 
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   int m_WSARefCount;
   uint64_t m_RecurseSlot = 0;

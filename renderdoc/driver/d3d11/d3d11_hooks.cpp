@@ -107,7 +107,6 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_HasHooks = false;
-    m_EnabledHooks = true;
     m_InsideCreate = false;
   }
 
@@ -158,14 +157,11 @@ public:
       return false;
 
     m_HasHooks = true;
-    m_EnabledHooks = true;
 
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  bool UseHooks() { return (d3d11hooks.m_HasHooks && d3d11hooks.m_EnabledHooks); }
   static HRESULT CreateWrappedDeviceAndSwapChain(
       __in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
       __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels,
@@ -182,7 +178,6 @@ private:
   static D3D11Hook d3d11hooks;
 
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   Hook<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
   Hook<PFN_D3D11_CREATE_DEVICE> CreateDevice;
@@ -247,16 +242,13 @@ private:
       RDCDEBUG("In replay app");
     }
 
-    if(m_EnabledHooks)
+    if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
-      if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
-      {
-        Flags |= D3D11_CREATE_DEVICE_DEBUG;
-      }
-      else
-      {
-        Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-      }
+      Flags |= D3D11_CREATE_DEVICE_DEBUG;
+    }
+    else
+    {
+      Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
     }
 
     DXGI_SWAP_CHAIN_DESC swapDesc;
@@ -268,7 +260,7 @@ private:
       pUsedSwapDesc = &swapDesc;
     }
 
-    if(pUsedSwapDesc && m_EnabledHooks && !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+    if(pUsedSwapDesc && !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
     {
       pUsedSwapDesc->Windowed = TRUE;
     }
@@ -316,9 +308,9 @@ private:
 
     if(suppress && !reading)
     {
-      RDCDEBUG("Application requested not to be hooked.");
+      RDCLOG("Application requested not to be hooked.");
     }
-    else if(SUCCEEDED(ret) && m_EnabledHooks && ppDevice)
+    else if(SUCCEEDED(ret) && ppDevice)
     {
       WrapDevice(ppDevice, DriverType, Flags, SDKVersion, FeatureLevels, pFeatureLevels,
                  ppImmediateContext, ppSwapChain, pSwapChainDesc);
@@ -430,16 +422,13 @@ private:
       RDCDEBUG("In replay app");
     }
 
-    if(d3d11hooks.m_EnabledHooks)
+    if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
-      if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
-      {
-        Flags |= D3D11_CREATE_DEVICE_DEBUG;
-      }
-      else
-      {
-        Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-      }
+      Flags |= D3D11_CREATE_DEVICE_DEBUG;
+    }
+    else
+    {
+      Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
     }
 
     RDCDEBUG("Calling real createdevice...");
@@ -458,7 +447,7 @@ private:
     {
       RDCDEBUG("Application requested not to be hooked.");
     }
-    else if(SUCCEEDED(ret) && d3d11hooks.m_EnabledHooks && ppDevice)
+    else if(SUCCEEDED(ret) && ppDevice)
     {
       d3d11hooks.WrapDevice(ppDevice, DriverType, Flags, SDKVersion, FeatureLevels, pFeatureLevels,
                             ppImmediateContext, NULL, NULL);
@@ -491,16 +480,13 @@ private:
       RDCDEBUG("In replay app");
     }
 
-    if(d3d11hooks.m_EnabledHooks)
+    if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
-      if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
-      {
-        Flags |= D3D11_CREATE_DEVICE_DEBUG;
-      }
-      else
-      {
-        Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-      }
+      Flags |= D3D11_CREATE_DEVICE_DEBUG;
+    }
+    else
+    {
+      Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
     }
 
     DXGI_SWAP_CHAIN_DESC swapDesc;
@@ -512,8 +498,7 @@ private:
       pUsedSwapDesc = &swapDesc;
     }
 
-    if(pUsedSwapDesc && d3d11hooks.m_EnabledHooks &&
-       !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+    if(pUsedSwapDesc && !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
     {
       pUsedSwapDesc->Windowed = TRUE;
     }
@@ -534,7 +519,7 @@ private:
     {
       RDCDEBUG("Application requested not to be hooked.");
     }
-    else if(SUCCEEDED(ret) && d3d11hooks.m_EnabledHooks && ppDevice)
+    else if(SUCCEEDED(ret) && ppDevice)
     {
       d3d11hooks.WrapDevice(ppDevice, DriverType, Flags, SDKVersion, FeatureLevels, pFeatureLevels,
                             ppImmediateContext, ppSwapChain, pSwapChainDesc);

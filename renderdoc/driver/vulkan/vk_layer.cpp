@@ -60,15 +60,6 @@ class VulkanHook : LibraryHook
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable)
-  {
-    // set the env var to 0 to disable the implicit layer
-    Process::RegisterEnvironmentModification(EnvironmentModification(
-        EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", enable ? "1" : "0"));
-
-    Process::ApplyEnvironmentModification();
-  }
-
   void OptionsUpdated(const char *libName)
   {
     if(RenderDoc::Inst().GetCaptureOptions().apiValidation)

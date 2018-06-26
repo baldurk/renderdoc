@@ -77,7 +77,6 @@ public:
   DXGIHook()
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
-    m_EnabledHooks = true;
     m_HasHooks = false;
   }
 
@@ -96,14 +95,11 @@ public:
       return false;
 
     m_HasHooks = true;
-    m_EnabledHooks = true;
 
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  bool UseHooks() { return (dxgihooks.m_HasHooks && dxgihooks.m_EnabledHooks); }
   static HRESULT CreateWrappedFactory1(REFIID riid, void **ppFactory)
   {
     if(dxgihooks.m_HasHooks)
@@ -172,7 +168,6 @@ private:
   static DXGIHook dxgihooks;
 
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   RenderDocAnalysis m_RenderDocAnalysis;
 
@@ -188,7 +183,7 @@ private:
       *ppFactory = NULL;
     HRESULT ret = dxgihooks.CreateDXGIFactory()(riid, ppFactory);
 
-    if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)
+    if(SUCCEEDED(ret))
       RefCountDXGIObject::HandleWrap(riid, ppFactory);
 
     return ret;
@@ -200,7 +195,7 @@ private:
       *ppFactory = NULL;
     HRESULT ret = dxgihooks.CreateDXGIFactory1()(riid, ppFactory);
 
-    if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)
+    if(SUCCEEDED(ret))
       RefCountDXGIObject::HandleWrap(riid, ppFactory);
 
     return ret;
@@ -212,7 +207,7 @@ private:
       *ppFactory = NULL;
     HRESULT ret = dxgihooks.CreateDXGIFactory2()(Flags, riid, ppFactory);
 
-    if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)
+    if(SUCCEEDED(ret))
       RefCountDXGIObject::HandleWrap(riid, ppFactory);
 
     return ret;

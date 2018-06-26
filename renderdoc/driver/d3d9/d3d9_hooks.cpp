@@ -46,7 +46,6 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_HasHooks = false;
-    m_EnabledHooks = true;
   }
 
   bool CreateHooks(const char *libName)
@@ -65,18 +64,15 @@ public:
       return false;
 
     m_HasHooks = true;
-    m_EnabledHooks = true;
 
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
 private:
   static D3D9Hook d3d9hooks;
 
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   // D3DPERF api
   Hook<PFN_BEGIN_EVENT> PERF_BeginEvent;
@@ -114,26 +110,10 @@ private:
   static void WINAPI PERF_SetOptions_hook(DWORD dwOptions)
   {
     if(dwOptions & 1)
-    {
-      RDCDEBUG("Application requested not to be hooked.");
-      LibraryHooks::GetInstance().EnableHooks(false);
-    }
-    else
-    {
-      LibraryHooks::GetInstance().EnableHooks(true);
-    }
+      RDCLOG("Application requested not to be hooked via D3DPERF_SetOptions: no longer supported.");
   }
 
-  static DWORD WINAPI PERF_GetStatus_hook()
-  {
-    if(d3d9hooks.m_HasHooks && d3d9hooks.m_EnabledHooks)
-    {
-      return 1;
-    }
-
-    return 0;
-  }
-
+  static DWORD WINAPI PERF_GetStatus_hook() { return 1; }
   static IDirect3D9 *WINAPI Create9_hook(UINT SDKVersion)
   {
     RDCLOG("App creating d3d9 %x", SDKVersion);

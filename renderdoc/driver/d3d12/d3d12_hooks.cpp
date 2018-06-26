@@ -92,7 +92,6 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_HasHooks = false;
-    m_EnabledHooks = true;
     m_InsideCreate = false;
   }
 
@@ -119,14 +118,11 @@ public:
       return false;
 
     m_HasHooks = true;
-    m_EnabledHooks = true;
 
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  bool UseHooks() { return (d3d12hooks.m_HasHooks && d3d12hooks.m_EnabledHooks); }
   static HRESULT CreateWrappedDevice(IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel,
                                      REFIID riid, void **ppDevice)
   {
@@ -137,7 +133,6 @@ private:
   static D3D12Hook d3d12hooks;
 
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   Hook<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
   Hook<PFN_D3D12_CREATE_DEVICE> CreateDevice;
@@ -201,7 +196,7 @@ private:
 #if ENABLED(RDOC_DEVEL)
         RenderDoc::Inst().IsReplayApp() ||
 #endif
-        (m_EnabledHooks && !reading && RenderDoc::Inst().GetCaptureOptions().apiValidation);
+        (!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation);
 
     if(EnableDebugLayer)
     {
@@ -275,7 +270,7 @@ private:
 
     RDCDEBUG("Called real createdevice... HRESULT: %s", ToStr(ret).c_str());
 
-    if(SUCCEEDED(ret) && m_EnabledHooks && ppDevice)
+    if(SUCCEEDED(ret) && ppDevice)
     {
       RDCDEBUG("succeeded and hooking.");
 

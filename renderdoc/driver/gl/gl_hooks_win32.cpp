@@ -675,7 +675,6 @@ public:
 
     m_HaveContextCreation = false;
 
-    m_EnabledHooks = true;
     m_PopulatedHooks = false;
 
     m_CreatingContext = false;
@@ -685,9 +684,6 @@ public:
   ~OpenGLHook() { delete m_GLDriver; }
   bool CreateHooks(const char *libName)
   {
-    if(!m_EnabledHooks)
-      return false;
-
     bool success = SetupHooks();
 
     if(!success)
@@ -698,7 +694,6 @@ public:
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
   static OpenGLHook glhooks;
 
@@ -1370,7 +1365,6 @@ private:
 
   bool m_PopulatedHooks;
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   set<HGLRC> m_Contexts;
 

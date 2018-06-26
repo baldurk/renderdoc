@@ -55,7 +55,6 @@ public:
 
     m_GLDriver = NULL;
 
-    m_EnabledHooks = true;
     m_PopulatedHooks = false;
   }
   ~OpenGLHook()
@@ -67,9 +66,6 @@ public:
 
   bool CreateHooks(const char *libName)
   {
-    if(!m_EnabledHooks)
-      return false;
-
     if(libName)
       PosixHookLibrary("libGL.so", &libHooked);
 
@@ -83,7 +79,6 @@ public:
     return true;
   }
 
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
   // see callsite in glXSwapBuffers for explanation of why this is necessary
   XID UnwrapGLXWindow(XID id)
@@ -395,7 +390,6 @@ public:
 
   bool m_PopulatedHooks;
   bool m_HasHooks;
-  bool m_EnabledHooks;
 
   bool SetupHooks()
   {

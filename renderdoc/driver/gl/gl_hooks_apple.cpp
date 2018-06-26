@@ -39,7 +39,6 @@ public:
   OpenGLHook() {}
   ~OpenGLHook() {}
   bool CreateHooks(const char *libName) { return false; }
-  void EnableHooks(const char *libName, bool enable) {}
   void OptionsUpdated(const char *libName) {}
   virtual GLWindowingData MakeContext(GLWindowingData share)
   {

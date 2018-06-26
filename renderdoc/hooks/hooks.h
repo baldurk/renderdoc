@@ -83,7 +83,6 @@ private:
 struct LibraryHook
 {
   virtual bool CreateHooks(const char *libName) = 0;
-  virtual void EnableHooks(const char *libName, bool enable) = 0;
   virtual void OptionsUpdated(const char *libName) = 0;
 };
 
@@ -98,7 +97,6 @@ public:
   void RegisterHook(const char *libName, LibraryHook *hook);
   void CreateHooks();
   void OptionsUpdated();
-  void EnableHooks(bool enable);
   void RemoveHooks();
 
 private:
