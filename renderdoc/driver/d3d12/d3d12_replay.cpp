@@ -40,12 +40,6 @@
 
 static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 
-extern "C" __declspec(dllexport) HRESULT
-    __cdecl RENDERDOC_CreateWrappedDXGIFactory1(REFIID riid, void **ppFactory);
-extern "C" __declspec(dllexport) HRESULT
-    __cdecl RENDERDOC_CreateWrappedD3D12Device(IUnknown *pAdapter,
-                                               D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
-                                               void **ppDevice);
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
 static const char *DXBCDisassemblyTarget = "DXBC";
@@ -82,7 +76,12 @@ void D3D12Replay::CreateResources()
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
-    HRESULT hr = RENDERDOC_CreateWrappedDXGIFactory1(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+    typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
+    PFN_CREATE_DXGI_FACTORY createFunc =
+        (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+
+    HRESULT hr = createFunc(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
 
     if(FAILED(hr))
     {
@@ -91,6 +90,8 @@ void D3D12Replay::CreateResources()
 
     if(m_pFactory)
     {
+      RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+
       LUID luid = m_pDevice->GetAdapterLuid();
 
       IDXGIAdapter *pDXGIAdapter;
@@ -3444,6 +3445,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     return ReplayStatus::APIInitFailed;
   }
 
+  PFN_D3D12_CREATE_DEVICE createDevice =
+      (PFN_D3D12_CREATE_DEVICE)GetProcAddress(lib, "D3D12CreateDevice");
+
   lib = LoadLibraryA("dxgi.dll");
   if(lib == NULL)
   {
@@ -3507,9 +3511,16 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   if(!rgp->Initialised())
     SAFE_DELETE(rgp);
 
+  bool EnableDebugLayer = false;
+
+#if ENABLED(RDOC_DEVEL)
+  // in development builds, always enable debug layer during replay
+  EnableDebugLayer = EnableD3D12DebugLayer();
+#endif
+
   ID3D12Device *dev = NULL;
-  HRESULT hr = RENDERDOC_CreateWrappedD3D12Device(NULL, initParams.MinimumFeatureLevel,
-                                                  __uuidof(ID3D12Device), (void **)&dev);
+  HRESULT hr =
+      createDevice(NULL, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
 
   if(FAILED(hr))
   {
@@ -3520,7 +3531,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     return ReplayStatus::APIHardwareUnsupported;
   }
 
-  WrappedID3D12Device *wrappedDev = (WrappedID3D12Device *)dev;
+  WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, EnableDebugLayer);
   wrappedDev->SetInitParams(initParams, ver);
 
   RDCLOG("Created device.");
@@ -3537,7 +3548,7 @@ static DriverRegistration D3D12DriverRegistration(RDCDriver::D3D12, &D3D12_Creat
 
 void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
-  WrappedID3D12Device device(NULL, NULL, false);
+  WrappedID3D12Device device(NULL, D3D12InitParams(), false);
 
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 

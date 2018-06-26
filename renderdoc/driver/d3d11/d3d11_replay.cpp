@@ -3469,12 +3469,6 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev);
 
-extern "C" HRESULT RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
-    __in_opt IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
-    __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels, UINT,
-    __in_opt CONST DXGI_SWAP_CHAIN_DESC *, __out_opt IDXGISwapChain **, __out_opt ID3D11Device **,
-    __out_opt D3D_FEATURE_LEVEL *, __out_opt ID3D11DeviceContext **);
-
 ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D11 replay device");
@@ -3486,6 +3480,9 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     RDCERR("Failed to load d3d11.dll");
     return ReplayStatus::APIInitFailed;
   }
+
+  PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN CreateDeviceAndSwapChain =
+      (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(lib, "D3D11CreateDeviceAndSwapChain");
 
   lib = LoadLibraryA("d3d9.dll");
   if(lib == NULL)
@@ -3588,9 +3585,10 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   // check for feature level 11 support - passing NULL feature level array implicitly checks for
   // 11_0 before others
-  hr = RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL,
-                                                      0, D3D11_SDK_VERSION, NULL, NULL, NULL,
-                                                      &maxFeatureLevel, NULL);
+  ID3D11Device *dev = NULL;
+  hr = CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION,
+                                NULL, NULL, &dev, &maxFeatureLevel, NULL);
+  SAFE_RELEASE(dev);
 
   bool warpFallback = false;
 
@@ -3606,7 +3604,15 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   hr = E_FAIL;
   for(;;)
   {
-    hr = RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
+#if ENABLED(RDOC_DEVEL)
+    // in development builds, always enable debug layer during replay
+    flags |= D3D11_CREATE_DEVICE_DEBUG;
+#else
+    // in release builds, never enable it
+    flags &= ~D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+    hr = CreateDeviceAndSwapChain(
         /*pAdapter=*/NULL, driverType, /*Software=*/NULL, flags,
         /*pFeatureLevels=*/featureLevelArray, /*nFeatureLevels=*/numFeatureLevels, D3D11_SDK_VERSION,
         /*pSwapChainDesc=*/NULL, (IDXGISwapChain **)NULL, (ID3D11Device **)&device,
@@ -3614,7 +3620,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     if(SUCCEEDED(hr))
     {
-      WrappedID3D11Device *wrappedDev = (WrappedID3D11Device *)device;
+      WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
       wrappedDev->SetInitParams(initParams, ver);
 
       RDCLOG("Created device.");
@@ -3671,7 +3677,7 @@ static DriverRegistration D3D11DriverRegistration(RDCDriver::D3D11, &D3D11_Creat
 
 void D3D11_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
-  WrappedID3D11Device device(NULL, NULL);
+  WrappedID3D11Device device(NULL, D3D11InitParams());
 
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 

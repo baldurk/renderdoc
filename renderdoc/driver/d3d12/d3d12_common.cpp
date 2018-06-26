@@ -98,6 +98,56 @@ void D3D12MarkerRegion::End(ID3D12CommandQueue *queue)
   queue->EndEvent();
 }
 
+bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface)
+{
+  if(!getDebugInterface)
+    getDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
+                                                                      "D3D12GetDebugInterface");
+
+  if(!getDebugInterface)
+  {
+    RDCERR("Couldn't find D3D12GetDebugInterface!");
+    return false;
+  }
+
+  ID3D12Debug *debug = NULL;
+  HRESULT hr = getDebugInterface(__uuidof(ID3D12Debug), (void **)&debug);
+
+  if(SUCCEEDED(hr) && debug)
+  {
+    debug->EnableDebugLayer();
+
+    RDCDEBUG("Enabling debug layer");
+
+// enable this to get GPU-based validation, where available, whenever we enable API validation
+#if 0
+    ID3D12Debug1 *debug1 = NULL;
+    hr = debug->QueryInterface(__uuidof(ID3D12Debug1), (void **)&debug1);
+
+    if(SUCCEEDED(hr) && debug1)
+    {
+      RDCDEBUG("Enabling GPU-based validation");
+      debug1->SetEnableGPUBasedValidation(true);
+      SAFE_RELEASE(debug1);
+    }
+    else
+    {
+      RDCDEBUG("GPU-based validation not available");
+    }
+#endif
+
+    SAFE_RELEASE(debug);
+
+    return true;
+  }
+  else
+  {
+    RDCERR("Couldn't enable debug layer: %x", hr);
+  }
+
+  return false;
+}
+
 D3D12InitParams::D3D12InitParams()
 {
   MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;

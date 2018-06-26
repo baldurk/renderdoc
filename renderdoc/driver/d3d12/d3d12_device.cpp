@@ -133,7 +133,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
   return m_pDebug->QueryInterface(riid, ppvObject);
 }
 
-WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params,
+WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params,
                                          bool enabledDebugLayer)
     : m_RefCounter(realDevice, false),
       m_SoftRefCounter(NULL, false),
@@ -307,8 +307,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     RDCDEBUG("Couldn't get ID3D12InfoQueue.");
   }
 
-  if(params)
-    m_InitParams = *params;
+  m_InitParams = params;
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()

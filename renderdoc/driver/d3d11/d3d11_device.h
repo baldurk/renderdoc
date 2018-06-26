@@ -410,7 +410,7 @@ public:
   static const int AllocPoolCount = 4;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device, AllocPoolCount);
 
-  WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams *params);
+  WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params);
   void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion)
   {
     m_InitParams = params;

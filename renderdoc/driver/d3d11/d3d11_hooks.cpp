@@ -59,6 +59,14 @@ typedef HRESULT (*PFNNVCreateDeviceAndSwapChain)(
     _COM_Outptr_opt_ ID3D11Device **, _Out_opt_ D3D_FEATURE_LEVEL *,
     _COM_Outptr_opt_ ID3D11DeviceContext **, NVAPI_DEVICE_FEATURE_LEVEL *);
 
+// this is the type of the lambda we use to route the call out to the 'real' function inside our
+// generic wrapper.
+// Could be any of D3D11CreateDevice, D3D11CreateDeviceAndSwapChain, or the nvapi equivalents
+typedef std::function<HRESULT(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT, CONST D3D_FEATURE_LEVEL *,
+                              UINT FeatureLevels, UINT, CONST DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **,
+                              ID3D11Device **, D3D_FEATURE_LEVEL *, ID3D11DeviceContext **)>
+    RealFunction;
+
 #define NVENCAPI __stdcall
 enum NVENCSTATUS
 {
@@ -162,18 +170,6 @@ public:
   }
 
   void OptionsUpdated(const char *libName) {}
-  static HRESULT CreateWrappedDeviceAndSwapChain(
-      __in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
-      __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels,
-      UINT SDKVersion, __in_opt CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc,
-      __out_opt IDXGISwapChain **ppSwapChain, __out_opt ID3D11Device **ppDevice,
-      __out_opt D3D_FEATURE_LEVEL *pFeatureLevel, __out_opt ID3D11DeviceContext **ppImmediateContext)
-  {
-    return d3d11hooks.Create_Internal(pAdapter, DriverType, Software, Flags, pFeatureLevels,
-                                      FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain,
-                                      ppDevice, pFeatureLevel, ppImmediateContext);
-  }
-
 private:
   static D3D11Hook d3d11hooks;
 
@@ -190,8 +186,8 @@ private:
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate;
 
-  HRESULT Create_Internal(__in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType,
-                          HMODULE Software, UINT Flags,
+  HRESULT Create_Internal(RealFunction real, __in_opt IDXGIAdapter *pAdapter,
+                          D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
                           __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels,
                           UINT FeatureLevels, UINT SDKVersion,
                           __in_opt CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc,
@@ -199,57 +195,24 @@ private:
                           __out_opt D3D_FEATURE_LEVEL *pFeatureLevel,
                           __out_opt ID3D11DeviceContext **ppImmediateContext)
   {
-    // if we're already inside a wrapped create i.e. this function, then DON'T do anything
-    // special. Just grab the trampolined function and call it.
+    // if we're already inside a wrapped create, then DON'T do anything special. Just call onwards
     if(m_InsideCreate)
     {
-      PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createFunc = NULL;
-
-      // shouldn't ever get in here if we're in the case without hooks but let's be safe.
-      if(m_HasHooks)
-      {
-        createFunc = CreateDeviceAndSwapChain();
-      }
-      else
-      {
-        HMODULE d3d11 = GetModuleHandleA("d3d11.dll");
-
-        if(d3d11)
-        {
-          createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
-              d3d11, "D3D11CreateDeviceAndSwapChain");
-        }
-        else
-        {
-          RDCERR("Something went seriously wrong, d3d11.dll couldn't be loaded!");
-          return E_UNEXPECTED;
-        }
-      }
-
-      return createFunc(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
-                        SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel,
-                        ppImmediateContext);
+      return real(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
+                  pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
     }
 
     m_InsideCreate = true;
 
     RDCDEBUG("Call to Create_Internal Flags %x", Flags);
 
-    bool reading = RenderDoc::Inst().IsReplayApp();
+    // we should no longer go through here in the replay application
+    RDCASSERT(!RenderDoc::Inst().IsReplayApp());
 
-    if(reading)
-    {
-      RDCDEBUG("In replay app");
-    }
-
-    if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
-    {
+    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
       Flags |= D3D11_CREATE_DEVICE_DEBUG;
-    }
     else
-    {
       Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-    }
 
     DXGI_SWAP_CHAIN_DESC swapDesc;
     DXGI_SWAP_CHAIN_DESC *pUsedSwapDesc = NULL;
@@ -267,22 +230,6 @@ private:
 
     RDCDEBUG("Calling real createdevice...");
 
-    PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createFunc =
-        (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA("d3d11.dll"),
-                                                               "D3D11CreateDeviceAndSwapChain");
-
-    // shouldn't ever get here, we should either have it from procaddress or the trampoline, but
-    // let's be
-    // safe.
-    if(createFunc == NULL)
-    {
-      RDCERR("Something went seriously wrong with the hooks!");
-
-      m_InsideCreate = false;
-
-      return E_UNEXPECTED;
-    }
-
     // Hack for D3DGear which crashes if ppDevice is NULL
     ID3D11Device *dummydev = NULL;
     bool dummyUsed = false;
@@ -293,8 +240,8 @@ private:
     }
 
     HRESULT ret =
-        createFunc(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
-                   pUsedSwapDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+        real(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
+             pUsedSwapDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
     SAFE_RELEASE(dummydev);
     if(dummyUsed)
@@ -306,14 +253,41 @@ private:
 
     suppress = (Flags & D3D11_CREATE_DEVICE_PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY) != 0;
 
-    if(suppress && !reading)
+    if(suppress)
     {
       RDCLOG("Application requested not to be hooked.");
     }
     else if(SUCCEEDED(ret) && ppDevice)
     {
-      WrapDevice(ppDevice, DriverType, Flags, SDKVersion, FeatureLevels, pFeatureLevels,
-                 ppImmediateContext, ppSwapChain, pSwapChainDesc);
+      RDCDEBUG("succeeded and hooking.");
+
+      if(!WrappedID3D11Device::IsAlloc(*ppDevice))
+      {
+        D3D11InitParams params;
+        params.DriverType = DriverType;
+        params.Flags = Flags;
+        params.SDKVersion = SDKVersion;
+        params.NumFeatureLevels = FeatureLevels;
+        if(FeatureLevels > 0)
+          memcpy(params.FeatureLevels, pFeatureLevels, sizeof(D3D_FEATURE_LEVEL) * FeatureLevels);
+
+        WrappedID3D11Device *wrap = new WrappedID3D11Device(*ppDevice, params);
+
+        RDCDEBUG("created wrapped device.");
+
+        *ppDevice = wrap;
+
+        if(ppImmediateContext)
+        {
+          if(*ppImmediateContext)
+            (*ppImmediateContext)->Release();
+          wrap->GetImmediateContext(ppImmediateContext);
+        }
+
+        if(ppSwapChain && *ppSwapChain)
+          *ppSwapChain = new WrappedIDXGISwapChain4(
+              *ppSwapChain, pSwapChainDesc ? pSwapChainDesc->OutputWindow : NULL, wrap);
+      }
     }
     else if(SUCCEEDED(ret))
     {
@@ -329,53 +303,16 @@ private:
     return ret;
   }
 
-  void WrapDevice(ID3D11Device **ppDevice, D3D_DRIVER_TYPE DriverType, UINT Flags, UINT SDKVersion,
-                  UINT FeatureLevels, CONST D3D_FEATURE_LEVEL *pFeatureLevels,
-                  ID3D11DeviceContext **ppImmediateContext, IDXGISwapChain **ppSwapChain,
-                  CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc)
-  {
-    RDCDEBUG("succeeded and hooking.");
-
-    if(!WrappedID3D11Device::IsAlloc(*ppDevice))
-    {
-      D3D11InitParams params;
-      params.DriverType = DriverType;
-      params.Flags = Flags;
-      params.SDKVersion = SDKVersion;
-      params.NumFeatureLevels = FeatureLevels;
-      if(FeatureLevels > 0)
-        memcpy(params.FeatureLevels, pFeatureLevels, sizeof(D3D_FEATURE_LEVEL) * FeatureLevels);
-
-      WrappedID3D11Device *wrap = new WrappedID3D11Device(*ppDevice, &params);
-
-      RDCDEBUG("created wrapped device.");
-
-      *ppDevice = wrap;
-
-      if(ppImmediateContext)
-      {
-        if(*ppImmediateContext)
-          (*ppImmediateContext)->Release();
-        wrap->GetImmediateContext(ppImmediateContext);
-      }
-
-      if(ppSwapChain && *ppSwapChain)
-        *ppSwapChain = new WrappedIDXGISwapChain4(
-            *ppSwapChain, pSwapChainDesc ? pSwapChainDesc->OutputWindow : NULL, wrap);
-    }
-  }
-
   static HRESULT WINAPI D3D11CreateDevice_hook(
       __in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
       __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels,
       UINT SDKVersion, __out_opt ID3D11Device **ppDevice,
       __out_opt D3D_FEATURE_LEVEL *pFeatureLevel, __out_opt ID3D11DeviceContext **ppImmediateContext)
   {
-    HRESULT ret = d3d11hooks.Create_Internal(pAdapter, DriverType, Software, Flags, pFeatureLevels,
-                                             FeatureLevels, SDKVersion, NULL, NULL, ppDevice,
-                                             pFeatureLevel, ppImmediateContext);
-
-    return ret;
+    // just forward the call with NULL swapchain parameters
+    return D3D11CreateDeviceAndSwapChain_hook(pAdapter, DriverType, Software, Flags, pFeatureLevels,
+                                              FeatureLevels, SDKVersion, NULL, NULL, ppDevice,
+                                              pFeatureLevel, ppImmediateContext);
   }
 
   static HRESULT WINAPI D3D11CreateDeviceAndSwapChain_hook(
@@ -385,9 +322,26 @@ private:
       __out_opt IDXGISwapChain **ppSwapChain, __out_opt ID3D11Device **ppDevice,
       __out_opt D3D_FEATURE_LEVEL *pFeatureLevel, __out_opt ID3D11DeviceContext **ppImmediateContext)
   {
-    HRESULT ret = d3d11hooks.Create_Internal(pAdapter, DriverType, Software, Flags, pFeatureLevels,
-                                             FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain,
-                                             ppDevice, pFeatureLevel, ppImmediateContext);
+    PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createFunc = d3d11hooks.CreateDeviceAndSwapChain();
+
+    if(createFunc == NULL)
+    {
+      RDCWARN("Call to D3D11CreateDeviceAndSwapChain_hook without onward function pointer");
+      createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
+          GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
+    }
+
+    // shouldn't ever get here, we should either have it from procaddress or the hook function, but
+    // let's be safe.
+    if(createFunc == NULL)
+    {
+      RDCERR("Something went seriously wrong with the hooks!");
+      return E_UNEXPECTED;
+    }
+
+    HRESULT ret = d3d11hooks.Create_Internal(
+        createFunc, pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
+        SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
     return ret;
   }
@@ -413,55 +367,21 @@ private:
                                            ID3D11DeviceContext **ppImmediateContext,
                                            NVAPI_DEVICE_FEATURE_LEVEL *outNVLevel)
   {
-    RDCDEBUG("Call to nvapi_CreateDevice");
-
-    bool reading = RenderDoc::Inst().IsReplayApp();
-
-    if(reading)
-    {
-      RDCDEBUG("In replay app");
-    }
-
-    if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
-    {
-      Flags |= D3D11_CREATE_DEVICE_DEBUG;
-    }
-    else
-    {
-      Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-    }
-
-    RDCDEBUG("Calling real createdevice...");
-
-    HRESULT ret = d3d11hooks.nvapi_CreateDevice_real(
-        pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice,
-        pFeatureLevel, ppImmediateContext, outNVLevel);
-
-    RDCDEBUG("Called real createdevice...");
-
-    bool suppress = false;
-
-    suppress = (Flags & D3D11_CREATE_DEVICE_PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY) != 0;
-
-    if(suppress && !reading)
-    {
-      RDCDEBUG("Application requested not to be hooked.");
-    }
-    else if(SUCCEEDED(ret) && ppDevice)
-    {
-      d3d11hooks.WrapDevice(ppDevice, DriverType, Flags, SDKVersion, FeatureLevels, pFeatureLevels,
-                            ppImmediateContext, NULL, NULL);
-    }
-    else if(SUCCEEDED(ret))
-    {
-      RDCLOG("Created wrapped D3D11 device.");
-    }
-    else
-    {
-      RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
-    }
-
-    return ret;
+    return d3d11hooks.Create_Internal(
+        [=](IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+            CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
+            CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
+            ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
+            ID3D11DeviceContext **ppImmediateContext) {
+          // we know that when we come back in here the swapchain parameters will be NULL because
+          // that's what we pass below
+          RDCASSERT(!pSwapChainDesc && ppSwapChain);
+          return d3d11hooks.nvapi_CreateDevice_real(
+              pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
+              ppDevice, pFeatureLevel, ppImmediateContext, outNVLevel);
+        },
+        pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, NULL,
+        NULL, ppDevice, pFeatureLevel, ppImmediateContext);
   }
 
   static HRESULT WINAPI nvapi_CreateDeviceAndSwapChain(
@@ -471,69 +391,18 @@ private:
       ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
       ID3D11DeviceContext **ppImmediateContext, NVAPI_DEVICE_FEATURE_LEVEL *outNVLevel)
   {
-    RDCDEBUG("Call to nvapi_CreateDeviceAndSwapChain");
-
-    bool reading = RenderDoc::Inst().IsReplayApp();
-
-    if(reading)
-    {
-      RDCDEBUG("In replay app");
-    }
-
-    if(!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation)
-    {
-      Flags |= D3D11_CREATE_DEVICE_DEBUG;
-    }
-    else
-    {
-      Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-    }
-
-    DXGI_SWAP_CHAIN_DESC swapDesc;
-    DXGI_SWAP_CHAIN_DESC *pUsedSwapDesc = NULL;
-
-    if(pSwapChainDesc)
-    {
-      swapDesc = *pSwapChainDesc;
-      pUsedSwapDesc = &swapDesc;
-    }
-
-    if(pUsedSwapDesc && !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
-    {
-      pUsedSwapDesc->Windowed = TRUE;
-    }
-
-    RDCDEBUG("Calling real createdevice...");
-
-    HRESULT ret = d3d11hooks.nvapi_CreateDeviceAndSwapChain_real(
+    return d3d11hooks.Create_Internal(
+        [=](IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+            CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
+            CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
+            ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
+            ID3D11DeviceContext **ppImmediateContext) {
+          return d3d11hooks.nvapi_CreateDeviceAndSwapChain_real(
+              pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
+              pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext, outNVLevel);
+        },
         pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
-        pUsedSwapDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext, outNVLevel);
-
-    RDCDEBUG("Called real createdevice...");
-
-    bool suppress = false;
-
-    suppress = (Flags & D3D11_CREATE_DEVICE_PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY) != 0;
-
-    if(suppress && !reading)
-    {
-      RDCDEBUG("Application requested not to be hooked.");
-    }
-    else if(SUCCEEDED(ret) && ppDevice)
-    {
-      d3d11hooks.WrapDevice(ppDevice, DriverType, Flags, SDKVersion, FeatureLevels, pFeatureLevels,
-                            ppImmediateContext, ppSwapChain, pSwapChainDesc);
-    }
-    else if(SUCCEEDED(ret))
-    {
-      RDCLOG("Created wrapped D3D11 device.");
-    }
-    else
-    {
-      RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
-    }
-
-    return ret;
+        pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
   }
 
   static void *nvapi_QueryInterface_hook(uint32_t ID)
@@ -613,26 +482,3 @@ private:
 };
 
 D3D11Hook D3D11Hook::d3d11hooks;
-
-extern "C" __declspec(dllexport) HRESULT __cdecl RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
-    __in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
-    __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels,
-    UINT SDKVersion, __in_opt CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc,
-    __out_opt IDXGISwapChain **ppSwapChain, __out_opt ID3D11Device **ppDevice,
-    __out_opt D3D_FEATURE_LEVEL *pFeatureLevel, __out_opt ID3D11DeviceContext **ppImmediateContext)
-{
-  return D3D11Hook::CreateWrappedDeviceAndSwapChain(
-      pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
-      pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
-}
-
-extern "C" __declspec(dllexport) HRESULT __cdecl RENDERDOC_CreateWrappedD3D11Device(
-    __in_opt IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
-    __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels,
-    UINT SDKVersion, __out_opt ID3D11Device **ppDevice, __out_opt D3D_FEATURE_LEVEL *pFeatureLevel,
-    __out_opt ID3D11DeviceContext **ppImmediateContext)
-{
-  return D3D11Hook::CreateWrappedDeviceAndSwapChain(
-      pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, NULL, NULL,
-      ppDevice, pFeatureLevel, ppImmediateContext);
-}

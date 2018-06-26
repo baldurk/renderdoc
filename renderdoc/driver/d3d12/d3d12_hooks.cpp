@@ -123,12 +123,6 @@ public:
   }
 
   void OptionsUpdated(const char *libName) {}
-  static HRESULT CreateWrappedDevice(IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel,
-                                     REFIID riid, void **ppDevice)
-  {
-    return d3d12hooks.Create_Internal(pAdapter, MinimumFeatureLevel, riid, ppDevice);
-  }
-
 private:
   static D3D12Hook d3d12hooks;
 
@@ -184,76 +178,21 @@ private:
 
     RDCDEBUG("Call to Create_Internal Feature Level %x", MinimumFeatureLevel, ToStr(riid).c_str());
 
-    bool reading = RenderDoc::Inst().IsReplayApp();
+    // we should no longer go through here in the replay application
+    RDCASSERT(!RenderDoc::Inst().IsReplayApp());
 
-    if(reading)
-    {
-      RDCDEBUG("In replay app");
-    }
+    bool EnableDebugLayer = false;
 
-    const bool EnableDebugLayer =
-// toggle on/off if you want debug layer during replay
-#if ENABLED(RDOC_DEVEL)
-        RenderDoc::Inst().IsReplayApp() ||
-#endif
-        (!reading && RenderDoc::Inst().GetCaptureOptions().apiValidation);
-
-    if(EnableDebugLayer)
-    {
-      PFN_D3D12_GET_DEBUG_INTERFACE getfn = GetDebugInterface();
-
-      if(getfn == NULL)
-        getfn = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
-                                                              "D3D12GetDebugInterface");
-
-      if(getfn)
-      {
-        ID3D12Debug *debug = NULL;
-        HRESULT hr = getfn(__uuidof(ID3D12Debug), (void **)&debug);
-
-        if(SUCCEEDED(hr) && debug)
-        {
-          debug->EnableDebugLayer();
-
-          RDCDEBUG("Enabling debug layer");
-
-// enable this to get GPU-based validation, where available, whenever we enable API validation
-#if 0
-          ID3D12Debug1 *debug1 = NULL;
-          hr = debug->QueryInterface(__uuidof(ID3D12Debug1), (void **)&debug1);
-
-          if(SUCCEEDED(hr) && debug1)
-          {
-            RDCDEBUG("Enabling GPU-based validation");
-            debug1->SetEnableGPUBasedValidation(true);
-            SAFE_RELEASE(debug1);
-          }
-          else
-          {
-            RDCDEBUG("GPU-based validation not available");
-          }
-#endif
-        }
-        else
-        {
-          RDCERR("Couldn't enable debug layer: %x", hr);
-        }
-
-        SAFE_RELEASE(debug);
-      }
-      else
-      {
-        RDCERR("Couldn't find D3D12GetDebugInterface!");
-      }
-    }
+    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
+      EnableDebugLayer = EnableD3D12DebugLayer(GetDebugInterface());
 
     RDCDEBUG("Calling real createdevice...");
 
-    PFN_D3D12_CREATE_DEVICE createFunc =
-        (PFN_D3D12_CREATE_DEVICE)GetProcAddress(GetModuleHandleA("d3d12.dll"), "D3D12CreateDevice");
+    PFN_D3D12_CREATE_DEVICE createFunc = CreateDevice();
 
     if(createFunc == NULL)
-      createFunc = CreateDevice();
+      createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
+                                                           "D3D12CreateDevice");
 
     // shouldn't ever get here, we should either have it from procaddress or the trampoline, but
     // let's be safe.
@@ -297,7 +236,7 @@ private:
           dev = (ID3D12Device *)dev1;
         }
 
-        WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, &params, EnableDebugLayer);
+        WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, params, EnableDebugLayer);
 
         RDCDEBUG("created wrapped device.");
 
@@ -365,11 +304,3 @@ private:
 };
 
 D3D12Hook D3D12Hook::d3d12hooks;
-
-extern "C" __declspec(dllexport) HRESULT
-    __cdecl RENDERDOC_CreateWrappedD3D12Device(IUnknown *pAdapter,
-                                               D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
-                                               void **ppDevice)
-{
-  return D3D12Hook::CreateWrappedDevice(pAdapter, MinimumFeatureLevel, riid, ppDevice);
-}

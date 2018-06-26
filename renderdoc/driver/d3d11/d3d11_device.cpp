@@ -53,7 +53,7 @@ void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
   }
 }
 
-WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams *params)
+WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params)
     : m_RefCounter(realDevice, false),
       m_SoftRefCounter(NULL, false),
       m_pDevice(realDevice),
@@ -202,8 +202,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_Replay.SetDevice(this);
 
-  if(params)
-    m_InitParams = *params;
+  m_InitParams = params;
 
   if(realDevice)
     m_DebugManager = new D3D11DebugManager(this);

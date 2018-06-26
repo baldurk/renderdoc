@@ -52,6 +52,8 @@ struct D3D12MarkerRegion
   ID3D12CommandQueue *queue = NULL;
 };
 
+bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface = NULL);
+
 inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
 {
   obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
