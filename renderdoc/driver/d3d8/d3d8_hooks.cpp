@@ -31,17 +31,16 @@ typedef IDirect3D8 *(WINAPI *PFN_D3D8_CREATE)(UINT);
 class D3D8Hook : LibraryHook
 {
 public:
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
-    Create8.Initialize("Direct3DCreate8", "d3d8.dll", Create8_hook);
-
-    return true;
+    LibraryHooks::RegisterLibraryHook("d3d8.dll", NULL);
+    Create8.Register("d3d8.dll", "Direct3DCreate8", Create8_hook);
   }
 
 private:
   static D3D8Hook d3d8hooks;
 
-  Hook<PFN_D3D8_CREATE> Create8;
+  HookedFunction<PFN_D3D8_CREATE> Create8;
 
   static IDirect3D8 *WINAPI Create8_hook(UINT SDKVersion)
   {

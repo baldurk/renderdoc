@@ -38,7 +38,7 @@ class OpenGLHook : LibraryHook
 public:
   OpenGLHook() {}
   ~OpenGLHook() {}
-  bool CreateHooks(const char *libName) { return false; }
+  bool RegisterHooks() { return false; }
   virtual GLWindowingData MakeContext(GLWindowingData share)
   {
     RDCUNIMPLEMENTED("MakeContext");

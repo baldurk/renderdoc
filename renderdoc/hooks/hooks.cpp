@@ -26,35 +26,61 @@
 #include "hooks.h"
 #include "common/common.h"
 
-LibraryHooks &LibraryHooks::GetInstance()
+static std::vector<LibraryHook *> &LibList()
 {
-  static LibraryHooks instance;
-  return instance;
+  static std::vector<LibraryHook *> libs;
+  return libs;
 }
 
-void LibraryHooks::RegisterLibrary(LibraryHook *lib)
+LibraryHook::LibraryHook()
 {
-  m_Libraries.push_back(lib);
+  LibList().push_back(this);
 }
 
-void LibraryHooks::CreateHooks()
+void LibraryHooks::RegisterHooks()
 {
-  HOOKS_BEGIN();
-  for(LibraryHook *lib : m_Libraries)
-    lib->CreateHooks("dummy");
-  HOOKS_END();
-}
+  BeginHookRegistration();
 
-void LibraryHooks::RemoveHooks()
-{
-  if(m_HooksRemoved)
-    return;
-  m_HooksRemoved = true;
-  HOOKS_REMOVE();
+  for(LibraryHook *lib : LibList())
+    lib->RegisterHooks();
+
+  EndHookRegistration();
 }
 
 void LibraryHooks::OptionsUpdated()
 {
-  for(LibraryHook *lib : m_Libraries)
+  for(LibraryHook *lib : LibList())
     lib->OptionsUpdated();
+}
+
+////////////////////////////////////////////////////////////////////////
+// Very temporary compatibility layer with previous function interface.
+//
+// PosixHookFunction just calls LibraryHooks::RegisterFunctionHook and
+// stores the resulting pointer in a map to look up later in
+// PosixGetFunction
+////////////////////////////////////////////////////////////////////////
+
+static std::map<std::string, void **> origLookup;
+
+void PosixHookFunction(const char *name, void *hook)
+{
+  void **orig = origLookup[name];
+  if(orig == NULL)
+  {
+    orig = origLookup[name] = new void *;
+    *orig = NULL;
+  }
+
+  LibraryHooks::RegisterFunctionHook("", FunctionHook(name, orig, hook));
+}
+
+void *PosixGetFunction(void *handle, const char *name)
+{
+  void **orig = origLookup[name];
+  if(orig && *orig)
+    return *orig;
+
+  ScopedSuppressHooking suppress;
+  return Process::GetFunctionAddress(handle, name);
 }

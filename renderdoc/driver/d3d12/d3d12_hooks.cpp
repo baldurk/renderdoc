@@ -86,7 +86,7 @@ public:
 class D3D12Hook : LibraryHook
 {
 public:
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
@@ -94,23 +94,23 @@ public:
     if(GetD3DCompiler() == NULL)
     {
       RDCERR("Failed to load d3dcompiler_??.dll - not inserting D3D12 hooks.");
-      return false;
+      return;
     }
 
-    CreateDevice.Initialize("D3D12CreateDevice", "d3d12.dll", D3D12CreateDevice_hook);
-    GetDebugInterface.Initialize("D3D12GetDebugInterface", "d3d12.dll", D3D12GetDebugInterface_hook);
-    EnableExperimentalFeatures.Initialize("D3D12EnableExperimentalFeatures", "d3d12.dll",
-                                          D3D12EnableExperimentalFeatures_hook);
+    LibraryHooks::RegisterLibraryHook("d3d12.dll", NULL);
 
-    return true;
+    CreateDevice.Register("d3d12.dll", "D3D12CreateDevice", D3D12CreateDevice_hook);
+    GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
+    EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
+                                        D3D12EnableExperimentalFeatures_hook);
   }
 
 private:
   static D3D12Hook d3d12hooks;
 
-  Hook<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
-  Hook<PFN_D3D12_CREATE_DEVICE> CreateDevice;
-  Hook<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
+  HookedFunction<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
+  HookedFunction<PFN_D3D12_CREATE_DEVICE> CreateDevice;
+  HookedFunction<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate = false;

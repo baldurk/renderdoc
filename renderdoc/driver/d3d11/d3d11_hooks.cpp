@@ -28,6 +28,16 @@
 #include "driver/ihv/amd/official/DXExt/AmdDxExtApi.h"
 #include "hooks/hooks.h"
 
+#if ENABLED(RDOC_X64)
+
+#define BIT_SPECIFIC_DLL(dll32, dll64) dll64
+
+#else
+
+#define BIT_SPECIFIC_DLL(dll32, dll64) dll32
+
+#endif
+
 ID3D11Resource *UnwrapDXResource(void *dxObject);
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
@@ -110,7 +120,7 @@ class D3D11Hook : LibraryHook
 {
 public:
   D3D11Hook() { m_InsideCreate = false; }
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
@@ -118,52 +128,44 @@ public:
     if(GetD3DCompiler() == NULL)
     {
       RDCERR("Failed to load d3dcompiler_??.dll - not inserting D3D11 hooks.");
-      return false;
+      return;
     }
 
-    CreateDevice.Initialize("D3D11CreateDevice", "d3d11.dll", D3D11CreateDevice_hook);
-    CreateDeviceAndSwapChain.Initialize("D3D11CreateDeviceAndSwapChain", "d3d11.dll",
-                                        D3D11CreateDeviceAndSwapChain_hook);
+    LibraryHooks::RegisterLibraryHook("d3d11.dll", NULL);
 
-// these are hooked to prevent AMD extensions from activating and causing later crashes when not
-// replayed correctly
-#if ENABLED(RDOC_X64)
-    AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx64.dll", AmdCreate11_hook);
-#else
-    AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx32.dll", AmdCreate11_hook);
-#endif
+    CreateDevice.Register("d3d11.dll", "D3D11CreateDevice", D3D11CreateDevice_hook);
+    CreateDeviceAndSwapChain.Register("d3d11.dll", "D3D11CreateDeviceAndSwapChain",
+                                      D3D11CreateDeviceAndSwapChain_hook);
 
-// nvapi has some seriously awful ""feature"" where it can wrap CreateDevice with some other
-// extra parameter. Since we don't want to hook nvapi when it calls out to d3d11.dll, we have to
-// intercept it here.
-#if ENABLED(RDOC_X64)
-    nvapi_QueryInterface.Initialize("nvapi_QueryInterface", "nvapi64.dll", nvapi_QueryInterface_hook);
-#else
-    nvapi_QueryInterface.Initialize("nvapi_QueryInterface", "nvapi.dll", nvapi_QueryInterface_hook);
-#endif
+    // these are hooked to prevent AMD extensions from activating and causing later crashes when not
+    // replayed correctly
+    LibraryHooks::RegisterLibraryHook(BIT_SPECIFIC_DLL("atidxx32.dll", "atidxx64.dll"), NULL);
+    AmdCreate11.Register(BIT_SPECIFIC_DLL("atidxx32.dll", "atidxx64.dll"), "AmdDxExtCreate11",
+                         AmdCreate11_hook);
 
-// we need to wrap nvcodec to handle unwrapping D3D11 pointers passed to it
-#if ENABLED(RDOC_X64)
-    NvEncodeCreate.Initialize("NvEncodeAPICreateInstance", "nvEncodeAPI64.dll",
-                              NvEncodeAPICreateInstance_hook);
-#else
-    NvEncodeCreate.Initialize("NvEncodeAPICreateInstance", "nvEncodeAPI.dll",
-                              NvEncodeAPICreateInstance_hook);
-#endif
+    // nvapi has some seriously awful ""feature"" where it can wrap CreateDevice with some other
+    // extra parameter. Since we don't want to hook nvapi when it calls out to d3d11.dll, we have to
+    // intercept it here.
+    LibraryHooks::RegisterLibraryHook(BIT_SPECIFIC_DLL("nvapi.dll", "nvapi64.dll"), NULL);
+    nvapi_QueryInterface.Register(BIT_SPECIFIC_DLL("nvapi.dll", "nvapi64.dll"),
+                                  "nvapi_QueryInterface", nvapi_QueryInterface_hook);
 
-    return true;
+    // we need to wrap nvcodec to handle unwrapping D3D11 pointers passed to it
+    LibraryHooks::RegisterLibraryHook(BIT_SPECIFIC_DLL("nvEncodeAPI.dll", "nvEncodeAPI64.dll"), NULL);
+    NvEncodeCreate.Register(BIT_SPECIFIC_DLL("nvEncodeAPI.dll", "nvEncodeAPI64.dll"),
+                            "NvEncodeAPICreateInstance", NvEncodeAPICreateInstance_hook);
   }
 
 private:
   static D3D11Hook d3d11hooks;
 
-  Hook<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
-  Hook<PFN_D3D11_CREATE_DEVICE> CreateDevice;
+  HookedFunction<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
+  HookedFunction<PFN_D3D11_CREATE_DEVICE> CreateDevice;
 
   // optional extension hooks
-  Hook<PFNAmdDxExtCreate11> AmdCreate11;
-  Hook<PFNNVQueryInterface> nvapi_QueryInterface;
-  Hook<PFN_NvEncodeAPICreateInstance> NvEncodeCreate;
+  HookedFunction<PFNAmdDxExtCreate11> AmdCreate11;
+  HookedFunction<PFNNVQueryInterface> nvapi_QueryInterface;
+  HookedFunction<PFN_NvEncodeAPICreateInstance> NvEncodeCreate;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate;

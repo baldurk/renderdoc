@@ -1043,7 +1043,7 @@ void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
 {
   m_Options = opts;
 
-  LibraryHooks::GetInstance().OptionsUpdated();
+  LibraryHooks::OptionsUpdated();
 }
 
 void RenderDoc::SetCaptureFileTemplate(const char *pathtemplate)

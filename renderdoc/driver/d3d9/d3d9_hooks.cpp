@@ -40,29 +40,29 @@ typedef IDirect3D9 *(WINAPI *PFN_D3D9_CREATE)(UINT);
 class D3D9Hook : LibraryHook
 {
 public:
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
-    PERF_BeginEvent.Initialize("D3DPERF_BeginEvent", "d3d9.dll", PERF_BeginEvent_hook);
-    PERF_EndEvent.Initialize("D3DPERF_EndEvent", "d3d9.dll", PERF_EndEvent_hook);
-    PERF_SetMarker.Initialize("D3DPERF_SetMarker", "d3d9.dll", PERF_SetMarker_hook);
-    PERF_SetOptions.Initialize("D3DPERF_SetOptions", "d3d9.dll", PERF_SetOptions_hook);
-    PERF_GetStatus.Initialize("D3DPERF_GetStatus", "d3d9.dll", PERF_GetStatus_hook);
+    LibraryHooks::RegisterLibraryHook("d3d9.dll", NULL);
 
-    Create9.Initialize("Direct3DCreate9", "d3d9.dll", Create9_hook);
+    PERF_BeginEvent.Register("d3d9.dll", "D3DPERF_BeginEvent", PERF_BeginEvent_hook);
+    PERF_EndEvent.Register("d3d9.dll", "D3DPERF_EndEvent", PERF_EndEvent_hook);
+    PERF_SetMarker.Register("d3d9.dll", "D3DPERF_SetMarker", PERF_SetMarker_hook);
+    PERF_SetOptions.Register("d3d9.dll", "D3DPERF_SetOptions", PERF_SetOptions_hook);
+    PERF_GetStatus.Register("d3d9.dll", "D3DPERF_GetStatus", PERF_GetStatus_hook);
 
-    return true;
+    Create9.Register("d3d9.dll", "Direct3DCreate9", Create9_hook);
   }
 
 private:
   static D3D9Hook d3d9hooks;
 
   // D3DPERF api
-  Hook<PFN_BEGIN_EVENT> PERF_BeginEvent;
-  Hook<PFN_END_EVENT> PERF_EndEvent;
-  Hook<PFN_SET_MARKER_EVENT> PERF_SetMarker;
-  Hook<PFN_SET_OPTIONS> PERF_SetOptions;
-  Hook<PFN_GET_OPTIONS> PERF_GetStatus;
-  Hook<PFN_D3D9_CREATE> Create9;
+  HookedFunction<PFN_BEGIN_EVENT> PERF_BeginEvent;
+  HookedFunction<PFN_END_EVENT> PERF_EndEvent;
+  HookedFunction<PFN_SET_MARKER_EVENT> PERF_SetMarker;
+  HookedFunction<PFN_SET_OPTIONS> PERF_SetOptions;
+  HookedFunction<PFN_GET_OPTIONS> PERF_GetStatus;
+  HookedFunction<PFN_D3D9_CREATE> Create9;
 
   static int WINAPI PERF_BeginEvent_hook(DWORD col, WCHAR *wszName)
   {

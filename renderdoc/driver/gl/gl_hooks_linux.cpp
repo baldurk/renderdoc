@@ -63,13 +63,17 @@ public:
   bool CreateHooks(const char *libName)
   {
     if(libName)
-      PosixHookLibrary("libGL.so", &libHooked);
+    {
+      LibraryHooks::RegisterLibraryHook("libGL.so", &libHooked);
+      LibraryHooks::RegisterLibraryHook("libGL.so.1", &libHooked);
+    }
 
     SetupHooks();
 
     return true;
   }
 
+  void RegisterHooks() { CreateHooks("dummy"); }
   // see callsite in glXSwapBuffers for explanation of why this is necessary
   XID UnwrapGLXWindow(XID id)
   {

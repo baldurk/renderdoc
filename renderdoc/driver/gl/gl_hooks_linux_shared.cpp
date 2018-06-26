@@ -1422,7 +1422,7 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 #define HookInit(function)                                                                      \
   if(GL.function == NULL)                                                                       \
   {                                                                                             \
-    PosixScopedSuppressHooking suppress;                                                        \
+    ScopedSuppressHooking suppress;                                                             \
     if(dlsymFirst && GL.function == NULL)                                                       \
     {                                                                                           \
       GL.function =                                                                             \
@@ -1436,7 +1436,7 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 #define HookExtension(funcPtrType, function)                                              \
   if(GL.function == NULL)                                                                 \
   {                                                                                       \
-    PosixScopedSuppressHooking suppress;                                                  \
+    ScopedSuppressHooking suppress;                                                       \
     if(dlsymFirst && GL.function == NULL)                                                 \
     {                                                                                     \
       GL.function = (funcPtrType)PosixGetFunction(libGLdlsymHandle, STRINGIZE(function)); \
@@ -1447,7 +1447,7 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 #define HookExtensionAlias(funcPtrType, function, alias)                               \
   if(GL.function == NULL)                                                              \
   {                                                                                    \
-    PosixScopedSuppressHooking suppress;                                               \
+    ScopedSuppressHooking suppress;                                                    \
     if(dlsymFirst && GL.function == NULL)                                              \
     {                                                                                  \
       GL.function = (funcPtrType)PosixGetFunction(libGLdlsymHandle, STRINGIZE(alias)); \

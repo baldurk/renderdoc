@@ -72,15 +72,15 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
 class DXGIHook : LibraryHook
 {
 public:
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
-    CreateDXGIFactory.Initialize("CreateDXGIFactory", "dxgi.dll", CreateDXGIFactory_hook);
-    CreateDXGIFactory1.Initialize("CreateDXGIFactory1", "dxgi.dll", CreateDXGIFactory1_hook);
-    CreateDXGIFactory2.Initialize("CreateDXGIFactory2", "dxgi.dll", CreateDXGIFactory2_hook);
-    GetDebugInterface.Initialize("DXGIGetDebugInterface", "dxgi.dll", DXGIGetDebugInterface_hook);
-    GetDebugInterface1.Initialize("DXGIGetDebugInterface1", "dxgi.dll", DXGIGetDebugInterface1_hook);
+    LibraryHooks::RegisterLibraryHook("dxgi.dll", NULL);
 
-    return true;
+    CreateDXGIFactory.Register("dxgi.dll", "CreateDXGIFactory", CreateDXGIFactory_hook);
+    CreateDXGIFactory1.Register("dxgi.dll", "CreateDXGIFactory1", CreateDXGIFactory1_hook);
+    CreateDXGIFactory2.Register("dxgi.dll", "CreateDXGIFactory2", CreateDXGIFactory2_hook);
+    GetDebugInterface.Register("dxgi.dll", "DXGIGetDebugInterface", DXGIGetDebugInterface_hook);
+    GetDebugInterface1.Register("dxgi.dll", "DXGIGetDebugInterface1", DXGIGetDebugInterface1_hook);
   }
 
 private:
@@ -88,11 +88,11 @@ private:
 
   RenderDocAnalysis m_RenderDocAnalysis;
 
-  Hook<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory;
-  Hook<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory1;
-  Hook<PFN_CREATE_DXGI_FACTORY2> CreateDXGIFactory2;
-  Hook<PFN_GET_DEBUG_INTERFACE> GetDebugInterface;
-  Hook<PFN_GET_DEBUG_INTERFACE1> GetDebugInterface1;
+  HookedFunction<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory;
+  HookedFunction<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory1;
+  HookedFunction<PFN_CREATE_DXGI_FACTORY2> CreateDXGIFactory2;
+  HookedFunction<PFN_GET_DEBUG_INTERFACE> GetDebugInterface;
+  HookedFunction<PFN_GET_DEBUG_INTERFACE1> GetDebugInterface1;
 
   static HRESULT WINAPI CreateDXGIFactory_hook(__in REFIID riid, __out void **ppFactory)
   {

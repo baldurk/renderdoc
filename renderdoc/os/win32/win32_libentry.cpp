@@ -49,7 +49,7 @@ static BOOL add_hooks()
   }
 
   // search for an exported symbol with this name, typically renderdoc__replay__marker
-  if(HOOKS_IDENTIFY(STRINGIZE(RDOC_DLL_FILE) "__replay__marker"))
+  if(LibraryHooks::Detect(STRINGIZE(RDOC_DLL_FILE) "__replay__marker"))
   {
     RDCDEBUG("Not creating hooks - in replay app");
 
@@ -64,7 +64,7 @@ static BOOL add_hooks()
 
   RDCLOG("Loading into %ls", curFile);
 
-  LibraryHooks::GetInstance().CreateHooks();
+  LibraryHooks::RegisterHooks();
 
   return TRUE;
 }

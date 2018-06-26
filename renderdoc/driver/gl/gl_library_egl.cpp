@@ -24,7 +24,7 @@
 
 #include "gl_library_egl.h"
 #include <dlfcn.h>
-#include "os/posix/posix_hook.h"
+#include "hooks/hooks.h"
 
 bool EGLPointers::LoadSymbolsFrom(void *lib_handle)
 {

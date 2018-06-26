@@ -30,8 +30,10 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <set>
 #include <vector>
 #include "common/threading.h"
+#include "hooks/hooks.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
@@ -44,74 +46,58 @@ using std::map;
 map<void **, void *> s_InstalledHooks;
 Threading::CriticalSection installedLock;
 
-struct FunctionHook
+bool ApplyHook(FunctionHook &hook, void **IATentry, bool &already)
 {
-  FunctionHook(const char *f, void **o, void *d)
-      : function(f), origptr(o), hookptr(d), excludeModule(NULL)
+  DWORD oldProtection = PAGE_EXECUTE;
+
+  if(*IATentry == hook.hook)
   {
-  }
-
-  bool operator<(const FunctionHook &h) { return function < h.function; }
-  bool ApplyHook(void **IATentry, bool &already)
-  {
-    DWORD oldProtection = PAGE_EXECUTE;
-
-    if(*IATentry == hookptr)
-    {
-      already = true;
-      return true;
-    }
-
-#if ENABLED(VERBOSE_DEBUG_HOOK)
-    RDCDEBUG("Patching IAT for %s: %p to %p", function.c_str(), IATentry, hookptr);
-#endif
-
-    {
-      SCOPED_LOCK(installedLock);
-      if(s_InstalledHooks.find(IATentry) == s_InstalledHooks.end())
-        s_InstalledHooks[IATentry] = *IATentry;
-    }
-
-    BOOL success = TRUE;
-
-    success = VirtualProtect(IATentry, sizeof(void *), PAGE_READWRITE, &oldProtection);
-    if(!success)
-    {
-      RDCERR("Failed to make IAT entry writeable 0x%p", IATentry);
-      return false;
-    }
-
-    if(origptr && *origptr == NULL)
-      *origptr = *IATentry;
-
-    *IATentry = hookptr;
-
-    success = VirtualProtect(IATentry, sizeof(void *), oldProtection, &oldProtection);
-    if(!success)
-    {
-      RDCERR("Failed to restore IAT entry protection 0x%p", IATentry);
-      return false;
-    }
-
+    already = true;
     return true;
   }
 
-  string function;
-  void **origptr;
-  void *hookptr;
-  HMODULE excludeModule;
-};
+#if ENABLED(VERBOSE_DEBUG_HOOK)
+  RDCDEBUG("Patching IAT for %s: %p to %p", function.c_str(), IATentry, hookptr);
+#endif
+
+  {
+    SCOPED_LOCK(installedLock);
+    if(s_InstalledHooks.find(IATentry) == s_InstalledHooks.end())
+      s_InstalledHooks[IATentry] = *IATentry;
+  }
+
+  BOOL success = TRUE;
+
+  success = VirtualProtect(IATentry, sizeof(void *), PAGE_READWRITE, &oldProtection);
+  if(!success)
+  {
+    RDCERR("Failed to make IAT entry writeable 0x%p", IATentry);
+    return false;
+  }
+
+  *IATentry = hook.hook;
+
+  success = VirtualProtect(IATentry, sizeof(void *), oldProtection, &oldProtection);
+  if(!success)
+  {
+    RDCERR("Failed to restore IAT entry protection 0x%p", IATentry);
+    return false;
+  }
+
+  return true;
+}
 
 struct DllHookset
 {
-  DllHookset() : module(NULL), OrdinalBase(0) {}
-  HMODULE module;
+  HMODULE module = NULL;
+  bool hooksfetched = false;
   // if we have multiple copies of the dll loaded (unlikely), the other module handles will be
   // stored here
   vector<HMODULE> altmodules;
   vector<FunctionHook> FunctionHooks;
-  DWORD OrdinalBase;
+  DWORD OrdinalBase = 0;
   vector<string> OrdinalNames;
+  std::vector<FunctionLoadCallback> Callbacks;
 
   void FetchOrdinalNames()
   {
@@ -172,7 +158,11 @@ struct CachedHookData
   Threading::CriticalSection lock;
   char lowername[512];
 
+  std::set<std::string> ignores;
+
   bool missedOrdinals;
+
+  volatile int32_t posthooking = 0;
 
   void ApplyHooks(const char *modName, HMODULE module)
   {
@@ -210,6 +200,18 @@ struct CachedHookData
         if(it->second.module == NULL)
         {
           it->second.module = module;
+
+          it->second.hooksfetched = true;
+
+          // fetch all function hooks here, since we want to fill out the original function pointer
+          // even in case nothing imports from that function (which means it would not get filled
+          // out through FunctionHook::ApplyHook)
+          for(FunctionHook &hook : it->second.FunctionHooks)
+          {
+            if(hook.orig && *hook.orig == NULL)
+              *hook.orig = GetProcAddress(module, hook.function.c_str());
+          }
+
           it->second.FetchOrdinalNames();
         }
         else if(it->second.module != module)
@@ -262,6 +264,9 @@ struct CachedHookData
        strstr(lowername, "msvcp") == lowername || strstr(lowername, "nv-vk") == lowername ||
        strstr(lowername, "amdvlk") == lowername || strstr(lowername, "igvk") == lowername ||
        strstr(lowername, "nvopencl") == lowername || strstr(lowername, "nvapi") == lowername)
+      return;
+
+    if(ignores.find(lowername) != ignores.end())
       return;
 
     byte *baseAddress = (byte *)module;
@@ -375,13 +380,13 @@ struct CachedHookData
                                        importName, hook_find());
 
                   if(found != hookset->FunctionHooks.end() &&
-                     !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
+                     !strcmp(found->function.c_str(), importName) && ownmodule != module)
                   {
                     bool already = false;
                     bool applied;
                     {
                       SCOPED_LOCK(lock);
-                      applied = found->ApplyHook(IATentry, already);
+                      applied = ApplyHook(*found, IATentry, already);
                     }
 
                     // if we failed, or if it's already set and we're not doing a missedOrdinals
@@ -438,13 +443,13 @@ struct CachedHookData
                                         hookset->FunctionHooks.end(), importName, hook_find());
 
           if(found != hookset->FunctionHooks.end() &&
-             !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
+             !strcmp(found->function.c_str(), importName) && ownmodule != module)
           {
             bool already = false;
             bool applied;
             {
               SCOPED_LOCK(lock);
-              applied = found->ApplyHook(IATentry, already);
+              applied = ApplyHook(*found, IATentry, already);
             }
 
             // if we failed, or if it's already set and we're not doing a missedOrdinals
@@ -550,6 +555,42 @@ static void HookAllModules()
 {
   ForAllModules(
       [](const MODULEENTRY32 &me32) { s_HookData->ApplyHooks(me32.szModule, me32.hModule); });
+
+  // check if we're already in this section of code, and if so don't go in again.
+  int32_t prev = Atomic::CmpExch32(&s_HookData->posthooking, 0, 1);
+
+  if(prev != 0)
+    return;
+
+  // for all loaded modules, call callbacks now
+  for(auto it = s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
+  {
+    if(it->second.module == NULL)
+      continue;
+
+    if(!it->second.hooksfetched)
+    {
+      it->second.hooksfetched = true;
+
+      // fetch all function hooks here, if we didn't above (perhaps because this library was
+      // late-loaded)
+      for(FunctionHook &hook : it->second.FunctionHooks)
+      {
+        if(hook.orig && *hook.orig == NULL)
+          *hook.orig = GetProcAddress(it->second.module, hook.function.c_str());
+      }
+    }
+
+    std::vector<FunctionLoadCallback> callbacks;
+    // don't call callbacks next time
+    callbacks.swap(it->second.Callbacks);
+
+    for(FunctionLoadCallback cb : callbacks)
+      if(cb)
+        cb(it->second.module);
+  }
+
+  Atomic::CmpExch32(&s_HookData->posthooking, 1, 0);
 }
 
 static bool IsAPISet(const wchar_t *filename)
@@ -724,8 +765,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
           std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
       if(found != it->second.FunctionHooks.end() && !(search < *found))
       {
-        if(found->origptr && *found->origptr == NULL)
-          *found->origptr = (void *)GetProcAddress(mod, func);
+        FARPROC realfunc = GetProcAddress(mod, func);
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
         RDCDEBUG("Found hooked function, returning hook pointer %p", found->hookptr);
@@ -733,10 +773,10 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 
         SetLastError(S_OK);
 
-        if(found->origptr && *found->origptr == NULL)
+        if(realfunc == NULL)
           return NULL;
 
-        return (FARPROC)found->hookptr;
+        return (FARPROC)found->hook;
       }
     }
   }
@@ -750,7 +790,37 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
   return GetProcAddress(mod, func);
 }
 
-void Win32_IAT_BeginHooks()
+void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
+{
+  if(!_stricmp(libraryName, "kernel32.dll"))
+  {
+    if(hook.function == "LoadLibraryA" || hook.function == "LoadLibraryW" ||
+       hook.function == "LoadLibraryExA" || hook.function == "LoadLibraryExW" ||
+       hook.function == "GetProcAddress")
+    {
+      RDCERR("Cannot hook LoadLibrary* or GetProcAddress, as these are hooked internally");
+      return;
+    }
+  }
+  s_HookData->DllHooks[strlower(string(libraryName))].FunctionHooks.push_back(hook);
+}
+
+void LibraryHooks::RegisterLibraryHook(const char *libraryName, FunctionLoadCallback loadedCallback)
+{
+  s_HookData->DllHooks[strlower(string(libraryName))].Callbacks.push_back(loadedCallback);
+}
+
+void LibraryHooks::IgnoreLibrary(const char *libraryName)
+{
+  std::string lowername = libraryName;
+
+  for(size_t i = 0; i < lowername.size(); i++)
+    lowername[i] = (char)tolower(lowername[i]);
+
+  s_HookData->ignores.insert(lowername);
+}
+
+void LibraryHooks::BeginHookRegistration()
 {
   s_HookData = new CachedHookData;
   RDCASSERT(s_HookData->DllHooks.empty());
@@ -785,15 +855,11 @@ void Win32_IAT_BeginHooks()
   GetModuleHandleEx(
       GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
       (LPCTSTR)&s_HookData, &s_HookData->ownmodule);
-
-  for(auto it = s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
-    for(size_t i = 0; i < it->second.FunctionHooks.size(); i++)
-      it->second.FunctionHooks[i].excludeModule = s_HookData->ownmodule;
 }
 
 // hook all functions for currently loaded modules.
 // some of these hooks (as above) will hook LoadLibrary/GetProcAddress, to protect
-void Win32_IAT_EndHooks()
+void LibraryHooks::EndHookRegistration()
 {
   for(auto it = s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
     std::sort(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end());
@@ -818,7 +884,12 @@ void Win32_IAT_EndHooks()
   }
 }
 
-void Win32_IAT_RemoveHooks()
+void LibraryHooks::Refresh()
+{
+  // don't need to refresh on windows
+}
+
+void LibraryHooks::RemoveHooks()
 {
   for(auto it = s_InstalledHooks.begin(); it != s_InstalledHooks.end(); ++it)
   {
@@ -845,24 +916,7 @@ void Win32_IAT_RemoveHooks()
   }
 }
 
-void Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function,
-                    void *destination_function_ptr)
-{
-  if(!_stricmp(module_name, "kernel32.dll"))
-  {
-    if(!strcmp(function, "LoadLibraryA") || !strcmp(function, "LoadLibraryW") ||
-       !strcmp(function, "LoadLibraryExA") || !strcmp(function, "LoadLibraryExW") ||
-       !strcmp(function, "GetProcAddress"))
-    {
-      RDCERR("Cannot hook LoadLibrary* or GetProcAddress, as these are hooked internally");
-      return;
-    }
-  }
-  s_HookData->DllHooks[strlower(string(module_name))].FunctionHooks.push_back(
-      FunctionHook(function, orig_function_ptr, destination_function_ptr));
-}
-
-bool Win32_HookDetect(const char *identifier)
+bool LibraryHooks::Detect(const char *identifier)
 {
   bool ret = false;
   ForAllModules([&ret, identifier](const MODULEENTRY32 &me32) {
@@ -870,4 +924,13 @@ bool Win32_HookDetect(const char *identifier)
       ret = true;
   });
   return ret;
+}
+
+// android only hooking functions, not used on win32
+ScopedSuppressHooking::ScopedSuppressHooking()
+{
+}
+
+ScopedSuppressHooking::~ScopedSuppressHooking()
+{
 }

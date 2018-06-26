@@ -34,7 +34,7 @@ void library_loaded()
   string curfile;
   FileIO::GetExecutableFilename(curfile);
 
-  if(HOOKS_IDENTIFY("renderdoc__replay__marker"))
+  if(LibraryHooks::Detect("renderdoc__replay__marker"))
   {
     RDCDEBUG("Not creating hooks - in replay app");
 
@@ -68,7 +68,7 @@ void library_loaded()
 
     RDCLOG("Loading into %s", curfile.c_str());
 
-    LibraryHooks::GetInstance().CreateHooks();
+    LibraryHooks::RegisterHooks();
   }
 }
 

@@ -52,7 +52,7 @@ static void MaskOverlayBits(uint32_t And, uint32_t Or)
 static void Shutdown()
 {
   RenderDoc::Inst().Shutdown();
-  LibraryHooks::GetInstance().RemoveHooks();
+  LibraryHooks::RemoveHooks();
 }
 
 static void UnloadCrashHandler()

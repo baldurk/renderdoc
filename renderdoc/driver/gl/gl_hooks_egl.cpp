@@ -52,6 +52,7 @@ public:
 
   bool CreateHooks(const char *libName);
 
+  void RegisterHooks() { CreateHooks("dummy"); }
   void PopulateEGLFunctions()
   {
     if(!m_PopulatedHooks)
@@ -214,7 +215,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
                                                                    EGLContext shareContext,
                                                                    EGLint const *attribList)
 {
-  PosixHookReapply();
+  LibraryHooks::Refresh();
 
   vector<EGLint> attribs;
 
@@ -374,7 +375,7 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
 
   __eglMustCastToProperFunctionPointerType realFunc = NULL;
   {
-    PosixScopedSuppressHooking suppress;
+    ScopedSuppressHooking suppress;
     realFunc = eglhooks.real.GetProcAddress(func);
   }
 
@@ -422,13 +423,13 @@ bool EGLHook::CreateHooks(const char *libName)
     PosixHookFunction("eglGetProcAddress", (void *)&eglGetProcAddress);
 
     // load the libEGL.so library and when loaded call libHooked which initialises GLES capture
-    PosixHookLibrary("libEGL.so", &libHooked);
-    PosixHookLibrary("libEGL.so.1", NULL);
-    PosixHookLibrary("libGL.so.1", NULL);
-    PosixHookLibrary("libGLESv1_CM.so", NULL);
-    PosixHookLibrary("libGLESv2.so", NULL);
-    PosixHookLibrary("libGLESv2.so.2", NULL);
-    PosixHookLibrary("libGLESv3.so", NULL);
+    LibraryHooks::RegisterLibraryHook("libEGL.so", &libHooked);
+    LibraryHooks::RegisterLibraryHook("libEGL.so.1", NULL);
+    LibraryHooks::RegisterLibraryHook("libGL.so.1", NULL);
+    LibraryHooks::RegisterLibraryHook("libGLESv1_CM.so", NULL);
+    LibraryHooks::RegisterLibraryHook("libGLESv2.so", NULL);
+    LibraryHooks::RegisterLibraryHook("libGLESv2.so.2", NULL);
+    LibraryHooks::RegisterLibraryHook("libGLESv3.so", NULL);
 
 #if ENABLED(RDOC_ANDROID)
     return true;
@@ -463,7 +464,7 @@ bool EGLHook::PopulateHooks()
   m_PopulatedHooks = SharedPopulateHooks(dlsymFirst, [](const char *funcName) {
     // on some android devices we need to hook dlsym, but eglGetProcAddress might call dlsym so we
     // need to ensure we return the 'real' pointers
-    PosixScopedSuppressHooking suppress;
+    ScopedSuppressHooking suppress;
     return (void *)eglGetProcAddress(funcName);
   });
 

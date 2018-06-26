@@ -77,54 +77,57 @@ public:
     m_WSARefCount = 1;
   }
 
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
+    RDCLOG("Registering Win32 system hooks");
+
+    // register libraries that we care about. We don't need a callback when they are loaded
+    LibraryHooks::RegisterLibraryHook("kernel32.dll", NULL);
+    LibraryHooks::RegisterLibraryHook("advapi32.dll", NULL);
+    LibraryHooks::RegisterLibraryHook("api-ms-win-core-processthreads-l1-1-0.dll", NULL);
+    LibraryHooks::RegisterLibraryHook("api-ms-win-core-processthreads-l1-1-1.dll", NULL);
+    LibraryHooks::RegisterLibraryHook("api-ms-win-core-processthreads-l1-1-2.dll", NULL);
+    LibraryHooks::RegisterLibraryHook("ws2_32.dll", NULL);
+
     // we want to hook CreateProcess purely so that we can recursively insert our hooks (if we so
     // wish)
-    CreateProcessA.Initialize("CreateProcessA", "kernel32.dll", CreateProcessA_hook);
-    CreateProcessW.Initialize("CreateProcessW", "kernel32.dll", CreateProcessW_hook);
+    CreateProcessA.Register("kernel32.dll", "CreateProcessA", CreateProcessA_hook);
+    CreateProcessW.Register("kernel32.dll", "CreateProcessW", CreateProcessW_hook);
 
-    CreateProcessAsUserA.Initialize("CreateProcessAsUserA", "advapi32.dll",
-                                    CreateProcessAsUserA_hook);
-    CreateProcessAsUserW.Initialize("CreateProcessAsUserW", "advapi32.dll",
-                                    CreateProcessAsUserW_hook);
+    CreateProcessAsUserA.Register("advapi32.dll", "CreateProcessAsUserA", CreateProcessAsUserA_hook);
+    CreateProcessAsUserW.Register("advapi32.dll", "CreateProcessAsUserW", CreateProcessAsUserW_hook);
 
-    CreateProcessWithLogonW.Initialize("CreateProcessWithLogonW", "advapi32.dll",
-                                       CreateProcessWithLogonW_hook);
+    CreateProcessWithLogonW.Register("advapi32.dll", "CreateProcessWithLogonW",
+                                     CreateProcessWithLogonW_hook);
 
     // handle API set exports if they exist. These don't really exist so we don't have to worry
     // about double hooking, and also they call into the 'real' implementation in kernelbase.dll
-    API110CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-0.dll",
-                                    API110CreateProcessA_hook);
-    API110CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-0.dll",
-                                    API110CreateProcessW_hook);
-    API110CreateProcessAsUserW.Initialize("CreateProcessAsUserW",
-                                          "api-ms-win-core-processthreads-l1-1-0.dll",
-                                          API110CreateProcessAsUserW_hook);
+    API110CreateProcessA.Register("api-ms-win-core-processthreads-l1-1-0.dll", "CreateProcessA",
+                                  API110CreateProcessA_hook);
+    API110CreateProcessW.Register("api-ms-win-core-processthreads-l1-1-0.dll", "CreateProcessW",
+                                  API110CreateProcessW_hook);
+    API110CreateProcessAsUserW.Register("api-ms-win-core-processthreads-l1-1-0.dll",
+                                        "CreateProcessAsUserW", API110CreateProcessAsUserW_hook);
 
-    API111CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-1.dll",
-                                    API111CreateProcessA_hook);
-    API111CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-1.dll",
-                                    API111CreateProcessW_hook);
-    API111CreateProcessAsUserW.Initialize("CreateProcessAsUserW",
-                                          "api-ms-win-core-processthreads-l1-1-0.dll",
-                                          API111CreateProcessAsUserW_hook);
+    API111CreateProcessA.Register("api-ms-win-core-processthreads-l1-1-1.dll", "CreateProcessA",
+                                  API111CreateProcessA_hook);
+    API111CreateProcessW.Register("api-ms-win-core-processthreads-l1-1-1.dll", "CreateProcessW",
+                                  API111CreateProcessW_hook);
+    API111CreateProcessAsUserW.Register("api-ms-win-core-processthreads-l1-1-0.dll",
+                                        "CreateProcessAsUserW", API111CreateProcessAsUserW_hook);
 
-    API112CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-2.dll",
-                                    API112CreateProcessA_hook);
-    API112CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-2.dll",
-                                    API112CreateProcessW_hook);
-    API112CreateProcessAsUserW.Initialize("CreateProcessAsUserW",
-                                          "api-ms-win-core-processthreads-l1-1-0.dll",
-                                          API112CreateProcessAsUserW_hook);
+    API112CreateProcessA.Register("api-ms-win-core-processthreads-l1-1-2.dll", "CreateProcessA",
+                                  API112CreateProcessA_hook);
+    API112CreateProcessW.Register("api-ms-win-core-processthreads-l1-1-2.dll", "CreateProcessW",
+                                  API112CreateProcessW_hook);
+    API112CreateProcessAsUserW.Register("api-ms-win-core-processthreads-l1-1-0.dll",
+                                        "CreateProcessAsUserW", API112CreateProcessAsUserW_hook);
 
-    WSAStartup.Initialize("WSAStartup", "ws2_32.dll", WSAStartup_hook);
-    WSACleanup.Initialize("WSACleanup", "ws2_32.dll", WSACleanup_hook);
+    WSAStartup.Register("ws2_32.dll", "WSAStartup", WSAStartup_hook);
+    WSACleanup.Register("ws2_32.dll", "WSACleanup", WSACleanup_hook);
 
     m_RecurseSlot = Threading::AllocateTLSSlot();
     Threading::SetTLSValue(m_RecurseSlot, NULL);
-
-    return true;
   }
 
 private:
@@ -144,27 +147,27 @@ private:
     return true;
   }
   void EndRecurse() { Threading::SetTLSValue(m_RecurseSlot, NULL); }
-  Hook<PFN_CREATE_PROCESS_A> CreateProcessA;
-  Hook<PFN_CREATE_PROCESS_W> CreateProcessW;
+  HookedFunction<PFN_CREATE_PROCESS_A> CreateProcessA;
+  HookedFunction<PFN_CREATE_PROCESS_W> CreateProcessW;
 
-  Hook<PFN_CREATE_PROCESS_A> API110CreateProcessA;
-  Hook<PFN_CREATE_PROCESS_W> API110CreateProcessW;
-  Hook<PFN_CREATE_PROCESS_A> API111CreateProcessA;
-  Hook<PFN_CREATE_PROCESS_W> API111CreateProcessW;
-  Hook<PFN_CREATE_PROCESS_A> API112CreateProcessA;
-  Hook<PFN_CREATE_PROCESS_W> API112CreateProcessW;
+  HookedFunction<PFN_CREATE_PROCESS_A> API110CreateProcessA;
+  HookedFunction<PFN_CREATE_PROCESS_W> API110CreateProcessW;
+  HookedFunction<PFN_CREATE_PROCESS_A> API111CreateProcessA;
+  HookedFunction<PFN_CREATE_PROCESS_W> API111CreateProcessW;
+  HookedFunction<PFN_CREATE_PROCESS_A> API112CreateProcessA;
+  HookedFunction<PFN_CREATE_PROCESS_W> API112CreateProcessW;
 
-  Hook<PFN_CREATE_PROCESS_AS_USER_A> CreateProcessAsUserA;
-  Hook<PFN_CREATE_PROCESS_AS_USER_W> CreateProcessAsUserW;
+  HookedFunction<PFN_CREATE_PROCESS_AS_USER_A> CreateProcessAsUserA;
+  HookedFunction<PFN_CREATE_PROCESS_AS_USER_W> CreateProcessAsUserW;
 
-  Hook<PFN_CREATE_PROCESS_AS_USER_W> API110CreateProcessAsUserW;
-  Hook<PFN_CREATE_PROCESS_AS_USER_W> API111CreateProcessAsUserW;
-  Hook<PFN_CREATE_PROCESS_AS_USER_W> API112CreateProcessAsUserW;
+  HookedFunction<PFN_CREATE_PROCESS_AS_USER_W> API110CreateProcessAsUserW;
+  HookedFunction<PFN_CREATE_PROCESS_AS_USER_W> API111CreateProcessAsUserW;
+  HookedFunction<PFN_CREATE_PROCESS_AS_USER_W> API112CreateProcessAsUserW;
 
-  Hook<PFN_CREATE_PROCESS_WITH_LOGON_W> CreateProcessWithLogonW;
+  HookedFunction<PFN_CREATE_PROCESS_WITH_LOGON_W> CreateProcessWithLogonW;
 
-  Hook<PFN_WSASTARTUP> WSAStartup;
-  Hook<PFN_WSACLEANUP> WSACleanup;
+  HookedFunction<PFN_WSASTARTUP> WSAStartup;
+  HookedFunction<PFN_WSACLEANUP> WSACleanup;
 
   static int WSAAPI WSAStartup_hook(WORD wVersionRequested, LPWSADATA lpWSAData)
   {

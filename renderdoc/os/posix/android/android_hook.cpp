@@ -25,7 +25,7 @@
 #include "3rdparty/plthook/plthook.h"
 #include "common/common.h"
 #include "common/threading.h"
-#include "os/posix/posix_hook.h"
+#include "hooks/hooks.h"
 
 #include <android/dlext.h>
 #include <dlfcn.h>
@@ -34,6 +34,7 @@
 #include <stddef.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <algorithm>
 #include <map>
 #include <set>
 
@@ -72,37 +73,32 @@
 #error unsupported OS
 #endif
 
-void PosixHookInit()
-{
-}
-
-bool PosixHookDetect(const char *identifier)
-{
-  return dlsym(RTLD_DEFAULT, identifier) != NULL;
-}
-
 class HookingInfo
 {
 public:
-  void AddFunctionHook(const std::string &name, void *hook)
+  void AddFunctionHook(const FunctionHook &hook)
   {
     SCOPED_LOCK(lock);
-    funchooks[name] = hook;
+    funchooks.push_back(hook);
+
+    // add to map to speed-up lookup in GetFunctionHook
+    funchook_map[hook.function] = hook;
   }
 
   void AddLibHook(const std::string &name)
   {
     SCOPED_LOCK(lock);
-    libhooks.insert(name);
+    if(std::find(libhooks.begin(), libhooks.end(), name) == libhooks.end())
+      libhooks.push_back(name);
   }
 
-  void AddHookCallback(const std::string &name, dlopenCallback hook)
+  void AddHookCallback(const std::string &name, FunctionLoadCallback callback)
   {
     SCOPED_LOCK(lock);
-    hookcallbacks[name] = hook;
+    hookcallbacks[name].push_back(callback);
   }
 
-  std::map<std::string, void *> GetFunctionHooks()
+  std::vector<FunctionHook> GetFunctionHooks()
   {
     SCOPED_LOCK(lock);
     return funchooks;
@@ -113,24 +109,25 @@ public:
     SCOPED_LOCK(lock);
     libhooks.clear();
     funchooks.clear();
+    funchook_map.clear();
   }
 
-  std::set<std::string> GetLibHooks()
+  std::vector<std::string> GetLibHooks()
   {
     SCOPED_LOCK(lock);
     return libhooks;
   }
 
-  std::map<std::string, dlopenCallback> GetHookCallbacks()
+  std::map<std::string, std::vector<FunctionLoadCallback>> GetHookCallbacks()
   {
     SCOPED_LOCK(lock);
     return hookcallbacks;
   }
 
-  void *GetFunctionHook(const std::string &name)
+  FunctionHook GetFunctionHook(const std::string &name)
   {
     SCOPED_LOCK(lock);
-    return funchooks[name];
+    return funchook_map[name];
   }
 
   bool IsLibHook(const std::string &path)
@@ -196,27 +193,15 @@ public:
     hooked_soname_already.insert(soname);
   }
 
-  void SetTrampoline(const std::string &funcname, void *trampoline)
-  {
-    SCOPED_LOCK(lock);
-    trampolines[funcname] = trampoline;
-  }
-
-  void *GetTrampoline(const std::string &funcname)
-  {
-    SCOPED_LOCK(lock);
-    return trampolines[funcname];
-  }
-
 private:
   std::set<std::string> hooked_soname_already;
   std::set<void *> hooked_handle_already;
 
-  std::map<std::string, void *> funchooks;
-  std::set<std::string> libhooks;
+  std::vector<FunctionHook> funchooks;
+  std::map<std::string, FunctionHook> funchook_map;
+  std::vector<std::string> libhooks;
 
-  std::map<std::string, dlopenCallback> hookcallbacks;
-  std::map<std::string, void *> trampolines;
+  std::map<std::string, std::vector<FunctionLoadCallback>> hookcallbacks;
 
   Threading::CriticalSection lock;
 };
@@ -225,37 +210,6 @@ HookingInfo &GetHookInfo()
 {
   static HookingInfo hookinfo;
   return hookinfo;
-}
-
-void PosixHookFunction(const char *name, void *hook)
-{
-  GetHookInfo().AddFunctionHook(name, hook);
-}
-
-void PosixHookLibrary(const char *name, dlopenCallback cb)
-{
-  GetHookInfo().AddLibHook(name);
-
-  if(cb)
-  {
-    GetHookInfo().AddHookCallback(name, cb);
-    dlopen(name, RTLD_NOW);
-  }
-}
-
-void *PosixGetFunction(void *handle, const char *name)
-{
-  // when we're not using interceptor-lib, this will always return NULL
-  void *ret = GetHookInfo().GetTrampoline(name);
-  if(ret)
-  {
-    HOOK_DEBUG_PRINT("Returning trampoline %p for %s", ret, name);
-    return ret;
-  }
-
-  HOOK_DEBUG_PRINT("No trampoline for %s, going to dlsym", name);
-  PosixScopedSuppressHooking suppress;
-  return dlsym(handle, name);
 }
 
 void *intercept_dlopen(const char *filename, int flag)
@@ -397,8 +351,8 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
 
       HOOK_DEBUG_PRINT("[%i] %s at %p (ptr to %p)", i, importname, import, *import);
 
-      void *repl = GetHookInfo().GetFunctionHook(importname);
-      if(repl)
+      const FunctionHook repl = GetHookInfo().GetFunctionHook(importname);
+      if(repl.hook)
       {
         HOOK_DEBUG_PRINT("replacing %s!", importname);
 
@@ -426,7 +380,10 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
           HOOK_DEBUG_PRINT("Not in relro! - %p vs %p vs %p", relro_base, import, relro_end);
         }
 
-        *import = repl;
+        // note we don't save the orig function here, since we want to apply our library priorities
+        // and we don't know what order these headers will be iterated in. See EndHookRegistration
+        // for where we iterate and fetch all the function pointers we want.
+        *import = repl.hook;
 
         if(pagebase)
         {
@@ -448,11 +405,6 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
   }
 
   return 0;
-}
-
-void PosixHookReapply()
-{
-  dl_iterate_phdr(dl_iterate_callback, NULL);
 }
 
 // android has a special dlopen that passes the caller address in.
@@ -525,37 +477,16 @@ extern "C" __attribute__((visibility("default"))) void *hooked_android_dlopen_ex
   return ret;
 }
 
-PosixScopedSuppressHooking::PosixScopedSuppressHooking()
-{
-  if(suppressTLS == 0)
-    return;
-
-  uintptr_t old = (uintptr_t)Threading::GetTLSValue(suppressTLS);
-  Threading::SetTLSValue(suppressTLS, (void *)(old + 1));
-}
-
-PosixScopedSuppressHooking::~PosixScopedSuppressHooking()
-{
-  if(suppressTLS == 0)
-    return;
-
-  uintptr_t old = (uintptr_t)Threading::GetTLSValue(suppressTLS);
-  Threading::SetTLSValue(suppressTLS, (void *)(old - 1));
-}
-
-bool hooks_suppressed()
-{
-  return (uintptr_t)Threading::GetTLSValue(suppressTLS) > 0;
-}
+bool hooks_suppressed();
 
 extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handle, const char *symbol)
 {
   if(handle == NULL || symbol == NULL || hooks_suppressed())
     return dlsym(handle, symbol);
 
-  void *repl = GetHookInfo().GetFunctionHook(symbol);
+  const FunctionHook repl = GetHookInfo().GetFunctionHook(symbol);
 
-  if(repl == NULL)
+  if(repl.hook == NULL)
     return dlsym(handle, symbol);
 
   if(!GetHookInfo().IsHooked(handle))
@@ -568,8 +499,8 @@ extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handl
 
   if(GetHookInfo().IsLibHook(handle))
   {
-    HOOK_DEBUG_PRINT("identified dlsym(%s) we want to interpose! returning %p", symbol, repl);
-    return repl;
+    HOOK_DEBUG_PRINT("identified dlsym(%s) we want to interpose! returning %p", symbol, repl.hook);
+    return repl.hook;
   }
 
   void *ret = dlsym(handle, symbol);
@@ -579,7 +510,7 @@ extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handl
   return ret;
 }
 
-static void PosixHookApplyCommon()
+static void InstallHooksCommon()
 {
   suppressTLS = Threading::AllocateTLSSlot();
 
@@ -596,15 +527,16 @@ static void PosixHookApplyCommon()
 
   if(loader_dlopen)
   {
-    PosixHookFunction("dlopen", (void *)&hooked_dlopen);
+    LibraryHooks::RegisterFunctionHook("", FunctionHook("dlopen", NULL, (void *)&hooked_dlopen));
   }
   else
   {
     RDCWARN("Couldn't find __loader_dlopen, falling back to slow path for dlopen hooking");
-    PosixHookFunction("dlsym", (void *)&hooked_dlsym);
+    LibraryHooks::RegisterFunctionHook("", FunctionHook("dlsym", NULL, (void *)&hooked_dlsym));
   }
 
-  PosixHookFunction("android_dlopen_ext", (void *)&hooked_android_dlopen_ext);
+  LibraryHooks::RegisterFunctionHook(
+      "", FunctionHook("android_dlopen_ext", NULL, (void *)&hooked_android_dlopen_ext));
 }
 
 #if defined(RENDERDOC_HAVE_INTERCEPTOR_LIB)
@@ -616,25 +548,25 @@ void intercept_error(void *, const char *error_msg)
 
 #include "3rdparty/interceptor-lib/include/interceptor.h"
 
-void PosixHookApply()
+void PatchHookedFunctions()
 {
   RDCLOG("Applying hooks with interceptor-lib");
 
 // see below - Huawei workaround
 #if defined(__LP64__)
-  PosixHookLibrary("/system/lib64/libhwgl.so", NULL);
+  LibraryHooks::RegisterLibraryHook("/system/lib64/libhwgl.so", NULL);
 #else
-  PosixHookLibrary("/system/lib/libhwgl.so", NULL);
+  LibraryHooks::RegisterLibraryHook("/system/lib/libhwgl.so", NULL);
 #endif
 
-  std::set<std::string> libs = GetHookInfo().GetLibHooks();
-  std::map<std::string, void *> funchooks = GetHookInfo().GetFunctionHooks();
+  std::vector<std::string> libs = GetHookInfo().GetLibHooks();
+  std::vector<FunctionHook> funchooks = GetHookInfo().GetFunctionHooks();
 
   // we just leak this
   void *intercept = InitializeInterceptor();
 
   std::set<std::string> fallbacklibs;
-  std::set<std::pair<std::string, void *>> fallbackhooks;
+  std::set<FunctionHook> fallbackhooks;
 
   for(const std::string &lib : libs)
   {
@@ -650,9 +582,11 @@ void PosixHookApply()
 
     HOOK_DEBUG_PRINT("Hooking %s = %p", lib.c_str(), handle);
 
-    for(const std::pair<std::string, void *> &hook : funchooks)
+    std::set<void *> foundfunctions;
+
+    for(const FunctionHook &hook : funchooks)
     {
-      void *oldfunc = dlsym(handle, hook.first.c_str());
+      void *oldfunc = dlsym(handle, hook.function.c_str());
 
       // UNTESTED workaround taken directly from GAPID, in installer.cpp. Quoted comment:
       /*
@@ -662,24 +596,30 @@ void PosixHookApply()
             // so try to intercept the internal implementation instead.
       */
       if(huawei && oldfunc == NULL)
-        oldfunc = dlsym(handle, ("hw_" + hook.first).c_str());
+        oldfunc = dlsym(handle, ("hw_" + hook.function).c_str());
 
       if(GetHookInfo().IsHooked(oldfunc))
         continue;
 
       if(!oldfunc)
       {
-        HOOK_DEBUG_PRINT("%s didn't have %s", lib.c_str(), hook.first.c_str());
+        HOOK_DEBUG_PRINT("%s didn't have %s", lib.c_str(), hook.function.c_str());
         continue;
       }
 
-      HOOK_DEBUG_PRINT("Hooking %s::%s = %p with %p", lib.c_str(), hook.first.c_str(), oldfunc,
-                       hook.second);
+      HOOK_DEBUG_PRINT("Hooking %s::%s = %p with %p", lib.c_str(), hook.function.c_str(), oldfunc,
+                       hook.hook);
 
       void *trampoline = NULL;
 
-      bool success =
-          InterceptFunction(intercept, oldfunc, hook.second, &trampoline, &intercept_error);
+      bool success = InterceptFunction(intercept, oldfunc, hook.hook, &trampoline, &intercept_error);
+
+      if(!hook.orig)
+        RDCWARN("No original pointer for hook of '%s' - trampoline will be lost!",
+                hook.function.c_str());
+
+      if(hook.orig && *hook.orig == NULL)
+        *hook.orig = trampoline;
 
       if(success)
       {
@@ -687,22 +627,13 @@ void PosixHookApply()
       }
       else
       {
-        RDCERR("Failed to hook %s::%s!", lib.c_str(), hook.first.c_str());
+        RDCERR("Failed to hook %s::%s!", lib.c_str(), hook.function.c_str());
         fallbacklibs.insert(lib);
         fallbackhooks.insert(hook);
       }
 
       GetHookInfo().SetHooked(oldfunc);
-
-      GetHookInfo().SetTrampoline(hook.first, trampoline);
     }
-  }
-
-  std::map<std::string, dlopenCallback> callbacks = GetHookInfo().GetHookCallbacks();
-  for(const std::pair<std::string, dlopenCallback> &cb : callbacks)
-  {
-    HOOK_DEBUG_PRINT("Calling complete callback for %s", cb.first.c_str());
-    cb.second(dlopen(cb.first.c_str(), RTLD_GLOBAL));
   }
 
   // we still need to hook android_dlopen_ext with interceptor-lib so that we can intercept the
@@ -718,34 +649,153 @@ void PosixHookApply()
     GetHookInfo().AddLibHook(l);
   }
 
-  for(const std::pair<std::string, void *> &hook : fallbackhooks)
+  for(const FunctionHook &hook : fallbackhooks)
   {
-    RDCLOG("Falling back to PLT hooking for %s", hook.first.c_str());
-    GetHookInfo().AddFunctionHook(hook.first, hook.second);
+    RDCLOG("Falling back to PLT hooking for %s", hook.function.c_str());
+    GetHookInfo().AddFunctionHook(hook);
   }
-
-  // this already hooks dlopen (if possible) and android_dlopen_ext, which is enough
-  PosixHookApplyCommon();
-
-  PosixHookReapply();
 }
 
 #else
 
-void PosixHookApply()
+void PatchHookedFunctions()
 {
   RDCLOG("Applying hooks with PLT hooks");
-
-  PosixHookApplyCommon();
-
-  PosixHookReapply();
-
-  std::map<std::string, dlopenCallback> callbacks = GetHookInfo().GetHookCallbacks();
-  for(const std::pair<std::string, dlopenCallback> &cb : callbacks)
-  {
-    HOOK_DEBUG_PRINT("Calling complete callback for %s", cb.first.c_str());
-    cb.second(dlopen(cb.first.c_str(), RTLD_GLOBAL));
-  }
 }
 
 #endif
+
+bool LibraryHooks::Detect(const char *identifier)
+{
+  return dlsym(RTLD_DEFAULT, identifier) != NULL;
+}
+
+void LibraryHooks::RemoveHooks()
+{
+  RDCERR("Removing hooks is not possible on this platform");
+}
+
+void LibraryHooks::BeginHookRegistration()
+{
+  // nothing to do
+}
+
+void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
+{
+  // we don't use the library name on android
+  (void)libraryName;
+  HOOK_DEBUG_PRINT("Registering function hook for %s: %p", hook.function.c_str(), hook.hook);
+  GetHookInfo().AddFunctionHook(hook);
+}
+
+void LibraryHooks::RegisterLibraryHook(const char *name, FunctionLoadCallback cb)
+{
+  GetHookInfo().AddLibHook(name);
+
+  HOOK_DEBUG_PRINT("Registering library hook for %s %s", name, cb ? "with callback" : "");
+
+  // open the library immediately if we can
+  dlopen(name, RTLD_NOW);
+
+  if(cb)
+    GetHookInfo().AddHookCallback(name, cb);
+}
+
+void LibraryHooks::IgnoreLibrary(const char *libraryName)
+{
+}
+
+void LibraryHooks::EndHookRegistration()
+{
+  HOOK_DEBUG_PRINT("EndHookRegistration");
+
+  // ensure we load all libraries we can immediately, so they are immediately hooked and don't get
+  // loaded later.
+  std::vector<std::string> libs = GetHookInfo().GetLibHooks();
+  for(const std::string &lib : libs)
+  {
+    void *handle = dlopen(lib.c_str(), RTLD_GLOBAL);
+    HOOK_DEBUG_PRINT("%s: %p", lib.c_str(), handle);
+  }
+
+  PatchHookedFunctions();
+
+  // this already hooks dlopen (if possible) and android_dlopen_ext, which is enough
+  InstallHooksCommon();
+
+  LibraryHooks::Refresh();
+
+  // iterate our list of libraries and look up the original pointer for any that we don't already
+  // have. If we have interceptor-lib this will only be for functions that failed to generate a
+  // trampoline and we're PLT hooking - without interceptor-lib this will be all functions, but it
+  // will allow us to control the order/priority.
+  std::vector<std::string> libraryHooks = GetHookInfo().GetLibHooks();
+  std::vector<FunctionHook> functionHooks = GetHookInfo().GetFunctionHooks();
+
+  RDCLOG("Fetching %zu original function pointers over %zu libraries", functionHooks.size(),
+         libraryHooks.size());
+
+  for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
+  {
+    void *handle = dlopen(it->c_str(), RTLD_NOLOAD | RTLD_GLOBAL);
+
+    if(handle)
+    {
+      for(FunctionHook &hook : functionHooks)
+      {
+        if(hook.orig && *hook.orig == NULL)
+          *hook.orig = dlsym(handle, hook.function.c_str());
+      }
+    }
+  }
+
+  RDCLOG("Finished");
+
+  // call the callbacks for any libraries that loaded now. If the library wasn't loaded above then
+  // it can't be loaded, since we only hook system libraries.
+  std::map<std::string, std::vector<FunctionLoadCallback>> callbacks =
+      GetHookInfo().GetHookCallbacks();
+  for(const std::pair<std::string, std::vector<FunctionLoadCallback>> &cb : callbacks)
+  {
+    void *handle = dlopen(cb.first.c_str(), RTLD_GLOBAL);
+    if(handle)
+    {
+      HOOK_DEBUG_PRINT("Calling callbacks for %s", cb.first.c_str());
+      for(FunctionLoadCallback callback : cb.second)
+        if(callback)
+          callback(handle);
+    }
+  }
+
+  RDCLOG("Called library callbacks - hook registration complete");
+}
+
+void LibraryHooks::Refresh()
+{
+  RDCLOG("Refreshing android hooks...");
+  dl_iterate_phdr(dl_iterate_callback, NULL);
+  RDCLOG("Refreshed");
+}
+
+ScopedSuppressHooking::ScopedSuppressHooking()
+{
+  if(suppressTLS == 0)
+    return;
+
+  uintptr_t old = (uintptr_t)Threading::GetTLSValue(suppressTLS);
+  Threading::SetTLSValue(suppressTLS, (void *)(old + 1));
+}
+
+ScopedSuppressHooking::~ScopedSuppressHooking()
+{
+  if(suppressTLS == 0)
+    return;
+
+  uintptr_t old = (uintptr_t)Threading::GetTLSValue(suppressTLS);
+  Threading::SetTLSValue(suppressTLS, (void *)(old - 1));
+}
+
+bool hooks_suppressed()
+{
+  return (uintptr_t)Threading::GetTLSValue(suppressTLS) > 0;
+}

@@ -22,46 +22,49 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "os/posix/posix_hook.h"
+#include "hooks/hooks.h"
 
 #include <dlfcn.h>
 #include <stddef.h>
 
-void PosixHookInit()
+void LibraryHooks::BeginHookRegistration()
+{
+  // nothing to do
+}
+
+void LibraryHooks::RegisterLibraryHook(char const *, FunctionLoadCallback cb)
+{
+  if(cb)
+    RDCERR("Hooking on apple not complete - function load callback not implemented");
+}
+
+void LibraryHooks::IgnoreLibrary(const char *libraryName)
 {
 }
 
-bool PosixHookDetect(const char *identifier)
+void LibraryHooks::EndHookRegistration()
+{
+}
+
+bool LibraryHooks::Detect(const char *identifier)
 {
   return dlsym(RTLD_DEFAULT, identifier) != NULL;
 }
 
-void PosixHookLibrary(const char *name, dlopenCallback cb)
+void LibraryHooks::RemoveHooks()
 {
+  RDCERR("Removing hooks is not possible on this platform");
 }
 
 // android only hooking functions, not used on apple
-PosixScopedSuppressHooking::PosixScopedSuppressHooking()
+ScopedSuppressHooking::ScopedSuppressHooking()
 {
 }
 
-PosixScopedSuppressHooking::~PosixScopedSuppressHooking()
+ScopedSuppressHooking::~ScopedSuppressHooking()
 {
 }
 
-void PosixHookApply()
+void LibraryHooks::Refresh()
 {
-}
-
-void PosixHookReapply()
-{
-}
-
-void PosixHookFunction(char const *, void *)
-{
-}
-
-void *PosixGetFunction(void *handle, const char *name)
-{
-  return dlsym(handle, name);
 }

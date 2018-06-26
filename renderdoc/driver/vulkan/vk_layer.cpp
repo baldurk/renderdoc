@@ -48,16 +48,16 @@
 class VulkanHook : LibraryHook
 {
   VulkanHook() {}
-  bool CreateHooks(const char *libName)
+  void RegisterHooks()
   {
+    // we don't register any library or function hooks because we use the layer system
+
     // we assume the implicit layer is registered - the UI will prompt the user about installing it.
     Process::RegisterEnvironmentModification(EnvironmentModification(
         EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
 
     // check options to set further variables, and apply
     OptionsUpdated();
-
-    return true;
   }
 
   void OptionsUpdated()
