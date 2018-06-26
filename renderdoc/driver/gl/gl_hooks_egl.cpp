@@ -37,8 +37,6 @@ class EGLHook : LibraryHook, public GLPlatform
 public:
   EGLHook()
   {
-    m_HasHooks = false;
-
     m_GLDriver = NULL;
 
     m_PopulatedHooks = false;
@@ -57,7 +55,7 @@ public:
   {
     if(!m_PopulatedHooks)
     {
-      m_PopulatedHooks = PopulateHooks();
+      PopulateHooks();
       SharedCheckContext();
     }
   }
@@ -174,25 +172,18 @@ public:
   set<EGLContext> m_Contexts;
 
   bool m_PopulatedHooks;
-  bool m_HasHooks;
 
-  bool SetupHooks()
+  void SetupHooks()
   {
-    bool success = true;
-
     if(!real.IsInitialized())
     {
       bool symbols_ok = real.LoadSymbolsFrom(libGLdlsymHandle);
       if(!symbols_ok)
-      {
         RDCWARN("Unable to load some of the EGL API functions, may cause problems");
-        success = false;
-      }
     }
-    return success;
   }
 
-  bool PopulateHooks();
+  void PopulateHooks();
 } eglhooks;
 
 // everything below here needs to have C linkage
@@ -436,22 +427,17 @@ bool EGLHook::CreateHooks(const char *libName)
 #endif
   }
 
-  bool success = PopulateHooks();
-
-  if(!success)
-    return false;
-
-  m_HasHooks = true;
+  PopulateHooks();
 
   return true;
 }
 
-bool EGLHook::PopulateHooks()
+void EGLHook::PopulateHooks()
 {
   SetupHooks();
 
   if(m_PopulatedHooks)
-    return true;
+    return;
 
   // dlsym can return GL symbols during a GLES context
   bool dlsymFirst = false;
@@ -461,14 +447,14 @@ bool EGLHook::PopulateHooks()
   dlsymFirst = true;
 #endif
 
-  m_PopulatedHooks = SharedPopulateHooks(dlsymFirst, [](const char *funcName) {
+  SharedPopulateHooks(dlsymFirst, [](const char *funcName) {
     // on some android devices we need to hook dlsym, but eglGetProcAddress might call dlsym so we
     // need to ensure we return the 'real' pointers
     ScopedSuppressHooking suppress;
     return (void *)eglGetProcAddress(funcName);
   });
 
-  return m_PopulatedHooks;
+  m_PopulatedHooks = true;
 }
 
 void PopulateEGLFunctions()

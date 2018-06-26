@@ -688,12 +688,7 @@ public:
 
   static OpenGLHook glhooks;
 
-  void PopulateGLFunctions()
-  {
-    if(!m_PopulatedHooks)
-      m_PopulatedHooks = PopulateHooks();
-  }
-
+  void PopulateGLFunctions() { PopulateHooks(); }
   void MakeContextCurrent(GLWindowingData data)
   {
     if(wglMakeCurrent_hook())
@@ -1385,8 +1380,13 @@ private:
     DLLExportHooks();
   }
 
-  bool PopulateHooks()
+  void PopulateHooks()
   {
+    if(m_PopulatedHooks)
+      return;
+
+    m_PopulatedHooks = true;
+
     void *moduleHandle = Process::LoadModule("opengl32.dll");
 
     if(wglGetProcAddress_hook() == NULL)
@@ -1415,8 +1415,6 @@ private:
     // see gl_emulated.cpp
     GL.EmulateUnsupportedFunctions();
     GL.EmulateRequiredExtensions();
-
-    return true;
   }
 
   DefineDLLExportHooks();

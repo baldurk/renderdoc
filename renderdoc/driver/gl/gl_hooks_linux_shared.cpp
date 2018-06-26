@@ -1416,7 +1416,7 @@ void *SharedLookupFuncPtr(const char *func, void *realFunc)
   return realFunc;
 }
 
-bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
+void SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 {
 #undef HookInit
 #define HookInit(function)                                                                      \
@@ -1457,8 +1457,6 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 
   DLLExportHooks();
   HookCheckGLExtensions();
-
-  return true;
 }
 
 void SharedCheckContext()

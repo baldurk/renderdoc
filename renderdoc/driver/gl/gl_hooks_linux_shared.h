@@ -31,7 +31,7 @@ void CloneDisplay(Display *dpy);
 #endif
 
 void *SharedLookupFuncPtr(const char *func, void *realFunc);
-bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *));
+void SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *));
 void SharedCheckContext();
 void PosixHookFunctions();
 

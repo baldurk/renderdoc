@@ -99,12 +99,7 @@ public:
       m_GLXWindowMap.erase(it);
   }
 
-  void PopulateGLFunctions()
-  {
-    if(!m_PopulatedHooks)
-      m_PopulatedHooks = PopulateHooks();
-  }
-
+  void PopulateGLFunctions() { PopulateHooks(); }
   void SetupExportedFunctions()
   {
     // in the replay application we need to call SetupHooks to ensure that all of our exported
@@ -432,7 +427,7 @@ public:
           (const GLubyte *)"glXCreateContextAttribsARB");
   }
 
-  bool PopulateHooks();
+  void PopulateHooks();
 } glhooks;
 
 void OpenGLHook::libHooked(void *realLib)
@@ -838,22 +833,22 @@ __attribute__((visibility("default"))) VkResult vk_icdNegotiateLoaderLayerInterf
 
 };    // extern "C"
 
-bool OpenGLHook::PopulateHooks()
+void OpenGLHook::PopulateHooks()
 {
+  if(m_PopulatedHooks)
+    return;
+
+  m_PopulatedHooks = true;
+
   SetupHooks();
 
   glXGetProcAddress((const GLubyte *)"glXCreateContextAttribsARB");
 
-  bool ret = SharedPopulateHooks(true, [](const char *funcName) {
+  SharedPopulateHooks(true, [](const char *funcName) {
     return (void *)glXGetProcAddress((const GLubyte *)funcName);
   });
 
-  if(!ret)
-    return false;
-
   SharedCheckContext();
-
-  return true;
 }
 
 void PopulateGLFunctions()
