@@ -493,6 +493,7 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_RG32UI:
     case eGL_R32UI:
     case eGL_RGB32UI:
+    case eGL_DEPTH_COMPONENT:
     case eGL_DEPTH_COMPONENT24:
     case eGL_DEPTH_COMPONENT32: return eGL_UNSIGNED_INT;
     case eGL_RGBA32I:
@@ -520,7 +521,9 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_RGB10: return eGL_UNSIGNED_INT_10_10_10_2;
     case eGL_RGB9_E5: return eGL_UNSIGNED_INT_5_9_9_9_REV;
     case eGL_DEPTH24_STENCIL8: return eGL_UNSIGNED_INT_24_8;
+    case eGL_DEPTH_STENCIL:
     case eGL_DEPTH32F_STENCIL8: return eGL_FLOAT_32_UNSIGNED_INT_24_8_REV;
+    case eGL_STENCIL_INDEX:
     case eGL_STENCIL_INDEX8: return eGL_UNSIGNED_BYTE;
     case eGL_ALPHA:
     case eGL_ALPHA8_EXT:

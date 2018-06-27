@@ -1820,13 +1820,16 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
         ret.compByteWidth = 3;
         ret.compCount = 1;
         break;
+      case eGL_DEPTH_COMPONENT:
       case eGL_DEPTH_COMPONENT32:
       case eGL_DEPTH_COMPONENT32F:
         ret.compByteWidth = 4;
         ret.compCount = 1;
         break;
       case eGL_DEPTH24_STENCIL8: ret.type = ResourceFormatType::D24S8; break;
+      case eGL_DEPTH_STENCIL:
       case eGL_DEPTH32F_STENCIL8: ret.type = ResourceFormatType::D32S8; break;
+      case eGL_STENCIL_INDEX:
       case eGL_STENCIL_INDEX8: ret.type = ResourceFormatType::S8; break;
       default: RDCERR("Unexpected depth or stencil format '%s'", ToStr(fmt).c_str());
     }
