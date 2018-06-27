@@ -236,7 +236,7 @@ private:
 
   list<DrawcallDescription *> m_DrawcallStack;
 
-  map<ResourceId, vector<EventUsage> > m_ResourceUses;
+  map<ResourceId, vector<EventUsage>> m_ResourceUses;
 
   bool m_FetchCounters;
 
@@ -252,6 +252,9 @@ private:
   };
 
   map<ResourceId, BufferData> m_Buffers;
+
+  // map with key being mip level, value being stored data
+  typedef std::map<int, std::vector<byte>> CompressedDataStore;
 
   struct TextureData
   {
@@ -288,13 +291,12 @@ private:
 
     // since compressed textures cannot be read back on GLES we have to store them during the
     // uploading
-    // level -> data
-    map<int, vector<byte> > compressedData;
+    CompressedDataStore compressedData;
 
     void GetCompressedImageDataGLES(int mip, GLenum target, size_t size, byte *buf);
   };
 
-  map<ResourceId, TextureData> m_Textures;
+  std::map<ResourceId, TextureData> m_Textures;
 
   struct ShaderData
   {
@@ -365,7 +367,7 @@ private:
   map<ResourceId, ShaderData> m_Shaders;
   map<ResourceId, ProgramData> m_Programs;
   map<ResourceId, PipelineData> m_Pipelines;
-  vector<pair<ResourceId, Replacement> > m_DependentReplacements;
+  vector<pair<ResourceId, Replacement>> m_DependentReplacements;
 
   GLuint m_FakeBB_FBO;
   GLuint m_FakeBB_Color;

@@ -948,7 +948,42 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
   }
   else if(IsBackgroundCapturing(m_State))
   {
-    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), dstName));
+    GLResourceRecord *srcrecord =
+        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
+    GLResourceRecord *dstrecord =
+        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
+
+    GetResourceManager()->MarkDirtyResource(dstrecord->GetResourceID());
+
+    // copy over compressed data, if it exists
+    if(IsGLES)
+    {
+      TextureData &srcData = m_Textures[srcrecord->GetResourceID()];
+
+      // if we have source compressed data to copy (for uncompressed textures, we won't)
+      if(srcData.compressedData.find(srcLevel) != srcData.compressedData.end())
+      {
+        TextureData &dstData = m_Textures[dstrecord->GetResourceID()];
+
+        if(srcX == 0 || srcY == 0 || srcZ == 0 || dstX == 0 || dstY == 0 || dstZ == 0)
+        {
+          // we only support whole copies - sub-copies will not work correctly.
+          RDCASSERT(srcWidth == RDCMAX(1, srcData.width >> srcLevel));
+          RDCASSERT(srcHeight == RDCMAX(1, srcData.height >> srcLevel));
+          RDCASSERT(srcDepth == RDCMAX(1, srcData.depth >> srcLevel));
+
+          RDCASSERT(srcWidth == RDCMAX(1, dstData.width >> dstLevel));
+          RDCASSERT(srcHeight == RDCMAX(1, dstData.height >> dstLevel));
+          RDCASSERT(srcDepth == RDCMAX(1, dstData.depth >> dstLevel));
+
+          dstData.compressedData[dstLevel] = srcData.compressedData[srcLevel];
+        }
+        else
+        {
+          RDCWARN("glCopyImageSubData doesn't support offsetted copies of compressed data");
+        }
+      }
+    }
   }
 }
 
@@ -2924,8 +2959,8 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
         {
           size_t compressedImageSize = GetCompressedByteSize(width, height, 1, format);
           RDCASSERT(compressedImageSize == (size_t)imageSize);
-          auto &cd = m_Textures[texId].compressedData;
-          auto &cdData = cd[level];
+          CompressedDataStore &cd = m_Textures[texId].compressedData;
+          std::vector<byte> &cdData = cd[level];
           GLint zoff = IsCubeFace(target) ? CubeTargetIndex(target) : zoffset;
           size_t startOffset = imageSize * zoff;
           if(cdData.size() < startOffset + imageSize)
@@ -2942,8 +2977,8 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
         if(zoffset == 0)
         {
           RDCASSERT(GetCompressedByteSize(width, height, depth, format) == (size_t)imageSize);
-          auto &cd = m_Textures[texId].compressedData;
-          auto &cdData = cd[level];
+          CompressedDataStore &cd = m_Textures[texId].compressedData;
+          std::vector<byte> &cdData = cd[level];
           cdData.resize(imageSize);
           memcpy(cdData.data(), srcPixels, imageSize);
         }
