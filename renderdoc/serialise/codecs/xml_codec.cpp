@@ -668,7 +668,7 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
     chunk->metadata.chunkID = xChunk.attribute("id").as_uint();
     chunk->metadata.length = xChunk.attribute("length").as_uint();
     if(xChunk.attribute("threadID"))
-      chunk->metadata.threadID = xChunk.attribute("threadID").as_uint();
+      chunk->metadata.threadID = xChunk.attribute("threadID").as_ullong();
     if(xChunk.attribute("timestamp"))
       chunk->metadata.timestampMicro = xChunk.attribute("timestamp").as_ullong();
     if(xChunk.attribute("duration"))
