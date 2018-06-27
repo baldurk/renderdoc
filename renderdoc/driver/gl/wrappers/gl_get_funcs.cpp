@@ -45,20 +45,6 @@ GLuint WrappedOpenGL::glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum
                                      messageLog);
 }
 
-void WrappedOpenGL::glFlush()
-{
-  CoherentMapImplicitBarrier();
-
-  m_Real.glFlush();
-}
-
-void WrappedOpenGL::glFinish()
-{
-  CoherentMapImplicitBarrier();
-
-  m_Real.glFinish();
-}
-
 GLboolean WrappedOpenGL::glIsEnabled(GLenum cap)
 {
   if(cap == eGL_DEBUG_TOOL_EXT)

@@ -3877,6 +3877,10 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glSpecializeShader:
       return Serialise_glSpecializeShader(ser, 0, NULL, 0, NULL, NULL);
 
+    case GLChunk::glFinish: return Serialise_glFinish(ser);
+    case GLChunk::glFlush:
+      return Serialise_glFlush(ser);
+
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
     // where and how they're called).
@@ -4161,8 +4165,6 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glReleaseShaderCompiler:
     case GLChunk::glFrameTerminatorGREMEDY:
     case GLChunk::glDiscardFramebufferEXT:
-    case GLChunk::glFinish:
-    case GLChunk::glFlush:
     case GLChunk::glInvalidateBufferData:
     case GLChunk::glInvalidateBufferSubData:
     case GLChunk::glInvalidateFramebuffer:

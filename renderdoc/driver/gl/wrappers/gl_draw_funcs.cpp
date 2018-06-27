@@ -4449,6 +4449,86 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
   }
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFlush(SerialiserType &ser)
+{
+  if(IsReplayingAndReading())
+  {
+    m_Real.glFlush();
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = ToStr(gl_CurChunk) + "()";
+      draw.flags |= DrawFlags::SetMarker;
+
+      AddDrawcall(draw, true);
+    }
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glFlush()
+{
+  CoherentMapImplicitBarrier();
+
+  SERIALISE_TIME_CALL(m_Real.glFlush());
+
+  if(IsActiveCapturing(m_State))
+  {
+    USE_SCRATCH_SERIALISER();
+
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFlush(ser);
+
+    GetContextRecord()->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFinish(SerialiserType &ser)
+{
+  if(IsReplayingAndReading())
+  {
+    m_Real.glFinish();
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = ToStr(gl_CurChunk) + "()";
+      draw.flags |= DrawFlags::SetMarker;
+
+      AddDrawcall(draw, true);
+    }
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glFinish()
+{
+  CoherentMapImplicitBarrier();
+
+  SERIALISE_TIME_CALL(m_Real.glFinish());
+
+  if(IsActiveCapturing(m_State))
+  {
+    USE_SCRATCH_SERIALISER();
+
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFinish(ser);
+
+    GetContextRecord()->AddChunk(scope.Get());
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, glDispatchCompute, GLuint num_groups_x, GLuint num_groups_y,
                                 GLuint num_groups_z);
 INSTANTIATE_FUNCTION_SERIALISED(void, glDispatchComputeGroupSizeARB, GLuint num_groups_x,
@@ -4530,3 +4610,5 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glClearTexImage, GLuint texture, GLint lev
 INSTANTIATE_FUNCTION_SERIALISED(void, glClearTexSubImage, GLuint texture, GLint level, GLint xoffset,
                                 GLint yoffset, GLint zoffset, GLsizei width, GLsizei height,
                                 GLsizei depth, GLenum format, GLenum type, const void *dataPtr);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFlush);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFinish);
