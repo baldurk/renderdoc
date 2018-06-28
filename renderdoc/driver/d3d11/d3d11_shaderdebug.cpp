@@ -34,6 +34,40 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 #include "d3d11_shader_cache.h"
+// struct that saves pointers as we iterate through to where we ultimately
+// want to copy the data to
+struct DataOutput
+{
+  DataOutput(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
+  {
+    reg = regster;
+    elem = element;
+    numwords = numWords;
+    sysattribute = attr;
+    included = inc;
+  }
+
+  int reg;
+  int elem;
+  ShaderBuiltin sysattribute;
+
+  int numwords;
+
+  bool included;
+};
+
+struct DebugHit
+{
+  uint32_t numHits;
+  float posx;
+  float posy;
+  float depth;
+  uint32_t primitive;
+  uint32_t isFrontFace;
+  uint32_t sample;
+  uint32_t coverage;
+  uint32_t rawdata;    // arbitrary, depending on shader
+};
 
 // over this number of cycles and things get problematic
 #define SHADER_DEBUG_WARN_THRESHOLD 100000
@@ -55,6 +89,34 @@ bool PromptDebugTimeout(DXBC::ProgramType prog, uint32_t cycleCounter)
     return true;
 
   return false;
+}
+
+// apply coarse/fine derivatives to select threads within a quad to ensure all values are correct
+static void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4],
+                             const DataOutput &initialValue, float *data, float signmul,
+                             int32_t quadIdxA, int32_t quadIdxB = -1)
+{
+  for(int w = 0; w < initialValue.numwords; w++)
+  {
+    traces[quadIdxA].inputs[initialValue.reg].value.fv[initialValue.elem + w] += signmul * data[w];
+    if(quadIdxB >= 0)
+      traces[quadIdxB].inputs[initialValue.reg].value.fv[initialValue.elem + w] += signmul * data[w];
+  }
+
+  // quick check to see if this register was evaluated
+  if(global.sampleEvalRegisterMask & (1ULL << initialValue.reg))
+  {
+    // apply derivative to any cached sample evaluations on these quad indices
+    for(auto it = global.sampleEvalCache.begin(); it != global.sampleEvalCache.end(); ++it)
+    {
+      if((it->first.quadIndex == quadIdxA || it->first.quadIndex == quadIdxB) &&
+         initialValue.reg == it->first.inputRegisterIndex)
+      {
+        for(int w = 0; w < initialValue.numwords; w++)
+          it->second.value.fv[initialValue.elem + w] += data[w];
+      }
+    }
+  }
 }
 
 ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
@@ -555,41 +617,6 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
   }
 }
 
-// struct that saves pointers as we iterate through to where we ultimately
-// want to copy the data to
-struct DataOutput
-{
-  DataOutput(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
-  {
-    reg = regster;
-    elem = element;
-    numwords = numWords;
-    sysattribute = attr;
-    included = inc;
-  }
-
-  int reg;
-  int elem;
-  ShaderBuiltin sysattribute;
-
-  int numwords;
-
-  bool included;
-};
-
-struct DebugHit
-{
-  uint32_t numHits;
-  float posx;
-  float posy;
-  float depth;
-  uint32_t primitive;
-  uint32_t isFrontFace;
-  uint32_t sample;
-  uint32_t coverage;
-  uint32_t rawdata;    // arbitrary, depending on shader
-};
-
 ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
@@ -1064,10 +1091,13 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   }
 
   vector<string> floatInputs;
-  vector<pair<string, pair<uint32_t, uint32_t> > >
+  vector<pair<string, pair<uint32_t, uint32_t>>>
       arrays;    // name, pair<start semantic index, end semantic index>
+  std::vector<std::string> inputVarNames;
 
   uint32_t nextreg = 0;
+
+  inputVarNames.resize(dxbc->m_InputSig.size());
 
   for(size_t i = 0; i < dxbc->m_InputSig.size(); i++)
   {
@@ -1085,7 +1115,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       included = false;
     }
 
-    bool arrayElem = false;
+    int arrayIndex = -1;
 
     for(size_t a = 0; a < arrays.size(); a++)
     {
@@ -1095,7 +1125,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       {
         extractHlsl += "//";
         included = false;
-        arrayElem = true;
+        arrayIndex = dxbc->m_InputSig[i].semanticIndex - arrays[a].second.first;
       }
     }
 
@@ -1293,6 +1323,10 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       extractHlsl += "[" + ToStr(arrayLength) + "]";
     extractHlsl += " : " + name;
 
+    inputVarNames[i] = "input_" + name;
+    if(arrayLength > 0)
+      inputVarNames[i] += StringFormat::Fmt("[%d]", RDCMAX(0, arrayIndex));
+
     if(included && dxbc->m_InputSig[i].compType == CompType::Float)
     {
       if(arrayLength == 0)
@@ -1318,7 +1352,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     // arrays get added all at once (because in the struct data, they are contiguous even if
     // in the input signature they're not).
-    if(!arrayElem)
+    if(arrayIndex < 0)
     {
       if(arrayLength == 0)
       {
@@ -1350,19 +1384,161 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   if(rtView != NULL)
     uavslot = 1;
 
-  extractHlsl +=
-      "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint sample; uint "
-      "covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; PSInput INddxfine; "
-      "PSInput INddyfine; };\n\n";
+  // get the multisample count
+  uint32_t outputSampleCount = 1;
+
+  {
+    ID3D11Resource *res = NULL;
+
+    if(depthView)
+      depthView->GetResource(&res);
+    else if(rtView)
+      rtView->GetResource(&res);
+
+    if(res)
+    {
+      D3D11_RESOURCE_DIMENSION dim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
+      res->GetType(&dim);
+
+      if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+      {
+        D3D11_TEXTURE2D_DESC desc;
+        ((ID3D11Texture2D *)res)->GetDesc(&desc);
+
+        outputSampleCount = RDCMAX(1U, desc.SampleDesc.Count);
+      }
+
+      SAFE_RELEASE(res);
+    }
+  }
+
+  std::set<GlobalState::SampleEvalCacheKey> evalSampleCacheData;
+
+  uint64_t sampleEvalRegisterMask = 0;
+
+  // if we're not rendering at MSAA, no need to fill the cache because evaluates will all return the
+  // plain input anyway.
+  if(outputSampleCount > 1)
+  {
+    // scan the instructions to see if it contains any evaluates.
+    for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+    {
+      const ASMOperation &op = dxbc->GetInstruction(i);
+
+      // skip any non-eval opcodes
+      if(op.operation != OPCODE_EVAL_CENTROID && op.operation != OPCODE_EVAL_SAMPLE_INDEX &&
+         op.operation != OPCODE_EVAL_SNAPPED)
+        continue;
+
+      // the generation of this key must match what we'll generate in the corresponding lookup
+      GlobalState::SampleEvalCacheKey key;
+
+      // all the eval opcodes have rDst, vIn as the first two operands
+      key.inputRegisterIndex = (int32_t)op.operands[1].indices[0].index;
+
+      for(int c = 0; c < 4; c++)
+      {
+        if(op.operands[0].comps[c] == 0xff)
+          break;
+
+        key.numComponents = c + 1;
+      }
+
+      key.firstComponent = op.operands[1].comps[op.operands[0].comps[0]];
+
+      sampleEvalRegisterMask |= 1ULL << key.inputRegisterIndex;
+
+      if(op.operation == OPCODE_EVAL_CENTROID)
+      {
+        // nothing to do - default key is centroid, sample is -1 and offset x/y is 0
+        evalSampleCacheData.insert(key);
+      }
+      else if(op.operation == OPCODE_EVAL_SAMPLE_INDEX)
+      {
+        if(op.operands[2].type == TYPE_IMMEDIATE32 || op.operands[2].type == TYPE_IMMEDIATE64)
+        {
+          // hooray, only sampling a single index, just add this key
+          key.sample = (int32_t)op.operands[2].values[0];
+
+          evalSampleCacheData.insert(key);
+        }
+        else
+        {
+          // parameter is a register and we don't know which sample will be needed, fetch them all.
+          // In most cases this will be a loop over them all, so they'll all be needed anyway
+          for(uint32_t c = 0; c < outputSampleCount; c++)
+          {
+            key.sample = (int32_t)c;
+            evalSampleCacheData.insert(key);
+          }
+        }
+      }
+      else if(op.operation == OPCODE_EVAL_SNAPPED)
+      {
+        if(op.operands[2].type == TYPE_IMMEDIATE32 || op.operands[2].type == TYPE_IMMEDIATE64)
+        {
+          // hooray, only sampling a single offset, just add this key
+          key.offsetx = (int32_t)op.operands[2].values[0];
+          key.offsety = (int32_t)op.operands[2].values[1];
+
+          evalSampleCacheData.insert(key);
+        }
+        else
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+              "EvaluateAttributeSnapped called with dynamic parameter, caching all possible "
+              "evaluations which could have performance impact.");
+
+          for(key.offsetx = -8; key.offsetx <= 7; key.offsetx++)
+            for(key.offsety = -8; key.offsety <= 7; key.offsety++)
+              evalSampleCacheData.insert(key);
+        }
+      }
+    }
+  }
+
+  extractHlsl += R"(
+struct PSInitialData
+{
+  // metadata we need ourselves
+  uint hit;
+  float3 pos;
+  uint prim;
+  uint fface;
+  uint sample;
+  uint covge;
+  float derivValid;
+
+  // input values
+  PSInput IN;
+  PSInput INddx;
+  PSInput INddy;
+  PSInput INddxfine;
+  PSInput INddyfine;
+};
+
+)";
+
   extractHlsl +=
       "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u" + ToStr(uavslot) + ");\n\n";
-  extractHlsl +=
-      "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : "
-      "SV_PrimitiveID, uint sample : SV_SampleIndex, uint covge : SV_Coverage, bool fface : "
-      "SV_IsFrontFace)\n{\n";
+
+  if(!evalSampleCacheData.empty())
+  {
+    // float4 is wasteful in some cases but it's easier than using ByteAddressBuffer and manual
+    // packing
+    extractHlsl += "RWBuffer<float4> PSEvalBuffer : register(u" + ToStr(uavslot + 1) + ");\n\n";
+  }
+
+  extractHlsl += R"(
+void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID,
+                     uint sample : SV_SampleIndex, uint covge : SV_Coverage,
+                     bool fface : SV_IsFrontFace)
+{
+)";
   extractHlsl += "  uint idx = " + ToStr(overdrawLevels) + ";\n";
-  extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr(x) +
-                 ".5) < 0.5f && abs(debug_pixelPos.y - " + ToStr(y) + ".5) < 0.5f)\n";
+  extractHlsl += StringFormat::Fmt(
+      "  if(abs(debug_pixelPos.x - %u.5) < 0.5f && abs(debug_pixelPos.y - %u.5) < 0.5f)\n", x, y);
   extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
   extractHlsl += "  idx = min(idx, " + ToStr(overdrawLevels) + ");\n\n";
   extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
@@ -1376,6 +1552,69 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   extractHlsl += "  PSInitialBuffer[idx].INddy = (PSInput)0;\n";
   extractHlsl += "  PSInitialBuffer[idx].INddxfine = (PSInput)0;\n";
   extractHlsl += "  PSInitialBuffer[idx].INddyfine = (PSInput)0;\n";
+
+  if(!evalSampleCacheData.empty())
+  {
+    extractHlsl += StringFormat::Fmt("  uint evalIndex = idx * %zu;\n", evalSampleCacheData.size());
+
+    uint32_t evalIdx = 0;
+    for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
+    {
+      uint32_t keyMask = 0;
+
+      for(int32_t i = 0; i < key.numComponents; i++)
+        keyMask |= (1 << (key.firstComponent + i));
+
+      // find the name of the variable matching the operand, in the case of merged input variables.
+      std::string name, swizzle = "xyzw";
+      for(size_t i = 0; i < dxbc->m_InputSig.size(); i++)
+      {
+        if(dxbc->m_InputSig[i].regIndex == (uint32_t)key.inputRegisterIndex &&
+           dxbc->m_InputSig[i].systemValue == ShaderBuiltin::Undefined &&
+           (dxbc->m_InputSig[i].regChannelMask & keyMask) == keyMask)
+        {
+          name = inputVarNames[i];
+
+          if(!name.empty())
+            break;
+        }
+      }
+
+      swizzle.resize(key.numComponents);
+
+      if(name.empty())
+      {
+        RDCERR("Couldn't find matching input variable for v%d [%d:%d]", key.inputRegisterIndex,
+               key.firstComponent, key.numComponents);
+        extractHlsl += StringFormat::Fmt("  PSEvalBuffer[evalIndex+%u] = 0;\n", evalIdx);
+        evalIdx++;
+        continue;
+      }
+
+      name = StringFormat::Fmt("IN.%s.%s", name.c_str(), swizzle.c_str());
+
+      // we must write all components, so just swizzle the values - they'll be ignored later.
+      std::string expandSwizzle = swizzle;
+      while(expandSwizzle.size() < 4)
+        expandSwizzle.push_back('x');
+
+      if(key.sample >= 0)
+      {
+        extractHlsl += StringFormat::Fmt(
+            "  PSEvalBuffer[evalIndex+%u] = EvaluateAttributeAtSample(%s, %d).%s;\n", evalIdx,
+            name.c_str(), key.sample, expandSwizzle.c_str());
+      }
+      else
+      {
+        // we don't need to special-case EvaluateAttributeAtCentroid, since it's just a case with
+        // 0,0
+        extractHlsl += StringFormat::Fmt(
+            "  PSEvalBuffer[evalIndex+%u] = EvaluateAttributeSnapped(%s, int2(%d, %d)).%s;\n",
+            evalIdx, name.c_str(), key.offsetx, key.offsety, expandSwizzle.c_str());
+      }
+      evalIdx++;
+    }
+  }
 
   for(size_t i = 0; i < floatInputs.size(); i++)
   {
@@ -1408,7 +1647,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   bdesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
   bdesc.Usage = D3D11_USAGE_DEFAULT;
   bdesc.StructureByteStride = structStride;
-  bdesc.ByteWidth = bdesc.StructureByteStride * (overdrawLevels + 1);
+  bdesc.ByteWidth = structStride * (overdrawLevels + 1);
 
   ID3D11Buffer *initialBuf = NULL;
   hr = m_pDevice->CreateBuffer(&bdesc, NULL, &initialBuf);
@@ -1419,19 +1658,52 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     return empty;
   }
 
+  ID3D11Buffer *evalBuf = NULL;
+  if(!evalSampleCacheData.empty())
+  {
+    bdesc.StructureByteStride = 0;
+    bdesc.MiscFlags = 0;
+    bdesc.ByteWidth = UINT(evalSampleCacheData.size() * sizeof(Vec4f) * (overdrawLevels + 1));
+
+    hr = m_pDevice->CreateBuffer(&bdesc, NULL, &evalBuf);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
+      return empty;
+    }
+  }
+
   bdesc.BindFlags = 0;
   bdesc.MiscFlags = 0;
   bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
   bdesc.Usage = D3D11_USAGE_STAGING;
   bdesc.StructureByteStride = 0;
+  bdesc.ByteWidth = structStride * (overdrawLevels + 1);
 
-  ID3D11Buffer *stageBuf = NULL;
-  hr = m_pDevice->CreateBuffer(&bdesc, NULL, &stageBuf);
+  ID3D11Buffer *initialStageBuf = NULL;
+  hr = m_pDevice->CreateBuffer(&bdesc, NULL, &initialStageBuf);
 
   if(FAILED(hr))
   {
     RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
     return empty;
+  }
+
+  uint32_t evalStructStride = uint32_t(evalSampleCacheData.size() * sizeof(Vec4f));
+
+  ID3D11Buffer *evalStageBuf = NULL;
+  if(evalBuf)
+  {
+    bdesc.ByteWidth = evalStructStride * (overdrawLevels + 1);
+
+    hr = m_pDevice->CreateBuffer(&bdesc, NULL, &evalStageBuf);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
+      return empty;
+    }
   }
 
   D3D11_UNORDERED_ACCESS_VIEW_DESC uavdesc;
@@ -1450,12 +1722,30 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     return empty;
   }
 
+  ID3D11UnorderedAccessView *evalUAV = NULL;
+  if(evalBuf)
+  {
+    uavdesc.Buffer.NumElements = (overdrawLevels + 1) * (uint32_t)evalSampleCacheData.size();
+    uavdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    hr = m_pDevice->CreateUnorderedAccessView(evalBuf, &uavdesc, &evalUAV);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
+      return empty;
+    }
+  }
+
   UINT zero = 0;
   m_pImmediateContext->ClearUnorderedAccessViewUint(initialUAV, &zero);
+  if(evalUAV)
+    m_pImmediateContext->ClearUnorderedAccessViewUint(evalUAV, &zero);
+
+  ID3D11UnorderedAccessView *uavs[] = {initialUAV, evalUAV};
 
   UINT count = (UINT)-1;
   m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(uavslot, &rtView, depthView,
-                                                                 uavslot, 1, &initialUAV, &count);
+                                                                 uavslot, 2, uavs, &count);
   m_pImmediateContext->PSSetShader(extract, NULL, 0);
 
   SAFE_RELEASE(rtView);
@@ -1466,11 +1756,12 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-    m_pImmediateContext->CopyResource(stageBuf, initialBuf);
+    m_pImmediateContext->CopyResource(initialStageBuf, initialBuf);
+    m_pImmediateContext->CopyResource(evalStageBuf, evalBuf);
   }
 
   D3D11_MAPPED_SUBRESOURCE mapped;
-  hr = m_pImmediateContext->Map(stageBuf, 0, D3D11_MAP_READ, 0, &mapped);
+  hr = m_pImmediateContext->Map(initialStageBuf, 0, D3D11_MAP_READ, 0, &mapped);
 
   if(FAILED(hr))
   {
@@ -1478,14 +1769,36 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     return empty;
   }
 
-  byte *initialData = new byte[bdesc.ByteWidth];
-  memcpy(initialData, mapped.pData, bdesc.ByteWidth);
+  byte *initialData = new byte[structStride * (overdrawLevels + 1)];
+  memcpy(initialData, mapped.pData, structStride * (overdrawLevels + 1));
 
-  m_pImmediateContext->Unmap(stageBuf, 0);
+  m_pImmediateContext->Unmap(initialStageBuf, 0);
+
+  byte *evalData = NULL;
+
+  if(evalStageBuf)
+  {
+    hr = m_pImmediateContext->Map(evalStageBuf, 0, D3D11_MAP_READ, 0, &mapped);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
+      return empty;
+    }
+
+    evalData = new byte[evalStructStride * (overdrawLevels + 1)];
+    memcpy(evalData, mapped.pData, evalStructStride * (overdrawLevels + 1));
+
+    m_pImmediateContext->Unmap(evalStageBuf, 0);
+  }
 
   SAFE_RELEASE(initialUAV);
   SAFE_RELEASE(initialBuf);
-  SAFE_RELEASE(stageBuf);
+  SAFE_RELEASE(initialStageBuf);
+
+  SAFE_RELEASE(evalUAV);
+  SAFE_RELEASE(evalBuf);
+  SAFE_RELEASE(evalStageBuf);
 
   SAFE_RELEASE(extract);
 
@@ -1497,6 +1810,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   {
     RDCLOG("No hit for this event");
     SAFE_DELETE_ARRAY(initialData);
+    SAFE_DELETE_ARRAY(evalData);
     return empty;
   }
 
@@ -1534,6 +1848,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   }
 
   DebugHit *winner = NULL;
+  float *evalSampleCache = (float *)evalData;
 
   if(sample == ~0U)
     sample = 0;
@@ -1545,7 +1860,10 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       DebugHit *hit = (DebugHit *)(initialData + i * structStride);
 
       if(hit->primitive == primitive && hit->sample == sample)
+      {
         winner = hit;
+        evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
+      }
     }
   }
 
@@ -1560,6 +1878,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
          depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL)
       {
         winner = hit;
+        evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
         continue;
       }
 
@@ -1569,7 +1888,10 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
          (depthFunc == D3D11_COMPARISON_GREATER_EQUAL && hit->depth >= winner->depth))
       {
         if(hit->sample == sample)
+        {
           winner = hit;
+          evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
+        }
       }
     }
   }
@@ -1578,6 +1900,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   {
     RDCLOG("Couldn't find any pixels that passed depth test at target co-ordinates");
     SAFE_DELETE_ARRAY(initialData);
+    SAFE_DELETE_ARRAY(evalData);
     return empty;
   }
 
@@ -1586,6 +1909,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   GlobalState global;
   GetDebugManager()->CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs,
                                              rs->PS.SRVs);
+
+  global.sampleEvalRegisterMask = sampleEvalRegisterMask;
 
   {
     DebugHit *hit = winner;
@@ -1603,13 +1928,14 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     uint32_t *data = &hit->rawdata;
 
-    float *ddx = (float *)data;
+    float *pos_ddx = (float *)data;
 
     // ddx(SV_Position.x) MUST be 1.0
-    if(*ddx != 1.0f)
+    if(*pos_ddx != 1.0f)
     {
       RDCERR("Derivatives invalid");
       SAFE_DELETE_ARRAY(initialData);
+      SAFE_DELETE_ARRAY(evalData);
       return empty;
     }
 
@@ -1661,33 +1987,76 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
         quad[i].SetHelper();
     }
 
-    // We make the assumption that the coarse derivatives are
-    // generated from (0,0) in the quad, and fine derivatives
-    // are generated from the destination index and its
-    // neighbours in X and Y.
-    // This isn't spec'd but we must assume something and this
-    // will hopefully get us closest to reproducing actual
-    // results.
+    // fetch any inputs that were evaluated at sample granularity
+    for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
+    {
+      // start with the basic input value
+      ShaderVariable var = traces[destIdx].inputs[key.inputRegisterIndex];
+
+      // copy over the value into the variable
+      memcpy(var.value.fv, evalSampleCache, var.columns * sizeof(float));
+
+      // store in the global cache for each quad. We'll apply derivatives below to adjust for each
+      GlobalState::SampleEvalCacheKey k = key;
+      for(int i = 0; i < 4; i++)
+      {
+        k.quadIndex = i;
+        global.sampleEvalCache[k] = var;
+      }
+
+      // advance past this data - always by float4 as that's the buffer st ride
+      evalSampleCache += 4;
+    }
+
+    // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
+    // fine derivatives are generated from the destination index and its neighbours in X and Y.
+    // This isn't spec'd but we must assume something and this will hopefully get us closest to
+    // reproducing actual results.
     //
-    // For debugging, we need members of the quad to be able
-    // to generate coarse and fine derivatives.
+    // For debugging, we need members of the quad to be able to generate coarse and fine
+    // derivatives.
     //
-    // For (0,0) we only need the coarse derivatives to get
-    // our neighbours (1,0) and (0,1) which will give us
-    // coarse and fine derivatives being identical.
+    // For (0,0) we only need the coarse derivatives to get our neighbours (1,0) and (0,1) which
+    // will give us coarse and fine derivatives being identical.
     //
-    // For the others we will need to use a combination of
-    // coarse and fine derivatives to get the diagonal element
-    // in the quad. E.g. for (1,1):
+    // For the others we will need to use a combination of coarse and fine derivatives to get the
+    // diagonal element in the quad. In the examples below, remember that the quad indices are:
+    //
+    // +---+---+
+    // | 0 | 1 |
+    // +---+---+
+    // | 2 | 3 |
+    // +---+---+
+    //
+    // And that we have definitions of the derivatives:
+    //
+    // ddx_coarse = (1,0) - (0,0)
+    // ddy_coarse = (0,1) - (0,0)
+    //
+    // i.e. the same for all members of the quad
+    //
+    // ddx_fine   = (x,y) - (1-x,y)
+    // ddy_fine   = (x,y) - (x,1-y)
+    //
+    // i.e. the difference to the neighbour of our desired invocation (the one we have the actual
+    // inputs for, from gathering above).
+    //
+    // So e.g. if our thread is at (1,1) destIdx = 3
     //
     // (1,0) = (1,1) - ddx_fine
     // (0,1) = (1,1) - ddy_fine
     // (0,0) = (1,1) - ddy_fine - ddx_coarse
     //
-    // This only works if coarse and fine are calculated as we
-    // are assuming.
+    // and ddy_coarse is unused. For (1,0) destIdx = 1:
+    //
+    // (1,1) = (1,0) + ddy_fine
+    // (0,1) = (1,0) - ddx_coarse + ddy_coarse
+    // (0,0) = (1,0) - ddx_coarse
+    //
+    // and ddx_fine is unused (it's identical to ddx_coarse anyway)
 
-    ddx = (float *)data;
+    // this is the value of input[1] - input[0]
+    float *ddx_coarse = (float *)data;
 
     for(size_t i = 0; i < initialValues.size(); i++)
     {
@@ -1697,41 +2066,20 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       if(initialValues[i].reg >= 0)
       {
         if(destIdx == 0)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[1].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddx[w];
-            traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddx[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, 1.0f, 1, 3);
         else if(destIdx == 1)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddx[w];
-            traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddx[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, -1.0f, 0, 2);
         else if(destIdx == 2)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[1].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddx[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, 1.0f, 1);
         else if(destIdx == 3)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddx[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, -1.0f, 0);
       }
 
-      ddx += initialValues[i].numwords;
+      ddx_coarse += initialValues[i].numwords;
     }
 
-    float *ddy = ddx;
+    // this is the value of input[2] - input[0]
+    float *ddy_coarse = ddx_coarse;
 
     for(size_t i = 0; i < initialValues.size(); i++)
     {
@@ -1741,34 +2089,17 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       if(initialValues[i].reg >= 0)
       {
         if(destIdx == 0)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddy[w];
-            traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddy[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddy_coarse, 1.0f, 2, 3);
         else if(destIdx == 1)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddy[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddy_coarse, 1.0f, 2);
         else if(destIdx == 2)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddy[w];
-            traces[1].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddy[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddy_coarse, -1.0f, 0, 1);
       }
 
-      ddy += initialValues[i].numwords;
+      ddy_coarse += initialValues[i].numwords;
     }
 
-    float *ddxfine = ddy;
+    float *ddxfine = ddy_coarse;
 
     for(size_t i = 0; i < initialValues.size(); i++)
     {
@@ -1778,19 +2109,9 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       if(initialValues[i].reg >= 0)
       {
         if(destIdx == 2)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddxfine[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddxfine, 1.0f, 3);
         else if(destIdx == 3)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddxfine[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddxfine, -1.0f, 2);
       }
 
       ddxfine += initialValues[i].numwords;
@@ -1806,20 +2127,9 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       if(initialValues[i].reg >= 0)
       {
         if(destIdx == 1)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] += ddyfine[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddyfine, 1.0f, 3);
         else if(destIdx == 3)
-        {
-          for(int w = 0; w < initialValues[i].numwords; w++)
-          {
-            traces[1].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddyfine[w];
-            traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem + w] -= ddyfine[w];
-          }
-        }
+          ApplyDerivatives(global, traces, initialValues[i], ddyfine, -1.0f, 0, 1);
       }
 
       ddyfine += initialValues[i].numwords;
@@ -1827,6 +2137,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   }
 
   SAFE_DELETE_ARRAY(initialData);
+  SAFE_DELETE_ARRAY(evalData);
 
   vector<ShaderDebugState> states;
 

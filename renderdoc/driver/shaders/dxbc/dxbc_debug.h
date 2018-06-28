@@ -108,6 +108,43 @@ public:
   };
 
   vector<groupsharedMem> groupshared;
+
+  struct SampleEvalCacheKey
+  {
+    int32_t quadIndex = -1;              // index of this thread in the quad
+    int32_t inputRegisterIndex = -1;     // index of the input register
+    int32_t firstComponent = 0;          // the first component in the register
+    int32_t numComponents = 0;           // how many components in the register
+    int32_t sample = -1;                 // -1 for offset-from-centroid lookups
+    int32_t offsetx = 0, offsety = 0;    // integer offset from centroid
+
+    bool operator<(const SampleEvalCacheKey &o) const
+    {
+      if(quadIndex != o.quadIndex)
+        return quadIndex < o.quadIndex;
+
+      if(inputRegisterIndex != o.inputRegisterIndex)
+        return inputRegisterIndex < o.inputRegisterIndex;
+
+      if(firstComponent != o.firstComponent)
+        return firstComponent < o.firstComponent;
+
+      if(numComponents != o.numComponents)
+        return numComponents < o.numComponents;
+
+      if(sample != o.sample)
+        return sample < o.sample;
+
+      if(offsetx != o.offsetx)
+        return offsetx < o.offsetx;
+
+      return offsety < o.offsety;
+    }
+  };
+
+  // a bitmask of which registers were fetched into the cache, for quick checking
+  uint64_t sampleEvalRegisterMask = 0;
+  std::map<SampleEvalCacheKey, ShaderVariable> sampleEvalCache;
 };
 
 class State : public ShaderDebugState

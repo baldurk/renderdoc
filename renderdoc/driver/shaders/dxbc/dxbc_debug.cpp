@@ -89,6 +89,9 @@ VarType State::OperationType(const OpcodeType &op) const
     case OPCODE_BUFINFO:
     case OPCODE_SAMPLE_INFO:
     case OPCODE_SAMPLE_POS:
+    case OPCODE_EVAL_CENTROID:
+    case OPCODE_EVAL_SAMPLE_INDEX:
+    case OPCODE_EVAL_SNAPPED:
     case OPCODE_LOD:
     case OPCODE_LD:
     case OPCODE_LD_MS: return VarType::Float;
@@ -2740,6 +2743,79 @@ State State::GetNext(GlobalState &global, State quad[4]) const
             datau32[i] = srcOpers[srcIdx].value.uv[i];
           }
         }
+      }
+
+      break;
+    }
+
+    case OPCODE_EVAL_CENTROID:
+    case OPCODE_EVAL_SAMPLE_INDEX:
+    case OPCODE_EVAL_SNAPPED:
+    {
+      // opcodes only seem to be supported for regular inputs
+      RDCASSERT(op.operands[1].type == TYPE_INPUT);
+
+      GlobalState::SampleEvalCacheKey key;
+
+      key.quadIndex = quadIndex;
+
+      // if this is TYPE_INPUT we can look up the index directly
+      key.inputRegisterIndex = (int32_t)op.operands[1].indices[0].index;
+
+      for(int c = 0; c < 4; c++)
+      {
+        if(op.operands[0].comps[c] == 0xff)
+          break;
+
+        key.numComponents = c + 1;
+      }
+
+      key.firstComponent = op.operands[1].comps[op.operands[0].comps[0]];
+
+      if(op.operation == OPCODE_EVAL_SAMPLE_INDEX)
+      {
+        key.sample = srcOpers[1].value.i.x;
+      }
+      else if(op.operation == OPCODE_EVAL_SNAPPED)
+      {
+        key.offsetx = RDCCLAMP(srcOpers[1].value.i.x, -8, 7);
+        key.offsety = RDCCLAMP(srcOpers[1].value.i.y, -8, 7);
+      }
+      else if(op.operation == OPCODE_EVAL_CENTROID)
+      {
+        // OPCODE_EVAL_CENTROID is the default, -1 sample and 0,0 offset
+      }
+
+      // look up this combination in the cache, if we get a hit then return that value.
+      auto it = global.sampleEvalCache.find(key);
+      if(it != global.sampleEvalCache.end())
+      {
+        // perform source operand swizzling
+        ShaderVariable var = it->second;
+
+        for(int i = 0; i < 4; i++)
+          if(op.operands[1].comps[i] < 4)
+            var.value.uv[i] = it->second.value.uv[op.operands[1].comps[i]];
+
+        s.SetDst(op.operands[0], op, var);
+      }
+      else
+      {
+        // if we got here, either the cache is empty (we're not rendering MSAA at all) so we should
+        // just return the interpolant, or something went wrong and the item we want isn't cached so
+        // the best we can do is return the interpolant.
+
+        if(!global.sampleEvalCache.empty())
+        {
+          device->AddDebugMessage(
+              MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+              StringFormat::Fmt(
+                  "Shader debugging %d: %s\n"
+                  "No sample evaluate found in cache. Possible out-of-bounds sample index",
+                  s.nextInstruction - 1, op.str.c_str()));
+        }
+
+        s.SetDst(op.operands[0], op, srcOpers[0]);
       }
 
       break;
