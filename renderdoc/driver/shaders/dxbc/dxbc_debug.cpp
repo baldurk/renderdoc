@@ -2757,32 +2757,41 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(op.operands[1].type == TYPE_RASTERIZER)
       {
-        ID3D11RenderTargetView *rtv = NULL;
+        ID3D11RenderTargetView *rtv[8] = {};
         ID3D11DepthStencilView *dsv = NULL;
 
-        context->OMGetRenderTargets(1, &rtv, &dsv);
+        context->OMGetRenderTargets(8, rtv, &dsv);
 
         // try depth first - both should match sample count though to be valid
         if(dsv)
         {
           dsv->GetResource(&res);
         }
-        else if(rtv)
-        {
-          rtv->GetResource(&res);
-        }
         else
         {
-          RDCWARN("No targets bound for sampleinfo on rasterizer");
+          for(size_t i = 0; i < ARRAY_COUNT(rtv); i++)
+          {
+            if(rtv[i])
+            {
+              rtv[i]->GetResource(&res);
+              break;
+            }
+          }
+        }
+
+        if(!res)
+        {
+          RDCWARN("No targets bound for output when calling sampleinfo on rasterizer");
 
           device->AddDebugMessage(
               MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-              StringFormat::Fmt(
-                  "Shader debugging %d: %s\nNo targets bound for sampleinfo on rasterizer",
-                  s.nextInstruction - 1, op.str.c_str()));
+              StringFormat::Fmt("Shader debugging %d: %s\n"
+                                "No targets bound for output when calling sampleinfo on rasterizer",
+                                s.nextInstruction - 1, op.str.c_str()));
         }
 
-        SAFE_RELEASE(rtv);
+        for(size_t i = 0; i < ARRAY_COUNT(rtv); i++)
+          SAFE_RELEASE(rtv[i]);
         SAFE_RELEASE(dsv);
       }
       else if(op.operands[1].type == TYPE_RESOURCE && op.operands[1].indices.size() == 1 &&
@@ -2835,21 +2844,29 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           D3D11_TEXTURE2D_DESC desc;
           ((ID3D11Texture2D *)res)->GetDesc(&desc);
 
-          // only returns a value for resources that are actually multisampled
-          if(desc.SampleDesc.Count > 1)
-            result.value.u.x = desc.SampleDesc.Count;
+          // returns 1 for non-multisampled resources
+          result.value.u.x = RDCMAX(1U, desc.SampleDesc.Count);
+        }
+        else
+        {
+          if(op.operands[1].type == TYPE_RASTERIZER)
+          {
+            // special behaviour for non-2D (i.e. by definition non-multisampled) textures when
+            // querying the rasterizer, just return 1.
+            result.value.u.x = 1;
+          }
+          else
+          {
+            device->AddDebugMessage(
+                MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+                StringFormat::Fmt("Shader debugging %d: %s\nResource specified is not a 2D texture",
+                                  s.nextInstruction - 1, op.str.c_str()));
+
+            result.value.u.x = 0;
+          }
         }
 
         SAFE_RELEASE(res);
-      }
-      else
-      {
-        RDCWARN("Non multisampled resource provided to sample_info");
-
-        device->AddDebugMessage(
-            MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-            StringFormat::Fmt("Shader debugging %d: %s\nSRV is NULL being queried by sampleinfo",
-                              s.nextInstruction - 1, op.str.c_str()));
       }
 
       // "If there is no resource bound to the specified slot, 0 is returned."
