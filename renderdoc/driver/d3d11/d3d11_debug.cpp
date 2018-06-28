@@ -103,7 +103,8 @@ void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, const void *data, size_t 
 {
   D3D11_MAPPED_SUBRESOURCE mapped;
 
-  HRESULT hr = m_pImmediateContext->Map(buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+  HRESULT hr = m_pImmediateContext->GetReal()->Map(UNWRAP(WrappedID3D11Buffer, buf), 0,
+                                                   D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 
   if(FAILED(hr))
   {
@@ -112,7 +113,7 @@ void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, const void *data, size_t 
   else
   {
     memcpy(mapped.pData, data, size);
-    m_pImmediateContext->Unmap(buf, 0);
+    m_pImmediateContext->GetReal()->Unmap(UNWRAP(WrappedID3D11Buffer, buf), 0);
   }
 }
 
@@ -358,9 +359,12 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
     if(box.right - box.left == 0)
       break;
 
-    m_pImmediateContext->CopySubresourceRegion(StageBuffer, 0, 0, 0, 0, buffer, 0, &box);
+    m_pImmediateContext->GetReal()->CopySubresourceRegion(
+        UNWRAP(WrappedID3D11Buffer, StageBuffer), 0, 0, 0, 0, UNWRAP(WrappedID3D11Buffer, buffer),
+        0, &box);
 
-    HRESULT hr = m_pImmediateContext->Map(StageBuffer, 0, D3D11_MAP_READ, 0, &mapped);
+    HRESULT hr = m_pImmediateContext->GetReal()->Map(UNWRAP(WrappedID3D11Buffer, StageBuffer), 0,
+                                                     D3D11_MAP_READ, 0, &mapped);
 
     if(FAILED(hr))
     {
@@ -371,7 +375,7 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
     {
       memcpy(&ret[outOffs], mapped.pData, RDCMIN(len, STAGE_BUFFER_BYTE_SIZE));
 
-      m_pImmediateContext->Unmap(StageBuffer, 0);
+      m_pImmediateContext->GetReal()->Unmap(UNWRAP(WrappedID3D11Buffer, StageBuffer), 0);
     }
 
     outOffs += chunkSize;
