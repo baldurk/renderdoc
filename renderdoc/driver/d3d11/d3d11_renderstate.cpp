@@ -542,12 +542,14 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 
   if(context->IsFL11_1())
     context->OMSetRenderTargetsAndUnorderedAccessViews(
-        OM.UAVStartSlot, OM.RenderTargets, OM.DepthView, OM.UAVStartSlot,
-        D3D11_1_UAV_SLOT_COUNT - OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
+        RDCMIN(OM.UAVStartSlot, (UINT)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT), OM.RenderTargets,
+        OM.DepthView, OM.UAVStartSlot, D3D11_1_UAV_SLOT_COUNT - OM.UAVStartSlot, OM.UAVs,
+        UAV_keepcounts);
   else
     context->OMSetRenderTargetsAndUnorderedAccessViews(
-        OM.UAVStartSlot, OM.RenderTargets, OM.DepthView, OM.UAVStartSlot,
-        D3D11_PS_CS_UAV_REGISTER_COUNT - OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
+        RDCMIN(OM.UAVStartSlot, (UINT)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT), OM.RenderTargets,
+        OM.DepthView, OM.UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT - OM.UAVStartSlot, OM.UAVs,
+        UAV_keepcounts);
 
   context->SetPredication(Predicate, PredicateValue);
 }
