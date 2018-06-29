@@ -822,9 +822,6 @@ WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
   return m_ContextData[GetCtx().ctx];
 }
 
-// defined in gl_<platform>_hooks.cpp
-Threading::CriticalSection &GetGLLock();
-
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
@@ -1720,7 +1717,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
-  SCOPED_LOCK(GetGLLock());
+  SCOPED_LOCK(glLock);
 
   m_State = CaptureState::ActiveCapturing;
 
@@ -1767,7 +1764,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
   if(!IsActiveCapturing(m_State))
     return true;
 
-  SCOPED_LOCK(GetGLLock());
+  SCOPED_LOCK(glLock);
 
   CaptureFailReason reason = CaptureSucceeded;
 

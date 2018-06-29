@@ -33,8 +33,6 @@
 
 #include "driver/gl/gl_hookset_defs.h"
 
-Threading::CriticalSection glLock;
-
 class OpenGLHook : LibraryHook
 {
 public:
@@ -82,9 +80,4 @@ const GLHookSet &GetRealGLFunctions()
   static GLHookSet dummyHookset = {};
   RDCUNIMPLEMENTED("GetRealGLFunctions");
   return dummyHookset;
-}
-
-Threading::CriticalSection &GetGLLock()
-{
-  return glLock;
 }

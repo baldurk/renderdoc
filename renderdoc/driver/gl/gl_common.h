@@ -267,6 +267,8 @@ const GLenum eGL_ONE = (GLenum)1;
 class WrappedOpenGL;
 struct GLHookSet;
 
+extern Threading::CriticalSection glLock;
+
 // replay only class for handling marker regions
 struct GLMarkerRegion
 {

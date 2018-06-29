@@ -28,6 +28,8 @@
 #include "strings/string_utils.h"
 #include "gl_driver.h"
 
+Threading::CriticalSection glLock;
+
 GLChunk gl_CurChunk = GLChunk::Max;
 
 bool HasExt[GLExtension_Count] = {};

@@ -656,8 +656,6 @@
                                          p14, p15, p16, p17);                                             \
   }
 
-Threading::CriticalSection glLock;
-
 typedef BOOL(WINAPI *WGLMAKECURRENTPROC)(HDC, HGLRC);
 typedef BOOL(WINAPI *WGLDELETECONTEXTPROC)(HGLRC);
 
@@ -1911,11 +1909,6 @@ const GLHookSet &GetRealGLFunctions()
 GLPlatform &GetGLPlatform()
 {
   return OpenGLHook::glhooks;
-}
-
-Threading::CriticalSection &GetGLLock()
-{
-  return glLock;
 }
 
 // dirty immediate mode rendering functions for backwards compatible

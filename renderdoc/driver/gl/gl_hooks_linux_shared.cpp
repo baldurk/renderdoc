@@ -34,14 +34,8 @@
 
 GLHookSet GL;
 WrappedOpenGL *m_GLDriver;
-Threading::CriticalSection glLock;
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
-
-Threading::CriticalSection &GetGLLock()
-{
-  return glLock;
-}
 
 #define HookInit(function)                                 \
   if(!strcmp(func, STRINGIZE(function)))                   \

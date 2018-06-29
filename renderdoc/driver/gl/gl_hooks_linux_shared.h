@@ -37,5 +37,4 @@ void PosixHookFunctions();
 
 extern GLHookSet GL;
 extern WrappedOpenGL *m_GLDriver;
-extern Threading::CriticalSection glLock;
 extern void *libGLdlsymHandle;
