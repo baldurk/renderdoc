@@ -243,7 +243,7 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     return ReplayStatus::APIInitFailed;
   }
 
-  const GLHookSet &real = GetRealGLFunctions();
+  PopulateGLFunctions();
 
   bool missingExt = CheckReplayContext(getStr, getInt, getStri);
 
@@ -256,7 +256,7 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     return ReplayStatus::APIHardwareUnsupported;
   }
 
-  bool extensionsValidated = ValidateFunctionPointers(real);
+  bool extensionsValidated = ValidateFunctionPointers();
 
   if(!extensionsValidated)
   {
@@ -281,7 +281,7 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     }
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(real, GetGLPlatform());
+  WrappedOpenGL *gl = new WrappedOpenGL(GetGLPlatform());
   RDCLOG("Created device.");
 
   GLReplay *replay = gl->GetReplay();

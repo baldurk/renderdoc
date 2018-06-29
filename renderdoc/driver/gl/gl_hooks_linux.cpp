@@ -51,8 +51,6 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook("libGL.so", this);
 
-    RDCEraseEl(GL);
-
     m_HasHooks = false;
 
     m_GLDriver = NULL;
@@ -112,11 +110,10 @@ public:
       m_GLXWindowMap.erase(it);
   }
 
-  const GLHookSet &GetRealGLFunctions()
+  void PopulateGLFunctions()
   {
     if(!m_PopulatedHooks)
       m_PopulatedHooks = PopulateHooks();
-    return GL;
   }
 
   void SetupExportedFunctions()
@@ -372,7 +369,7 @@ public:
   WrappedOpenGL *GetDriver()
   {
     if(m_GLDriver == NULL)
-      m_GLDriver = new WrappedOpenGL(GL, *this);
+      m_GLDriver = new WrappedOpenGL(*this);
 
     return m_GLDriver;
   }
@@ -876,9 +873,9 @@ bool OpenGLHook::PopulateHooks()
   return true;
 }
 
-const GLHookSet &GetRealGLFunctions()
+void PopulateGLFunctions()
 {
-  return glhooks.GetRealGLFunctions();
+  glhooks.PopulateGLFunctions();
 }
 
 GLPlatform &GetGLPlatform()

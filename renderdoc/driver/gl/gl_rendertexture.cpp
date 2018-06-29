@@ -42,7 +42,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
   const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
 
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
   auto &texDetails = m_pDriver->m_Textures[cfg.resourceId];
 
@@ -88,18 +88,18 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
-    gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
-    gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+    drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+    drv.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
 
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+    drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+    drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
 
-    gl.glBlitFramebuffer(
+    drv.glBlitFramebuffer(
         0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width, texDetails.height,
         GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
-    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+    drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+    drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
     texname = texDetails.renderbufferReadTex;
     if(resType == RESTYPE_TEX2D)
@@ -164,84 +164,83 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
       intIdx = 2;
   }
 
-  gl.glBindProgramPipeline(0);
-  gl.glUseProgram(DebugData.texDisplayProg[intIdx]);
+  drv.glBindProgramPipeline(0);
+  drv.glUseProgram(DebugData.texDisplayProg[intIdx]);
 
-  int numMips =
-      GetNumMips(gl.m_Real, target, texname, texDetails.width, texDetails.height, texDetails.depth);
+  int numMips = GetNumMips(target, texname, texDetails.width, texDetails.height, texDetails.depth);
 
   GLuint customProgram = 0;
 
   if(cfg.customShaderId != ResourceId() &&
-     gl.GetResourceManager()->HasCurrentResource(cfg.customShaderId))
+     drv.GetResourceManager()->HasCurrentResource(cfg.customShaderId))
   {
-    GLuint customShader = gl.GetResourceManager()->GetCurrentResource(cfg.customShaderId).name;
+    GLuint customShader = drv.GetResourceManager()->GetCurrentResource(cfg.customShaderId).name;
 
-    customProgram = gl.glCreateProgram();
+    customProgram = drv.glCreateProgram();
 
-    gl.glAttachShader(customProgram, DebugData.texDisplayVertexShader);
-    gl.glAttachShader(customProgram, customShader);
+    drv.glAttachShader(customProgram, DebugData.texDisplayVertexShader);
+    drv.glAttachShader(customProgram, customShader);
 
-    gl.glLinkProgram(customProgram);
+    drv.glLinkProgram(customProgram);
 
-    gl.glDetachShader(customProgram, DebugData.texDisplayVertexShader);
-    gl.glDetachShader(customProgram, customShader);
+    drv.glDetachShader(customProgram, DebugData.texDisplayVertexShader);
+    drv.glDetachShader(customProgram, customShader);
 
     char buffer[1024] = {};
     GLint status = 0;
-    gl.glGetProgramiv(customProgram, eGL_LINK_STATUS, &status);
+    drv.glGetProgramiv(customProgram, eGL_LINK_STATUS, &status);
     if(status == 0)
     {
-      gl.glGetProgramInfoLog(customProgram, 1024, NULL, buffer);
+      drv.glGetProgramInfoLog(customProgram, 1024, NULL, buffer);
       RDCERR("Error linking custom shader program: %s", buffer);
 
-      gl.glDeleteProgram(customProgram);
+      drv.glDeleteProgram(customProgram);
       customProgram = 0;
     }
 
     if(customProgram)
     {
-      gl.glUseProgram(customProgram);
+      drv.glUseProgram(customProgram);
 
       GLint loc = -1;
 
-      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_TexDim");
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_TexDim");
       if(loc >= 0)
-        gl.glProgramUniform4ui(customProgram, loc, texDetails.width, texDetails.height,
-                               texDetails.depth, (uint32_t)numMips);
+        drv.glProgramUniform4ui(customProgram, loc, texDetails.width, texDetails.height,
+                                texDetails.depth, (uint32_t)numMips);
 
-      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_SelectedMip");
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedMip");
       if(loc >= 0)
-        gl.glProgramUniform1ui(customProgram, loc, cfg.mip);
+        drv.glProgramUniform1ui(customProgram, loc, cfg.mip);
 
-      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSliceFace");
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSliceFace");
       if(loc >= 0)
-        gl.glProgramUniform1ui(customProgram, loc, cfg.sliceFace);
+        drv.glProgramUniform1ui(customProgram, loc, cfg.sliceFace);
 
-      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSample");
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSample");
       if(loc >= 0)
       {
         if(cfg.sampleIdx == ~0U)
-          gl.glProgramUniform1i(customProgram, loc, -texDetails.samples);
+          drv.glProgramUniform1i(customProgram, loc, -texDetails.samples);
         else
-          gl.glProgramUniform1i(customProgram, loc,
-                                (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1));
+          drv.glProgramUniform1i(customProgram, loc,
+                                 (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1));
       }
 
-      loc = gl.glGetUniformLocation(customProgram, "RENDERDOC_TextureType");
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_TextureType");
       if(loc >= 0)
-        gl.glProgramUniform1ui(customProgram, loc, resType);
+        drv.glProgramUniform1ui(customProgram, loc, resType);
     }
   }
 
-  gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
-  gl.glBindTexture(target, texname);
+  drv.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
+  drv.glBindTexture(target, texname);
 
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
   {
-    gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
-    gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
+    drv.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+    drv.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
   // defined as arrays mostly for Coverity code analysis to stay calm about passing
@@ -252,12 +251,12 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(cfg.resourceId != DebugData.CustomShaderTexID)
     clampmaxlevel[0] = GLint(numMips - 1);
 
-  gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+  drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
   if(clampmaxlevel[0] != maxlevel[0] && cfg.resourceId != DebugData.CustomShaderTexID)
   {
-    gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, clampmaxlevel);
+    drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, clampmaxlevel);
   }
   else
   {
@@ -267,23 +266,23 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != RESTYPE_TEXBUFFER &&
      resType != RESTYPE_TEXRECT)
   {
-    gl.glBindSampler(resType, DebugData.linearSampler);
+    drv.glBindSampler(resType, DebugData.linearSampler);
   }
   else
   {
     if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS || resType == RESTYPE_TEXBUFFER)
-      gl.glBindSampler(resType, DebugData.pointNoMipSampler);
+      drv.glBindSampler(resType, DebugData.pointNoMipSampler);
     else
-      gl.glBindSampler(resType, DebugData.pointSampler);
+      drv.glBindSampler(resType, DebugData.pointSampler);
   }
 
   GLint tex_x = texDetails.width, tex_y = texDetails.height, tex_z = texDetails.depth;
 
-  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+  drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
   TexDisplayUBOData *ubo =
-      (TexDisplayUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(TexDisplayUBOData),
-                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      (TexDisplayUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(TexDisplayUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
   float x = cfg.xOffset;
   float y = cfg.yOffset;
@@ -374,38 +373,38 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(cfg.sampleIdx == ~0U)
     ubo->SampleIdx = -texDetails.samples;
 
-  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+  drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
   if(cfg.rawOutput || !blendAlpha)
   {
-    gl.glDisable(eGL_BLEND);
+    drv.glDisable(eGL_BLEND);
   }
   else
   {
-    gl.glEnable(eGL_BLEND);
-    gl.glBlendFunc(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA);
+    drv.glEnable(eGL_BLEND);
+    drv.glBlendFunc(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA);
   }
 
-  gl.glDisable(eGL_DEPTH_TEST);
+  drv.glDisable(eGL_DEPTH_TEST);
 
-  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
-  gl.glBindVertexArray(DebugData.emptyVAO);
-  gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+  drv.glBindVertexArray(DebugData.emptyVAO);
+  drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
   if(maxlevel[0] >= 0)
-    gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+    drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
-  gl.glBindSampler(0, 0);
+  drv.glBindSampler(0, 0);
 
   if(customProgram)
   {
-    gl.glUseProgram(0);
-    gl.glDeleteProgram(customProgram);
+    drv.glUseProgram(0);
+    drv.glDeleteProgram(customProgram);
   }
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
-    gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+    drv.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
   return true;
 }

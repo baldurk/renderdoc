@@ -26,13 +26,12 @@
 #include <stdio.h>
 #include "common/threading.h"
 #include "driver/gl/gl_common.h"
+#include "driver/gl/gl_dispatch_table.h"
+#include "driver/gl/gl_dispatch_table_defs.h"
 #include "driver/gl/gl_driver.h"
-#include "driver/gl/gl_hookset.h"
-#include "driver/gl/gl_hookset_defs.h"
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
 
-GLHookSet GL;
 WrappedOpenGL *m_GLDriver;
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
@@ -1464,12 +1463,11 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 
 void SharedCheckContext()
 {
-  CheckExtensions(GL);
+  CheckExtensions();
 
   // see gl_emulated.cpp
-  glEmulate::EmulateUnsupportedFunctions(&GL);
-
-  glEmulate::EmulateRequiredExtensions(&GL);
+  GL.EmulateUnsupportedFunctions();
+  GL.EmulateRequiredExtensions();
 }
 
 void PosixHookFunctions()

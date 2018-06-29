@@ -99,7 +99,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
 void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length,
                                      const GLchar *label)
 {
-  SERIALISE_TIME_CALL(m_Real.glLabelObjectEXT(identifier, name, length, label));
+  SERIALISE_TIME_CALL(GL.glLabelObjectEXT(identifier, name, length, label));
 
   if(IsCaptureMode(m_State))
   {
@@ -113,7 +113,7 @@ void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei len
 
 void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
 {
-  SERIALISE_TIME_CALL(m_Real.glObjectLabel(identifier, name, length, label));
+  SERIALISE_TIME_CALL(GL.glObjectLabel(identifier, name, length, label));
 
   if(IsCaptureMode(m_State))
   {
@@ -127,7 +127,7 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
 
 void WrappedOpenGL::glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
 {
-  SERIALISE_TIME_CALL(m_Real.glObjectPtrLabel(ptr, length, label));
+  SERIALISE_TIME_CALL(GL.glObjectPtrLabel(ptr, length, label));
 
   if(IsCaptureMode(m_State))
   {
@@ -146,14 +146,14 @@ void WrappedOpenGL::glDebugMessageCallback(GLDEBUGPROC callback, const void *use
   m_RealDebugFunc = callback;
   m_RealDebugFuncParam = userParam;
 
-  m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
+  GL.glDebugMessageCallback(&DebugSnoopStatic, this);
 }
 
 void WrappedOpenGL::glDebugMessageControl(GLenum source, GLenum type, GLenum severity,
                                           GLsizei count, const GLuint *ids, GLboolean enabled)
 {
   // we could exert control over debug messages here
-  m_Real.glDebugMessageControl(source, type, severity, count, ids, enabled);
+  GL.glDebugMessageControl(source, type, severity, count, ids, enabled);
 }
 
 template <typename SerialiserType>
@@ -212,7 +212,7 @@ void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity,
                                          GLsizei length, const GLchar *buf)
 {
-  SERIALISE_TIME_CALL(m_Real.glDebugMessageInsert(source, type, id, severity, length, buf));
+  SERIALISE_TIME_CALL(GL.glDebugMessageInsert(source, type, id, severity, length, buf));
 
   HandleVRFrameMarkers(buf, length);
 
@@ -347,7 +347,7 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
 
 void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
 {
-  SERIALISE_TIME_CALL(m_Real.glPushDebugGroup(source, id, length, message));
+  SERIALISE_TIME_CALL(GL.glPushDebugGroup(source, id, length, message));
 
   if(IsActiveCapturing(m_State))
   {
@@ -382,7 +382,7 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
 }
 void WrappedOpenGL::glPopDebugGroup()
 {
-  SERIALISE_TIME_CALL(m_Real.glPopDebugGroup());
+  SERIALISE_TIME_CALL(GL.glPopDebugGroup());
 
   if(IsActiveCapturing(m_State))
   {

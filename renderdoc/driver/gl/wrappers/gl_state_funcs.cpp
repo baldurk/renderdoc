@@ -37,7 +37,7 @@ bool WrappedOpenGL::Serialise_glBlendFunc(SerialiserType &ser, GLenum sfactor, G
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendFunc(sfactor, dfactor);
+    GL.glBlendFunc(sfactor, dfactor);
   }
 
   return true;
@@ -45,7 +45,7 @@ bool WrappedOpenGL::Serialise_glBlendFunc(SerialiserType &ser, GLenum sfactor, G
 
 void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendFunc(sfactor, dfactor));
+  SERIALISE_TIME_CALL(GL.glBlendFunc(sfactor, dfactor));
 
   if(IsActiveCapturing(m_State))
   {
@@ -68,7 +68,7 @@ bool WrappedOpenGL::Serialise_glBlendFunci(SerialiserType &ser, GLuint buf, GLen
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendFunci(buf, src, dst);
+    GL.glBlendFunci(buf, src, dst);
   }
 
   return true;
@@ -76,7 +76,7 @@ bool WrappedOpenGL::Serialise_glBlendFunci(SerialiserType &ser, GLuint buf, GLen
 
 void WrappedOpenGL::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendFunci(buf, src, dst));
+  SERIALISE_TIME_CALL(GL.glBlendFunci(buf, src, dst));
 
   if(IsActiveCapturing(m_State))
   {
@@ -101,7 +101,7 @@ bool WrappedOpenGL::Serialise_glBlendColor(SerialiserType &ser, GLfloat red, GLf
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendColor(red, green, blue, alpha);
+    GL.glBlendColor(red, green, blue, alpha);
   }
 
   return true;
@@ -109,7 +109,7 @@ bool WrappedOpenGL::Serialise_glBlendColor(SerialiserType &ser, GLfloat red, GLf
 
 void WrappedOpenGL::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendColor(red, green, blue, alpha));
+  SERIALISE_TIME_CALL(GL.glBlendColor(red, green, blue, alpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -135,7 +135,7 @@ bool WrappedOpenGL::Serialise_glBlendFuncSeparate(SerialiserType &ser, GLenum sf
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+    GL.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
   }
 
   return true;
@@ -144,7 +144,7 @@ bool WrappedOpenGL::Serialise_glBlendFuncSeparate(SerialiserType &ser, GLenum sf
 void WrappedOpenGL::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha,
                                         GLenum dfactorAlpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha));
+  SERIALISE_TIME_CALL(GL.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -171,7 +171,7 @@ bool WrappedOpenGL::Serialise_glBlendFuncSeparatei(SerialiserType &ser, GLuint b
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+    GL.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
   }
 
   return true;
@@ -181,7 +181,7 @@ void WrappedOpenGL::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum d
                                          GLenum sfactorAlpha, GLenum dfactorAlpha)
 {
   SERIALISE_TIME_CALL(
-      m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha));
+      GL.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -202,7 +202,7 @@ bool WrappedOpenGL::Serialise_glBlendEquation(SerialiserType &ser, GLenum mode)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendEquation(mode);
+    GL.glBlendEquation(mode);
   }
 
   return true;
@@ -210,7 +210,7 @@ bool WrappedOpenGL::Serialise_glBlendEquation(SerialiserType &ser, GLenum mode)
 
 void WrappedOpenGL::glBlendEquation(GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendEquation(mode));
+  SERIALISE_TIME_CALL(GL.glBlendEquation(mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -232,7 +232,7 @@ bool WrappedOpenGL::Serialise_glBlendEquationi(SerialiserType &ser, GLuint buf, 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendEquationi(buf, mode);
+    GL.glBlendEquationi(buf, mode);
   }
 
   return true;
@@ -240,7 +240,7 @@ bool WrappedOpenGL::Serialise_glBlendEquationi(SerialiserType &ser, GLuint buf, 
 
 void WrappedOpenGL::glBlendEquationi(GLuint buf, GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendEquationi(buf, mode));
+  SERIALISE_TIME_CALL(GL.glBlendEquationi(buf, mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -263,7 +263,7 @@ bool WrappedOpenGL::Serialise_glBlendEquationSeparate(SerialiserType &ser, GLenu
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendEquationSeparate(modeRGB, modeAlpha);
+    GL.glBlendEquationSeparate(modeRGB, modeAlpha);
   }
 
   return true;
@@ -271,7 +271,7 @@ bool WrappedOpenGL::Serialise_glBlendEquationSeparate(SerialiserType &ser, GLenu
 
 void WrappedOpenGL::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendEquationSeparate(modeRGB, modeAlpha));
+  SERIALISE_TIME_CALL(GL.glBlendEquationSeparate(modeRGB, modeAlpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -295,7 +295,7 @@ bool WrappedOpenGL::Serialise_glBlendEquationSeparatei(SerialiserType &ser, GLui
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+    GL.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
   }
 
   return true;
@@ -303,7 +303,7 @@ bool WrappedOpenGL::Serialise_glBlendEquationSeparatei(SerialiserType &ser, GLui
 
 void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha));
+  SERIALISE_TIME_CALL(GL.glBlendEquationSeparatei(buf, modeRGB, modeAlpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -320,10 +320,10 @@ bool WrappedOpenGL::Serialise_glBlendBarrierKHR(SerialiserType &ser)
 {
   if(IsReplayingAndReading())
   {
-    if(IsGLES && m_Real.glBlendBarrier)
-      m_Real.glBlendBarrier();
+    if(IsGLES && GL.glBlendBarrier)
+      GL.glBlendBarrier();
     else
-      m_Real.glBlendBarrierKHR();
+      GL.glBlendBarrierKHR();
   }
 
   return true;
@@ -333,7 +333,7 @@ void WrappedOpenGL::glBlendBarrierKHR()
 {
   CoherentMapImplicitBarrier();
 
-  SERIALISE_TIME_CALL(m_Real.glBlendBarrierKHR());
+  SERIALISE_TIME_CALL(GL.glBlendBarrierKHR());
 
   if(IsActiveCapturing(m_State))
   {
@@ -349,7 +349,7 @@ void WrappedOpenGL::glBlendBarrier()
 {
   CoherentMapImplicitBarrier();
 
-  SERIALISE_TIME_CALL(m_Real.glBlendBarrier());
+  SERIALISE_TIME_CALL(GL.glBlendBarrier());
 
   if(IsActiveCapturing(m_State))
   {
@@ -370,7 +370,7 @@ bool WrappedOpenGL::Serialise_glLogicOp(SerialiserType &ser, GLenum opcode)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glLogicOp(opcode);
+    GL.glLogicOp(opcode);
   }
 
   return true;
@@ -378,7 +378,7 @@ bool WrappedOpenGL::Serialise_glLogicOp(SerialiserType &ser, GLenum opcode)
 
 void WrappedOpenGL::glLogicOp(GLenum opcode)
 {
-  SERIALISE_TIME_CALL(m_Real.glLogicOp(opcode));
+  SERIALISE_TIME_CALL(GL.glLogicOp(opcode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -401,7 +401,7 @@ bool WrappedOpenGL::Serialise_glStencilFunc(SerialiserType &ser, GLenum func, GL
 
   if(IsReplayingAndReading())
   {
-    m_Real.glStencilFunc(func, ref, mask);
+    GL.glStencilFunc(func, ref, mask);
   }
 
   return true;
@@ -409,7 +409,7 @@ bool WrappedOpenGL::Serialise_glStencilFunc(SerialiserType &ser, GLenum func, GL
 
 void WrappedOpenGL::glStencilFunc(GLenum func, GLint ref, GLuint mask)
 {
-  SERIALISE_TIME_CALL(m_Real.glStencilFunc(func, ref, mask));
+  SERIALISE_TIME_CALL(GL.glStencilFunc(func, ref, mask));
 
   if(IsActiveCapturing(m_State))
   {
@@ -434,7 +434,7 @@ bool WrappedOpenGL::Serialise_glStencilFuncSeparate(SerialiserType &ser, GLenum 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glStencilFuncSeparate(face, func, ref, mask);
+    GL.glStencilFuncSeparate(face, func, ref, mask);
   }
 
   return true;
@@ -442,7 +442,7 @@ bool WrappedOpenGL::Serialise_glStencilFuncSeparate(SerialiserType &ser, GLenum 
 
 void WrappedOpenGL::glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
 {
-  SERIALISE_TIME_CALL(m_Real.glStencilFuncSeparate(face, func, ref, mask));
+  SERIALISE_TIME_CALL(GL.glStencilFuncSeparate(face, func, ref, mask));
 
   if(IsActiveCapturing(m_State))
   {
@@ -463,7 +463,7 @@ bool WrappedOpenGL::Serialise_glStencilMask(SerialiserType &ser, GLuint mask)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glStencilMask(mask);
+    GL.glStencilMask(mask);
   }
 
   return true;
@@ -471,7 +471,7 @@ bool WrappedOpenGL::Serialise_glStencilMask(SerialiserType &ser, GLuint mask)
 
 void WrappedOpenGL::glStencilMask(GLuint mask)
 {
-  SERIALISE_TIME_CALL(m_Real.glStencilMask(mask));
+  SERIALISE_TIME_CALL(GL.glStencilMask(mask));
 
   if(IsActiveCapturing(m_State))
   {
@@ -493,7 +493,7 @@ bool WrappedOpenGL::Serialise_glStencilMaskSeparate(SerialiserType &ser, GLenum 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glStencilMaskSeparate(face, mask);
+    GL.glStencilMaskSeparate(face, mask);
   }
 
   return true;
@@ -501,7 +501,7 @@ bool WrappedOpenGL::Serialise_glStencilMaskSeparate(SerialiserType &ser, GLenum 
 
 void WrappedOpenGL::glStencilMaskSeparate(GLenum face, GLuint mask)
 {
-  SERIALISE_TIME_CALL(m_Real.glStencilMaskSeparate(face, mask));
+  SERIALISE_TIME_CALL(GL.glStencilMaskSeparate(face, mask));
 
   if(IsActiveCapturing(m_State))
   {
@@ -524,7 +524,7 @@ bool WrappedOpenGL::Serialise_glStencilOp(SerialiserType &ser, GLenum fail, GLen
 
   if(IsReplayingAndReading())
   {
-    m_Real.glStencilOp(fail, zfail, zpass);
+    GL.glStencilOp(fail, zfail, zpass);
   }
 
   return true;
@@ -532,7 +532,7 @@ bool WrappedOpenGL::Serialise_glStencilOp(SerialiserType &ser, GLenum fail, GLen
 
 void WrappedOpenGL::glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
 {
-  SERIALISE_TIME_CALL(m_Real.glStencilOp(fail, zfail, zpass));
+  SERIALISE_TIME_CALL(GL.glStencilOp(fail, zfail, zpass));
 
   if(IsActiveCapturing(m_State))
   {
@@ -557,7 +557,7 @@ bool WrappedOpenGL::Serialise_glStencilOpSeparate(SerialiserType &ser, GLenum fa
 
   if(IsReplayingAndReading())
   {
-    m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass);
+    GL.glStencilOpSeparate(face, sfail, dpfail, dppass);
   }
 
   return true;
@@ -565,7 +565,7 @@ bool WrappedOpenGL::Serialise_glStencilOpSeparate(SerialiserType &ser, GLenum fa
 
 void WrappedOpenGL::glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
 {
-  SERIALISE_TIME_CALL(m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass));
+  SERIALISE_TIME_CALL(GL.glStencilOpSeparate(face, sfail, dpfail, dppass));
 
   if(IsActiveCapturing(m_State))
   {
@@ -590,7 +590,7 @@ bool WrappedOpenGL::Serialise_glClearColor(SerialiserType &ser, GLclampf red, GL
 
   if(IsReplayingAndReading())
   {
-    m_Real.glClearColor(red, green, blue, alpha);
+    GL.glClearColor(red, green, blue, alpha);
   }
 
   return true;
@@ -598,7 +598,7 @@ bool WrappedOpenGL::Serialise_glClearColor(SerialiserType &ser, GLclampf red, GL
 
 void WrappedOpenGL::glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glClearColor(red, green, blue, alpha));
+  SERIALISE_TIME_CALL(GL.glClearColor(red, green, blue, alpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -619,7 +619,7 @@ bool WrappedOpenGL::Serialise_glClearStencil(SerialiserType &ser, GLint stencil)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glClearStencil(stencil);
+    GL.glClearStencil(stencil);
   }
 
   return true;
@@ -627,7 +627,7 @@ bool WrappedOpenGL::Serialise_glClearStencil(SerialiserType &ser, GLint stencil)
 
 void WrappedOpenGL::glClearStencil(GLint stencil)
 {
-  SERIALISE_TIME_CALL(m_Real.glClearStencil(stencil));
+  SERIALISE_TIME_CALL(GL.glClearStencil(stencil));
 
   if(IsActiveCapturing(m_State))
   {
@@ -649,9 +649,9 @@ bool WrappedOpenGL::Serialise_glClearDepth(SerialiserType &ser, GLdouble depth)
   if(IsReplayingAndReading())
   {
     if(IsGLES)
-      m_Real.glClearDepthf((float)depth);
+      GL.glClearDepthf((float)depth);
     else
-      m_Real.glClearDepth(depth);
+      GL.glClearDepth(depth);
   }
 
   return true;
@@ -659,7 +659,7 @@ bool WrappedOpenGL::Serialise_glClearDepth(SerialiserType &ser, GLdouble depth)
 
 void WrappedOpenGL::glClearDepth(GLdouble depth)
 {
-  SERIALISE_TIME_CALL(m_Real.glClearDepth(depth));
+  SERIALISE_TIME_CALL(GL.glClearDepth(depth));
 
   if(IsActiveCapturing(m_State))
   {
@@ -673,7 +673,7 @@ void WrappedOpenGL::glClearDepth(GLdouble depth)
 
 void WrappedOpenGL::glClearDepthf(GLfloat depth)
 {
-  SERIALISE_TIME_CALL(m_Real.glClearDepthf(depth));
+  SERIALISE_TIME_CALL(GL.glClearDepthf(depth));
 
   if(IsActiveCapturing(m_State))
   {
@@ -694,7 +694,7 @@ bool WrappedOpenGL::Serialise_glDepthFunc(SerialiserType &ser, GLenum func)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glDepthFunc(func);
+    GL.glDepthFunc(func);
   }
 
   return true;
@@ -702,7 +702,7 @@ bool WrappedOpenGL::Serialise_glDepthFunc(SerialiserType &ser, GLenum func)
 
 void WrappedOpenGL::glDepthFunc(GLenum func)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthFunc(func));
+  SERIALISE_TIME_CALL(GL.glDepthFunc(func));
 
   if(IsActiveCapturing(m_State))
   {
@@ -723,7 +723,7 @@ bool WrappedOpenGL::Serialise_glDepthMask(SerialiserType &ser, GLboolean flag)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glDepthMask(flag ? GL_TRUE : GL_FALSE);
+    GL.glDepthMask(flag ? GL_TRUE : GL_FALSE);
   }
 
   return true;
@@ -731,7 +731,7 @@ bool WrappedOpenGL::Serialise_glDepthMask(SerialiserType &ser, GLboolean flag)
 
 void WrappedOpenGL::glDepthMask(GLboolean flag)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthMask(flag));
+  SERIALISE_TIME_CALL(GL.glDepthMask(flag));
 
   if(IsActiveCapturing(m_State))
   {
@@ -752,14 +752,14 @@ bool WrappedOpenGL::Serialise_glDepthRange(SerialiserType &ser, GLdouble nearVal
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glDepthRange(nearVal, farVal);
+    GL.glDepthRange(nearVal, farVal);
 
   return true;
 }
 
 void WrappedOpenGL::glDepthRange(GLdouble nearVal, GLdouble farVal)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthRange(nearVal, farVal));
+  SERIALISE_TIME_CALL(GL.glDepthRange(nearVal, farVal));
 
   if(IsActiveCapturing(m_State))
   {
@@ -780,14 +780,14 @@ bool WrappedOpenGL::Serialise_glDepthRangef(SerialiserType &ser, GLfloat nearVal
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glDepthRangef(nearVal, farVal);
+    GL.glDepthRangef(nearVal, farVal);
 
   return true;
 }
 
 void WrappedOpenGL::glDepthRangef(GLfloat nearVal, GLfloat farVal)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthRangef(nearVal, farVal));
+  SERIALISE_TIME_CALL(GL.glDepthRangef(nearVal, farVal));
 
   if(IsActiveCapturing(m_State))
   {
@@ -812,9 +812,9 @@ bool WrappedOpenGL::Serialise_glDepthRangeIndexed(SerialiserType &ser, GLuint in
   if(IsReplayingAndReading())
   {
     if(IsGLES)
-      m_Real.glDepthRangeIndexedfOES(index, (GLfloat)nearVal, (GLfloat)farVal);
+      GL.glDepthRangeIndexedfOES(index, (GLfloat)nearVal, (GLfloat)farVal);
     else
-      m_Real.glDepthRangeIndexed(index, nearVal, farVal);
+      GL.glDepthRangeIndexed(index, nearVal, farVal);
   }
 
   return true;
@@ -822,7 +822,7 @@ bool WrappedOpenGL::Serialise_glDepthRangeIndexed(SerialiserType &ser, GLuint in
 
 void WrappedOpenGL::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble farVal)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthRangeIndexed(index, nearVal, farVal));
+  SERIALISE_TIME_CALL(GL.glDepthRangeIndexed(index, nearVal, farVal));
 
   if(IsActiveCapturing(m_State))
   {
@@ -836,7 +836,7 @@ void WrappedOpenGL::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble
 
 void WrappedOpenGL::glDepthRangeIndexedfOES(GLuint index, GLfloat nearVal, GLfloat farVal)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthRangeIndexedfOES(index, nearVal, farVal));
+  SERIALISE_TIME_CALL(GL.glDepthRangeIndexedfOES(index, nearVal, farVal));
 
   if(IsActiveCapturing(m_State))
   {
@@ -866,13 +866,13 @@ bool WrappedOpenGL::Serialise_glDepthRangeArrayv(SerialiserType &ser, GLuint fir
       for(GLsizei i = 0; i < count * 2; ++i)
         fv[i] = (GLfloat)v[i];
 
-      m_Real.glDepthRangeArrayfvOES(first, count, fv);
+      GL.glDepthRangeArrayfvOES(first, count, fv);
 
       delete[] fv;
     }
     else
     {
-      m_Real.glDepthRangeArrayv(first, count, v);
+      GL.glDepthRangeArrayv(first, count, v);
     }
   }
 
@@ -881,7 +881,7 @@ bool WrappedOpenGL::Serialise_glDepthRangeArrayv(SerialiserType &ser, GLuint fir
 
 void WrappedOpenGL::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthRangeArrayv(first, count, v));
+  SERIALISE_TIME_CALL(GL.glDepthRangeArrayv(first, count, v));
 
   if(IsActiveCapturing(m_State))
   {
@@ -895,7 +895,7 @@ void WrappedOpenGL::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdoub
 
 void WrappedOpenGL::glDepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat *v)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthRangeArrayfvOES(first, count, v));
+  SERIALISE_TIME_CALL(GL.glDepthRangeArrayfvOES(first, count, v));
 
   if(IsActiveCapturing(m_State))
   {
@@ -923,7 +923,7 @@ bool WrappedOpenGL::Serialise_glDepthBoundsEXT(SerialiserType &ser, GLclampd nea
 
   if(IsReplayingAndReading())
   {
-    m_Real.glDepthBoundsEXT(nearVal, farVal);
+    GL.glDepthBoundsEXT(nearVal, farVal);
   }
 
   return true;
@@ -931,7 +931,7 @@ bool WrappedOpenGL::Serialise_glDepthBoundsEXT(SerialiserType &ser, GLclampd nea
 
 void WrappedOpenGL::glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal)
 {
-  SERIALISE_TIME_CALL(m_Real.glDepthBoundsEXT(nearVal, farVal));
+  SERIALISE_TIME_CALL(GL.glDepthBoundsEXT(nearVal, farVal));
 
   if(IsActiveCapturing(m_State))
   {
@@ -953,7 +953,7 @@ bool WrappedOpenGL::Serialise_glClipControl(SerialiserType &ser, GLenum origin, 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glClipControl(origin, depth);
+    GL.glClipControl(origin, depth);
   }
 
   return true;
@@ -961,7 +961,7 @@ bool WrappedOpenGL::Serialise_glClipControl(SerialiserType &ser, GLenum origin, 
 
 void WrappedOpenGL::glClipControl(GLenum origin, GLenum depth)
 {
-  SERIALISE_TIME_CALL(m_Real.glClipControl(origin, depth));
+  SERIALISE_TIME_CALL(GL.glClipControl(origin, depth));
 
   if(IsActiveCapturing(m_State))
   {
@@ -982,7 +982,7 @@ bool WrappedOpenGL::Serialise_glProvokingVertex(SerialiserType &ser, GLenum mode
 
   if(IsReplayingAndReading())
   {
-    m_Real.glProvokingVertex(mode);
+    GL.glProvokingVertex(mode);
   }
 
   return true;
@@ -990,7 +990,7 @@ bool WrappedOpenGL::Serialise_glProvokingVertex(SerialiserType &ser, GLenum mode
 
 void WrappedOpenGL::glProvokingVertex(GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glProvokingVertex(mode));
+  SERIALISE_TIME_CALL(GL.glProvokingVertex(mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1011,7 +1011,7 @@ bool WrappedOpenGL::Serialise_glPrimitiveRestartIndex(SerialiserType &ser, GLuin
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPrimitiveRestartIndex(index);
+    GL.glPrimitiveRestartIndex(index);
   }
 
   return true;
@@ -1019,7 +1019,7 @@ bool WrappedOpenGL::Serialise_glPrimitiveRestartIndex(SerialiserType &ser, GLuin
 
 void WrappedOpenGL::glPrimitiveRestartIndex(GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glPrimitiveRestartIndex(index));
+  SERIALISE_TIME_CALL(GL.glPrimitiveRestartIndex(index));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1040,7 +1040,7 @@ bool WrappedOpenGL::Serialise_glDisable(SerialiserType &ser, GLenum cap)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glDisable(cap);
+    GL.glDisable(cap);
   }
 
   return true;
@@ -1048,7 +1048,7 @@ bool WrappedOpenGL::Serialise_glDisable(SerialiserType &ser, GLenum cap)
 
 void WrappedOpenGL::glDisable(GLenum cap)
 {
-  SERIALISE_TIME_CALL(m_Real.glDisable(cap));
+  SERIALISE_TIME_CALL(GL.glDisable(cap));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1080,7 +1080,7 @@ bool WrappedOpenGL::Serialise_glEnable(SerialiserType &ser, GLenum cap)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glEnable(cap);
+    GL.glEnable(cap);
   }
 
   return true;
@@ -1088,7 +1088,7 @@ bool WrappedOpenGL::Serialise_glEnable(SerialiserType &ser, GLenum cap)
 
 void WrappedOpenGL::glEnable(GLenum cap)
 {
-  SERIALISE_TIME_CALL(m_Real.glEnable(cap));
+  SERIALISE_TIME_CALL(GL.glEnable(cap));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1110,7 +1110,7 @@ bool WrappedOpenGL::Serialise_glDisablei(SerialiserType &ser, GLenum cap, GLuint
 
   if(IsReplayingAndReading())
   {
-    m_Real.glDisablei(cap, index);
+    GL.glDisablei(cap, index);
   }
 
   return true;
@@ -1118,7 +1118,7 @@ bool WrappedOpenGL::Serialise_glDisablei(SerialiserType &ser, GLenum cap, GLuint
 
 void WrappedOpenGL::glDisablei(GLenum cap, GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glDisablei(cap, index));
+  SERIALISE_TIME_CALL(GL.glDisablei(cap, index));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1140,7 +1140,7 @@ bool WrappedOpenGL::Serialise_glEnablei(SerialiserType &ser, GLenum cap, GLuint 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glEnablei(cap, index);
+    GL.glEnablei(cap, index);
   }
 
   return true;
@@ -1148,7 +1148,7 @@ bool WrappedOpenGL::Serialise_glEnablei(SerialiserType &ser, GLenum cap, GLuint 
 
 void WrappedOpenGL::glEnablei(GLenum cap, GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glEnablei(cap, index));
+  SERIALISE_TIME_CALL(GL.glEnablei(cap, index));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1169,7 +1169,7 @@ bool WrappedOpenGL::Serialise_glFrontFace(SerialiserType &ser, GLenum mode)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glFrontFace(mode);
+    GL.glFrontFace(mode);
   }
 
   return true;
@@ -1177,7 +1177,7 @@ bool WrappedOpenGL::Serialise_glFrontFace(SerialiserType &ser, GLenum mode)
 
 void WrappedOpenGL::glFrontFace(GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glFrontFace(mode));
+  SERIALISE_TIME_CALL(GL.glFrontFace(mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1198,7 +1198,7 @@ bool WrappedOpenGL::Serialise_glCullFace(SerialiserType &ser, GLenum mode)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glCullFace(mode);
+    GL.glCullFace(mode);
   }
 
   return true;
@@ -1206,7 +1206,7 @@ bool WrappedOpenGL::Serialise_glCullFace(SerialiserType &ser, GLenum mode)
 
 void WrappedOpenGL::glCullFace(GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glCullFace(mode));
+  SERIALISE_TIME_CALL(GL.glCullFace(mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1228,7 +1228,7 @@ bool WrappedOpenGL::Serialise_glHint(SerialiserType &ser, GLenum target, GLenum 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glHint(target, mode);
+    GL.glHint(target, mode);
   }
 
   return true;
@@ -1236,7 +1236,7 @@ bool WrappedOpenGL::Serialise_glHint(SerialiserType &ser, GLenum target, GLenum 
 
 void WrappedOpenGL::glHint(GLenum target, GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glHint(target, mode));
+  SERIALISE_TIME_CALL(GL.glHint(target, mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1261,8 +1261,8 @@ bool WrappedOpenGL::Serialise_glColorMask(SerialiserType &ser, GLboolean red, GL
 
   if(IsReplayingAndReading())
   {
-    m_Real.glColorMask(red ? GL_TRUE : GL_FALSE, green ? GL_TRUE : GL_FALSE,
-                       blue ? GL_TRUE : GL_FALSE, alpha ? GL_TRUE : GL_FALSE);
+    GL.glColorMask(red ? GL_TRUE : GL_FALSE, green ? GL_TRUE : GL_FALSE, blue ? GL_TRUE : GL_FALSE,
+                   alpha ? GL_TRUE : GL_FALSE);
   }
 
   return true;
@@ -1270,7 +1270,7 @@ bool WrappedOpenGL::Serialise_glColorMask(SerialiserType &ser, GLboolean red, GL
 
 void WrappedOpenGL::glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glColorMask(red, green, blue, alpha));
+  SERIALISE_TIME_CALL(GL.glColorMask(red, green, blue, alpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1296,8 +1296,8 @@ bool WrappedOpenGL::Serialise_glColorMaski(SerialiserType &ser, GLuint buf, GLbo
 
   if(IsReplayingAndReading())
   {
-    m_Real.glColorMaski(buf, red ? GL_TRUE : GL_FALSE, green ? GL_TRUE : GL_FALSE,
-                        blue ? GL_TRUE : GL_FALSE, alpha ? GL_TRUE : GL_FALSE);
+    GL.glColorMaski(buf, red ? GL_TRUE : GL_FALSE, green ? GL_TRUE : GL_FALSE,
+                    blue ? GL_TRUE : GL_FALSE, alpha ? GL_TRUE : GL_FALSE);
   }
 
   return true;
@@ -1306,7 +1306,7 @@ bool WrappedOpenGL::Serialise_glColorMaski(SerialiserType &ser, GLuint buf, GLbo
 void WrappedOpenGL::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue,
                                  GLboolean alpha)
 {
-  SERIALISE_TIME_CALL(m_Real.glColorMaski(buf, red, green, blue, alpha));
+  SERIALISE_TIME_CALL(GL.glColorMaski(buf, red, green, blue, alpha));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1328,7 +1328,7 @@ bool WrappedOpenGL::Serialise_glSampleMaski(SerialiserType &ser, GLuint maskNumb
 
   if(IsReplayingAndReading())
   {
-    m_Real.glSampleMaski(maskNumber, mask);
+    GL.glSampleMaski(maskNumber, mask);
   }
 
   return true;
@@ -1336,7 +1336,7 @@ bool WrappedOpenGL::Serialise_glSampleMaski(SerialiserType &ser, GLuint maskNumb
 
 void WrappedOpenGL::glSampleMaski(GLuint maskNumber, GLbitfield mask)
 {
-  SERIALISE_TIME_CALL(m_Real.glSampleMaski(maskNumber, mask));
+  SERIALISE_TIME_CALL(GL.glSampleMaski(maskNumber, mask));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1358,7 +1358,7 @@ bool WrappedOpenGL::Serialise_glSampleCoverage(SerialiserType &ser, GLfloat valu
 
   if(IsReplayingAndReading())
   {
-    m_Real.glSampleCoverage(value, invert ? GL_TRUE : GL_FALSE);
+    GL.glSampleCoverage(value, invert ? GL_TRUE : GL_FALSE);
   }
 
   return true;
@@ -1366,7 +1366,7 @@ bool WrappedOpenGL::Serialise_glSampleCoverage(SerialiserType &ser, GLfloat valu
 
 void WrappedOpenGL::glSampleCoverage(GLfloat value, GLboolean invert)
 {
-  SERIALISE_TIME_CALL(m_Real.glSampleCoverage(value, invert));
+  SERIALISE_TIME_CALL(GL.glSampleCoverage(value, invert));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1387,7 +1387,7 @@ bool WrappedOpenGL::Serialise_glMinSampleShading(SerialiserType &ser, GLfloat va
 
   if(IsReplayingAndReading())
   {
-    m_Real.glMinSampleShading(value);
+    GL.glMinSampleShading(value);
   }
 
   return true;
@@ -1395,7 +1395,7 @@ bool WrappedOpenGL::Serialise_glMinSampleShading(SerialiserType &ser, GLfloat va
 
 void WrappedOpenGL::glMinSampleShading(GLfloat value)
 {
-  SERIALISE_TIME_CALL(m_Real.glMinSampleShading(value));
+  SERIALISE_TIME_CALL(GL.glMinSampleShading(value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1418,7 +1418,7 @@ bool WrappedOpenGL::Serialise_glRasterSamplesEXT(SerialiserType &ser, GLuint sam
 
   if(IsReplayingAndReading())
   {
-    m_Real.glRasterSamplesEXT(samples, fixedsamplelocations ? GL_TRUE : GL_FALSE);
+    GL.glRasterSamplesEXT(samples, fixedsamplelocations ? GL_TRUE : GL_FALSE);
   }
 
   return true;
@@ -1426,7 +1426,7 @@ bool WrappedOpenGL::Serialise_glRasterSamplesEXT(SerialiserType &ser, GLuint sam
 
 void WrappedOpenGL::glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
 {
-  SERIALISE_TIME_CALL(m_Real.glRasterSamplesEXT(samples, fixedsamplelocations));
+  SERIALISE_TIME_CALL(GL.glRasterSamplesEXT(samples, fixedsamplelocations));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1448,7 +1448,7 @@ bool WrappedOpenGL::Serialise_glPatchParameteri(SerialiserType &ser, GLenum pnam
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPatchParameteri(pname, value);
+    GL.glPatchParameteri(pname, value);
   }
 
   return true;
@@ -1456,7 +1456,7 @@ bool WrappedOpenGL::Serialise_glPatchParameteri(SerialiserType &ser, GLenum pnam
 
 void WrappedOpenGL::glPatchParameteri(GLenum pname, GLint value)
 {
-  SERIALISE_TIME_CALL(m_Real.glPatchParameteri(pname, value));
+  SERIALISE_TIME_CALL(GL.glPatchParameteri(pname, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1479,7 +1479,7 @@ bool WrappedOpenGL::Serialise_glPatchParameterfv(SerialiserType &ser, GLenum pna
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPatchParameterfv(pname, values);
+    GL.glPatchParameterfv(pname, values);
   }
 
   return true;
@@ -1487,7 +1487,7 @@ bool WrappedOpenGL::Serialise_glPatchParameterfv(SerialiserType &ser, GLenum pna
 
 void WrappedOpenGL::glPatchParameterfv(GLenum pname, const GLfloat *values)
 {
-  SERIALISE_TIME_CALL(m_Real.glPatchParameterfv(pname, values));
+  SERIALISE_TIME_CALL(GL.glPatchParameterfv(pname, values));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1508,7 +1508,7 @@ bool WrappedOpenGL::Serialise_glLineWidth(SerialiserType &ser, GLfloat width)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glLineWidth(width);
+    GL.glLineWidth(width);
   }
 
   return true;
@@ -1516,7 +1516,7 @@ bool WrappedOpenGL::Serialise_glLineWidth(SerialiserType &ser, GLfloat width)
 
 void WrappedOpenGL::glLineWidth(GLfloat width)
 {
-  SERIALISE_TIME_CALL(m_Real.glLineWidth(width));
+  SERIALISE_TIME_CALL(GL.glLineWidth(width));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1537,7 +1537,7 @@ bool WrappedOpenGL::Serialise_glPointSize(SerialiserType &ser, GLfloat size)
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPointSize(size);
+    GL.glPointSize(size);
   }
 
   return true;
@@ -1545,7 +1545,7 @@ bool WrappedOpenGL::Serialise_glPointSize(SerialiserType &ser, GLfloat size)
 
 void WrappedOpenGL::glPointSize(GLfloat size)
 {
-  SERIALISE_TIME_CALL(m_Real.glPointSize(size));
+  SERIALISE_TIME_CALL(GL.glPointSize(size));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1578,7 +1578,7 @@ bool WrappedOpenGL::Serialise_glPointParameteri(SerialiserType &ser, GLenum pnam
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPointParameteri(pname, param);
+    GL.glPointParameteri(pname, param);
   }
 
   return true;
@@ -1586,7 +1586,7 @@ bool WrappedOpenGL::Serialise_glPointParameteri(SerialiserType &ser, GLenum pnam
 
 void WrappedOpenGL::glPointParameteri(GLenum pname, GLint param)
 {
-  SERIALISE_TIME_CALL(m_Real.glPointParameteri(pname, param));
+  SERIALISE_TIME_CALL(GL.glPointParameteri(pname, param));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1609,7 +1609,7 @@ bool WrappedOpenGL::Serialise_glPointParameteriv(SerialiserType &ser, GLenum pna
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPointParameteriv(pname, &Param);
+    GL.glPointParameteriv(pname, &Param);
   }
 
   return true;
@@ -1617,7 +1617,7 @@ bool WrappedOpenGL::Serialise_glPointParameteriv(SerialiserType &ser, GLenum pna
 
 void WrappedOpenGL::glPointParameteriv(GLenum pname, const GLint *params)
 {
-  SERIALISE_TIME_CALL(m_Real.glPointParameteriv(pname, params));
+  SERIALISE_TIME_CALL(GL.glPointParameteriv(pname, params));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1639,7 +1639,7 @@ bool WrappedOpenGL::Serialise_glPointParameterf(SerialiserType &ser, GLenum pnam
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPointParameterf(pname, param);
+    GL.glPointParameterf(pname, param);
   }
 
   return true;
@@ -1647,7 +1647,7 @@ bool WrappedOpenGL::Serialise_glPointParameterf(SerialiserType &ser, GLenum pnam
 
 void WrappedOpenGL::glPointParameterf(GLenum pname, GLfloat param)
 {
-  SERIALISE_TIME_CALL(m_Real.glPointParameterf(pname, param));
+  SERIALISE_TIME_CALL(GL.glPointParameterf(pname, param));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1670,7 +1670,7 @@ bool WrappedOpenGL::Serialise_glPointParameterfv(SerialiserType &ser, GLenum pna
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPointParameterfv(pname, &Param);
+    GL.glPointParameterfv(pname, &Param);
   }
 
   return true;
@@ -1678,7 +1678,7 @@ bool WrappedOpenGL::Serialise_glPointParameterfv(SerialiserType &ser, GLenum pna
 
 void WrappedOpenGL::glPointParameterfv(GLenum pname, const GLfloat *params)
 {
-  SERIALISE_TIME_CALL(m_Real.glPointParameterfv(pname, params));
+  SERIALISE_TIME_CALL(GL.glPointParameterfv(pname, params));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1703,7 +1703,7 @@ bool WrappedOpenGL::Serialise_glViewport(SerialiserType &ser, GLint x, GLint y, 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glViewport(x, y, width, height);
+    GL.glViewport(x, y, width, height);
   }
 
   return true;
@@ -1711,7 +1711,7 @@ bool WrappedOpenGL::Serialise_glViewport(SerialiserType &ser, GLint x, GLint y, 
 
 void WrappedOpenGL::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  SERIALISE_TIME_CALL(m_Real.glViewport(x, y, width, height));
+  SERIALISE_TIME_CALL(GL.glViewport(x, y, width, height));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1735,7 +1735,7 @@ bool WrappedOpenGL::Serialise_glViewportArrayv(SerialiserType &ser, GLuint index
 
   if(IsReplayingAndReading())
   {
-    m_Real.glViewportArrayv(index, count, v);
+    GL.glViewportArrayv(index, count, v);
   }
 
   return true;
@@ -1743,7 +1743,7 @@ bool WrappedOpenGL::Serialise_glViewportArrayv(SerialiserType &ser, GLuint index
 
 void WrappedOpenGL::glViewportArrayv(GLuint index, GLuint count, const GLfloat *v)
 {
-  SERIALISE_TIME_CALL(m_Real.glViewportArrayv(index, count, v));
+  SERIALISE_TIME_CALL(GL.glViewportArrayv(index, count, v));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1779,7 +1779,7 @@ bool WrappedOpenGL::Serialise_glScissor(SerialiserType &ser, GLint x, GLint y, G
 
   if(IsReplayingAndReading())
   {
-    m_Real.glScissor(x, y, width, height);
+    GL.glScissor(x, y, width, height);
   }
 
   return true;
@@ -1787,7 +1787,7 @@ bool WrappedOpenGL::Serialise_glScissor(SerialiserType &ser, GLint x, GLint y, G
 
 void WrappedOpenGL::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  SERIALISE_TIME_CALL(m_Real.glScissor(x, y, width, height));
+  SERIALISE_TIME_CALL(GL.glScissor(x, y, width, height));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1811,7 +1811,7 @@ bool WrappedOpenGL::Serialise_glScissorArrayv(SerialiserType &ser, GLuint first,
 
   if(IsReplayingAndReading())
   {
-    m_Real.glScissorArrayv(first, count, v);
+    GL.glScissorArrayv(first, count, v);
   }
 
   return true;
@@ -1819,7 +1819,7 @@ bool WrappedOpenGL::Serialise_glScissorArrayv(SerialiserType &ser, GLuint first,
 
 void WrappedOpenGL::glScissorArrayv(GLuint first, GLsizei count, const GLint *v)
 {
-  SERIALISE_TIME_CALL(m_Real.glScissorArrayv(first, count, v));
+  SERIALISE_TIME_CALL(GL.glScissorArrayv(first, count, v));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1853,7 +1853,7 @@ bool WrappedOpenGL::Serialise_glPolygonMode(SerialiserType &ser, GLenum face, GL
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPolygonMode(face, mode);
+    GL.glPolygonMode(face, mode);
   }
 
   return true;
@@ -1861,7 +1861,7 @@ bool WrappedOpenGL::Serialise_glPolygonMode(SerialiserType &ser, GLenum face, GL
 
 void WrappedOpenGL::glPolygonMode(GLenum face, GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glPolygonMode(face, mode));
+  SERIALISE_TIME_CALL(GL.glPolygonMode(face, mode));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1883,7 +1883,7 @@ bool WrappedOpenGL::Serialise_glPolygonOffset(SerialiserType &ser, GLfloat facto
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPolygonOffset(factor, units);
+    GL.glPolygonOffset(factor, units);
   }
 
   return true;
@@ -1891,7 +1891,7 @@ bool WrappedOpenGL::Serialise_glPolygonOffset(SerialiserType &ser, GLfloat facto
 
 void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
 {
-  SERIALISE_TIME_CALL(m_Real.glPolygonOffset(factor, units));
+  SERIALISE_TIME_CALL(GL.glPolygonOffset(factor, units));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1915,7 +1915,7 @@ bool WrappedOpenGL::Serialise_glPolygonOffsetClamp(SerialiserType &ser, GLfloat 
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPolygonOffsetClamp(factor, units, clamp);
+    GL.glPolygonOffsetClamp(factor, units, clamp);
   }
 
   return true;
@@ -1923,7 +1923,7 @@ bool WrappedOpenGL::Serialise_glPolygonOffsetClamp(SerialiserType &ser, GLfloat 
 
 void WrappedOpenGL::glPolygonOffsetClamp(GLfloat factor, GLfloat units, GLfloat clamp)
 {
-  SERIALISE_TIME_CALL(m_Real.glPolygonOffsetClamp(factor, units, clamp));
+  SERIALISE_TIME_CALL(GL.glPolygonOffsetClamp(factor, units, clamp));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1953,7 +1953,7 @@ bool WrappedOpenGL::Serialise_glPrimitiveBoundingBox(SerialiserType &ser, GLfloa
 
   if(IsReplayingAndReading())
   {
-    m_Real.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+    GL.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
   }
 
   return true;
@@ -1962,7 +1962,7 @@ bool WrappedOpenGL::Serialise_glPrimitiveBoundingBox(SerialiserType &ser, GLfloa
 void WrappedOpenGL::glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,
                                            GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
 {
-  SERIALISE_TIME_CALL(m_Real.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW));
+  SERIALISE_TIME_CALL(GL.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW));
 
   if(IsActiveCapturing(m_State))
   {

@@ -115,50 +115,48 @@ void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, b
 
 // little utility function that if necessary emulates glCreateShaderProgramv functionality but using
 // glCompileShaderIncludeARB
-static GLuint CreateSepProgram(WrappedOpenGL &gl, GLenum type, GLsizei numSources,
+static GLuint CreateSepProgram(WrappedOpenGL &driver, GLenum type, GLsizei numSources,
                                const char **sources, GLsizei numPaths, const char **paths)
 {
   // by the nature of this function, it might fail - we don't want to spew
   // false positive looking messages into the log.
-  gl.SuppressDebugMessages(true);
-
-  const GLHookSet &real = gl.GetHookset();
+  driver.SuppressDebugMessages(true);
 
   GLuint program = 0;
 
   // definition of glCreateShaderProgramv from the spec
-  GLuint shader = real.glCreateShader(type);
+  GLuint shader = GL.glCreateShader(type);
   if(shader)
   {
-    real.glShaderSource(shader, numSources, sources, NULL);
+    GL.glShaderSource(shader, numSources, sources, NULL);
 
     if(paths == NULL)
-      real.glCompileShader(shader);
+      GL.glCompileShader(shader);
     else
-      real.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+      GL.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
 
-    program = real.glCreateProgram();
+    program = GL.glCreateProgram();
     if(program)
     {
       GLint compiled = 0;
 
-      real.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
-      real.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+      GL.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
+      GL.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
 
       if(compiled)
       {
-        real.glAttachShader(program, shader);
-        real.glLinkProgram(program);
+        GL.glAttachShader(program, shader);
+        GL.glLinkProgram(program);
 
         // we deliberately leave the shaders attached so this program can be re-linked.
         // they will be cleaned up when the program is deleted
-        // gl.glDetachShader(program, shader);
+        // driver.glDetachShader(program, shader);
       }
     }
-    real.glDeleteShader(shader);
+    GL.glDeleteShader(shader);
   }
 
-  gl.SuppressDebugMessages(false);
+  driver.SuppressDebugMessages(false);
   return program;
 }
 
@@ -177,7 +175,7 @@ static bool iswhitespace(char c)
   return isspacetab(c) || isnewline(c);
 }
 
-GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string> sources,
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string> sources,
                                   vector<string> *includepaths)
 {
   // in and out blocks are added separately, in case one is there already
@@ -222,16 +220,16 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
       paths[i] = (*includepaths)[i].c_str();
   }
 
-  GLuint sepProg = CreateSepProgram(gl, type, (GLsizei)sources.size(), strings, numPaths, paths);
+  GLuint sepProg = CreateSepProgram(drv, type, (GLsizei)sources.size(), strings, numPaths, paths);
 
   GLint status;
-  gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
+  drv.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
 
   // allow any vertex processing shader to redeclare gl_PerVertex
   // on GLES it is not required
   if(!IsGLES && status == 0 && type != eGL_FRAGMENT_SHADER && type != eGL_COMPUTE_SHADER)
   {
-    gl.glDeleteProgram(sepProg);
+    drv.glDeleteProgram(sepProg);
     sepProg = 0;
 
     // try and patch up shader
@@ -488,10 +486,10 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
 
       const char *c_src = src.c_str();
 
-      sepProg = CreateSepProgram(gl, type, 1, &c_src, numPaths, paths);
+      sepProg = CreateSepProgram(drv, type, 1, &c_src, numPaths, paths);
 
       // when we get it to link, bail!
-      gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
+      drv.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
       if(status == 1)
         break;
 
@@ -499,15 +497,15 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
     }
   }
 
-  gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
+  drv.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
     char buffer[1025] = {0};
-    gl.glGetProgramInfoLog(sepProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(sepProg, 1024, NULL, buffer);
 
     RDCERR("Couldn't make separable shader program for shader. Errors:\n%s", buffer);
 
-    gl.glDeleteProgram(sepProg);
+    drv.glDeleteProgram(sepProg);
     sepProg = 0;
   }
 
@@ -518,8 +516,8 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
   return sepProg;
 }
 
-void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuint varIdx,
-                        GLint numParentBlocks, rdcarray<ShaderConstant> *parentBlocks,
+void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numParentBlocks,
+                        rdcarray<ShaderConstant> *parentBlocks,
                         rdcarray<ShaderConstant> *defaultBlock)
 {
   const size_t numProps = 8;
@@ -534,7 +532,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     resProps[2] = eGL_OFFSET;
 
   GLint values[numProps] = {-1, -1, -1, -1, -1, -1, -1, -1};
-  gl.glGetProgramResourceiv(sepProg, query, varIdx, numProps, resProps, numProps, NULL, values);
+  GL.glGetProgramResourceiv(sepProg, query, varIdx, numProps, resProps, numProps, NULL, values);
 
   ShaderConstant var;
 
@@ -721,7 +719,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
   var.type.descriptor.arrayByteStride = values[7];
 
   var.name.resize(values[1] - 1);
-  gl.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
+  GL.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
 
   int32_t c = values[1] - 1;
 
@@ -735,7 +733,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
   if(query == eGL_BUFFER_VARIABLE)
   {
     GLenum propName = eGL_TOP_LEVEL_ARRAY_STRIDE;
-    gl.glGetProgramResourceiv(sepProg, query, varIdx, 1, &propName, 1, NULL, &topLevelStride);
+    GL.glGetProgramResourceiv(sepProg, query, varIdx, 1, &propName, 1, NULL, &topLevelStride);
   }
 
   rdcarray<ShaderConstant> *parentmembers = defaultBlock;
@@ -884,12 +882,12 @@ int ParseVersionStatement(const char *version)
   return ret;
 }
 
-void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
-                          ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed)
+void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &refl,
+                          bool pointSizeUsed, bool clipDistanceUsed)
 {
   if(shadType == eGL_COMPUTE_SHADER)
   {
-    gl.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.dispatchThreadsDimension);
+    GL.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.dispatchThreadsDimension);
   }
   else
   {
@@ -900,7 +898,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   rdcarray<ShaderResource> &rwresources = refl.readWriteResources;
 
   GLint numUniforms = 0;
-  gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
+  GL.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
 
   const size_t numProps = 7;
 
@@ -912,7 +910,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   for(GLint u = 0; u < numUniforms; u++)
   {
     GLint values[numProps];
-    gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
+    GL.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
 
     ShaderResource res;
     res.isReadOnly = true;
@@ -1411,7 +1409,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     }
 
     char *namebuf = new char[values[1] + 1];
-    gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, namebuf);
+    GL.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, namebuf);
     namebuf[values[1]] = 0;
 
     string name = namebuf;
@@ -1445,16 +1443,16 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   GLint numSSBOs = 0;
   if(HasExt[ARB_shader_storage_buffer_object])
   {
-    gl.glGetProgramInterfaceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
+    GL.glGetProgramInterfaceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
 
     for(GLint u = 0; u < numSSBOs; u++)
     {
       GLenum propName = eGL_NAME_LENGTH;
       GLint len;
-      gl.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL, &len);
+      GL.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL, &len);
 
       char *nm = new char[len + 1];
-      gl.glGetProgramResourceName(sepProg, eGL_SHADER_STORAGE_BLOCK, u, len + 1, NULL, nm);
+      GL.glGetProgramResourceName(sepProg, eGL_SHADER_STORAGE_BLOCK, u, len + 1, NULL, nm);
 
       ShaderResource res;
       res.isReadOnly = false;
@@ -1471,7 +1469,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.name = nm;
 
       propName = eGL_NUM_ACTIVE_VARIABLES;
-      gl.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL,
+      GL.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL,
                                 (GLint *)&res.variableType.descriptor.elements);
 
       rwresources.push_back(res);
@@ -1487,7 +1485,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
     for(uint32_t i = 0; i < ssboMembers; i++)
     {
-      ReconstructVarTree(gl, eGL_BUFFER_VARIABLE, sepProg, i, (GLint)ssbos.size(), members, NULL);
+      ReconstructVarTree(eGL_BUFFER_VARIABLE, sepProg, i, (GLint)ssbos.size(), members, NULL);
     }
 
     for(size_t ssbo = 0; ssbo < ssbos.size(); ssbo++)
@@ -1557,7 +1555,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   rdcarray<ShaderConstant> *ubos = NULL;
 
   {
-    gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
+    GL.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
     ubos = new rdcarray<ShaderConstant>[numUBOs];
     uboNames.resize(numUBOs);
@@ -1566,10 +1564,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       GLenum nameLen = eGL_NAME_LENGTH;
       GLint len;
-      gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, u, 1, &nameLen, 1, NULL, &len);
+      GL.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, u, 1, &nameLen, 1, NULL, &len);
 
       char *nm = new char[len + 1];
-      gl.glGetProgramResourceName(sepProg, eGL_UNIFORM_BLOCK, u, len + 1, NULL, nm);
+      GL.glGetProgramResourceName(sepProg, eGL_UNIFORM_BLOCK, u, len + 1, NULL, nm);
       uboNames[u] = nm;
       delete[] nm;
     }
@@ -1577,7 +1575,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
   for(GLint u = 0; u < numUniforms; u++)
   {
-    ReconstructVarTree(gl, eGL_UNIFORM, sepProg, u, numUBOs, ubos, &globalUniforms);
+    ReconstructVarTree(eGL_UNIFORM, sepProg, u, numUBOs, ubos, &globalUniforms);
   }
 
   refl.constantBlocks.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
@@ -1594,7 +1592,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         cblock.bindPoint = (int32_t)refl.constantBlocks.size();
 
         GLenum bufSize = eGL_BUFFER_DATA_SIZE;
-        gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, i, 1, &bufSize, 1, NULL,
+        GL.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, i, 1, &bufSize, 1, NULL,
                                   (GLint *)&cblock.byteSize);
 
         sort(ubos[i]);
@@ -1626,7 +1624,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     rdcarray<SigParameter> *sigArray = (sigType == 0 ? &refl.inputSignature : &refl.outputSignature);
 
     GLint numInputs;
-    gl.glGetProgramInterfaceiv(sepProg, sigEnum, eGL_ACTIVE_RESOURCES, &numInputs);
+    GL.glGetProgramInterfaceiv(sepProg, sigEnum, eGL_ACTIVE_RESOURCES, &numInputs);
 
     if(numInputs > 0)
     {
@@ -1643,10 +1641,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         // and on GLES, either
         if(!HasExt[ARB_enhanced_layouts])
           numSigProps--;
-        gl.glGetProgramResourceiv(sepProg, sigEnum, i, numSigProps, props, numSigProps, NULL, values);
+        GL.glGetProgramResourceiv(sepProg, sigEnum, i, numSigProps, props, numSigProps, NULL, values);
 
         char *nm = new char[values[0] + 1];
-        gl.glGetProgramResourceName(sepProg, sigEnum, i, values[0] + 1, NULL, nm);
+        GL.glGetProgramResourceName(sepProg, sigEnum, i, values[0] + 1, NULL, nm);
 
         SigParameter sig;
 
@@ -1944,7 +1942,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   // TODO: fill in Interfaces with shader subroutines?
 }
 
-void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl,
+void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
                          ShaderBindpointMapping &mapping)
 {
   if(!refl)
@@ -1974,10 +1972,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     {
       // normal sampler or image load/store
 
-      GLint loc = gl.glGetUniformLocation(curProg, refl->readOnlyResources[i].name.c_str());
+      GLint loc = GL.glGetUniformLocation(curProg, refl->readOnlyResources[i].name.c_str());
       if(loc >= 0)
       {
-        gl.glGetUniformiv(curProg, loc, dummyReadback);
+        GL.glGetUniformiv(curProg, loc, dummyReadback);
         mapping.readOnlyResources[i].bindset = 0;
         mapping.readOnlyResources[i].bind = dummyReadback[0];
         mapping.readOnlyResources[i].arraySize = 1;
@@ -1995,7 +1993,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       }
 
       GLuint idx = 0;
-      idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
+      idx = GL.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
 
       if(idx == GL_INVALID_INDEX)
       {
@@ -2004,7 +2002,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       else
       {
         GLint used = 0;
-        gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+        GL.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
         mapping.readOnlyResources[i].used = (used != 0);
       }
     }
@@ -2024,10 +2022,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     {
       // image load/store
 
-      GLint loc = gl.glGetUniformLocation(curProg, refl->readWriteResources[i].name.c_str());
+      GLint loc = GL.glGetUniformLocation(curProg, refl->readWriteResources[i].name.c_str());
       if(loc >= 0)
       {
-        gl.glGetUniformiv(curProg, loc, dummyReadback);
+        GL.glGetUniformiv(curProg, loc, dummyReadback);
         mapping.readWriteResources[i].bindset = 0;
         mapping.readWriteResources[i].bind = dummyReadback[0];
         mapping.readWriteResources[i].arraySize = 1;
@@ -2045,7 +2043,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       }
 
       GLuint idx = 0;
-      idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
+      idx = GL.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
 
       if(idx == GL_INVALID_INDEX)
       {
@@ -2054,7 +2052,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       else
       {
         GLint used = 0;
-        gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+        GL.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
         mapping.readWriteResources[i].used = (used != 0);
       }
     }
@@ -2065,7 +2063,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
          refl->readWriteResources[i].variableType.descriptor.type == VarType::UInt)
       {
         // atomic uint
-        GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM,
+        GLuint idx = GL.glGetProgramResourceIndex(curProg, eGL_UNIFORM,
                                                   refl->readWriteResources[i].name.c_str());
 
         if(idx == GL_INVALID_INDEX)
@@ -2079,7 +2077,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
         {
           GLenum prop = eGL_ATOMIC_COUNTER_BUFFER_INDEX;
           GLuint atomicIndex;
-          gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &prop, 1, NULL,
+          GL.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &prop, 1, NULL,
                                     (GLint *)&atomicIndex);
 
           if(atomicIndex == GL_INVALID_INDEX)
@@ -2095,10 +2093,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
             {
               prop = eGL_BUFFER_BINDING;
               mapping.readWriteResources[i].bindset = 0;
-              gl.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1, &prop,
+              GL.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1, &prop,
                                         1, NULL, &mapping.readWriteResources[i].bind);
               GLint used = 0;
-              gl.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1,
+              GL.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1,
                                         &refEnum[shadIdx], 1, NULL, &used);
               mapping.readWriteResources[i].used = (used != 0);
               mapping.readWriteResources[i].arraySize = 1;
@@ -2114,11 +2112,11 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
                   eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
               };
               mapping.readWriteResources[i].bindset = 0;
-              gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
+              GL.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
                                                   eGL_ATOMIC_COUNTER_BUFFER_BINDING,
                                                   &mapping.readWriteResources[i].bind);
               GLint used = 0;
-              gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx],
+              GL.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx],
                                                   &used);
               mapping.readWriteResources[i].used = (used != 0);
               mapping.readWriteResources[i].arraySize = 1;
@@ -2129,7 +2127,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       else
       {
         // shader storage buffer object
-        GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK,
+        GLuint idx = GL.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK,
                                                   refl->readWriteResources[i].name.c_str());
 
         if(idx == GL_INVALID_INDEX)
@@ -2143,10 +2141,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
         {
           GLenum prop = eGL_BUFFER_BINDING;
           mapping.readWriteResources[i].bindset = 0;
-          gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL,
+          GL.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL,
                                     &mapping.readWriteResources[i].bind);
           GLint used = 0;
-          gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1,
+          GL.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1,
                                     NULL, &used);
           mapping.readWriteResources[i].used = (used != 0);
           mapping.readWriteResources[i].arraySize = 1;
@@ -2167,10 +2165,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
   {
     if(refl->constantBlocks[i].bufferBacked)
     {
-      GLint loc = gl.glGetUniformBlockIndex(curProg, refl->constantBlocks[i].name.c_str());
+      GLint loc = GL.glGetUniformBlockIndex(curProg, refl->constantBlocks[i].name.c_str());
       if(loc >= 0)
       {
-        gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
+        GL.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
         mapping.constantBlocks[i].bindset = 0;
         mapping.constantBlocks[i].bind = dummyReadback[0];
         mapping.constantBlocks[i].arraySize = 1;
@@ -2189,7 +2187,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     }
     else
     {
-      GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK,
+      GLuint idx = GL.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK,
                                                 refl->constantBlocks[i].name.c_str());
       if(idx == GL_INVALID_INDEX)
       {
@@ -2198,7 +2196,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       else
       {
         GLint used = 0;
-        gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL,
+        GL.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL,
                                   &used);
         mapping.constantBlocks[i].used = (used != 0);
       }
@@ -2206,7 +2204,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
   }
 
   GLint numVAttribBindings = 16;
-  gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
+  GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
 
   mapping.inputAttributes.resize(numVAttribBindings);
   for(int32_t i = 0; i < numVAttribBindings; i++)
@@ -2217,7 +2215,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
   {
     for(int32_t i = 0; i < refl->inputSignature.count(); i++)
     {
-      GLint loc = gl.glGetAttribLocation(curProg, refl->inputSignature[i].varName.c_str());
+      GLint loc = GL.glGetAttribLocation(curProg, refl->inputSignature[i].varName.c_str());
 
       if(loc >= 0 && loc < numVAttribBindings)
       {

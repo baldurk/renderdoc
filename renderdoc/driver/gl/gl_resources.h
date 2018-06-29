@@ -28,19 +28,15 @@
 #include "core/resource_manager.h"
 #include "driver/gl/gl_common.h"
 
-struct GLHookSet;
-
 size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalformat);
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
-void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
-                               GLint *mip, GLint *layer);
-void GetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, GLenum *swizzleRGBA);
-void SetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, const GLenum *swizzleRGBA);
+void GetFramebufferMipAndLayer(GLenum framebuffer, GLenum attachment, GLint *mip, GLint *layer);
+void GetTextureSwizzle(GLuint tex, GLenum target, GLenum *swizzleRGBA);
+void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA);
 
-bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat,
-                            GLenum &dataFormat);
+bool EmulateLuminanceFormat(GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat);
 
 inline void EmulateGLClamp(GLenum pname, GLenum param)
 {
@@ -48,7 +44,7 @@ inline void EmulateGLClamp(GLenum pname, GLenum param)
     param = eGL_CLAMP_TO_EDGE;
 }
 
-int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d);
+int GetNumMips(GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d);
 
 bool IsCompressedFormat(GLenum internalFormat);
 bool IsDepthStencilFormat(GLenum internalFormat);

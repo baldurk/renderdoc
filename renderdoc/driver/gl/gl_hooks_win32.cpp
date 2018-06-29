@@ -25,9 +25,9 @@
 
 #include "common/threading.h"
 #include "driver/gl/gl_common.h"
+#include "driver/gl/gl_dispatch_table.h"
+#include "driver/gl/gl_dispatch_table_defs.h"
 #include "driver/gl/gl_driver.h"
-#include "driver/gl/gl_hookset.h"
-#include "driver/gl/gl_hookset_defs.h"
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
 
@@ -44,16 +44,16 @@
 #define HookExtension(funcPtrType, function)         \
   if(!strcmp(func, STRINGIZE(function)))             \
   {                                                  \
-    if(glhooks.GL.function == NULL)                  \
-      glhooks.GL.function = (funcPtrType)realFunc;   \
+    if(GL.function == NULL)                          \
+      GL.function = (funcPtrType)realFunc;           \
     return (PROC)&glhooks.CONCAT(function, _hooked); \
   }
 
 #define HookExtensionAlias(funcPtrType, function, alias) \
   if(!strcmp(func, STRINGIZE(alias)))                    \
   {                                                      \
-    if(glhooks.GL.function == NULL)                      \
-      glhooks.GL.function = (funcPtrType)realFunc;       \
+    if(GL.function == NULL)                              \
+      GL.function = (funcPtrType)realFunc;               \
     return (PROC)&glhooks.CONCAT(alias, _hooked);        \
   }
 
@@ -107,9 +107,9 @@
         echo -e "    SCOPED_LOCK(glLock); \\";
         echo -e '    if(!glhooks.m_HaveContextCreation) \\';
         if [ $ALIAS -eq 1 ]; then
-          echo -n "    return glhooks.GL.realfunc(";
+          echo -n "    return GL.realfunc(";
         else
-          echo -n "    return glhooks.GL.function(";
+          echo -n "    return GL.function(";
         fi
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo -e "); \\";
@@ -145,7 +145,7 @@
   {                                                   \
     SCOPED_LOCK(glLock);                              \
     if(!glhooks.m_HaveContextCreation)                \
-      return glhooks.GL.function();                   \
+      return GL.function();                           \
     gl_CurChunk = GLChunk::function;                  \
     return glhooks.GetDriver()->function();           \
   }
@@ -157,7 +157,7 @@
   {                                                     \
     SCOPED_LOCK(glLock);                                \
     if(!glhooks.m_HaveContextCreation)                  \
-      return glhooks.GL.function(p1);                   \
+      return GL.function(p1);                           \
     gl_CurChunk = GLChunk::function;                    \
     return glhooks.GetDriver()->function(p1);           \
   }
@@ -169,7 +169,7 @@
   {                                                         \
     SCOPED_LOCK(glLock);                                    \
     if(!glhooks.m_HaveContextCreation)                      \
-      return glhooks.GL.function(p1, p2);                   \
+      return GL.function(p1, p2);                           \
     gl_CurChunk = GLChunk::function;                        \
     return glhooks.GetDriver()->function(p1, p2);           \
   }
@@ -181,7 +181,7 @@
   {                                                                \
     SCOPED_LOCK(glLock);                                           \
     if(!glhooks.m_HaveContextCreation)                             \
-      return glhooks.GL.function(p1, p2, p3);                      \
+      return GL.function(p1, p2, p3);                              \
     gl_CurChunk = GLChunk::function;                               \
     return glhooks.GetDriver()->function(p1, p2, p3);              \
   }
@@ -193,7 +193,7 @@
   {                                                                       \
     SCOPED_LOCK(glLock);                                                  \
     if(!glhooks.m_HaveContextCreation)                                    \
-      return glhooks.GL.function(p1, p2, p3, p4);                         \
+      return GL.function(p1, p2, p3, p4);                                 \
     gl_CurChunk = GLChunk::function;                                      \
     return glhooks.GetDriver()->function(p1, p2, p3, p4);                 \
   }
@@ -205,7 +205,7 @@
   {                                                                              \
     SCOPED_LOCK(glLock);                                                         \
     if(!glhooks.m_HaveContextCreation)                                           \
-      return glhooks.GL.function(p1, p2, p3, p4, p5);                            \
+      return GL.function(p1, p2, p3, p4, p5);                                    \
     gl_CurChunk = GLChunk::function;                                             \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                    \
   }
@@ -217,7 +217,7 @@
   {                                                                                     \
     SCOPED_LOCK(glLock);                                                                \
     if(!glhooks.m_HaveContextCreation)                                                  \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6);                               \
+      return GL.function(p1, p2, p3, p4, p5, p6);                                       \
     gl_CurChunk = GLChunk::function;                                                    \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                       \
   }
@@ -229,7 +229,7 @@
   {                                                                                            \
     SCOPED_LOCK(glLock);                                                                       \
     if(!glhooks.m_HaveContextCreation)                                                         \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7);                                  \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7);                                          \
     gl_CurChunk = GLChunk::function;                                                           \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);                          \
   }
@@ -241,7 +241,7 @@
   {                                                                                                   \
     SCOPED_LOCK(glLock);                                                                              \
     if(!glhooks.m_HaveContextCreation)                                                                \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8);                                     \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8);                                             \
     gl_CurChunk = GLChunk::function;                                                                  \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);                             \
   }
@@ -255,7 +255,7 @@
   {                                                                                             \
     SCOPED_LOCK(glLock);                                                                        \
     if(!glhooks.m_HaveContextCreation)                                                          \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                           \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                                   \
     gl_CurChunk = GLChunk::function;                                                            \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                   \
   }
@@ -269,7 +269,7 @@
   {                                                                                              \
     SCOPED_LOCK(glLock);                                                                         \
     if(!glhooks.m_HaveContextCreation)                                                           \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                       \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                               \
     gl_CurChunk = GLChunk::function;                                                             \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);               \
   }
@@ -283,7 +283,7 @@
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     if(!glhooks.m_HaveContextCreation)                                                            \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                   \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                           \
     gl_CurChunk = GLChunk::function;                                                              \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);           \
   }
@@ -298,7 +298,7 @@
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     if(!glhooks.m_HaveContextCreation)                                                            \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);              \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);                      \
     gl_CurChunk = GLChunk::function;                                                              \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);      \
   }
@@ -314,7 +314,7 @@
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     if(!glhooks.m_HaveContextCreation)                                                            \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);         \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);                 \
     gl_CurChunk = GLChunk::function;                                                              \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
   }
@@ -331,28 +331,28 @@
   {                                                                                              \
     SCOPED_LOCK(glLock);                                                                         \
     if(!glhooks.m_HaveContextCreation)                                                           \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);   \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);           \
     gl_CurChunk = GLChunk::function;                                                             \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, \
                                          p14);                                                   \
   }
 
-#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,    \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15)       \
-  Hook<ret(WINAPI *)(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)> CONCAT(     \
-      function, _hook);                                                                             \
-  typedef ret(WINAPI *CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11,    \
-                                                   t12, t13, t14, t15);                             \
-  static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7,      \
-                                              t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13,     \
-                                              t14 p14, t15 p15)                                     \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    if(!glhooks.m_HaveContextCreation)                                                              \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
-    gl_CurChunk = GLChunk::function;                                                                \
-    return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13,    \
-                                         p14, p15);                                                 \
+#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15)    \
+  Hook<ret(WINAPI *)(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)> CONCAT(  \
+      function, _hook);                                                                          \
+  typedef ret(WINAPI *CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, \
+                                                   t12, t13, t14, t15);                          \
+  static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7,   \
+                                              t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13,  \
+                                              t14 p14, t15 p15)                                  \
+  {                                                                                              \
+    SCOPED_LOCK(glLock);                                                                         \
+    if(!glhooks.m_HaveContextCreation)                                                           \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15);      \
+    gl_CurChunk = GLChunk::function;                                                             \
+    return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, \
+                                         p14, p15);                                              \
   }
 
 #define HookWrapper16(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,     \
@@ -368,8 +368,7 @@
   {                                                                                                  \
     SCOPED_LOCK(glLock);                                                                             \
     if(!glhooks.m_HaveContextCreation)                                                               \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,   \
-                                 p16);                                                               \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16);     \
     gl_CurChunk = GLChunk::function;                                                                 \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13,     \
                                          p14, p15, p16);                                             \
@@ -388,8 +387,8 @@
   {                                                                                                       \
     SCOPED_LOCK(glLock);                                                                                  \
     if(!glhooks.m_HaveContextCreation)                                                                    \
-      return glhooks.GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,        \
-                                 p16, p17);                                                               \
+      return GL.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16,           \
+                         p17);                                                                            \
     gl_CurChunk = GLChunk::function;                                                                      \
     return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13,          \
                                          p14, p15, p16, p17);                                             \
@@ -402,7 +401,7 @@
   {                                                   \
     SCOPED_LOCK(glLock);                              \
     if(!glhooks.m_HaveContextCreation)                \
-      return glhooks.GL.realfunc();                   \
+      return GL.realfunc();                           \
     gl_CurChunk = GLChunk::function;                  \
     return glhooks.GetDriver()->realfunc();           \
   }
@@ -414,7 +413,7 @@
   {                                                        \
     SCOPED_LOCK(glLock);                                   \
     if(!glhooks.m_HaveContextCreation)                     \
-      return glhooks.GL.realfunc(p1);                      \
+      return GL.realfunc(p1);                              \
     gl_CurChunk = GLChunk::function;                       \
     return glhooks.GetDriver()->realfunc(p1);              \
   }
@@ -426,7 +425,7 @@
   {                                                                \
     SCOPED_LOCK(glLock);                                           \
     if(!glhooks.m_HaveContextCreation)                             \
-      return glhooks.GL.realfunc(p1, p2);                          \
+      return GL.realfunc(p1, p2);                                  \
     gl_CurChunk = GLChunk::function;                               \
     return glhooks.GetDriver()->realfunc(p1, p2);                  \
   }
@@ -438,7 +437,7 @@
   {                                                                        \
     SCOPED_LOCK(glLock);                                                   \
     if(!glhooks.m_HaveContextCreation)                                     \
-      return glhooks.GL.realfunc(p1, p2, p3);                              \
+      return GL.realfunc(p1, p2, p3);                                      \
     gl_CurChunk = GLChunk::function;                                       \
     return glhooks.GetDriver()->realfunc(p1, p2, p3);                      \
   }
@@ -450,7 +449,7 @@
   {                                                                                \
     SCOPED_LOCK(glLock);                                                           \
     if(!glhooks.m_HaveContextCreation)                                             \
-      return glhooks.GL.realfunc(p1, p2, p3, p4);                                  \
+      return GL.realfunc(p1, p2, p3, p4);                                          \
     gl_CurChunk = GLChunk::function;                                               \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4);                          \
   }
@@ -462,7 +461,7 @@
   {                                                                                        \
     SCOPED_LOCK(glLock);                                                                   \
     if(!glhooks.m_HaveContextCreation)                                                     \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5);                                      \
+      return GL.realfunc(p1, p2, p3, p4, p5);                                              \
     gl_CurChunk = GLChunk::function;                                                       \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5);                              \
   }
@@ -474,7 +473,7 @@
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     if(!glhooks.m_HaveContextCreation)                                                             \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6);                                          \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6);                                                  \
     gl_CurChunk = GLChunk::function;                                                               \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6);                                  \
   }
@@ -487,7 +486,7 @@
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     if(!glhooks.m_HaveContextCreation)                                                             \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7);                                      \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7);                                              \
     gl_CurChunk = GLChunk::function;                                                               \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7);                              \
   }
@@ -500,7 +499,7 @@
   {                                                                                                   \
     SCOPED_LOCK(glLock);                                                                              \
     if(!glhooks.m_HaveContextCreation)                                                                \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8);                                     \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8);                                             \
     gl_CurChunk = GLChunk::function;                                                                  \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8);                             \
   }
@@ -514,7 +513,7 @@
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     if(!glhooks.m_HaveContextCreation)                                                             \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9);                              \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9);                                      \
     gl_CurChunk = GLChunk::function;                                                               \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9);                      \
   }
@@ -528,7 +527,7 @@
   {                                                                                             \
     SCOPED_LOCK(glLock);                                                                        \
     if(!glhooks.m_HaveContextCreation)                                                          \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                      \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                              \
     gl_CurChunk = GLChunk::function;                                                            \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);              \
   }
@@ -542,7 +541,7 @@
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     if(!glhooks.m_HaveContextCreation)                                                            \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                   \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                           \
     gl_CurChunk = GLChunk::function;                                                              \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);           \
   }
@@ -557,7 +556,7 @@
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     if(!glhooks.m_HaveContextCreation)                                                            \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);              \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);                      \
     gl_CurChunk = GLChunk::function;                                                              \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);      \
   }
@@ -573,7 +572,7 @@
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     if(!glhooks.m_HaveContextCreation)                                                            \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);         \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);                 \
     gl_CurChunk = GLChunk::function;                                                              \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
   }
@@ -591,29 +590,29 @@
   {                                                                                              \
     SCOPED_LOCK(glLock);                                                                         \
     if(!glhooks.m_HaveContextCreation)                                                           \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);   \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);           \
     gl_CurChunk = GLChunk::function;                                                             \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, \
                                          p14);                                                   \
   }
 
-#define HookAliasWrapper15(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6,     \
-                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13,      \
-                           t14, p14, t15, p15)                                                      \
-  Hook<ret(WINAPI *)(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)> CONCAT(     \
-      function, _hook);                                                                             \
-  typedef ret(WINAPI *CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11,    \
-                                                   t12, t13, t14, t15);                             \
-  static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7,      \
-                                              t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13,     \
-                                              t14 p14, t15 p15)                                     \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    if(!glhooks.m_HaveContextCreation)                                                              \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
-    gl_CurChunk = GLChunk::function;                                                                \
-    return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13,    \
-                                         p14, p15);                                                 \
+#define HookAliasWrapper15(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6,  \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13,   \
+                           t14, p14, t15, p15)                                                   \
+  Hook<ret(WINAPI *)(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)> CONCAT(  \
+      function, _hook);                                                                          \
+  typedef ret(WINAPI *CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, \
+                                                   t12, t13, t14, t15);                          \
+  static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7,   \
+                                              t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13,  \
+                                              t14 p14, t15 p15)                                  \
+  {                                                                                              \
+    SCOPED_LOCK(glLock);                                                                         \
+    if(!glhooks.m_HaveContextCreation)                                                           \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15);      \
+    gl_CurChunk = GLChunk::function;                                                             \
+    return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, \
+                                         p14, p15);                                              \
   }
 
 #define HookAliasWrapper16(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6,      \
@@ -629,8 +628,7 @@
   {                                                                                                  \
     SCOPED_LOCK(glLock);                                                                             \
     if(!glhooks.m_HaveContextCreation)                                                               \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,   \
-                                 p16);                                                               \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16);     \
     gl_CurChunk = GLChunk::function;                                                                 \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13,     \
                                          p14, p15, p16);                                             \
@@ -649,8 +647,8 @@
   {                                                                                                       \
     SCOPED_LOCK(glLock);                                                                                  \
     if(!glhooks.m_HaveContextCreation)                                                                    \
-      return glhooks.GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15,        \
-                                 p16, p17);                                                               \
+      return GL.realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16,           \
+                         p17);                                                                            \
     gl_CurChunk = GLChunk::function;                                                                      \
     return glhooks.GetDriver()->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13,          \
                                          p14, p15, p16, p17);                                             \
@@ -687,8 +685,6 @@ public:
   ~OpenGLHook() { delete m_GLDriver; }
   bool CreateHooks(const char *libName)
   {
-    RDCEraseEl(GL);
-
     if(!m_EnabledHooks)
       return false;
 
@@ -706,11 +702,10 @@ public:
   void OptionsUpdated(const char *libName) {}
   static OpenGLHook glhooks;
 
-  const GLHookSet &GetRealGLFunctions()
+  void PopulateGLFunctions()
   {
     if(!m_PopulatedHooks)
       m_PopulatedHooks = PopulateHooks();
-    return GL;
   }
 
   void MakeContextCurrent(GLWindowingData data)
@@ -912,7 +907,7 @@ private:
   WrappedOpenGL *GetDriver()
   {
     if(m_GLDriver == NULL)
-      m_GLDriver = new WrappedOpenGL(GL, *this);
+      m_GLDriver = new WrappedOpenGL(*this);
 
     return m_GLDriver;
   }
@@ -1373,8 +1368,6 @@ private:
 
   WrappedOpenGL *m_GLDriver;
 
-  GLHookSet GL;
-
   bool m_PopulatedHooks;
   bool m_HasHooks;
   bool m_EnabledHooks;
@@ -1439,12 +1432,11 @@ private:
     DLLExportHooks();
     HookCheckGLExtensions();
 
-    CheckExtensions(GL);
+    CheckExtensions();
 
     // see gl_emulated.cpp
-    glEmulate::EmulateUnsupportedFunctions(&GL);
-
-    glEmulate::EmulateRequiredExtensions(&GL);
+    GL.EmulateUnsupportedFunctions();
+    GL.EmulateRequiredExtensions();
 
     return true;
   }
@@ -1901,9 +1893,9 @@ private:
 
 OpenGLHook OpenGLHook::glhooks;
 
-const GLHookSet &GetRealGLFunctions()
+void PopulateGLFunctions()
 {
-  return OpenGLHook::glhooks.GetRealGLFunctions();
+  OpenGLHook::glhooks.PopulateGLFunctions();
 }
 
 GLPlatform &GetGLPlatform()

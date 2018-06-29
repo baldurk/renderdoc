@@ -28,10 +28,10 @@
 #include "hooks/hooks.h"
 
 #include "driver/gl/gl_common.h"
+#include "driver/gl/gl_dispatch_table.h"
 #include "driver/gl/gl_driver.h"
-#include "driver/gl/gl_hookset.h"
 
-#include "driver/gl/gl_hookset_defs.h"
+#include "driver/gl/gl_dispatch_table_defs.h"
 
 class OpenGLHook : LibraryHook
 {
@@ -75,9 +75,7 @@ public:
   }
 };
 
-const GLHookSet &GetRealGLFunctions()
+void PopulateGLFunctions()
 {
-  static GLHookSet dummyHookset = {};
-  RDCUNIMPLEMENTED("GetRealGLFunctions");
-  return dummyHookset;
+  RDCUNIMPLEMENTED("PopulateGLFunctions");
 }

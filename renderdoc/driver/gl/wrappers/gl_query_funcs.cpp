@@ -65,13 +65,13 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
       GLResource res = GetResourceManager()->GetLiveResource(sync);
       GLsync oldSyncObj = GetResourceManager()->GetSync(res.name);
 
-      m_Real.glDeleteSync(oldSyncObj);
+      GL.glDeleteSync(oldSyncObj);
 
       GetResourceManager()->UnregisterResource(res);
       GetResourceManager()->EraseLiveResource(sync);
     }
 
-    real = m_Real.glFenceSync(condition, flags);
+    real = GL.glFenceSync(condition, flags);
 
     GLuint name = 0;
     ResourceId liveid = ResourceId();
@@ -91,7 +91,7 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
 GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
 {
   GLsync sync;
-  SERIALISE_TIME_CALL(sync = m_Real.glFenceSync(condition, flags));
+  SERIALISE_TIME_CALL(sync = GL.glFenceSync(condition, flags));
 
   GLuint name = 0;
   ResourceId id = ResourceId();
@@ -133,7 +133,7 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(SerialiserType &ser, GLsync sync_
   if(IsReplayingAndReading() && GetResourceManager()->HasLiveResource(sync))
   {
     GLResource res = GetResourceManager()->GetLiveResource(sync);
-    m_Real.glClientWaitSync(GetResourceManager()->GetSync(res.name), flags, timeout);
+    GL.glClientWaitSync(GetResourceManager()->GetSync(res.name), flags, timeout);
   }
 
   return true;
@@ -142,7 +142,7 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(SerialiserType &ser, GLsync sync_
 GLenum WrappedOpenGL::glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
   GLenum ret;
-  SERIALISE_TIME_CALL(ret = m_Real.glClientWaitSync(sync, flags, timeout));
+  SERIALISE_TIME_CALL(ret = GL.glClientWaitSync(sync, flags, timeout));
 
   if(IsActiveCapturing(m_State))
   {
@@ -169,7 +169,7 @@ bool WrappedOpenGL::Serialise_glWaitSync(SerialiserType &ser, GLsync sync_, GLbi
   if(IsReplayingAndReading() && GetResourceManager()->HasLiveResource(sync))
   {
     GLResource res = GetResourceManager()->GetLiveResource(sync);
-    m_Real.glWaitSync(GetResourceManager()->GetSync(res.name), flags, timeout);
+    GL.glWaitSync(GetResourceManager()->GetSync(res.name), flags, timeout);
   }
 
   return true;
@@ -177,7 +177,7 @@ bool WrappedOpenGL::Serialise_glWaitSync(SerialiserType &ser, GLsync sync_, GLbi
 
 void WrappedOpenGL::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
-  SERIALISE_TIME_CALL(m_Real.glWaitSync(sync, flags, timeout));
+  SERIALISE_TIME_CALL(GL.glWaitSync(sync, flags, timeout));
 
   if(IsActiveCapturing(m_State))
   {
@@ -191,7 +191,7 @@ void WrappedOpenGL::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 
 void WrappedOpenGL::glDeleteSync(GLsync sync)
 {
-  m_Real.glDeleteSync(sync);
+  GL.glDeleteSync(sync);
 
   ResourceId id = GetResourceManager()->GetSyncID(sync);
 
@@ -211,7 +211,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glGenQueries(1, &real);
+    GL.glGenQueries(1, &real);
 
     GLResource res = QueryRes(GetCtx(), real);
 
@@ -226,7 +226,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
 
 void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 {
-  SERIALISE_TIME_CALL(m_Real.glGenQueries(count, ids));
+  SERIALISE_TIME_CALL(GL.glGenQueries(count, ids));
 
   for(GLsizei i = 0; i < count; i++)
   {
@@ -271,7 +271,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glCreateQueries(target, 1, &real);
+    GL.glCreateQueries(target, 1, &real);
 
     GLResource res = QueryRes(GetCtx(), real);
 
@@ -286,7 +286,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
 
 void WrappedOpenGL::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
 {
-  SERIALISE_TIME_CALL(m_Real.glCreateQueries(target, count, ids));
+  SERIALISE_TIME_CALL(GL.glCreateQueries(target, count, ids));
 
   for(GLsizei i = 0; i < count; i++)
   {
@@ -330,7 +330,7 @@ bool WrappedOpenGL::Serialise_glBeginQuery(SerialiserType &ser, GLenum target, G
     // Queries in the log interfere with the queries from FetchCounters.
     if(!m_FetchCounters)
     {
-      m_Real.glBeginQuery(target, query.name);
+      GL.glBeginQuery(target, query.name);
       m_ActiveQueries[QueryIdx(target)][0] = true;
     }
   }
@@ -340,7 +340,7 @@ bool WrappedOpenGL::Serialise_glBeginQuery(SerialiserType &ser, GLenum target, G
 
 void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 {
-  SERIALISE_TIME_CALL(m_Real.glBeginQuery(target, id));
+  SERIALISE_TIME_CALL(GL.glBeginQuery(target, id));
   if(m_ActiveQueries[QueryIdx(target)][0])
     RDCLOG("Query already active %s", ToStr(target).c_str());
   m_ActiveQueries[QueryIdx(target)][0] = true;
@@ -368,7 +368,7 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(SerialiserType &ser, GLenum ta
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBeginQueryIndexed(target, index, query.name);
+    GL.glBeginQueryIndexed(target, index, query.name);
     m_ActiveQueries[QueryIdx(target)][index] = true;
   }
 
@@ -377,7 +377,7 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(SerialiserType &ser, GLenum ta
 
 void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
 {
-  SERIALISE_TIME_CALL(m_Real.glBeginQueryIndexed(target, index, id));
+  SERIALISE_TIME_CALL(GL.glBeginQueryIndexed(target, index, id));
   m_ActiveQueries[QueryIdx(target)][index] = true;
 
   if(IsActiveCapturing(m_State))
@@ -404,7 +404,7 @@ bool WrappedOpenGL::Serialise_glEndQuery(SerialiserType &ser, GLenum target)
     if(!m_FetchCounters)
     {
       m_ActiveQueries[QueryIdx(target)][0] = false;
-      m_Real.glEndQuery(target);
+      GL.glEndQuery(target);
     }
   }
 
@@ -413,7 +413,7 @@ bool WrappedOpenGL::Serialise_glEndQuery(SerialiserType &ser, GLenum target)
 
 void WrappedOpenGL::glEndQuery(GLenum target)
 {
-  SERIALISE_TIME_CALL(m_Real.glEndQuery(target));
+  SERIALISE_TIME_CALL(GL.glEndQuery(target));
   m_ActiveQueries[QueryIdx(target)][0] = false;
 
   if(IsActiveCapturing(m_State))
@@ -436,7 +436,7 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(SerialiserType &ser, GLenum targ
 
   if(IsReplayingAndReading())
   {
-    m_Real.glEndQueryIndexed(target, index);
+    GL.glEndQueryIndexed(target, index);
     m_ActiveQueries[QueryIdx(target)][index] = false;
   }
 
@@ -445,7 +445,7 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(SerialiserType &ser, GLenum targ
 
 void WrappedOpenGL::glEndQueryIndexed(GLenum target, GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glEndQueryIndexed(target, index));
+  SERIALISE_TIME_CALL(GL.glEndQueryIndexed(target, index));
   m_ActiveQueries[QueryIdx(target)][index] = false;
 
   if(IsActiveCapturing(m_State))
@@ -469,7 +469,7 @@ bool WrappedOpenGL::Serialise_glBeginConditionalRender(SerialiserType &ser, GLui
   if(IsReplayingAndReading())
   {
     m_ActiveConditional = true;
-    m_Real.glBeginConditionalRender(query.name, mode);
+    GL.glBeginConditionalRender(query.name, mode);
   }
 
   return true;
@@ -477,7 +477,7 @@ bool WrappedOpenGL::Serialise_glBeginConditionalRender(SerialiserType &ser, GLui
 
 void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
 {
-  SERIALISE_TIME_CALL(m_Real.glBeginConditionalRender(id, mode));
+  SERIALISE_TIME_CALL(GL.glBeginConditionalRender(id, mode));
 
   m_ActiveConditional = true;
 
@@ -498,7 +498,7 @@ bool WrappedOpenGL::Serialise_glEndConditionalRender(SerialiserType &ser)
   if(IsReplayingAndReading())
   {
     m_ActiveConditional = false;
-    m_Real.glEndConditionalRender();
+    GL.glEndConditionalRender();
   }
 
   return true;
@@ -506,7 +506,7 @@ bool WrappedOpenGL::Serialise_glEndConditionalRender(SerialiserType &ser)
 
 void WrappedOpenGL::glEndConditionalRender()
 {
-  SERIALISE_TIME_CALL(m_Real.glEndConditionalRender());
+  SERIALISE_TIME_CALL(GL.glEndConditionalRender());
   m_ActiveConditional = false;
 
   if(IsActiveCapturing(m_State))
@@ -528,14 +528,14 @@ bool WrappedOpenGL::Serialise_glQueryCounter(SerialiserType &ser, GLuint query_,
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glQueryCounter(query.name, target);
+    GL.glQueryCounter(query.name, target);
 
   return true;
 }
 
 void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
 {
-  SERIALISE_TIME_CALL(m_Real.glQueryCounter(query, target));
+  SERIALISE_TIME_CALL(GL.glQueryCounter(query, target));
 
   if(IsActiveCapturing(m_State))
   {
@@ -561,7 +561,7 @@ void WrappedOpenGL::glDeleteQueries(GLsizei n, const GLuint *ids)
     }
   }
 
-  m_Real.glDeleteQueries(n, ids);
+  GL.glDeleteQueries(n, ids);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, glFenceSync, GLsync real, GLenum condition, GLbitfield flags);

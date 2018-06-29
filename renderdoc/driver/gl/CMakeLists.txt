@@ -13,8 +13,8 @@ set(sources
     gl_driver.cpp
     gl_driver.h
     gl_enum.h
-    gl_hookset_defs.h
-    gl_hookset.h
+    gl_dispatch_table_defs.h
+    gl_dispatch_table.h
     gl_initstate.h
     gl_initstate.cpp
     gl_manager.cpp

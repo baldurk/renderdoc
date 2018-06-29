@@ -30,7 +30,7 @@ sub uses_typedef
 
 my $printdefs = $ARGV[$1] eq "defs";
 
-open(HOOKSET, "<gl_hookset.h") || die "Couldn't open gl_hookset.h - run in driver/gl/";
+open(HOOKSET, "<gl_dispatch_table.h") || die "Couldn't open gl_dispatch_table.h - run in driver/gl/";
 
 my @unsupported = ();
 my @dllexport = ();
@@ -85,7 +85,7 @@ while(<HOOKSET>)
     }
     else
     {
-      print "MALFORMED LINE IN gl_hookset.h: '$line'\n";
+      print "MALFORMED LINE IN gl_dispatch_table.h: '$line'\n";
     }
   }
 }
@@ -233,7 +233,7 @@ print <<ENDOFHEADER;
 // next time that script is run.
 // \$ pwd
 // .../renderdoc/driver/gl
-// \$ ./hookset.pl > gl_hookset_defs.h
+// \$ ./hookset.pl > gl_dispatch_table_defs.h
 ENDOFHEADER
 
 print "// We need to disable clang-format since this struct is programmatically generated\n";

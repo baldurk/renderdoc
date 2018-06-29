@@ -57,12 +57,6 @@
     <ClInclude Include="gl_driver.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="gl_hookset_defs.h">
-      <Filter>Hookset</Filter>
-    </ClInclude>
-    <ClInclude Include="gl_hookset.h">
-      <Filter>Hookset</Filter>
-    </ClInclude>
     <ClInclude Include="gl_hooks_linux_shared.h">
       <Filter>OS\Linux</Filter>
     </ClInclude>
@@ -113,6 +107,12 @@
     </ClInclude>
     <ClInclude Include="gl_initstate.h">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_dispatch_table.h">
+      <Filter>Hookset</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_dispatch_table_defs.h">
+      <Filter>Hookset</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -32,7 +32,7 @@
 #include "driver/shaders/spirv/spirv_common.h"
 #include "replay/replay_driver.h"
 #include "gl_common.h"
-#include "gl_hookset.h"
+#include "gl_dispatch_table.h"
 #include "gl_manager.h"
 #include "gl_renderstate.h"
 #include "gl_replay.h"
@@ -75,11 +75,10 @@ struct Replacement
 class WrappedOpenGL : public IFrameCapturer
 {
 private:
-  const GLHookSet &m_Real;
-  GLPlatform &m_Platform;
-
   friend class GLReplay;
   friend class GLResourceManager;
+
+  GLPlatform &m_Platform;
 
   vector<DebugMessage> m_DebugMessages;
   template <typename SerialiserType>
@@ -321,8 +320,8 @@ private:
     // pre-calculated bindpoint mapping for SPIR-V shaders. NOT valid for normal GLSL shaders
     ShaderBindpointMapping mapping;
 
-    void ProcessCompilation(WrappedOpenGL &gl, ResourceId id, GLuint realShader);
-    void ProcessSPIRVCompilation(WrappedOpenGL &gl, ResourceId id, GLuint realShader,
+    void ProcessCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader);
+    void ProcessSPIRVCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader,
                                  const GLchar *pEntryPoint, GLuint numSpecializationConstants,
                                  const GLuint *pConstantIndex, const GLuint *pConstantValue);
   };
@@ -459,11 +458,11 @@ private:
     // time we associate a window, it broadcasts to all other
     // contexts to let them know to remove it
     void UnassociateWindow(void *wndHandle);
-    void AssociateWindow(WrappedOpenGL *gl, void *wndHandle);
+    void AssociateWindow(WrappedOpenGL *driver, void *wndHandle);
 
-    void CreateDebugData(const GLHookSet &gl);
+    void CreateDebugData();
 
-    void CreateResourceRecord(WrappedOpenGL *gl, void *suppliedCtx);
+    void CreateResourceRecord(WrappedOpenGL *driver, void *suppliedCtx);
 
     bool Legacy()
     {
@@ -586,7 +585,7 @@ private:
   WrappedOpenGL &operator=(const WrappedOpenGL &);
 
 public:
-  WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform);
+  WrappedOpenGL(GLPlatform &platform);
   virtual ~WrappedOpenGL();
 
   APIProperties APIProps;
@@ -614,7 +613,6 @@ public:
   }
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   void SetFetchCounters(bool in) { m_FetchCounters = in; };
-  const GLHookSet &GetHookset() { return m_Real; }
   void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)
   {
@@ -2267,7 +2265,7 @@ public:
 class ScopedDebugContext
 {
 public:
-  ScopedDebugContext(WrappedOpenGL *gl, const char *fmt, ...)
+  ScopedDebugContext(WrappedOpenGL *driver, const char *fmt, ...)
   {
     va_list args;
     va_start(args, fmt);
@@ -2276,11 +2274,11 @@ public:
     StringFormat::vsnprintf(buf, 1023, fmt, args);
     va_end(args);
 
-    m_GL = gl;
-    m_GL->SetDebugMsgContext(buf);
+    m_Driver = driver;
+    m_Driver->SetDebugMsgContext(buf);
   }
 
-  ~ScopedDebugContext() { m_GL->SetDebugMsgContext(""); }
+  ~ScopedDebugContext() { m_Driver->SetDebugMsgContext(""); }
 private:
-  WrappedOpenGL *m_GL;
+  WrappedOpenGL *m_Driver;
 };

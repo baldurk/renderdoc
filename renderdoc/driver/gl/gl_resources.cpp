@@ -24,7 +24,7 @@
  ******************************************************************************/
 
 #include "gl_resources.h"
-#include "gl_hookset.h"
+#include "gl_dispatch_table.h"
 #include "gl_manager.h"
 
 template <>
@@ -539,20 +539,20 @@ GLenum GetDataType(GLenum internalFormat)
   return eGL_NONE;
 }
 
-int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d)
+int GetNumMips(GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d)
 {
   int mips = 1;
 
   GLint immut = 0;
-  gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
   if(immut)
-    gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
+    GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
   else
     mips = CalcNumMips(w, h, d);
 
   GLint maxLevel = 1000;
-  gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
   mips = RDCMIN(mips, maxLevel + 1);
 
   if(immut == 0)
@@ -565,7 +565,7 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
     for(int i = 0; i < mips; i++)
     {
       GLint width = 0;
-      gl.glGetTextureLevelParameterivEXT(tex, target, i, eGL_TEXTURE_WIDTH, &width);
+      GL.glGetTextureLevelParameterivEXT(tex, target, i, eGL_TEXTURE_WIDTH, &width);
       if(width == 0)
       {
         mips = i;
@@ -577,19 +577,18 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   return RDCMAX(1, mips);
 }
 
-void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
-                               GLint *mip, GLint *layer)
+void GetFramebufferMipAndLayer(GLenum framebuffer, GLenum attachment, GLint *mip, GLint *layer)
 {
-  gl.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
+  GL.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
                                            eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, mip);
 
   GLenum face = eGL_NONE;
-  gl.glGetFramebufferAttachmentParameteriv(
+  GL.glGetFramebufferAttachmentParameteriv(
       framebuffer, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
   if(face == 0)
   {
-    gl.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
+    GL.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
                                              eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, layer);
   }
   else
@@ -601,24 +600,23 @@ void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum a
 // GL_TEXTURE_SWIZZLE_RGBA is not supported on GLES, so for consistency we use r/g/b/a component
 // swizzles for both GL and GLES.
 // The same applies to SetTextureSwizzle function.
-void GetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, GLenum *swizzleRGBA)
+void GetTextureSwizzle(GLuint tex, GLenum target, GLenum *swizzleRGBA)
 {
-  gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_R, (GLint *)&swizzleRGBA[0]);
-  gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_G, (GLint *)&swizzleRGBA[1]);
-  gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_B, (GLint *)&swizzleRGBA[2]);
-  gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_A, (GLint *)&swizzleRGBA[3]);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_R, (GLint *)&swizzleRGBA[0]);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_G, (GLint *)&swizzleRGBA[1]);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_B, (GLint *)&swizzleRGBA[2]);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_A, (GLint *)&swizzleRGBA[3]);
 }
 
-void SetTextureSwizzle(const GLHookSet &gl, GLuint tex, GLenum target, const GLenum *swizzleRGBA)
+void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA)
 {
-  gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_R, (GLint *)&swizzleRGBA[0]);
-  gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_G, (GLint *)&swizzleRGBA[1]);
-  gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_B, (GLint *)&swizzleRGBA[2]);
-  gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_A, (GLint *)&swizzleRGBA[3]);
+  GL.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_R, (GLint *)&swizzleRGBA[0]);
+  GL.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_G, (GLint *)&swizzleRGBA[1]);
+  GL.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_B, (GLint *)&swizzleRGBA[2]);
+  GL.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_A, (GLint *)&swizzleRGBA[3]);
 }
 
-bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat,
-                            GLenum &dataFormat)
+bool EmulateLuminanceFormat(GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat)
 {
   GLenum swizzle[] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
 
@@ -858,7 +856,7 @@ bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLen
   {
     if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
-      SetTextureSwizzle(gl, tex, target, swizzle);
+      SetTextureSwizzle(tex, target, swizzle);
     }
     else
     {

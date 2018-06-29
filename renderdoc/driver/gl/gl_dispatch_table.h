@@ -29,8 +29,14 @@
 
 // We need to disable clang-format since this struct is programmatically parsed
 // clang-format off
-struct GLHookSet
+struct GLDispatchTable
 {
+  // These functions are called after fully populating the hookset, to emulate functions that are
+  // one way or another unsupported but we can software emulate them and want to assume their
+  // presence.
+  void EmulateUnsupportedFunctions();
+  void EmulateRequiredExtensions();
+
   // first we list all the core functions. 1.1 functions are separate under 'dllexport' for
   // different handling on windows. Extensions come after.
   // Any Core functions that are semantically identical to extension variants are listed as
@@ -911,3 +917,5 @@ struct GLHookSet
   // --
 };
 // clang-format on
+
+extern GLDispatchTable GL;

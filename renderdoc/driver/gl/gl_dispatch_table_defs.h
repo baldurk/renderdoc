@@ -28,7 +28,7 @@
 // next time that script is run.
 // $ pwd
 // .../renderdoc/driver/gl
-// $ ./hookset.pl > gl_hookset_defs.h
+// $ ./hookset.pl > gl_dispatch_table_defs.h
 // We need to disable clang-format since this struct is programmatically generated
 // clang-format off
 ////////////////////////////////////////////////////

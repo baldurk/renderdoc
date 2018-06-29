@@ -35,6 +35,5 @@ bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *));
 void SharedCheckContext();
 void PosixHookFunctions();
 
-extern GLHookSet GL;
 extern WrappedOpenGL *m_GLDriver;
 extern void *libGLdlsymHandle;

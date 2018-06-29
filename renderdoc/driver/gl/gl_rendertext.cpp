@@ -39,12 +39,12 @@ stbtt_bakedchar chardata[numChars];
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 
-void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
+void WrappedOpenGL::ContextData::CreateDebugData()
 {
   // to let us display the overlay on old GL contexts, use as simple a subset of functionality as
   // possible to upload the texture. VAO and shaders are used optionally on modern contexts,
   // otherwise we fall back to immediate mode rendering by hand
-  if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glTexImage2D && gl.glTexParameteri)
+  if(GL.glGetIntegerv && GL.glGenTextures && GL.glBindTexture && GL.glTexImage2D && GL.glTexParameteri)
   {
     string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
     byte *ttfdata = (byte *)ttfstring.c_str();
@@ -71,28 +71,28 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
     {
       PixelUnpackState unpack;
 
-      unpack.Fetch(&gl, false);
+      unpack.Fetch(false);
 
-      ResetPixelUnpackState(gl, false, 1);
+      ResetPixelUnpackState(false, 1);
 
       GLuint curtex = 0;
-      gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
 
       GLenum texFmt = eGL_R8;
       if(Legacy())
         texFmt = eGL_LUMINANCE;
 
-      gl.glGenTextures(1, &GlyphTexture);
-      gl.glBindTexture(eGL_TEXTURE_2D, GlyphTexture);
-      gl.glTexImage2D(eGL_TEXTURE_2D, 0, texFmt, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 0, eGL_RED,
+      GL.glGenTextures(1, &GlyphTexture);
+      GL.glBindTexture(eGL_TEXTURE_2D, GlyphTexture);
+      GL.glTexImage2D(eGL_TEXTURE_2D, 0, texFmt, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 0, eGL_RED,
                       eGL_UNSIGNED_BYTE, buf);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
+      GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+      GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
+      GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
 
-      gl.glBindTexture(eGL_TEXTURE_2D, curtex);
+      GL.glBindTexture(eGL_TEXTURE_2D, curtex);
 
-      unpack.Apply(&gl, false);
+      unpack.Apply(false);
     }
 
     delete[] buf;
@@ -112,41 +112,41 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
     }
 
-    if(Modern() && gl.glGenVertexArrays && gl.glBindVertexArray)
+    if(Modern() && GL.glGenVertexArrays && GL.glBindVertexArray)
     {
       GLuint curvao = 0;
-      gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
+      GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
 
-      gl.glGenVertexArrays(1, &DummyVAO);
-      gl.glBindVertexArray(DummyVAO);
+      GL.glGenVertexArrays(1, &DummyVAO);
+      GL.glBindVertexArray(DummyVAO);
 
-      gl.glBindVertexArray(curvao);
+      GL.glBindVertexArray(curvao);
     }
 
-    if(Modern() && gl.glGenBuffers && gl.glBufferData && gl.glBindBuffer)
+    if(Modern() && GL.glGenBuffers && GL.glBufferData && GL.glBindBuffer)
     {
       GLuint curubo = 0;
-      gl.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&curubo);
+      GL.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&curubo);
 
-      gl.glGenBuffers(1, &GlyphUBO);
-      gl.glBindBuffer(eGL_UNIFORM_BUFFER, GlyphUBO);
-      gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(glyphData), glyphData, eGL_STATIC_DRAW);
+      GL.glGenBuffers(1, &GlyphUBO);
+      GL.glBindBuffer(eGL_UNIFORM_BUFFER, GlyphUBO);
+      GL.glBufferData(eGL_UNIFORM_BUFFER, sizeof(glyphData), glyphData, eGL_STATIC_DRAW);
 
-      gl.glGenBuffers(1, &GeneralUBO);
-      gl.glBindBuffer(eGL_UNIFORM_BUFFER, GeneralUBO);
-      gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUBOData), NULL, eGL_DYNAMIC_DRAW);
+      GL.glGenBuffers(1, &GeneralUBO);
+      GL.glBindBuffer(eGL_UNIFORM_BUFFER, GeneralUBO);
+      GL.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUBOData), NULL, eGL_DYNAMIC_DRAW);
 
-      gl.glGenBuffers(1, &StringUBO);
-      gl.glBindBuffer(eGL_UNIFORM_BUFFER, StringUBO);
-      gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(uint32_t) * 4 * FONT_MAX_CHARS, NULL,
+      GL.glGenBuffers(1, &StringUBO);
+      GL.glBindBuffer(eGL_UNIFORM_BUFFER, StringUBO);
+      GL.glBufferData(eGL_UNIFORM_BUFFER, sizeof(uint32_t) * 4 * FONT_MAX_CHARS, NULL,
                       eGL_DYNAMIC_DRAW);
 
-      gl.glBindBuffer(eGL_UNIFORM_BUFFER, curubo);
+      GL.glBindBuffer(eGL_UNIFORM_BUFFER, curubo);
     }
 
-    if(Modern() && gl.glCreateShader && gl.glShaderSource && gl.glCompileShader &&
-       gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader && gl.glCreateProgram &&
-       gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
+    if(Modern() && GL.glCreateShader && GL.glShaderSource && GL.glCompileShader &&
+       GL.glGetShaderiv && GL.glGetShaderInfoLog && GL.glDeleteShader && GL.glCreateProgram &&
+       GL.glAttachShader && GL.glLinkProgram && GL.glGetProgramiv && GL.glGetProgramInfoLog)
     {
       vector<string> vs;
       vector<string> fs;
@@ -186,48 +186,48 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       for(size_t i = 0; i < fs.size(); i++)
         fsc.push_back(fs[i].c_str());
 
-      GLuint vert = gl.glCreateShader(eGL_VERTEX_SHADER);
-      GLuint frag = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+      GLuint vert = GL.glCreateShader(eGL_VERTEX_SHADER);
+      GLuint frag = GL.glCreateShader(eGL_FRAGMENT_SHADER);
 
-      gl.glShaderSource(vert, (GLsizei)vs.size(), &vsc[0], NULL);
-      gl.glShaderSource(frag, (GLsizei)fs.size(), &fsc[0], NULL);
+      GL.glShaderSource(vert, (GLsizei)vs.size(), &vsc[0], NULL);
+      GL.glShaderSource(frag, (GLsizei)fs.size(), &fsc[0], NULL);
 
-      gl.glCompileShader(vert);
-      gl.glCompileShader(frag);
+      GL.glCompileShader(vert);
+      GL.glCompileShader(frag);
 
       char buffer[1024] = {0};
       GLint status = 0;
 
-      gl.glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
+      GL.glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
       if(status == 0)
       {
-        gl.glGetShaderInfoLog(vert, 1024, NULL, buffer);
+        GL.glGetShaderInfoLog(vert, 1024, NULL, buffer);
         RDCERR("Shader error: %s", buffer);
       }
 
-      gl.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
+      GL.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
       if(status == 0)
       {
-        gl.glGetShaderInfoLog(frag, 1024, NULL, buffer);
+        GL.glGetShaderInfoLog(frag, 1024, NULL, buffer);
         RDCERR("Shader error: %s", buffer);
       }
 
-      Program = gl.glCreateProgram();
+      Program = GL.glCreateProgram();
 
-      gl.glAttachShader(Program, vert);
-      gl.glAttachShader(Program, frag);
+      GL.glAttachShader(Program, vert);
+      GL.glAttachShader(Program, frag);
 
-      gl.glLinkProgram(Program);
+      GL.glLinkProgram(Program);
 
-      gl.glGetProgramiv(Program, eGL_LINK_STATUS, &status);
+      GL.glGetProgramiv(Program, eGL_LINK_STATUS, &status);
       if(status == 0)
       {
-        gl.glGetProgramInfoLog(Program, 1024, NULL, buffer);
+        GL.glGetProgramInfoLog(Program, 1024, NULL, buffer);
         RDCERR("Link error: %s", buffer);
       }
 
-      gl.glDeleteShader(vert);
-      gl.glDeleteShader(frag);
+      GL.glDeleteShader(vert);
+      GL.glDeleteShader(frag);
     }
 
     ready = true;
@@ -248,11 +248,11 @@ void WrappedOpenGL::RenderOverlayText(float x, float y, const char *fmt, ...)
 
   GLPushPopState textState;
 
-  textState.Push(m_Real, ctxdata.Modern());
+  textState.Push(ctxdata.Modern());
 
   RenderOverlayStr(x, y, tmpBuf);
 
-  textState.Pop(m_Real, ctxdata.Modern());
+  textState.Pop(ctxdata.Modern());
 }
 
 void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
@@ -269,8 +269,6 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
   if(strlen(text) == 0)
     return;
 
-  const GLHookSet &gl = m_Real;
-
   RDCASSERT(strlen(text) < (size_t)FONT_MAX_CHARS);
 
   ContextData &ctxdata = GetCtxData();
@@ -281,9 +279,9 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
   // if it's reasonably modern context, assume we can use buffers and UBOs
   if(ctxdata.Modern())
   {
-    gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GeneralUBO);
+    GL.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GeneralUBO);
 
-    FontUBOData *ubo = (FontUBOData *)gl.glMapBufferRange(
+    FontUBOData *ubo = (FontUBOData *)GL.glMapBufferRange(
         eGL_UNIFORM_BUFFER, 0, sizeof(FontUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     ubo->TextPosition.x = x;
     ubo->TextPosition.y = y;
@@ -297,7 +295,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     ubo->CharacterSize.x = 1.0f / float(FONT_TEX_WIDTH);
     ubo->CharacterSize.y = 1.0f / float(FONT_TEX_HEIGHT);
 
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    GL.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     size_t len = strlen(text);
 
@@ -315,9 +313,9 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       len = FONT_MAX_CHARS;
     }
 
-    gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.StringUBO);
+    GL.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.StringUBO);
     uint32_t *texs =
-        (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len * 4 * sizeof(uint32_t),
+        (uint32_t *)GL.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len * 4 * sizeof(uint32_t),
                                         GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
     if(texs)
@@ -342,7 +340,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       }
     }
 
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    GL.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     //////////////////////////////////////////////////////////////////////////////////
     // Make sure if you change any other state in here, that you also update the push
@@ -351,72 +349,72 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     // set blend state
     if(HasExt[ARB_draw_buffers_blend])
     {
-      gl.glEnablei(eGL_BLEND, 0);
-      gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA,
+      GL.glEnablei(eGL_BLEND, 0);
+      GL.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA,
                               eGL_SRC_ALPHA);
-      gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+      GL.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
     }
     else
     {
-      gl.glEnable(eGL_BLEND);
-      gl.glBlendFuncSeparate(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
-      gl.glBlendEquationSeparate(eGL_FUNC_ADD, eGL_FUNC_ADD);
+      GL.glEnable(eGL_BLEND);
+      GL.glBlendFuncSeparate(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
+      GL.glBlendEquationSeparate(eGL_FUNC_ADD, eGL_FUNC_ADD);
     }
 
     if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
     {
-      gl.glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      GL.glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
     else
     {
-      gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      GL.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
 
     // set depth & stencil
-    gl.glDisable(eGL_DEPTH_TEST);
+    GL.glDisable(eGL_DEPTH_TEST);
     if(!IsGLES)
-      gl.glDisable(eGL_DEPTH_CLAMP);
-    gl.glDisable(eGL_STENCIL_TEST);
-    gl.glDisable(eGL_CULL_FACE);
-    gl.glDisable(eGL_RASTERIZER_DISCARD);
+      GL.glDisable(eGL_DEPTH_CLAMP);
+    GL.glDisable(eGL_STENCIL_TEST);
+    GL.glDisable(eGL_CULL_FACE);
+    GL.glDisable(eGL_RASTERIZER_DISCARD);
 
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+    GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
     // set viewport & scissor
     if(HasExt[ARB_viewport_array])
     {
-      gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
-      gl.glDisablei(eGL_SCISSOR_TEST, 0);
+      GL.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+      GL.glDisablei(eGL_SCISSOR_TEST, 0);
     }
     else
     {
-      gl.glViewport(0, 0, m_InitParams.width, m_InitParams.height);
-      gl.glDisable(eGL_SCISSOR_TEST);
+      GL.glViewport(0, 0, m_InitParams.width, m_InitParams.height);
+      GL.glDisable(eGL_SCISSOR_TEST);
     }
 
     if(!IsGLES)
-      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+      GL.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
-    if(gl.glClipControl && HasExt[ARB_clip_control])
-      gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
+    if(GL.glClipControl && HasExt[ARB_clip_control])
+      GL.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
 
     // bind UBOs
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ctxdata.StringUBO);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ctxdata.StringUBO);
 
     // bind empty VAO just for valid rendering
-    gl.glBindVertexArray(ctxdata.DummyVAO);
+    GL.glBindVertexArray(ctxdata.DummyVAO);
 
     // bind textures
-    gl.glActiveTexture(eGL_TEXTURE0);
-    gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
+    GL.glActiveTexture(eGL_TEXTURE0);
+    GL.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
 
     // bind program
-    gl.glUseProgram(ctxdata.Program);
+    GL.glUseProgram(ctxdata.Program);
 
     // draw string
-    gl.glDrawArrays(eGL_TRIANGLES, 0, 6 * (GLsizei)len);
+    GL.glDrawArrays(eGL_TRIANGLES, 0, 6 * (GLsizei)len);
   }
   else
   {
@@ -433,34 +431,34 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     // and pop functions above (RenderTextState)
 
     // disable blending and some old-style fixed function features
-    gl.glDisable(eGL_BLEND);
-    gl.glDisable(eGL_LIGHTING);
-    gl.glDisable(eGL_ALPHA_TEST);
+    GL.glDisable(eGL_BLEND);
+    GL.glDisable(eGL_LIGHTING);
+    GL.glDisable(eGL_ALPHA_TEST);
 
     // set depth & stencil
-    gl.glDisable(eGL_DEPTH_TEST);
-    gl.glDisable(eGL_STENCIL_TEST);
-    gl.glDisable(eGL_CULL_FACE);
+    GL.glDisable(eGL_DEPTH_TEST);
+    GL.glDisable(eGL_STENCIL_TEST);
+    GL.glDisable(eGL_CULL_FACE);
 
     // set viewport & scissor
-    gl.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
-    gl.glDisable(eGL_SCISSOR_TEST);
+    GL.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
+    GL.glDisable(eGL_SCISSOR_TEST);
     if(!IsGLES)
-      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+      GL.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
     // bind textures
-    gl.glActiveTexture(eGL_TEXTURE0);
-    gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
-    gl.glEnable(eGL_TEXTURE_2D);
+    GL.glActiveTexture(eGL_TEXTURE0);
+    GL.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
+    GL.glEnable(eGL_TEXTURE_2D);
 
-    if(gl.glBindFramebuffer)
-      gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+    if(GL.glBindFramebuffer)
+      GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
     // just in case, try to disable the programmable pipeline
-    if(gl.glUseProgram)
-      gl.glUseProgram(0);
-    if(gl.glBindProgramPipeline)
-      gl.glBindProgramPipeline(0);
+    if(GL.glUseProgram)
+      GL.glUseProgram(0);
+    if(GL.glBindProgramPipeline)
+      GL.glBindProgramPipeline(0);
 
     // draw string (based on sample code from stb_truetype.h)
     vector<Vec4f> vertices;

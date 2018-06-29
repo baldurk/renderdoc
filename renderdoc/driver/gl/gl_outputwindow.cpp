@@ -32,41 +32,41 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
   // create fake backbuffer for this output window.
   // We'll make an FBO for this backbuffer on the replay context, so we can
   // use the replay context to do the hard work of rendering to it, then just
   // blit across to the real default framebuffer on the output window context
-  gl.glGenFramebuffers(1, &outwin.BlitData.windowFBO);
-  gl.glBindFramebuffer(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO);
+  drv.glGenFramebuffers(1, &outwin.BlitData.windowFBO);
+  drv.glBindFramebuffer(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO);
 
-  gl.glGenTextures(1, &outwin.BlitData.backbuffer);
-  gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
+  drv.glGenTextures(1, &outwin.BlitData.backbuffer);
+  drv.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 
-  gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8_ALPHA8,
-                         outwin.width, outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-  gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                            outwin.BlitData.backbuffer, 0);
+  drv.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8_ALPHA8,
+                          outwin.width, outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                             outwin.BlitData.backbuffer, 0);
 
   if(depth)
   {
-    gl.glGenTextures(1, &outwin.BlitData.depthstencil);
-    gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
+    drv.glGenTextures(1, &outwin.BlitData.depthstencil);
+    drv.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
 
-    gl.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
-                           outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_INT,
-                           NULL);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    drv.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
+                            outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_INT,
+                            NULL);
+    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   }
   else
   {
@@ -83,14 +83,14 @@ void GLReplay::InitOutputWindow(OutputWindow &outwin)
 
   MakeCurrentReplayContext(&outwin);
 
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
-  gl.glGenVertexArrays(1, &outwin.BlitData.emptyVAO);
-  gl.glBindVertexArray(outwin.BlitData.emptyVAO);
+  drv.glGenVertexArrays(1, &outwin.BlitData.emptyVAO);
+  drv.glBindVertexArray(outwin.BlitData.emptyVAO);
 
-  gl.glGenFramebuffers(1, &outwin.BlitData.readFBO);
-  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outwin.BlitData.readFBO);
-  gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+  drv.glGenFramebuffers(1, &outwin.BlitData.readFBO);
+  drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outwin.BlitData.readFBO);
+  drv.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 }
 
 bool GLReplay::CheckResizeOutputWindow(uint64_t id)
@@ -113,17 +113,17 @@ bool GLReplay::CheckResizeOutputWindow(uint64_t id)
 
     MakeCurrentReplayContext(m_DebugCtx);
 
-    WrappedOpenGL &gl = *m_pDriver;
+    WrappedOpenGL &drv = *m_pDriver;
 
     bool haddepth = false;
 
-    gl.glDeleteTextures(1, &outw.BlitData.backbuffer);
+    drv.glDeleteTextures(1, &outw.BlitData.backbuffer);
     if(outw.BlitData.depthstencil)
     {
       haddepth = true;
-      gl.glDeleteTextures(1, &outw.BlitData.depthstencil);
+      drv.glDeleteTextures(1, &outw.BlitData.depthstencil);
     }
-    gl.glDeleteFramebuffers(1, &outw.BlitData.windowFBO);
+    drv.glDeleteFramebuffers(1, &outw.BlitData.windowFBO);
 
     CreateOutputWindowBackbuffer(outw, haddepth);
 
@@ -182,22 +182,22 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 
   MakeCurrentReplayContext(&outw);
 
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
   // go directly to real function so we don't try to bind the 'fake' backbuffer FBO.
-  gl.m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
-  gl.glViewport(0, 0, outw.width, outw.height);
+  GL.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
+  drv.glViewport(0, 0, outw.width, outw.height);
 
-  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outw.BlitData.readFBO);
+  drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outw.BlitData.readFBO);
 
-  gl.glFramebufferTexture2D(eGL_READ_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                            outw.BlitData.backbuffer, 0);
-  gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+  drv.glFramebufferTexture2D(eGL_READ_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                             outw.BlitData.backbuffer, 0);
+  drv.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
-  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
-  gl.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
-                       GL_COLOR_BUFFER_BIT, eGL_NEAREST);
+  drv.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
+                        GL_COLOR_BUFFER_BIT, eGL_NEAREST);
 
   SwapBuffers(&outw);
 }
@@ -234,8 +234,7 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 
   MakeCurrentReplayContext(&outw);
 
-  WrappedOpenGL &gl = *m_pDriver;
-  gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
+  m_pDriver->glDeleteFramebuffers(1, &outw.BlitData.readFBO);
 
   m_pDriver->m_Platform.DeleteReplayContext(outw);
 

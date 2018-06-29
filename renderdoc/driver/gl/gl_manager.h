@@ -42,7 +42,7 @@ struct GLResourceManagerConfiguration
 class GLResourceManager : public ResourceManager<GLResourceManagerConfiguration>
 {
 public:
-  GLResourceManager(WrappedOpenGL *gl);
+  GLResourceManager(WrappedOpenGL *driver);
   ~GLResourceManager() {}
   void Shutdown()
   {
@@ -272,5 +272,5 @@ private:
   volatile int64_t m_SyncName;
 
   CaptureState m_State;
-  WrappedOpenGL *m_GL;
+  WrappedOpenGL *m_Driver;
 };

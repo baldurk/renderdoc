@@ -26,9 +26,12 @@
 #include "gl_common.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
+#include "gl_dispatch_table.h"
 #include "gl_driver.h"
 
 Threading::CriticalSection glLock;
+
+GLDispatchTable GL = {};
 
 GLChunk gl_CurChunk = GLChunk::Max;
 
@@ -132,10 +135,10 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
   return false;
 }
 
-bool ValidateFunctionPointers(const GLHookSet &real)
+bool ValidateFunctionPointers()
 {
-  PFNGLGETSTRINGPROC *ptrs = (PFNGLGETSTRINGPROC *)&real;
-  size_t num = sizeof(real) / sizeof(PFNGLGETSTRINGPROC);
+  PFNGLGETSTRINGPROC *ptrs = (PFNGLGETSTRINGPROC *)&GL;
+  size_t num = sizeof(GL) / sizeof(PFNGLGETSTRINGPROC);
 
   RDCLOG("Function pointers available:");
   for(size_t ptr = 0; ptr < num;)
@@ -158,7 +161,7 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   bool ret = true;
 
 #define CHECK_PRESENT(func)                                                            \
-  if(!real.func)                                                                       \
+  if(!GL.func)                                                                         \
   {                                                                                    \
     RDCERR(                                                                            \
         "Missing function %s, required for replay. RenderDoc requires a 3.2 context, " \
@@ -376,19 +379,19 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   return ret;
 }
 
-void CheckExtensions(const GLHookSet &gl)
+void CheckExtensions()
 {
   GLint numExts = 0;
-  if(gl.glGetIntegerv)
-    gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
+  if(GL.glGetIntegerv)
+    GL.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
 
   RDCEraseEl(HasExt);
 
-  if(gl.glGetString)
+  if(GL.glGetString)
   {
-    const char *vendor = (const char *)gl.glGetString(eGL_VENDOR);
-    const char *renderer = (const char *)gl.glGetString(eGL_RENDERER);
-    const char *version = (const char *)gl.glGetString(eGL_VERSION);
+    const char *vendor = (const char *)GL.glGetString(eGL_VENDOR);
+    const char *renderer = (const char *)GL.glGetString(eGL_RENDERER);
+    const char *version = (const char *)GL.glGetString(eGL_VERSION);
 
     // check whether we are using OpenGL ES
     // GL_VERSION for OpenGL ES:
@@ -405,11 +408,11 @@ void CheckExtensions(const GLHookSet &gl)
     RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
   }
 
-  if(gl.glGetStringi)
+  if(GL.glGetStringi)
   {
     for(int i = 0; i < numExts; i++)
     {
-      const char *ext = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
+      const char *ext = (const char *)GL.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
 
       if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3])
         continue;
@@ -445,12 +448,12 @@ void CheckExtensions(const GLHookSet &gl)
   }
 }
 
-void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData context)
+void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 {
   const char *vendor = "";
 
-  if(gl.glGetString)
-    vendor = (const char *)gl.glGetString(eGL_VENDOR);
+  if(GL.glGetString)
+    vendor = (const char *)GL.glGetString(eGL_VENDOR);
 
   //////////////////////////////////////////////////////////
   // version/driver/vendor specific hacks and checks go here
@@ -469,15 +472,15 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
 
   RDCEraseEl(VendorCheck);
 
-  if(gl.glGetError && gl.glGetIntegeri_v)
+  if(GL.glGetError && GL.glGetIntegeri_v)
   {
     // clear all error flags.
     GLenum err = eGL_NONE;
-    ClearGLErrors(gl);
+    ClearGLErrors();
 
     GLint dummy = 0;
-    gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
-    err = gl.glGetError();
+    GL.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
+    err = GL.glGetError();
 
     if(err != eGL_NONE)
     {
@@ -488,7 +491,7 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
     }
   }
 
-  if(gl.glGetIntegerv && gl.glGetError && !IsGLES)
+  if(GL.glGetIntegerv && GL.glGetError && !IsGLES)
   {
     // NOTE: in case of OpenGL ES the GL_NV_polygon_mode extension can be used, however even if the
     // driver reports that the extension is supported, it always throws errors when we try to use it
@@ -496,11 +499,11 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
 
     // clear all error flags.
     GLenum err = eGL_NONE;
-    ClearGLErrors(gl);
+    ClearGLErrors();
 
     GLint dummy[2] = {0};
-    gl.glGetIntegerv(eGL_POLYGON_MODE, dummy);
-    err = gl.glGetError();
+    GL.glGetIntegerv(eGL_POLYGON_MODE, dummy);
+    err = GL.glGetError();
 
     if(err != eGL_NONE)
     {
@@ -522,32 +525,32 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
     VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] = true;
     VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] = true;
   }
-  else if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
-          gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
+  else if(GL.glGetError && GL.glGenTextures && GL.glBindTexture && GL.glCopyImageSubData &&
+          GL.glTexStorage2D && GL.glTexSubImage2D && GL.glTexParameteri && GL.glDeleteTextures &&
           HasExt[ARB_copy_image] && HasExt[ARB_texture_storage] && !IsGLES)
   {
     GLuint prevTex = 0;
-    gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&prevTex);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&prevTex);
 
     GLuint texs[2];
-    gl.glGenTextures(2, texs);
+    GL.glGenTextures(2, texs);
 
-    gl.glBindTexture(eGL_TEXTURE_2D, texs[0]);
-    gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glBindTexture(eGL_TEXTURE_2D, texs[0]);
+    GL.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
+    GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
 
-    gl.glBindTexture(eGL_TEXTURE_2D, texs[1]);
-    gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glBindTexture(eGL_TEXTURE_2D, texs[1]);
+    GL.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
+    GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
 
     // clear all error flags.
     GLenum err = eGL_NONE;
-    ClearGLErrors(gl);
+    ClearGLErrors();
 
-    gl.glCopyImageSubData(texs[0], eGL_TEXTURE_2D, 0, 0, 0, 0, texs[1], eGL_TEXTURE_2D, 0, 0, 0, 0,
+    GL.glCopyImageSubData(texs[0], eGL_TEXTURE_2D, 0, 0, 0, 0, texs[1], eGL_TEXTURE_2D, 0, 0, 0, 0,
                           1, 1, 1);
 
-    err = gl.glGetError();
+    err = GL.glGetError();
 
     if(err != eGL_NONE)
     {
@@ -557,48 +560,48 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       RDCWARN("Using hack to avoid glCopyImageSubData on lowest mips of compressed texture");
     }
 
-    gl.glBindTexture(eGL_TEXTURE_2D, prevTex);
-    gl.glDeleteTextures(2, texs);
+    GL.glBindTexture(eGL_TEXTURE_2D, prevTex);
+    GL.glDeleteTextures(2, texs);
 
-    ClearGLErrors(gl);
+    ClearGLErrors();
 
     //////////////////////////////////////////////////////////////////////////
     // Check copying cubemaps
 
-    gl.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&prevTex);
-    gl.glGenTextures(2, texs);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&prevTex);
+    GL.glGenTextures(2, texs);
 
     const size_t dim = 32;
 
     char buf[dim * dim / 2];
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
-    gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
-    gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
+    GL.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
+    GL.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 0);
 
     for(int i = 0; i < 6; i++)
     {
       memset(buf, 0xba + i, sizeof(buf));
-      gl.glCompressedTexSubImage2D(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, 0, 0, dim, dim,
+      GL.glCompressedTexSubImage2D(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, 0, 0, dim, dim,
                                    eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim * dim / 2, buf);
     }
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
-    gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
-    gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
+    GL.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
+    GL.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 0);
 
-    gl.glCopyImageSubData(texs[0], eGL_TEXTURE_CUBE_MAP, 0, 0, 0, 0, texs[1], eGL_TEXTURE_CUBE_MAP,
+    GL.glCopyImageSubData(texs[0], eGL_TEXTURE_CUBE_MAP, 0, 0, 0, 0, texs[1], eGL_TEXTURE_CUBE_MAP,
                           0, 0, 0, 0, dim, dim, 6);
 
     char cmp[dim * dim / 2];
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
+    GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
 
     for(int i = 0; i < 6; i++)
     {
       memset(buf, 0xba + i, sizeof(buf));
       RDCEraseEl(cmp);
-      gl.glGetCompressedTexImage(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, cmp);
+      GL.glGetCompressedTexImage(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, cmp);
 
       RDCCOMPILE_ASSERT(sizeof(buf) == sizeof(buf), "Buffers are not matching sizes");
 
@@ -610,13 +613,13 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       }
     }
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
+    GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
 
     for(int i = 0; i < 6; i++)
     {
       memset(buf, 0xba + i, sizeof(buf));
       RDCEraseEl(cmp);
-      gl.glGetCompressedTexImage(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, cmp);
+      GL.glGetCompressedTexImage(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, cmp);
 
       RDCCOMPILE_ASSERT(sizeof(buf) == sizeof(buf), "Buffers are not matching sizes");
 
@@ -628,26 +631,26 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       }
     }
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevTex);
-    gl.glDeleteTextures(2, texs);
+    GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevTex);
+    GL.glDeleteTextures(2, texs);
 
-    ClearGLErrors(gl);
+    ClearGLErrors();
   }
 
-  if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines &&
-     gl.glGetProgramPipelineiv && HasExt[ARB_compute_shader] && HasExt[ARB_program_interface_query])
+  if(GL.glGetError && GL.glGenProgramPipelines && GL.glDeleteProgramPipelines &&
+     GL.glGetProgramPipelineiv && HasExt[ARB_compute_shader] && HasExt[ARB_program_interface_query])
   {
     GLuint pipe = 0;
-    gl.glGenProgramPipelines(1, &pipe);
+    GL.glGenProgramPipelines(1, &pipe);
 
     // clear all error flags.
     GLenum err = eGL_NONE;
-    ClearGLErrors(gl);
+    ClearGLErrors();
 
     GLint dummy = 0;
-    gl.glGetProgramPipelineiv(pipe, eGL_COMPUTE_SHADER, &dummy);
+    GL.glGetProgramPipelineiv(pipe, eGL_COMPUTE_SHADER, &dummy);
 
-    err = gl.glGetError();
+    err = GL.glGetError();
 
     if(err != eGL_NONE)
     {
@@ -657,27 +660,27 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       RDCWARN("Using hack to avoid glGetProgramPipelineiv with GL_COMPUTE_SHADER");
     }
 
-    gl.glDeleteProgramPipelines(1, &pipe);
+    GL.glDeleteProgramPipelines(1, &pipe);
   }
 
   // only do this when we have a proper context e.g. on windows where an old
   // context is first created. Check to see if FBOs or VAOs are shared between
   // contexts.
-  if((IsGLES || GLCoreVersion >= 32) && gl.glGenVertexArrays && gl.glBindVertexArray &&
-     gl.glDeleteVertexArrays && gl.glGenFramebuffers && gl.glBindFramebuffer &&
-     gl.glDeleteFramebuffers)
+  if((IsGLES || GLCoreVersion >= 32) && GL.glGenVertexArrays && GL.glBindVertexArray &&
+     GL.glDeleteVertexArrays && GL.glGenFramebuffers && GL.glBindFramebuffer &&
+     GL.glDeleteFramebuffers)
   {
     GLuint prevFBO = 0, prevVAO = 0;
-    gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevFBO);
-    gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+    GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevFBO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
     // gen & create an FBO and VAO
     GLuint fbo = 0;
     GLuint vao = 0;
-    gl.glGenFramebuffers(1, &fbo);
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbo);
-    gl.glGenVertexArrays(1, &vao);
-    gl.glBindVertexArray(vao);
+    GL.glGenFramebuffers(1, &fbo);
+    GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbo);
+    GL.glGenVertexArrays(1, &vao);
+    GL.glBindVertexArray(vao);
 
     // make a context that shares with the current one, and switch to it
     GLWindowingData child = platform.MakeContext(context);
@@ -688,8 +691,8 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       platform.MakeContextCurrent(child);
 
       // these shouldn't be visible
-      VendorCheck[VendorCheck_EXT_fbo_shared] = (gl.glIsFramebuffer(fbo) != GL_FALSE);
-      VendorCheck[VendorCheck_EXT_vao_shared] = (gl.glIsVertexArray(vao) != GL_FALSE);
+      VendorCheck[VendorCheck_EXT_fbo_shared] = (GL.glIsFramebuffer(fbo) != GL_FALSE);
+      VendorCheck[VendorCheck_EXT_vao_shared] = (GL.glIsVertexArray(vao) != GL_FALSE);
 
       if(VendorCheck[VendorCheck_EXT_fbo_shared])
         RDCWARN("FBOs are shared on this implementation");
@@ -702,11 +705,11 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       platform.DeleteContext(child);
     }
 
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevFBO);
-    gl.glBindVertexArray(prevVAO);
+    GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevFBO);
+    GL.glBindVertexArray(prevVAO);
 
-    gl.glDeleteFramebuffers(1, &fbo);
-    gl.glDeleteVertexArrays(1, &vao);
+    GL.glDeleteFramebuffers(1, &fbo);
+    GL.glDeleteVertexArrays(1, &vao);
   }
 
   // don't have a test for this, just have to enable it all the time, for now.
@@ -750,8 +753,6 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   }
 }
 
-const GLHookSet *GLMarkerRegion::gl;
-
 GLMarkerRegion::GLMarkerRegion(const std::string &marker, GLenum source, GLuint id)
 {
   Begin(marker, source, id);
@@ -764,64 +765,64 @@ GLMarkerRegion::~GLMarkerRegion()
 
 void GLMarkerRegion::Begin(const std::string &marker, GLenum source, GLuint id)
 {
-  if(gl == NULL || !HasExt[KHR_debug] || !gl->glPushDebugGroup)
+  if(!HasExt[KHR_debug] || !GL.glPushDebugGroup)
     return;
 
-  gl->glPushDebugGroup(source, id, -1, marker.c_str());
+  GL.glPushDebugGroup(source, id, -1, marker.c_str());
 }
 
 void GLMarkerRegion::Set(const std::string &marker, GLenum source, GLuint id, GLenum severity)
 {
-  if(gl == NULL || !HasExt[KHR_debug] || !gl->glDebugMessageInsert)
+  if(!HasExt[KHR_debug] || !GL.glDebugMessageInsert)
     return;
 
-  gl->glDebugMessageInsert(source, eGL_DEBUG_TYPE_MARKER, id, severity, -1, marker.c_str());
+  GL.glDebugMessageInsert(source, eGL_DEBUG_TYPE_MARKER, id, severity, -1, marker.c_str());
 }
 
 void GLMarkerRegion::End()
 {
-  if(gl == NULL || !HasExt[KHR_debug] || !gl->glPopDebugGroup)
+  if(!HasExt[KHR_debug] || !GL.glPopDebugGroup)
     return;
 
-  gl->glPopDebugGroup();
+  GL.glPopDebugGroup();
 }
 
-void GLPushPopState::Push(const GLHookSet &gl, bool modern)
+void GLPushPopState::Push(bool modern)
 {
-  enableBits[0] = gl.glIsEnabled(eGL_DEPTH_TEST) != 0;
-  enableBits[1] = gl.glIsEnabled(eGL_STENCIL_TEST) != 0;
-  enableBits[2] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
+  enableBits[0] = GL.glIsEnabled(eGL_DEPTH_TEST) != 0;
+  enableBits[1] = GL.glIsEnabled(eGL_STENCIL_TEST) != 0;
+  enableBits[2] = GL.glIsEnabled(eGL_CULL_FACE) != 0;
   if(modern)
   {
     if(!IsGLES)
-      enableBits[3] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
+      enableBits[3] = GL.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
 
     if(HasExt[ARB_draw_buffers_blend])
-      enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
+      enableBits[4] = GL.glIsEnabledi(eGL_BLEND, 0) != 0;
     else
-      enableBits[4] = gl.glIsEnabled(eGL_BLEND) != 0;
+      enableBits[4] = GL.glIsEnabled(eGL_BLEND) != 0;
 
     if(HasExt[ARB_viewport_array])
-      enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+      enableBits[5] = GL.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
     else
-      enableBits[5] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+      enableBits[5] = GL.glIsEnabled(eGL_SCISSOR_TEST) != 0;
 
     if(HasExt[EXT_transform_feedback])
-      enableBits[6] = gl.glIsEnabled(eGL_RASTERIZER_DISCARD) != 0;
+      enableBits[6] = GL.glIsEnabled(eGL_RASTERIZER_DISCARD) != 0;
   }
   else
   {
-    enableBits[3] = gl.glIsEnabled(eGL_BLEND) != 0;
-    enableBits[4] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
-    enableBits[5] = gl.glIsEnabled(eGL_TEXTURE_2D) != 0;
-    enableBits[6] = gl.glIsEnabled(eGL_LIGHTING) != 0;
-    enableBits[7] = gl.glIsEnabled(eGL_ALPHA_TEST) != 0;
+    enableBits[3] = GL.glIsEnabled(eGL_BLEND) != 0;
+    enableBits[4] = GL.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+    enableBits[5] = GL.glIsEnabled(eGL_TEXTURE_2D) != 0;
+    enableBits[6] = GL.glIsEnabled(eGL_LIGHTING) != 0;
+    enableBits[7] = GL.glIsEnabled(eGL_ALPHA_TEST) != 0;
   }
 
   if(modern && HasExt[ARB_clip_control])
   {
-    gl.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
-    gl.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+    GL.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
+    GL.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
   }
   else
   {
@@ -831,34 +832,34 @@ void GLPushPopState::Push(const GLHookSet &gl, bool modern)
 
   if(modern && HasExt[ARB_draw_buffers_blend])
   {
-    gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint *)&EquationRGB);
-    gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint *)&EquationAlpha);
+    GL.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint *)&EquationRGB);
+    GL.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint *)&EquationAlpha);
 
-    gl.glGetIntegeri_v(eGL_BLEND_SRC_RGB, 0, (GLint *)&SourceRGB);
-    gl.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, 0, (GLint *)&SourceAlpha);
+    GL.glGetIntegeri_v(eGL_BLEND_SRC_RGB, 0, (GLint *)&SourceRGB);
+    GL.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, 0, (GLint *)&SourceAlpha);
 
-    gl.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint *)&DestinationRGB);
-    gl.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint *)&DestinationAlpha);
+    GL.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint *)&DestinationRGB);
+    GL.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint *)&DestinationAlpha);
   }
   else
   {
-    gl.glGetIntegerv(eGL_BLEND_EQUATION_RGB, (GLint *)&EquationRGB);
-    gl.glGetIntegerv(eGL_BLEND_EQUATION_ALPHA, (GLint *)&EquationAlpha);
+    GL.glGetIntegerv(eGL_BLEND_EQUATION_RGB, (GLint *)&EquationRGB);
+    GL.glGetIntegerv(eGL_BLEND_EQUATION_ALPHA, (GLint *)&EquationAlpha);
 
-    gl.glGetIntegerv(eGL_BLEND_SRC_RGB, (GLint *)&SourceRGB);
-    gl.glGetIntegerv(eGL_BLEND_SRC_ALPHA, (GLint *)&SourceAlpha);
+    GL.glGetIntegerv(eGL_BLEND_SRC_RGB, (GLint *)&SourceRGB);
+    GL.glGetIntegerv(eGL_BLEND_SRC_ALPHA, (GLint *)&SourceAlpha);
 
-    gl.glGetIntegerv(eGL_BLEND_DST_RGB, (GLint *)&DestinationRGB);
-    gl.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&DestinationAlpha);
+    GL.glGetIntegerv(eGL_BLEND_DST_RGB, (GLint *)&DestinationRGB);
+    GL.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&DestinationAlpha);
   }
 
   if(modern && (HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend]))
   {
-    gl.glGetBooleani_v(eGL_COLOR_WRITEMASK, 0, ColorMask);
+    GL.glGetBooleani_v(eGL_COLOR_WRITEMASK, 0, ColorMask);
   }
   else
   {
-    gl.glGetBooleanv(eGL_COLOR_WRITEMASK, ColorMask);
+    GL.glGetBooleanv(eGL_COLOR_WRITEMASK, ColorMask);
   }
 
   if(!VendorCheck[VendorCheck_AMD_polygon_mode_query] && !IsGLES)
@@ -866,7 +867,7 @@ void GLPushPopState::Push(const GLHookSet &gl, bool modern)
     GLenum dummy[2] = {eGL_FILL, eGL_FILL};
     // docs suggest this is enumeration[2] even though polygon mode can't be set independently for
     // front and back faces.
-    gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+    GL.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
     PolygonMode = dummy[0];
   }
   else
@@ -875,184 +876,184 @@ void GLPushPopState::Push(const GLHookSet &gl, bool modern)
   }
 
   if(modern && HasExt[ARB_viewport_array])
-    gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewportf[0]);
+    GL.glGetFloati_v(eGL_VIEWPORT, 0, &Viewportf[0]);
   else
-    gl.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
+    GL.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
 
-  gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
-  gl.glActiveTexture(eGL_TEXTURE0);
-  gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&tex0);
+  GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
+  GL.glActiveTexture(eGL_TEXTURE0);
+  GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&tex0);
 
-  gl.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&arraybuf);
+  GL.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&arraybuf);
 
   // we get the current program but only try to restore it if it's non-0
   prog = 0;
   if(modern)
-    gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+    GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
 
   drawFBO = 0;
-  gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
+  GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
 
   // since we will use the fixed function pipeline, also need to check for program pipeline
   // bindings (if we weren't, our program would override)
   pipe = 0;
   if(modern && HasExt[ARB_separate_shader_objects])
-    gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+    GL.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
   if(modern)
   {
-    gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&ubo[0]);
-    gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint *)&ubo[1]);
-    gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint *)&ubo[2]);
+    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&ubo[0]);
+    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint *)&ubo[1]);
+    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint *)&ubo[2]);
 
-    gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
   }
 }
 
-void GLPushPopState::Pop(const GLHookSet &gl, bool modern)
+void GLPushPopState::Pop(bool modern)
 {
   if(enableBits[0])
-    gl.glEnable(eGL_DEPTH_TEST);
+    GL.glEnable(eGL_DEPTH_TEST);
   else
-    gl.glDisable(eGL_DEPTH_TEST);
+    GL.glDisable(eGL_DEPTH_TEST);
   if(enableBits[1])
-    gl.glEnable(eGL_STENCIL_TEST);
+    GL.glEnable(eGL_STENCIL_TEST);
   else
-    gl.glDisable(eGL_STENCIL_TEST);
+    GL.glDisable(eGL_STENCIL_TEST);
   if(enableBits[2])
-    gl.glEnable(eGL_CULL_FACE);
+    GL.glEnable(eGL_CULL_FACE);
   else
-    gl.glDisable(eGL_CULL_FACE);
+    GL.glDisable(eGL_CULL_FACE);
 
   if(modern)
   {
     if(!IsGLES)
     {
       if(enableBits[3])
-        gl.glEnable(eGL_DEPTH_CLAMP);
+        GL.glEnable(eGL_DEPTH_CLAMP);
       else
-        gl.glDisable(eGL_DEPTH_CLAMP);
+        GL.glDisable(eGL_DEPTH_CLAMP);
     }
 
     if(HasExt[ARB_draw_buffers_blend])
     {
       if(enableBits[4])
-        gl.glEnablei(eGL_BLEND, 0);
+        GL.glEnablei(eGL_BLEND, 0);
       else
-        gl.glDisablei(eGL_BLEND, 0);
+        GL.glDisablei(eGL_BLEND, 0);
     }
     else
     {
       if(enableBits[4])
-        gl.glEnable(eGL_BLEND);
+        GL.glEnable(eGL_BLEND);
       else
-        gl.glDisable(eGL_BLEND);
+        GL.glDisable(eGL_BLEND);
     }
 
     if(HasExt[ARB_viewport_array])
     {
       if(enableBits[5])
-        gl.glEnablei(eGL_SCISSOR_TEST, 0);
+        GL.glEnablei(eGL_SCISSOR_TEST, 0);
       else
-        gl.glDisablei(eGL_SCISSOR_TEST, 0);
+        GL.glDisablei(eGL_SCISSOR_TEST, 0);
     }
     else
     {
       if(enableBits[5])
-        gl.glEnable(eGL_SCISSOR_TEST);
+        GL.glEnable(eGL_SCISSOR_TEST);
       else
-        gl.glDisable(eGL_SCISSOR_TEST);
+        GL.glDisable(eGL_SCISSOR_TEST);
     }
 
     if(HasExt[EXT_transform_feedback])
     {
       if(enableBits[6])
-        gl.glEnable(eGL_RASTERIZER_DISCARD);
+        GL.glEnable(eGL_RASTERIZER_DISCARD);
       else
-        gl.glDisable(eGL_RASTERIZER_DISCARD);
+        GL.glDisable(eGL_RASTERIZER_DISCARD);
     }
   }
   else
   {
     if(enableBits[3])
-      gl.glEnable(eGL_BLEND);
+      GL.glEnable(eGL_BLEND);
     else
-      gl.glDisable(eGL_BLEND);
+      GL.glDisable(eGL_BLEND);
     if(enableBits[4])
-      gl.glEnable(eGL_SCISSOR_TEST);
+      GL.glEnable(eGL_SCISSOR_TEST);
     else
-      gl.glDisable(eGL_SCISSOR_TEST);
+      GL.glDisable(eGL_SCISSOR_TEST);
     if(enableBits[5])
-      gl.glEnable(eGL_TEXTURE_2D);
+      GL.glEnable(eGL_TEXTURE_2D);
     else
-      gl.glDisable(eGL_TEXTURE_2D);
+      GL.glDisable(eGL_TEXTURE_2D);
     if(enableBits[6])
-      gl.glEnable(eGL_LIGHTING);
+      GL.glEnable(eGL_LIGHTING);
     else
-      gl.glDisable(eGL_LIGHTING);
+      GL.glDisable(eGL_LIGHTING);
     if(enableBits[7])
-      gl.glEnable(eGL_ALPHA_TEST);
+      GL.glEnable(eGL_ALPHA_TEST);
     else
-      gl.glDisable(eGL_ALPHA_TEST);
+      GL.glDisable(eGL_ALPHA_TEST);
   }
 
-  if(modern && gl.glClipControl && HasExt[ARB_clip_control])
-    gl.glClipControl(ClipOrigin, ClipDepth);
+  if(modern && GL.glClipControl && HasExt[ARB_clip_control])
+    GL.glClipControl(ClipOrigin, ClipDepth);
 
   if(modern && HasExt[ARB_draw_buffers_blend])
   {
-    gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
-    gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
+    GL.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+    GL.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
   }
   else
   {
-    gl.glBlendFuncSeparate(SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
-    gl.glBlendEquationSeparate(EquationRGB, EquationAlpha);
+    GL.glBlendFuncSeparate(SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+    GL.glBlendEquationSeparate(EquationRGB, EquationAlpha);
   }
 
   if(modern && (HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend]))
   {
-    gl.glColorMaski(0, ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+    GL.glColorMaski(0, ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
   }
   else
   {
-    gl.glColorMask(ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+    GL.glColorMask(ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
   }
 
   if(!IsGLES)
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+    GL.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 
   if(modern && HasExt[ARB_viewport_array])
-    gl.glViewportIndexedf(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
+    GL.glViewportIndexedf(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
   else
-    gl.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
+    GL.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
 
-  gl.glActiveTexture(eGL_TEXTURE0);
-  gl.glBindTexture(eGL_TEXTURE_2D, tex0);
-  gl.glActiveTexture(ActiveTexture);
+  GL.glActiveTexture(eGL_TEXTURE0);
+  GL.glBindTexture(eGL_TEXTURE_2D, tex0);
+  GL.glActiveTexture(ActiveTexture);
 
-  gl.glBindBuffer(eGL_ARRAY_BUFFER, arraybuf);
+  GL.glBindBuffer(eGL_ARRAY_BUFFER, arraybuf);
 
-  if(drawFBO != 0 && gl.glBindFramebuffer)
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFBO);
+  if(drawFBO != 0 && GL.glBindFramebuffer)
+    GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFBO);
 
   if(modern)
   {
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
 
-    gl.glUseProgram(prog);
+    GL.glUseProgram(prog);
 
-    gl.glBindVertexArray(VAO);
+    GL.glBindVertexArray(VAO);
   }
   else
   {
     // only restore these if there was a setting and the function pointer exists
-    if(gl.glUseProgram && prog != 0)
-      gl.glUseProgram(prog);
-    if(gl.glBindProgramPipeline && pipe != 0)
-      gl.glBindProgramPipeline(pipe);
+    if(GL.glUseProgram && prog != 0)
+      GL.glUseProgram(prog);
+    if(GL.glBindProgramPipeline && pipe != 0)
+      GL.glBindProgramPipeline(pipe);
   }
 }
 
@@ -1271,13 +1272,13 @@ GLenum ShaderEnum(size_t idx)
   return eGL_NONE;
 }
 
-void ClearGLErrors(const GLHookSet &gl)
+void ClearGLErrors()
 {
   int i = 0;
-  GLenum err = gl.glGetError();
+  GLenum err = GL.glGetError();
   while(err)
   {
-    err = gl.glGetError();
+    err = GL.glGetError();
     i++;
     if(i > 100)
     {
@@ -1287,14 +1288,14 @@ void ClearGLErrors(const GLHookSet &gl)
   }
 }
 
-GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)
+GLuint GetBoundVertexBuffer(GLuint i)
 {
   GLuint buffer = 0;
 
   if(VendorCheck[VendorCheck_AMD_vertex_buffer_query])
-    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
+    GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
   else
-    gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&buffer);
+    GL.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&buffer);
 
   return buffer;
 }
@@ -1549,7 +1550,7 @@ const char *SamplerString(GLenum smpenum)
   return unknown.c_str();
 }
 
-ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt)
+ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
 {
   ResourceFormat ret;
 
@@ -1742,9 +1743,9 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
   GLenum *edata = (GLenum *)data;
 
   GLint iscol = 0, isdepth = 0, isstencil = 0;
-  gl.glGetInternalformativ(target, fmt, eGL_COLOR_COMPONENTS, sizeof(GLint), &iscol);
-  gl.glGetInternalformativ(target, fmt, eGL_DEPTH_COMPONENTS, sizeof(GLint), &isdepth);
-  gl.glGetInternalformativ(target, fmt, eGL_STENCIL_COMPONENTS, sizeof(GLint), &isstencil);
+  GL.glGetInternalformativ(target, fmt, eGL_COLOR_COMPONENTS, sizeof(GLint), &iscol);
+  GL.glGetInternalformativ(target, fmt, eGL_DEPTH_COMPONENTS, sizeof(GLint), &isdepth);
+  GL.glGetInternalformativ(target, fmt, eGL_STENCIL_COMPONENTS, sizeof(GLint), &isstencil);
 
   if(iscol == GL_TRUE)
   {
@@ -1753,10 +1754,10 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
     // colour format
 
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &data[0]);
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_SIZE, sizeof(GLint), &data[1]);
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_SIZE, sizeof(GLint), &data[2]);
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_SIZE, sizeof(GLint), &data[3]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &data[0]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_SIZE, sizeof(GLint), &data[1]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_SIZE, sizeof(GLint), &data[2]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_SIZE, sizeof(GLint), &data[3]);
 
     ret.compCount = 0;
     for(int i = 0; i < 4; i++)
@@ -1783,10 +1784,10 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
     }
 
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, sizeof(GLint), &data[0]);
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_TYPE, sizeof(GLint), &data[1]);
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_TYPE, sizeof(GLint), &data[2]);
-    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_TYPE, sizeof(GLint), &data[3]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, sizeof(GLint), &data[0]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_TYPE, sizeof(GLint), &data[1]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_TYPE, sizeof(GLint), &data[2]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_TYPE, sizeof(GLint), &data[3]);
 
     for(int i = ret.compCount; i < 4; i++)
       data[i] = data[0];
@@ -1810,7 +1811,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
     }
 
-    gl.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
+    GL.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
     ret.srgbCorrected = (edata[0] == eGL_SRGB);
   }
   else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
@@ -2200,7 +2201,7 @@ GLenum MakeGLPrimitiveTopology(Topology Topo)
   }
 }
 
-Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
+Topology MakePrimitiveTopology(GLenum Topo)
 {
   switch(Topo)
   {
@@ -2219,7 +2220,7 @@ Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
     case eGL_PATCHES:
     {
       GLint patchCount = 3;
-      gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
+      GL.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
       return PatchList_Topology(patchCount);
     }
   }
@@ -2360,14 +2361,13 @@ TEST_CASE("GL formats", "[format][gl]")
   // we use our emulated queries for the format, as we don't want to init a context here, and anyway
   // we'd rather have an isolated test-case of only our code, not be testing a GL driver
   // implementation
-  GLHookSet gl;
-  glEmulate::EmulateRequiredExtensions(&gl);
+  GL.EmulateRequiredExtensions();
 
   SECTION("Only GL_NONE returns unknown")
   {
     for(GLenum f : supportedFormats)
     {
-      ResourceFormat fmt = MakeResourceFormat(gl, eGL_TEXTURE_2D, f);
+      ResourceFormat fmt = MakeResourceFormat(eGL_TEXTURE_2D, f);
 
       if(f == eGL_NONE)
         CHECK(fmt.type == ResourceFormatType::Undefined);
@@ -2384,7 +2384,7 @@ TEST_CASE("GL formats", "[format][gl]")
       if(f == GL_ETC1_RGB8_OES)
         continue;
 
-      ResourceFormat fmt = MakeResourceFormat(gl, eGL_TEXTURE_2D, f);
+      ResourceFormat fmt = MakeResourceFormat(eGL_TEXTURE_2D, f);
 
       // we don't support ASTC formats currently
       if(fmt.type == ResourceFormatType::ASTC)
@@ -2408,7 +2408,7 @@ TEST_CASE("GL formats", "[format][gl]")
   {
     for(GLenum f : supportedFormats)
     {
-      ResourceFormat fmt = MakeResourceFormat(gl, eGL_TEXTURE_2D, f);
+      ResourceFormat fmt = MakeResourceFormat(eGL_TEXTURE_2D, f);
 
       if(fmt.type != ResourceFormatType::Regular)
         continue;

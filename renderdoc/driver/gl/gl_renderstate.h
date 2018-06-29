@@ -27,7 +27,7 @@
 
 #include "maths/vec.h"
 #include "gl_common.h"
-#include "gl_hookset.h"
+#include "gl_dispatch_table.h"
 #include "gl_manager.h"
 
 struct PixelStorageState
@@ -47,14 +47,14 @@ protected:
 
 struct PixelPackState : public PixelStorageState
 {
-  void Fetch(const GLHookSet *funcs, bool compressed);
-  void Apply(const GLHookSet *funcs, bool compressed);
+  void Fetch(bool compressed);
+  void Apply(bool compressed);
 };
 
 struct PixelUnpackState : public PixelStorageState
 {
-  void Fetch(const GLHookSet *funcs, bool compressed);
-  void Apply(const GLHookSet *funcs, bool compressed);
+  void Fetch(bool compressed);
+  void Apply(bool compressed);
 
   bool FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype);
   bool FastPathCompressed(GLsizei width, GLsizei height, GLsizei depth);
@@ -65,20 +65,20 @@ struct PixelUnpackState : public PixelStorageState
                          GLsizei &imageSize);
 };
 
-void ResetPixelPackState(const GLHookSet &gl, bool compressed, GLint alignment);
-void ResetPixelUnpackState(const GLHookSet &gl, bool compressed, GLint alignment);
+void ResetPixelPackState(bool compressed, GLint alignment);
+void ResetPixelUnpackState(bool compressed, GLint alignment);
 
 struct GLRenderState
 {
-  GLRenderState(const GLHookSet *funcs);
+  GLRenderState();
   ~GLRenderState();
 
-  void FetchState(WrappedOpenGL *gl);
-  void ApplyState(WrappedOpenGL *gl);
+  void FetchState(WrappedOpenGL *driver);
+  void ApplyState(WrappedOpenGL *driver);
   void Clear();
 
-  void MarkReferenced(WrappedOpenGL *gl, bool initial) const;
-  void MarkDirty(WrappedOpenGL *gl);
+  void MarkReferenced(WrappedOpenGL *driver, bool initial) const;
+  void MarkDirty(WrappedOpenGL *driver);
 
   enum
   {
@@ -300,8 +300,6 @@ struct GLRenderState
   PixelUnpackState Unpack;
 
 private:
-  const GLHookSet *m_Real;
-
   bool CheckEnableDisableParam(GLenum pname);
 };
 

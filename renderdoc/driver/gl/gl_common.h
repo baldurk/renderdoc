@@ -264,9 +264,6 @@ const GLenum eGL_CLAMP = (GLenum)0x2900;
 const GLenum eGL_ZERO = (GLenum)0;
 const GLenum eGL_ONE = (GLenum)1;
 
-class WrappedOpenGL;
-struct GLHookSet;
-
 extern Threading::CriticalSection glLock;
 
 // replay only class for handling marker regions
@@ -281,8 +278,6 @@ struct GLMarkerRegion
   static void Set(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
                   GLuint id = 0, GLenum severity = eGL_DEBUG_SEVERITY_NOTIFICATION);
   static void End();
-
-  static const GLHookSet *gl;
 };
 
 // TODO ideally we'd support the full state vector, and only fetch&restore state we actually change
@@ -317,8 +312,8 @@ struct GLPushPopState
   //
   // In the end, this is just a best-effort to keep going without crashing. Old GL versions aren't
   // supported.
-  void Push(const GLHookSet &gl, bool modern);
-  void Pop(const GLHookSet &gl, bool modern);
+  void Push(bool modern);
+  void Pop(bool modern);
 };
 
 size_t GLTypeSize(GLenum type);
@@ -333,9 +328,9 @@ size_t ShaderIdx(GLenum buf);
 GLenum ShaderBit(size_t idx);
 GLenum ShaderEnum(size_t idx);
 
-ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt);
+ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt);
 GLenum MakeGLFormat(ResourceFormat fmt);
-Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo);
+Topology MakePrimitiveTopology(GLenum Topo);
 GLenum MakeGLPrimitiveTopology(Topology Topo);
 BufferCategory MakeBufferCategory(GLenum bufferTarget);
 AddressMode MakeAddressMode(GLenum addr);
@@ -349,11 +344,11 @@ BlendOperation MakeBlendOp(GLenum op);
 const char *BlendString(GLenum blendenum);
 const char *SamplerString(GLenum smpenum);
 
-void ClearGLErrors(const GLHookSet &gl);
+void ClearGLErrors();
 
-GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
+GLuint GetBoundVertexBuffer(GLuint idx);
 
-void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl,
+void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
                          ShaderBindpointMapping &mapping);
 
 void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping);
@@ -560,36 +555,28 @@ enum VendorCheckEnum
 extern bool VendorCheck[VendorCheck_Count];
 
 // fills out the extension supported array and the version-specific checks above
-void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData context);
-void CheckExtensions(const GLHookSet &gl);
+void DoVendorChecks(GLPlatform &platform, GLWindowingData context);
+void CheckExtensions();
 
 // verify that we got a replay context that we can work with
 bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
                         PFNGLGETSTRINGIPROC getStri);
-bool ValidateFunctionPointers(const GLHookSet &real);
 
-namespace glEmulate
-{
-void EmulateUnsupportedFunctions(GLHookSet *hooks);
-void EmulateRequiredExtensions(GLHookSet *hooks);
-};
+bool ValidateFunctionPointers();
 
 #include "core/core.h"
 #include "serialise/serialiser.h"
 
 struct ShaderReflection;
 
-void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
+void CopyProgramUniforms(GLuint progSrc, GLuint progDst);
 template <typename SerialiserType>
-void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
-                              GLuint prog, map<GLint, GLint> *locTranslate);
-void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst,
-                               ShaderReflection *refl);
-void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst,
-                                 ShaderReflection *refl);
+void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, GLuint prog,
+                              map<GLint, GLint> *locTranslate);
+void CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
+void CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
 template <typename SerialiserType>
-void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
-                              GLuint prog);
+void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, GLuint prog);
 
 struct DrawElementsIndirectCommand
 {

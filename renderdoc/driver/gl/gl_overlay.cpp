@@ -39,15 +39,15 @@
 
 void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader)
 {
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
-  ContextPair &ctx = gl.GetCtx();
+  ContextPair &ctx = drv.GetCtx();
 
   // delete the old program if it exists
   if(DebugData.overlayProg != 0)
-    gl.glDeleteProgram(DebugData.overlayProg);
+    drv.glDeleteProgram(DebugData.overlayProg);
 
-  DebugData.overlayProg = gl.glCreateProgram();
+  DebugData.overlayProg = drv.glCreateProgram();
 
   // these are the shaders to attach, and the programs to copy details from
   GLuint shaders[4] = {0};
@@ -106,31 +106,31 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   // attach the shaders
   for(size_t i = 0; i < 4; i++)
     if(shaders[i])
-      gl.glAttachShader(DebugData.overlayProg, shaders[i]);
+      drv.glAttachShader(DebugData.overlayProg, shaders[i]);
 
-  gl.glAttachShader(DebugData.overlayProg, fragShader);
+  drv.glAttachShader(DebugData.overlayProg, fragShader);
 
   // copy the vertex attribs over from the source program
   if(vsRefl && programs[0])
-    CopyProgramAttribBindings(gl.GetHookset(), programs[0], DebugData.overlayProg, vsRefl);
+    CopyProgramAttribBindings(programs[0], DebugData.overlayProg, vsRefl);
 
   // link the overlay program
-  gl.glLinkProgram(DebugData.overlayProg);
+  drv.glLinkProgram(DebugData.overlayProg);
 
   // detach the shaders
   for(size_t i = 0; i < 4; i++)
     if(shaders[i])
-      gl.glDetachShader(DebugData.overlayProg, shaders[i]);
+      drv.glDetachShader(DebugData.overlayProg, shaders[i]);
 
-  gl.glDetachShader(DebugData.overlayProg, fragShader);
+  drv.glDetachShader(DebugData.overlayProg, fragShader);
 
   // check that the link succeeded
   char buffer[1024] = {};
   GLint status = 0;
-  gl.glGetProgramiv(DebugData.overlayProg, eGL_LINK_STATUS, &status);
+  drv.glGetProgramiv(DebugData.overlayProg, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
-    gl.glGetProgramInfoLog(DebugData.overlayProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(DebugData.overlayProg, 1024, NULL, buffer);
     RDCERR("Error linking overlay program: %s", buffer);
     return;
   }
@@ -139,34 +139,34 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   // same program is bound to multiple stages. It's just inefficient
   for(size_t i = 0; i < 4; i++)
     if(programs[i])
-      CopyProgramUniforms(gl.GetHookset(), programs[i], DebugData.overlayProg);
+      CopyProgramUniforms(programs[i], DebugData.overlayProg);
 }
 
 ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                                    uint32_t eventId, const vector<uint32_t> &passEvents)
 {
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
   GLMarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
 
-  ContextPair &ctx = gl.GetCtx();
+  ContextPair &ctx = drv.GetCtx();
 
-  GLRenderState rs(&gl.GetHookset());
-  rs.FetchState(&gl);
+  GLRenderState rs;
+  rs.FetchState(&drv);
 
   if(rs.Program.name == 0 && rs.Pipeline.name == 0)
     return ResourceId();
 
   // use our overlay program that we'll fill up with all the right
   // shaders, then replace the fragment shader with our own.
-  gl.glBindProgramPipeline(0);
+  drv.glBindProgramPipeline(0);
 
   if(DebugData.fixedcolFragShader)
-    gl.glDeleteShader(DebugData.fixedcolFragShader);
+    drv.glDeleteShader(DebugData.fixedcolFragShader);
   if(DebugData.quadoverdrawFragShader)
-    gl.glDeleteShader(DebugData.quadoverdrawFragShader);
+    drv.glDeleteShader(DebugData.quadoverdrawFragShader);
 
   DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
 
@@ -243,7 +243,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   // uniforms and attrib bindings from the 'real' programs, wherever
   // they are.
   CreateOverlayProgram(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFragShader);
-  gl.glUseProgram(DebugData.overlayProg);
+  drv.glUseProgram(DebugData.overlayProg);
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -263,18 +263,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   {
     if(DebugData.overlayFBO)
     {
-      gl.glDeleteFramebuffers(1, &DebugData.overlayFBO);
-      gl.glDeleteTextures(1, &DebugData.overlayTex);
+      drv.glDeleteFramebuffers(1, &DebugData.overlayFBO);
+      drv.glDeleteTextures(1, &DebugData.overlayTex);
     }
 
-    gl.glGenFramebuffers(1, &DebugData.overlayFBO);
-    gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
+    drv.glGenFramebuffers(1, &DebugData.overlayFBO);
+    drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
 
     GLuint curTex = 0;
-    gl.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
+    drv.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
 
-    gl.glGenTextures(1, &DebugData.overlayTex);
-    gl.glBindTexture(texBindingEnum, DebugData.overlayTex);
+    drv.glGenTextures(1, &DebugData.overlayTex);
+    drv.glBindTexture(texBindingEnum, DebugData.overlayTex);
 
     DebugData.overlayTexWidth = texDetails.width;
     DebugData.overlayTexHeight = texDetails.height;
@@ -282,8 +282,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
     if(DebugData.overlayTexSamples > 1)
     {
-      gl.glTextureStorage2DMultisampleEXT(DebugData.overlayTex, texBindingEnum, texDetails.samples,
-                                          eGL_RGBA16, texDetails.width, texDetails.height, true);
+      drv.glTextureStorage2DMultisampleEXT(DebugData.overlayTex, texBindingEnum, texDetails.samples,
+                                           eGL_RGBA16, texDetails.width, texDetails.height, true);
     }
     else
     {
@@ -297,66 +297,66 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         type = eGL_UNSIGNED_BYTE;
       }
 
-      gl.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, 0, internalFormat,
-                             texDetails.width, texDetails.height, 0, format, type, NULL);
-      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      drv.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, 0, internalFormat,
+                              texDetails.width, texDetails.height, 0, format, type, NULL);
+      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     }
-    gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                              DebugData.overlayTex, 0);
+    drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                               DebugData.overlayTex, 0);
 
-    gl.glBindTexture(texBindingEnum, curTex);
+    drv.glBindTexture(texBindingEnum, curTex);
   }
 
-  gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
+  drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
 
   // disable several tests/allow rendering - some overlays will override
   // these states but commonly we don't want to inherit these states from
   // the program's state.
-  gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  gl.glDisable(eGL_BLEND);
-  gl.glDisable(eGL_SCISSOR_TEST);
-  gl.glDepthMask(GL_FALSE);
-  gl.glDisable(eGL_CULL_FACE);
+  drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  drv.glDisable(eGL_BLEND);
+  drv.glDisable(eGL_SCISSOR_TEST);
+  drv.glDepthMask(GL_FALSE);
+  drv.glDisable(eGL_CULL_FACE);
   if(!IsGLES)
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
-  gl.glDisable(eGL_DEPTH_TEST);
-  gl.glDisable(eGL_STENCIL_TEST);
-  gl.glStencilMask(0);
+    drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+  drv.glDisable(eGL_DEPTH_TEST);
+  drv.glDisable(eGL_STENCIL_TEST);
+  drv.glStencilMask(0);
 
   if(overlay == DebugOverlay::NaN || overlay == DebugOverlay::Clipping)
   {
     // just need the basic texture
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, black);
+    drv.glClearBufferfv(eGL_COLOR, 0, black);
   }
   else if(overlay == DebugOverlay::Drawcall)
   {
     float black[] = {0.0f, 0.0f, 0.0f, 0.5f};
-    gl.glClearBufferfv(eGL_COLOR, 0, black);
+    drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
+    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     float colVal[] = {0.8f, 0.1f, 0.8f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, colVal);
+    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, colVal);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
   }
   else if(overlay == DebugOverlay::Wireframe)
   {
     float wireCol[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, wireCol);
+    drv.glClearBufferfv(eGL_COLOR, 0, wireCol);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
+    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     wireCol[3] = 1.0f;
-    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, wireCol);
+    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, wireCol);
 
     if(!IsGLES)
     {
       // desktop GL is simple
-      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+      drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
       ReplayLog(eventId, eReplay_OnlyDraw);
     }
@@ -365,7 +365,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       // GLES is hard. We need to readback the index buffer, convert it to a line list, then draw
       // with that. We can at least use a client-side pointer for the index buffer.
       GLint idxbuf = 0;
-      gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+      drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
 
       const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
@@ -373,16 +373,16 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       std::vector<byte> idxs;
       uint32_t offset = draw->indexOffset * draw->indexByteWidth;
       uint32_t length = 1;
-      gl.glGetNamedBufferParameterivEXT(idxbuf, eGL_BUFFER_SIZE, (GLint *)&length);
+      drv.glGetNamedBufferParameterivEXT(idxbuf, eGL_BUFFER_SIZE, (GLint *)&length);
 
       idxs.resize(length);
-      gl.glGetBufferSubData(eGL_ELEMENT_ARRAY_BUFFER, offset,
-                            RDCMIN(GLsizeiptr(length - offset),
-                                   GLsizeiptr(draw->numIndices) * GLsizeiptr(draw->indexByteWidth)),
-                            &idxs[0]);
+      drv.glGetBufferSubData(eGL_ELEMENT_ARRAY_BUFFER, offset,
+                             RDCMIN(GLsizeiptr(length - offset),
+                                    GLsizeiptr(draw->numIndices) * GLsizeiptr(draw->indexByteWidth)),
+                             &idxs[0]);
 
       // unbind the real index buffer
-      gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
       std::vector<uint32_t> patchedIndices;
       PatchLineStripIndexBuffer(
@@ -390,64 +390,64 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           draw->indexByteWidth == 2 ? (uint16_t *)idxs.data() : (uint16_t *)NULL,
           draw->indexByteWidth == 4 ? (uint32_t *)idxs.data() : (uint32_t *)NULL, patchedIndices);
 
-      GLboolean primRestart = gl.glIsEnabled(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
-      gl.glEnable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+      GLboolean primRestart = drv.glIsEnabled(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+      drv.glEnable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
 
       if(draw->flags & DrawFlags::Instanced)
       {
         if(HasExt[ARB_base_instance])
         {
-          gl.glDrawElementsInstancedBaseVertexBaseInstance(
+          drv.glDrawElementsInstancedBaseVertexBaseInstance(
               eGL_LINE_STRIP, (GLsizei)patchedIndices.size(), eGL_UNSIGNED_INT,
               patchedIndices.data(), draw->numInstances, 0, draw->instanceOffset);
         }
         else
         {
-          gl.glDrawElementsInstancedBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
-                                               eGL_UNSIGNED_INT, patchedIndices.data(),
-                                               draw->numInstances, 0);
+          drv.glDrawElementsInstancedBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
+                                                eGL_UNSIGNED_INT, patchedIndices.data(),
+                                                draw->numInstances, 0);
         }
       }
       else
       {
-        gl.glDrawElementsBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
-                                    eGL_UNSIGNED_INT, patchedIndices.data(), 0);
+        drv.glDrawElementsBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
+                                     eGL_UNSIGNED_INT, patchedIndices.data(), 0);
       }
 
       if(!primRestart)
-        gl.glDisable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+        drv.glDisable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
 
-      gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxbuf);
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxbuf);
     }
   }
   else if(overlay == DebugOverlay::ViewportScissor)
   {
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, col);
+    drv.glClearBufferfv(eGL_COLOR, 0, col);
 
     // don't need to use the existing program at all!
-    gl.glUseProgram(DebugData.outlineQuadProg);
-    gl.glBindProgramPipeline(0);
+    drv.glUseProgram(DebugData.outlineQuadProg);
+    drv.glBindProgramPipeline(0);
 
     if(HasExt[ARB_viewport_array])
     {
-      gl.glDisablei(eGL_SCISSOR_TEST, 0);
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
 
-      gl.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
-                            rs.Viewports[0].height);
+      drv.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
+                             rs.Viewports[0].height);
     }
     else
     {
-      gl.glDisable(eGL_SCISSOR_TEST);
+      drv.glDisable(eGL_SCISSOR_TEST);
 
-      gl.glViewport((GLint)rs.Viewports[0].x, (GLint)rs.Viewports[0].y,
-                    (GLsizei)rs.Viewports[0].width, (GLsizei)rs.Viewports[0].height);
+      drv.glViewport((GLint)rs.Viewports[0].x, (GLint)rs.Viewports[0].y,
+                     (GLsizei)rs.Viewports[0].width, (GLsizei)rs.Viewports[0].height);
     }
 
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+    drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
     OutlineUBOData *cdata =
-        (OutlineUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
-                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        (OutlineUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
+                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
     cdata->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
     cdata->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
@@ -455,9 +455,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         Vec4f(rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width, rs.Viewports[0].height);
     cdata->Scissor = 0;
 
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-    gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+    drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
     if(rs.Scissors[0].enabled)
     {
@@ -465,43 +465,43 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
                     (float)rs.Scissors[0].height);
 
       if(HasExt[ARB_viewport_array])
-        gl.glViewportIndexedf(0, scissor.x, scissor.y, scissor.z, scissor.w);
+        drv.glViewportIndexedf(0, scissor.x, scissor.y, scissor.z, scissor.w);
       else
-        gl.glViewport(rs.Scissors[0].x, rs.Scissors[0].y, rs.Scissors[0].width,
-                      rs.Scissors[0].height);
+        drv.glViewport(rs.Scissors[0].x, rs.Scissors[0].y, rs.Scissors[0].width,
+                       rs.Scissors[0].height);
 
-      cdata = (OutlineUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
-                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      cdata = (OutlineUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
+                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
       cdata->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
       cdata->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
       cdata->ViewRect = scissor;
       cdata->Scissor = 1;
 
-      gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+      drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-      gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+      drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
     }
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, black);
+    drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
+    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     float red[] = {1.0f, 0.0f, 0.0f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, red);
+    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, red);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
     GLuint curDepth = 0, curStencil = 0;
 
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
-                                                     eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                     (GLint *)&curDepth);
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_STENCIL_ATTACHMENT,
-                                                     eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                     (GLint *)&curStencil);
+    drv.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
+                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                      (GLint *)&curDepth);
+    drv.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_STENCIL_ATTACHMENT,
+                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                      (GLint *)&curStencil);
 
     GLenum copyBindingEnum = texBindingEnum;
     GLenum copyQueryEnum = texQueryEnum;
@@ -515,7 +515,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     if(curDepth != 0)
     {
       GLint type = 0;
-      gl.glGetNamedFramebufferAttachmentParameterivEXT(
+      drv.glGetNamedFramebufferAttachmentParameterivEXT(
           rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
       GLenum fmt;
@@ -527,13 +527,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         fmt = details.internalFormat;
 
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(
             rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
 
         if(details.curType == eGL_TEXTURE_CUBE_MAP)
         {
           GLenum face;
-          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          drv.glGetNamedFramebufferAttachmentParameterivEXT(
               rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
@@ -555,36 +555,36 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       }
 
       GLuint curTex = 0;
-      gl.glGetIntegerv(copyQueryEnum, (GLint *)&curTex);
+      drv.glGetIntegerv(copyQueryEnum, (GLint *)&curTex);
 
-      gl.glGenTextures(1, &depthCopy);
-      gl.glBindTexture(copyBindingEnum, depthCopy);
+      drv.glGenTextures(1, &depthCopy);
+      drv.glBindTexture(copyBindingEnum, depthCopy);
       if(DebugData.overlayTexSamples > 1)
       {
-        gl.glTextureStorage2DMultisampleEXT(depthCopy, copyBindingEnum, DebugData.overlayTexSamples,
-                                            fmt, DebugData.overlayTexWidth,
-                                            DebugData.overlayTexHeight, true);
+        drv.glTextureStorage2DMultisampleEXT(depthCopy, copyBindingEnum, DebugData.overlayTexSamples,
+                                             fmt, DebugData.overlayTexWidth,
+                                             DebugData.overlayTexHeight, true);
       }
       else
       {
-        gl.glTextureImage2DEXT(depthCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
-                               DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
-                               NULL);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        drv.glTextureImage2DEXT(depthCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
+                                DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
+                                NULL);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
       }
 
-      gl.glBindTexture(copyBindingEnum, curTex);
+      drv.glBindTexture(copyBindingEnum, curTex);
     }
 
     // create matching separate stencil if relevant
     if(curStencil != curDepth && curStencil != 0)
     {
       GLint type = 0;
-      gl.glGetNamedFramebufferAttachmentParameterivEXT(
+      drv.glGetNamedFramebufferAttachmentParameterivEXT(
           rs.DrawFBO.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
       GLenum fmt;
@@ -599,7 +599,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         if(details.curType == eGL_TEXTURE_CUBE_MAP)
         {
           GLenum face;
-          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          drv.glGetNamedFramebufferAttachmentParameterivEXT(
               rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
@@ -615,138 +615,138 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       }
 
       GLuint curTex = 0;
-      gl.glGetIntegerv(copyQueryEnum, (GLint *)&curTex);
+      drv.glGetIntegerv(copyQueryEnum, (GLint *)&curTex);
 
-      gl.glGenTextures(1, &stencilCopy);
-      gl.glBindTexture(copyBindingEnum, stencilCopy);
+      drv.glGenTextures(1, &stencilCopy);
+      drv.glBindTexture(copyBindingEnum, stencilCopy);
       if(DebugData.overlayTexSamples > 1)
       {
-        gl.glTextureStorage2DMultisampleEXT(
+        drv.glTextureStorage2DMultisampleEXT(
             stencilCopy, copyBindingEnum, DebugData.overlayTexSamples, fmt,
             DebugData.overlayTexWidth, DebugData.overlayTexHeight, true);
       }
       else
       {
-        gl.glTextureImage2DEXT(stencilCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
-                               DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
-                               NULL);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        drv.glTextureImage2DEXT(stencilCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
+                                DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
+                                NULL);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
       }
 
-      gl.glBindTexture(copyBindingEnum, curTex);
+      drv.glBindTexture(copyBindingEnum, curTex);
     }
 
     // bind depth/stencil to overlay FBO (currently bound to DRAW_FRAMEBUFFER)
     if(curDepth != 0 && curDepth == curStencil)
     {
       if(layer == 0)
-        gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT,
-                                  eGL_TEXTURE_2D, depthCopy, mip);
+        drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT,
+                                   eGL_TEXTURE_2D, depthCopy, mip);
       else
-        gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy,
-                                     mip, layer);
+        drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy,
+                                      mip, layer);
     }
     else if(curDepth != 0)
     {
       if(layer == 0)
-        gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
-                                  depthCopy, mip);
+        drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
+                                   depthCopy, mip);
       else
-        gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip,
-                                     layer);
+        drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip,
+                                      layer);
     }
     else if(curStencil != 0)
     {
       if(layer == 0)
-        gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
-                                  stencilCopy, mip);
+        drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                   stencilCopy, mip);
       else
-        gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip,
-                                     layer);
+        drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy,
+                                      mip, layer);
     }
 
     // bind the 'real' fbo to the read framebuffer, so we can blit from it
-    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
+    drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
 
     float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, green);
+    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, green);
 
     if(overlay == DebugOverlay::Depth)
     {
       if(rs.Enabled[GLRenderState::eEnabled_DepthTest])
-        gl.glEnable(eGL_DEPTH_TEST);
+        drv.glEnable(eGL_DEPTH_TEST);
       else
-        gl.glDisable(eGL_DEPTH_TEST);
+        drv.glDisable(eGL_DEPTH_TEST);
 
       if(rs.DepthWriteMask)
-        gl.glDepthMask(GL_TRUE);
+        drv.glDepthMask(GL_TRUE);
       else
-        gl.glDepthMask(GL_FALSE);
+        drv.glDepthMask(GL_FALSE);
     }
     else
     {
       if(rs.Enabled[GLRenderState::eEnabled_StencilTest])
-        gl.glEnable(eGL_STENCIL_TEST);
+        drv.glEnable(eGL_STENCIL_TEST);
       else
-        gl.glDisable(eGL_STENCIL_TEST);
+        drv.glDisable(eGL_STENCIL_TEST);
 
-      gl.glStencilMaskSeparate(eGL_FRONT, rs.StencilFront.writemask);
-      gl.glStencilMaskSeparate(eGL_BACK, rs.StencilBack.writemask);
+      drv.glStencilMaskSeparate(eGL_FRONT, rs.StencilFront.writemask);
+      drv.glStencilMaskSeparate(eGL_BACK, rs.StencilBack.writemask);
     }
 
     // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
-    gl.glBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight, 0, 0,
-                         DebugData.overlayTexWidth, DebugData.overlayTexHeight,
-                         GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
+    drv.glBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight, 0, 0,
+                          DebugData.overlayTexWidth, DebugData.overlayTexHeight,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
     // unset depth/stencil textures from overlay FBO and delete temp depth/stencil
     if(curDepth != 0 && curDepth == curStencil)
-      gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
-                                0, 0);
+      drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                 0, 0);
     else if(curDepth != 0)
-      gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D, 0, 0);
+      drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D, 0, 0);
     else if(curStencil != 0)
-      gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D, 0, 0);
+      drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D, 0, 0);
     if(depthCopy != 0)
-      gl.glDeleteTextures(1, &depthCopy);
+      drv.glDeleteTextures(1, &depthCopy);
     if(stencilCopy != 0)
-      gl.glDeleteTextures(1, &stencilCopy);
+      drv.glDeleteTextures(1, &stencilCopy);
   }
   else if(overlay == DebugOverlay::BackfaceCull)
   {
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, col);
+    drv.glClearBufferfv(eGL_COLOR, 0, col);
 
     col[0] = 1.0f;
     col[3] = 1.0f;
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
-    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
+    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
+    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
     // only enable cull face if it was enabled originally (otherwise
     // we just render green over the exact same area, so it shows up "passing")
     if(rs.Enabled[GLRenderState::eEnabled_CullFace])
-      gl.glEnable(eGL_CULL_FACE);
+      drv.glEnable(eGL_CULL_FACE);
 
     col[0] = 0.0f;
     col[1] = 1.0f;
 
-    gl.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
+    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
   }
   else if(overlay == DebugOverlay::ClearBeforeDraw || overlay == DebugOverlay::ClearBeforePass)
   {
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, col);
+    drv.glClearBufferfv(eGL_COLOR, 0, col);
 
     vector<uint32_t> events = passEvents;
 
@@ -764,12 +764,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       else
       {
         // if we don't replay the real state, restore what we've changed
-        rs.ApplyState(&gl);
+        rs.ApplyState(&drv);
       }
 
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
       for(int i = 0; i < 8; i++)
-        gl.glClearBufferfv(eGL_COLOR, i, black);
+        drv.glClearBufferfv(eGL_COLOR, i, black);
 
       for(size_t i = 0; i < events.size(); i++)
       {
@@ -785,32 +785,32 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     SCOPED_TIMER("Triangle Size");
 
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, black);
+    drv.glClearBufferfv(eGL_COLOR, 0, black);
 
     MeshUBOData uboParams = {};
     uboParams.homogenousInput = 1;
     uboParams.invProj = Matrix4f::Identity();
     uboParams.mvp = Matrix4f::Identity();
 
-    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[0]);
+    drv.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[0]);
 
     MeshUBOData *uboptr =
-        (MeshUBOData *)gl.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(MeshUBOData),
-                                           GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
-
-    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[1]);
-    Vec4f *v = (Vec4f *)gl.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(overdrawRamp),
+        (MeshUBOData *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(MeshUBOData),
                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    memcpy(v, overdrawRamp, sizeof(overdrawRamp));
-    gl.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
+    *uboptr = uboParams;
+    drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
-    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[2]);
-    v = (Vec4f *)gl.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(Vec4f),
-                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    drv.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[1]);
+    Vec4f *v = (Vec4f *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(overdrawRamp),
+                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    memcpy(v, overdrawRamp, sizeof(overdrawRamp));
+    drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
+
+    drv.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[2]);
+    v = (Vec4f *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(Vec4f),
+                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *v = Vec4f((float)texDetails.width, (float)texDetails.height);
-    gl.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
+    drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
     vector<uint32_t> events = passEvents;
 
@@ -828,8 +828,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
       // this all happens on the replay context so we need a temp FBO/VAO
       GLuint overlayFBO = 0, tempVAO = 0;
-      gl.glGenFramebuffers(1, &overlayFBO);
-      gl.glGenVertexArrays(1, &tempVAO);
+      drv.glGenFramebuffers(1, &overlayFBO);
+      drv.glGenVertexArrays(1, &tempVAO);
 
       for(size_t i = 0; i < events.size(); i++)
       {
@@ -846,57 +846,57 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         // save the state we're going to mess with
         {
-          gl.glGetIntegerv(eGL_DEPTH_WRITEMASK, &depthwritemask);
-          gl.glGetIntegerv(eGL_STENCIL_WRITEMASK, &stencilfmask);
-          gl.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &stencilbmask);
+          drv.glGetIntegerv(eGL_DEPTH_WRITEMASK, &depthwritemask);
+          drv.glGetIntegerv(eGL_STENCIL_WRITEMASK, &stencilfmask);
+          drv.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &stencilbmask);
 
-          gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
-          gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+          drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
+          drv.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
-          blending = gl.glIsEnabled(eGL_BLEND);
+          blending = drv.glIsEnabled(eGL_BLEND);
 
           for(uint32_t u = 0; u < 3; u++)
           {
-            gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, u, (GLint *)&ubos[u].buf);
-            gl.glGetInteger64i_v(eGL_UNIFORM_BUFFER_START, u, (GLint64 *)&ubos[u].offs);
-            gl.glGetInteger64i_v(eGL_UNIFORM_BUFFER_SIZE, u, (GLint64 *)&ubos[u].size);
+            drv.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, u, (GLint *)&ubos[u].buf);
+            drv.glGetInteger64i_v(eGL_UNIFORM_BUFFER_START, u, (GLint64 *)&ubos[u].offs);
+            drv.glGetInteger64i_v(eGL_UNIFORM_BUFFER_SIZE, u, (GLint64 *)&ubos[u].size);
           }
         }
 
         // disable depth and stencil writes
-        gl.glDepthMask(GL_FALSE);
-        gl.glStencilMask(GL_FALSE);
+        drv.glDepthMask(GL_FALSE);
+        drv.glStencilMask(GL_FALSE);
 
         // disable blending
-        gl.glDisable(eGL_BLEND);
+        drv.glDisable(eGL_BLEND);
 
         // bind our UBOs
-        gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-        gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[1]);
-        gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[2]);
+        drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+        drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[1]);
+        drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[2]);
 
         const GLenum att = eGL_DEPTH_ATTACHMENT;
         GLuint depthObj = 0;
         GLint type = 0, level = 0, layered = 0, layer = 0;
 
         // fetch the details of the 'real' depth attachment
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(
             drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&depthObj);
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(
             drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
         if(depthObj)
         {
-          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          drv.glGetNamedFramebufferAttachmentParameterivEXT(
               drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &level);
-          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          drv.glGetNamedFramebufferAttachmentParameterivEXT(
               drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
 
           layered = (layered != 0);
 
           layer = 0;
           if(layered == 0)
-            gl.glGetNamedFramebufferAttachmentParameterivEXT(
+            drv.glGetNamedFramebufferAttachmentParameterivEXT(
                 drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &layer);
 
           if(type != eGL_RENDERBUFFER)
@@ -907,7 +907,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
             if(details.curType == eGL_TEXTURE_CUBE_MAP)
             {
               GLenum face;
-              gl.glGetNamedFramebufferAttachmentParameterivEXT(
+              drv.glGetNamedFramebufferAttachmentParameterivEXT(
                   drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
               layer = CubeTargetIndex(face);
@@ -916,16 +916,16 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         }
 
         // bind our FBO
-        gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, overlayFBO);
-        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                                  DebugData.overlayTex, 0);
+        drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, overlayFBO);
+        drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                   DebugData.overlayTex, 0);
 
         // now apply the depth texture binding
         if(depthObj)
         {
           if(type == eGL_RENDERBUFFER)
           {
-            gl.glNamedFramebufferRenderbufferEXT(overlayFBO, att, eGL_RENDERBUFFER, depthObj);
+            drv.glNamedFramebufferRenderbufferEXT(overlayFBO, att, eGL_RENDERBUFFER, depthObj);
           }
           else
           {
@@ -948,40 +948,41 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
                 if(layer < 6)
                 {
-                  gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, att, faces[layer], depthObj, level);
+                  drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, att, faces[layer], depthObj,
+                                             level);
                 }
                 else
                 {
                   RDCWARN(
                       "Invalid layer %u used to bind cubemap to framebuffer. Binding POSITIVE_X");
-                  gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, att, faces[0], depthObj, level);
+                  drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, att, faces[0], depthObj, level);
                 }
               }
               else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY ||
                       details.curType == eGL_TEXTURE_1D_ARRAY ||
                       details.curType == eGL_TEXTURE_2D_ARRAY)
               {
-                gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, att, depthObj, level, layer);
+                drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, att, depthObj, level, layer);
               }
               else
               {
                 RDCASSERT(layer == 0);
-                gl.glNamedFramebufferTextureEXT(overlayFBO, att, depthObj, level);
+                drv.glNamedFramebufferTextureEXT(overlayFBO, att, depthObj, level);
               }
             }
             else
             {
-              gl.glNamedFramebufferTextureEXT(overlayFBO, att, depthObj, level);
+              drv.glNamedFramebufferTextureEXT(overlayFBO, att, depthObj, level);
             }
           }
         }
 
         GLuint prog = 0, pipe = 0;
-        gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
-        gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+        drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+        drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
-        gl.glUseProgram(DebugData.trisizeProg);
-        gl.glBindProgramPipeline(0);
+        drv.glUseProgram(DebugData.trisizeProg);
+        drv.glBindProgramPipeline(0);
 
         const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[i]);
 
@@ -995,7 +996,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           {
             GLenum topo = MakeGLPrimitiveTopology(postvs.topology);
 
-            gl.glBindVertexArray(tempVAO);
+            drv.glBindVertexArray(tempVAO);
 
             {
               if(postvs.format.Special())
@@ -1003,13 +1004,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
                 if(postvs.format.type == ResourceFormatType::R10G10B10A2)
                 {
                   if(postvs.format.compType == CompType::UInt)
-                    gl.glVertexAttribIFormat(0, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
+                    drv.glVertexAttribIFormat(0, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
                   if(postvs.format.compType == CompType::SInt)
-                    gl.glVertexAttribIFormat(0, 4, eGL_INT_2_10_10_10_REV, 0);
+                    drv.glVertexAttribIFormat(0, 4, eGL_INT_2_10_10_10_REV, 0);
                 }
                 else if(postvs.format.type == ResourceFormatType::R11G11B10)
                 {
-                  gl.glVertexAttribFormat(0, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
+                  drv.glVertexAttribFormat(0, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
                 }
                 else
                 {
@@ -1048,8 +1049,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
                     fmttype = eGL_BYTE;
                 }
 
-                gl.glVertexAttribFormat(0, postvs.format.compCount, fmttype,
-                                        postvs.format.compType != CompType::Float, 0);
+                drv.glVertexAttribFormat(0, postvs.format.compCount, fmttype,
+                                         postvs.format.compType != CompType::Float, 0);
               }
               else if(postvs.format.compType == CompType::UInt ||
                       postvs.format.compType == CompType::SInt)
@@ -1078,21 +1079,21 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
                     fmttype = eGL_BYTE;
                 }
 
-                gl.glVertexAttribIFormat(0, postvs.format.compCount, fmttype, 0);
+                drv.glVertexAttribIFormat(0, postvs.format.compCount, fmttype, 0);
               }
               else if(postvs.format.compType == CompType::Double)
               {
-                gl.glVertexAttribLFormat(0, postvs.format.compCount, eGL_DOUBLE, 0);
+                drv.glVertexAttribLFormat(0, postvs.format.compCount, eGL_DOUBLE, 0);
               }
 
               GLuint vb =
                   m_pDriver->GetResourceManager()->GetCurrentResource(postvs.vertexResourceId).name;
-              gl.glBindVertexBuffer(0, vb, (GLintptr)postvs.vertexByteOffset,
-                                    postvs.vertexByteStride);
+              drv.glBindVertexBuffer(0, vb, (GLintptr)postvs.vertexByteOffset,
+                                     postvs.vertexByteStride);
             }
 
-            gl.glEnableVertexAttribArray(0);
-            gl.glDisableVertexAttribArray(1);
+            drv.glEnableVertexAttribArray(0);
+            drv.glDisableVertexAttribArray(1);
 
             if(postvs.indexByteStride)
             {
@@ -1104,44 +1105,44 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
               GLuint ib =
                   m_pDriver->GetResourceManager()->GetCurrentResource(postvs.indexResourceId).name;
-              gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
-              gl.glDrawElementsBaseVertex(topo, postvs.numIndices, idxtype,
-                                          (const void *)uintptr_t(postvs.indexByteOffset),
-                                          postvs.baseVertex);
+              drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+              drv.glDrawElementsBaseVertex(topo, postvs.numIndices, idxtype,
+                                           (const void *)uintptr_t(postvs.indexByteOffset),
+                                           postvs.baseVertex);
             }
             else
             {
-              gl.glDrawArrays(topo, 0, postvs.numIndices);
+              drv.glDrawArrays(topo, 0, postvs.numIndices);
             }
           }
         }
 
         // pop the state that we messed with
         {
-          gl.glBindProgramPipeline(pipe);
-          gl.glUseProgram(prog);
+          drv.glBindProgramPipeline(pipe);
+          drv.glUseProgram(prog);
 
           if(blending)
-            gl.glEnable(eGL_BLEND);
+            drv.glEnable(eGL_BLEND);
           else
-            gl.glDisable(eGL_BLEND);
+            drv.glDisable(eGL_BLEND);
 
           // restore the previous FBO/VAO
-          gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFBO);
-          gl.glBindVertexArray(prevVAO);
+          drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFBO);
+          drv.glBindVertexArray(prevVAO);
 
           for(uint32_t u = 0; u < 3; u++)
           {
             if(ubos[u].buf == 0 || (ubos[u].offs == 0 && ubos[u].size == 0))
-              gl.glBindBufferBase(eGL_UNIFORM_BUFFER, u, ubos[u].buf);
+              drv.glBindBufferBase(eGL_UNIFORM_BUFFER, u, ubos[u].buf);
             else
-              gl.glBindBufferRange(eGL_UNIFORM_BUFFER, u, ubos[u].buf, (GLintptr)ubos[u].offs,
-                                   (GLsizeiptr)ubos[u].size);
+              drv.glBindBufferRange(eGL_UNIFORM_BUFFER, u, ubos[u].buf, (GLintptr)ubos[u].offs,
+                                    (GLsizeiptr)ubos[u].size);
           }
 
-          gl.glDepthMask(depthwritemask ? GL_TRUE : GL_FALSE);
-          gl.glStencilMaskSeparate(eGL_FRONT, (GLuint)stencilfmask);
-          gl.glStencilMaskSeparate(eGL_BACK, (GLuint)stencilbmask);
+          drv.glDepthMask(depthwritemask ? GL_TRUE : GL_FALSE);
+          drv.glStencilMaskSeparate(eGL_FRONT, (GLuint)stencilfmask);
+          drv.glStencilMaskSeparate(eGL_BACK, (GLuint)stencilbmask);
         }
 
         if(overlay == DebugOverlay::TriangleSizePass)
@@ -1153,8 +1154,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         }
       }
 
-      gl.glDeleteFramebuffers(1, &overlayFBO);
-      gl.glDeleteVertexArrays(1, &tempVAO);
+      drv.glDeleteFramebuffers(1, &overlayFBO);
+      drv.glDeleteVertexArrays(1, &tempVAO);
 
       if(overlay == DebugOverlay::TriangleSizePass)
         ReplayLog(eventId, eReplay_WithoutDraw);
@@ -1167,7 +1168,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       SCOPED_TIMER("Quad Overdraw");
 
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
-      gl.glClearBufferfv(eGL_COLOR, 0, black);
+      drv.glClearBufferfv(eGL_COLOR, 0, black);
 
       vector<uint32_t> events = passEvents;
 
@@ -1180,82 +1181,82 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       {
         GLuint replacefbo = 0;
         GLuint quadtexs[3] = {0};
-        gl.glGenFramebuffers(1, &replacefbo);
-        gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
+        drv.glGenFramebuffers(1, &replacefbo);
+        drv.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
 
-        gl.glGenTextures(3, quadtexs);
+        drv.glGenTextures(3, quadtexs);
 
         // image for quad usage
-        gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
-        gl.glTextureImage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 0, eGL_R32UI,
-                               RDCMAX(1, texDetails.width >> 1), RDCMAX(1, texDetails.height >> 1),
-                               4, 0, eGL_RED_INTEGER, eGL_UNSIGNED_INT, NULL);
-        gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
+        drv.glTextureImage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 0, eGL_R32UI,
+                                RDCMAX(1, texDetails.width >> 1), RDCMAX(1, texDetails.height >> 1),
+                                4, 0, eGL_RED_INTEGER, eGL_UNSIGNED_INT, NULL);
+        drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
         // temporarily attach to FBO to clear it
         GLint zero[4] = {0};
-        gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 0);
-        gl.glClearBufferiv(eGL_COLOR, 0, zero);
-        gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 1);
-        gl.glClearBufferiv(eGL_COLOR, 0, zero);
-        gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 2);
-        gl.glClearBufferiv(eGL_COLOR, 0, zero);
-        gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 3);
-        gl.glClearBufferiv(eGL_COLOR, 0, zero);
+        drv.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 0);
+        drv.glClearBufferiv(eGL_COLOR, 0, zero);
+        drv.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 1);
+        drv.glClearBufferiv(eGL_COLOR, 0, zero);
+        drv.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 2);
+        drv.glClearBufferiv(eGL_COLOR, 0, zero);
+        drv.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 3);
+        drv.glClearBufferiv(eGL_COLOR, 0, zero);
 
-        gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
-        gl.glTextureImage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 0, eGL_RGBA8, texDetails.width,
-                               texDetails.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                                  quadtexs[0], 0);
+        drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
+        drv.glTextureImage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 0, eGL_RGBA8, texDetails.width,
+                                texDetails.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                   quadtexs[0], 0);
 
         GLuint curDepth = 0, depthType = 0;
 
         // TODO handle non-2D depth/stencil attachments and fetch slice or cubemap face
         GLint mip = 0;
 
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
-                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                         (GLint *)&curDepth);
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
-                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                         (GLint *)&depthType);
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
+                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                          (GLint *)&curDepth);
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
+                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                          (GLint *)&depthType);
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(
             rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
 
         GLenum fmt = eGL_DEPTH32F_STENCIL8;
 
         if(depthType == eGL_TEXTURE)
         {
-          gl.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip,
-                                             eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+          drv.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip,
+                                              eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
         }
         else
         {
-          gl.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_INTERNAL_FORMAT,
-                                                  (GLint *)&fmt);
+          drv.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_INTERNAL_FORMAT,
+                                                   (GLint *)&fmt);
         }
 
-        gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
-        gl.glTextureImage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 0, fmt, texDetails.width,
-                               texDetails.height, 0, GetBaseFormat(fmt), GetDataType(fmt), NULL);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
+        drv.glTextureImage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 0, fmt, texDetails.width,
+                                texDetails.height, 0, GetBaseFormat(fmt), GetDataType(fmt), NULL);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 
         GLenum dsAttach = eGL_DEPTH_STENCIL_ATTACHMENT;
 
         if(GetBaseFormat(fmt) == eGL_DEPTH_COMPONENT)
           dsAttach = eGL_DEPTH_ATTACHMENT;
 
-        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, dsAttach, eGL_TEXTURE_2D, quadtexs[1], 0);
+        drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, dsAttach, eGL_TEXTURE_2D, quadtexs[1], 0);
 
         if(overlay == DebugOverlay::QuadOverdrawPass)
           ReplayLog(events[0], eReplay_WithoutDraw);
@@ -1279,67 +1280,67 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
           // save the state we're going to mess with
           {
-            gl.glGetIntegerv(eGL_DEPTH_WRITEMASK, &depthwritemask);
-            gl.glGetIntegerv(eGL_STENCIL_WRITEMASK, &stencilfmask);
-            gl.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &stencilbmask);
+            drv.glGetIntegerv(eGL_DEPTH_WRITEMASK, &depthwritemask);
+            drv.glGetIntegerv(eGL_STENCIL_WRITEMASK, &stencilfmask);
+            drv.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &stencilbmask);
 
-            gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curdrawfbo);
-            gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curreadfbo);
+            drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curdrawfbo);
+            drv.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curreadfbo);
 
-            gl.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, 0, (GLint *)&curimage0.name);
-            gl.glGetIntegeri_v(eGL_IMAGE_BINDING_LEVEL, 0, (GLint *)&curimage0.level);
-            gl.glGetIntegeri_v(eGL_IMAGE_BINDING_ACCESS, 0, (GLint *)&curimage0.access);
-            gl.glGetIntegeri_v(eGL_IMAGE_BINDING_FORMAT, 0, (GLint *)&curimage0.format);
-            gl.glGetBooleani_v(eGL_IMAGE_BINDING_LAYERED, 0, &curimage0.layered);
+            drv.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, 0, (GLint *)&curimage0.name);
+            drv.glGetIntegeri_v(eGL_IMAGE_BINDING_LEVEL, 0, (GLint *)&curimage0.level);
+            drv.glGetIntegeri_v(eGL_IMAGE_BINDING_ACCESS, 0, (GLint *)&curimage0.access);
+            drv.glGetIntegeri_v(eGL_IMAGE_BINDING_FORMAT, 0, (GLint *)&curimage0.format);
+            drv.glGetBooleani_v(eGL_IMAGE_BINDING_LAYERED, 0, &curimage0.layered);
             if(curimage0.layered)
-              gl.glGetIntegeri_v(eGL_IMAGE_BINDING_LAYER, 0, (GLint *)&curimage0.layer);
+              drv.glGetIntegeri_v(eGL_IMAGE_BINDING_LAYER, 0, (GLint *)&curimage0.layer);
           }
 
           // disable depth and stencil writes
-          gl.glDepthMask(GL_FALSE);
-          gl.glStencilMask(GL_FALSE);
+          drv.glDepthMask(GL_FALSE);
+          drv.glStencilMask(GL_FALSE);
 
           // bind our FBO
-          gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, replacefbo);
+          drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, replacefbo);
           // bind image
-          gl.glBindImageTexture(0, quadtexs[2], 0, GL_TRUE, 0, eGL_READ_WRITE, eGL_R32UI);
+          drv.glBindImageTexture(0, quadtexs[2], 0, GL_TRUE, 0, eGL_READ_WRITE, eGL_R32UI);
 
           GLuint prog = 0, pipe = 0;
-          gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
-          gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+          drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+          drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
           // replace fragment shader. This is exactly what we did
           // at the start of this function for the single-event case, but now we have
           // to do it for every event
           CreateOverlayProgram(prog, pipe, DebugData.quadoverdrawFragShader);
-          gl.glUseProgram(DebugData.overlayProg);
-          gl.glBindProgramPipeline(0);
+          drv.glUseProgram(DebugData.overlayProg);
+          drv.glBindProgramPipeline(0);
 
-          gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
-          gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
-                               texDetails.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
-                               eGL_NEAREST);
+          drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
+          drv.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                                texDetails.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
+                                eGL_NEAREST);
 
           m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 
           // pop the state that we messed with
           {
-            gl.glBindProgramPipeline(pipe);
-            gl.glUseProgram(prog);
+            drv.glBindProgramPipeline(pipe);
+            drv.glUseProgram(prog);
 
             if(curimage0.name)
-              gl.glBindImageTexture(0, curimage0.name, curimage0.level,
-                                    curimage0.layered ? GL_TRUE : GL_FALSE, curimage0.layer,
-                                    curimage0.access, curimage0.format);
+              drv.glBindImageTexture(0, curimage0.name, curimage0.level,
+                                     curimage0.layered ? GL_TRUE : GL_FALSE, curimage0.layer,
+                                     curimage0.access, curimage0.format);
             else
-              gl.glBindImageTexture(0, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_R32UI);
+              drv.glBindImageTexture(0, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_R32UI);
 
-            gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curdrawfbo);
-            gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curreadfbo);
+            drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curdrawfbo);
+            drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curreadfbo);
 
-            gl.glDepthMask(depthwritemask ? GL_TRUE : GL_FALSE);
-            gl.glStencilMaskSeparate(eGL_FRONT, (GLuint)stencilfmask);
-            gl.glStencilMaskSeparate(eGL_BACK, (GLuint)stencilbmask);
+            drv.glDepthMask(depthwritemask ? GL_TRUE : GL_FALSE);
+            drv.glStencilMaskSeparate(eGL_FRONT, (GLuint)stencilfmask);
+            drv.glStencilMaskSeparate(eGL_BACK, (GLuint)stencilbmask);
           }
 
           if(overlay == DebugOverlay::QuadOverdrawPass)
@@ -1353,50 +1354,50 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         // resolve pass
         {
-          gl.glUseProgram(DebugData.quadoverdrawResolveProg);
-          gl.glBindProgramPipeline(0);
+          drv.glUseProgram(DebugData.quadoverdrawResolveProg);
+          drv.glBindProgramPipeline(0);
 
-          gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[0]);
+          drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[0]);
 
-          Vec4f *v = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(overdrawRamp),
-                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+          Vec4f *v = (Vec4f *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(overdrawRamp),
+                                                   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
           memcpy(v, overdrawRamp, sizeof(overdrawRamp));
-          gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+          drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
           // modify our fbo to attach the overlay texture instead
-          gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
-          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                                    DebugData.overlayTex, 0);
-          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
-                                    0, 0);
+          drv.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
+          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                     DebugData.overlayTex, 0);
+          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                     0, 0);
 
-          gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-          gl.glDisable(eGL_BLEND);
-          gl.glDisable(eGL_SCISSOR_TEST);
-          gl.glDepthMask(GL_FALSE);
-          gl.glDisable(eGL_CULL_FACE);
+          drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+          drv.glDisable(eGL_BLEND);
+          drv.glDisable(eGL_SCISSOR_TEST);
+          drv.glDepthMask(GL_FALSE);
+          drv.glDisable(eGL_CULL_FACE);
           if(!IsGLES)
-            gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
-          gl.glDisable(eGL_DEPTH_TEST);
-          gl.glDisable(eGL_STENCIL_TEST);
-          gl.glStencilMask(0);
-          gl.glViewport(0, 0, texDetails.width, texDetails.height);
+            drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+          drv.glDisable(eGL_DEPTH_TEST);
+          drv.glDisable(eGL_STENCIL_TEST);
+          drv.glStencilMask(0);
+          drv.glViewport(0, 0, texDetails.width, texDetails.height);
 
-          gl.glBindImageTexture(0, quadtexs[2], 0, GL_FALSE, 0, eGL_READ_WRITE, eGL_R32UI);
+          drv.glBindImageTexture(0, quadtexs[2], 0, GL_FALSE, 0, eGL_READ_WRITE, eGL_R32UI);
 
           GLuint emptyVAO = 0;
-          gl.glGenVertexArrays(1, &emptyVAO);
-          gl.glBindVertexArray(emptyVAO);
-          gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
-          gl.glBindVertexArray(0);
-          gl.glDeleteVertexArrays(1, &emptyVAO);
+          drv.glGenVertexArrays(1, &emptyVAO);
+          drv.glBindVertexArray(emptyVAO);
+          drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+          drv.glBindVertexArray(0);
+          drv.glDeleteVertexArrays(1, &emptyVAO);
 
-          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                                    quadtexs[0], 0);
+          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                     quadtexs[0], 0);
         }
 
-        gl.glDeleteFramebuffers(1, &replacefbo);
-        gl.glDeleteTextures(3, quadtexs);
+        drv.glDeleteFramebuffers(1, &replacefbo);
+        drv.glDeleteTextures(3, quadtexs);
 
         if(overlay == DebugOverlay::QuadOverdrawPass)
           ReplayLog(eventId, eReplay_WithoutDraw);

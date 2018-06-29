@@ -39,8 +39,6 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
 
-    RDCEraseEl(GL);
-
     m_HasHooks = false;
 
     m_GLDriver = NULL;
@@ -59,14 +57,13 @@ public:
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  const GLHookSet &GetRealGLFunctions()
+  void PopulateEGLFunctions()
   {
     if(!m_PopulatedHooks)
     {
       m_PopulatedHooks = PopulateHooks();
       SharedCheckContext();
     }
-    return GL;
   }
 
   void SetupExportedFunctions()
@@ -170,7 +167,7 @@ public:
   {
     if(m_GLDriver == NULL)
     {
-      m_GLDriver = new WrappedOpenGL(GL, *this);
+      m_GLDriver = new WrappedOpenGL(*this);
       m_GLDriver->SetDriverType(RDCDriver::OpenGLES);
     }
 
@@ -482,9 +479,9 @@ bool EGLHook::PopulateHooks()
   return m_PopulatedHooks;
 }
 
-const GLHookSet &GetRealGLFunctionsEGL()
+void PopulateEGLFunctions()
 {
-  return eglhooks.GetRealGLFunctions();
+  eglhooks.PopulateEGLFunctions();
 }
 
 GLPlatform &GetGLPlatformEGL()

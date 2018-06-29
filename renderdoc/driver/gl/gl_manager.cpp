@@ -27,33 +27,32 @@
 #include <algorithm>
 #include "driver/gl/gl_driver.h"
 
-GLResourceManager::GLResourceManager(WrappedOpenGL *gl) : ResourceManager(), m_GL(gl), m_SyncName(1)
+GLResourceManager::GLResourceManager(WrappedOpenGL *driver)
+    : ResourceManager(), m_Driver(driver), m_SyncName(1)
 {
-  m_State = m_GL->GetState();
+  m_State = m_Driver->GetState();
 }
 
 void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0)
 {
-  const GLHookSet &gl = m_GL->GetHookset();
-
   if(res.name || allowFake0)
   {
-    ContextPair &ctx = m_GL->GetCtx();
+    ContextPair &ctx = m_Driver->GetCtx();
 
     MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
     GLint numVBufferBindings = 16;
-    gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+    GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
 
     for(GLuint i = 0; i < (GLuint)numVBufferBindings; i++)
     {
-      GLuint buffer = GetBoundVertexBuffer(gl, i);
+      GLuint buffer = GetBoundVertexBuffer(i);
 
       MarkResourceFrameReferenced(BufferRes(ctx, buffer), ref);
     }
 
     GLuint ibuffer = 0;
-    gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
+    GL.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
     MarkResourceFrameReferenced(BufferRes(ctx, ibuffer), ref);
   }
 }
@@ -65,22 +64,20 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
 
   MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
-  const GLHookSet &gl = m_GL->GetHookset();
-
-  ContextPair &ctx = m_GL->GetCtx();
+  ContextPair &ctx = m_Driver->GetCtx();
 
   GLint numCols = 8;
-  gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+  GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
   GLenum type = eGL_TEXTURE;
   GLuint name = 0;
 
   for(int c = 0; c < numCols; c++)
   {
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0 + c),
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0 + c),
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                      (GLint *)&name);
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0 + c),
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0 + c),
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
                                                      (GLint *)&type);
 
@@ -90,9 +87,9 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
       MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
   }
 
-  gl.glGetNamedFramebufferAttachmentParameterivEXT(
+  GL.glGetNamedFramebufferAttachmentParameterivEXT(
       res.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-  gl.glGetNamedFramebufferAttachmentParameterivEXT(
+  GL.glGetNamedFramebufferAttachmentParameterivEXT(
       res.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
   if(name)
@@ -103,9 +100,9 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
       MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
   }
 
-  gl.glGetNamedFramebufferAttachmentParameterivEXT(
+  GL.glGetNamedFramebufferAttachmentParameterivEXT(
       res.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-  gl.glGetNamedFramebufferAttachmentParameterivEXT(
+  GL.glGetNamedFramebufferAttachmentParameterivEXT(
       res.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
   if(name)
@@ -119,13 +116,13 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
 
 bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *record)
 {
-  if(id == m_GL->GetContextResourceID())
+  if(id == m_Driver->GetContextResourceID())
     return false;
   return true;
 }
 
 bool GLResourceManager::ResourceTypeRelease(GLResource res)
 {
-  m_GL->QueueResourceRelease(res);
+  m_Driver->QueueResourceRelease(res);
   return true;
 }

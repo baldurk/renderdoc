@@ -32,14 +32,14 @@
 
 void GLReplay::ClearPostVSCache()
 {
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {
-    gl.glDeleteBuffers(1, &it->second.vsout.buf);
-    gl.glDeleteBuffers(1, &it->second.vsout.idxBuf);
-    gl.glDeleteBuffers(1, &it->second.gsout.buf);
-    gl.glDeleteBuffers(1, &it->second.gsout.idxBuf);
+    drv.glDeleteBuffers(1, &it->second.vsout.buf);
+    drv.glDeleteBuffers(1, &it->second.vsout.idxBuf);
+    drv.glDeleteBuffers(1, &it->second.gsout.buf);
+    drv.glDeleteBuffers(1, &it->second.gsout.idxBuf);
   }
 
   m_PostVSData.clear();
@@ -52,20 +52,20 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  WrappedOpenGL &gl = *m_pDriver;
-  if(gl.m_ActiveFeedback)
+  WrappedOpenGL &drv = *m_pDriver;
+  if(drv.m_ActiveFeedback)
   {
-    gl.glEndTransformFeedback();
-    gl.m_WasActiveFeedback = true;
+    drv.glEndTransformFeedback();
+    drv.m_WasActiveFeedback = true;
   }
 
   GLResourceManager *rm = m_pDriver->GetResourceManager();
 
-  GLRenderState rs(&gl.GetHookset());
-  rs.FetchState(&gl);
+  GLRenderState rs;
+  rs.FetchState(&drv);
   GLuint elArrayBuffer = 0;
   if(rs.VAO.name)
-    gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
+    drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
 
   // reflection structures
   ShaderReflection *vsRefl = NULL;
@@ -176,9 +176,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   vector<const char *> varyings;
 
   // we don't want to do any work, so just discard before rasterizing
-  gl.glEnable(eGL_RASTERIZER_DISCARD);
+  drv.glEnable(eGL_RASTERIZER_DISCARD);
 
-  CopyProgramAttribBindings(gl.GetHookset(), vsProgSrc, vsProg, vsRefl);
+  CopyProgramAttribBindings(vsProgSrc, vsProg, vsRefl);
 
   varyings.clear();
 
@@ -283,11 +283,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   for(;;)
   {
     // specify current varyings & relink
-    gl.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0],
-                                   eGL_INTERLEAVED_ATTRIBS);
-    gl.glLinkProgram(vsProg);
+    drv.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0],
+                                    eGL_INTERLEAVED_ATTRIBS);
+    drv.glLinkProgram(vsProg);
 
-    gl.glGetProgramiv(vsProg, eGL_LINK_STATUS, &status);
+    drv.glGetProgramiv(vsProg, eGL_LINK_STATUS, &status);
 
     // all good! Hopefully we'll mostly hit this
     if(status == 1)
@@ -299,7 +299,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       break;
 
     char buffer[1025] = {0};
-    gl.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
 
     // assume we're finished and can't retry any more after this.
     // if we find a potential 'fixup' we'll set this back to false
@@ -346,7 +346,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(status == 0)
   {
     char buffer[1025] = {0};
-    gl.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
     RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
     m_PostVSData[eventId] = GLPostVSData();
     return;
@@ -354,13 +354,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   // copy across any uniform values, bindings etc from the real program containing
   // the vertex stage
-  CopyProgramUniforms(gl.GetHookset(), vsProgSrc, vsProg);
+  CopyProgramUniforms(vsProgSrc, vsProg);
 
   // bind our program and do the feedback draw
-  gl.glUseProgram(vsProg);
-  gl.glBindProgramPipeline(0);
+  drv.glUseProgram(vsProg);
+  drv.glBindProgramPipeline(0);
 
-  gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+  drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
 
   GLuint idxBuf = 0;
 
@@ -384,40 +384,41 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         RDCERR("Too much data generated");
         DebugData.feedbackBufferSize = INTPTR_MAX;
       }
-      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
-                              NULL, eGL_DYNAMIC_READ);
+      drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                               NULL, eGL_DYNAMIC_READ);
     }
 
     // need to rebind this here because of an AMD bug that seems to ignore the buffer
     // bindings in the feedback object - or at least it errors if the default feedback
     // object has no buffers bound. Fortunately the state is still object-local so
     // we don't have to restore the buffer binding on the default feedback object.
-    gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+    drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
 
-    gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-    gl.glBeginTransformFeedback(eGL_POINTS);
+    drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+    drv.glBeginTransformFeedback(eGL_POINTS);
 
     if(drawcall->flags & DrawFlags::Instanced)
     {
       if(HasExt[ARB_base_instance])
       {
-        gl.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
-                                             drawcall->numInstances, drawcall->instanceOffset);
+        drv.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset,
+                                              drawcall->numIndices, drawcall->numInstances,
+                                              drawcall->instanceOffset);
       }
       else
       {
-        gl.glDrawArraysInstanced(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
-                                 drawcall->numInstances);
+        drv.glDrawArraysInstanced(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
+                                  drawcall->numInstances);
       }
     }
     else
     {
-      gl.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
+      drv.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
     }
   }
   else    // drawcall is indexed
   {
-    ResourceId idxId = rm->GetID(BufferRes(gl.GetCtx(), elArrayBuffer));
+    ResourceId idxId = rm->GetID(BufferRes(drv.GetCtx(), elArrayBuffer));
 
     bytebuf idxdata;
     GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
@@ -480,10 +481,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     // generate a temporary index buffer with our 'unique index set' indices,
     // so we can transform feedback each referenced vertex once
     GLuint indexSetBuffer = 0;
-    gl.glGenBuffers(1, &indexSetBuffer);
-    gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
-    gl.glNamedBufferDataEXT(indexSetBuffer, sizeof(uint32_t) * indices.size(), &indices[0],
-                            eGL_STATIC_DRAW);
+    drv.glGenBuffers(1, &indexSetBuffer);
+    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
+    drv.glNamedBufferDataEXT(indexSetBuffer, sizeof(uint32_t) * indices.size(), &indices[0],
+                             eGL_STATIC_DRAW);
 
     uint32_t outputSize = (uint32_t)indices.size() * stride;
 
@@ -503,42 +504,42 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         RDCERR("Too much data generated");
         DebugData.feedbackBufferSize = INTPTR_MAX;
       }
-      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
-                              NULL, eGL_DYNAMIC_READ);
+      drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                               NULL, eGL_DYNAMIC_READ);
     }
 
     // need to rebind this here because of an AMD bug that seems to ignore the buffer
     // bindings in the feedback object - or at least it errors if the default feedback
     // object has no buffers bound. Fortunately the state is still object-local so
     // we don't have to restore the buffer binding on the default feedback object.
-    gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+    drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
 
-    gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-    gl.glBeginTransformFeedback(eGL_POINTS);
+    drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+    drv.glBeginTransformFeedback(eGL_POINTS);
 
     if(drawcall->flags & DrawFlags::Instanced)
     {
       if(HasExt[ARB_base_instance])
       {
-        gl.glDrawElementsInstancedBaseVertexBaseInstance(
+        drv.glDrawElementsInstancedBaseVertexBaseInstance(
             eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->numInstances,
             drawcall->baseVertex, drawcall->instanceOffset);
       }
       else
       {
-        gl.glDrawElementsInstancedBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT,
-                                             NULL, drawcall->numInstances, drawcall->baseVertex);
+        drv.glDrawElementsInstancedBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT,
+                                              NULL, drawcall->numInstances, drawcall->baseVertex);
       }
     }
     else
     {
-      gl.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL,
-                                  drawcall->baseVertex);
+      drv.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL,
+                                   drawcall->baseVertex);
     }
 
     // delete the buffer, we don't need it anymore
-    gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
-    gl.glDeleteBuffers(1, &indexSetBuffer);
+    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+    drv.glDeleteBuffers(1, &indexSetBuffer);
 
     uint32_t stripRestartValue32 = 0;
 
@@ -596,23 +597,23 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     // buffer and only tightly packed unique indices).
     if(!idxdata.empty())
     {
-      gl.glGenBuffers(1, &idxBuf);
-      gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
-      gl.glNamedBufferDataEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], eGL_STATIC_DRAW);
+      drv.glGenBuffers(1, &idxBuf);
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
+      drv.glNamedBufferDataEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], eGL_STATIC_DRAW);
     }
 
     // restore previous element array buffer binding
-    gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
   }
 
-  gl.glEndTransformFeedback();
-  gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+  drv.glEndTransformFeedback();
+  drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
 
   bool error = false;
 
   // this should be the same as the draw size
   GLuint primsWritten = 0;
-  gl.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
+  drv.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
 
   if(primsWritten == 0)
   {
@@ -622,11 +623,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   }
 
   // get buffer data from buffer attached to feedback object
-  float *data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+  float *data = (float *)drv.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
 
   if(data == NULL)
   {
-    gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+    drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
     RDCERR("Couldn't map feedback buffer!");
     error = true;
   }
@@ -634,18 +635,18 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(error)
   {
     // restore replay state we trashed
-    gl.glUseProgram(rs.Program.name);
-    gl.glBindProgramPipeline(rs.Pipeline.name);
+    drv.glUseProgram(rs.Program.name);
+    drv.glBindProgramPipeline(rs.Pipeline.name);
 
-    gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
-    gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+    drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
+    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-    gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+    drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
     if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
-      gl.glDisable(eGL_RASTERIZER_DISCARD);
+      drv.glDisable(eGL_RASTERIZER_DISCARD);
     else
-      gl.glEnable(eGL_RASTERIZER_DISCARD);
+      drv.glEnable(eGL_RASTERIZER_DISCARD);
 
     m_PostVSData[eventId] = GLPostVSData();
     return;
@@ -654,9 +655,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   // create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
   // can render from it to display previews).
   GLuint vsoutBuffer = 0;
-  gl.glGenBuffers(1, &vsoutBuffer);
-  gl.glBindBuffer(eGL_ARRAY_BUFFER, vsoutBuffer);
-  gl.glNamedBufferDataEXT(vsoutBuffer, stride * primsWritten, data, eGL_STATIC_DRAW);
+  drv.glGenBuffers(1, &vsoutBuffer);
+  drv.glBindBuffer(eGL_ARRAY_BUFFER, vsoutBuffer);
+  drv.glNamedBufferDataEXT(vsoutBuffer, stride * primsWritten, data, eGL_STATIC_DRAW);
 
   byte *byteData = (byte *)data;
 
@@ -718,7 +719,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     farp = FLT_MAX;
   }
 
-  gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+  drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
   // store everything out to the PostVS data cache
   m_PostVSData[eventId].vsin.topo = drawcall->topology;
@@ -747,8 +748,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   m_PostVSData[eventId].vsout.topo = drawcall->topology;
 
   // set vsProg back to no varyings, for future use
-  gl.glTransformFeedbackVaryings(vsProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
-  gl.glLinkProgram(vsProg);
+  drv.glTransformFeedbackVaryings(vsProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+  drv.glLinkProgram(vsProg);
 
   GLuint lastFeedbackProg = 0;
 
@@ -761,16 +762,16 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     RDCASSERT(lastRefl);
 
-    lastFeedbackProg = gl.glCreateProgram();
+    lastFeedbackProg = drv.glCreateProgram();
 
     // attach the shaders
-    gl.glAttachShader(lastFeedbackProg, vsShad);
+    drv.glAttachShader(lastFeedbackProg, vsShad);
     if(tesShad)
-      gl.glAttachShader(lastFeedbackProg, tesShad);
+      drv.glAttachShader(lastFeedbackProg, tesShad);
     if(tcsShad)
-      gl.glAttachShader(lastFeedbackProg, tcsShad);
+      drv.glAttachShader(lastFeedbackProg, tcsShad);
     if(gsShad)
-      gl.glAttachShader(lastFeedbackProg, gsShad);
+      drv.glAttachShader(lastFeedbackProg, gsShad);
 
     varyings.clear();
 
@@ -826,11 +827,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     for(;;)
     {
       // specify current varyings & relink
-      gl.glTransformFeedbackVaryings(lastFeedbackProg, (GLsizei)varyings.size(), &varyings[0],
-                                     eGL_INTERLEAVED_ATTRIBS);
-      gl.glLinkProgram(lastFeedbackProg);
+      drv.glTransformFeedbackVaryings(lastFeedbackProg, (GLsizei)varyings.size(), &varyings[0],
+                                      eGL_INTERLEAVED_ATTRIBS);
+      drv.glLinkProgram(lastFeedbackProg);
 
-      gl.glGetProgramiv(lastFeedbackProg, eGL_LINK_STATUS, &status);
+      drv.glGetProgramiv(lastFeedbackProg, eGL_LINK_STATUS, &status);
 
       // all good! Hopefully we'll mostly hit this
       if(status == 1)
@@ -842,7 +843,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         break;
 
       char buffer[1025] = {0};
-      gl.glGetProgramInfoLog(lastFeedbackProg, 1024, NULL, buffer);
+      drv.glGetProgramInfoLog(lastFeedbackProg, 1024, NULL, buffer);
 
       // assume we're finished and can't retry any more after this.
       // if we find a potential 'fixup' we'll set this back to false
@@ -888,48 +889,48 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
 
     // detach the shaders now that linking is complete
-    gl.glDetachShader(lastFeedbackProg, vsShad);
+    drv.glDetachShader(lastFeedbackProg, vsShad);
     if(tesShad)
-      gl.glDetachShader(lastFeedbackProg, tesShad);
+      drv.glDetachShader(lastFeedbackProg, tesShad);
     if(tcsShad)
-      gl.glDetachShader(lastFeedbackProg, tcsShad);
+      drv.glDetachShader(lastFeedbackProg, tcsShad);
     if(gsShad)
-      gl.glDetachShader(lastFeedbackProg, gsShad);
+      drv.glDetachShader(lastFeedbackProg, gsShad);
 
     if(status == 0)
     {
       char buffer[1025] = {0};
-      gl.glGetProgramInfoLog(lastFeedbackProg, 1024, NULL, buffer);
+      drv.glGetProgramInfoLog(lastFeedbackProg, 1024, NULL, buffer);
       RDCERR("Failed to fix-up. Link error making xfb last program: %s", buffer);
     }
     else
     {
       // copy across any uniform values, bindings etc from the real program containing
       // the vertex stage
-      CopyProgramUniforms(gl.GetHookset(), vsProgSrc, lastFeedbackProg);
+      CopyProgramUniforms(vsProgSrc, lastFeedbackProg);
 
       // if tessellation is enabled, bind & copy uniforms. Note, control shader is optional
       // independent of eval shader (default values are used for the tessellation levels).
       if(tcsProgSrc)
-        CopyProgramUniforms(gl.GetHookset(), tcsProgSrc, lastFeedbackProg);
+        CopyProgramUniforms(tcsProgSrc, lastFeedbackProg);
       if(tesProgSrc)
-        CopyProgramUniforms(gl.GetHookset(), tesProgSrc, lastFeedbackProg);
+        CopyProgramUniforms(tesProgSrc, lastFeedbackProg);
 
       // if we have a geometry shader, bind & copy uniforms
       if(gsProgSrc)
-        CopyProgramUniforms(gl.GetHookset(), gsProgSrc, lastFeedbackProg);
+        CopyProgramUniforms(gsProgSrc, lastFeedbackProg);
 
       // bind our program and do the feedback draw
-      gl.glUseProgram(lastFeedbackProg);
-      gl.glBindProgramPipeline(0);
+      drv.glUseProgram(lastFeedbackProg);
+      drv.glBindProgramPipeline(0);
 
-      gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+      drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
 
       // need to rebind this here because of an AMD bug that seems to ignore the buffer
       // bindings in the feedback object - or at least it errors if the default feedback
       // object has no buffers bound. Fortunately the state is still object-local so
       // we don't have to restore the buffer binding on the default feedback object.
-      gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+      drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
 
       idxBuf = 0;
 
@@ -996,11 +997,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       if(lastRefl == gsRefl)
       {
-        gl.glGetProgramiv(lastFeedbackProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&shaderOutMode);
+        drv.glGetProgramiv(lastFeedbackProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&shaderOutMode);
 
         GLint maxVerts = 1;
 
-        gl.glGetProgramiv(lastFeedbackProg, eGL_GEOMETRY_VERTICES_OUT, (GLint *)&maxVerts);
+        drv.glGetProgramiv(lastFeedbackProg, eGL_GEOMETRY_VERTICES_OUT, (GLint *)&maxVerts);
 
         if(shaderOutMode == eGL_TRIANGLE_STRIP)
         {
@@ -1022,7 +1023,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       }
       else if(lastRefl == tesRefl)
       {
-        gl.glGetProgramiv(lastFeedbackProg, eGL_TESS_GEN_MODE, (GLint *)&shaderOutMode);
+        drv.glGetProgramiv(lastFeedbackProg, eGL_TESS_GEN_MODE, (GLint *)&shaderOutMode);
 
         uint32_t outputPrimitiveVerts = 1;
 
@@ -1059,8 +1060,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           RDCERR("Too much data generated");
           DebugData.feedbackBufferSize = INTPTR_MAX;
         }
-        gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
-                                NULL, eGL_DYNAMIC_READ);
+        drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                                 NULL, eGL_DYNAMIC_READ);
       }
 
       GLenum idxType = eGL_UNSIGNED_BYTE;
@@ -1083,8 +1084,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           if(curSize < drawcall->numInstances)
           {
             DebugData.feedbackQueries.resize(drawcall->numInstances);
-            gl.glGenQueries(drawcall->numInstances - curSize,
-                            DebugData.feedbackQueries.data() + curSize);
+            drv.glGenQueries(drawcall->numInstances - curSize,
+                             DebugData.feedbackQueries.data() + curSize);
           }
 
           // do incremental draws to get the output size. We have to do this O(N^2) style because
@@ -1093,107 +1094,107 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           // difference how much each instance wrote.
           for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
           {
-            gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
-            gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
-                            DebugData.feedbackQueries[inst - 1]);
-            gl.glBeginTransformFeedback(lastOutTopo);
+            drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+            drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+                             DebugData.feedbackQueries[inst - 1]);
+            drv.glBeginTransformFeedback(lastOutTopo);
 
             if(!(drawcall->flags & DrawFlags::Indexed))
             {
               if(HasExt[ARB_base_instance])
               {
-                gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
-                                                     drawcall->numIndices, inst,
-                                                     drawcall->instanceOffset);
+                drv.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
+                                                      drawcall->numIndices, inst,
+                                                      drawcall->instanceOffset);
               }
               else
               {
-                gl.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
-                                         inst);
+                drv.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
+                                          inst);
               }
             }
             else
             {
               if(HasExt[ARB_base_instance])
               {
-                gl.glDrawElementsInstancedBaseVertexBaseInstance(
+                drv.glDrawElementsInstancedBaseVertexBaseInstance(
                     drawtopo, drawcall->numIndices, idxType,
                     (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth), inst,
                     drawcall->baseVertex, drawcall->instanceOffset);
               }
               else
               {
-                gl.glDrawElementsInstancedBaseVertex(
+                drv.glDrawElementsInstancedBaseVertex(
                     drawtopo, drawcall->numIndices, idxType,
                     (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth), inst,
                     drawcall->baseVertex);
               }
             }
 
-            gl.glEndTransformFeedback();
-            gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+            drv.glEndTransformFeedback();
+            drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
           }
         }
         else
         {
-          gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-          gl.glBeginTransformFeedback(lastOutTopo);
+          drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+          drv.glBeginTransformFeedback(lastOutTopo);
 
           if(!(drawcall->flags & DrawFlags::Indexed))
           {
             if(HasExt[ARB_base_instance])
             {
-              gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
-                                                   drawcall->numIndices, drawcall->numInstances,
-                                                   drawcall->instanceOffset);
+              drv.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
+                                                    drawcall->numIndices, drawcall->numInstances,
+                                                    drawcall->instanceOffset);
             }
             else
             {
-              gl.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
-                                       drawcall->numInstances);
+              drv.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
+                                        drawcall->numInstances);
             }
           }
           else
           {
             if(HasExt[ARB_base_instance])
             {
-              gl.glDrawElementsInstancedBaseVertexBaseInstance(
+              drv.glDrawElementsInstancedBaseVertexBaseInstance(
                   drawtopo, drawcall->numIndices, idxType,
                   (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
                   drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
             }
             else
             {
-              gl.glDrawElementsInstancedBaseVertex(
+              drv.glDrawElementsInstancedBaseVertex(
                   drawtopo, drawcall->numIndices, idxType,
                   (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
                   drawcall->numInstances, drawcall->baseVertex);
             }
           }
 
-          gl.glEndTransformFeedback();
-          gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+          drv.glEndTransformFeedback();
+          drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
         }
       }
       else
       {
-        gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-        gl.glBeginTransformFeedback(lastOutTopo);
+        drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+        drv.glBeginTransformFeedback(lastOutTopo);
 
         if(!(drawcall->flags & DrawFlags::Indexed))
         {
-          gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
+          drv.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
         }
         else
         {
-          gl.glDrawElementsBaseVertex(
+          drv.glDrawElementsBaseVertex(
               drawtopo, drawcall->numIndices, idxType,
               (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
               drawcall->baseVertex);
         }
 
-        gl.glEndTransformFeedback();
-        gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+        drv.glEndTransformFeedback();
+        drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
       }
 
       std::vector<GLPostVSData::InstData> instData;
@@ -1204,7 +1205,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
         for(uint32_t inst = 0; inst < drawcall->numInstances; inst++)
         {
-          gl.glGetQueryObjectuiv(DebugData.feedbackQueries[inst], eGL_QUERY_RESULT, &primsWritten);
+          drv.glGetQueryObjectuiv(DebugData.feedbackQueries[inst], eGL_QUERY_RESULT, &primsWritten);
 
           uint32_t vertCount = 3 * primsWritten;
 
@@ -1219,7 +1220,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       else
       {
         primsWritten = 0;
-        gl.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
+        drv.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
       }
 
       error = false;
@@ -1231,11 +1232,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       }
 
       // get buffer data from buffer attached to feedback object
-      data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+      data = (float *)drv.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
 
       if(data == NULL)
       {
-        gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+        drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
         RDCERR("Couldn't map feedback buffer!");
         error = true;
       }
@@ -1244,21 +1245,21 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         // delete temporary program we made
         if(lastFeedbackProg)
-          gl.glDeleteProgram(lastFeedbackProg);
+          drv.glDeleteProgram(lastFeedbackProg);
 
         // restore replay state we trashed
-        gl.glUseProgram(rs.Program.name);
-        gl.glBindProgramPipeline(rs.Pipeline.name);
+        drv.glUseProgram(rs.Program.name);
+        drv.glBindProgramPipeline(rs.Pipeline.name);
 
-        gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
-        gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+        drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
+        drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-        gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+        drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
         if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
-          gl.glDisable(eGL_RASTERIZER_DISCARD);
+          drv.glDisable(eGL_RASTERIZER_DISCARD);
         else
-          gl.glEnable(eGL_RASTERIZER_DISCARD);
+          drv.glEnable(eGL_RASTERIZER_DISCARD);
 
         return;
       }
@@ -1286,10 +1287,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       // create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
       // can render from it to display previews).
       GLuint lastoutBuffer = 0;
-      gl.glGenBuffers(1, &lastoutBuffer);
-      gl.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
-      gl.glNamedBufferDataEXT(lastoutBuffer, stride * m_PostVSData[eventId].gsout.numVerts, data,
-                              eGL_STATIC_DRAW);
+      drv.glGenBuffers(1, &lastoutBuffer);
+      drv.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
+      drv.glNamedBufferDataEXT(lastoutBuffer, stride * m_PostVSData[eventId].gsout.numVerts, data,
+                               eGL_STATIC_DRAW);
 
       byteData = (byte *)data;
 
@@ -1351,7 +1352,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         farp = FLT_MAX;
       }
 
-      gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+      drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
       // store everything out to the PostVS data cache
       m_PostVSData[eventId].gsout.buf = lastoutBuffer;
@@ -1372,7 +1373,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       m_PostVSData[eventId].gsout.idxBuf = 0;
       m_PostVSData[eventId].gsout.idxByteWidth = 0;
 
-      m_PostVSData[eventId].gsout.topo = MakePrimitiveTopology(gl.GetHookset(), lastOutTopo);
+      m_PostVSData[eventId].gsout.topo = MakePrimitiveTopology(lastOutTopo);
 
       m_PostVSData[eventId].gsout.instData = instData;
     }
@@ -1380,21 +1381,21 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   // delete temporary pipelines we made
   if(lastFeedbackProg)
-    gl.glDeleteProgram(lastFeedbackProg);
+    drv.glDeleteProgram(lastFeedbackProg);
 
   // restore replay state we trashed
-  gl.glUseProgram(rs.Program.name);
-  gl.glBindProgramPipeline(rs.Pipeline.name);
+  drv.glUseProgram(rs.Program.name);
+  drv.glBindProgramPipeline(rs.Pipeline.name);
 
-  gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
-  gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+  drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
+  drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-  gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+  drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
   if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
-    gl.glDisable(eGL_RASTERIZER_DISCARD);
+    drv.glDisable(eGL_RASTERIZER_DISCARD);
   else
-    gl.glEnable(eGL_RASTERIZER_DISCARD);
+    drv.glEnable(eGL_RASTERIZER_DISCARD);
 }
 
 void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)

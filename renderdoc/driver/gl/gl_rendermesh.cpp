@@ -36,7 +36,7 @@
 void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
                           const MeshDisplay &cfg)
 {
-  WrappedOpenGL &gl = *m_pDriver;
+  WrappedOpenGL &drv = *m_pDriver;
 
   if(cfg.position.vertexResourceId == ResourceId())
     return;
@@ -51,7 +51,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
   Matrix4f ModelViewProj = projMat.Mul(camMat);
   Matrix4f guessProjInv;
 
-  gl.glBindVertexArray(DebugData.meshVAO);
+  drv.glBindVertexArray(DebugData.meshVAO);
 
   const MeshFormat *meshData[2] = {&cfg.position, &cfg.second};
 
@@ -62,13 +62,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
   MeshUBOData uboParams = {};
   MeshUBOData *uboptr = NULL;
 
-  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+  drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
-  gl.glUseProgram(prog);
+  drv.glUseProgram(prog);
 
-  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
-  gl.glDisable(eGL_CULL_FACE);
+  drv.glDisable(eGL_CULL_FACE);
 
   if(cfg.position.unproject)
   {
@@ -98,12 +98,12 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 
     if(!IsGLES)
-      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+      drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
     // secondary draws have to come from gl_Position which is float4
-    gl.glVertexAttribFormat(0, 4, eGL_FLOAT, GL_FALSE, 0);
-    gl.glEnableVertexAttribArray(0);
-    gl.glDisableVertexAttribArray(1);
+    drv.glVertexAttribFormat(0, 4, eGL_FLOAT, GL_FALSE, 0);
+    drv.glEnableVertexAttribArray(0);
+    drv.glDisableVertexAttribArray(1);
 
     for(size_t i = 0; i < secondaryDraws.size(); i++)
     {
@@ -113,20 +113,20 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       {
         uboParams.color = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, fmt.meshColor.w);
 
-        uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
         *uboptr = uboParams;
-        gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+        drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
         GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.vertexResourceId).name;
-        gl.glBindVertexBuffer(0, vb, (GLintptr)fmt.vertexByteOffset, fmt.vertexByteStride);
+        drv.glBindVertexBuffer(0, vb, (GLintptr)fmt.vertexByteOffset, fmt.vertexByteStride);
 
         GLenum secondarytopo = MakeGLPrimitiveTopology(fmt.topology);
 
         if(fmt.indexByteStride)
         {
           GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.indexResourceId).name;
-          gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+          drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 
           GLenum idxtype = eGL_UNSIGNED_BYTE;
           if(fmt.indexByteStride == 2)
@@ -134,12 +134,12 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
           else if(fmt.indexByteStride == 4)
             idxtype = eGL_UNSIGNED_INT;
 
-          gl.glDrawElementsBaseVertex(secondarytopo, fmt.numIndices, idxtype,
-                                      (const void *)uintptr_t(fmt.indexByteOffset), fmt.baseVertex);
+          drv.glDrawElementsBaseVertex(secondarytopo, fmt.numIndices, idxtype,
+                                       (const void *)uintptr_t(fmt.indexByteOffset), fmt.baseVertex);
         }
         else
         {
-          gl.glDrawArrays(secondarytopo, 0, fmt.numIndices);
+          drv.glDrawArrays(secondarytopo, 0, fmt.numIndices);
         }
       }
     }
@@ -155,13 +155,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       if(meshData[i]->format.type == ResourceFormatType::R10G10B10A2)
       {
         if(meshData[i]->format.compType == CompType::UInt)
-          gl.glVertexAttribIFormat(i, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
+          drv.glVertexAttribIFormat(i, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
         if(meshData[i]->format.compType == CompType::SInt)
-          gl.glVertexAttribIFormat(i, 4, eGL_INT_2_10_10_10_REV, 0);
+          drv.glVertexAttribIFormat(i, 4, eGL_INT_2_10_10_10_REV, 0);
       }
       else if(meshData[i]->format.type == ResourceFormatType::R11G11B10)
       {
-        gl.glVertexAttribFormat(i, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
+        drv.glVertexAttribFormat(i, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
       }
       else
       {
@@ -200,8 +200,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
           fmttype = eGL_BYTE;
       }
 
-      gl.glVertexAttribFormat(i, meshData[i]->format.compCount, fmttype,
-                              meshData[i]->format.compType != CompType::Float, 0);
+      drv.glVertexAttribFormat(i, meshData[i]->format.compCount, fmttype,
+                               meshData[i]->format.compType != CompType::Float, 0);
     }
     else if(meshData[i]->format.compType == CompType::UInt ||
             meshData[i]->format.compType == CompType::SInt)
@@ -230,11 +230,11 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
           fmttype = eGL_BYTE;
       }
 
-      gl.glVertexAttribIFormat(i, meshData[i]->format.compCount, fmttype, 0);
+      drv.glVertexAttribIFormat(i, meshData[i]->format.compCount, fmttype, 0);
     }
     else if(meshData[i]->format.compType == CompType::Double)
     {
-      gl.glVertexAttribLFormat(i, meshData[i]->format.compCount, eGL_DOUBLE, 0);
+      drv.glVertexAttribLFormat(i, meshData[i]->format.compCount, eGL_DOUBLE, 0);
     }
 
     GLintptr offs = (GLintptr)meshData[i]->vertexByteOffset;
@@ -244,24 +244,24 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
     GLuint vb =
         m_pDriver->GetResourceManager()->GetCurrentResource(meshData[i]->vertexResourceId).name;
-    gl.glBindVertexBuffer(i, vb, offs, meshData[i]->vertexByteStride);
+    drv.glBindVertexBuffer(i, vb, offs, meshData[i]->vertexByteStride);
 
     if(meshData[i]->instanced)
-      gl.glVertexAttribDivisor(i, 1);
+      drv.glVertexAttribDivisor(i, 1);
     else
-      gl.glVertexAttribDivisor(i, 0);
+      drv.glVertexAttribDivisor(i, 0);
   }
 
   // enable position attribute
-  gl.glEnableVertexAttribArray(0);
-  gl.glDisableVertexAttribArray(1);
+  drv.glEnableVertexAttribArray(0);
+  drv.glDisableVertexAttribArray(1);
 
-  gl.glEnable(eGL_DEPTH_TEST);
+  drv.glEnable(eGL_DEPTH_TEST);
 
   // solid render
   if(cfg.solidShadeMode != SolidShade::NoSolid && topo != eGL_PATCHES)
   {
-    gl.glDepthFunc(eGL_LESS);
+    drv.glDepthFunc(eGL_LESS);
 
     GLuint solidProg = prog;
 
@@ -270,14 +270,14 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       // pick program with GS for per-face lighting
       solidProg = DebugData.meshgsProg;
 
-      ClearGLErrors(gl.GetHookset());
-      gl.glUseProgram(solidProg);
-      GLenum err = gl.glGetError();
+      ClearGLErrors();
+      drv.glUseProgram(solidProg);
+      GLenum err = drv.glGetError();
 
       err = eGL_NONE;
     }
 
-    MeshUBOData *soliddata = (MeshUBOData *)gl.glMapBufferRange(
+    MeshUBOData *soliddata = (MeshUBOData *)drv.glMapBufferRange(
         eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
     soliddata->mvp = ModelViewProj;
@@ -294,13 +294,13 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
     if(cfg.solidShadeMode == SolidShade::Lit)
       soliddata->invProj = projMat.Inverse();
 
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     if(cfg.second.vertexResourceId != ResourceId())
-      gl.glEnableVertexAttribArray(1);
+      drv.glEnableVertexAttribArray(1);
 
     if(!IsGLES)
-      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+      drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
     if(cfg.position.indexByteStride)
     {
@@ -314,23 +314,23 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       {
         GLuint ib =
             m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
-        gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+        drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
       }
-      gl.glDrawElementsBaseVertex(topo, cfg.position.numIndices, idxtype,
-                                  (const void *)uintptr_t(cfg.position.indexByteOffset),
-                                  cfg.position.baseVertex);
+      drv.glDrawElementsBaseVertex(topo, cfg.position.numIndices, idxtype,
+                                   (const void *)uintptr_t(cfg.position.indexByteOffset),
+                                   cfg.position.baseVertex);
     }
     else
     {
-      gl.glDrawArrays(topo, 0, cfg.position.numIndices);
+      drv.glDrawArrays(topo, 0, cfg.position.numIndices);
     }
 
-    gl.glDisableVertexAttribArray(1);
+    drv.glDisableVertexAttribArray(1);
 
-    gl.glUseProgram(prog);
+    drv.glUseProgram(prog);
   }
 
-  gl.glDepthFunc(eGL_ALWAYS);
+  drv.glDepthFunc(eGL_ALWAYS);
 
   // wireframe render
   if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw || topo == eGL_PATCHES)
@@ -341,12 +341,12 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 
     if(!IsGLES)
-      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+      drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     if(cfg.position.indexByteStride)
     {
@@ -360,16 +360,16 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       {
         GLuint ib =
             m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
-        gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+        drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 
-        gl.glDrawElementsBaseVertex(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numIndices,
-                                    idxtype, (const void *)uintptr_t(cfg.position.indexByteOffset),
-                                    cfg.position.baseVertex);
+        drv.glDrawElementsBaseVertex(
+            topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numIndices, idxtype,
+            (const void *)uintptr_t(cfg.position.indexByteOffset), cfg.position.baseVertex);
       }
     }
     else
     {
-      gl.glDrawArrays(topo != eGL_PATCHES ? topo : eGL_POINTS, 0, cfg.position.numIndices);
+      drv.glDrawArrays(topo != eGL_PATCHES ? topo : eGL_POINTS, 0, cfg.position.numIndices);
     }
   }
 
@@ -397,10 +397,10 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
         TLF, TRF, TRF, BRF, BRF, BLF, BLF, TLF,
     };
 
-    gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
-    gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(bbox), &bbox[0]);
+    drv.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+    drv.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(bbox), &bbox[0]);
 
-    gl.glBindVertexArray(DebugData.triHighlightVAO);
+    drv.glBindVertexArray(DebugData.triHighlightVAO);
 
     uboParams.color = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
 
@@ -408,65 +408,65 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
     uboParams.mvp = mvpMat;
 
-    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     // we want this to clip
-    gl.glDepthFunc(eGL_LESS);
+    drv.glDepthFunc(eGL_LESS);
 
-    gl.glDrawArrays(eGL_LINES, 0, 24);
+    drv.glDrawArrays(eGL_LINES, 0, 24);
 
-    gl.glDepthFunc(eGL_ALWAYS);
+    drv.glDepthFunc(eGL_ALWAYS);
   }
 
   // draw axis helpers
   if(!cfg.position.unproject)
   {
-    gl.glBindVertexArray(DebugData.axisVAO);
+    drv.glBindVertexArray(DebugData.axisVAO);
 
     uboParams.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
-    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-    gl.glDrawArrays(eGL_LINES, 0, 2);
+    drv.glDrawArrays(eGL_LINES, 0, 2);
 
     uboParams.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-    gl.glDrawArrays(eGL_LINES, 2, 2);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glDrawArrays(eGL_LINES, 2, 2);
 
     uboParams.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
-    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-    gl.glDrawArrays(eGL_LINES, 4, 2);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glDrawArrays(eGL_LINES, 4, 2);
   }
 
   // 'fake' helper frustum
   if(cfg.position.unproject)
   {
-    gl.glBindVertexArray(DebugData.frustumVAO);
+    drv.glBindVertexArray(DebugData.frustumVAO);
 
     uboParams.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
     uboParams.mvp = ModelViewProj;
 
-    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *uboptr = uboParams;
-    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-    gl.glDrawArrays(eGL_LINES, 0, 24);
+    drv.glDrawArrays(eGL_LINES, 0, 24);
   }
 
   if(!IsGLES)
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+    drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
   // show highlighted vertex
   if(cfg.highlightVert != ~0U)
@@ -521,7 +521,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
       uboParams.mvp = ModelViewProj;
 
-      gl.glBindVertexArray(DebugData.triHighlightVAO);
+      drv.glBindVertexArray(DebugData.triHighlightVAO);
 
       ////////////////////////////////////////////////////////////////
       // render primitives
@@ -531,15 +531,15 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
       if(activePrim.size() >= primSize)
       {
-        uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
         *uboptr = uboParams;
-        gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+        drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-        gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
-        gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f) * primSize, &activePrim[0]);
+        drv.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+        drv.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f) * primSize, &activePrim[0]);
 
-        gl.glDrawArrays(primTopo, 0, primSize);
+        drv.glDrawArrays(primTopo, 0, primSize);
       }
 
       // Draw adjacent primitives (green)
@@ -547,16 +547,16 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
-        uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
         *uboptr = uboParams;
-        gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+        drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-        gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
-        gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f) * adjacentPrimVertices.size(),
-                           &adjacentPrimVertices[0]);
+        drv.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+        drv.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f) * adjacentPrimVertices.size(),
+                            &adjacentPrimVertices[0]);
 
-        gl.glDrawArrays(primTopo, 0, (GLsizei)adjacentPrimVertices.size());
+        drv.glDrawArrays(primTopo, 0, (GLsizei)adjacentPrimVertices.size());
       }
 
       ////////////////////////////////////////////////////////////////
@@ -569,35 +569,35 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       // Draw active vertex (blue)
       uboParams.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
 
-      uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
       *uboptr = uboParams;
-      gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+      drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
       FloatVector vertSprite[4] = {
           activeVertex, activeVertex, activeVertex, activeVertex,
       };
 
-      gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
-      gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(vertSprite), &vertSprite[0]);
+      drv.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+      drv.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(vertSprite), &vertSprite[0]);
 
-      gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+      drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
       // Draw inactive vertices (green)
       uboParams.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
 
-      uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
-                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      uboptr = (MeshUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
       *uboptr = uboParams;
-      gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+      drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
       for(size_t i = 0; i < inactiveVertices.size(); i++)
       {
         vertSprite[0] = vertSprite[1] = vertSprite[2] = vertSprite[3] = inactiveVertices[i];
 
-        gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(vertSprite), &vertSprite[0]);
+        drv.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(vertSprite), &vertSprite[0]);
 
-        gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+        drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
       }
     }
   }

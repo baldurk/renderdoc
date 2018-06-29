@@ -33,7 +33,7 @@
 
 static EGLPointers egl;
 
-const GLHookSet &GetRealGLFunctionsEGL();
+void PopulateEGLFunctions();
 GLPlatform &GetGLPlatformEGL();
 
 ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
@@ -139,8 +139,8 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   // TODO: add extesion check just like in the GL case.
 
-  const GLHookSet &real = GetRealGLFunctionsEGL();
-  bool extensionsValidated = ValidateFunctionPointers(real);
+  PopulateEGLFunctions();
+  bool extensionsValidated = ValidateFunctionPointers();
   if(!extensionsValidated)
   {
     egl.DestroySurface(eglDisplay, data.egl_wnd);
@@ -148,7 +148,7 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     return ReplayStatus::APIHardwareUnsupported;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(real, GetGLPlatformEGL());
+  WrappedOpenGL *gl = new WrappedOpenGL(GetGLPlatformEGL());
   gl->SetDriverType(RDCDriver::OpenGLES);
 
   RDCLOG("Created OPEN GL ES replay device.");

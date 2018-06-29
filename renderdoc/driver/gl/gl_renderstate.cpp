@@ -69,18 +69,18 @@ static const EnableDisableCap enable_disable_cap[] = {
     {eGL_RASTERIZER_DISCARD, "GL_RASTERIZER_DISCARD"},
 };
 
-void ResetPixelPackState(const GLHookSet &gl, bool compressed, GLint alignment)
+void ResetPixelPackState(bool compressed, GLint alignment)
 {
   PixelPackState empty;
   empty.alignment = alignment;
-  empty.Apply(&gl, compressed);
+  empty.Apply(compressed);
 }
 
-void ResetPixelUnpackState(const GLHookSet &gl, bool compressed, GLint alignment)
+void ResetPixelUnpackState(bool compressed, GLint alignment)
 {
   PixelUnpackState empty;
   empty.alignment = alignment;
-  empty.Apply(&gl, compressed);
+  empty.Apply(compressed);
 }
 
 PixelStorageState::PixelStorageState()
@@ -99,95 +99,95 @@ PixelStorageState::PixelStorageState()
 {
 }
 
-void PixelPackState::Fetch(const GLHookSet *funcs, bool compressed)
+void PixelPackState::Fetch(bool compressed)
 {
   if(!IsGLES)
   {
-    funcs->glGetIntegerv(eGL_PACK_SWAP_BYTES, &swapBytes);
-    funcs->glGetIntegerv(eGL_PACK_LSB_FIRST, &lsbFirst);
-    funcs->glGetIntegerv(eGL_PACK_IMAGE_HEIGHT, &imageheight);
-    funcs->glGetIntegerv(eGL_PACK_SKIP_IMAGES, &skipImages);
+    GL.glGetIntegerv(eGL_PACK_SWAP_BYTES, &swapBytes);
+    GL.glGetIntegerv(eGL_PACK_LSB_FIRST, &lsbFirst);
+    GL.glGetIntegerv(eGL_PACK_IMAGE_HEIGHT, &imageheight);
+    GL.glGetIntegerv(eGL_PACK_SKIP_IMAGES, &skipImages);
   }
-  funcs->glGetIntegerv(eGL_PACK_ROW_LENGTH, &rowlength);
-  funcs->glGetIntegerv(eGL_PACK_SKIP_PIXELS, &skipPixels);
-  funcs->glGetIntegerv(eGL_PACK_SKIP_ROWS, &skipRows);
-  funcs->glGetIntegerv(eGL_PACK_ALIGNMENT, &alignment);
+  GL.glGetIntegerv(eGL_PACK_ROW_LENGTH, &rowlength);
+  GL.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &skipPixels);
+  GL.glGetIntegerv(eGL_PACK_SKIP_ROWS, &skipRows);
+  GL.glGetIntegerv(eGL_PACK_ALIGNMENT, &alignment);
 
   if(!IsGLES && compressed)
   {
-    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
-    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
-    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
-    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
+    GL.glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
+    GL.glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
+    GL.glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
+    GL.glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
   }
 }
 
-void PixelPackState::Apply(const GLHookSet *funcs, bool compressed)
+void PixelPackState::Apply(bool compressed)
 {
   if(!IsGLES)
   {
-    funcs->glPixelStorei(eGL_PACK_SWAP_BYTES, swapBytes);
-    funcs->glPixelStorei(eGL_PACK_LSB_FIRST, lsbFirst);
-    funcs->glPixelStorei(eGL_PACK_IMAGE_HEIGHT, imageheight);
-    funcs->glPixelStorei(eGL_PACK_SKIP_IMAGES, skipImages);
+    GL.glPixelStorei(eGL_PACK_SWAP_BYTES, swapBytes);
+    GL.glPixelStorei(eGL_PACK_LSB_FIRST, lsbFirst);
+    GL.glPixelStorei(eGL_PACK_IMAGE_HEIGHT, imageheight);
+    GL.glPixelStorei(eGL_PACK_SKIP_IMAGES, skipImages);
   }
-  funcs->glPixelStorei(eGL_PACK_ROW_LENGTH, rowlength);
-  funcs->glPixelStorei(eGL_PACK_SKIP_PIXELS, skipPixels);
-  funcs->glPixelStorei(eGL_PACK_SKIP_ROWS, skipRows);
-  funcs->glPixelStorei(eGL_PACK_ALIGNMENT, alignment);
+  GL.glPixelStorei(eGL_PACK_ROW_LENGTH, rowlength);
+  GL.glPixelStorei(eGL_PACK_SKIP_PIXELS, skipPixels);
+  GL.glPixelStorei(eGL_PACK_SKIP_ROWS, skipRows);
+  GL.glPixelStorei(eGL_PACK_ALIGNMENT, alignment);
 
   if(!IsGLES && compressed)
   {
-    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
-    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
-    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
-    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
+    GL.glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
+    GL.glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
+    GL.glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
+    GL.glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
   }
 }
 
-void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
+void PixelUnpackState::Fetch(bool compressed)
 {
   if(!IsGLES)
   {
-    funcs->glGetIntegerv(eGL_UNPACK_SWAP_BYTES, &swapBytes);
-    funcs->glGetIntegerv(eGL_UNPACK_LSB_FIRST, &lsbFirst);
+    GL.glGetIntegerv(eGL_UNPACK_SWAP_BYTES, &swapBytes);
+    GL.glGetIntegerv(eGL_UNPACK_LSB_FIRST, &lsbFirst);
   }
-  funcs->glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlength);
-  funcs->glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imageheight);
-  funcs->glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &skipPixels);
-  funcs->glGetIntegerv(eGL_UNPACK_SKIP_ROWS, &skipRows);
-  funcs->glGetIntegerv(eGL_UNPACK_SKIP_IMAGES, &skipImages);
-  funcs->glGetIntegerv(eGL_UNPACK_ALIGNMENT, &alignment);
+  GL.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlength);
+  GL.glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imageheight);
+  GL.glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &skipPixels);
+  GL.glGetIntegerv(eGL_UNPACK_SKIP_ROWS, &skipRows);
+  GL.glGetIntegerv(eGL_UNPACK_SKIP_IMAGES, &skipImages);
+  GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &alignment);
 
   if(!IsGLES && compressed)
   {
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
+    GL.glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
+    GL.glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
+    GL.glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
+    GL.glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
   }
 }
 
-void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
+void PixelUnpackState::Apply(bool compressed)
 {
   if(!IsGLES)
   {
-    funcs->glPixelStorei(eGL_UNPACK_SWAP_BYTES, swapBytes);
-    funcs->glPixelStorei(eGL_UNPACK_LSB_FIRST, lsbFirst);
+    GL.glPixelStorei(eGL_UNPACK_SWAP_BYTES, swapBytes);
+    GL.glPixelStorei(eGL_UNPACK_LSB_FIRST, lsbFirst);
   }
-  funcs->glPixelStorei(eGL_UNPACK_ROW_LENGTH, rowlength);
-  funcs->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, imageheight);
-  funcs->glPixelStorei(eGL_UNPACK_SKIP_PIXELS, skipPixels);
-  funcs->glPixelStorei(eGL_UNPACK_SKIP_ROWS, skipRows);
-  funcs->glPixelStorei(eGL_UNPACK_SKIP_IMAGES, skipImages);
-  funcs->glPixelStorei(eGL_UNPACK_ALIGNMENT, alignment);
+  GL.glPixelStorei(eGL_UNPACK_ROW_LENGTH, rowlength);
+  GL.glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, imageheight);
+  GL.glPixelStorei(eGL_UNPACK_SKIP_PIXELS, skipPixels);
+  GL.glPixelStorei(eGL_UNPACK_SKIP_ROWS, skipRows);
+  GL.glPixelStorei(eGL_UNPACK_SKIP_IMAGES, skipImages);
+  GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, alignment);
 
   if(!IsGLES && compressed)
   {
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
+    GL.glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
+    GL.glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
+    GL.glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
+    GL.glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
   }
 }
 
@@ -411,7 +411,7 @@ byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei he
   return ret;
 }
 
-GLRenderState::GLRenderState(const GLHookSet *funcs) : m_Real(funcs)
+GLRenderState::GLRenderState()
 {
   Clear();
 
@@ -451,9 +451,9 @@ GLRenderState::~GLRenderState()
 {
 }
 
-void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
+void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
 {
-  GLResourceManager *manager = gl->GetResourceManager();
+  GLResourceManager *manager = driver->GetResourceManager();
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
   {
@@ -477,7 +477,7 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
   {
     manager->MarkResourceFrameReferenced(Images[i].res,
                                          initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
-    gl->AddMissingTrack(manager->GetID(Images[i].res));
+    driver->AddMissingTrack(manager->GetID(Images[i].res));
   }
 
   manager->MarkVAOReferenced(VAO, initial ? eFrameRef_Unknown : eFrameRef_Read, true);
@@ -521,23 +521,23 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
     manager->MarkFBOReferenced(ReadFBO, initial ? eFrameRef_Unknown : eFrameRef_Read);
 }
 
-void GLRenderState::MarkDirty(WrappedOpenGL *gl)
+void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 {
-  GLResourceManager *manager = gl->GetResourceManager();
+  GLResourceManager *manager = driver->GetResourceManager();
 
-  ContextPair &ctx = gl->GetCtx();
+  ContextPair &ctx = driver->GetCtx();
 
   GLint maxCount = 0;
   GLuint name = 0;
 
   if(HasExt[ARB_transform_feedback2])
   {
-    m_Real->glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+    GL.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
 
     for(GLint i = 0; i < maxCount; i++)
     {
       name = 0;
-      m_Real->glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&name);
+      GL.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&name);
 
       if(name)
         manager->MarkDirtyResource(BufferRes(ctx, name));
@@ -546,12 +546,12 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
 
   if(HasExt[ARB_shader_image_load_store])
   {
-    m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
+    GL.glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
 
     for(GLint i = 0; i < maxCount; i++)
     {
       name = 0;
-      m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&name);
+      GL.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&name);
 
       if(name)
         manager->MarkDirtyResource(TextureRes(ctx, name));
@@ -560,12 +560,12 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
 
   if(HasExt[ARB_shader_atomic_counters])
   {
-    m_Real->glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
+    GL.glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
 
     for(GLint i = 0; i < maxCount; i++)
     {
       name = 0;
-      m_Real->glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint *)&name);
+      GL.glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint *)&name);
 
       if(name)
         manager->MarkDirtyResource(BufferRes(ctx, name));
@@ -574,31 +574,31 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
 
   if(HasExt[ARB_shader_storage_buffer_object])
   {
-    m_Real->glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
+    GL.glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
 
     for(GLint i = 0; i < maxCount; i++)
     {
       name = 0;
-      m_Real->glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint *)&name);
+      GL.glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint *)&name);
 
       if(name)
         manager->MarkDirtyResource(BufferRes(ctx, name));
     }
   }
 
-  m_Real->glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &maxCount);
+  GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &maxCount);
 
-  m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&name);
+  GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&name);
 
   if(name)
   {
     GLenum type = eGL_TEXTURE;
     for(GLint i = 0; i < maxCount; i++)
     {
-      m_Real->glGetFramebufferAttachmentParameteriv(
+      GL.glGetFramebufferAttachmentParameteriv(
           eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-      m_Real->glGetFramebufferAttachmentParameteriv(
+      GL.glGetFramebufferAttachmentParameteriv(
           eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
@@ -611,12 +611,10 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
       }
     }
 
-    m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                  (GLint *)&name);
-    m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                  (GLint *)&type);
+    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
+    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
     if(name)
     {
@@ -626,12 +624,10 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
         manager->MarkDirtyResource(TextureRes(ctx, name));
     }
 
-    m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                  (GLint *)&name);
-    m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                  (GLint *)&type);
+    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
+    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
     if(name)
     {
@@ -710,9 +706,9 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
   return true;
 }
 
-void GLRenderState::FetchState(WrappedOpenGL *gl)
+void GLRenderState::FetchState(WrappedOpenGL *driver)
 {
-  ContextPair &ctx = gl->GetCtx();
+  ContextPair &ctx = driver->GetCtx();
 
   if(ctx.ctx == NULL)
   {
@@ -728,13 +724,13 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
       continue;
     }
 
-    Enabled[i] = (m_Real->glIsEnabled(enable_disable_cap[i].cap) == GL_TRUE);
+    Enabled[i] = (GL.glIsEnabled(enable_disable_cap[i].cap) == GL_TRUE);
   }
 
-  m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
+  GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 
   GLuint maxTextures = 0;
-  m_Real->glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint *)&maxTextures);
+  GL.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint *)&maxTextures);
 
   RDCCOMPILE_ASSERT(
       sizeof(Tex1D) == sizeof(Tex2D) && sizeof(Tex2D) == sizeof(Tex3D) &&
@@ -747,7 +743,7 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
 
   for(GLuint i = 0; i < RDCMIN(maxTextures, (GLuint)ARRAY_COUNT(Tex2D)); i++)
   {
-    m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+    GL.glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 
     // textures are always shared
     Tex1D[i].ContextShareGroup = ctx.shareGroup;
@@ -764,41 +760,41 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
     Samplers[i].ContextShareGroup = ctx.shareGroup;
 
     if(!IsGLES)
-      m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_1D, (GLint *)&Tex1D[i].name);
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_1D, (GLint *)&Tex1D[i].name);
     else
       Tex1D[i].name = 0;
 
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&Tex2D[i].name);
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_3D, (GLint *)&Tex3D[i].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&Tex2D[i].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_3D, (GLint *)&Tex3D[i].name);
 
     if(!IsGLES)
-      m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_1D_ARRAY, (GLint *)&Tex1DArray[i].name);
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_1D_ARRAY, (GLint *)&Tex1DArray[i].name);
     else
       Tex1DArray[i].name = 0;
 
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint *)&Tex2DArray[i].name);
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&TexCube[i].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint *)&Tex2DArray[i].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&TexCube[i].name);
 
     if(!IsGLES)
-      m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_RECTANGLE, (GLint *)&TexRect[i].name);
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_RECTANGLE, (GLint *)&TexRect[i].name);
     else
       TexRect[i].name = 0;
 
     if(HasExt[ARB_texture_buffer_object])
-      m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_BUFFER, (GLint *)&TexBuffer[i].name);
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_BUFFER, (GLint *)&TexBuffer[i].name);
     else
       TexBuffer[i].name = 0;
 
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint *)&Tex2DMS[i].name);
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY, (GLint *)&Tex2DMSArray[i].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint *)&Tex2DMS[i].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY, (GLint *)&Tex2DMSArray[i].name);
 
     if(HasExt[ARB_texture_cube_map_array])
-      m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY, (GLint *)&TexCubeArray[i].name);
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY, (GLint *)&TexCubeArray[i].name);
     else
       TexCubeArray[i].name = 0;
 
     if(HasExt[ARB_sampler_objects])
-      m_Real->glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&Samplers[i].name);
+      GL.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&Samplers[i].name);
     else
       Samplers[i].name = 0;
   }
@@ -806,7 +802,7 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
   if(HasExt[ARB_shader_image_load_store])
   {
     GLuint maxImages = 0;
-    m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, (GLint *)&maxImages);
+    GL.glGetIntegerv(eGL_MAX_IMAGE_UNITS, (GLint *)&maxImages);
 
     for(GLuint i = 0; i < RDCMIN(maxImages, (GLuint)ARRAY_COUNT(Images)); i++)
     {
@@ -815,29 +811,29 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
       // textures are always shared
       Images[i].res.ContextShareGroup = ctx.shareGroup;
 
-      m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&Images[i].res.name);
-      m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_LEVEL, i, (GLint *)&Images[i].level);
-      m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_ACCESS, i, (GLint *)&Images[i].access);
-      m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_FORMAT, i, (GLint *)&Images[i].format);
-      m_Real->glGetBooleani_v(eGL_IMAGE_BINDING_LAYERED, i, &layered);
+      GL.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&Images[i].res.name);
+      GL.glGetIntegeri_v(eGL_IMAGE_BINDING_LEVEL, i, (GLint *)&Images[i].level);
+      GL.glGetIntegeri_v(eGL_IMAGE_BINDING_ACCESS, i, (GLint *)&Images[i].access);
+      GL.glGetIntegeri_v(eGL_IMAGE_BINDING_FORMAT, i, (GLint *)&Images[i].format);
+      GL.glGetBooleani_v(eGL_IMAGE_BINDING_LAYERED, i, &layered);
       Images[i].layered = (layered == GL_TRUE);
       if(layered)
-        m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_LAYER, i, (GLint *)&Images[i].layer);
+        GL.glGetIntegeri_v(eGL_IMAGE_BINDING_LAYER, i, (GLint *)&Images[i].layer);
     }
   }
 
-  m_Real->glActiveTexture(ActiveTexture);
+  GL.glActiveTexture(ActiveTexture);
 
   {
     GLuint name = 0;
-    m_Real->glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&name);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&name);
     VAO = VertexArrayRes(ctx, name);
   }
 
   if(HasExt[ARB_transform_feedback2])
   {
     GLuint name = 0;
-    m_Real->glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&name);
+    GL.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&name);
     FeedbackObj = FeedbackRes(ctx, name);
   }
 
@@ -847,24 +843,24 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
   // sane and don't use these except for a default "all 0s" attrib.
 
   GLuint maxNumAttribs = 0;
-  m_Real->glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, (GLint *)&maxNumAttribs);
+  GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, (GLint *)&maxNumAttribs);
   for(GLuint i = 0; i < RDCMIN(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
-    m_Real->glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &GenericVertexAttribs[i].x);
+    GL.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &GenericVertexAttribs[i].x);
 
-  m_Real->glGetFloatv(eGL_LINE_WIDTH, &LineWidth);
+  GL.glGetFloatv(eGL_LINE_WIDTH, &LineWidth);
   if(!IsGLES)
   {
-    m_Real->glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
-    m_Real->glGetIntegerv(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint *)&PointSpriteOrigin);
-    m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
+    GL.glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
+    GL.glGetIntegerv(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint *)&PointSpriteOrigin);
+    GL.glGetFloatv(eGL_POINT_SIZE, &PointSize);
   }
 
   if(!IsGLES)
-    m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
+    GL.glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
   if(HasExt[ARB_clip_control])
   {
-    m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
-    m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+    GL.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
+    GL.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
   }
   else
   {
@@ -872,18 +868,18 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
     ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
   }
   if(!IsGLES)
-    m_Real->glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
+    GL.glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
 
   {
     GLuint name = 0;
-    m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&name);
+    GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&name);
     Program = ProgramRes(ctx, name);
   }
 
   if(HasExt[ARB_separate_shader_objects])
   {
     GLuint name = 0;
-    m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&name);
+    GL.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&name);
     Pipeline = ProgramPipeRes(ctx, name);
   }
   else
@@ -915,23 +911,23 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
       {
         // can't query for GL_COMPUTE_SHADER on some AMD cards
         if(shs[s] != eGL_COMPUTE_SHADER || !VendorCheck[VendorCheck_AMD_pipeline_compute_query])
-          m_Real->glGetProgramPipelineiv(Pipeline.name, shs[s], (GLint *)&prog);
+          GL.glGetProgramPipelineiv(Pipeline.name, shs[s], (GLint *)&prog);
       }
 
       if(prog == 0)
         continue;
 
       GLint numSubroutines = 0;
-      m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINES, &numSubroutines);
+      GL.glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINES, &numSubroutines);
 
       if(numSubroutines == 0)
         continue;
 
-      m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS,
-                                  &Subroutines[s].numSubroutines);
+      GL.glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS,
+                             &Subroutines[s].numSubroutines);
 
       for(GLint i = 0; i < Subroutines[s].numSubroutines; i++)
-        m_Real->glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[0]);
+        GL.glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[0]);
     }
   }
   else
@@ -943,29 +939,26 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
   for(size_t i = 0; i < ARRAY_COUNT(BufferBindings); i++)
     BufferBindings[i].ContextShareGroup = ctx.shareGroup;
 
-  m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Array].name);
-  m_Real->glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING,
-                        (GLint *)&BufferBindings[eBufIdx_Copy_Read].name);
-  m_Real->glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING,
-                        (GLint *)&BufferBindings[eBufIdx_Copy_Write].name);
-  m_Real->glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING,
-                        (GLint *)&BufferBindings[eBufIdx_Pixel_Pack].name);
-  m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,
-                        (GLint *)&BufferBindings[eBufIdx_Pixel_Unpack].name);
+  GL.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Array].name);
+  GL.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Copy_Read].name);
+  GL.glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Copy_Write].name);
+  GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Pixel_Pack].name);
+  GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,
+                   (GLint *)&BufferBindings[eBufIdx_Pixel_Unpack].name);
   if(HasExt[ARB_texture_buffer_object])
-    m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Texture].name);
+    GL.glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Texture].name);
 
   if(HasExt[ARB_draw_indirect])
-    m_Real->glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING,
-                          (GLint *)&BufferBindings[eBufIdx_Draw_Indirect].name);
+    GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING,
+                     (GLint *)&BufferBindings[eBufIdx_Draw_Indirect].name);
   if(HasExt[ARB_compute_shader])
-    m_Real->glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING,
-                          (GLint *)&BufferBindings[eBufIdx_Dispatch_Indirect].name);
+    GL.glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING,
+                     (GLint *)&BufferBindings[eBufIdx_Dispatch_Indirect].name);
   if(HasExt[ARB_query_buffer_object])
-    m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Query].name);
+    GL.glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Query].name);
   if(HasExt[ARB_indirect_parameters])
-    m_Real->glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING_ARB,
-                          (GLint *)&BufferBindings[eBufIdx_Parameter].name);
+    GL.glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING_ARB,
+                     (GLint *)&BufferBindings[eBufIdx_Parameter].name);
 
   struct
   {
@@ -1010,70 +1003,70 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
       continue;
 
     GLint maxCount = 0;
-    m_Real->glGetIntegerv(idxBufs[b].maxcount, &maxCount);
+    GL.glGetIntegerv(idxBufs[b].maxcount, &maxCount);
     for(int i = 0; i < idxBufs[b].count && i < maxCount; i++)
     {
       // buffers are always shared
       idxBufs[b].bufs[i].res.ContextShareGroup = ctx.shareGroup;
 
-      m_Real->glGetIntegeri_v(idxBufs[b].binding, i, (GLint *)&idxBufs[b].bufs[i].res.name);
-      m_Real->glGetInteger64i_v(idxBufs[b].start, i, (GLint64 *)&idxBufs[b].bufs[i].start);
-      m_Real->glGetInteger64i_v(idxBufs[b].size, i, (GLint64 *)&idxBufs[b].bufs[i].size);
+      GL.glGetIntegeri_v(idxBufs[b].binding, i, (GLint *)&idxBufs[b].bufs[i].res.name);
+      GL.glGetInteger64i_v(idxBufs[b].start, i, (GLint64 *)&idxBufs[b].bufs[i].start);
+      GL.glGetInteger64i_v(idxBufs[b].size, i, (GLint64 *)&idxBufs[b].bufs[i].size);
     }
   }
 
   GLuint maxDraws = 0;
-  m_Real->glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint *)&maxDraws);
+  GL.glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint *)&maxDraws);
 
   if(HasExt[ARB_draw_buffers_blend])
   {
     for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(Blends)); i++)
     {
-      m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint *)&Blends[i].EquationRGB);
-      m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint *)&Blends[i].EquationAlpha);
+      GL.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint *)&Blends[i].EquationRGB);
+      GL.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint *)&Blends[i].EquationAlpha);
 
-      m_Real->glGetIntegeri_v(eGL_BLEND_SRC_RGB, i, (GLint *)&Blends[i].SourceRGB);
-      m_Real->glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, i, (GLint *)&Blends[i].SourceAlpha);
+      GL.glGetIntegeri_v(eGL_BLEND_SRC_RGB, i, (GLint *)&Blends[i].SourceRGB);
+      GL.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, i, (GLint *)&Blends[i].SourceAlpha);
 
-      m_Real->glGetIntegeri_v(eGL_BLEND_DST_RGB, i, (GLint *)&Blends[i].DestinationRGB);
-      m_Real->glGetIntegeri_v(eGL_BLEND_DST_ALPHA, i, (GLint *)&Blends[i].DestinationAlpha);
+      GL.glGetIntegeri_v(eGL_BLEND_DST_RGB, i, (GLint *)&Blends[i].DestinationRGB);
+      GL.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, i, (GLint *)&Blends[i].DestinationAlpha);
 
-      Blends[i].Enabled = (m_Real->glIsEnabledi(eGL_BLEND, i) == GL_TRUE);
+      Blends[i].Enabled = (GL.glIsEnabledi(eGL_BLEND, i) == GL_TRUE);
     }
   }
   else
   {
     // if we don't have separate blending, then replicate across all from 0
 
-    m_Real->glGetIntegerv(eGL_BLEND_EQUATION_RGB, (GLint *)&Blends[0].EquationRGB);
-    m_Real->glGetIntegerv(eGL_BLEND_EQUATION_ALPHA, (GLint *)&Blends[0].EquationAlpha);
+    GL.glGetIntegerv(eGL_BLEND_EQUATION_RGB, (GLint *)&Blends[0].EquationRGB);
+    GL.glGetIntegerv(eGL_BLEND_EQUATION_ALPHA, (GLint *)&Blends[0].EquationAlpha);
 
-    m_Real->glGetIntegerv(eGL_BLEND_SRC_RGB, (GLint *)&Blends[0].SourceRGB);
-    m_Real->glGetIntegerv(eGL_BLEND_SRC_ALPHA, (GLint *)&Blends[0].SourceAlpha);
+    GL.glGetIntegerv(eGL_BLEND_SRC_RGB, (GLint *)&Blends[0].SourceRGB);
+    GL.glGetIntegerv(eGL_BLEND_SRC_ALPHA, (GLint *)&Blends[0].SourceAlpha);
 
-    m_Real->glGetIntegerv(eGL_BLEND_DST_RGB, (GLint *)&Blends[0].DestinationRGB);
-    m_Real->glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&Blends[0].DestinationAlpha);
+    GL.glGetIntegerv(eGL_BLEND_DST_RGB, (GLint *)&Blends[0].DestinationRGB);
+    GL.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&Blends[0].DestinationAlpha);
 
-    Blends[0].Enabled = (m_Real->glIsEnabled(eGL_BLEND) == GL_TRUE);
+    Blends[0].Enabled = (GL.glIsEnabled(eGL_BLEND) == GL_TRUE);
 
     for(GLuint i = 1; i < (GLuint)ARRAY_COUNT(Blends); i++)
       memcpy(&Blends[i], &Blends[0], sizeof(Blends[i]));
   }
 
-  m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
+  GL.glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
   if(HasExt[ARB_viewport_array])
   {
     GLuint maxViews = 0;
-    m_Real->glGetIntegerv(eGL_MAX_VIEWPORTS, (GLint *)&maxViews);
+    GL.glGetIntegerv(eGL_MAX_VIEWPORTS, (GLint *)&maxViews);
 
     for(GLuint i = 0; i < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(Viewports)); i++)
-      m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
+      GL.glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
 
     for(GLuint i = 0; i < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(Scissors)); i++)
     {
-      m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
-      Scissors[i].enabled = (m_Real->glIsEnabledi(eGL_SCISSOR_TEST, i) == GL_TRUE);
+      GL.glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
+      Scissors[i].enabled = (GL.glIsEnabledi(eGL_SCISSOR_TEST, i) == GL_TRUE);
     }
 
     for(GLuint i = 0; i < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(DepthRanges)); i++)
@@ -1081,12 +1074,12 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
       if(IsGLES)
       {
         float v[2];
-        m_Real->glGetFloati_v(eGL_DEPTH_RANGE, i, v);
+        GL.glGetFloati_v(eGL_DEPTH_RANGE, i, v);
         DepthRanges[i] = {(double)v[0], (double)v[1]};
       }
       else
       {
-        m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
+        GL.glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
       }
     }
   }
@@ -1096,18 +1089,18 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
     // note that the same extension introduced indexed viewports, scissors and
     // depth ranges. Convenient!
 
-    m_Real->glGetFloatv(eGL_VIEWPORT, &Viewports[0].x);
-    m_Real->glGetIntegerv(eGL_SCISSOR_BOX, &Scissors[0].x);
-    Scissors[0].enabled = (m_Real->glIsEnabled(eGL_SCISSOR_TEST) == GL_TRUE);
+    GL.glGetFloatv(eGL_VIEWPORT, &Viewports[0].x);
+    GL.glGetIntegerv(eGL_SCISSOR_BOX, &Scissors[0].x);
+    Scissors[0].enabled = (GL.glIsEnabled(eGL_SCISSOR_TEST) == GL_TRUE);
     if(IsGLES)
     {
       float v[2];
-      m_Real->glGetFloatv(eGL_DEPTH_RANGE, v);
+      GL.glGetFloatv(eGL_DEPTH_RANGE, v);
       DepthRanges[0] = {(double)v[0], (double)v[1]};
     }
     else
     {
-      m_Real->glGetDoublev(eGL_DEPTH_RANGE, &DepthRanges[0].nearZ);
+      GL.glGetDoublev(eGL_DEPTH_RANGE, &DepthRanges[0].nearZ);
     }
 
     for(GLuint i = 1; i < (GLuint)ARRAY_COUNT(Viewports); i++)
@@ -1122,38 +1115,38 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
 
   {
     GLuint draw, read;
-    m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&draw);
-    m_Real->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&read);
+    GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&draw);
+    GL.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&read);
     DrawFBO = FramebufferRes(ctx, draw);
     ReadFBO = FramebufferRes(ctx, read);
   }
 
-  m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
-  m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+  GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+  GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
 
   for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(DrawBuffers)); i++)
-    m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
+    GL.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
 
-  m_Real->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&ReadBuffer);
+  GL.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&ReadBuffer);
 
-  m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO.name);
-  m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO.name);
+  GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO.name);
+  GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO.name);
 
-  m_Real->glGetIntegerv(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, (GLint *)&Hints.Derivatives);
+  GL.glGetIntegerv(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, (GLint *)&Hints.Derivatives);
   if(!IsGLES)
   {
-    m_Real->glGetIntegerv(eGL_LINE_SMOOTH_HINT, (GLint *)&Hints.LineSmooth);
-    m_Real->glGetIntegerv(eGL_POLYGON_SMOOTH_HINT, (GLint *)&Hints.PolySmooth);
-    m_Real->glGetIntegerv(eGL_TEXTURE_COMPRESSION_HINT, (GLint *)&Hints.TexCompression);
+    GL.glGetIntegerv(eGL_LINE_SMOOTH_HINT, (GLint *)&Hints.LineSmooth);
+    GL.glGetIntegerv(eGL_POLYGON_SMOOTH_HINT, (GLint *)&Hints.PolySmooth);
+    GL.glGetIntegerv(eGL_TEXTURE_COMPRESSION_HINT, (GLint *)&Hints.TexCompression);
   }
 
-  m_Real->glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
-  m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
-  m_Real->glGetIntegerv(eGL_DEPTH_FUNC, (GLint *)&DepthFunc);
+  GL.glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
+  GL.glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
+  GL.glGetIntegerv(eGL_DEPTH_FUNC, (GLint *)&DepthFunc);
 
   if(HasExt[EXT_depth_bounds_test])
   {
-    m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
+    GL.glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
   }
   else
   {
@@ -1162,85 +1155,85 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
   }
 
   {
-    m_Real->glGetIntegerv(eGL_STENCIL_FUNC, (GLint *)&StencilFront.func);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_FUNC, (GLint *)&StencilBack.func);
+    GL.glGetIntegerv(eGL_STENCIL_FUNC, (GLint *)&StencilFront.func);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_FUNC, (GLint *)&StencilBack.func);
 
-    m_Real->glGetIntegerv(eGL_STENCIL_REF, (GLint *)&StencilFront.ref);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_REF, (GLint *)&StencilBack.ref);
+    GL.glGetIntegerv(eGL_STENCIL_REF, (GLint *)&StencilFront.ref);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_REF, (GLint *)&StencilBack.ref);
 
     GLint maskval;
-    m_Real->glGetIntegerv(eGL_STENCIL_VALUE_MASK, &maskval);
+    GL.glGetIntegerv(eGL_STENCIL_VALUE_MASK, &maskval);
     StencilFront.valuemask = uint8_t(maskval & 0xff);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_VALUE_MASK, &maskval);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_VALUE_MASK, &maskval);
     StencilBack.valuemask = uint8_t(maskval & 0xff);
 
-    m_Real->glGetIntegerv(eGL_STENCIL_WRITEMASK, &maskval);
+    GL.glGetIntegerv(eGL_STENCIL_WRITEMASK, &maskval);
     StencilFront.writemask = uint8_t(maskval & 0xff);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &maskval);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &maskval);
     StencilBack.writemask = uint8_t(maskval & 0xff);
 
-    m_Real->glGetIntegerv(eGL_STENCIL_FAIL, (GLint *)&StencilFront.stencilFail);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_FAIL, (GLint *)&StencilBack.stencilFail);
+    GL.glGetIntegerv(eGL_STENCIL_FAIL, (GLint *)&StencilFront.stencilFail);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_FAIL, (GLint *)&StencilBack.stencilFail);
 
-    m_Real->glGetIntegerv(eGL_STENCIL_PASS_DEPTH_FAIL, (GLint *)&StencilFront.depthFail);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_FAIL, (GLint *)&StencilBack.depthFail);
+    GL.glGetIntegerv(eGL_STENCIL_PASS_DEPTH_FAIL, (GLint *)&StencilFront.depthFail);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_FAIL, (GLint *)&StencilBack.depthFail);
 
-    m_Real->glGetIntegerv(eGL_STENCIL_PASS_DEPTH_PASS, (GLint *)&StencilFront.pass);
-    m_Real->glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_PASS, (GLint *)&StencilBack.pass);
+    GL.glGetIntegerv(eGL_STENCIL_PASS_DEPTH_PASS, (GLint *)&StencilFront.pass);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_PASS, (GLint *)&StencilBack.pass);
   }
 
-  m_Real->glGetIntegerv(eGL_STENCIL_CLEAR_VALUE, (GLint *)&StencilClearValue);
+  GL.glGetIntegerv(eGL_STENCIL_CLEAR_VALUE, (GLint *)&StencilClearValue);
 
   if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
   {
     for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
-      m_Real->glGetBooleani_v(eGL_COLOR_WRITEMASK, i, &ColorMasks[i].red);
+      GL.glGetBooleani_v(eGL_COLOR_WRITEMASK, i, &ColorMasks[i].red);
   }
   else
   {
-    m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[0].red);
+    GL.glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[0].red);
     for(size_t i = 1; i < ARRAY_COUNT(ColorMasks); i++)
       memcpy(&ColorMasks[i], &ColorMasks[0], sizeof(ColorMask));
   }
 
-  m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
-  m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
+  GL.glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
+  GL.glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
 
   {
     GLint invert = 0;
-    m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_INVERT, (GLint *)&invert);
+    GL.glGetIntegerv(eGL_SAMPLE_COVERAGE_INVERT, (GLint *)&invert);
     SampleCoverageInvert = (invert != 0);
   }
 
   if(HasExt[ARB_sample_shading])
-    m_Real->glGetFloatv(eGL_MIN_SAMPLE_SHADING_VALUE, &MinSampleShading);
+    GL.glGetFloatv(eGL_MIN_SAMPLE_SHADING_VALUE, &MinSampleShading);
   else
     MinSampleShading = 0;
 
   if(HasExt[EXT_raster_multisample])
-    m_Real->glGetIntegerv(eGL_RASTER_SAMPLES_EXT, (GLint *)&RasterSamples);
+    GL.glGetIntegerv(eGL_RASTER_SAMPLES_EXT, (GLint *)&RasterSamples);
   else
     RasterSamples = 0;
 
   if(HasExt[EXT_raster_multisample])
-    m_Real->glGetIntegerv(eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT, (GLint *)&RasterFixed);
+    GL.glGetIntegerv(eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT, (GLint *)&RasterFixed);
   else
     RasterFixed = false;
 
   if(!IsGLES)
-    m_Real->glGetIntegerv(eGL_LOGIC_OP_MODE, (GLint *)&LogicOp);
+    GL.glGetIntegerv(eGL_LOGIC_OP_MODE, (GLint *)&LogicOp);
 
-  m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
+  GL.glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
 
   if(HasExt[ARB_tessellation_shader])
-    m_Real->glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
+    GL.glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
   else
     PatchParams.numVerts = 3;
 
   if(!IsGLES && HasExt[ARB_tessellation_shader])
   {
-    m_Real->glGetFloatv(eGL_PATCH_DEFAULT_INNER_LEVEL, &PatchParams.defaultInnerLevel[0]);
-    m_Real->glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
+    GL.glGetFloatv(eGL_PATCH_DEFAULT_INNER_LEVEL, &PatchParams.defaultInnerLevel[0]);
+    GL.glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
   }
   else
   {
@@ -1257,7 +1250,7 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
     // AMD driver claims this doesn't exist anymore in core, so don't return any value, set to
     // default GL_FILL to be safe
     GLenum dummy[2] = {eGL_FILL, eGL_FILL};
-    m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+    GL.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
     PolygonMode = dummy[0];
   }
   else
@@ -1265,27 +1258,27 @@ void GLRenderState::FetchState(WrappedOpenGL *gl)
     PolygonMode = eGL_FILL;
   }
 
-  m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
-  m_Real->glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
+  GL.glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
+  GL.glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
   if(HasExt[ARB_polygon_offset_clamp])
-    m_Real->glGetFloatv(eGL_POLYGON_OFFSET_CLAMP, &PolygonOffset[2]);
+    GL.glGetFloatv(eGL_POLYGON_OFFSET_CLAMP, &PolygonOffset[2]);
   else
     PolygonOffset[2] = 0.0f;
 
-  m_Real->glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
-  m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
+  GL.glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
+  GL.glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
 
   if(IsGLES && (HasExt[EXT_primitive_bounding_box] || HasExt[OES_primitive_bounding_box]))
-    m_Real->glGetFloatv(eGL_PRIMITIVE_BOUNDING_BOX_EXT, (GLfloat *)&PrimitiveBoundingBox);
+    GL.glGetFloatv(eGL_PRIMITIVE_BOUNDING_BOX_EXT, (GLfloat *)&PrimitiveBoundingBox);
 
-  Unpack.Fetch(m_Real, true);
+  Unpack.Fetch(true);
 
-  ClearGLErrors(*m_Real);
+  ClearGLErrors();
 }
 
-void GLRenderState::ApplyState(WrappedOpenGL *gl)
+void GLRenderState::ApplyState(WrappedOpenGL *driver)
 {
-  ContextPair &ctx = gl->GetCtx();
+  ContextPair &ctx = driver->GetCtx();
 
   if(!ContextPresent || ctx.ctx == NULL)
     return;
@@ -1296,90 +1289,90 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
       continue;
 
     if(Enabled[i])
-      m_Real->glEnable(enable_disable_cap[i].cap);
+      GL.glEnable(enable_disable_cap[i].cap);
     else
-      m_Real->glDisable(enable_disable_cap[i].cap);
+      GL.glDisable(enable_disable_cap[i].cap);
   }
 
   GLuint maxTextures = 0;
-  m_Real->glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint *)&maxTextures);
+  GL.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint *)&maxTextures);
 
   for(GLuint i = 0; i < RDCMIN(maxTextures, (GLuint)ARRAY_COUNT(Tex2D)); i++)
   {
-    m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+    GL.glActiveTexture(GLenum(eGL_TEXTURE0 + i));
     if(!IsGLES)
-      m_Real->glBindTexture(eGL_TEXTURE_1D, Tex1D[i].name);
-    m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i].name);
-    m_Real->glBindTexture(eGL_TEXTURE_3D, Tex3D[i].name);
+      GL.glBindTexture(eGL_TEXTURE_1D, Tex1D[i].name);
+    GL.glBindTexture(eGL_TEXTURE_2D, Tex2D[i].name);
+    GL.glBindTexture(eGL_TEXTURE_3D, Tex3D[i].name);
     if(!IsGLES)
-      m_Real->glBindTexture(eGL_TEXTURE_1D_ARRAY, Tex1DArray[i].name);
-    m_Real->glBindTexture(eGL_TEXTURE_2D_ARRAY, Tex2DArray[i].name);
+      GL.glBindTexture(eGL_TEXTURE_1D_ARRAY, Tex1DArray[i].name);
+    GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, Tex2DArray[i].name);
     if(!IsGLES)
-      m_Real->glBindTexture(eGL_TEXTURE_RECTANGLE, TexRect[i].name);
+      GL.glBindTexture(eGL_TEXTURE_RECTANGLE, TexRect[i].name);
     if(HasExt[ARB_texture_buffer_object])
-      m_Real->glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i].name);
-    m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP, TexCube[i].name);
-    m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i].name);
-    m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, Tex2DMSArray[i].name);
+      GL.glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i].name);
+    GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, TexCube[i].name);
+    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i].name);
+    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, Tex2DMSArray[i].name);
 
     if(HasExt[ARB_sampler_objects])
-      m_Real->glBindSampler(i, Samplers[i].name);
+      GL.glBindSampler(i, Samplers[i].name);
 
     if(HasExt[ARB_texture_cube_map_array])
-      m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, TexCubeArray[i].name);
+      GL.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, TexCubeArray[i].name);
   }
 
   if(HasExt[ARB_shader_image_load_store])
   {
     GLuint maxImages = 0;
-    m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, (GLint *)&maxImages);
+    GL.glGetIntegerv(eGL_MAX_IMAGE_UNITS, (GLint *)&maxImages);
 
     for(GLuint i = 0; i < RDCMIN(maxImages, (GLuint)ARRAY_COUNT(Images)); i++)
     {
       // use sanitised parameters when no image is bound
       if(Images[i].res.name == 0)
-        m_Real->glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_RGBA8);
+        GL.glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_RGBA8);
       else
-        m_Real->glBindImageTexture(i, Images[i].res.name, (GLint)Images[i].level, Images[i].layered,
-                                   (GLint)Images[i].layer, Images[i].access, Images[i].format);
+        GL.glBindImageTexture(i, Images[i].res.name, (GLint)Images[i].level, Images[i].layered,
+                              (GLint)Images[i].layer, Images[i].access, Images[i].format);
     }
   }
 
-  m_Real->glActiveTexture(ActiveTexture);
+  GL.glActiveTexture(ActiveTexture);
 
   if(VAO.name)
-    m_Real->glBindVertexArray(VAO.name);
+    GL.glBindVertexArray(VAO.name);
   else
-    m_Real->glBindVertexArray(gl->GetFakeVAO0());
+    GL.glBindVertexArray(driver->GetFakeVAO0());
 
   if(HasExt[ARB_transform_feedback2])
-    m_Real->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj.name);
+    GL.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj.name);
 
   // See FetchState(). The spec says that you have to SET the right format for the shader too,
   // but we couldn't query for the format so we can't set it here.
   GLuint maxNumAttribs = 0;
-  m_Real->glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, (GLint *)&maxNumAttribs);
+  GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, (GLint *)&maxNumAttribs);
   for(GLuint i = 0; i < RDCMIN(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
-    m_Real->glVertexAttrib4fv(i, &GenericVertexAttribs[i].x);
+    GL.glVertexAttrib4fv(i, &GenericVertexAttribs[i].x);
 
-  m_Real->glLineWidth(LineWidth);
+  GL.glLineWidth(LineWidth);
   if(!IsGLES)
   {
-    m_Real->glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
-    m_Real->glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
-    m_Real->glPointSize(PointSize);
+    GL.glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
+    GL.glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
+    GL.glPointSize(PointSize);
   }
 
   if(!IsGLES)
-    m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
-  if(m_Real->glClipControl && HasExt[ARB_clip_control])
-    m_Real->glClipControl(ClipOrigin, ClipDepth);
+    GL.glPrimitiveRestartIndex(PrimitiveRestartIndex);
+  if(GL.glClipControl && HasExt[ARB_clip_control])
+    GL.glClipControl(ClipOrigin, ClipDepth);
   if(!IsGLES)
-    m_Real->glProvokingVertex(ProvokingVertex);
+    GL.glProvokingVertex(ProvokingVertex);
 
-  m_Real->glUseProgram(Program.name);
+  GL.glUseProgram(Program.name);
   if(HasExt[ARB_separate_shader_objects])
-    m_Real->glBindProgramPipeline(Pipeline.name);
+    GL.glBindProgramPipeline(Pipeline.name);
 
   GLenum shs[] = {eGL_VERTEX_SHADER,   eGL_TESS_CONTROL_SHADER, eGL_TESS_EVALUATION_SHADER,
                   eGL_GEOMETRY_SHADER, eGL_FRAGMENT_SHADER,     eGL_COMPUTE_SHADER};
@@ -1396,25 +1389,24 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
       continue;
 
     if(Subroutines[s].numSubroutines > 0)
-      m_Real->glUniformSubroutinesuiv(shs[s], Subroutines[s].numSubroutines, Subroutines[s].Values);
+      GL.glUniformSubroutinesuiv(shs[s], Subroutines[s].numSubroutines, Subroutines[s].Values);
   }
 
-  m_Real->glBindBuffer(eGL_ARRAY_BUFFER, BufferBindings[eBufIdx_Array].name);
-  m_Real->glBindBuffer(eGL_COPY_READ_BUFFER, BufferBindings[eBufIdx_Copy_Read].name);
-  m_Real->glBindBuffer(eGL_COPY_WRITE_BUFFER, BufferBindings[eBufIdx_Copy_Write].name);
-  m_Real->glBindBuffer(eGL_PIXEL_PACK_BUFFER, BufferBindings[eBufIdx_Pixel_Pack].name);
-  m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, BufferBindings[eBufIdx_Pixel_Unpack].name);
+  GL.glBindBuffer(eGL_ARRAY_BUFFER, BufferBindings[eBufIdx_Array].name);
+  GL.glBindBuffer(eGL_COPY_READ_BUFFER, BufferBindings[eBufIdx_Copy_Read].name);
+  GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, BufferBindings[eBufIdx_Copy_Write].name);
+  GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, BufferBindings[eBufIdx_Pixel_Pack].name);
+  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, BufferBindings[eBufIdx_Pixel_Unpack].name);
   if(HasExt[ARB_texture_buffer_object])
-    m_Real->glBindBuffer(eGL_TEXTURE_BUFFER, BufferBindings[eBufIdx_Texture].name);
+    GL.glBindBuffer(eGL_TEXTURE_BUFFER, BufferBindings[eBufIdx_Texture].name);
   if(HasExt[ARB_draw_indirect])
-    m_Real->glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, BufferBindings[eBufIdx_Draw_Indirect].name);
+    GL.glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, BufferBindings[eBufIdx_Draw_Indirect].name);
   if(HasExt[ARB_compute_shader])
-    m_Real->glBindBuffer(eGL_DISPATCH_INDIRECT_BUFFER,
-                         BufferBindings[eBufIdx_Dispatch_Indirect].name);
+    GL.glBindBuffer(eGL_DISPATCH_INDIRECT_BUFFER, BufferBindings[eBufIdx_Dispatch_Indirect].name);
   if(HasExt[ARB_query_buffer_object])
-    m_Real->glBindBuffer(eGL_QUERY_BUFFER, BufferBindings[eBufIdx_Query].name);
+    GL.glBindBuffer(eGL_QUERY_BUFFER, BufferBindings[eBufIdx_Query].name);
   if(HasExt[ARB_indirect_parameters])
-    m_Real->glBindBuffer(eGL_PARAMETER_BUFFER_ARB, BufferBindings[eBufIdx_Parameter].name);
+    GL.glBindBuffer(eGL_PARAMETER_BUFFER_ARB, BufferBindings[eBufIdx_Parameter].name);
 
   struct
   {
@@ -1457,21 +1449,20 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
       continue;
 
     GLint maxCount = 0;
-    m_Real->glGetIntegerv(idxBufs[b].maxcount, &maxCount);
+    GL.glGetIntegerv(idxBufs[b].maxcount, &maxCount);
     for(int i = 0; i < idxBufs[b].count && i < maxCount; i++)
     {
       if(idxBufs[b].bufs[i].res.name == 0 ||
          (idxBufs[b].bufs[i].start == 0 && idxBufs[b].bufs[i].size == 0))
-        m_Real->glBindBufferBase(idxBufs[b].binding, i, idxBufs[b].bufs[i].res.name);
+        GL.glBindBufferBase(idxBufs[b].binding, i, idxBufs[b].bufs[i].res.name);
       else
-        m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].res.name,
-                                  (GLintptr)idxBufs[b].bufs[i].start,
-                                  (GLsizeiptr)idxBufs[b].bufs[i].size);
+        GL.glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].res.name,
+                             (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
     }
   }
 
   GLuint maxDraws = 0;
-  m_Real->glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint *)&maxDraws);
+  GL.glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint *)&maxDraws);
 
   if(HasExt[ARB_draw_buffers_blend])
   {
@@ -1481,14 +1472,14 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
       if(Blends[i].EquationRGB == eGL_NONE)
         continue;
 
-      m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB,
-                                   Blends[i].SourceAlpha, Blends[i].DestinationAlpha);
-      m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
+      GL.glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB,
+                              Blends[i].SourceAlpha, Blends[i].DestinationAlpha);
+      GL.glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
 
       if(Blends[i].Enabled)
-        m_Real->glEnablei(eGL_BLEND, i);
+        GL.glEnablei(eGL_BLEND, i);
       else
-        m_Real->glDisablei(eGL_BLEND, i);
+        GL.glDisablei(eGL_BLEND, i);
     }
   }
   else
@@ -1496,34 +1487,34 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
     // not set, possibly there were lesser draw buffers during capture
     if(Blends[0].EquationRGB != eGL_NONE)
     {
-      m_Real->glBlendFuncSeparate(Blends[0].SourceRGB, Blends[0].DestinationRGB,
-                                  Blends[0].SourceAlpha, Blends[0].DestinationAlpha);
-      m_Real->glBlendEquationSeparate(Blends[0].EquationRGB, Blends[0].EquationAlpha);
+      GL.glBlendFuncSeparate(Blends[0].SourceRGB, Blends[0].DestinationRGB, Blends[0].SourceAlpha,
+                             Blends[0].DestinationAlpha);
+      GL.glBlendEquationSeparate(Blends[0].EquationRGB, Blends[0].EquationAlpha);
 
       if(Blends[0].Enabled)
-        m_Real->glEnable(eGL_BLEND);
+        GL.glEnable(eGL_BLEND);
       else
-        m_Real->glDisable(eGL_BLEND);
+        GL.glDisable(eGL_BLEND);
     }
   }
 
-  m_Real->glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
+  GL.glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
 
   if(HasExt[ARB_viewport_array])
   {
     GLuint maxViews = 0;
-    m_Real->glGetIntegerv(eGL_MAX_VIEWPORTS, (GLint *)&maxViews);
+    GL.glGetIntegerv(eGL_MAX_VIEWPORTS, (GLint *)&maxViews);
 
-    m_Real->glViewportArrayv(0, RDCMIN(maxViews, (GLuint)ARRAY_COUNT(Viewports)), &Viewports[0].x);
+    GL.glViewportArrayv(0, RDCMIN(maxViews, (GLuint)ARRAY_COUNT(Viewports)), &Viewports[0].x);
 
     for(GLuint s = 0; s < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(Scissors)); ++s)
     {
-      m_Real->glScissorIndexedv(s, &Scissors[s].x);
+      GL.glScissorIndexedv(s, &Scissors[s].x);
 
       if(Scissors[s].enabled)
-        m_Real->glEnablei(eGL_SCISSOR_TEST, s);
+        GL.glEnablei(eGL_SCISSOR_TEST, s);
       else
-        m_Real->glDisablei(eGL_SCISSOR_TEST, s);
+        GL.glDisablei(eGL_SCISSOR_TEST, s);
     }
 
     for(GLuint i = 0; i < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(DepthRanges)); i++)
@@ -1531,30 +1522,30 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
       if(IsGLES)
       {
         float v[2] = {(float)DepthRanges[i].nearZ, (float)DepthRanges[i].farZ};
-        m_Real->glDepthRangeArrayfvOES(i, 1, v);
+        GL.glDepthRangeArrayfvOES(i, 1, v);
       }
       else
       {
-        m_Real->glDepthRangeArrayv(i, 1, &DepthRanges[i].nearZ);
+        GL.glDepthRangeArrayv(i, 1, &DepthRanges[i].nearZ);
       }
     }
   }
   else
   {
-    m_Real->glViewport((GLint)Viewports[0].x, (GLint)Viewports[0].y, (GLsizei)Viewports[0].width,
-                       (GLsizei)Viewports[0].height);
+    GL.glViewport((GLint)Viewports[0].x, (GLint)Viewports[0].y, (GLsizei)Viewports[0].width,
+                  (GLsizei)Viewports[0].height);
 
-    m_Real->glScissor(Scissors[0].x, Scissors[0].y, Scissors[0].width, Scissors[0].height);
+    GL.glScissor(Scissors[0].x, Scissors[0].y, Scissors[0].width, Scissors[0].height);
 
     if(Scissors[0].enabled)
-      m_Real->glEnable(eGL_SCISSOR_TEST);
+      GL.glEnable(eGL_SCISSOR_TEST);
     else
-      m_Real->glDisable(eGL_SCISSOR_TEST);
+      GL.glDisable(eGL_SCISSOR_TEST);
 
     if(IsGLES)
-      m_Real->glDepthRangef((float)DepthRanges[0].nearZ, (float)DepthRanges[0].farZ);
+      GL.glDepthRangef((float)DepthRanges[0].nearZ, (float)DepthRanges[0].farZ);
     else
-      m_Real->glDepthRange(DepthRanges[0].nearZ, DepthRanges[0].farZ);
+      GL.glDepthRange(DepthRanges[0].nearZ, DepthRanges[0].farZ);
   }
 
   GLenum DBs[8] = {eGL_NONE};
@@ -1566,7 +1557,7 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
       numDBs++;
       DBs[i] = DrawBuffers[i];
 
-      if(IsReplayMode(gl->GetState()))
+      if(IsReplayMode(driver->GetState()))
       {
         // since we are faking the default framebuffer with our own
         // to see the results, replace back/front/left/right with color attachment 0
@@ -1588,114 +1579,112 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
 
   // this will always return true during capture, but on replay we only do
   // this work if we're on the replay context
-  if(gl->GetReplay()->IsReplayContext(ctx.ctx))
+  if(driver->GetReplay()->IsReplayContext(ctx.ctx))
   {
     // apply drawbuffers/readbuffer to default framebuffer
-    m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
-    m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
-    m_Real->glDrawBuffers(numDBs, DBs);
+    GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, driver->GetFakeBBFBO());
+    GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, driver->GetFakeBBFBO());
+    GL.glDrawBuffers(numDBs, DBs);
 
     // see above for reasoning for this
-    m_Real->glReadBuffer(eGL_COLOR_ATTACHMENT0);
+    GL.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
     if(ReadFBO.name)
-      m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO.name);
+      GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO.name);
     else
-      m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
+      GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, driver->GetFakeBBFBO());
 
     if(DrawFBO.name)
-      m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO.name);
+      GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO.name);
     else
-      m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
+      GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, driver->GetFakeBBFBO());
   }
 
-  m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
+  GL.glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
   if(!IsGLES)
   {
-    m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
-    m_Real->glHint(eGL_POLYGON_SMOOTH_HINT, Hints.PolySmooth);
-    m_Real->glHint(eGL_TEXTURE_COMPRESSION_HINT, Hints.TexCompression);
+    GL.glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
+    GL.glHint(eGL_POLYGON_SMOOTH_HINT, Hints.PolySmooth);
+    GL.glHint(eGL_TEXTURE_COMPRESSION_HINT, Hints.TexCompression);
   }
 
-  m_Real->glDepthMask(DepthWriteMask);
-  m_Real->glClearDepthf(DepthClearValue);
-  m_Real->glDepthFunc(DepthFunc);
+  GL.glDepthMask(DepthWriteMask);
+  GL.glClearDepthf(DepthClearValue);
+  GL.glDepthFunc(DepthFunc);
 
-  if(HasExt[EXT_depth_bounds_test] && m_Real->glDepthBoundsEXT)
-    m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
+  if(HasExt[EXT_depth_bounds_test] && GL.glDepthBoundsEXT)
+    GL.glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
 
   {
-    m_Real->glStencilFuncSeparate(eGL_FRONT, StencilFront.func, StencilFront.ref,
-                                  StencilFront.valuemask);
-    m_Real->glStencilFuncSeparate(eGL_BACK, StencilBack.func, StencilBack.ref, StencilBack.valuemask);
+    GL.glStencilFuncSeparate(eGL_FRONT, StencilFront.func, StencilFront.ref, StencilFront.valuemask);
+    GL.glStencilFuncSeparate(eGL_BACK, StencilBack.func, StencilBack.ref, StencilBack.valuemask);
 
-    m_Real->glStencilMaskSeparate(eGL_FRONT, StencilFront.writemask);
-    m_Real->glStencilMaskSeparate(eGL_BACK, StencilBack.writemask);
+    GL.glStencilMaskSeparate(eGL_FRONT, StencilFront.writemask);
+    GL.glStencilMaskSeparate(eGL_BACK, StencilBack.writemask);
 
-    m_Real->glStencilOpSeparate(eGL_FRONT, StencilFront.stencilFail, StencilFront.depthFail,
-                                StencilFront.pass);
-    m_Real->glStencilOpSeparate(eGL_BACK, StencilBack.stencilFail, StencilBack.depthFail,
-                                StencilBack.pass);
+    GL.glStencilOpSeparate(eGL_FRONT, StencilFront.stencilFail, StencilFront.depthFail,
+                           StencilFront.pass);
+    GL.glStencilOpSeparate(eGL_BACK, StencilBack.stencilFail, StencilBack.depthFail,
+                           StencilBack.pass);
   }
 
-  m_Real->glClearStencil((GLint)StencilClearValue);
+  GL.glClearStencil((GLint)StencilClearValue);
 
   if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
   {
     for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
-      m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue,
-                           ColorMasks[i].alpha);
+      GL.glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue,
+                      ColorMasks[i].alpha);
   }
   else
   {
-    m_Real->glColorMask(ColorMasks[0].red, ColorMasks[0].green, ColorMasks[0].blue,
-                        ColorMasks[0].alpha);
+    GL.glColorMask(ColorMasks[0].red, ColorMasks[0].green, ColorMasks[0].blue, ColorMasks[0].alpha);
   }
 
-  m_Real->glSampleMaski(0, (GLbitfield)SampleMask[0]);
-  m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
+  GL.glSampleMaski(0, (GLbitfield)SampleMask[0]);
+  GL.glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
   if(HasExt[ARB_sample_shading])
-    m_Real->glMinSampleShading(MinSampleShading);
+    GL.glMinSampleShading(MinSampleShading);
 
-  if(HasExt[EXT_raster_multisample] && m_Real->glRasterSamplesEXT)
-    m_Real->glRasterSamplesEXT(RasterSamples, RasterFixed);
+  if(HasExt[EXT_raster_multisample] && GL.glRasterSamplesEXT)
+    GL.glRasterSamplesEXT(RasterSamples, RasterFixed);
 
   if(!IsGLES)
-    m_Real->glLogicOp(LogicOp);
+    GL.glLogicOp(LogicOp);
 
-  m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue,
-                       ColorClearValue.alpha);
+  GL.glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue,
+                  ColorClearValue.alpha);
 
   if(HasExt[ARB_tessellation_shader])
   {
-    m_Real->glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
+    GL.glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
     if(!IsGLES)
     {
-      m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);
-      m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
+      GL.glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);
+      GL.glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
     }
   }
 
   if(!IsGLES)
-    m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+    GL.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 
   if(HasExt[ARB_polygon_offset_clamp])
-    m_Real->glPolygonOffsetClamp(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
+    GL.glPolygonOffsetClamp(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
   else
-    m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
+    GL.glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
 
-  m_Real->glFrontFace(FrontFace);
-  m_Real->glCullFace(CullFace);
+  GL.glFrontFace(FrontFace);
+  GL.glCullFace(CullFace);
 
   if(IsGLES && (HasExt[EXT_primitive_bounding_box] || HasExt[OES_primitive_bounding_box]))
-    m_Real->glPrimitiveBoundingBox(PrimitiveBoundingBox.minX, PrimitiveBoundingBox.minY,
-                                   PrimitiveBoundingBox.minZ, PrimitiveBoundingBox.minW,
-                                   PrimitiveBoundingBox.maxX, PrimitiveBoundingBox.maxY,
-                                   PrimitiveBoundingBox.maxZ, PrimitiveBoundingBox.maxW);
+    GL.glPrimitiveBoundingBox(PrimitiveBoundingBox.minX, PrimitiveBoundingBox.minY,
+                              PrimitiveBoundingBox.minZ, PrimitiveBoundingBox.minW,
+                              PrimitiveBoundingBox.maxX, PrimitiveBoundingBox.maxY,
+                              PrimitiveBoundingBox.maxZ, PrimitiveBoundingBox.maxW);
 
-  Unpack.Apply(m_Real, true);
+  Unpack.Apply(true);
 
-  ClearGLErrors(*m_Real);
+  ClearGLErrors();
 }
 
 void GLRenderState::Clear()

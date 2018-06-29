@@ -44,9 +44,9 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glGenSamplers(1, &real);
-    m_Real.glBindSampler(0, real);
-    m_Real.glBindSampler(0, 0);
+    GL.glGenSamplers(1, &real);
+    GL.glBindSampler(0, real);
+    GL.glBindSampler(0, 0);
 
     GLResource res = SamplerRes(GetCtx(), real);
 
@@ -61,7 +61,7 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
 
 void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 {
-  SERIALISE_TIME_CALL(m_Real.glGenSamplers(count, samplers));
+  SERIALISE_TIME_CALL(GL.glGenSamplers(count, samplers));
 
   for(GLsizei i = 0; i < count; i++)
   {
@@ -104,7 +104,7 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glCreateSamplers(1, &real);
+    GL.glCreateSamplers(1, &real);
 
     GLResource res = SamplerRes(GetCtx(), real);
 
@@ -119,7 +119,7 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
 
 void WrappedOpenGL::glCreateSamplers(GLsizei count, GLuint *samplers)
 {
-  SERIALISE_TIME_CALL(m_Real.glCreateSamplers(count, samplers));
+  SERIALISE_TIME_CALL(GL.glCreateSamplers(count, samplers));
 
   for(GLsizei i = 0; i < count; i++)
   {
@@ -159,14 +159,14 @@ bool WrappedOpenGL::Serialise_glBindSampler(SerialiserType &ser, GLuint unit, GL
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glBindSampler(unit, sampler.name);
+    GL.glBindSampler(unit, sampler.name);
 
   return true;
 }
 
 void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindSampler(unit, sampler));
+  SERIALISE_TIME_CALL(GL.glBindSampler(unit, sampler));
 
   if(IsActiveCapturing(m_State))
   {
@@ -206,7 +206,7 @@ bool WrappedOpenGL::Serialise_glBindSamplers(SerialiserType &ser, GLuint first, 
     for(int32_t i = 0; i < count; i++)
       samps.push_back(samplers[i].name);
 
-    m_Real.glBindSamplers(first, count, samps.data());
+    GL.glBindSamplers(first, count, samps.data());
   }
 
   return true;
@@ -214,7 +214,7 @@ bool WrappedOpenGL::Serialise_glBindSamplers(SerialiserType &ser, GLuint first, 
 
 void WrappedOpenGL::glBindSamplers(GLuint first, GLsizei count, const GLuint *samplers)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindSamplers(first, count, samplers));
+  SERIALISE_TIME_CALL(GL.glBindSamplers(first, count, samplers));
 
   if(IsActiveCapturing(m_State))
   {
@@ -254,14 +254,14 @@ bool WrappedOpenGL::Serialise_glSamplerParameteri(SerialiserType &ser, GLuint sa
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glSamplerParameteri(sampler.name, pname, param);
+    GL.glSamplerParameteri(sampler.name, pname, param);
 
   return true;
 }
 
 void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
-  SERIALISE_TIME_CALL(m_Real.glSamplerParameteri(sampler, pname, param));
+  SERIALISE_TIME_CALL(GL.glSamplerParameteri(sampler, pname, param));
 
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
   if(param == eGL_CLAMP)
@@ -297,14 +297,14 @@ bool WrappedOpenGL::Serialise_glSamplerParameterf(SerialiserType &ser, GLuint sa
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glSamplerParameterf(sampler.name, pname, param);
+    GL.glSamplerParameterf(sampler.name, pname, param);
 
   return true;
 }
 
 void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
 {
-  SERIALISE_TIME_CALL(m_Real.glSamplerParameterf(sampler, pname, param));
+  SERIALISE_TIME_CALL(GL.glSamplerParameterf(sampler, pname, param));
 
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
   if(param == (float)eGL_CLAMP)
@@ -340,14 +340,14 @@ bool WrappedOpenGL::Serialise_glSamplerParameteriv(SerialiserType &ser, GLuint s
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glSamplerParameteriv(sampler.name, pname, params);
+    GL.glSamplerParameteriv(sampler.name, pname, params);
 
   return true;
 }
 
 void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
 {
-  SERIALISE_TIME_CALL(m_Real.glSamplerParameteriv(sampler, pname, params));
+  SERIALISE_TIME_CALL(GL.glSamplerParameteriv(sampler, pname, params));
 
   GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
@@ -384,14 +384,14 @@ bool WrappedOpenGL::Serialise_glSamplerParameterfv(SerialiserType &ser, GLuint s
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glSamplerParameterfv(sampler.name, pname, params);
+    GL.glSamplerParameterfv(sampler.name, pname, params);
 
   return true;
 }
 
 void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
 {
-  SERIALISE_TIME_CALL(m_Real.glSamplerParameterfv(sampler, pname, params));
+  SERIALISE_TIME_CALL(GL.glSamplerParameterfv(sampler, pname, params));
 
   GLfloat clamptoedge[4] = {(float)eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
@@ -428,14 +428,14 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIiv(SerialiserType &ser, GLuint 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glSamplerParameterIiv(sampler.name, pname, params);
+    GL.glSamplerParameterIiv(sampler.name, pname, params);
 
   return true;
 }
 
 void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
 {
-  SERIALISE_TIME_CALL(m_Real.glSamplerParameterIiv(sampler, pname, params));
+  SERIALISE_TIME_CALL(GL.glSamplerParameterIiv(sampler, pname, params));
 
   GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
@@ -472,14 +472,14 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIuiv(SerialiserType &ser, GLuint
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    m_Real.glSamplerParameterIuiv(sampler.name, pname, params);
+    GL.glSamplerParameterIuiv(sampler.name, pname, params);
 
   return true;
 }
 
 void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
 {
-  SERIALISE_TIME_CALL(m_Real.glSamplerParameterIuiv(sampler, pname, params));
+  SERIALISE_TIME_CALL(GL.glSamplerParameterIuiv(sampler, pname, params));
 
   GLuint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
@@ -518,7 +518,7 @@ void WrappedOpenGL::glDeleteSamplers(GLsizei n, const GLuint *ids)
     }
   }
 
-  m_Real.glDeleteSamplers(n, ids);
+  GL.glDeleteSamplers(n, ids);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, glGenSamplers, GLsizei n, GLuint *samplers);

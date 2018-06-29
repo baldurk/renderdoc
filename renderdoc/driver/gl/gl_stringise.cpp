@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "driver/gl/gl_dispatch_table_defs.h"
 #include "gl_common.h"
 #include "gl_driver.h"
-#include "gl_hookset_defs.h"
 
 template <>
 std::string DoStringise(const GLChunk &el)

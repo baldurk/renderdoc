@@ -67,7 +67,7 @@ bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuin
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glGenBuffers(1, &real);
+    GL.glGenBuffers(1, &real);
 
     GLResource res = BufferRes(GetCtx(), real);
 
@@ -86,7 +86,7 @@ bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuin
 
 void WrappedOpenGL::glGenBuffers(GLsizei n, GLuint *buffers)
 {
-  SERIALISE_TIME_CALL(m_Real.glGenBuffers(n, buffers));
+  SERIALISE_TIME_CALL(GL.glGenBuffers(n, buffers));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -132,7 +132,7 @@ bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GL
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glCreateBuffers(1, &real);
+    GL.glCreateBuffers(1, &real);
 
     GLResource res = BufferRes(GetCtx(), real);
 
@@ -151,7 +151,7 @@ bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GL
 
 void WrappedOpenGL::glCreateBuffers(GLsizei n, GLuint *buffers)
 {
-  SERIALISE_TIME_CALL(m_Real.glCreateBuffers(n, buffers));
+  SERIALISE_TIME_CALL(GL.glCreateBuffers(n, buffers));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -201,7 +201,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(SerialiserType &ser, GLenum target, G
     }
     else if(buffer.name == 0)
     {
-      m_Real.glBindBuffer(target, 0);
+      GL.glBindBuffer(target, 0);
     }
     else
     {
@@ -209,15 +209,15 @@ bool WrappedOpenGL::Serialise_glBindBuffer(SerialiserType &ser, GLenum target, G
       // binding in a VAO), since this is just a bind-to-create chunk.
       GLuint prevbuf = 0;
       if(IsLoading(m_State) && m_CurEventID == 0 && target != eGL_NONE)
-        m_Real.glGetIntegerv(BufferBinding(target), (GLint *)&prevbuf);
+        GL.glGetIntegerv(BufferBinding(target), (GLint *)&prevbuf);
 
-      m_Real.glBindBuffer(target, buffer.name);
+      GL.glBindBuffer(target, buffer.name);
 
       m_Buffers[GetResourceManager()->GetID(buffer)].curType = target;
       m_Buffers[GetResourceManager()->GetID(buffer)].creationFlags |= MakeBufferCategory(target);
 
       if(IsLoading(m_State) && m_CurEventID == 0 && target != eGL_NONE)
-        m_Real.glBindBuffer(target, prevbuf);
+        GL.glBindBuffer(target, prevbuf);
     }
 
     AddResourceInitChunk(buffer);
@@ -228,7 +228,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(SerialiserType &ser, GLenum target, G
 
 void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindBuffer(target, buffer));
+  SERIALISE_TIME_CALL(GL.glBindBuffer(target, buffer));
 
   ContextData &cd = GetCtxData();
 
@@ -410,7 +410,7 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(SerialiserType &ser, GLuin
     // can't have coherent without persistent, so remove as well
     flags &= ~GL_MAP_COHERENT_BIT;
 
-    m_Real.glNamedBufferStorageEXT(buffer.name, (GLsizeiptr)bytesize, data, flags);
+    GL.glNamedBufferStorageEXT(buffer.name, (GLsizeiptr)bytesize, data, flags);
 
     m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
 
@@ -451,7 +451,7 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
     // that a buffer declared as coherent must ALWAYS be mapped as coherent).
     if(flags & GL_MAP_PERSISTENT_BIT)
     {
-      record->Map.persistentPtr = (byte *)m_Real.glMapNamedBufferRangeEXT(
+      record->Map.persistentPtr = (byte *)GL.glMapNamedBufferRangeEXT(
           record->Resource.name, 0, size,
           GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_PERSISTENT_BIT);
       RDCASSERT(record->Map.persistentPtr);
@@ -482,7 +482,7 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
     data = dummy;
   }
 
-  SERIALISE_TIME_CALL(m_Real.glNamedBufferStorageEXT(buffer, size, data, flags));
+  SERIALISE_TIME_CALL(GL.glNamedBufferStorageEXT(buffer, size, data, flags));
 
   Common_glNamedBufferStorageEXT(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)), size,
                                  data, flags);
@@ -508,7 +508,7 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
     data = dummy;
   }
 
-  SERIALISE_TIME_CALL(m_Real.glBufferStorage(target, size, data, flags));
+  SERIALISE_TIME_CALL(GL.glBufferStorage(target, size, data, flags));
 
   if(IsCaptureMode(m_State))
     Common_glNamedBufferStorageEXT(GetCtxData().m_BufferRecord[BufferIdx(target)]->GetResourceID(),
@@ -546,7 +546,7 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
 
   if(IsReplayingAndReading())
   {
-    m_Real.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
+    GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
 
     m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
 
@@ -568,7 +568,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
     data = dummy;
   }
 
-  SERIALISE_TIME_CALL(m_Real.glNamedBufferDataEXT(buffer, size, data, usage));
+  SERIALISE_TIME_CALL(GL.glNamedBufferDataEXT(buffer, size, data, usage));
 
   if(IsCaptureMode(m_State))
   {
@@ -705,7 +705,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
     data = dummy;
   }
 
-  SERIALISE_TIME_CALL(m_Real.glBufferData(target, size, data, usage));
+  SERIALISE_TIME_CALL(GL.glBufferData(target, size, data, usage));
 
   size_t idx = BufferIdx(target);
 
@@ -843,7 +843,7 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
 
   if(IsReplayingAndReading())
   {
-    m_Real.glNamedBufferSubDataEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)bytesize, data);
+    GL.glNamedBufferSubDataEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)bytesize, data);
   }
 
   return true;
@@ -852,7 +852,7 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
 void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size,
                                             const void *data)
 {
-  SERIALISE_TIME_CALL(m_Real.glNamedBufferSubDataEXT(buffer, offset, size, data));
+  SERIALISE_TIME_CALL(GL.glNamedBufferSubDataEXT(buffer, offset, size, data));
 
   if(IsCaptureMode(m_State))
   {
@@ -902,7 +902,7 @@ void WrappedOpenGL::glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei
 
 void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
 {
-  SERIALISE_TIME_CALL(m_Real.glBufferSubData(target, offset, size, data));
+  SERIALISE_TIME_CALL(GL.glBufferSubData(target, offset, size, data));
 
   if(IsCaptureMode(m_State))
   {
@@ -963,8 +963,8 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_Real.glNamedCopyBufferSubDataEXT(readBuffer.name, writeBuffer.name, (GLintptr)readOffset,
-                                       (GLintptr)writeOffset, (GLsizeiptr)size);
+    GL.glNamedCopyBufferSubDataEXT(readBuffer.name, writeBuffer.name, (GLintptr)readOffset,
+                                   (GLintptr)writeOffset, (GLsizeiptr)size);
   }
 
   return true;
@@ -977,7 +977,7 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
   CoherentMapImplicitBarrier();
 
   SERIALISE_TIME_CALL(
-      m_Real.glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size));
+      GL.glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size));
 
   if(IsCaptureMode(m_State))
   {
@@ -1040,8 +1040,7 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 {
   CoherentMapImplicitBarrier();
 
-  SERIALISE_TIME_CALL(
-      m_Real.glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size));
+  SERIALISE_TIME_CALL(GL.glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size));
 
   if(IsCaptureMode(m_State))
   {
@@ -1102,7 +1101,7 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(SerialiserType &ser, GLenum targe
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBindBufferBase(target, index, buffer.name);
+    GL.glBindBufferBase(target, index, buffer.name);
 
     AddResourceInitChunk(buffer);
   }
@@ -1114,7 +1113,7 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
   ContextData &cd = GetCtxData();
 
-  SERIALISE_TIME_CALL(m_Real.glBindBufferBase(target, index, buffer));
+  SERIALISE_TIME_CALL(GL.glBindBufferBase(target, index, buffer));
 
   if(IsCaptureMode(m_State))
   {
@@ -1211,7 +1210,7 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(SerialiserType &ser, GLenum targ
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBindBufferRange(target, index, buffer.name, (GLintptr)offset, (GLsizeiptr)size);
+    GL.glBindBufferRange(target, index, buffer.name, (GLintptr)offset, (GLsizeiptr)size);
 
     AddResourceInitChunk(buffer);
   }
@@ -1224,7 +1223,7 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 {
   ContextData &cd = GetCtxData();
 
-  SERIALISE_TIME_CALL(m_Real.glBindBufferRange(target, index, buffer, offset, size));
+  SERIALISE_TIME_CALL(GL.glBindBufferRange(target, index, buffer, offset, size));
 
   if(IsCaptureMode(m_State))
   {
@@ -1339,7 +1338,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
       AddResourceInitChunk(buffers[i]);
     }
 
-    m_Real.glBindBuffersBase(target, first, count, bufs.data());
+    GL.glBindBuffersBase(target, first, count, bufs.data());
   }
 
   return true;
@@ -1348,7 +1347,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
 void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count,
                                       const GLuint *buffers)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindBuffersBase(target, first, count, buffers));
+  SERIALISE_TIME_CALL(GL.glBindBuffersBase(target, first, count, buffers));
 
   if(IsCaptureMode(m_State) && buffers && count > 0)
   {
@@ -1519,8 +1518,8 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
         sz.push_back((GLintptr)sizes[i]);
     }
 
-    m_Real.glBindBuffersRange(target, first, count, bufs.empty() ? NULL : bufs.data(),
-                              offs.empty() ? NULL : offs.data(), sz.empty() ? NULL : sz.data());
+    GL.glBindBuffersRange(target, first, count, bufs.empty() ? NULL : bufs.data(),
+                          offs.empty() ? NULL : offs.data(), sz.empty() ? NULL : sz.data());
   }
 
   return true;
@@ -1530,7 +1529,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
                                        const GLuint *buffers, const GLintptr *offsets,
                                        const GLsizeiptr *sizes)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindBuffersRange(target, first, count, buffers, offsets, sizes));
+  SERIALISE_TIME_CALL(GL.glBindBuffersRange(target, first, count, buffers, offsets, sizes));
 
   if(IsCaptureMode(m_State) && buffers && count > 0)
   {
@@ -1634,7 +1633,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 
 void WrappedOpenGL::glInvalidateBufferData(GLuint buffer)
 {
-  m_Real.glInvalidateBufferData(buffer);
+  GL.glInvalidateBufferData(buffer);
 
   if(IsBackgroundCapturing(m_State))
     GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
@@ -1644,7 +1643,7 @@ void WrappedOpenGL::glInvalidateBufferData(GLuint buffer)
 
 void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr length)
 {
-  m_Real.glInvalidateBufferSubData(buffer, offset, length);
+  GL.glInvalidateBufferSubData(buffer, offset, length);
 
   if(IsBackgroundCapturing(m_State))
     GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
@@ -1933,7 +1932,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     // if we're doing a direct map, pass onto GL and return
     if(directMap)
     {
-      record->Map.ptr = (byte *)m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
+      record->Map.ptr = (byte *)GL.glMapNamedBufferRangeEXT(buffer, offset, length, access);
       record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
 
       return record->Map.ptr;
@@ -1951,7 +1950,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 
       ptr += offset;
 
-      m_Real.glGetNamedBufferSubDataEXT(buffer, offset, length, ptr);
+      GL.glGetNamedBufferSubDataEXT(buffer, offset, length, ptr);
 
       record->Map.ptr = ptr;
       record->Map.status = GLResourceRecord::Mapped_Read;
@@ -1990,7 +1989,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
         if(shadow == NULL)
         {
           GLint buflength;
-          m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
+          GL.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
 
           // allocate our shadow storage
           record->AllocShadowStorage(buflength);
@@ -2005,7 +2004,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
             {
               // Perhaps we could get these contents from the frame initial state buffer?
 
-              m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
+              GL.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
             }
             else
             {
@@ -2034,7 +2033,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
           byte *shadow = record->GetShadowPtr(0);
 
           GLint buflength;
-          m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
+          GL.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
 
           // if we don't have a shadow pointer, need to allocate & initialise
           if(shadow == NULL)
@@ -2073,7 +2072,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     return ptr;
   }
 
-  return m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
+  return GL.glMapNamedBufferRangeEXT(buffer, offset, length, access);
 }
 
 void *WrappedOpenGL::glMapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length,
@@ -2100,7 +2099,7 @@ void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr
     RDCERR("glMapBufferRange: Couldn't get resource record for target %x - no buffer bound?", target);
   }
 
-  return m_Real.glMapBufferRange(target, offset, length, access);
+  return GL.glMapBufferRange(target, offset, length, access);
 }
 
 // the glMapBuffer functions are equivalent to glMapBufferRange - so we just pass through
@@ -2129,7 +2128,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
     RDCERR("glMapNamedBufferEXT: Couldn't get resource record for buffer %x!", buffer);
   }
 
-  return m_Real.glMapNamedBufferEXT(buffer, access);
+  return GL.glMapNamedBufferEXT(buffer, access);
 }
 
 void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
@@ -2158,7 +2157,7 @@ void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
            ToStr(target).c_str());
   }
 
-  return m_Real.glMapBuffer(target, access);
+  return GL.glMapBuffer(target, access);
 }
 
 template <typename SerialiserType>
@@ -2252,15 +2251,15 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
 
       memcpy(record->Map.persistentPtr + (size_t)offset + (size_t)diffStart,
              record->Map.ptr + (size_t)diffStart, size_t(diffEnd - diffStart));
-      m_Real.glFlushMappedNamedBufferRangeEXT(buffer.name, GLintptr(offset + diffStart),
-                                              GLsizeiptr(diffEnd - diffStart));
+      GL.glFlushMappedNamedBufferRangeEXT(buffer.name, GLintptr(offset + diffStart),
+                                          GLsizeiptr(diffEnd - diffStart));
     }
     else if(MapWrittenData && length > 0)
     {
-      void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(offset + diffStart),
-                                                  GLsizeiptr(diffEnd - diffStart), GL_MAP_WRITE_BIT);
+      void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(offset + diffStart),
+                                              GLsizeiptr(diffEnd - diffStart), GL_MAP_WRITE_BIT);
       memcpy(ptr, MapWrittenData, size_t(diffEnd - diffStart));
-      m_Real.glUnmapNamedBufferEXT(buffer.name);
+      GL.glUnmapNamedBufferEXT(buffer.name);
     }
   }
 
@@ -2303,7 +2302,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
           m_FailureReason = CaptureFailed_UncappedUnmap;
         }
         // need to do the real unmap
-        ret = m_Real.glUnmapNamedBufferEXT(buffer);
+        ret = GL.glUnmapNamedBufferEXT(buffer);
         break;
       case GLResourceRecord::Mapped_Write:
       {
@@ -2349,7 +2348,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 
             memcpy(record->Map.persistentPtr + record->Map.offset, record->Map.ptr,
                    record->Map.length);
-            m_Real.glFlushMappedNamedBufferRangeEXT(buffer, record->Map.offset, record->Map.length);
+            GL.glFlushMappedNamedBufferRangeEXT(buffer, record->Map.offset, record->Map.length);
 
             // update shadow storage
             memcpy(record->GetShadowPtr(1) + record->Map.offset, record->Map.ptr, record->Map.length);
@@ -2360,11 +2359,10 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
           {
             // if we are here for background capturing, the app wrote directly into our backing
             // store memory. Just need to copy the data across to GL, no other work needed
-            void *ptr =
-                m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset,
-                                                GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
+            void *ptr = GL.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset,
+                                                    GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
             memcpy(ptr, record->Map.ptr, record->Map.length);
-            m_Real.glUnmapNamedBufferEXT(buffer);
+            GL.glUnmapNamedBufferEXT(buffer);
           }
         }
 
@@ -2390,7 +2388,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
     return ret;
   }
 
-  return m_Real.glUnmapNamedBufferEXT(buffer);
+  return GL.glUnmapNamedBufferEXT(buffer);
 }
 
 GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
@@ -2408,7 +2406,7 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
            ToStr(target).c_str());
   }
 
-  return m_Real.glUnmapBuffer(target);
+  return GL.glUnmapBuffer(target);
 }
 
 // offsetPtr here is from the start of the buffer, not the mapped region
@@ -2454,15 +2452,15 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
 
     memcpy(record->Map.persistentPtr + (size_t)offset,
            record->Map.ptr + (size_t)(offset - record->Map.offset), (size_t)length);
-    m_Real.glFlushMappedNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length);
+    GL.glFlushMappedNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length);
   }
   else if(buffer.name && FlushedData && length > 0)
   {
     // perform a map of the range and copy the data, to emulate the modified region being flushed
-    void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length,
-                                                GL_MAP_WRITE_BIT);
+    void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length,
+                                            GL_MAP_WRITE_BIT);
     memcpy(ptr, FlushedData, (size_t)length);
-    m_Real.glUnmapNamedBufferEXT(buffer.name);
+    GL.glUnmapNamedBufferEXT(buffer.name);
   }
 
   return true;
@@ -2485,7 +2483,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
   // mapped it. Otherwise the map is 'virtual' and just pointing to our backing store data
   if(record && record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
   {
-    m_Real.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
+    GL.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
   }
 
   if(IsActiveCapturing(m_State))
@@ -2545,7 +2543,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
     {
       memcpy(record->Map.persistentPtr + record->Map.offset + offset, record->Map.ptr + offset,
              length);
-      m_Real.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
+      GL.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
 
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     }
@@ -2574,7 +2572,7 @@ void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLs
         target);
   }
 
-  return m_Real.glFlushMappedBufferRange(target, offset, length);
+  return GL.glFlushMappedBufferRange(target, offset, length);
 }
 
 void WrappedOpenGL::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps)
@@ -2625,9 +2623,9 @@ bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsiz
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glGenTransformFeedbacks(1, &real);
-    m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, real);
-    m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
+    GL.glGenTransformFeedbacks(1, &real);
+    GL.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, real);
+    GL.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 
     GLResource res = FeedbackRes(GetCtx(), real);
 
@@ -2642,7 +2640,7 @@ bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsiz
 
 void WrappedOpenGL::glGenTransformFeedbacks(GLsizei n, GLuint *ids)
 {
-  SERIALISE_TIME_CALL(m_Real.glGenTransformFeedbacks(n, ids));
+  SERIALISE_TIME_CALL(GL.glGenTransformFeedbacks(n, ids));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -2685,7 +2683,7 @@ bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GL
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glCreateTransformFeedbacks(1, &real);
+    GL.glCreateTransformFeedbacks(1, &real);
 
     GLResource res = FeedbackRes(GetCtx(), real);
 
@@ -2700,7 +2698,7 @@ bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GL
 
 void WrappedOpenGL::glCreateTransformFeedbacks(GLsizei n, GLuint *ids)
 {
-  SERIALISE_TIME_CALL(m_Real.glCreateTransformFeedbacks(n, ids));
+  SERIALISE_TIME_CALL(GL.glCreateTransformFeedbacks(n, ids));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -2745,7 +2743,7 @@ void WrappedOpenGL::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
     }
   }
 
-  m_Real.glDeleteTransformFeedbacks(n, ids);
+  GL.glDeleteTransformFeedbacks(n, ids);
 }
 
 template <typename SerialiserType>
@@ -2764,7 +2762,7 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferBase(SerialiserType &ser,
     // we are running without ARB_dsa support, these functions are emulated in the trivial way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
     // and we need to support this case.
-    m_Real.glTransformFeedbackBufferBase(xfb.name, index, buffer.name);
+    GL.glTransformFeedbackBufferBase(xfb.name, index, buffer.name);
   }
 
   return true;
@@ -2772,7 +2770,7 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferBase(SerialiserType &ser,
 
 void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
 {
-  SERIALISE_TIME_CALL(m_Real.glTransformFeedbackBufferBase(xfb, index, buffer));
+  SERIALISE_TIME_CALL(GL.glTransformFeedbackBufferBase(xfb, index, buffer));
 
   if(IsCaptureMode(m_State))
   {
@@ -2818,8 +2816,7 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(SerialiserType &ser
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
     // and we need to support this case.
-    m_Real.glTransformFeedbackBufferRange(xfb.name, index, buffer.name, (GLintptr)offset,
-                                          (GLsizei)size);
+    GL.glTransformFeedbackBufferRange(xfb.name, index, buffer.name, (GLintptr)offset, (GLsizei)size);
   }
 
   return true;
@@ -2828,7 +2825,7 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(SerialiserType &ser
 void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
                                                    GLintptr offset, GLsizeiptr size)
 {
-  SERIALISE_TIME_CALL(m_Real.glTransformFeedbackBufferRange(xfb, index, buffer, offset, size));
+  SERIALISE_TIME_CALL(GL.glTransformFeedbackBufferRange(xfb, index, buffer, offset, size));
 
   if(IsCaptureMode(m_State))
   {
@@ -2866,7 +2863,7 @@ bool WrappedOpenGL::Serialise_glBindTransformFeedback(SerialiserType &ser, GLenu
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBindTransformFeedback(target, xfb.name);
+    GL.glBindTransformFeedback(target, xfb.name);
   }
 
   return true;
@@ -2874,7 +2871,7 @@ bool WrappedOpenGL::Serialise_glBindTransformFeedback(SerialiserType &ser, GLenu
 
 void WrappedOpenGL::glBindTransformFeedback(GLenum target, GLuint id)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindTransformFeedback(target, id));
+  SERIALISE_TIME_CALL(GL.glBindTransformFeedback(target, id));
 
   GLResourceRecord *record = NULL;
 
@@ -2913,7 +2910,7 @@ bool WrappedOpenGL::Serialise_glBeginTransformFeedback(SerialiserType &ser, GLen
 
   if(IsReplayingAndReading())
   {
-    m_Real.glBeginTransformFeedback(primitiveMode);
+    GL.glBeginTransformFeedback(primitiveMode);
     m_ActiveFeedback = true;
   }
 
@@ -2922,7 +2919,7 @@ bool WrappedOpenGL::Serialise_glBeginTransformFeedback(SerialiserType &ser, GLen
 
 void WrappedOpenGL::glBeginTransformFeedback(GLenum primitiveMode)
 {
-  SERIALISE_TIME_CALL(m_Real.glBeginTransformFeedback(primitiveMode));
+  SERIALISE_TIME_CALL(GL.glBeginTransformFeedback(primitiveMode));
   m_ActiveFeedback = true;
 
   if(IsActiveCapturing(m_State))
@@ -2940,7 +2937,7 @@ bool WrappedOpenGL::Serialise_glPauseTransformFeedback(SerialiserType &ser)
 {
   if(IsReplayingAndReading())
   {
-    m_Real.glPauseTransformFeedback();
+    GL.glPauseTransformFeedback();
   }
 
   return true;
@@ -2948,7 +2945,7 @@ bool WrappedOpenGL::Serialise_glPauseTransformFeedback(SerialiserType &ser)
 
 void WrappedOpenGL::glPauseTransformFeedback()
 {
-  SERIALISE_TIME_CALL(m_Real.glPauseTransformFeedback());
+  SERIALISE_TIME_CALL(GL.glPauseTransformFeedback());
 
   if(IsActiveCapturing(m_State))
   {
@@ -2965,7 +2962,7 @@ bool WrappedOpenGL::Serialise_glResumeTransformFeedback(SerialiserType &ser)
 {
   if(IsReplayingAndReading())
   {
-    m_Real.glResumeTransformFeedback();
+    GL.glResumeTransformFeedback();
   }
 
   return true;
@@ -2973,7 +2970,7 @@ bool WrappedOpenGL::Serialise_glResumeTransformFeedback(SerialiserType &ser)
 
 void WrappedOpenGL::glResumeTransformFeedback()
 {
-  SERIALISE_TIME_CALL(m_Real.glResumeTransformFeedback());
+  SERIALISE_TIME_CALL(GL.glResumeTransformFeedback());
 
   if(IsActiveCapturing(m_State))
   {
@@ -2990,7 +2987,7 @@ bool WrappedOpenGL::Serialise_glEndTransformFeedback(SerialiserType &ser)
 {
   if(IsReplayingAndReading())
   {
-    m_Real.glEndTransformFeedback();
+    GL.glEndTransformFeedback();
     m_ActiveFeedback = false;
   }
 
@@ -2999,7 +2996,7 @@ bool WrappedOpenGL::Serialise_glEndTransformFeedback(SerialiserType &ser)
 
 void WrappedOpenGL::glEndTransformFeedback()
 {
-  SERIALISE_TIME_CALL(m_Real.glEndTransformFeedback());
+  SERIALISE_TIME_CALL(GL.glEndTransformFeedback());
   m_ActiveFeedback = false;
 
   if(IsActiveCapturing(m_State))
@@ -3048,18 +3045,18 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
     GLuint prevVAO = 0;
-    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
-    m_Real.glBindVertexArray(vaobj.name);
+    GL.glBindVertexArray(vaobj.name);
 
     // seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO
     // initial states. Since the spec defines how this function should work in terms of new style
     // bindings, just do that ourselves.
 
-    // m_Real.glVertexArrayVertexAttribOffsetEXT(vaobj.name, buffer.name, index, size, type,
-    //                                           normalized, stride, (GLintptr)offset);
-    m_Real.glVertexArrayVertexAttribFormatEXT(vaobj.name, index, size, type, normalized, 0);
-    m_Real.glVertexArrayVertexAttribBindingEXT(vaobj.name, index, index);
+    // GL.glVertexArrayVertexAttribOffsetEXT(vaobj.name, buffer.name, index, size, type, normalized,
+    //                                       stride, (GLintptr)offset);
+    GL.glVertexArrayVertexAttribFormatEXT(vaobj.name, index, size, type, normalized, 0);
+    GL.glVertexArrayVertexAttribBindingEXT(vaobj.name, index, index);
     if(stride == 0)
     {
       GLenum SizeEnum = size == 1 ? eGL_RED : size == 2 ? eGL_RG : size == 3 ? eGL_RGB : eGL_RGBA;
@@ -3071,9 +3068,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(
       // For replay, discard these pointers to prevent driver complaining about "negative offsets".
       offset = 0;
     }
-    m_Real.glVertexArrayBindVertexBufferEXT(vaobj.name, index, buffer.name, (GLintptr)offset, stride);
+    GL.glVertexArrayBindVertexBufferEXT(vaobj.name, index, buffer.name, (GLintptr)offset, stride);
 
-    m_Real.glBindVertexArray(prevVAO);
+    GL.glBindVertexArray(prevVAO);
   }
 
   return true;
@@ -3083,8 +3080,8 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
                                                        GLint size, GLenum type, GLboolean normalized,
                                                        GLsizei stride, GLintptr offset)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexArrayVertexAttribOffsetEXT(vaobj, buffer, index, size, type,
-                                                                normalized, stride, offset));
+  SERIALISE_TIME_CALL(GL.glVertexArrayVertexAttribOffsetEXT(vaobj, buffer, index, size, type,
+                                                            normalized, stride, offset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3118,7 +3115,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
 void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
                                           GLboolean normalized, GLsizei stride, const void *pointer)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribPointer(index, size, type, normalized, stride, pointer));
+  SERIALISE_TIME_CALL(GL.glVertexAttribPointer(index, size, type, normalized, stride, pointer));
 
   if(IsCaptureMode(m_State))
   {
@@ -3174,18 +3171,18 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(SerialiserType
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
     GLuint prevVAO = 0;
-    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
-    m_Real.glBindVertexArray(vaobj.name);
+    GL.glBindVertexArray(vaobj.name);
 
     // seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO
     // initial states. Since the spec defines how this function should work in terms of new style
     // bindings, just do that ourselves.
 
-    // m_Real.glVertexArrayVertexAttribIOffsetEXT(vaobj.name, buffer.name, index, size, type,
-    //                                            stride, (GLintptr)offset);
-    m_Real.glVertexArrayVertexAttribIFormatEXT(vaobj.name, index, size, type, 0);
-    m_Real.glVertexArrayVertexAttribBindingEXT(vaobj.name, index, index);
+    // GL.glVertexArrayVertexAttribIOffsetEXT(vaobj.name, buffer.name, index, size, type,
+    //                                        stride, (GLintptr)offset);
+    GL.glVertexArrayVertexAttribIFormatEXT(vaobj.name, index, size, type, 0);
+    GL.glVertexArrayVertexAttribBindingEXT(vaobj.name, index, index);
     if(stride == 0)
     {
       GLenum SizeEnum = size == 1 ? eGL_RED : size == 2 ? eGL_RG : size == 3 ? eGL_RGB : eGL_RGBA;
@@ -3197,9 +3194,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(SerialiserType
       // For replay, discard these pointers to prevent driver complaining about "negative offsets".
       offset = 0;
     }
-    m_Real.glVertexArrayBindVertexBufferEXT(vaobj.name, index, buffer.name, (GLintptr)offset, stride);
+    GL.glVertexArrayBindVertexBufferEXT(vaobj.name, index, buffer.name, (GLintptr)offset, stride);
 
-    m_Real.glBindVertexArray(prevVAO);
+    GL.glBindVertexArray(prevVAO);
   }
 
   return true;
@@ -3210,7 +3207,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
                                                         GLintptr offset)
 {
   SERIALISE_TIME_CALL(
-      m_Real.glVertexArrayVertexAttribIOffsetEXT(vaobj, buffer, index, size, type, stride, offset));
+      GL.glVertexArrayVertexAttribIOffsetEXT(vaobj, buffer, index, size, type, stride, offset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3244,7 +3241,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
 void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
                                            const void *pointer)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribIPointer(index, size, type, stride, pointer));
+  SERIALISE_TIME_CALL(GL.glVertexAttribIPointer(index, size, type, stride, pointer));
 
   if(IsCaptureMode(m_State))
   {
@@ -3300,18 +3297,18 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(SerialiserType
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
     GLuint prevVAO = 0;
-    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
-    m_Real.glBindVertexArray(vaobj.name);
+    GL.glBindVertexArray(vaobj.name);
 
     // seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO
     // initial states. Since the spec defines how this function should work in terms of new style
     // bindings, just do that ourselves.
 
-    // m_Real.glVertexArrayVertexAttribIOffsetEXT(vaobj.name, buffer.name, index, size, type,
-    //                                            stride, (GLintptr)offset);
-    m_Real.glVertexArrayVertexAttribLFormatEXT(vaobj.name, index, size, type, 0);
-    m_Real.glVertexArrayVertexAttribBindingEXT(vaobj.name, index, index);
+    // GL.glVertexArrayVertexAttribIOffsetEXT(vaobj.name, buffer.name, index, size, type,
+    //                                        stride, (GLintptr)offset);
+    GL.glVertexArrayVertexAttribLFormatEXT(vaobj.name, index, size, type, 0);
+    GL.glVertexArrayVertexAttribBindingEXT(vaobj.name, index, index);
     if(stride == 0)
     {
       GLenum SizeEnum = size == 1 ? eGL_RED : size == 2 ? eGL_RG : size == 3 ? eGL_RGB : eGL_RGBA;
@@ -3323,9 +3320,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(SerialiserType
       // For replay, discard these pointers to prevent driver complaining about "negative offsets".
       offset = 0;
     }
-    m_Real.glVertexArrayBindVertexBufferEXT(vaobj.name, index, buffer.name, (GLintptr)offset, stride);
+    GL.glVertexArrayBindVertexBufferEXT(vaobj.name, index, buffer.name, (GLintptr)offset, stride);
 
-    m_Real.glBindVertexArray(prevVAO);
+    GL.glBindVertexArray(prevVAO);
   }
 
   return true;
@@ -3336,7 +3333,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
                                                         GLintptr offset)
 {
   SERIALISE_TIME_CALL(
-      m_Real.glVertexArrayVertexAttribLOffsetEXT(vaobj, buffer, index, size, type, stride, offset));
+      GL.glVertexArrayVertexAttribLOffsetEXT(vaobj, buffer, index, size, type, stride, offset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3370,7 +3367,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
 void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
                                            const void *pointer)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribLPointer(index, size, type, stride, pointer));
+  SERIALISE_TIME_CALL(GL.glVertexAttribLPointer(index, size, type, stride, pointer));
 
   if(IsCaptureMode(m_State))
   {
@@ -3418,7 +3415,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribBindingEXT(SerialiserType
     if(vaobj.name == 0)
       vaobj.name = m_Fake_VAO0;
 
-    m_Real.glVertexArrayVertexAttribBindingEXT(vaobj.name, attribindex, bindingindex);
+    GL.glVertexArrayVertexAttribBindingEXT(vaobj.name, attribindex, bindingindex);
   }
   return true;
 }
@@ -3426,7 +3423,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribBindingEXT(SerialiserType
 void WrappedOpenGL::glVertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint attribindex,
                                                         GLuint bindingindex)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexArrayVertexAttribBindingEXT(vaobj, attribindex, bindingindex));
+  SERIALISE_TIME_CALL(GL.glVertexArrayVertexAttribBindingEXT(vaobj, attribindex, bindingindex));
 
   if(IsCaptureMode(m_State))
   {
@@ -3455,7 +3452,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint att
 
 void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindingindex)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribBinding(attribindex, bindingindex));
+  SERIALISE_TIME_CALL(GL.glVertexAttribBinding(attribindex, bindingindex));
 
   if(IsCaptureMode(m_State))
   {
@@ -3503,8 +3500,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribFormatEXT(SerialiserType 
     if(vaobj.name == 0)
       vaobj.name = m_Fake_VAO0;
 
-    m_Real.glVertexArrayVertexAttribFormatEXT(vaobj.name, attribindex, size, type, normalized,
-                                              relativeoffset);
+    GL.glVertexArrayVertexAttribFormatEXT(vaobj.name, attribindex, size, type, normalized,
+                                          relativeoffset);
   }
 
   return true;
@@ -3514,8 +3511,8 @@ void WrappedOpenGL::glVertexArrayVertexAttribFormatEXT(GLuint vaobj, GLuint attr
                                                        GLenum type, GLboolean normalized,
                                                        GLuint relativeoffset)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexArrayVertexAttribFormatEXT(vaobj, attribindex, size, type,
-                                                                normalized, relativeoffset));
+  SERIALISE_TIME_CALL(GL.glVertexArrayVertexAttribFormatEXT(vaobj, attribindex, size, type,
+                                                            normalized, relativeoffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3546,8 +3543,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribFormatEXT(GLuint vaobj, GLuint attr
 void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
                                          GLboolean normalized, GLuint relativeoffset)
 {
-  SERIALISE_TIME_CALL(
-      m_Real.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset));
+  SERIALISE_TIME_CALL(GL.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3594,7 +3590,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIFormatEXT(SerialiserType
     if(vaobj.name == 0)
       vaobj.name = m_Fake_VAO0;
 
-    m_Real.glVertexArrayVertexAttribIFormatEXT(vaobj.name, attribindex, size, type, relativeoffset);
+    GL.glVertexArrayVertexAttribIFormatEXT(vaobj.name, attribindex, size, type, relativeoffset);
   }
 
   return true;
@@ -3604,7 +3600,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint att
                                                         GLenum type, GLuint relativeoffset)
 {
   SERIALISE_TIME_CALL(
-      m_Real.glVertexArrayVertexAttribIFormatEXT(vaobj, attribindex, size, type, relativeoffset));
+      GL.glVertexArrayVertexAttribIFormatEXT(vaobj, attribindex, size, type, relativeoffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3635,7 +3631,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint att
 void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type,
                                           GLuint relativeoffset)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribIFormat(attribindex, size, type, relativeoffset));
+  SERIALISE_TIME_CALL(GL.glVertexAttribIFormat(attribindex, size, type, relativeoffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3681,7 +3677,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLFormatEXT(SerialiserType
     if(vaobj.name == 0)
       vaobj.name = m_Fake_VAO0;
 
-    m_Real.glVertexArrayVertexAttribLFormatEXT(vaobj.name, attribindex, size, type, relativeoffset);
+    GL.glVertexArrayVertexAttribLFormatEXT(vaobj.name, attribindex, size, type, relativeoffset);
   }
 
   return true;
@@ -3691,7 +3687,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint att
                                                         GLenum type, GLuint relativeoffset)
 {
   SERIALISE_TIME_CALL(
-      m_Real.glVertexArrayVertexAttribLFormatEXT(vaobj, attribindex, size, type, relativeoffset));
+      GL.glVertexArrayVertexAttribLFormatEXT(vaobj, attribindex, size, type, relativeoffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3722,7 +3718,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint att
 void WrappedOpenGL::glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum type,
                                           GLuint relativeoffset)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribLFormat(attribindex, size, type, relativeoffset));
+  SERIALISE_TIME_CALL(GL.glVertexAttribLFormat(attribindex, size, type, relativeoffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -3766,17 +3762,17 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribDivisorEXT(SerialiserType
       vaobj.name = m_Fake_VAO0;
 
     // at the time of writing, AMD driver seems to not have this entry point
-    if(m_Real.glVertexArrayVertexAttribDivisorEXT)
+    if(GL.glVertexArrayVertexAttribDivisorEXT)
     {
-      m_Real.glVertexArrayVertexAttribDivisorEXT(vaobj.name, index, divisor);
+      GL.glVertexArrayVertexAttribDivisorEXT(vaobj.name, index, divisor);
     }
     else
     {
       GLuint VAO = 0;
-      m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
-      m_Real.glBindVertexArray(vaobj.name);
-      m_Real.glVertexAttribDivisor(index, divisor);
-      m_Real.glBindVertexArray(VAO);
+      GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+      GL.glBindVertexArray(vaobj.name);
+      GL.glVertexAttribDivisor(index, divisor);
+      GL.glBindVertexArray(VAO);
     }
   }
 
@@ -3785,7 +3781,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribDivisorEXT(SerialiserType
 
 void WrappedOpenGL::glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint index, GLuint divisor)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexArrayVertexAttribDivisorEXT(vaobj, index, divisor));
+  SERIALISE_TIME_CALL(GL.glVertexArrayVertexAttribDivisorEXT(vaobj, index, divisor));
 
   if(IsCaptureMode(m_State))
   {
@@ -3814,7 +3810,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint ind
 
 void WrappedOpenGL::glVertexAttribDivisor(GLuint index, GLuint divisor)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexAttribDivisor(index, divisor));
+  SERIALISE_TIME_CALL(GL.glVertexAttribDivisor(index, divisor));
 
   if(IsCaptureMode(m_State))
   {
@@ -3856,20 +3852,20 @@ bool WrappedOpenGL::Serialise_glEnableVertexArrayAttribEXT(SerialiserType &ser, 
       vaobj.name = m_Fake_VAO0;
 
     GLint prevVAO = 0;
-    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
 
-    m_Real.glEnableVertexArrayAttribEXT(vaobj.name, index);
+    GL.glEnableVertexArrayAttribEXT(vaobj.name, index);
 
     // nvidia bug seems to sometimes change VAO binding in glEnableVertexArrayAttribEXT, although it
     // seems like it only happens if GL_DEBUG_OUTPUT_SYNCHRONOUS is NOT enabled.
-    m_Real.glBindVertexArray(prevVAO);
+    GL.glBindVertexArray(prevVAO);
   }
   return true;
 }
 
 void WrappedOpenGL::glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glEnableVertexArrayAttribEXT(vaobj, index));
+  SERIALISE_TIME_CALL(GL.glEnableVertexArrayAttribEXT(vaobj, index));
 
   if(IsCaptureMode(m_State))
   {
@@ -3898,7 +3894,7 @@ void WrappedOpenGL::glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 
 void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glEnableVertexAttribArray(index));
+  SERIALISE_TIME_CALL(GL.glEnableVertexAttribArray(index));
 
   if(IsCaptureMode(m_State))
   {
@@ -3939,20 +3935,20 @@ bool WrappedOpenGL::Serialise_glDisableVertexArrayAttribEXT(SerialiserType &ser,
       vaobj.name = m_Fake_VAO0;
 
     GLint prevVAO = 0;
-    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
+    GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
 
-    m_Real.glDisableVertexArrayAttribEXT(vaobj.name, index);
+    GL.glDisableVertexArrayAttribEXT(vaobj.name, index);
 
     // nvidia bug seems to sometimes change VAO binding in glEnableVertexArrayAttribEXT, although it
     // seems like it only happens if GL_DEBUG_OUTPUT_SYNCHRONOUS is NOT enabled.
-    m_Real.glBindVertexArray(prevVAO);
+    GL.glBindVertexArray(prevVAO);
   }
   return true;
 }
 
 void WrappedOpenGL::glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glDisableVertexArrayAttribEXT(vaobj, index));
+  SERIALISE_TIME_CALL(GL.glDisableVertexArrayAttribEXT(vaobj, index));
 
   if(IsCaptureMode(m_State))
   {
@@ -3981,7 +3977,7 @@ void WrappedOpenGL::glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 
 void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 {
-  SERIALISE_TIME_CALL(m_Real.glDisableVertexAttribArray(index));
+  SERIALISE_TIME_CALL(GL.glDisableVertexAttribArray(index));
 
   if(IsCaptureMode(m_State))
   {
@@ -4019,9 +4015,9 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, 
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glGenVertexArrays(1, &real);
-    m_Real.glBindVertexArray(real);
-    m_Real.glBindVertexArray(0);
+    GL.glGenVertexArrays(1, &real);
+    GL.glBindVertexArray(real);
+    GL.glBindVertexArray(0);
 
     GLResource res = VertexArrayRes(GetCtx(), real);
 
@@ -4036,7 +4032,7 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, 
 
 void WrappedOpenGL::glGenVertexArrays(GLsizei n, GLuint *arrays)
 {
-  SERIALISE_TIME_CALL(m_Real.glGenVertexArrays(n, arrays));
+  SERIALISE_TIME_CALL(GL.glGenVertexArrays(n, arrays));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -4079,7 +4075,7 @@ bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei 
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    m_Real.glCreateVertexArrays(1, &real);
+    GL.glCreateVertexArrays(1, &real);
 
     GLResource res = VertexArrayRes(GetCtx(), real);
 
@@ -4094,7 +4090,7 @@ bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei 
 
 void WrappedOpenGL::glCreateVertexArrays(GLsizei n, GLuint *arrays)
 {
-  SERIALISE_TIME_CALL(m_Real.glCreateVertexArrays(n, arrays));
+  SERIALISE_TIME_CALL(GL.glCreateVertexArrays(n, arrays));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -4137,7 +4133,7 @@ bool WrappedOpenGL::Serialise_glBindVertexArray(SerialiserType &ser, GLuint vaob
     if(vaobj.name == 0)
       vaobj.name = m_Fake_VAO0;
 
-    m_Real.glBindVertexArray(vaobj.name);
+    GL.glBindVertexArray(vaobj.name);
   }
 
   return true;
@@ -4145,7 +4141,7 @@ bool WrappedOpenGL::Serialise_glBindVertexArray(SerialiserType &ser, GLuint vaob
 
 void WrappedOpenGL::glBindVertexArray(GLuint array)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindVertexArray(array));
+  SERIALISE_TIME_CALL(GL.glBindVertexArray(array));
 
   GLResourceRecord *record = NULL;
 
@@ -4200,7 +4196,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(SerialiserType &ser, GL
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
     // and we need to support this case.
-    m_Real.glVertexArrayElementBuffer(vaobj.name, buffer.name);
+    GL.glVertexArrayElementBuffer(vaobj.name, buffer.name);
   }
 
   return true;
@@ -4208,7 +4204,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(SerialiserType &ser, GL
 
 void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexArrayElementBuffer(vaobj, buffer));
+  SERIALISE_TIME_CALL(GL.glVertexArrayElementBuffer(vaobj, buffer));
 
   if(IsCaptureMode(m_State))
   {
@@ -4265,8 +4261,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(SerialiserType &s
       m_Buffers[GetResourceManager()->GetID(buffer)].creationFlags |= BufferCategory::Vertex;
     }
 
-    m_Real.glVertexArrayBindVertexBufferEXT(vaobj.name, bindingindex, buffer.name, (GLintptr)offset,
-                                            (GLsizei)stride);
+    GL.glVertexArrayBindVertexBufferEXT(vaobj.name, bindingindex, buffer.name, (GLintptr)offset,
+                                        (GLsizei)stride);
   }
 
   return true;
@@ -4276,7 +4272,7 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
                                                      GLuint buffer, GLintptr offset, GLsizei stride)
 {
   SERIALISE_TIME_CALL(
-      m_Real.glVertexArrayBindVertexBufferEXT(vaobj, bindingindex, buffer, offset, stride));
+      GL.glVertexArrayBindVertexBufferEXT(vaobj, bindingindex, buffer, offset, stride));
 
   if(IsCaptureMode(m_State))
   {
@@ -4310,7 +4306,7 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
 void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,
                                        GLsizei stride)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindVertexBuffer(bindingindex, buffer, offset, stride));
+  SERIALISE_TIME_CALL(GL.glBindVertexBuffer(bindingindex, buffer, offset, stride));
 
   if(IsCaptureMode(m_State))
   {
@@ -4400,8 +4396,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
     // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
     // and we need to support this case.
-    m_Real.glVertexArrayVertexBuffers(vaobj.name, first, count, bufs.empty() ? NULL : bufs.data(),
-                                      offs.empty() ? NULL : offs.data(), strides);
+    GL.glVertexArrayVertexBuffers(vaobj.name, first, count, bufs.empty() ? NULL : bufs.data(),
+                                  offs.empty() ? NULL : offs.data(), strides);
 
     if(IsLoading(m_State))
     {
@@ -4420,8 +4416,7 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
                                                const GLuint *buffers, const GLintptr *offsets,
                                                const GLsizei *strides)
 {
-  SERIALISE_TIME_CALL(
-      m_Real.glVertexArrayVertexBuffers(vaobj, first, count, buffers, offsets, strides));
+  SERIALISE_TIME_CALL(GL.glVertexArrayVertexBuffers(vaobj, first, count, buffers, offsets, strides));
 
   if(IsCaptureMode(m_State))
   {
@@ -4466,7 +4461,7 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
 void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers,
                                         const GLintptr *offsets, const GLsizei *strides)
 {
-  SERIALISE_TIME_CALL(m_Real.glBindVertexBuffers(first, count, buffers, offsets, strides));
+  SERIALISE_TIME_CALL(GL.glBindVertexBuffers(first, count, buffers, offsets, strides));
 
   if(IsCaptureMode(m_State))
   {
@@ -4525,7 +4520,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBindingDivisorEXT(SerialiserTyp
     if(vaobj.name == 0)
       vaobj.name = m_Fake_VAO0;
 
-    m_Real.glVertexArrayVertexBindingDivisorEXT(vaobj.name, bindingindex, divisor);
+    GL.glVertexArrayVertexBindingDivisorEXT(vaobj.name, bindingindex, divisor);
   }
 
   return true;
@@ -4534,7 +4529,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBindingDivisorEXT(SerialiserTyp
 void WrappedOpenGL::glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bindingindex,
                                                          GLuint divisor)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexArrayVertexBindingDivisorEXT(vaobj, bindingindex, divisor));
+  SERIALISE_TIME_CALL(GL.glVertexArrayVertexBindingDivisorEXT(vaobj, bindingindex, divisor));
 
   if(IsCaptureMode(m_State))
   {
@@ -4563,7 +4558,7 @@ void WrappedOpenGL::glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bi
 
 void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 {
-  SERIALISE_TIME_CALL(m_Real.glVertexBindingDivisor(bindingindex, divisor));
+  SERIALISE_TIME_CALL(GL.glVertexBindingDivisor(bindingindex, divisor));
 
   if(IsCaptureMode(m_State))
   {
@@ -4607,7 +4602,7 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
           if(record->Map.access & GL_MAP_COHERENT_BIT)
             m_CoherentMaps.erase(record);
 
-          m_Real.glUnmapNamedBufferEXT(res.name);
+          GL.glUnmapNamedBufferEXT(res.name);
         }
 
         // free any shadow storage
@@ -4621,7 +4616,7 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
     }
   }
 
-  m_Real.glDeleteBuffers(n, buffers);
+  GL.glDeleteBuffers(n, buffers);
 }
 
 void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
@@ -4638,7 +4633,7 @@ void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
     }
   }
 
-  m_Real.glDeleteVertexArrays(n, arrays);
+  GL.glDeleteVertexArrays(n, arrays);
 }
 
 #pragma endregion
@@ -4725,126 +4720,126 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(SerialiserType &ser, GLuint index, 
     if(attr == Attrib_packed)
     {
       if(count == 1)
-        m_Real.glVertexAttribP1uiv(index, type, normalized, v.u32);
+        GL.glVertexAttribP1uiv(index, type, normalized, v.u32);
       else if(count == 2)
-        m_Real.glVertexAttribP2uiv(index, type, normalized, v.u32);
+        GL.glVertexAttribP2uiv(index, type, normalized, v.u32);
       else if(count == 3)
-        m_Real.glVertexAttribP3uiv(index, type, normalized, v.u32);
+        GL.glVertexAttribP3uiv(index, type, normalized, v.u32);
       else if(count == 4)
-        m_Real.glVertexAttribP4uiv(index, type, normalized, v.u32);
+        GL.glVertexAttribP4uiv(index, type, normalized, v.u32);
     }
     else if(attribtype & Attrib_I)
     {
       if(count == 1)
       {
         if(attr == Attrib_GLint)
-          m_Real.glVertexAttribI1iv(index, v.i32);
+          GL.glVertexAttribI1iv(index, v.i32);
         else if(attr == Attrib_GLuint)
-          m_Real.glVertexAttribI1uiv(index, v.u32);
+          GL.glVertexAttribI1uiv(index, v.u32);
       }
       else if(count == 2)
       {
         if(attr == Attrib_GLint)
-          m_Real.glVertexAttribI2iv(index, v.i32);
+          GL.glVertexAttribI2iv(index, v.i32);
         else if(attr == Attrib_GLuint)
-          m_Real.glVertexAttribI2uiv(index, v.u32);
+          GL.glVertexAttribI2uiv(index, v.u32);
       }
       else if(count == 3)
       {
         if(attr == Attrib_GLint)
-          m_Real.glVertexAttribI3iv(index, v.i32);
+          GL.glVertexAttribI3iv(index, v.i32);
         else if(attr == Attrib_GLuint)
-          m_Real.glVertexAttribI3uiv(index, v.u32);
+          GL.glVertexAttribI3uiv(index, v.u32);
       }
       else
       {
         if(attr == Attrib_GLbyte)
-          m_Real.glVertexAttribI4bv(index, v.i8);
+          GL.glVertexAttribI4bv(index, v.i8);
         else if(attr == Attrib_GLshort)
-          m_Real.glVertexAttribI4sv(index, v.i16);
+          GL.glVertexAttribI4sv(index, v.i16);
         else if(attr == Attrib_GLint)
-          m_Real.glVertexAttribI4iv(index, v.i32);
+          GL.glVertexAttribI4iv(index, v.i32);
         else if(attr == Attrib_GLubyte)
-          m_Real.glVertexAttribI4ubv(index, v.u8);
+          GL.glVertexAttribI4ubv(index, v.u8);
         else if(attr == Attrib_GLushort)
-          m_Real.glVertexAttribI4usv(index, v.u16);
+          GL.glVertexAttribI4usv(index, v.u16);
         else if(attr == Attrib_GLuint)
-          m_Real.glVertexAttribI4uiv(index, v.u32);
+          GL.glVertexAttribI4uiv(index, v.u32);
       }
     }
     else if(attribtype & Attrib_L)
     {
       if(count == 1)
-        m_Real.glVertexAttribL1dv(index, v.d);
+        GL.glVertexAttribL1dv(index, v.d);
       else if(count == 2)
-        m_Real.glVertexAttribL2dv(index, v.d);
+        GL.glVertexAttribL2dv(index, v.d);
       else if(count == 3)
-        m_Real.glVertexAttribL3dv(index, v.d);
+        GL.glVertexAttribL3dv(index, v.d);
       else if(count == 4)
-        m_Real.glVertexAttribL4dv(index, v.d);
+        GL.glVertexAttribL4dv(index, v.d);
     }
     else if(attribtype & Attrib_N)
     {
       if(attr == Attrib_GLbyte)
-        m_Real.glVertexAttrib4Nbv(index, v.i8);
+        GL.glVertexAttrib4Nbv(index, v.i8);
       else if(attr == Attrib_GLshort)
-        m_Real.glVertexAttrib4Nsv(index, v.i16);
+        GL.glVertexAttrib4Nsv(index, v.i16);
       else if(attr == Attrib_GLint)
-        m_Real.glVertexAttrib4Niv(index, v.i32);
+        GL.glVertexAttrib4Niv(index, v.i32);
       else if(attr == Attrib_GLubyte)
-        m_Real.glVertexAttrib4Nubv(index, v.u8);
+        GL.glVertexAttrib4Nubv(index, v.u8);
       else if(attr == Attrib_GLushort)
-        m_Real.glVertexAttrib4Nusv(index, v.u16);
+        GL.glVertexAttrib4Nusv(index, v.u16);
       else if(attr == Attrib_GLuint)
-        m_Real.glVertexAttrib4Nuiv(index, v.u32);
+        GL.glVertexAttrib4Nuiv(index, v.u32);
     }
     else
     {
       if(count == 1)
       {
         if(attr == Attrib_GLdouble)
-          m_Real.glVertexAttrib1dv(index, v.d);
+          GL.glVertexAttrib1dv(index, v.d);
         else if(attr == Attrib_GLfloat)
-          m_Real.glVertexAttrib1fv(index, v.f);
+          GL.glVertexAttrib1fv(index, v.f);
         else if(attr == Attrib_GLshort)
-          m_Real.glVertexAttrib1sv(index, v.i16);
+          GL.glVertexAttrib1sv(index, v.i16);
       }
       else if(count == 2)
       {
         if(attr == Attrib_GLdouble)
-          m_Real.glVertexAttrib2dv(index, v.d);
+          GL.glVertexAttrib2dv(index, v.d);
         else if(attr == Attrib_GLfloat)
-          m_Real.glVertexAttrib2fv(index, v.f);
+          GL.glVertexAttrib2fv(index, v.f);
         else if(attr == Attrib_GLshort)
-          m_Real.glVertexAttrib2sv(index, v.i16);
+          GL.glVertexAttrib2sv(index, v.i16);
       }
       else if(count == 3)
       {
         if(attr == Attrib_GLdouble)
-          m_Real.glVertexAttrib3dv(index, v.d);
+          GL.glVertexAttrib3dv(index, v.d);
         else if(attr == Attrib_GLfloat)
-          m_Real.glVertexAttrib3fv(index, v.f);
+          GL.glVertexAttrib3fv(index, v.f);
         else if(attr == Attrib_GLshort)
-          m_Real.glVertexAttrib3sv(index, v.i16);
+          GL.glVertexAttrib3sv(index, v.i16);
       }
       else
       {
         if(attr == Attrib_GLdouble)
-          m_Real.glVertexAttrib4dv(index, v.d);
+          GL.glVertexAttrib4dv(index, v.d);
         else if(attr == Attrib_GLfloat)
-          m_Real.glVertexAttrib4fv(index, v.f);
+          GL.glVertexAttrib4fv(index, v.f);
         else if(attr == Attrib_GLbyte)
-          m_Real.glVertexAttrib4bv(index, v.i8);
+          GL.glVertexAttrib4bv(index, v.i8);
         else if(attr == Attrib_GLshort)
-          m_Real.glVertexAttrib4sv(index, v.i16);
+          GL.glVertexAttrib4sv(index, v.i16);
         else if(attr == Attrib_GLint)
-          m_Real.glVertexAttrib4iv(index, v.i32);
+          GL.glVertexAttrib4iv(index, v.i32);
         else if(attr == Attrib_GLubyte)
-          m_Real.glVertexAttrib4ubv(index, v.u8);
+          GL.glVertexAttrib4ubv(index, v.u8);
         else if(attr == Attrib_GLushort)
-          m_Real.glVertexAttrib4usv(index, v.u16);
+          GL.glVertexAttrib4usv(index, v.u16);
         else if(attr == Attrib_GLuint)
-          m_Real.glVertexAttrib4uiv(index, v.u32);
+          GL.glVertexAttrib4uiv(index, v.u32);
       }
     }
   }
@@ -4852,23 +4847,23 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(SerialiserType &ser, GLuint index, 
   return true;
 }
 
-#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype, ...)                        \
-                                                                                  \
-  void WrappedOpenGL::CONCAT(glVertexAttrib, suffix)(GLuint index, __VA_ARGS__)   \
-                                                                                  \
-  {                                                                               \
-    SERIALISE_TIME_CALL(m_Real.CONCAT(glVertexAttrib, suffix)(index, ARRAYLIST)); \
-                                                                                  \
-    if(IsActiveCapturing(m_State))                                                \
-    {                                                                             \
-      USE_SCRATCH_SERIALISER();                                                   \
-      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                        \
-      const paramtype vals[] = {ARRAYLIST};                                       \
-      Serialise_glVertexAttrib(ser, index, count, eGL_NONE, GL_FALSE, vals,       \
-                               AttribType(TypeOr | CONCAT(Attrib_, paramtype)));  \
-                                                                                  \
-      GetContextRecord()->AddChunk(scope.Get());                                  \
-    }                                                                             \
+#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype, ...)                       \
+                                                                                 \
+  void WrappedOpenGL::CONCAT(glVertexAttrib, suffix)(GLuint index, __VA_ARGS__)  \
+                                                                                 \
+  {                                                                              \
+    SERIALISE_TIME_CALL(GL.CONCAT(glVertexAttrib, suffix)(index, ARRAYLIST));    \
+                                                                                 \
+    if(IsActiveCapturing(m_State))                                               \
+    {                                                                            \
+      USE_SCRATCH_SERIALISER();                                                  \
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                       \
+      const paramtype vals[] = {ARRAYLIST};                                      \
+      Serialise_glVertexAttrib(ser, index, count, eGL_NONE, GL_FALSE, vals,      \
+                               AttribType(TypeOr | CONCAT(Attrib_, paramtype))); \
+                                                                                 \
+      GetContextRecord()->AddChunk(scope.Get());                                 \
+    }                                                                            \
   }
 
 #define ARRAYLIST x
@@ -4917,7 +4912,7 @@ ATTRIB_FUNC(4, 4Nub, Attrib_N, GLubyte, GLubyte x, GLubyte y, GLubyte z, GLubyte
   void WrappedOpenGL::CONCAT(glVertexAttrib, suffix)(GLuint index, const paramtype *value) \
                                                                                            \
   {                                                                                        \
-    m_Real.CONCAT(glVertexAttrib, suffix)(index, value);                                   \
+    GL.CONCAT(glVertexAttrib, suffix)(index, value);                                       \
                                                                                            \
     if(IsActiveCapturing(m_State))                                                         \
     {                                                                                      \
@@ -4981,7 +4976,7 @@ ATTRIB_FUNC(4, 4Nusv, Attrib_N, GLushort)
       GLuint index, GLenum type, GLboolean normalized, funcparam)                              \
                                                                                                \
   {                                                                                            \
-    m_Real.CONCAT(CONCAT(glVertexAttribP, count), suffix)(index, type, normalized, value);     \
+    GL.CONCAT(CONCAT(glVertexAttribP, count), suffix)(index, type, normalized, value);         \
                                                                                                \
     if(IsActiveCapturing(m_State))                                                             \
     {                                                                                          \
