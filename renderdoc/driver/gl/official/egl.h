@@ -36,7 +36,7 @@ extern "C" {
 ** Khronos $Revision$ on $Date$
 */
 
-#include <EGL/eglplatform.h>
+#include "eglplatform.h"
 
 /* Generated on date 20170203 */
 
@@ -53,8 +53,8 @@ extern "C" {
 #define EGL_VERSION_1_0 1
 typedef unsigned int EGLBoolean;
 typedef void *EGLDisplay;
-#include <KHR/khrplatform.h>
-#include <EGL/eglplatform.h>
+#include "eglplatform.h"
+#include "khrplatform.h"
 typedef void *EGLConfig;
 typedef void *EGLSurface;
 typedef void *EGLContext;

@@ -34,7 +34,7 @@
  * by filing a bug against product "EGL" component "Registry".
  */
 
-#include <KHR/khrplatform.h>
+#include "khrplatform.h"
 
 /* Macros used in EGL function prototype declarations.
  *
