@@ -185,8 +185,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   ReleaseDC(w, dc);
   DestroyWindow(w);
 
-  GLReplay::PreContextInitCounters();
-
   // we don't use the default framebuffer (backbuffer) for anything, so we make it
   // tiny and with no depth/stencil bits
   pfd.iPixelType = PFD_TYPE_RGBA;
@@ -205,7 +203,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   {
     RDCERR("Couldn't choose pixel format");
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
@@ -214,7 +211,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   {
     RDCERR("Couldn't set pixel format");
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
@@ -261,7 +257,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   {
     RDCERR("Couldn't create 3.2 RC - RenderDoc requires OpenGL 3.2 availability");
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }
 
@@ -274,7 +269,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     wglMakeCurrentProc(NULL, NULL);
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
@@ -289,7 +283,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     wglMakeCurrentProc(NULL, NULL);
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
@@ -300,7 +293,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     wglMakeCurrentProc(NULL, NULL);
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
@@ -313,7 +305,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     wglMakeCurrentProc(NULL, NULL);
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 

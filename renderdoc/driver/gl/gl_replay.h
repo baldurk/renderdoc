@@ -231,11 +231,6 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
-  // called before any context is created, to init any counters
-  static void PreContextInitCounters();
-  // called after any context is destroyed, to do corresponding shutdown of counters
-  static void PostContextShutdownCounters();
-
   void SetReplayData(GLWindowingData data);
 
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
@@ -385,11 +380,6 @@ private:
   void DeleteDebugData();
 
   void CheckGLSLVersion(const char *sl, int &glslVersion);
-
-  // called after the context is created, to init any counters
-  void PostContextInitCounters();
-  // called before the context is destroyed, to shutdown any counters
-  void PreContextShutdownCounters();
 
   void FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
                   const vector<GPUCounter> &counters);

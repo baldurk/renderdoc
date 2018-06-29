@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+#include "driver/ihv/amd/amd_counters.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
@@ -57,7 +58,7 @@ GLReplay::GLReplay()
 
 void GLReplay::Shutdown()
 {
-  PreContextShutdownCounters();
+  SAFE_DELETE(m_pAMDCounters);
 
   DeleteDebugData();
 
@@ -73,8 +74,6 @@ void GLReplay::Shutdown()
   }
 
   delete m_pDriver;
-
-  GLReplay::PostContextShutdownCounters();
 }
 
 ReplayStatus GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
@@ -223,7 +222,27 @@ void GLReplay::SetReplayData(GLWindowingData data)
 
   InitDebugData();
 
-  PostContextInitCounters();
+  AMDCounters *counters = NULL;
+
+  if(m_Vendor == GPUVendor::AMD)
+  {
+    RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+    counters = new AMDCounters();
+  }
+  else
+  {
+    RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+  }
+
+  if(counters && counters->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
+  {
+    m_pAMDCounters = counters;
+  }
+  else
+  {
+    delete counters;
+    m_pAMDCounters = NULL;
+  }
 }
 
 void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)

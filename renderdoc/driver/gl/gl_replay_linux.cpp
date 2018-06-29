@@ -135,8 +135,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   int attribs[64] = {0};
   int i = 0;
 
-  GLReplay::PreContextInitCounters();
-
   attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
   int &major = attribs[i];
   attribs[i++] = 0;
@@ -168,7 +166,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if(fbcfg == NULL)
   {
-    GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't choose default framebuffer config");
     return ReplayStatus::APIInitFailed;
   }
@@ -206,7 +203,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   if(ctx == NULL || X11ErrorSeen)
   {
     XFree(fbcfg);
-    GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
     return ReplayStatus::APIHardwareUnsupported;
   }
@@ -227,7 +223,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't make pbuffer & context current");
     return ReplayStatus::APIInitFailed;
   }
@@ -245,7 +240,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
@@ -259,7 +253,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }
 
@@ -270,7 +263,6 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }
 
