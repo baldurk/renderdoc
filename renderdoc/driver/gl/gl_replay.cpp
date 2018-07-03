@@ -2287,13 +2287,13 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     gl.glGenFramebuffers(2, fbos);
 
     gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbos[0]);
-    gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
+    gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D, tempTex, 0);
 
     gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbos[1]);
     if(texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
       gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, 0, arrayIdx);
     else
-      gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, 0);
+      gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texType, texname, 0);
 
     // do default resolve (framebuffer blit)
     gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbos[0]);

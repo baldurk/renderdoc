@@ -713,10 +713,11 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
     }
 
     if(stencil)
-      gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, m_FakeBB_DepthStencil,
-                              0);
+      gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                m_FakeBB_DepthStencil, 0);
     else
-      gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, m_FakeBB_DepthStencil, 0);
+      gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
+                                m_FakeBB_DepthStencil, 0);
   }
 
   // give the backbuffer a default clear color

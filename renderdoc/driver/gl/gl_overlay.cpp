@@ -305,7 +305,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     }
-    gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
+    gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                              DebugData.overlayTex, 0);
 
     gl.glBindTexture(texBindingEnum, curTex);
   }
@@ -637,7 +638,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     if(curDepth != 0 && curDepth == curStencil)
     {
       if(layer == 0)
-        gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy, mip);
+        gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT,
+                                  eGL_TEXTURE_2D, depthCopy, mip);
       else
         gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy,
                                      mip, layer);
@@ -645,7 +647,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     else if(curDepth != 0)
     {
       if(layer == 0)
-        gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip);
+        gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
+                                  depthCopy, mip);
       else
         gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip,
                                      layer);
@@ -653,7 +656,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     else if(curStencil != 0)
     {
       if(layer == 0)
-        gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip);
+        gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                  stencilCopy, mip);
       else
         gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip,
                                      layer);
@@ -697,11 +701,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
     // unset depth/stencil textures from overlay FBO and delete temp depth/stencil
     if(curDepth != 0 && curDepth == curStencil)
-      gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
+      gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                0, 0);
     else if(curDepth != 0)
-      gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, 0, 0);
+      gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D, 0, 0);
     else if(curStencil != 0)
-      gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, 0, 0);
+      gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D, 0, 0);
     if(depthCopy != 0)
       gl.glDeleteTextures(1, &depthCopy);
     if(stencilCopy != 0)
@@ -906,7 +911,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         // bind our FBO
         gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, overlayFBO);
-        gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
+        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                  DebugData.overlayTex, 0);
 
         // now apply the depth texture binding
         if(depthObj)
@@ -1199,7 +1205,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-        gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
+        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                  quadtexs[0], 0);
 
         GLuint curDepth = 0, depthType = 0;
 
@@ -1242,7 +1249,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         if(GetBaseFormat(fmt) == eGL_DEPTH_COMPONENT)
           dsAttach = eGL_DEPTH_ATTACHMENT;
 
-        gl.glFramebufferTexture(eGL_FRAMEBUFFER, dsAttach, quadtexs[1], 0);
+        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, dsAttach, eGL_TEXTURE_2D, quadtexs[1], 0);
 
         if(overlay == DebugOverlay::QuadOverdrawPass)
           ReplayLog(events[0], eReplay_WithoutDraw);
@@ -1352,8 +1359,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
           // modify our fbo to attach the overlay texture instead
           gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
-          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
-          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
+          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                    DebugData.overlayTex, 0);
+          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                    0, 0);
 
           gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
           gl.glDisable(eGL_BLEND);
@@ -1376,7 +1385,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           gl.glBindVertexArray(0);
           gl.glDeleteVertexArrays(1, &emptyVAO);
 
-          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
+          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                    quadtexs[0], 0);
         }
 
         gl.glDeleteFramebuffers(1, &replacefbo);

@@ -51,7 +51,8 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-  gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, outwin.BlitData.backbuffer, 0);
+  gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                            outwin.BlitData.backbuffer, 0);
 
   if(depth)
   {
@@ -144,8 +145,8 @@ void GLReplay::BindOutputWindow(uint64_t id, bool depth)
   m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, outw.BlitData.windowFBO);
   m_pDriver->glViewport(0, 0, outw.width, outw.height);
 
-  m_pDriver->glFramebufferTexture(
-      eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+  m_pDriver->glFramebufferTexture2D(
+      eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
       depth && outw.BlitData.depthstencil ? outw.BlitData.depthstencil : 0, 0);
 
   DebugData.outWidth = float(outw.width);
