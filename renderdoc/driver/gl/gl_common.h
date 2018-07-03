@@ -435,7 +435,7 @@ extern bool IsGLES;
 // and they will always fail.
 #define EXTENSION_CHECKS()                                       \
   EXT_TO_CHECK(30, 30, EXT_transform_feedback)                   \
-  EXT_TO_CHECK(30, 30, EXT_draw_buffers2)                        \
+  EXT_TO_CHECK(30, 32, EXT_draw_buffers2)                        \
   EXT_TO_CHECK(31, 99, ARB_texture_buffer_object)                \
   EXT_TO_CHECK(33, 30, ARB_explicit_attrib_location)             \
   EXT_TO_CHECK(33, 30, ARB_sampler_objects)                      \
