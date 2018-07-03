@@ -429,14 +429,20 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     gl.glUseProgram(DebugData.outlineQuadProg);
     gl.glBindProgramPipeline(0);
 
-    gl.glDisablei(eGL_SCISSOR_TEST, 0);
-
     if(HasExt[ARB_viewport_array])
+    {
+      gl.glDisablei(eGL_SCISSOR_TEST, 0);
+
       gl.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
                             rs.Viewports[0].height);
+    }
     else
+    {
+      gl.glDisable(eGL_SCISSOR_TEST);
+
       gl.glViewport((GLint)rs.Viewports[0].x, (GLint)rs.Viewports[0].y,
                     (GLsizei)rs.Viewports[0].width, (GLsizei)rs.Viewports[0].height);
+    }
 
     gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
     OutlineUBOData *cdata =
