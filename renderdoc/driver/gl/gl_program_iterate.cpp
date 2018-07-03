@@ -868,7 +868,7 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
       {
         // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
         // TODO what to do if that extension is not supported
-        RDCERR("glBindFragDataLocation is not supported!");
+        RDCWARN("glBindFragDataLocation is not supported!");
       }
     }
   }
@@ -955,7 +955,7 @@ void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, const GLH
             {
               // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
               // TODO what to do if that extension is not supported
-              RDCERR("glBindFragDataLocation is not supported!");
+              RDCWARN("glBindFragDataLocation is not supported!");
             }
           }
         }
