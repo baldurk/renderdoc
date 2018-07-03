@@ -1477,8 +1477,8 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
   {
     for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(Blends)); i++)
     {
-      if(Blends[i].EquationRGB ==
-         eGL_NONE)    // not set, possibly there were lesser draw buffers during capture
+      // not set, possibly there were lesser draw buffers during capture
+      if(Blends[i].EquationRGB == eGL_NONE)
         continue;
 
       m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB,
@@ -1489,6 +1489,21 @@ void GLRenderState::ApplyState(WrappedOpenGL *gl)
         m_Real->glEnablei(eGL_BLEND, i);
       else
         m_Real->glDisablei(eGL_BLEND, i);
+    }
+  }
+  else
+  {
+    // not set, possibly there were lesser draw buffers during capture
+    if(Blends[0].EquationRGB != eGL_NONE)
+    {
+      m_Real->glBlendFuncSeparate(Blends[0].SourceRGB, Blends[0].DestinationRGB,
+                                  Blends[0].SourceAlpha, Blends[0].DestinationAlpha);
+      m_Real->glBlendEquationSeparate(Blends[0].EquationRGB, Blends[0].EquationAlpha);
+
+      if(Blends[0].Enabled)
+        m_Real->glEnable(eGL_BLEND);
+      else
+        m_Real->glDisable(eGL_BLEND);
     }
   }
 
