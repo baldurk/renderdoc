@@ -529,6 +529,9 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
           gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
           HasExt[ARB_copy_image] && HasExt[ARB_texture_storage] && !IsGLES)
   {
+    GLuint prevTex = 0;
+    gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&prevTex);
+
     GLuint texs[2];
     gl.glGenTextures(2, texs);
 
@@ -557,7 +560,7 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       RDCWARN("Using hack to avoid glCopyImageSubData on lowest mips of compressed texture");
     }
 
-    gl.glBindTexture(eGL_TEXTURE_2D, 0);
+    gl.glBindTexture(eGL_TEXTURE_2D, prevTex);
     gl.glDeleteTextures(2, texs);
 
     ClearGLErrors(gl);
@@ -565,6 +568,7 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
     //////////////////////////////////////////////////////////////////////////
     // Check copying cubemaps
 
+    gl.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&prevTex);
     gl.glGenTextures(2, texs);
 
     const size_t dim = 32;
@@ -627,7 +631,7 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
       }
     }
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, 0);
+    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevTex);
     gl.glDeleteTextures(2, texs);
 
     ClearGLErrors(gl);
@@ -666,6 +670,10 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
      gl.glDeleteVertexArrays && gl.glGenFramebuffers && gl.glBindFramebuffer &&
      gl.glDeleteFramebuffers)
   {
+    GLuint prevFBO = 0, prevVAO = 0;
+    gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevFBO);
+    gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+
     // gen & create an FBO and VAO
     GLuint fbo = 0;
     GLuint vao = 0;
@@ -696,6 +704,9 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
 
       platform.DeleteContext(child);
     }
+
+    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevFBO);
+    gl.glBindVertexArray(prevVAO);
 
     gl.glDeleteFramebuffers(1, &fbo);
     gl.glDeleteVertexArrays(1, &vao);
