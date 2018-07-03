@@ -33,7 +33,7 @@ out gl_PerVertex
 };
 #endif
 
-layout (location = 0) out vec4 OUT_secondary;
+layout (location = 0) out vec4 secondary;
 layout (location = 1) out vec4 norm;
 
 void main(void)
@@ -60,7 +60,7 @@ void main(void)
 
 	gl_Position = Mesh.mvp * pos;
 	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[VERTEX_ID%4]*gl_Position.w;
-	OUT_secondary = IN_secondary;
+	secondary = IN_secondary;
 	norm = vec4(0, 0, 1, 1);
 
 #ifdef VULKAN

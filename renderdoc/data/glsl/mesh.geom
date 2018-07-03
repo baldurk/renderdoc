@@ -32,8 +32,8 @@ layout(triangle_strip, max_vertices = 3) out;
 layout (location = 0) in vec4 IN_secondary[3];
 layout (location = 1) in vec4 IN_norm[3];
 
-layout (location = 0) out vec4 OUT_secondary;
-layout (location = 1) out vec4 OUT_norm;
+layout (location = 0) out vec4 secondary;
+layout (location = 1) out vec4 norm;
 
 #ifndef OPENGL_ES
 in gl_PerVertex
@@ -58,8 +58,8 @@ void main()
     for(int i=0; i < 3; i++)
     {
 		gl_Position = gl_in[i].gl_Position;
-		OUT_secondary = IN_secondary[i];
-		OUT_norm = vec4(faceNormal.xyz, 1);
+		secondary = IN_secondary[i];
+		norm = vec4(faceNormal.xyz, 1);
         EmitVertex();
     }
     EndPrimitive();
