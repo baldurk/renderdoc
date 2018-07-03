@@ -955,8 +955,8 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   copyText.setEnabled(!edit->selectionEmpty());
 
   QObject::connect(&copyText, &QAction::triggered,
-                   [this, edit] { edit->copyRange(edit->selectionStart(), edit->selectionEnd()); });
-  QObject::connect(&selectAll, &QAction::triggered, [this, edit] { edit->selectAll(); });
+                   [edit] { edit->copyRange(edit->selectionStart(), edit->selectionEnd()); });
+  QObject::connect(&selectAll, &QAction::triggered, [edit] { edit->selectAll(); });
 
   contextMenu.addAction(&copyText);
   contextMenu.addAction(&selectAll);
@@ -1031,7 +1031,7 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
   {
     RDTreeWidget *tree = qobject_cast<RDTreeWidget *>(w);
 
-    QObject::connect(&copyValue, &QAction::triggered, [this, tree] { tree->copySelection(); });
+    QObject::connect(&copyValue, &QAction::triggered, [tree] { tree->copySelection(); });
 
     addWatch.setEnabled(tree->selectedItem() != NULL);
 
