@@ -221,6 +221,11 @@ typedef BOOL(APIENTRYP *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count
 
 #include "api/replay/renderdoc_replay.h"
 
+// bit of a hack, to work around C4127: conditional expression is constant
+// on template parameters
+template <typename T>
+T CheckConstParam(T t);
+
 // define this if you e.g. haven't compiled the D3D modules and want to disable
 // interop capture support.
 #define RENDERDOC_DX_GL_INTEROP OPTION_ON

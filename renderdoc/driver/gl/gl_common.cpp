@@ -42,6 +42,12 @@ int GLCoreVersion = 0;
 bool GLIsCore = false;
 bool IsGLES = false;
 
+template <>
+bool CheckConstParam(bool t)
+{
+  return t;
+}
+
 bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
                         PFNGLGETSTRINGIPROC getStri)
 {

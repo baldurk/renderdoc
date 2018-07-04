@@ -294,16 +294,6 @@ void DoSerialise(SerialiserType &ser, ProgramUniforms &el)
   SERIALISE_MEMBER(SSBOBindings);
 }
 
-// bit of a hack, to work around C4127: conditional expression is constant
-// on template parameters
-template <typename T>
-T CheckConstParam(T t);
-template <>
-bool CheckConstParam(bool t)
-{
-  return t;
-}
-
 template <const bool CopyUniforms, const bool SerialiseUniforms, typename SerialiserType>
 static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuint progSrc,
                                   GLuint progDst, map<GLint, GLint> *locTranslate)
