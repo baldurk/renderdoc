@@ -36,6 +36,34 @@
 
 DECLARE_REFLECTION_ENUM(RDCGLenum);
 
+#if ENABLED(RDOC_WIN32)
+
+// Windows always supports both GL and GLES at compile time - because the driver may support
+// WGL_EXT_create_context_es2_profile.
+//
+// We try to replay using EGL first on all platforms, on windows this means having a libEGL.dll
+// available from an OpenGL ES emulator. This is treated as a plugin but it doesn't ship with
+// renderdoc, so if you want to replay GLES captures using such an emulator you need to drop the
+// appropriate libEGL.dll into plugins/gles/ in your RenderDoc folder.
+#define RENDERDOC_SUPPORT_GL
+#define RENDERDOC_SUPPORT_GLES
+
+// disable this option to disallow hooking EGL on windows. This means that the underlying GL or D3D
+// calls will be captured instead.
+#define RENDERDOC_HOOK_EGL OPTION_ON
+
+#else
+
+// other cases are defined by build-time configuration
+
+// for consistency, we always enable this on other platforms - if GLES support is disabled at
+// compile time then it does nothing.
+#define RENDERDOC_HOOK_EGL OPTION_ON
+
+#endif
+
+#define GL_APICALL
+
 // official headers
 #include "official/glcorearb.h"
 #include "official/glext.h"
@@ -48,6 +76,16 @@ DECLARE_REFLECTION_ENUM(RDCGLenum);
 #if ENABLED(RDOC_WIN32)
 #include "official/wglext.h"
 
+#define EGLAPI
+
+// force include the elgplatform.h, as we want to use
+// our own because the system one could be a bit older and
+// propably not suitable for the given egl.h
+#include "official/eglplatform.h"
+
+#include "official/egl.h"
+#include "official/eglext.h"
+
 struct GLWindowingData
 {
   GLWindowingData()
@@ -58,21 +96,39 @@ struct GLWindowingData
   }
 
   void SetCtx(void *c) { ctx = (HGLRC)c; }
-  HDC DC;
-  HGLRC ctx;
-  HWND wnd;
+  union
+  {
+    HDC DC;
+    EGLDisplay egl_dpy;
+  };
+  union
+  {
+    HGLRC ctx;
+    EGLContext egl_ctx;
+  };
+  union
+  {
+    HWND wnd;
+    EGLSurface egl_wnd;
+  };
 };
 
 #elif ENABLED(RDOC_LINUX)
 
-#ifdef RENDERDOC_SUPPORT_GL
+#if defined(RENDERDOC_SUPPORT_GL)
 // cheeky way to prevent GL/gl.h from being included, as we want to use
 // glcorearb.h from above
 #define __gl_h_
+
+// this prevents glx.h from including its own glxext.h
+#define GLX_GLXEXT_LEGACY
+
 #include <GL/glx.h>
 #include "official/glxext.h"
+
 #endif
-#if RENDERDOC_SUPPORT_GLES
+
+#if defined(RENDERDOC_SUPPORT_GLES)
 
 // force include the elgplatform.h, as we want to use
 // our own because the system one could be a bit older and
@@ -192,7 +248,7 @@ struct GLPlatform
   virtual GLWindowingData MakeContext(GLWindowingData share) = 0;
   virtual void DeleteContext(GLWindowingData context) = 0;
   virtual void DeleteReplayContext(GLWindowingData context) = 0;
-  virtual void MakeContextCurrent(GLWindowingData data) = 0;
+  virtual bool MakeContextCurrent(GLWindowingData data) = 0;
   virtual void SwapBuffers(GLWindowingData context) = 0;
   virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) = 0;
   virtual bool IsOutputWindowVisible(GLWindowingData context) = 0;
@@ -200,8 +256,46 @@ struct GLPlatform
                                            GLWindowingData share_context) = 0;
 
   // for 'backwards compatible' overlay rendering
-  virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;
+  virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;
+
+  // for initialisation at replay time
+  virtual bool PopulateForReplay() = 0;
+  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext) = 0;
+  virtual void *GetReplayFunction(const char *funcname) = 0;
 };
+
+#if defined(RENDERDOC_SUPPORT_GL)
+
+// platform specific (WGL, GLX, etc)
+GLPlatform &GetGLPlatform();
+
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+
+// using EGL. Different name since it both platform GL and EGL libraries can be available at once
+GLPlatform &GetEGLPlatform();
+
+#endif
+
+// Win32 doesn't need to export GL functions, but we still want them as they are our hook
+// implementations.
+#if ENABLED(RDOC_WIN32)
+
+#define HOOK_EXPORT extern "C"
+#define HOOK_CC WINAPI
+
+#else
+
+#define HOOK_EXPORT extern "C" RENDERDOC_EXPORT_API
+#define HOOK_CC
+
+#endif
+
+class RDCFile;
+class IReplayDriver;
+
+ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDriver **&driver);
 
 // define stubs so other platforms can define these functions, but empty
 #if DISABLED(RDOC_WIN32)
@@ -320,6 +414,43 @@ struct GLPushPopState
   void Push(bool modern);
   void Pop(bool modern);
 };
+
+template <class DispatchTable>
+void DrawQuads(DispatchTable &GL, float width, float height, const std::vector<Vec4f> &vertices)
+{
+  const GLenum GL_MATRIX_MODE = (GLenum)0x0BA0;
+  const GLenum GL_MODELVIEW = (GLenum)0x1700;
+  const GLenum GL_PROJECTION = (GLenum)0x1701;
+
+  GLenum prevMatMode = eGL_NONE;
+  GL.glGetIntegerv(GL_MATRIX_MODE, (GLint *)&prevMatMode);
+
+  GL.glMatrixMode(GL_PROJECTION);
+  GL.glPushMatrix();
+  GL.glLoadIdentity();
+  GL.glOrtho(0.0, width, height, 0.0, -1.0, 1.0);
+
+  GL.glMatrixMode(GL_MODELVIEW);
+  GL.glPushMatrix();
+  GL.glLoadIdentity();
+
+  GL.glBegin(eGL_QUADS);
+
+  for(size_t i = 0; i < vertices.size(); i++)
+  {
+    GL.glTexCoord2f(vertices[i].z, vertices[i].w);
+    GL.glVertex2f(vertices[i].x, vertices[i].y);
+  }
+
+  GL.glEnd();
+
+  GL.glMatrixMode(GL_PROJECTION);
+  GL.glPopMatrix();
+  GL.glMatrixMode(GL_MODELVIEW);
+  GL.glPopMatrix();
+
+  GL.glMatrixMode(prevMatMode);
+}
 
 size_t GLTypeSize(GLenum type);
 
@@ -561,12 +692,10 @@ extern bool VendorCheck[VendorCheck_Count];
 
 // fills out the extension supported array and the version-specific checks above
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context);
-void CheckExtensions();
+void FetchEnabledExtensions();
 
 // verify that we got a replay context that we can work with
-bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
-                        PFNGLGETSTRINGIPROC getStri);
-
+bool CheckReplayContext();
 bool ValidateFunctionPointers();
 
 #include "core/core.h"

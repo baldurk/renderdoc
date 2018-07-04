@@ -32,7 +32,6 @@ set(sources
     official/gl32.h
     official/gl3platform.h
     official/glcorearb.h
-    official/glesext.h
     official/glext.h
     official/khrplatform.h
     wrappers/gl_buffer_funcs.cpp
@@ -49,28 +48,31 @@ set(sources
     wrappers/gl_texture_funcs.cpp
     wrappers/gl_uniform_funcs.cpp)
 
+# Common hooking code for any GL/GLES on any platform
+list(APPEND sources gl_hooks.cpp)
+
 if(APPLE)
     list(APPEND sources
-        gl_replay_apple.cpp
-        gl_hooks_apple.cpp)
+        cgl_platform.cpp
+        cgl_hooks.cpp)
 else()
-    list(APPEND sources
-        gl_hooks_linux_shared.cpp)
-
     if(ENABLE_GL)
         list(APPEND sources
             official/glxext.h
-            official/wglext.h
-            gl_replay_linux.cpp
-            glx_hooks_linux.cpp
-            gl_hooks_linux.cpp)
+            glx_dispatch_table.h
+            glx_platform.cpp
+            glx_hooks.cpp
+            glx_fake_vk_hooks.cpp)
     endif()
     if(ENABLE_GLES)
         list(APPEND sources
-            gl_hooks_egl.cpp
-            gl_hooks_egl_pass.cpp
-            gl_library_egl.cpp
-            gl_replay_egl.cpp)
+            official/egl.h
+            official/eglext.h
+            official/eglplatform.h
+            official/glesext.h
+            egl_dispatch_table.h
+            egl_platform.cpp
+            egl_hooks.cpp)
     endif()
 endif()
 

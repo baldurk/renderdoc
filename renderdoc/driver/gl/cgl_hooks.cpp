@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2018 Baldur Karlsson
+ * Copyright (c) 2018 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,18 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// bit of a hack
-#if DISABLED(RDOC_ANDROID)
-namespace Keyboard
+#include "hooks/hooks.h"
+
+class OpenGLHook : LibraryHook
 {
-void CloneDisplay(Display *dpy);
-}
-#endif
-
-void *SharedLookupFuncPtr(const char *func, void *realFunc);
-void SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *));
-void SharedCheckContext();
-void PosixHookFunctions();
-
-extern WrappedOpenGL *m_GLDriver;
-extern void *libGLdlsymHandle;
+public:
+  OpenGLHook() {}
+  ~OpenGLHook() {}
+  void RegisterHooks() {}
+};

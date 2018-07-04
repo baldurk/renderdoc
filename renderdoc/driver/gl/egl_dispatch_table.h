@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2018 Baldur Karlsson
+ * Copyright (c) 2018 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,42 +51,51 @@ typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
 typedef EGLint (*PFN_eglGetError)(void);
 typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute,
                                              EGLint *value);
+typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 
-#define EGL_SYMBOLS(FUNC)     \
-  FUNC(BindAPI);              \
-  FUNC(ChooseConfig);         \
-  FUNC(CreateContext);        \
-  FUNC(CreatePbufferSurface); \
-  FUNC(CreateWindowSurface);  \
-  FUNC(DestroyContext);       \
-  FUNC(DestroySurface);       \
-  FUNC(GetConfigAttrib);      \
-  FUNC(GetCurrentContext);    \
-  FUNC(GetCurrentDisplay);    \
-  FUNC(GetCurrentSurface);    \
-  FUNC(GetDisplay);           \
-  FUNC(GetError);             \
-  FUNC(GetProcAddress);       \
-  FUNC(Initialize);           \
-  FUNC(MakeCurrent);          \
-  FUNC(QuerySurface);         \
-  FUNC(SwapBuffers);
+#define EGL_HOOKED_SYMBOLS(FUNC) \
+  FUNC(GetDisplay, false);       \
+  FUNC(CreateContext, false);    \
+  FUNC(DestroyContext, false);   \
+  FUNC(MakeCurrent, false);      \
+  FUNC(SwapBuffers, false);      \
+  FUNC(GetProcAddress, false);   \
+  FUNC(PostSubBufferNV, true);
 
-class EGLPointers
+#define EGL_NONHOOKED_SYMBOLS(FUNC)  \
+  FUNC(BindAPI, false);              \
+  FUNC(ChooseConfig, false);         \
+  FUNC(CreatePbufferSurface, false); \
+  FUNC(CreateWindowSurface, false);  \
+  FUNC(DestroySurface, false);       \
+  FUNC(GetConfigAttrib, false);      \
+  FUNC(GetCurrentContext, false);    \
+  FUNC(GetCurrentDisplay, false);    \
+  FUNC(GetCurrentSurface, false);    \
+  FUNC(GetError, false);             \
+  FUNC(Initialize, false);           \
+  FUNC(QuerySurface, false);
+
+struct EGLDispatchTable
 {
-public:
-  EGLPointers() : m_initialized(false) {}
-  bool IsInitialized() const { return m_initialized; }
-  bool LoadSymbolsFrom(void *lib_handle);
+  // since on posix systems we need to export the functions that we're hooking, that means on replay
+  // we can't avoid coming back into those hooks again. We have a single 'hookset' that we use for
+  // dispatch during capture and on replay, but it's populated in different ways.
+  //
+  // During capture the hooking process is the primary way of filling in the real function pointers.
+  // While during replay we explicitly fill it outo the first time we need it.
+  //
+  // Note that we still assume all functions are populated (either with trampolines or the real
+  // function pointer) by the hooking process while injected - hence the name 'PopulateForReplay'.
+  bool PopulateForReplay();
 
-// Generate the EGL function pointers
-#define EGL_PTR_GEN(SYMBOL_NAME) PFN_egl##SYMBOL_NAME SYMBOL_NAME = NULL;
-  EGL_SYMBOLS(EGL_PTR_GEN)
+// Generate the EGL function pointers. We need to consider hooked and non-hooked symbols separately
+// - non-hooked symbols don't have a function hook to register, or if they do it's a dummy
+// pass-through hook that will risk calling itself via trampoline.
+#define EGL_PTR_GEN(func, isext) CONCAT(PFN_egl, func) func;
+  EGL_HOOKED_SYMBOLS(EGL_PTR_GEN)
+  EGL_NONHOOKED_SYMBOLS(EGL_PTR_GEN)
 #undef EGL_PTR_GEN
-
-private:
-  bool m_initialized;
 };
 
-GLWindowingData CreateWindowingData(const EGLPointers &egl, EGLDisplay eglDisplay,
-                                    EGLContext share_ctx, EGLNativeWindowType window);
+extern EGLDispatchTable EGL;

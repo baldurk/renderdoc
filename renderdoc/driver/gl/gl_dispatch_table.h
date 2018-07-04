@@ -27,10 +27,16 @@
 
 #include "gl_common.h"
 
+typedef std::function<void *(const char *)> PlatformGetProcAddr;
+
 // We need to disable clang-format since this struct is programmatically parsed
 // clang-format off
 struct GLDispatchTable
 {
+  // This function can be used to populate the dispatch table, fully or partiall. Any NULL function
+  // will be passed to the callback to get a pointer
+  void PopulateWithCallback(PlatformGetProcAddr lookupFunc);
+
   // These functions are called after fully populating the hookset, to emulate functions that are
   // one way or another unsupported but we can software emulate them and want to assume their
   // presence.
@@ -42,8 +48,7 @@ struct GLDispatchTable
   // Any Core functions that are semantically identical to extension variants are listed as
   // 'aliases' such that if the 'alias' is requested via *GetProcAddress, the core function
   // will be returned and used.
-
-  // ++ dllexport
+  
   PFNGLBINDTEXTUREPROC glBindTexture;
   PFNGLBLENDFUNCPROC glBlendFunc;
   PFNGLCLEARPROC glClear;
@@ -106,13 +111,6 @@ struct GLDispatchTable
   PFNGLTEXPARAMETERIPROC glTexParameteri;
   PFNGLTEXPARAMETERIVPROC glTexParameteriv;
   PFNGLVIEWPORTPROC glViewport;
-  // --
-
-  // this just means 'functions not dllexport on windows', not necessarily extensions.
-  // note that for ARB_direct_state_access there is special treatment due to interaction with
-  // EXT_direct_state_access, so those functions are listed later in the extension section
-  // rather than here in the core section where you'd expect
-  // ++ glext
   PFNGLACTIVETEXTUREPROC glActiveTexture;    // aliases glActiveTextureARB
   PFNGLTEXSTORAGE1DPROC glTexStorage1D;    // aliases glTexStorage1DEXT
   PFNGLTEXSTORAGE2DPROC glTexStorage2D;    // aliases glTexStorage2DEXT
@@ -672,29 +670,22 @@ struct GLDispatchTable
   PFNGLSPECIALIZESHADERPROC glSpecializeShader; // aliases glSpecializeShaderARB
 
   // EXT_direct_state_access below here. We only include the functions relevant for core 3.2+ GL,
-  // not any
-  // functions for legacy functionality.
+  // not any functions for legacy functionality.
   //
   // NOTE: we set up ARB_dsa functions as aliases of EXT_dsa functions where they are identical.
   // This breaks our 'rule' of making core functions the canonical versions, but for good reason.
   //
   // As with other aliases, this assumes the functions defined to have identical semantics are safe
-  // to substitute
-  // for each other (which in theory should be true). We do it this way around rather than have
-  // EXT_dsa as aliases
-  // of ARB_dsa - which is usually what we do for EXT extension variants. The reason being we want
-  // to support hw/sw
-  // configurations where ARB_dsa is not present, so we need to fall back on EXT_dsa. If the EXT
-  // functions are the
-  // aliases, we will never fetch them when getting function pointers, so if ARB_dsa functions
-  // aren't present then
-  // we just get NULL. In theory EXT_dsa supported cases should be a strict superset of ARB_dsa
-  // supported cases, so
-  // it's safe to always use the EXT variant when they're identical.
+  // to substitute for each other (which in theory should be true). We do it this way around rather
+  // than have EXT_dsa as aliases of ARB_dsa - which is usually what we do for EXT extension
+  // variants. The reason being we want to support hw/sw configurations where ARB_dsa is not
+  // present, so we need to fall back on EXT_dsa. If the EXT functions are the aliases, we will
+  // never fetch them when getting function pointers, so if ARB_dsa functions aren't present then we
+  // just get NULL. In theory EXT_dsa supported cases should be a strict superset of ARB_dsa
+  // supported cases, so it's safe to always use the EXT variant when they're identical.
   //
   // Where a function is different, or unique to ARB_dsa, we include both separately. For ARB_dsa
-  // unique functions
-  // these are at the end, noted by comments.
+  // unique functions these are at the end, noted by comments.
 
   PFNGLCOMPRESSEDTEXTUREIMAGE1DEXTPROC glCompressedTextureImage1DEXT;
   PFNGLCOMPRESSEDTEXTUREIMAGE2DEXTPROC glCompressedTextureImage2DEXT;
@@ -913,9 +904,20 @@ struct GLDispatchTable
   PFNWGLDXOBJECTACCESSNVPROC wglDXObjectAccessNV;
   PFNWGLDXLOCKOBJECTSNVPROC wglDXLockObjectsNV;
   PFNWGLDXUNLOCKOBJECTSNVPROC wglDXUnlockObjectsNV;
-
-  // --
 };
 // clang-format on
 
 extern GLDispatchTable GL;
+
+class WrappedOpenGL;
+
+// the hooks need to call into our wrapped implementation from the entry point, but there can be
+// multiple ways to initialise on a given platform, so whenever a context becomes active we call
+// this function to register the 'active' GL implementation. This does mean e.g. we don't support
+// wgl or glX and EGL together in the same application.
+void SetDriverForHooks(WrappedOpenGL *driver);
+
+// this function looks up our list of hook entry points and returns our hook entry point instead of
+// the real function, if it exists, or the real function if not. It's used in the platform-specific
+// implementations of GetProcAddress to look up the shared list of hooks.
+void *HookedGetProcAddress(const char *funcname, void *realFunc);

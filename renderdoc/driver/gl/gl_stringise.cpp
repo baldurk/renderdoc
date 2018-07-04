@@ -43,15 +43,9 @@ std::string DoStringise(const GLChunk &el)
 
 // re-use list of GL functions as chunks. Many of these will be aliased. This may not appear in the
 // same order as the definition, but that's OK.
-#undef HookExtension
-#define HookExtension(funcPtrType, function) \
-  STRINGISE_ENUM_CLASS_NAMED(function, STRINGIZE(function));
+#define StringiseFunction(function, alias) STRINGISE_ENUM_CLASS_NAMED(alias, STRINGIZE(alias));
 
-#undef HookExtensionAlias
-#define HookExtensionAlias(funcPtrType, function, alias) \
-  STRINGISE_ENUM_CLASS_NAMED(alias, STRINGIZE(alias));
-
-    HookCheckGLExtensions()
+    ForEachSupported(StringiseFunction)
   }
   END_ENUM_STRINGISE()
 }

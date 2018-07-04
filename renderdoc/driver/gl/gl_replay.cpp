@@ -3196,12 +3196,111 @@ void GLReplay::CloseReplayContext()
   m_pDriver->m_Platform.DeleteReplayContext(m_ReplayCtx);
 }
 
+ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDriver **&driver)
+{
+  GLInitParams initParams;
+  uint64_t ver = GLInitParams::CurrentVersion;
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
+  {
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!GLInitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible OpenGL serialise version %llu", ver);
+      return ReplayStatus::APIIncompatibleVersion;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
+  }
+
+  GLWindowingData data = {};
+
+  ReplayStatus status = platform.InitialiseAPI(data);
+
+  // any errors will be already printed, just pass the error up
+  if(status != ReplayStatus::Succeeded)
+    return status;
+
+  bool current = platform.MakeContextCurrent(data);
+  if(!current)
+  {
+    RDCERR("Couldn't active the created GL ES context");
+    platform.DeleteContext(data);
+    return ReplayStatus::APIInitFailed;
+  }
+
+  // we use the platform's function which tries GL's GetProcAddress first, then falls back to
+  // regular function lookup
+  GL.PopulateWithCallback([&platform](const char *func) { return platform.GetReplayFunction(func); });
+
+  FetchEnabledExtensions();
+
+  // see gl_emulated.cpp
+  GL.EmulateUnsupportedFunctions();
+  GL.EmulateRequiredExtensions();
+
+  bool extensionsValidated = CheckReplayContext();
+
+  if(!extensionsValidated)
+  {
+    platform.DeleteContext(data);
+    return ReplayStatus::APIInitFailed;
+  }
+
+  bool functionsValidated = ValidateFunctionPointers();
+  if(!functionsValidated)
+  {
+    platform.DeleteContext(data);
+    return ReplayStatus::APIHardwareUnsupported;
+  }
+
+  WrappedOpenGL *gldriver = new WrappedOpenGL(platform);
+  gldriver->SetDriverType(rdc->GetDriver());
+
+  RDCLOG("Created %s replay device.", ToStr(rdc->GetDriver()).c_str());
+
+  GLReplay *replay = gldriver->GetReplay();
+  replay->SetProxy(rdc == NULL);
+  replay->SetReplayData(data);
+
+  gldriver->Initialise(initParams, ver);
+
+  *driver = (IReplayDriver *)replay;
+  return ReplayStatus::Succeeded;
+}
+
 class GLDummyPlatform : public GLPlatform
 {
   virtual GLWindowingData MakeContext(GLWindowingData share) { return GLWindowingData(); }
   virtual void DeleteContext(GLWindowingData context) {}
   virtual void DeleteReplayContext(GLWindowingData context) {}
-  virtual void MakeContextCurrent(GLWindowingData data) {}
+  virtual bool MakeContextCurrent(GLWindowingData data) { return true; }
   virtual void SwapBuffers(GLWindowingData context) {}
   virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) {}
   virtual bool IsOutputWindowVisible(GLWindowingData context) { return false; }
@@ -3210,12 +3309,10 @@ class GLDummyPlatform : public GLPlatform
   {
     return GLWindowingData();
   }
-  virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
-  {
-    return false;
-  }
-
+  virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
+  virtual void *GetReplayFunction(const char *funcname) { return NULL; }
   // for initialisation at replay time
+  virtual bool PopulateForReplay() { return true; }
   virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
   {
     return ReplayStatus::Succeeded;
@@ -3245,8 +3342,20 @@ static StructuredProcessRegistration GLESProcessRegistration(RDCDriver::OpenGLES
 
 #if defined(RENDERDOC_SUPPORT_GL)
 
-// defined in gl_replay_<platform>.cpp
-ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
+ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+{
+  RDCDEBUG("Creating an OpenGL replay device");
+
+  bool load_ok = GetGLPlatform().PopulateForReplay();
+
+  if(!load_ok)
+  {
+    RDCERR("Couldn't find required GLX function addresses");
+    return ReplayStatus::APIInitFailed;
+  }
+
+  return CreateReplayDevice(rdc, GetGLPlatform(), driver);
+}
 
 static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateReplayDevice);
 
@@ -3254,9 +3363,20 @@ static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateRepl
 
 #if defined(RENDERDOC_SUPPORT_GLES)
 
-// defined in gl_replay_egl.cpp
-ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
-void GLES_ProcessStructured(RDCFile *rdc, SDFile &output);
+ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+{
+  RDCDEBUG("Creating an OpenGL ES replay device");
+
+  bool load_ok = GetEGLPlatform().PopulateForReplay();
+
+  if(!load_ok)
+  {
+    RDCERR("Couldn't find required EGL function addresses");
+    return ReplayStatus::APIInitFailed;
+  }
+
+  return CreateReplayDevice(rdc, GetEGLPlatform(), driver);
+}
 
 static DriverRegistration GLESDriverRegistration(RDCDriver::OpenGLES, &GLES_CreateReplayDevice);
 

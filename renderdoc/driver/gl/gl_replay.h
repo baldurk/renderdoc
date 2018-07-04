@@ -425,6 +425,3 @@ private:
 
   vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 };
-
-void PopulateGLFunctions();
-GLPlatform &GetGLPlatform();

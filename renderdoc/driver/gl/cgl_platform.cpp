@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2016-2018 Baldur Karlsson
+ * Copyright (c) 2018 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,39 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "gl_replay.h"
-#include "serialise/rdcfile.h"
-#include "gl_driver.h"
-#include "gl_resources.h"
+#include "driver/gl/gl_common.h"
 
-ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+class CGLPlatform : public GLPlatform
 {
-  RDCUNIMPLEMENTED("GL_CreateReplayDevice");
-  return ReplayStatus::APIHardwareUnsupported;
+  bool MakeContextCurrent(GLWindowingData data) { return false; }
+  GLWindowingData MakeContext(GLWindowingData share)
+  {
+    GLWindowingData ret;
+    return ret;
+  }
+
+  void DeleteContext(GLWindowingData context) {}
+  void DeleteReplayContext(GLWindowingData context) {}
+  void SwapBuffers(GLWindowingData context) {}
+  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) { w = h = 0; }
+  bool IsOutputWindowVisible(GLWindowingData context) { return false; }
+  GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)
+  {
+    GLWindowingData ret = {};
+    return ret;
+  }
+
+  void *GetReplayFunction(const char *funcname) { return NULL; }
+  bool PopulateForReplay() { return false; }
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
+  {
+    return ReplayStatus::APIUnsupported;
+  }
+
+  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
+} cglPlatform;
+
+GLPlatform &GetGLPlatform()
+{
+  return cglPlatform;
 }

@@ -48,9 +48,19 @@ bool CheckConstParam(bool t)
   return t;
 }
 
-bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
-                        PFNGLGETSTRINGIPROC getStri)
+bool CheckReplayContext()
 {
+#define REQUIRE_FUNC(func)                            \
+  if(!GL.func)                                        \
+  {                                                   \
+    RDCERR("Missing core function " STRINGIZE(func)); \
+    return false;                                     \
+  }
+
+  REQUIRE_FUNC(glGetString);
+  REQUIRE_FUNC(glGetStringi);
+  REQUIRE_FUNC(glGetIntegerv);
+
 // we can't do without these extensions, but they should be present on any reasonable driver
 // as they should have minimal or no hardware requirement. They were present on mesa 10.6
 // for all drivers which dates to mid 2015.
@@ -62,17 +72,16 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
   };
   bool exts[ext_count] = {};
 
-  if(getStr)
-    RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER),
-           getStr(eGL_VERSION));
+  RDCLOG("Running GL replay on: %s / %s / %s", GL.glGetString(eGL_VENDOR),
+         GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
 
   string extensionString = "";
 
   GLint numExts = 0;
-  getInt(eGL_NUM_EXTENSIONS, &numExts);
+  GL.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
   for(GLint e = 0; e < numExts; e++)
   {
-    const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
+    const char *ext = (const char *)GL.glGetStringi(eGL_EXTENSIONS, (GLuint)e);
 
     extensionString += StringFormat::Fmt("[%d]: %s, ", e, ext);
 
@@ -135,10 +144,10 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
   {
     RDCERR("RenderDoc requires these missing extensions: %s. Try updating your drivers.",
            missingExts.c_str());
-    return true;
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 bool ValidateFunctionPointers()
@@ -172,7 +181,7 @@ bool ValidateFunctionPointers()
     RDCERR(                                                                            \
         "Missing function %s, required for replay. RenderDoc requires a 3.2 context, " \
         "and a handful of extensions, see the Documentation.",                         \
-        #func);                                                                        \
+        STRINGIZE(func));                                                              \
     ret = false;                                                                       \
   }
 
@@ -385,7 +394,32 @@ bool ValidateFunctionPointers()
   return ret;
 }
 
-void CheckExtensions()
+static void CheckExtFromString(const char *ext)
+{
+  if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3])
+    return;
+
+  ext += 3;
+
+#undef EXT_TO_CHECK
+#define EXT_TO_CHECK(ver, glesver, extname)                                       \
+  if((!IsGLES && GLCoreVersion >= ver) || (IsGLES && GLCoreVersion >= glesver) || \
+     !strcmp(ext, STRINGIZE(extname)))                                            \
+    HasExt[extname] = true;
+
+  EXTENSION_CHECKS()
+
+  if(IsGLES)
+  {
+#define EXT_COMP_CHECK(extname, glesextname) \
+  if(!strcmp(ext, STRINGIZE(glesextname)))   \
+    HasExt[extname] = true;
+
+    EXTENSION_COMPATIBILITY_CHECKS()
+  }
+}
+
+void FetchEnabledExtensions()
 {
   GLint numExts = 0;
   if(GL.glGetIntegerv)
@@ -395,8 +429,6 @@ void CheckExtensions()
 
   if(GL.glGetString)
   {
-    const char *vendor = (const char *)GL.glGetString(eGL_VENDOR);
-    const char *renderer = (const char *)GL.glGetString(eGL_RENDERER);
     const char *version = (const char *)GL.glGetString(eGL_VERSION);
 
     // check whether we are using OpenGL ES
@@ -408,11 +440,21 @@ void CheckExtensions()
 
       int mj = int(version[10] - '0');
       int mn = int(version[12] - '0');
-      GLCoreVersion = mj * 10 + mn;
+      GLCoreVersion = RDCMAX(GLCoreVersion, mj * 10 + mn);
     }
-
-    RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
   }
+
+  if(GL.glGetIntegerv)
+  {
+    GLint mj = 0, mn = 0;
+    GL.glGetIntegerv(eGL_MAJOR_VERSION, &mj);
+    GL.glGetIntegerv(eGL_MINOR_VERSION, &mn);
+
+    GLCoreVersion = RDCMAX(GLCoreVersion, mj * 10 + mn);
+  }
+
+  RDCLOG("Checking enabled extensions, running as %s %d.%d", IsGLES ? "OpenGL ES" : "OpenGL",
+         (GLCoreVersion / 10), (GLCoreVersion % 10));
 
   if(GL.glGetStringi)
   {
@@ -420,37 +462,18 @@ void CheckExtensions()
     {
       const char *ext = (const char *)GL.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
 
-      if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3])
-        continue;
-
-      ext += 3;
-
-#undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, glesver, extname)                                 \
-  if((!IsGLES && GLCoreVersion >= ver) || !strcmp(ext, STRINGIZE(extname))) \
-    HasExt[extname] = true;
-
-      EXTENSION_CHECKS()
-
-      if(IsGLES)
-      {
-#define EXT_COMP_CHECK(extname, glesextname) \
-  if(!strcmp(ext, STRINGIZE(glesextname)))   \
-    HasExt[extname] = true;
-
-        EXTENSION_COMPATIBILITY_CHECKS()
-      }
+      CheckExtFromString(ext);
     }
   }
-
-  if(IsGLES)
+  else if(GL.glGetString && IsGLES && GLCoreVersion < 30)
   {
-#undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, glesver, extname) \
-  if(GLCoreVersion >= glesver)              \
-    HasExt[extname] = true;
+    std::string extstr = (const char *)GL.glGetString(eGL_EXTENSIONS);
 
-    EXTENSION_CHECKS()
+    std::vector<std::string> extlist;
+    split(extstr, extlist, ' ');
+
+    for(const std::string &e : extlist)
+      CheckExtFromString(e.c_str());
   }
 }
 
@@ -459,7 +482,13 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   const char *vendor = "";
 
   if(GL.glGetString)
+  {
     vendor = (const char *)GL.glGetString(eGL_VENDOR);
+    const char *renderer = (const char *)GL.glGetString(eGL_RENDERER);
+    const char *version = (const char *)GL.glGetString(eGL_VERSION);
+
+    RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
+  }
 
   //////////////////////////////////////////////////////////
   // version/driver/vendor specific hacks and checks go here

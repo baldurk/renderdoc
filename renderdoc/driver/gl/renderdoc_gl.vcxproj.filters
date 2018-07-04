@@ -7,23 +7,11 @@
     <Filter Include="Function Wrappers">
       <UniqueIdentifier>{73524c0e-b78f-4c76-8ca2-cb7c8f463926}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS">
-      <UniqueIdentifier>{9778b33e-19a1-4b5f-9b25-481e22bef9b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OS\Win32">
-      <UniqueIdentifier>{e6e9c1bf-7791-4730-8d4c-53063c41bd04}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OS\Linux">
-      <UniqueIdentifier>{8fccaf6f-3a16-480c-afcb-be08f13247ad}</UniqueIdentifier>
-    </Filter>
     <Filter Include="GLSL">
       <UniqueIdentifier>{4e767600-d6a0-4f5b-a944-708dafe81a94}</UniqueIdentifier>
     </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{862ce8f9-fbfc-4b7a-ae48-97d22f5ba8a4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Hookset">
-      <UniqueIdentifier>{6f9a176f-100e-4f47-9f75-0b4a0becc564}</UniqueIdentifier>
     </Filter>
     <Filter Include="Util">
       <UniqueIdentifier>{b3dc61e6-0176-4621-b0de-c77cba273f75}</UniqueIdentifier>
@@ -31,14 +19,26 @@
     <Filter Include="Replay">
       <UniqueIdentifier>{1122b6ee-006e-418b-9907-8f9d0a8b1f25}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Apple">
-      <UniqueIdentifier>{28fbc354-c414-4647-9ce6-0fcea2cbe845}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OS\EGL">
-      <UniqueIdentifier>{61304e3c-ff5e-4cb6-8c25-455f37d86b48}</UniqueIdentifier>
-    </Filter>
     <Filter Include="PCH">
       <UniqueIdentifier>{553d1c91-551a-455e-9247-6f69e4fec941}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{6f9a176f-100e-4f47-9f75-0b4a0becc564}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EGL">
+      <UniqueIdentifier>{61304e3c-ff5e-4cb6-8c25-455f37d86b48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform Interfaces">
+      <UniqueIdentifier>{9778b33e-19a1-4b5f-9b25-481e22bef9b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform Interfaces\Win32">
+      <UniqueIdentifier>{e6e9c1bf-7791-4730-8d4c-53063c41bd04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform Interfaces\Linux">
+      <UniqueIdentifier>{8fccaf6f-3a16-480c-afcb-be08f13247ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform Interfaces\Apple">
+      <UniqueIdentifier>{28fbc354-c414-4647-9ce6-0fcea2cbe845}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -56,9 +56,6 @@
     </ClInclude>
     <ClInclude Include="gl_driver.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="gl_hooks_linux_shared.h">
-      <Filter>OS\Linux</Filter>
     </ClInclude>
     <ClInclude Include="gl_resources.h">
       <Filter>Util</Filter>
@@ -102,17 +99,23 @@
     <ClInclude Include="official\khrplatform.h">
       <Filter>ARB Headers</Filter>
     </ClInclude>
-    <ClInclude Include="gl_library_egl.h">
-      <Filter>OS\EGL</Filter>
-    </ClInclude>
     <ClInclude Include="gl_initstate.h">
       <Filter>Util</Filter>
     </ClInclude>
     <ClInclude Include="gl_dispatch_table.h">
-      <Filter>Hookset</Filter>
+      <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="gl_dispatch_table_defs.h">
-      <Filter>Hookset</Filter>
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="egl_dispatch_table.h">
+      <Filter>EGL</Filter>
+    </ClInclude>
+    <ClInclude Include="wgl_dispatch_table.h">
+      <Filter>Platform Interfaces\Win32</Filter>
+    </ClInclude>
+    <ClInclude Include="glx_dispatch_table.h">
+      <Filter>Platform Interfaces\Linux</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -152,21 +155,6 @@
     <ClCompile Include="wrappers\gl_uniform_funcs.cpp">
       <Filter>Function Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="gl_hooks_win32.cpp">
-      <Filter>OS\Win32</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_replay_win32.cpp">
-      <Filter>OS\Win32</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_hooks_linux.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_hooks_linux_shared.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_replay_linux.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
     <ClCompile Include="gl_shader_refl.cpp">
       <Filter>GLSL</Filter>
     </ClCompile>
@@ -196,24 +184,6 @@
     </ClCompile>
     <ClCompile Include="wrappers\gl_interop_funcs.cpp">
       <Filter>Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="glx_hooks_linux.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_hooks_apple.cpp">
-      <Filter>OS\Apple</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_replay_apple.cpp">
-      <Filter>OS\Apple</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_hooks_egl.cpp">
-      <Filter>OS\EGL</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_hooks_egl_pass.cpp">
-      <Filter>OS\EGL</Filter>
-    </ClCompile>
-    <ClCompile Include="gl_replay_egl.cpp">
-      <Filter>OS\EGL</Filter>
     </ClCompile>
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
@@ -251,8 +221,35 @@
     <ClCompile Include="gl_rendertext.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="gl_library_egl.cpp">
-      <Filter>OS\EGL</Filter>
+    <ClCompile Include="egl_hooks.cpp">
+      <Filter>Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="egl_platform.cpp">
+      <Filter>EGL</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks.cpp">
+      <Filter>Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="wgl_platform.cpp">
+      <Filter>Platform Interfaces\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="cgl_platform.cpp">
+      <Filter>Platform Interfaces\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="cgl_hooks.cpp">
+      <Filter>Platform Interfaces\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="glx_platform.cpp">
+      <Filter>Platform Interfaces\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="wgl_hooks.cpp">
+      <Filter>Platform Interfaces\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="glx_hooks.cpp">
+      <Filter>Platform Interfaces\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="glx_fake_vk_hooks.cpp">
+      <Filter>Platform Interfaces\Linux</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
