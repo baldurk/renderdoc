@@ -935,6 +935,9 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
   // TODO: support multiple GL contexts more explicitly
   m_InitParams = initParams;
 
+  RDCLOG("%s context %p created %s, sharing with context %p", core ? "Core" : "Compatibility",
+         winData.ctx, attribsCreate ? "with attribs" : "without attribs", shareContext);
+
   ContextData &ctxdata = m_ContextData[winData.ctx];
   ctxdata.ctx = winData.ctx;
   ctxdata.isCore = core;
