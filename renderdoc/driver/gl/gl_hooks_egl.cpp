@@ -435,9 +435,7 @@ bool EGLHook::CreateHooks(const char *libName)
 
     // load the libEGL.so library and when loaded call libHooked which initialises GLES capture
     PosixHookLibrary("libEGL.so", &libHooked);
-    PosixHookLibrary("libEGL.so.1", NULL);
-    PosixHookLibrary("libGL.so.1", NULL);
-    PosixHookLibrary("libGLESv1_CM.so", NULL);
+    PosixHookLibrary("libEGL.so.1", &libHooked);
     PosixHookLibrary("libGLESv2.so", NULL);
     PosixHookLibrary("libGLESv2.so.2", NULL);
     PosixHookLibrary("libGLESv3.so", NULL);
@@ -460,6 +458,10 @@ bool EGLHook::CreateHooks(const char *libName)
 bool EGLHook::PopulateHooks()
 {
   SetupHooks();
+
+  // check to see if we managed to setup our hooks
+  if(eglhooks.real.GetDisplay == NULL)
+    return false;
 
   if(m_PopulatedHooks)
     return true;
