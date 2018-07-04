@@ -52,35 +52,3 @@ void LibraryHooks::OptionsUpdated()
   for(LibraryHook *lib : LibList())
     lib->OptionsUpdated();
 }
-
-////////////////////////////////////////////////////////////////////////
-// Very temporary compatibility layer with previous function interface.
-//
-// PosixHookFunction just calls LibraryHooks::RegisterFunctionHook and
-// stores the resulting pointer in a map to look up later in
-// PosixGetFunction
-////////////////////////////////////////////////////////////////////////
-
-static std::map<std::string, void **> origLookup;
-
-void PosixHookFunction(const char *name, void *hook)
-{
-  void **orig = origLookup[name];
-  if(orig == NULL)
-  {
-    orig = origLookup[name] = new void *;
-    *orig = NULL;
-  }
-
-  LibraryHooks::RegisterFunctionHook("", FunctionHook(name, orig, hook));
-}
-
-void *PosixGetFunction(void *handle, const char *name)
-{
-  void **orig = origLookup[name];
-  if(orig && *orig)
-    return *orig;
-
-  ScopedSuppressHooking suppress;
-  return Process::GetFunctionAddress(handle, name);
-}

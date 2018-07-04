@@ -212,10 +212,3 @@ struct ScopedSuppressHooking
   ScopedSuppressHooking();
   ~ScopedSuppressHooking();
 };
-
-////////////////////////////////////////////////////////////////////////
-// Very temporary compatibility layer with previous function interface.
-////////////////////////////////////////////////////////////////////////
-
-void PosixHookFunction(const char *name, void *hook);
-void *PosixGetFunction(void *handle, const char *name);
