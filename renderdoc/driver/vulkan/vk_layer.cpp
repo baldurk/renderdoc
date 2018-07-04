@@ -50,6 +50,8 @@ class VulkanHook : LibraryHook
   VulkanHook() {}
   void RegisterHooks()
   {
+    RDCLOG("Registering Vulkan hooks");
+
     // we don't register any library or function hooks because we use the layer system
 
     // we assume the implicit layer is registered - the UI will prompt the user about installing it.

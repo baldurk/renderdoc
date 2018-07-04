@@ -74,6 +74,8 @@ class DXGIHook : LibraryHook
 public:
   void RegisterHooks()
   {
+    RDCLOG("Registering DXGI hooks");
+
     LibraryHooks::RegisterLibraryHook("dxgi.dll", NULL);
 
     CreateDXGIFactory.Register("dxgi.dll", "CreateDXGIFactory", CreateDXGIFactory_hook);

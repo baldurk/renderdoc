@@ -88,6 +88,8 @@ class D3D12Hook : LibraryHook
 public:
   void RegisterHooks()
   {
+    RDCLOG("Registering D3D12 hooks");
+
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll

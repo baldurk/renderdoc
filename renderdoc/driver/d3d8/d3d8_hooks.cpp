@@ -33,6 +33,8 @@ class D3D8Hook : LibraryHook
 public:
   void RegisterHooks()
   {
+    RDCLOG("Registering D3D8 hooks");
+
     LibraryHooks::RegisterLibraryHook("d3d8.dll", NULL);
     Create8.Register("d3d8.dll", "Direct3DCreate8", Create8_hook);
   }

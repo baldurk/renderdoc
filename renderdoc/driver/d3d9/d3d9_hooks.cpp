@@ -42,6 +42,8 @@ class D3D9Hook : LibraryHook
 public:
   void RegisterHooks()
   {
+    RDCLOG("Registering D3D9 hooks");
+
     LibraryHooks::RegisterLibraryHook("d3d9.dll", NULL);
 
     PERF_BeginEvent.Register("d3d9.dll", "D3DPERF_BeginEvent", PERF_BeginEvent_hook);

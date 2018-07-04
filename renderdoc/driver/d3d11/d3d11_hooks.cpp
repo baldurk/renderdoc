@@ -122,6 +122,8 @@ public:
   D3D11Hook() { m_InsideCreate = false; }
   void RegisterHooks()
   {
+    RDCLOG("Registering D3D11 hooks");
+
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
