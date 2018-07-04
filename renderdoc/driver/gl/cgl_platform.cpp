@@ -45,8 +45,9 @@ class CGLPlatform : public GLPlatform
   }
 
   void *GetReplayFunction(const char *funcname) { return NULL; }
+  bool CanCreateGLESContext() { return false; }
   bool PopulateForReplay() { return false; }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
   {
     return ReplayStatus::APIUnsupported;
   }

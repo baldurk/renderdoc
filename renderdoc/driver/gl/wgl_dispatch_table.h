@@ -40,9 +40,9 @@ typedef HDC(WINAPI *PFN_wglGetCurrentDC)();
 
 // wgl extensions
 typedef PFNWGLCREATECONTEXTATTRIBSARBPROC PFN_wglCreateContextAttribsARB;
-typedef PFNWGLCHOOSEPIXELFORMATARBPROC PFN_wglChoosePixelFormatARB;
 typedef PFNWGLGETPIXELFORMATATTRIBIVARBPROC PFN_wglGetPixelFormatAttribivARB;
-typedef PFNWGLGETPIXELFORMATATTRIBFVARBPROC PFN_wglGetPixelFormatAttribfvARB;
+typedef PFNWGLGETEXTENSIONSSTRINGEXTPROC PFN_wglGetExtensionsStringEXT;
+typedef PFNWGLGETEXTENSIONSSTRINGARBPROC PFN_wglGetExtensionsStringARB;
 
 // gl functions (used for quad rendering on legacy contexts)
 typedef PFNGLGETINTEGERVPROC PFN_glGetIntegerv;
@@ -83,6 +83,8 @@ typedef LONG(WINAPI *PFN_ChangeDisplaySettingsExW)(LPCWSTR, DEVMODEW *, HWND, DW
   FUNC("opengl32.dll", wglGetCurrentContext); \
   FUNC("opengl32.dll", wglGetCurrentDC);      \
   FUNC("", wglGetPixelFormatAttribivARB);     \
+  FUNC("", wglGetExtensionsStringEXT);        \
+  FUNC("", wglGetExtensionsStringARB);        \
   FUNC("opengl32.dll", glGetIntegerv);        \
   FUNC("opengl32.dll", glPushMatrix);         \
   FUNC("opengl32.dll", glLoadIdentity);       \

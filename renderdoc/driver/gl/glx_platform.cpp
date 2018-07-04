@@ -296,9 +296,32 @@ class GLXPlatform : public GLPlatform
     return ret;
   }
 
-  bool PopulateForReplay() { return GLX.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
+  bool CanCreateGLESContext()
   {
+    bool success = GLX.PopulateForReplay();
+
+    // if we can't populate our functions we bail now.
+    if(!success)
+      return false;
+
+    // we need to check for the presence of EXT_create_context_es2_profile
+    Display *dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
+
+    const char *exts = GLX.glXQueryExtensionsString(dpy, DefaultScreen(dpy));
+
+    bool ret = (strstr(exts, "EXT_create_context_es2_profile") != NULL);
+
+    RDCDEBUG("%s find EXT_create_context_es2_profile to create GLES context",
+             ret ? "Could" : "Couldn't");
+
+    return ret;
+  }
+
+  bool PopulateForReplay() { return GLX.PopulateForReplay(); }
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  {
+    RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
+
     int attribs[64] = {0};
     int i = 0;
 
@@ -315,7 +338,8 @@ class GLXPlatform : public GLPlatform
     attribs[i++] = 0;
 #endif
     attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
-    attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+    attribs[i++] = api == RDCDriver::OpenGLES ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT
+                                              : GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
 
     Display *dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
 
@@ -339,25 +363,17 @@ class GLXPlatform : public GLPlatform
 
     GLXContext ctx = NULL;
 
-    // try to create all versions from 4.6 down to 3.2 in order to get the
-    // highest versioned context we can
-    struct
-    {
-      int major;
-      int minor;
-    } versions[] = {
-        {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
-    };
-
     {
       X11ErrorHandler prev = XSetErrorHandler(&NonFatalX11ErrorHandler);
 
-      for(size_t v = 0; v < ARRAY_COUNT(versions); v++)
+      std::vector<GLVersion> versions = GetReplayVersions(api);
+
+      for(GLVersion v : versions)
       {
         X11ErrorSeen = false;
 
-        major = versions[v].major;
-        minor = versions[v].minor;
+        major = v.major;
+        minor = v.minor;
         ctx = GLX.glXCreateContextAttribsARB(dpy, fbcfg[0], 0, true, attribs);
 
         if(ctx && !X11ErrorSeen)

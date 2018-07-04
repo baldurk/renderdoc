@@ -3241,7 +3241,7 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
 
   GLWindowingData data = {};
 
-  ReplayStatus status = platform.InitialiseAPI(data);
+  ReplayStatus status = platform.InitialiseAPI(data, rdc->GetDriver());
 
   // any errors will be already printed, just pass the error up
   if(status != ReplayStatus::Succeeded)
@@ -3312,8 +3312,9 @@ class GLDummyPlatform : public GLPlatform
   virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
   virtual void *GetReplayFunction(const char *funcname) { return NULL; }
   // for initialisation at replay time
+  virtual bool CanCreateGLESContext() { return true; }
   virtual bool PopulateForReplay() { return true; }
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
+  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
   {
     return ReplayStatus::Succeeded;
   }
@@ -3339,6 +3340,24 @@ void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
 static StructuredProcessRegistration GLProcessRegistration(RDCDriver::OpenGL, &GL_ProcessStructured);
 static StructuredProcessRegistration GLESProcessRegistration(RDCDriver::OpenGLES,
                                                              &GL_ProcessStructured);
+
+std::vector<GLVersion> GetReplayVersions(RDCDriver api)
+{
+  // try to create all versions from highest down to lowest in order to get the highest versioned
+  // context we can
+  if(api == RDCDriver::OpenGLES)
+  {
+    return {
+        {3, 2}, {3, 1}, {3, 0},
+    };
+  }
+  else
+  {
+    return {
+        {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
+    };
+  }
+}
 
 #if defined(RENDERDOC_SUPPORT_GL)
 
@@ -3367,15 +3386,46 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL ES replay device");
 
-  bool load_ok = GetEGLPlatform().PopulateForReplay();
-
-  if(!load_ok)
+  // for GLES replay, we try to use EGL if it's available. If it's not available, we look to see if
+  // we can create an OpenGL ES context via the platform GL functions
+  if(GetEGLPlatform().CanCreateGLESContext())
   {
-    RDCERR("Couldn't find required EGL function addresses");
-    return ReplayStatus::APIInitFailed;
+    bool load_ok = GetEGLPlatform().PopulateForReplay();
+
+    if(!load_ok)
+    {
+      RDCERR("Couldn't find required EGL function addresses");
+      return ReplayStatus::APIInitFailed;
+    }
+
+    return CreateReplayDevice(rdc, GetEGLPlatform(), driver);
+  }
+#if defined(RENDERDOC_SUPPORT_GL)
+  else if(GetGLPlatform().CanCreateGLESContext())
+  {
+    RDCDEBUG("libEGL is not available, falling back to EXT_create_context_es2_profile");
+
+    bool load_ok = GetGLPlatform().PopulateForReplay();
+
+    if(!load_ok)
+    {
+      RDCERR("Couldn't find required GLX function addresses");
+      return ReplayStatus::APIInitFailed;
+    }
+
+    return CreateReplayDevice(rdc, GetGLPlatform(), driver);
   }
 
-  return CreateReplayDevice(rdc, GetEGLPlatform(), driver);
+  RDCERR(
+      "libEGL not available, and GL cannot initialise or doesn't support "
+      "EXT_create_context_es2_profile");
+  return ReplayStatus::APIInitFailed;
+#else
+  // no GL support, no fallback apart from EGL
+
+  RDCERR("libEGL is not available");
+  return ReplayStatus::APIInitFailed;
+#endif
 }
 
 static DriverRegistration GLESDriverRegistration(RDCDriver::OpenGLES, &GLES_CreateReplayDevice);

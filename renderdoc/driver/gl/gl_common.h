@@ -26,6 +26,7 @@
 #pragma once
 
 #include "common/common.h"
+#include "core/core.h"
 #include "maths/vec.h"
 
 // typed enum so that templates will pick up specialisations
@@ -259,10 +260,19 @@ struct GLPlatform
   virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;
 
   // for initialisation at replay time
+  virtual bool CanCreateGLESContext() = 0;
   virtual bool PopulateForReplay() = 0;
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext) = 0;
+  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api) = 0;
   virtual void *GetReplayFunction(const char *funcname) = 0;
 };
+
+struct GLVersion
+{
+  int major;
+  int minor;
+};
+
+std::vector<GLVersion> GetReplayVersions(RDCDriver api);
 
 #if defined(RENDERDOC_SUPPORT_GL)
 

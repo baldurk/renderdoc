@@ -179,18 +179,12 @@ class EGLPlatform : public GLPlatform
                            EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
                            EGL_NONE};
 
-    struct
-    {
-      int major;
-      int minor;
-    } versions[] = {
-        {3, 2}, {3, 1}, {3, 0},
-    };
+    std::vector<GLVersion> versions = GetReplayVersions(RDCDriver::OpenGLES);
 
-    for(size_t v = 0; v < ARRAY_COUNT(versions); v++)
+    for(GLVersion v : versions)
     {
-      verAttribs[1] = versions[v].major;
-      verAttribs[3] = versions[v].minor;
+      verAttribs[1] = v.major;
+      verAttribs[3] = v.minor;
       ctx = EGL.CreateContext(eglDisplay, config, share_ctx, verAttribs);
 
       if(ctx)
@@ -236,9 +230,18 @@ class EGLPlatform : public GLPlatform
     return ret;
   }
 
-  bool PopulateForReplay() { return EGL.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
+  bool CanCreateGLESContext()
   {
+    // as long as we can get libEGL we're fine
+    return GetEGLHandle() != NULL;
+  }
+
+  bool PopulateForReplay() { return EGL.PopulateForReplay(); }
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  {
+    // we only support replaying GLES through EGL
+    RDCASSERT(api == RDCDriver::OpenGLES);
+
     EGL.BindAPI(EGL_OPENGL_ES_API);
 
     EGLDisplay eglDisplay = EGL.GetDisplay(EGL_DEFAULT_DISPLAY);

@@ -197,7 +197,7 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig conf
 
   RDCDEBUG("glXCreateContextAttribsARB:");
 
-  bool core = false;
+  bool core = false, es = false;
 
   int *a = (int *)attribs;
   while(*a)
@@ -205,9 +205,18 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig conf
     RDCDEBUG("%x: %d", a[0], a[1]);
 
     if(a[0] == GLX_CONTEXT_PROFILE_MASK_ARB)
-      core = (a[1] & GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+    {
+      core = (a[1] & GLX_CONTEXT_CORE_PROFILE_BIT_ARB) != 0;
+      es = (a[1] & (GLX_CONTEXT_ES_PROFILE_BIT_EXT | GLX_CONTEXT_ES2_PROFILE_BIT_EXT)) != 0;
+    }
 
     a += 2;
+  }
+
+  if(es)
+  {
+    glxhook.driver.SetDriverType(RDCDriver::OpenGLES);
+    core = true;
   }
 
   GLXContext ret = GLX.glXCreateContextAttribsARB(dpy, config, shareList, direct, attribs);

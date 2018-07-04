@@ -25,6 +25,8 @@
 #include "driver/gl/gl_common.h"
 #include "driver/gl/wgl_dispatch_table.h"
 
+#define WINDOW_CLASS_NAME L"renderdocGLclass"
+
 class WGLPlatform : public GLPlatform
 {
   bool MakeContextCurrent(GLWindowingData data)
@@ -108,7 +110,7 @@ class WGLPlatform : public GLPlatform
     HWND w = window.win32.window;
 
     if(w == NULL)
-      w = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdocGLclass", L"", WS_OVERLAPPEDWINDOW,
+      w = CreateWindowEx(WS_EX_CLIENTEDGE, WINDOW_CLASS_NAME, L"", WS_OVERLAPPEDWINDOW,
                          CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL,
                          GetModuleHandle(NULL), NULL);
 
@@ -237,88 +239,69 @@ class WGLPlatform : public GLPlatform
     return Process::GetFunctionAddress(Process::LoadModule("opengl32.dll"), funcname);
   }
 
-  bool PopulateForReplay() { return WGL.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext)
+  bool CanCreateGLESContext()
   {
-    WNDCLASSEX wc = {};
-    wc.style = CS_OWNDC;
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.lpfnWndProc = DefWindowProc;
-    wc.hInstance = GetModuleHandle(NULL);
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.lpszClassName = L"renderdocGLclass";
+    bool success = WGL.PopulateForReplay();
 
-    WNDCLASSEX dummyCheck = {};
+    // if we can't populate our functions we bail now.
+    if(!success)
+      return false;
 
-    // if the class isn't already registered, then register it.
-    if(!GetClassInfoExW(wc.hInstance, wc.lpszClassName, &dummyCheck))
-    {
-      if(!RegisterClassEx(&wc))
-      {
-        RDCERR("Couldn't register GL window class");
-        return ReplayStatus::APIInitFailed;
-      }
-    }
+    // we need to check for the presence of EXT_create_context_es2_profile.
+    // Unfortunately on windows this means creating a trampoline context
+    success = RegisterClass();
 
-    PIXELFORMATDESCRIPTOR pfd = {0};
-    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iLayerType = PFD_MAIN_PLANE;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 32;
-    pfd.cDepthBits = 24;
-    pfd.cStencilBits = 0;
+    if(!success)
+      return false;
 
-    HWND w = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdocGLclass", L"", WS_OVERLAPPEDWINDOW,
-                            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL,
-                            GetModuleHandle(NULL), NULL);
+    HWND w = NULL;
+    HDC dc = NULL;
+    HGLRC rc = NULL;
 
-    HDC dc = GetDC(w);
+    success = CreateTrampolineContext(w, dc, rc);
 
-    int pf = ::ChoosePixelFormat(dc, &pfd);
-    if(pf == 0)
-    {
-      ReleaseDC(w, dc);
-      DestroyWindow(w);
-      RDCERR("Couldn't choose pixel format");
+    if(!success)
+      return false;
+
+    const char *exts = NULL;
+
+    if(WGL.wglGetExtensionsStringARB)
+      exts = WGL.wglGetExtensionsStringARB(dc);
+
+    if(!exts && WGL.wglGetExtensionsStringEXT)
+      exts = WGL.wglGetExtensionsStringEXT();
+
+    if(!exts)
+      RDCERR("Couldn't get WGL extension string");
+
+    bool ret = (exts && strstr(exts, "EXT_create_context_es2_profile") != NULL);
+
+    WGL.wglMakeCurrent(NULL, NULL);
+    WGL.wglDeleteContext(rc);
+    ReleaseDC(w, dc);
+    DestroyWindow(w);
+
+    return ret;
+  }
+
+  bool PopulateForReplay() { return WGL.PopulateForReplay(); }
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  {
+    RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
+
+    bool success = RegisterClass();
+
+    if(!success)
       return ReplayStatus::APIInitFailed;
-    }
 
-    BOOL res = ::SetPixelFormat(dc, pf, &pfd);
-    if(res == FALSE)
-    {
-      ReleaseDC(w, dc);
-      DestroyWindow(w);
-      RDCERR("Couldn't set pixel format");
+    HWND w = NULL;
+    HDC dc = NULL;
+    HGLRC rc = NULL;
+
+    success = CreateTrampolineContext(w, dc, rc);
+
+    if(!success)
       return ReplayStatus::APIInitFailed;
-    }
-
-    HGLRC rc = WGL.wglCreateContext(dc);
-    if(rc == NULL)
-    {
-      ReleaseDC(w, dc);
-      DestroyWindow(w);
-      RDCERR("Couldn't create simple RC");
-      return ReplayStatus::APIInitFailed;
-    }
-
-    res = WGL.wglMakeCurrent(dc, rc);
-    if(res == FALSE)
-    {
-      WGL.wglMakeCurrent(NULL, NULL);
-      WGL.wglDeleteContext(rc);
-      ReleaseDC(w, dc);
-      DestroyWindow(w);
-      RDCERR("Couldn't make simple RC current");
-      return ReplayStatus::APIInitFailed;
-    }
-
-    // now we can fetch the extension functions we need and fill out WGL
-    WGL.wglCreateContextAttribsARB =
-        (PFN_wglCreateContextAttribsARB)WGL.wglGetProcAddress("wglCreateContextAttribsARB");
-    WGL.wglGetPixelFormatAttribivARB =
-        (PFN_wglGetPixelFormatAttribivARB)WGL.wglGetProcAddress("wglGetPixelFormatAttribivARB");
 
     if(!WGL.wglCreateContextAttribsARB || !WGL.wglGetPixelFormatAttribivARB)
     {
@@ -337,18 +320,23 @@ class WGLPlatform : public GLPlatform
 
     // we don't use the default framebuffer (backbuffer) for anything, so we make it
     // tiny and with no depth/stencil bits
+    PIXELFORMATDESCRIPTOR pfd = {0};
+    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+    pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.iLayerType = PFD_MAIN_PLANE;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 24;
     pfd.cDepthBits = 0;
     pfd.cStencilBits = 0;
 
-    w = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdocGLclass", L"RenderDoc replay window",
+    w = CreateWindowEx(WS_EX_CLIENTEDGE, WINDOW_CLASS_NAME, L"RenderDoc replay window",
                        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 32, 32, NULL, NULL,
                        GetModuleHandle(NULL), NULL);
 
     dc = GetDC(w);
 
-    pf = ChoosePixelFormat(dc, &pfd);
+    int pf = ChoosePixelFormat(dc, &pfd);
     if(pf == 0)
     {
       RDCERR("Couldn't choose pixel format");
@@ -357,7 +345,7 @@ class WGLPlatform : public GLPlatform
       return ReplayStatus::APIInitFailed;
     }
 
-    res = SetPixelFormat(dc, pf, &pfd);
+    BOOL res = SetPixelFormat(dc, pf, &pfd);
     if(res == FALSE)
     {
       RDCERR("Couldn't set pixel format");
@@ -382,24 +370,17 @@ class WGLPlatform : public GLPlatform
     attribs[i++] = 0;
 #endif
     attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
-    attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
-
-    // try to create all versions from 4.6 down to 3.2 in order to get the
-    // highest versioned context we can
-    struct
-    {
-      int major;
-      int minor;
-    } versions[] = {
-        {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
-    };
+    attribs[i++] = api == RDCDriver::OpenGLES ? WGL_CONTEXT_ES2_PROFILE_BIT_EXT
+                                              : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
     rc = NULL;
 
-    for(size_t v = 0; v < ARRAY_COUNT(versions); v++)
+    std::vector<GLVersion> versions = GetReplayVersions(api);
+
+    for(GLVersion v : versions)
     {
-      major = versions[v].major;
-      minor = versions[v].minor;
+      major = v.major;
+      minor = v.minor;
       rc = WGL.wglCreateContextAttribsARB(dc, NULL, attribs);
 
       if(rc)
@@ -432,6 +413,104 @@ class WGLPlatform : public GLPlatform
     replayContext.wnd = w;
 
     return ReplayStatus::Succeeded;
+  }
+
+  bool CreateTrampolineContext(HWND &w, HDC &dc, HGLRC &rc)
+  {
+    PIXELFORMATDESCRIPTOR pfd = {0};
+    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+    pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.iLayerType = PFD_MAIN_PLANE;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.cColorBits = 24;
+    pfd.cDepthBits = 0;
+    pfd.cStencilBits = 0;
+
+    w = CreateWindowEx(WS_EX_CLIENTEDGE, WINDOW_CLASS_NAME, L"", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
+                       CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL,
+                       GetModuleHandle(NULL), NULL);
+
+    dc = GetDC(w);
+
+    int pf = ::ChoosePixelFormat(dc, &pfd);
+    if(pf == 0)
+    {
+      ReleaseDC(w, dc);
+      DestroyWindow(w);
+      RDCERR("Couldn't choose pixel format");
+      return false;
+    }
+
+    BOOL res = ::SetPixelFormat(dc, pf, &pfd);
+    if(res == FALSE)
+    {
+      ReleaseDC(w, dc);
+      DestroyWindow(w);
+      RDCERR("Couldn't set pixel format");
+      return false;
+    }
+
+    rc = WGL.wglCreateContext(dc);
+    if(rc == NULL)
+    {
+      ReleaseDC(w, dc);
+      DestroyWindow(w);
+      RDCERR("Couldn't create trampoline context");
+      return false;
+    }
+
+    res = WGL.wglMakeCurrent(dc, rc);
+    if(res == FALSE)
+    {
+      WGL.wglMakeCurrent(NULL, NULL);
+      WGL.wglDeleteContext(rc);
+      ReleaseDC(w, dc);
+      DestroyWindow(w);
+      RDCERR("Couldn't make trampoline context current");
+      return false;
+    }
+
+    // now we can fetch the extension functions we need and fill out WGL
+    if(!WGL.wglCreateContextAttribsARB)
+      WGL.wglCreateContextAttribsARB =
+          (PFN_wglCreateContextAttribsARB)WGL.wglGetProcAddress("wglCreateContextAttribsARB");
+    if(!WGL.wglGetPixelFormatAttribivARB)
+      WGL.wglGetPixelFormatAttribivARB =
+          (PFN_wglGetPixelFormatAttribivARB)WGL.wglGetProcAddress("wglGetPixelFormatAttribivARB");
+    if(!WGL.wglGetExtensionsStringEXT)
+      WGL.wglGetExtensionsStringEXT =
+          (PFN_wglGetExtensionsStringEXT)WGL.wglGetProcAddress("wglGetExtensionsStringEXT");
+    if(!WGL.wglGetExtensionsStringARB)
+      WGL.wglGetExtensionsStringARB =
+          (PFN_wglGetExtensionsStringARB)WGL.wglGetProcAddress("wglGetExtensionsStringARB");
+
+    return true;
+  }
+
+  bool RegisterClass()
+  {
+    WNDCLASSEX wc = {};
+    wc.style = CS_OWNDC;
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.lpfnWndProc = DefWindowProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.lpszClassName = WINDOW_CLASS_NAME;
+
+    WNDCLASSEX dummyCheck = {};
+
+    // if the class isn't already registered, then register it.
+    if(!GetClassInfoExW(wc.hInstance, wc.lpszClassName, &dummyCheck))
+    {
+      if(!RegisterClassEx(&wc))
+      {
+        RDCERR("Couldn't register GL window class");
+        return false;
+      }
+    }
+
+    return true;
   }
 
   void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)

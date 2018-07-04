@@ -36,6 +36,7 @@ typedef int (*PFN_glXGetConfig)(Display *dpy, XVisualInfo *vis, int attrib, int 
 typedef Bool (*PFN_glXIsDirect)(Display *dpy, GLXContext ctx);
 typedef __GLXextFuncPtr (*PFN_glXGetProcAddress)(const GLubyte *);
 typedef __GLXextFuncPtr (*PFN_glXGetProcAddressARB)(const GLubyte *);
+typedef const char *(*PFN_glXQueryExtensionsString)(Display *dpy, int screen);
 typedef PFNGLXGETVISUALFROMFBCONFIGPROC PFN_glXGetVisualFromFBConfig;
 typedef PFNGLXMAKECONTEXTCURRENTPROC PFN_glXMakeContextCurrent;
 typedef PFNGLXCREATEWINDOWPROC PFN_glXCreateWindow;
@@ -78,6 +79,7 @@ typedef void (*PFN_glEnd)();
   FUNC(glXChooseFBConfig);          \
   FUNC(glXGetFBConfigAttrib);       \
   FUNC(glXQueryDrawable);           \
+  FUNC(glXQueryExtensionsString);   \
   FUNC(glXCreatePbuffer);           \
   FUNC(glXDestroyPbuffer);          \
   FUNC(glGetIntegerv);              \

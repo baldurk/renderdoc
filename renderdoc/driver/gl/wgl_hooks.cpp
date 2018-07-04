@@ -73,6 +73,14 @@ void WGLHook::PopulateFromContext(HDC dc, HGLRC rc)
       WGL.wglGetPixelFormatAttribivARB =
           (PFN_wglGetPixelFormatAttribivARB)WGL.wglGetProcAddress("wglGetPixelFormatAttribivARB");
 
+    if(!WGL.wglGetExtensionsStringEXT)
+      WGL.wglGetExtensionsStringEXT =
+          (PFN_wglGetExtensionsStringEXT)WGL.wglGetProcAddress("wglGetExtensionsStringEXT");
+
+    if(!WGL.wglGetExtensionsStringARB)
+      WGL.wglGetExtensionsStringARB =
+          (PFN_wglGetExtensionsStringARB)WGL.wglGetProcAddress("wglGetExtensionsStringARB");
+
     GL.PopulateWithCallback([](const char *funcName) {
       ScopedSuppressHooking suppress;
       return (void *)WGL.wglGetProcAddress(funcName);
@@ -279,7 +287,7 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
 
   RDCDEBUG("wglCreateContextAttribsARB:");
 
-  bool core = false;
+  bool core = false, es = false;
 
   int *a = (int *)attribs;
   while(*a)
@@ -287,9 +295,18 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
     RDCDEBUG("%x: %d", a[0], a[1]);
 
     if(a[0] == WGL_CONTEXT_PROFILE_MASK_ARB)
-      core = (a[1] & WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
+    {
+      core = (a[1] & WGL_CONTEXT_CORE_PROFILE_BIT_ARB) != 0;
+      es = (a[1] & (WGL_CONTEXT_ES_PROFILE_BIT_EXT | WGL_CONTEXT_ES2_PROFILE_BIT_EXT)) != 0;
+    }
 
     a += 2;
+  }
+
+  if(es)
+  {
+    wglhook.driver.SetDriverType(RDCDriver::OpenGLES);
+    core = true;
   }
 
   SetLastError(0);
