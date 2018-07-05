@@ -2168,6 +2168,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
     texDetails.samples = 1;
     texDetails.curType = eGL_RENDERBUFFER;
     texDetails.internalFormat = internalformat;
+    texDetails.mipsValid = 1;
 
     GL.glNamedRenderbufferStorageEXT(renderbuffer.name, internalformat, width, height);
 
@@ -2236,6 +2237,7 @@ void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum in
     m_Textures[rb].curType = eGL_RENDERBUFFER;
     m_Textures[rb].dimension = 2;
     m_Textures[rb].internalFormat = internalformat;
+    m_Textures[rb].mipsValid = 1;
   }
 }
 
@@ -2270,6 +2272,7 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
     m_Textures[rb].curType = eGL_RENDERBUFFER;
     m_Textures[rb].dimension = 2;
     m_Textures[rb].internalFormat = internalformat;
+    m_Textures[rb].mipsValid = 1;
   }
 }
 
@@ -2299,6 +2302,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     texDetails.samples = samples;
     texDetails.curType = eGL_RENDERBUFFER;
     texDetails.internalFormat = internalformat;
+    texDetails.mipsValid = 1;
 
     GL.glNamedRenderbufferStorageMultisampleEXT(renderbuffer.name, samples, internalformat, width,
                                                 height);
@@ -2367,6 +2371,7 @@ void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer
     m_Textures[rb].curType = eGL_RENDERBUFFER;
     m_Textures[rb].dimension = 2;
     m_Textures[rb].internalFormat = internalformat;
+    m_Textures[rb].mipsValid = 1;
   }
 }
 
@@ -2403,6 +2408,7 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
     m_Textures[rb].curType = eGL_RENDERBUFFER;
     m_Textures[rb].dimension = 2;
     m_Textures[rb].internalFormat = internalformat;
+    m_Textures[rb].mipsValid = 1;
   }
 }
 

@@ -143,6 +143,7 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
       m_Textures[texId].dimension = 3;
 
     m_Textures[texId].internalFormat = MakeGLFormat(fmt);
+    m_Textures[texId].mipsValid = (1 << mips) - 1;
   }
 
   return wrapped;
@@ -335,6 +336,7 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(SerialiserType &ser, GLResou
         m_Textures[liveId].dimension = 3;
 
       m_Textures[liveId].internalFormat = internalFormat;
+      m_Textures[liveId].mipsValid = (1 << mips) - 1;
     }
 
     AddResourceInitChunk(Resource);

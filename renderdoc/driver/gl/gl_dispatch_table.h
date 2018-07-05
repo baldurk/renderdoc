@@ -27,6 +27,8 @@
 
 #include "gl_common.h"
 
+class WrappedOpenGL;
+
 typedef std::function<void *(const char *)> PlatformGetProcAddr;
 
 // We need to disable clang-format since this struct is programmatically parsed
@@ -42,6 +44,7 @@ struct GLDispatchTable
   // presence.
   void EmulateUnsupportedFunctions();
   void EmulateRequiredExtensions();
+  void DriverForEmulation(WrappedOpenGL *driver);
 
   // first we list all the core functions. 1.1 functions are separate under 'dllexport' for
   // different handling on windows. Extensions come after.

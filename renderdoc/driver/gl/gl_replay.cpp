@@ -3283,6 +3283,8 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
   WrappedOpenGL *gldriver = new WrappedOpenGL(platform);
   gldriver->SetDriverType(rdc->GetDriver());
 
+  GL.DriverForEmulation(gldriver);
+
   RDCLOG("Created %s replay device.", ToStr(rdc->GetDriver()).c_str());
 
   GLReplay *replay = gldriver->GetReplay();

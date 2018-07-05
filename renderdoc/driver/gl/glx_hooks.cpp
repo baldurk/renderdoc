@@ -291,6 +291,7 @@ HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext c
       // see gl_emulated.cpp
       GL.EmulateUnsupportedFunctions();
       GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&glxhook.driver);
     }
 
     GLWindowingData data;
@@ -332,6 +333,7 @@ HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawab
       // see gl_emulated.cpp
       GL.EmulateUnsupportedFunctions();
       GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&glxhook.driver);
     }
 
     GLWindowingData data;

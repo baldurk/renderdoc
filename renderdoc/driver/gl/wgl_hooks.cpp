@@ -361,6 +361,7 @@ static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
       // see gl_emulated.cpp
       GL.EmulateUnsupportedFunctions();
       GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&wglhook.driver);
     }
 
     GLWindowingData data;

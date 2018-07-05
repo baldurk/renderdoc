@@ -28,11 +28,13 @@
 
 #include "driver/gl/gl_common.h"
 #include "driver/gl/gl_dispatch_table.h"
+#include "driver/gl/gl_driver.h"
 #include "driver/gl/gl_resources.h"
 
 namespace glEmulate
 {
 PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ_real = NULL;
+WrappedOpenGL *driver = NULL;
 
 typedef GLenum (*BindingLookupFunc)(GLenum target);
 
@@ -1198,6 +1200,16 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
     }
     else if(!layered)
     {
+      GLenum status = GL.glCheckFramebufferStatus(eGL_DRAW_FRAMEBUFFER);
+
+      if(status != eGL_FRAMEBUFFER_COMPLETE)
+        RDCERR("glCopyImageSubData emulation draw FBO is %s", ToStr(status).c_str());
+
+      status = GL.glCheckFramebufferStatus(eGL_READ_FRAMEBUFFER);
+
+      if(status != eGL_FRAMEBUFFER_COMPLETE)
+        RDCERR("glCopyImageSubData emulation read FBO is %s", ToStr(status).c_str());
+
       SafeBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
                           dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
     }
@@ -1218,6 +1230,19 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
         GL.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attach, textargets[dstZ + slice], dstName,
                                   dstLevel);
 
+        if(slice == 0)
+        {
+          GLenum status = GL.glCheckFramebufferStatus(eGL_DRAW_FRAMEBUFFER);
+
+          if(status != eGL_FRAMEBUFFER_COMPLETE)
+            RDCERR("glCopyImageSubData emulation draw FBO is %s for slice 0", ToStr(status).c_str());
+
+          status = GL.glCheckFramebufferStatus(eGL_READ_FRAMEBUFFER);
+
+          if(status != eGL_FRAMEBUFFER_COMPLETE)
+            RDCERR("glCopyImageSubData emulation read FBO is %s for slice 0", ToStr(status).c_str());
+        }
+
         SafeBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
                             dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
       }
@@ -1228,6 +1253,19 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
       {
         GL.glFramebufferTextureLayer(eGL_READ_FRAMEBUFFER, attach, srcName, srcLevel, srcZ + slice);
         GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, dstName, dstLevel, dstZ + slice);
+
+        if(slice == 0)
+        {
+          GLenum status = GL.glCheckFramebufferStatus(eGL_DRAW_FRAMEBUFFER);
+
+          if(status != eGL_FRAMEBUFFER_COMPLETE)
+            RDCERR("glCopyImageSubData emulation draw FBO is %s for slice 0", ToStr(status).c_str());
+
+          status = GL.glCheckFramebufferStatus(eGL_READ_FRAMEBUFFER);
+
+          if(status != eGL_FRAMEBUFFER_COMPLETE)
+            RDCERR("glCopyImageSubData emulation read FBO is %s for slice 0", ToStr(status).c_str());
+        }
 
         SafeBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
                             dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
@@ -1347,6 +1385,48 @@ void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum fo
 #pragma endregion
 
 #pragma region GLES Compatibility
+
+void APIENTRY _glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
+{
+  if(driver == NULL)
+  {
+    RDCERR("No driver available, can't emulate glGetTexLevelParameteriv");
+    return;
+  }
+
+  GLint boundTexture = 0;
+  GL.glGetIntegerv(TextureBinding(target), (GLint *)&boundTexture);
+
+  ResourceId id = driver->GetResourceManager()->GetID(TextureRes(driver->GetCtx(), boundTexture));
+
+  WrappedOpenGL::TextureData &details = driver->m_Textures[id];
+
+  bool hasmip = (details.mipsValid & (1 << level)) != 0;
+
+  if(details.mipsValid == 0)
+    RDCWARN("No mips valid! Uninitialised texture?");
+
+  switch(pname)
+  {
+    case eGL_TEXTURE_WIDTH: *params = hasmip ? RDCMAX(1, details.width >> level) : 0; return;
+    case eGL_TEXTURE_HEIGHT: *params = hasmip ? RDCMAX(1, details.height >> level) : 0; return;
+    case eGL_TEXTURE_DEPTH: *params = hasmip ? RDCMAX(1, details.depth >> level) : 0; return;
+    case eGL_TEXTURE_INTERNAL_FORMAT: *params = details.internalFormat; return;
+    default:
+      // since this is internal emulation, we only handle the parameters we expect to need
+      break;
+  }
+
+  RDCERR("Unhandled parameter %s", ToStr(pname).c_str());
+}
+
+void APIENTRY _glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
+{
+  // just call and upcast
+  GLint param = 0;
+  _glGetTexLevelParameteriv(target, level, pname, &param);
+  *params = (GLfloat)param;
+}
 
 void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
@@ -1728,6 +1808,12 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glGetBufferSubData);
     EMULATE_FUNC(glGetTexImage);
 
+    if(GLCoreVersion < 31)
+    {
+      EMULATE_FUNC(glGetTexLevelParameteriv);
+      EMULATE_FUNC(glGetTexLevelParameterfv);
+    }
+
     if(GLCoreVersion < 32)
     {
       EMULATE_FUNC(glDrawElementsBaseVertex);
@@ -1837,4 +1923,9 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glVertexArrayVertexAttribOffsetEXT);
     EMULATE_FUNC(glVertexArrayVertexBindingDivisorEXT);
   }
+}
+
+void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
+{
+  glEmulate::driver = driver;
 }

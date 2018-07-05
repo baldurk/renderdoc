@@ -255,48 +255,6 @@ private:
   // map with key being mip level, value being stored data
   typedef std::map<int, std::vector<byte>> CompressedDataStore;
 
-  struct TextureData
-  {
-    TextureData()
-        : curType(eGL_NONE),
-          dimension(0),
-          emulated(false),
-          view(false),
-          width(0),
-          height(0),
-          depth(0),
-          samples(0),
-          creationFlags(TextureCategory::NoFlags),
-          internalFormat(eGL_NONE),
-          renderbufferReadTex(0)
-    {
-      renderbufferFBOs[0] = renderbufferFBOs[1] = 0;
-    }
-    GLResource resource;
-    GLenum curType;
-    GLint dimension;
-    bool emulated, view;
-    GLint width, height, depth, samples;
-    TextureCategory creationFlags;
-    GLenum internalFormat;
-
-    // since renderbuffers cannot be read from, we have to create a texture of identical
-    // size/format,
-    // and define FBOs for blitting to it - the renderbuffer is attached to the first FBO and the
-    // texture is
-    // bound to the second.
-    GLuint renderbufferReadTex;
-    GLuint renderbufferFBOs[2];
-
-    // since compressed textures cannot be read back on GLES we have to store them during the
-    // uploading
-    CompressedDataStore compressedData;
-
-    void GetCompressedImageDataGLES(int mip, GLenum target, size_t size, byte *buf);
-  };
-
-  std::map<ResourceId, TextureData> m_Textures;
-
   struct ShaderData
   {
     ShaderData() : type(eGL_NONE), prog(0), version(0) {}
@@ -653,6 +611,50 @@ public:
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+
+  struct TextureData
+  {
+    TextureData()
+        : curType(eGL_NONE),
+          dimension(0),
+          emulated(false),
+          view(false),
+          width(0),
+          height(0),
+          depth(0),
+          samples(0),
+          creationFlags(TextureCategory::NoFlags),
+          internalFormat(eGL_NONE),
+          mipsValid(0),
+          renderbufferReadTex(0)
+    {
+      renderbufferFBOs[0] = renderbufferFBOs[1] = 0;
+    }
+    GLResource resource;
+    GLenum curType;
+    GLint dimension;
+    bool emulated, view;
+    GLint width, height, depth, samples;
+    TextureCategory creationFlags;
+    GLenum internalFormat;
+    GLuint mipsValid;
+
+    // since renderbuffers cannot be read from, we have to create a texture of identical
+    // size/format,
+    // and define FBOs for blitting to it - the renderbuffer is attached to the first FBO and the
+    // texture is
+    // bound to the second.
+    GLuint renderbufferReadTex;
+    GLuint renderbufferFBOs[2];
+
+    // since compressed textures cannot be read back on GLES we have to store them during the
+    // uploading
+    CompressedDataStore compressedData;
+
+    void GetCompressedImageDataGLES(int mip, GLenum target, size_t size, byte *buf);
+  };
+
+  std::map<ResourceId, TextureData> m_Textures;
 
   IMPLEMENT_FUNCTION_SERIALISED(void, glBindTexture, GLenum target, GLuint texture);
   IMPLEMENT_FUNCTION_SERIALISED(void, glBindTextures, GLuint first, GLsizei count,

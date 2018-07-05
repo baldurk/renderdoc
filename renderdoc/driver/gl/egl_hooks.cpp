@@ -223,6 +223,7 @@ HOOK_EXPORT EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSu
       // see gl_emulated.cpp
       GL.EmulateUnsupportedFunctions();
       GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&eglhook.driver);
     }
 
     GLWindowingData data;

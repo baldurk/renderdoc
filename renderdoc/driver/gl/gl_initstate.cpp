@@ -586,6 +586,28 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GL
         d = RDCMAX(1, d >> 1);
     }
   }
+
+  if(IsCaptureMode(m_State))
+  {
+    // register this texture and set up its texture details, so it's available for emulation
+    // readback.
+    GLResource res = TextureRes(m_Driver->GetCtx(), tex);
+    ResourceId id = RegisterResource(res);
+
+    WrappedOpenGL::TextureData &details = m_Driver->m_Textures[id];
+
+    details.resource = res;
+    details.curType = textype;
+    details.dimension = dim;
+    details.emulated = details.view = false;
+    details.width = width;
+    details.height = height;
+    details.depth = depth;
+    details.samples = samples;
+    details.creationFlags = TextureCategory::NoFlags;
+    details.internalFormat = internalFormat;
+    details.mipsValid = (1 << mips) - 1;
+  }
 }
 
 void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
