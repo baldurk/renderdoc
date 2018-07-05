@@ -107,7 +107,7 @@ add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 project(RenderDoc CXX C)
 
 option(ENABLE_GL "Enable GL driver" ON)
-option(ENABLE_GLES "Enable GL ES driver" OFF)
+option(ENABLE_GLES "Enable GL ES driver" ON)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
@@ -147,7 +147,7 @@ endif()
 
 if(ANDROID)
     if(ENABLE_GL)
-        message(STATUS "Disabling GL driver on android and enabling GLES")
+        message(STATUS "Disabling GL driver on android")
     endif()
     set(ENABLE_GL OFF CACHE BOOL "" FORCE)
     set(ENABLE_GLES ON CACHE BOOL "" FORCE)
@@ -266,3 +266,29 @@ endif()
 # install documentation files
 install (FILES util/LINUX_DIST_README DESTINATION share/doc/renderdoc RENAME README)
 install (FILES LICENSE.md DESTINATION share/doc/renderdoc)
+
+message(STATUS "Enabled APIs:")
+if(ENABLE_GL)
+    message(STATUS "  - OpenGL")
+endif()
+
+if(ENABLE_GLES)
+    message(STATUS "  - OpenGL ES (EGL)")
+endif()
+
+if(ENABLE_VULKAN)
+    message(STATUS "  - Vulkan")
+endif()
+
+if(UNIX AND NOT ANDROID AND NOT APPLE)
+    message(STATUS "Enabled Window System Support:")
+
+    if(ENABLE_XLIB)
+        message(STATUS "  - XLib")
+    endif()
+
+    if(ENABLE_XCB)
+        message(STATUS "  - XCB")
+    endif()
+endif()
+
