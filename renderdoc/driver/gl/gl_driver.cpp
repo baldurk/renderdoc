@@ -2265,6 +2265,9 @@ void WrappedOpenGL::QueuePrepareInitialState(GLResource res)
 
 void WrappedOpenGL::QueueResourceRelease(GLResource res)
 {
+  if(res.name == 0)
+    return;
+
   ContextPair &ctx = GetCtx();
   if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
   {
