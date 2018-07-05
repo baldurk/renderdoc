@@ -2317,7 +2317,7 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     float col[] = {0.3f, 0.4f, 0.5f, 1.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
-    drv.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, eGL_NEAREST);
+    SafeBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, eGL_NEAREST);
 
     // rewrite the variables to temporary texture
     texType = eGL_TEXTURE_2D;
@@ -2380,8 +2380,8 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       else if(b == eGL_DEPTH_STENCIL)
         mask = GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
 
-      drv.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
-                            texDetails.height, mask, eGL_NEAREST);
+      SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                          texDetails.height, mask, eGL_NEAREST);
 
       drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
       drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);

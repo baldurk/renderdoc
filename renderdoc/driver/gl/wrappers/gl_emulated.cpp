@@ -1198,8 +1198,8 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
     }
     else if(!layered)
     {
-      GL.glBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
-                           dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
+      SafeBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
+                          dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
     }
     else if(srcTarget == eGL_TEXTURE_CUBE_MAP)
     {
@@ -1218,8 +1218,8 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
         GL.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attach, textargets[dstZ + slice], dstName,
                                   dstLevel);
 
-        GL.glBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
-                             dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
+        SafeBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
+                            dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
       }
     }
     else
@@ -1229,8 +1229,8 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
         GL.glFramebufferTextureLayer(eGL_READ_FRAMEBUFFER, attach, srcName, srcLevel, srcZ + slice);
         GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, dstName, dstLevel, dstZ + slice);
 
-        GL.glBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
-                             dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
+        SafeBlitFramebuffer(srcX, srcY, srcX + srcWidth, srcY + srcHeight, dstX, dstY,
+                            dstX + srcWidth, dstY + srcHeight, mask, eGL_NEAREST);
       }
     }
   }

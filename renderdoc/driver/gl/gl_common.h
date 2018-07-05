@@ -499,6 +499,11 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
 
 void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping);
 
+// calls glBlitFramebuffer but ensures no state can interfere like scissor or color mask
+// pops state for only a single drawbuffer!
+void SafeBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0,
+                         GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+
 enum UniformType
 {
   UNIFORM_UNKNOWN,

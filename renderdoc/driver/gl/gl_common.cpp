@@ -1335,6 +1335,81 @@ GLuint GetBoundVertexBuffer(GLuint i)
   return buffer;
 }
 
+void SafeBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0,
+                         GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+{
+  bool scissorEnabled = false;
+  GLboolean ColorMask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
+  GLboolean DepthMask = GL_TRUE;
+  GLint StencilMask = 0xff, StencilBackMask = 0xff;
+
+  // fetch current state
+  {
+    if(HasExt[ARB_viewport_array])
+      scissorEnabled = GL.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+    else
+      scissorEnabled = GL.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+
+    if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
+      GL.glGetBooleani_v(eGL_COLOR_WRITEMASK, 0, ColorMask);
+    else
+      GL.glGetBooleanv(eGL_COLOR_WRITEMASK, ColorMask);
+
+    GL.glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthMask);
+
+    GL.glGetIntegerv(eGL_STENCIL_WRITEMASK, &StencilMask);
+    GL.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &StencilBackMask);
+  }
+
+  // apply safe state
+  {
+    if(HasExt[ARB_viewport_array])
+      GL.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      GL.glDisable(eGL_SCISSOR_TEST);
+
+    if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
+      GL.glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    else
+      GL.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    GL.glDepthMask(GL_TRUE);
+
+    GL.glStencilMaskSeparate(eGL_FRONT, 0xff);
+    GL.glStencilMaskSeparate(eGL_BACK, 0xff);
+  }
+
+  GL.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+
+  // restore original state
+  {
+    if(HasExt[ARB_viewport_array])
+    {
+      if(scissorEnabled)
+        GL.glEnablei(eGL_SCISSOR_TEST, 0);
+      else
+        GL.glDisablei(eGL_SCISSOR_TEST, 0);
+    }
+    else
+    {
+      if(scissorEnabled)
+        GL.glEnable(eGL_SCISSOR_TEST);
+      else
+        GL.glDisable(eGL_SCISSOR_TEST);
+    }
+
+    if(HasExt[EXT_draw_buffers2] || HasExt[ARB_draw_buffers_blend])
+      GL.glColorMaski(0, ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+    else
+      GL.glColorMask(ColorMask[0], ColorMask[1], ColorMask[2], ColorMask[3]);
+
+    GL.glDepthMask(DepthMask);
+
+    GL.glStencilMaskSeparate(eGL_FRONT, StencilMask);
+    GL.glStencilMaskSeparate(eGL_BACK, StencilBackMask);
+  }
+}
+
 BufferCategory MakeBufferCategory(GLenum bufferTarget)
 {
   switch(bufferTarget)

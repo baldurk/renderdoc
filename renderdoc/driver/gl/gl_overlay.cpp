@@ -699,9 +699,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     }
 
     // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
-    drv.glBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight, 0, 0,
-                          DebugData.overlayTexWidth, DebugData.overlayTexHeight,
-                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
+    SafeBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight, 0, 0,
+                        DebugData.overlayTexWidth, DebugData.overlayTexHeight,
+                        GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
@@ -1317,9 +1317,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           drv.glBindProgramPipeline(0);
 
           drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
-          drv.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
-                                texDetails.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
-                                eGL_NEAREST);
+          SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                              texDetails.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
+                              eGL_NEAREST);
 
           m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 

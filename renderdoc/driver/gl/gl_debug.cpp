@@ -877,7 +877,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
 
-    GL.glBlitFramebuffer(
+    SafeBlitFramebuffer(
         0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width, texDetails.height,
         GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
@@ -1049,7 +1049,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
     GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
 
-    GL.glBlitFramebuffer(
+    SafeBlitFramebuffer(
         0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width, texDetails.height,
         GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
