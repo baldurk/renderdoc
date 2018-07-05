@@ -217,17 +217,7 @@ public:
 
   virtual HRESULT STDMETHODCALLTYPE GetDevice(REFIID riid, _COM_Outptr_opt_ void **ppvDevice)
   {
-    if(riid == __uuidof(ID3D12Device) && ppvDevice)
-    {
-      *ppvDevice = (ID3D12Device *)m_pDevice;
-      m_pDevice->AddRef();
-    }
-    else if(riid != __uuidof(ID3D12Device))
-    {
-      return E_NOINTERFACE;
-    }
-
-    return E_INVALIDARG;
+    return m_pDevice->GetDevice(riid, ppvDevice);
   }
 
   //////////////////////////////

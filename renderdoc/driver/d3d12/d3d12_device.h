@@ -517,11 +517,24 @@ public:
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }
-  virtual bool IsDeviceUUID(REFIID iid) { return iid == __uuidof(ID3D12Device) ? true : false; }
+  virtual bool IsDeviceUUID(REFIID iid)
+  {
+    if(iid == __uuidof(ID3D12Device) || iid == __uuidof(ID3D12Device1) ||
+       iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3))
+      return true;
+
+    return false;
+  }
   virtual IUnknown *GetDeviceInterface(REFIID iid)
   {
     if(iid == __uuidof(ID3D12Device))
       return (ID3D12Device *)this;
+    else if(iid == __uuidof(ID3D12Device1))
+      return (ID3D12Device1 *)this;
+    else if(iid == __uuidof(ID3D12Device2))
+      return (ID3D12Device2 *)this;
+    else if(iid == __uuidof(ID3D12Device3))
+      return (ID3D12Device3 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -540,6 +553,36 @@ public:
   void Map(ID3D12Resource *Resource, UINT Subresource);
   void Unmap(ID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
              const D3D12_RANGE *pWrittenRange);
+
+  // helper for ID3D12DeviceChild implementations to use
+  HRESULT GetDevice(REFIID riid, _COM_Outptr_opt_ void **ppvDevice)
+  {
+    if(!ppvDevice)
+      return E_INVALIDARG;
+
+    if(riid == __uuidof(ID3D12Device))
+    {
+      *ppvDevice = (ID3D12Device *)this;
+      this->AddRef();
+    }
+    else if(riid == __uuidof(ID3D12Device1))
+    {
+      *ppvDevice = (ID3D12Device1 *)this;
+      this->AddRef();
+    }
+    else if(riid == __uuidof(ID3D12Device2))
+    {
+      *ppvDevice = (ID3D12Device2 *)this;
+      this->AddRef();
+    }
+    else if(riid == __uuidof(ID3D12Device3))
+    {
+      *ppvDevice = (ID3D12Device3 *)this;
+      this->AddRef();
+    }
+
+    return E_NOINTERFACE;
+  }
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, MapDataWrite, ID3D12Resource *Resource,
                                        UINT Subresource, byte *mapPtr, D3D12_RANGE range);

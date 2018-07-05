@@ -896,6 +896,18 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList2::QueryInterface(REFI
     AddRef();
     return S_OK;
   }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList1))
+  {
+    *ppvObject = (ID3D12GraphicsCommandList1 *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList2))
+  {
+    *ppvObject = (ID3D12GraphicsCommandList2 *)this;
+    AddRef();
+    return S_OK;
+  }
   else if(riid == __uuidof(ID3D12CommandList))
   {
     *ppvObject = (ID3D12CommandList *)this;

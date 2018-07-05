@@ -86,7 +86,8 @@ ULONG STDMETHODCALLTYPE DummyID3D12DebugDevice::Release()
 HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12DebugDevice) ||
-     riid == __uuidof(ID3D12Device))
+     riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
+     riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -116,7 +117,8 @@ ULONG STDMETHODCALLTYPE WrappedID3D12DebugDevice::Release()
 HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12DebugDevice) ||
-     riid == __uuidof(ID3D12Device))
+     riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
+     riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
