@@ -1010,7 +1010,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
   if(winData.ctx)
   {
-    // if we're capturing, we need to serialise out the changed state vector
     if(IsActiveCapturing(m_State))
     {
       // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
@@ -1038,11 +1037,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         RDCDEBUG("Prepared %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
                  after);
       }
-
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
-      Serialise_BeginCaptureFrame(ser);
-      GetContextRecord()->AddChunk(scope.Get());
     }
 
     // also if there are any queued releases, process them now
@@ -1276,6 +1270,15 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           m_DeviceRecord->AddChunk(scope.Get());
         }
       }
+    }
+
+    // if we're capturing, we need to serialise out the changed state vector
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
+      Serialise_BeginCaptureFrame(ser);
+      GetContextRecord()->AddChunk(scope.Get());
     }
 
     // this is hack but GL context creation is an *utter mess*. For first-frame captures, only
