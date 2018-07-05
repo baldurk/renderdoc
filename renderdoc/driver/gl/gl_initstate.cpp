@@ -658,8 +658,11 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     // only non-ms textures have sampler state
     if(!ms)
     {
-      GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SRGB_DECODE_EXT,
-                                    (GLint *)&state.srgbDecode);
+      if(HasExt[EXT_texture_sRGB_decode])
+        GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SRGB_DECODE_EXT,
+                                      (GLint *)&state.srgbDecode);
+      else
+        state.srgbDecode = eGL_DECODE_EXT;
       GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_FUNC,
                                     (GLint *)&state.compareFunc);
       GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_MODE,
@@ -1861,8 +1864,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
 
       if(!ms)
       {
-        GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SRGB_DECODE_EXT,
-                                   (GLint *)&state.srgbDecode);
+        if(HasExt[EXT_texture_sRGB_decode])
+          GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SRGB_DECODE_EXT,
+                                     (GLint *)&state.srgbDecode);
         GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_FUNC,
                                    (GLint *)&state.compareFunc);
         GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_MODE,
