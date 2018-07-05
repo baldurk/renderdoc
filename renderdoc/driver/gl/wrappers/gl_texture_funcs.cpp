@@ -226,7 +226,7 @@ bool WrappedOpenGL::Serialise_glBindTexture(SerialiserType &ser, GLenum target, 
   {
     GL.glBindTexture(target, texture.name);
 
-    if(IsLoading(m_State))
+    if(IsLoading(m_State) && texture.name)
     {
       TextureData &tex = m_Textures[GetResourceManager()->GetID(texture)];
       // only set texture type if we don't have one. Otherwise refuse to re-type.
