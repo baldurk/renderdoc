@@ -255,7 +255,6 @@ typedef BOOL(APIENTRYP *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count
 #define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
 // no longer in glcorearb.h or glext.h
-const GLenum eGL_INTENSITY = (GLenum)0x8049;
 const GLenum eGL_LIGHTING = (GLenum)0x0B50;
 const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;
 const GLenum eGL_CLAMP = (GLenum)0x2900;
