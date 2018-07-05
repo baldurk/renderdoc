@@ -50,6 +50,16 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
   sampInfo.addressModeU = sampInfo.addressModeV = sampInfo.addressModeW =
       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
   sampInfo.maxLod = 128.0f;
+  sampInfo.minLod = 0.0f;
+  sampInfo.mipLodBias = 0.0f;
+  sampInfo.anisotropyEnable = VK_FALSE;
+  sampInfo.maxAnisotropy = 1.0f;
+  sampInfo.flags = 0;
+  sampInfo.compareEnable = VK_FALSE;
+  sampInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+  sampInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  sampInfo.unnormalizedCoordinates = VK_FALSE;
+  sampInfo.pNext = NULL;
 
   VkResult vkr = driver->vkCreateSampler(driver->GetDev(), &sampInfo, NULL, sampler);
   if(vkr != VK_SUCCESS)
