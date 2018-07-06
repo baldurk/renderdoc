@@ -603,9 +603,9 @@ extern bool IsGLES;
   EXT_TO_CHECK(40, 32, ARB_tessellation_shader)                  \
   EXT_TO_CHECK(40, 32, ARB_texture_cube_map_array)               \
   EXT_TO_CHECK(40, 30, ARB_transform_feedback2)                  \
-  EXT_TO_CHECK(41, 99, ARB_geometry_shader4)                     \
+  EXT_TO_CHECK(32, 32, ARB_geometry_shader4)                     \
   EXT_TO_CHECK(41, 31, ARB_separate_shader_objects)              \
-  EXT_TO_CHECK(41, 99, ARB_viewport_array)                       \
+  EXT_TO_CHECK(41, 32, ARB_viewport_array)                       \
   EXT_TO_CHECK(42, 99, ARB_base_instance)                        \
   EXT_TO_CHECK(42, 31, ARB_shader_atomic_counters)               \
   EXT_TO_CHECK(42, 31, ARB_shader_image_load_store)              \
