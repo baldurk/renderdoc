@@ -176,8 +176,6 @@ WrappedVulkan::~WrappedVulkan()
   if(VkMarkerRegion::vk == this)
     VkMarkerRegion::vk = NULL;
 
-  m_IndirectBuffer.Destroy();
-
   // in case the application leaked some objects, avoid crashing trying
   // to release them ourselves by clearing the resource manager.
   // In a well-behaved application, this should be a no-op.
