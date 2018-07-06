@@ -55,7 +55,7 @@ public:
   std::map<EGLSurface, EGLNativeWindowType> windows;
 } eglhook;
 
-HOOK_EXPORT EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -72,8 +72,8 @@ HOOK_EXPORT EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
   return EGL.GetDisplay(display);
 }
 
-HOOK_EXPORT EGLContext eglCreateContext(EGLDisplay display, EGLConfig config,
-                                        EGLContext shareContext, EGLint const *attribList)
+HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay display, EGLConfig config,
+                                                    EGLContext shareContext, EGLint const *attribList)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -181,7 +181,7 @@ HOOK_EXPORT EGLContext eglCreateContext(EGLDisplay display, EGLConfig config,
   return ret;
 }
 
-HOOK_EXPORT EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -201,8 +201,9 @@ HOOK_EXPORT EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
   return EGL.DestroyContext(dpy, ctx);
 }
 
-HOOK_EXPORT EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
-                                              EGLNativeWindowType win, const EGLint *attrib_list)
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
+                                                          EGLNativeWindowType win,
+                                                          const EGLint *attrib_list)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -224,8 +225,8 @@ HOOK_EXPORT EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
   return ret;
 }
 
-HOOK_EXPORT EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read,
-                                      EGLContext ctx)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface draw,
+                                                  EGLSurface read, EGLContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -279,7 +280,7 @@ HOOK_EXPORT EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSu
   return ret;
 }
 
-HOOK_EXPORT EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -309,8 +310,8 @@ HOOK_EXPORT EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
   return EGL.SwapBuffers(dpy, surface);
 }
 
-HOOK_EXPORT EGLBoolean eglPostSubBufferNV(EGLDisplay dpy, EGLSurface surface, EGLint x, EGLint y,
-                                          EGLint width, EGLint height)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface surface, EGLint x,
+                                                      EGLint y, EGLint width, EGLint height)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -340,7 +341,7 @@ HOOK_EXPORT EGLBoolean eglPostSubBufferNV(EGLDisplay dpy, EGLSurface surface, EG
   return EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
 }
 
-HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *func)
+HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *func)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -388,7 +389,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const cha
 
 #define EGL_PASSTHRU_0(ret, function)                                                     \
   typedef ret (*CONCAT(function, _hooktype))();                                           \
-  HOOK_EXPORT ret function()                                                              \
+  HOOK_EXPORT ret EGLAPIENTRY function()                                                  \
   {                                                                                       \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
@@ -398,7 +399,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const cha
 
 #define EGL_PASSTHRU_1(ret, function, t1, p1)                                             \
   typedef ret (*CONCAT(function, _hooktype))(t1);                                         \
-  HOOK_EXPORT ret function(t1 p1)                                                         \
+  HOOK_EXPORT ret EGLAPIENTRY function(t1 p1)                                             \
   {                                                                                       \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
@@ -408,7 +409,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const cha
 
 #define EGL_PASSTHRU_2(ret, function, t1, p1, t2, p2)                                     \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                                     \
-  HOOK_EXPORT ret function(t1 p1, t2 p2)                                                  \
+  HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2)                                      \
   {                                                                                       \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
@@ -418,7 +419,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const cha
 
 #define EGL_PASSTHRU_3(ret, function, t1, p1, t2, p2, t3, p3)                             \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                                 \
-  HOOK_EXPORT ret function(t1 p1, t2 p2, t3 p3)                                           \
+  HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2, t3 p3)                               \
   {                                                                                       \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
@@ -428,7 +429,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const cha
 
 #define EGL_PASSTHRU_4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                     \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                             \
-  HOOK_EXPORT ret function(t1 p1, t2 p2, t3 p3, t4 p4)                                    \
+  HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2, t3 p3, t4 p4)                        \
   {                                                                                       \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
@@ -438,7 +439,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType eglGetProcAddress(const cha
 
 #define EGL_PASSTHRU_5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)             \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                         \
-  HOOK_EXPORT ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                             \
+  HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                 \
   {                                                                                       \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
