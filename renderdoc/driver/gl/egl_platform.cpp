@@ -226,6 +226,7 @@ class EGLPlatform : public GLPlatform
         RDCERR("Couldn't create a suitable PBuffer");
     }
 
+    ret.wnd = window;
     ret.egl_wnd = surface;
 
     return ret;
@@ -257,7 +258,7 @@ class EGLPlatform : public GLPlatform
 
     replayContext = CreateWindowingData(eglDisplay, EGL_NO_CONTEXT, 0);
 
-    if(!replayContext.ctx || !replayContext.wnd)
+    if(!replayContext.ctx)
     {
       RDCERR("Couldn't create OpenGL ES 3.x replay context - required for replay");
       DeleteReplayContext(replayContext);

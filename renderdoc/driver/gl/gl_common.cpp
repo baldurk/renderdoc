@@ -943,6 +943,8 @@ void GLPushPopState::Push(bool modern)
 
     GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
   }
+
+  ClearGLErrors();
 }
 
 void GLPushPopState::Pop(bool modern)

@@ -52,6 +52,7 @@ public:
   WrappedOpenGL driver;
   std::set<EGLContext> contexts;
   std::map<EGLContext, EGLConfig> configs;
+  std::map<EGLSurface, EGLNativeWindowType> windows;
 } eglhook;
 
 HOOK_EXPORT EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
@@ -164,6 +165,7 @@ HOOK_EXPORT EGLContext eglCreateContext(EGLDisplay display, EGLConfig config,
 
   GLWindowingData data;
   data.egl_dpy = display;
+  data.wnd = 0;
   data.egl_wnd = (EGLSurface)NULL;
   data.egl_ctx = ret;
   data.egl_cfg = config;
@@ -197,6 +199,29 @@ HOOK_EXPORT EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
   }
 
   return EGL.DestroyContext(dpy, ctx);
+}
+
+HOOK_EXPORT EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
+                                              EGLNativeWindowType win, const EGLint *attrib_list)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.CreateWindowSurface)
+      EGL.PopulateForReplay();
+
+    return EGL.CreateWindowSurface(dpy, config, win, attrib_list);
+  }
+
+  EGLSurface ret = EGL.CreateWindowSurface(dpy, config, win, attrib_list);
+
+  if(ret)
+  {
+    SCOPED_LOCK(glLock);
+
+    eglhook.windows[ret] = win;
+  }
+
+  return ret;
 }
 
 HOOK_EXPORT EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read,
@@ -234,6 +259,14 @@ HOOK_EXPORT EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSu
     data.egl_dpy = display;
     data.egl_wnd = draw;
     data.egl_ctx = ctx;
+    data.wnd = eglhook.windows[draw];
+
+    if(!data.wnd)
+    {
+      // could be a pbuffer surface or other offscreen rendering. We want a valid wnd, so set it to
+      // a dummy value
+      data.wnd = (decltype(data.wnd))(void *)(uintptr_t(0xdeadbeef) + uintptr_t(draw));
+    }
 
     // we could query this out technically but it's easier to keep a map
     data.egl_cfg = eglhook.configs[ctx];
@@ -423,8 +456,6 @@ EGL_PASSTHRU_3(EGLSurface, eglCreatePbufferSurface, EGLDisplay, dpy, EGLConfig, 
                const EGLint *, attrib_list)
 EGL_PASSTHRU_4(EGLSurface, eglCreatePixmapSurface, EGLDisplay, dpy, EGLConfig, config,
                EGLNativePixmapType, pixmap, const EGLint *, attrib_list)
-EGL_PASSTHRU_4(EGLSurface, eglCreateWindowSurface, EGLDisplay, dpy, EGLConfig, config,
-               EGLNativeWindowType, win, const EGLint *, attrib_list)
 EGL_PASSTHRU_2(EGLBoolean, eglDestroySurface, EGLDisplay, dpy, EGLSurface, surface)
 EGL_PASSTHRU_4(EGLBoolean, eglGetConfigAttrib, EGLDisplay, dpy, EGLConfig, config, EGLint,
                attribute, EGLint *, value)

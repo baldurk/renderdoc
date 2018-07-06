@@ -100,7 +100,7 @@ bool GLReplay::CheckResizeOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(outw.wnd == 0)
+  if(outw.ctx == 0)
     return false;
 
   int32_t w, h;
@@ -205,7 +205,7 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 uint64_t GLReplay::MakeOutputWindow(WindowingData window, bool depth)
 {
   OutputWindow win = m_pDriver->m_Platform.MakeOutputWindow(window, depth, m_ReplayCtx);
-  if(!win.wnd)
+  if(!win.ctx)
     return 0;
 
   m_pDriver->m_Platform.GetOutputWindowDimensions(win, win.width, win.height);

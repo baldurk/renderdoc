@@ -106,11 +106,8 @@ struct GLWindowingData
     HGLRC ctx;
     EGLContext egl_ctx;
   };
-  union
-  {
-    HWND wnd;
-    EGLSurface egl_wnd;
-  };
+  HWND wnd;
+  EGLSurface egl_wnd;
 
   EGLConfig egl_cfg;
 };
@@ -186,14 +183,11 @@ struct GLWindowingData
   };
   union
   {
-    GLWindowPtr wnd;
-    GLESWindowPtr egl_wnd;
-  };
-  union
-  {
     GLConfigPtr cfg;
     GLESConfigPtr egl_cfg;
   };
+  GLWindowPtr wnd;
+  GLESWindowPtr egl_wnd;
 };
 
 #elif ENABLED(RDOC_APPLE)
@@ -224,9 +218,10 @@ struct GLWindowingData
 {
   GLWindowingData()
   {
-    egl_ctx = 0;
-    egl_dpy = 0;
-    egl_wnd = 0;
+    egl_ctx = NULL;
+    egl_dpy = NULL;
+    wnd = NULL;
+    egl_wnd = NULL;
   }
 
   union
@@ -235,11 +230,8 @@ struct GLWindowingData
     void *ctx;
     EGLContext egl_ctx;
   };
-  union
-  {
-    EGLSurface egl_wnd;
-    void *wnd;
-  };
+  EGLSurface egl_wnd;
+  void *wnd;
   EGLDisplay egl_dpy;
   EGLConfig egl_cfg;
 };

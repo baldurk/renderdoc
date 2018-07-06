@@ -53,20 +53,20 @@ typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, E
                                              EGLint *value);
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 
-#define EGL_HOOKED_SYMBOLS(FUNC) \
-  FUNC(GetDisplay, false);       \
-  FUNC(CreateContext, false);    \
-  FUNC(DestroyContext, false);   \
-  FUNC(MakeCurrent, false);      \
-  FUNC(SwapBuffers, false);      \
-  FUNC(GetProcAddress, false);   \
+#define EGL_HOOKED_SYMBOLS(FUNC)    \
+  FUNC(GetDisplay, false);          \
+  FUNC(CreateContext, false);       \
+  FUNC(DestroyContext, false);      \
+  FUNC(CreateWindowSurface, false); \
+  FUNC(MakeCurrent, false);         \
+  FUNC(SwapBuffers, false);         \
+  FUNC(GetProcAddress, false);      \
   FUNC(PostSubBufferNV, true);
 
 #define EGL_NONHOOKED_SYMBOLS(FUNC)  \
   FUNC(BindAPI, false);              \
   FUNC(ChooseConfig, false);         \
   FUNC(CreatePbufferSurface, false); \
-  FUNC(CreateWindowSurface, false);  \
   FUNC(DestroySurface, false);       \
   FUNC(GetConfigAttrib, false);      \
   FUNC(GetCurrentContext, false);    \
