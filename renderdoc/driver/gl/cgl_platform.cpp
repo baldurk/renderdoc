@@ -27,13 +27,13 @@
 class CGLPlatform : public GLPlatform
 {
   bool MakeContextCurrent(GLWindowingData data) { return false; }
-  GLWindowingData MakeContext(GLWindowingData share)
+  GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {
     GLWindowingData ret;
     return ret;
   }
 
-  void DeleteContext(GLWindowingData context) {}
+  void DeleteClonedContext(GLWindowingData context) {}
   void DeleteReplayContext(GLWindowingData context) {}
   void SwapBuffers(GLWindowingData context) {}
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) { w = h = 0; }

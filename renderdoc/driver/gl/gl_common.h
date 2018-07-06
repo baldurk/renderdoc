@@ -96,7 +96,6 @@ struct GLWindowingData
     wnd = NULL;
   }
 
-  void SetCtx(void *c) { ctx = (HGLRC)c; }
   union
   {
     HDC DC;
@@ -112,6 +111,8 @@ struct GLWindowingData
     HWND wnd;
     EGLSurface egl_wnd;
   };
+
+  EGLConfig egl_cfg;
 };
 
 #elif ENABLED(RDOC_LINUX)
@@ -149,26 +150,28 @@ struct GLWindowingData
     wnd = 0;
   }
 
-  void SetCtx(void *c) { ctx = (GLContextPtr)c; }
-
 #if defined(RENDERDOC_SUPPORT_GL)
   typedef Display *GLDisplayPtr;
   typedef GLXContext GLContextPtr;
   typedef GLXDrawable GLWindowPtr;
+  typedef XVisualInfo *GLConfigPtr;
 #else
   typedef void *GLDisplayPtr;
   typedef void *GLContextPtr;
   typedef void *GLWindowPtr;
+  typedef void *GLConfigPtr;
 #endif
 
 #if defined(RENDERDOC_SUPPORT_GLES)
   typedef EGLDisplay GLESDisplayPtr;
   typedef EGLContext GLESContextPtr;
   typedef EGLSurface GLESWindowPtr;
+  typedef EGLConfig GLESConfigPtr;
 #else
   typedef void *GLESDisplayPtr;
   typedef void *GLESContextPtr;
   typedef void *GLESWindowPtr;
+  typedef vpod *GLESConfigPtr;
 #endif
 
   union
@@ -186,6 +189,11 @@ struct GLWindowingData
     GLWindowPtr wnd;
     GLESWindowPtr egl_wnd;
   };
+  union
+  {
+    GLConfigPtr cfg;
+    GLESConfigPtr egl_cfg;
+  };
 };
 
 #elif ENABLED(RDOC_APPLE)
@@ -198,7 +206,6 @@ struct GLWindowingData
     wnd = 0;
   }
 
-  void SetCtx(void *c) { ctx = (void *)c; }
   void *ctx;
   void *wnd;
 };
@@ -222,19 +229,19 @@ struct GLWindowingData
     egl_wnd = 0;
   }
 
-  void SetCtx(void *c) { egl_ctx = (void *)c; }
   union
   {
     // currently required to allow compatiblity with the driver parts
     void *ctx;
     EGLContext egl_ctx;
   };
-  EGLDisplay egl_dpy;
   union
   {
     EGLSurface egl_wnd;
     void *wnd;
   };
+  EGLDisplay egl_dpy;
+  EGLConfig egl_cfg;
 };
 
 #else
@@ -246,8 +253,8 @@ struct GLWindowingData
 struct GLPlatform
 {
   // simple wrapper for OS functions to make/delete a context
-  virtual GLWindowingData MakeContext(GLWindowingData share) = 0;
-  virtual void DeleteContext(GLWindowingData context) = 0;
+  virtual GLWindowingData CloneTemporaryContext(GLWindowingData share) = 0;
+  virtual void DeleteClonedContext(GLWindowingData context) = 0;
   virtual void DeleteReplayContext(GLWindowingData context) = 0;
   virtual bool MakeContextCurrent(GLWindowingData data) = 0;
   virtual void SwapBuffers(GLWindowingData context) = 0;

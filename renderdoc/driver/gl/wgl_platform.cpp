@@ -37,9 +37,11 @@ class WGLPlatform : public GLPlatform
     return false;
   }
 
-  GLWindowingData MakeContext(GLWindowingData share)
+  GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {
-    GLWindowingData ret;
+    GLWindowingData ret = share;
+    ret.ctx = NULL;
+
     if(!WGL.wglCreateContextAttribsARB)
       return ret;
 
@@ -55,13 +57,13 @@ class WGLPlatform : public GLPlatform
         0,
         0,
     };
-    ret.DC = share.DC;
+
     ret.ctx = WGL.wglCreateContextAttribsARB(share.DC, share.ctx, attribs);
 
     return ret;
   }
 
-  void DeleteContext(GLWindowingData context)
+  void DeleteClonedContext(GLWindowingData context)
   {
     if(context.ctx && WGL.wglDeleteContext)
       WGL.wglDeleteContext(context.ctx);

@@ -3251,7 +3251,7 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
   if(!current)
   {
     RDCERR("Couldn't active the created GL ES context");
-    platform.DeleteContext(data);
+    platform.DeleteReplayContext(data);
     return ReplayStatus::APIInitFailed;
   }
 
@@ -3269,14 +3269,14 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
 
   if(!extensionsValidated)
   {
-    platform.DeleteContext(data);
+    platform.DeleteReplayContext(data);
     return ReplayStatus::APIInitFailed;
   }
 
   bool functionsValidated = ValidateFunctionPointers();
   if(!functionsValidated)
   {
-    platform.DeleteContext(data);
+    platform.DeleteReplayContext(data);
     return ReplayStatus::APIHardwareUnsupported;
   }
 
@@ -3299,8 +3299,8 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
 
 class GLDummyPlatform : public GLPlatform
 {
-  virtual GLWindowingData MakeContext(GLWindowingData share) { return GLWindowingData(); }
-  virtual void DeleteContext(GLWindowingData context) {}
+  virtual GLWindowingData CloneTemporaryContext(GLWindowingData share) { return GLWindowingData(); }
+  virtual void DeleteClonedContext(GLWindowingData context) {}
   virtual void DeleteReplayContext(GLWindowingData context) {}
   virtual bool MakeContextCurrent(GLWindowingData data) { return true; }
   virtual void SwapBuffers(GLWindowingData context) {}

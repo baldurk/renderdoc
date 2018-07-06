@@ -50,23 +50,25 @@ class EGLPlatform : public GLPlatform
     return false;
   }
 
-  GLWindowingData MakeContext(GLWindowingData share)
+  GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {
-    GLWindowingData ret;
+    GLWindowingData ret = share;
 
-    if(EGL.CreateContext && EGL.ChooseConfig && EGL.CreatePbufferSurface)
+    ret.egl_ctx = NULL;
+
+    if(EGL.CreateContext)
     {
-      ret = CreateWindowingData(share.egl_dpy, share.ctx, 0);
+      EGLint baseAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
+                              EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
+
+      ret.egl_ctx = EGL.CreateContext(share.egl_dpy, share.egl_cfg, share.egl_ctx, baseAttribs);
     }
 
     return ret;
   }
 
-  void DeleteContext(GLWindowingData context)
+  void DeleteClonedContext(GLWindowingData context)
   {
-    if(context.wnd && EGL.DestroySurface)
-      EGL.DestroySurface(context.egl_dpy, context.egl_wnd);
-
     if(context.ctx && EGL.DestroyContext)
       EGL.DestroyContext(context.egl_dpy, context.egl_ctx);
   }
@@ -159,8 +161,7 @@ class EGLPlatform : public GLPlatform
                                     EGL_NONE};
 
     EGLint numConfigs;
-    EGLConfig config;
-    if(!EGL.ChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
+    if(!EGL.ChooseConfig(eglDisplay, configAttribs, &ret.egl_cfg, 1, &numConfigs))
     {
       RDCERR("Couldn't find a suitable EGL config");
       return ret;
@@ -185,7 +186,7 @@ class EGLPlatform : public GLPlatform
     {
       verAttribs[1] = v.major;
       verAttribs[3] = v.minor;
-      ctx = EGL.CreateContext(eglDisplay, config, share_ctx, verAttribs);
+      ctx = EGL.CreateContext(eglDisplay, ret.egl_cfg, share_ctx, verAttribs);
 
       if(ctx)
         break;
@@ -197,7 +198,7 @@ class EGLPlatform : public GLPlatform
       static const EGLint baseAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
                                            EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
 
-      ctx = EGL.CreateContext(eglDisplay, config, share_ctx, baseAttribs);
+      ctx = EGL.CreateContext(eglDisplay, ret.egl_cfg, share_ctx, baseAttribs);
     }
 
     if(ctx == NULL)
@@ -211,7 +212,7 @@ class EGLPlatform : public GLPlatform
     EGLSurface surface = 0;
     if(window != 0)
     {
-      surface = EGL.CreateWindowSurface(eglDisplay, config, window, NULL);
+      surface = EGL.CreateWindowSurface(eglDisplay, ret.egl_cfg, window, NULL);
 
       if(surface == NULL)
         RDCERR("Couldn't create surface for window");
@@ -219,7 +220,7 @@ class EGLPlatform : public GLPlatform
     else
     {
       static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-      surface = EGL.CreatePbufferSurface(eglDisplay, config, pbAttribs);
+      surface = EGL.CreatePbufferSurface(eglDisplay, ret.egl_cfg, pbAttribs);
 
       if(surface == NULL)
         RDCERR("Couldn't create a suitable PBuffer");
@@ -254,17 +255,12 @@ class EGLPlatform : public GLPlatform
     int major, minor;
     EGL.Initialize(eglDisplay, &major, &minor);
 
-    GLWindowingData base;
-    base.egl_dpy = eglDisplay;
-    base.egl_ctx = EGL_NO_CONTEXT;
-    base.egl_wnd = 0;
-
-    replayContext = MakeContext(base);
+    replayContext = CreateWindowingData(eglDisplay, EGL_NO_CONTEXT, 0);
 
     if(!replayContext.ctx || !replayContext.wnd)
     {
       RDCERR("Couldn't create OpenGL ES 3.x replay context - required for replay");
-      DeleteContext(replayContext);
+      DeleteReplayContext(replayContext);
       RDCEraseEl(replayContext);
       return ReplayStatus::APIHardwareUnsupported;
     }

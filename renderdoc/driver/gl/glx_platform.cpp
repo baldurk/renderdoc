@@ -55,58 +55,44 @@ class GLXPlatform : public GLPlatform
     return false;
   }
 
-  GLWindowingData MakeContext(GLWindowingData share)
+  GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {
-    GLWindowingData ret = {};
+    GLWindowingData ret = share;
 
-    if(!GLX.glXCreateContextAttribsARB)
+    ret.ctx = NULL;
+
+    if(!GLX.glXCreateContext)
       return ret;
 
-    const int attribs[] = {
-        GLX_CONTEXT_MAJOR_VERSION_ARB,
-        3,
-        GLX_CONTEXT_MINOR_VERSION_ARB,
-        2,
-        GLX_CONTEXT_FLAGS_ARB,
-        0,
-        GLX_CONTEXT_PROFILE_MASK_ARB,
-        GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-        0,
-        0,
-    };
     bool is_direct = false;
 
     if(GLX.glXIsDirect)
       is_direct = GLX.glXIsDirect(share.dpy, share.ctx);
 
-    if(GLX.glXChooseFBConfig && GLX.glXCreatePbuffer)
+    XVisualInfo *cfg = share.cfg;
+
+    if(cfg == NULL)
     {
-      // don't need to care about the fb config as we won't be using the default framebuffer
-      // (backbuffer)
-      int visAttribs[] = {0};
+      static int visAttribs[] = {0};
       int numCfgs = 0;
       GLXFBConfig *fbcfg =
           GLX.glXChooseFBConfig(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
 
-      // don't care about pbuffer properties as we won't render directly to this
-      int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};
+      cfg = GLX.glXGetVisualFromFBConfig(share.dpy, fbcfg[0]);
+    }
 
-      if(fbcfg)
-      {
-        ret.wnd = GLX.glXCreatePbuffer(share.dpy, fbcfg[0], pbAttribs);
-        ret.dpy = share.dpy;
-        ret.ctx = GLX.glXCreateContextAttribsARB(share.dpy, fbcfg[0], share.ctx, is_direct, attribs);
-      }
+    ret.ctx = GLX.glXCreateContext(share.dpy, cfg, share.ctx, is_direct);
+
+    if(cfg != share.cfg)
+    {
+      XFree(cfg);
     }
 
     return ret;
   }
 
-  void DeleteContext(GLWindowingData context)
+  void DeleteClonedContext(GLWindowingData context)
   {
-    if(context.wnd && GLX.glXDestroyPbuffer)
-      GLX.glXDestroyPbuffer(context.dpy, context.wnd);
-
     if(context.ctx && GLX.glXDestroyContext)
       GLX.glXDestroyContext(context.dpy, context.ctx);
   }

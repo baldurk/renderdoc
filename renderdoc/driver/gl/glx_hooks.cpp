@@ -113,6 +113,7 @@ HOOK_EXPORT GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXConte
   data.dpy = dpy;
   data.wnd = (GLXDrawable)NULL;
   data.ctx = ret;
+  data.cfg = vis;
 
   {
     SCOPED_LOCK(glLock);
@@ -249,17 +250,18 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig conf
   GLX.glXGetConfig(dpy, vis, GLX_SAMPLES_ARB, &value);
   init.isSRGB = RDCMAX(1, value);
 
-  XFree(vis);
-
   GLWindowingData data;
   data.dpy = dpy;
   data.wnd = (GLXDrawable)NULL;
   data.ctx = ret;
+  data.cfg = vis;
 
   {
     SCOPED_LOCK(glLock);
     glxhook.driver.CreateContext(data, shareList, init, core, true);
   }
+
+  XFree(vis);
 
   return ret;
 }
@@ -299,7 +301,25 @@ HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext c
     data.wnd = drawable;
     data.ctx = ctx;
 
+    int fbconfigid = -1;
+    GLX.glXQueryContext(dpy, ctx, GLX_FBCONFIG_ID, &fbconfigid);
+
+    int attribs[] = {GLX_FBCONFIG_ID, fbconfigid, 0};
+
+    int numElems = 0;
+    GLXFBConfig *config = GLX.glXChooseFBConfig(dpy, DefaultScreen(dpy), attribs, &numElems);
+
+    if(config)
+      data.cfg = GLX.glXGetVisualFromFBConfig(dpy, *config);
+    else
+      data.cfg = NULL;
+
     glxhook.driver.ActivateContext(data);
+
+    if(config)
+      XFree(config);
+    if(data.cfg)
+      XFree(data.cfg);
   }
 
   return ret;
@@ -341,7 +361,25 @@ HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawab
     data.wnd = draw;
     data.ctx = ctx;
 
+    int fbconfigid = -1;
+    GLX.glXQueryContext(dpy, ctx, GLX_FBCONFIG_ID, &fbconfigid);
+
+    int attribs[] = {GLX_FBCONFIG_ID, fbconfigid, 0};
+
+    int numElems = 0;
+    GLXFBConfig *config = GLX.glXChooseFBConfig(dpy, DefaultScreen(dpy), attribs, &numElems);
+
+    if(config)
+      data.cfg = GLX.glXGetVisualFromFBConfig(dpy, *config);
+    else
+      data.cfg = NULL;
+
     glxhook.driver.ActivateContext(data);
+
+    if(config)
+      XFree(config);
+    if(data.cfg)
+      XFree(data.cfg);
   }
 
   return ret;

@@ -51,6 +51,7 @@ public:
   void *handle = DEFAULT_HANDLE;
   WrappedOpenGL driver;
   std::set<EGLContext> contexts;
+  std::map<EGLContext, EGLConfig> configs;
 } eglhook;
 
 HOOK_EXPORT EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
@@ -165,6 +166,9 @@ HOOK_EXPORT EGLContext eglCreateContext(EGLDisplay display, EGLConfig config,
   data.egl_dpy = display;
   data.egl_wnd = (EGLSurface)NULL;
   data.egl_ctx = ret;
+  data.egl_cfg = config;
+
+  eglhook.configs[ret] = config;
 
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
   {
@@ -230,6 +234,9 @@ HOOK_EXPORT EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSu
     data.egl_dpy = display;
     data.egl_wnd = draw;
     data.egl_ctx = ctx;
+
+    // we could query this out technically but it's easier to keep a map
+    data.egl_cfg = eglhook.configs[ctx];
 
     eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
 

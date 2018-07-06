@@ -718,7 +718,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
     GL.glBindVertexArray(vao);
 
     // make a context that shares with the current one, and switch to it
-    GLWindowingData child = platform.MakeContext(context);
+    GLWindowingData child = platform.CloneTemporaryContext(context);
 
     if(child.ctx)
     {
@@ -737,7 +737,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
       // switch back to context
       platform.MakeContextCurrent(context);
 
-      platform.DeleteContext(child);
+      platform.DeleteClonedContext(child);
     }
 
     GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevFBO);
