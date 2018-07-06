@@ -12,16 +12,6 @@ elseif(ANDROID)
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
-    if(ENABLE_GL)
-        find_package(OpenGL REQUIRED)
-        list(APPEND includes PRIVATE ${OPENGL_INCLUDE_DIR})
-        list(APPEND libraries PRIVATE ${OPENGL_gl_LIBRARY})
-    endif()
-
-    if(ENABLE_GLES)
-        list(APPEND libraries PRIVATE -lEGL)
-    endif()
-
     if(ENABLE_XLIB)
         list(APPEND libraries PRIVATE -lX11)
     endif()
