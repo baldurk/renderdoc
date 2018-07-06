@@ -252,78 +252,6 @@ private:
 
   map<ResourceId, BufferData> m_Buffers;
 
-  // map with key being mip level, value being stored data
-  typedef std::map<int, std::vector<byte>> CompressedDataStore;
-
-  struct ShaderData
-  {
-    ShaderData() : type(eGL_NONE), prog(0), version(0) {}
-    GLenum type;
-    vector<string> sources;
-    vector<string> includepaths;
-    SPVModule spirv;
-    std::string disassembly;
-    ShaderReflection reflection;
-    GLuint prog;
-    int version;
-
-    // used for if the application actually uploaded SPIR-V
-    std::vector<uint32_t> spirvWords;
-
-    // the parameters passed to glSpecializeShader
-    std::string entryPoint;
-    std::vector<uint32_t> specIDs;
-    std::vector<uint32_t> specValues;
-
-    // pre-calculated bindpoint mapping for SPIR-V shaders. NOT valid for normal GLSL shaders
-    ShaderBindpointMapping mapping;
-
-    void ProcessCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader);
-    void ProcessSPIRVCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader,
-                                 const GLchar *pEntryPoint, GLuint numSpecializationConstants,
-                                 const GLuint *pConstantIndex, const GLuint *pConstantValue);
-  };
-
-  struct ProgramData
-  {
-    ProgramData() : linked(false) { RDCEraseEl(stageShaders); }
-    vector<ResourceId> shaders;
-
-    map<GLint, GLint> locationTranslate;
-
-    // this flag indicates the program was created with glCreateShaderProgram and cannot be relinked
-    // again (because that function implicitly detaches and destroys the shader). However we only
-    // need to relink when restoring things like frag data or attrib bindings which must be relinked
-    // to apply - and since the application *also* could not have relinked them, they must be
-    // unchanged since creation. So in this case, we can skip the relink since it was impossible for
-    // the application to modify anything.
-    bool shaderProgramUnlinkable = false;
-    bool linked;
-    ResourceId stageShaders[6];
-  };
-
-  struct PipelineData
-  {
-    PipelineData()
-    {
-      RDCEraseEl(stagePrograms);
-      RDCEraseEl(stageShaders);
-    }
-
-    struct ProgramUse
-    {
-      ProgramUse(ResourceId id_, GLbitfield use_) : id(id_), use(use_) {}
-      ResourceId id;
-      GLbitfield use;
-    };
-
-    ResourceId stagePrograms[6];
-    ResourceId stageShaders[6];
-  };
-
-  map<ResourceId, ShaderData> m_Shaders;
-  map<ResourceId, ProgramData> m_Programs;
-  map<ResourceId, PipelineData> m_Pipelines;
   vector<pair<ResourceId, Replacement>> m_DependentReplacements;
 
   GLuint m_FakeBB_FBO;
@@ -611,6 +539,85 @@ public:
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+
+  // map with key being mip level, value being stored data
+  typedef std::map<int, std::vector<byte>> CompressedDataStore;
+
+  struct ShaderData
+  {
+    ShaderData() : type(eGL_NONE), prog(0), version(0) {}
+    GLenum type;
+    vector<string> sources;
+    vector<string> includepaths;
+    SPVModule spirv;
+    std::string disassembly;
+    ShaderReflection reflection;
+    GLuint prog;
+    int version;
+
+    // used only when we're capturing and don't have driver-side reflection so we need to emulate
+    glslang::TShader *glslangShader = NULL;
+
+    // used for if the application actually uploaded SPIR-V
+    std::vector<uint32_t> spirvWords;
+
+    // the parameters passed to glSpecializeShader
+    std::string entryPoint;
+    std::vector<uint32_t> specIDs;
+    std::vector<uint32_t> specValues;
+
+    // pre-calculated bindpoint mapping for SPIR-V shaders. NOT valid for normal GLSL shaders
+    ShaderBindpointMapping mapping;
+
+    void ProcessCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader);
+    void ProcessSPIRVCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader,
+                                 const GLchar *pEntryPoint, GLuint numSpecializationConstants,
+                                 const GLuint *pConstantIndex, const GLuint *pConstantValue);
+  };
+
+  struct ProgramData
+  {
+    ProgramData() : linked(false) { RDCEraseEl(stageShaders); }
+    vector<ResourceId> shaders;
+
+    map<GLint, GLint> locationTranslate;
+
+    // this flag indicates the program was created with glCreateShaderProgram and cannot be relinked
+    // again (because that function implicitly detaches and destroys the shader). However we only
+    // need to relink when restoring things like frag data or attrib bindings which must be relinked
+    // to apply - and since the application *also* could not have relinked them, they must be
+    // unchanged since creation. So in this case, we can skip the relink since it was impossible for
+    // the application to modify anything.
+    bool shaderProgramUnlinkable = false;
+    bool linked;
+    ResourceId stageShaders[6];
+
+    // used only when we're capturing and don't have driver-side reflection so we need to emulate
+    glslang::TProgram *glslangProgram = NULL;
+  };
+
+  struct PipelineData
+  {
+    PipelineData()
+    {
+      RDCEraseEl(stagePrograms);
+      RDCEraseEl(stageShaders);
+    }
+
+    struct ProgramUse
+    {
+      ProgramUse(ResourceId id_, GLbitfield use_) : id(id_), use(use_) {}
+      ResourceId id;
+      GLbitfield use;
+    };
+
+    ResourceId stagePrograms[6];
+    ResourceId stageShaders[6];
+  };
+
+  std::map<ResourceId, ShaderData> m_Shaders;
+  std::map<ResourceId, ProgramData> m_Programs;
+  std::map<ResourceId, PipelineData> m_Pipelines;
 
   struct TextureData
   {

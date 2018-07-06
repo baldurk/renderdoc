@@ -212,3 +212,60 @@ string CompileSPIRV(const SPIRVCompilationSettings &settings,
 
   return errors;
 }
+
+extern std::vector<glslang::TShader *> allocatedShaders;
+extern std::vector<glslang::TProgram *> allocatedPrograms;
+
+glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
+                                             const std::vector<std::string> &sources)
+{
+  EShLanguage lang = EShLanguage(stage);
+
+  glslang::TShader *shader = new glslang::TShader(lang);
+
+  const char **strs = new const char *[sources.size()];
+
+  for(size_t i = 0; i < sources.size(); i++)
+    strs[i] = sources[i].c_str();
+
+  shader->setStrings(strs, (int)sources.size());
+
+  if(shader->parse(&DefaultResources, 100, false, EShMsgRelaxedErrors))
+  {
+    allocatedShaders.push_back(shader);
+    return shader;
+  }
+  else
+  {
+    RDCERR("glslang failed to compile shader:\n\n%s\n\n%s", shader->getInfoLog(),
+           shader->getInfoDebugLog());
+
+    delete shader;
+
+    return NULL;
+  }
+}
+
+glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *> &shaders)
+{
+  glslang::TProgram *program = new glslang::TProgram();
+
+  for(glslang::TShader *shader : shaders)
+    program->addShader(shader);
+
+  if(program->link(EShMsgDefault))
+  {
+    program->buildReflection();
+    allocatedPrograms.push_back(program);
+    return program;
+  }
+  else
+  {
+    RDCERR("glslang failed to link program:\n\n%s\n\n%s", program->getInfoLog(),
+           program->getInfoDebugLog());
+
+    delete program;
+
+    return NULL;
+  }
+}

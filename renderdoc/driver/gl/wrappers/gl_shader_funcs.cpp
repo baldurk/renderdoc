@@ -234,42 +234,50 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   else
     drv.glGetShaderiv(realShader, eGL_COMPILE_STATUS, &status);
 
-  if(sepProg == 0 && status == 1)
-    sepProg = MakeSeparableShaderProgram(drv, type, sources, NULL);
-
-  if(status == 0)
+  if(IsCaptureMode(drv.GetState()))
   {
-    RDCDEBUG("Real shader failed to compile, so skipping separable program and reflection.");
-  }
-  else if(sepProg == 0)
-  {
-    RDCERR(
-        "Couldn't make separable program for shader via patching - functionality will be broken.");
+    glslangShader = CompileShaderForReflection(SPIRVShaderStage(ShaderIdx(type)), sources);
   }
   else
   {
-    prog = sepProg;
-    MakeShaderReflection(type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
+    if(sepProg == 0 && status == 1)
+      sepProg = MakeSeparableShaderProgram(drv, type, sources, NULL);
 
-    vector<uint32_t> spirvwords;
-
-    SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
-                                      SPIRVShaderStage(ShaderIdx(type)));
-
-    string s = CompileSPIRV(settings, sources, spirvwords);
-    if(!spirvwords.empty())
-      ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+    if(status == 0)
+    {
+      RDCDEBUG("Real shader failed to compile, so skipping separable program and reflection.");
+    }
+    else if(sepProg == 0)
+    {
+      RDCERR(
+          "Couldn't make separable program for shader via patching - functionality will be "
+          "broken.");
+    }
     else
-      disassembly = s;
+    {
+      prog = sepProg;
+      MakeShaderReflection(type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
 
-    reflection.resourceId = id;
-    reflection.entryPoint = "main";
+      vector<uint32_t> spirvwords;
 
-    reflection.stage = MakeShaderStage(type);
+      SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
+                                        SPIRVShaderStage(ShaderIdx(type)));
 
-    reflection.debugInfo.files.resize(1);
-    reflection.debugInfo.files[0].filename = "main.glsl";
-    reflection.debugInfo.files[0].contents = concatenated;
+      string s = CompileSPIRV(settings, sources, spirvwords);
+      if(!spirvwords.empty())
+        ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+      else
+        disassembly = s;
+
+      reflection.resourceId = id;
+      reflection.entryPoint = "main";
+
+      reflection.stage = MakeShaderStage(type);
+
+      reflection.debugInfo.files.resize(1);
+      reflection.debugInfo.files[0].filename = "main.glsl";
+      reflection.debugInfo.files[0].contents = concatenated;
+    }
   }
 }
 
@@ -330,9 +338,9 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
   else
   {
     GetResourceManager()->AddLiveResource(id, res);
-
-    m_Shaders[id].type = type;
   }
+
+  m_Shaders[id].type = type;
 
   return real;
 }
@@ -415,7 +423,10 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar *c
       record->AddChunk(scope.Get());
     }
   }
-  else
+
+  // if we're capturing and don't have ARB_program_interface_query we're going to have to emulate
+  // it using glslang for compilation and reflection
+  if(IsReplayMode(m_State) || !HasExt[ARB_program_interface_query])
   {
     ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
     m_Shaders[id].sources.clear();
@@ -466,10 +477,14 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
       record->AddChunk(scope.Get());
     }
   }
-  else
+
   {
     ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
-    m_Shaders[id].ProcessCompilation(*this, id, shader);
+
+    // if we're capturing and don't have ARB_program_interface_query we're going to have to emulate
+    // it using glslang for compilation and reflection
+    if(IsReplayMode(m_State) || !HasExt[ARB_program_interface_query])
+      m_Shaders[id].ProcessCompilation(*this, id, shader);
   }
 }
 
@@ -539,7 +554,10 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
         progRecord->AddChunk(scope.Get());
       }
     }
-    else
+
+    // if we're capturing and don't have ARB_program_interface_query we're going to have to emulate
+    // it using glslang for compilation and reflection
+    if(IsReplayMode(m_State) || !HasExt[ARB_program_interface_query])
     {
       ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
       ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
@@ -608,7 +626,10 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
         progRecord->AddChunk(scope.Get());
       }
     }
-    else
+
+    // if we're capturing and don't have ARB_program_interface_query we're going to have to emulate
+    // it using glslang for compilation and reflection
+    if(IsReplayMode(m_State) || !HasExt[ARB_program_interface_query])
     {
       ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
       ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
@@ -797,7 +818,7 @@ GLuint WrappedOpenGL::glCreateProgram()
 
     record->AddChunk(chunk);
   }
-  else
+
   {
     GetResourceManager()->AddLiveResource(id, res);
 
@@ -857,7 +878,7 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
       record->AddChunk(scope.Get());
     }
   }
-  else
+
   {
     ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
 
@@ -872,6 +893,25 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
         if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
           progDetails.stageShaders[s] = progDetails.shaders[sh];
       }
+    }
+
+    if(IsCaptureMode(m_State) && !HasExt[ARB_program_interface_query])
+    {
+      std::vector<glslang::TShader *> glslangShaders;
+
+      for(ResourceId id : progDetails.shaders)
+      {
+        glslang::TShader *s = m_Shaders[id].glslangShader;
+        if(s == NULL)
+        {
+          RDCERR("Shader attached with no compiled glslang reflection shader!");
+          continue;
+        }
+
+        glslangShaders.push_back(m_Shaders[id].glslangShader);
+      }
+
+      progDetails.glslangProgram = LinkProgramForReflection(glslangShaders);
     }
   }
 }

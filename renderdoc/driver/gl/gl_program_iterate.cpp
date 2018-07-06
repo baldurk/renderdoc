@@ -764,19 +764,24 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
     }
 
     // apply SSBO bindings
-    for(const ProgramBinding &bind : serialisedUniforms.SSBOBindings)
+    // GLES does not allow modification of SSBO bindings - which is good as we don't need to restore
+    // them, since they're immutable.
+    if(!IsGLES)
     {
-      GLuint idx = GL.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, bind.Name.c_str());
-      if(idx != GL_INVALID_INDEX)
+      for(const ProgramBinding &bind : serialisedUniforms.SSBOBindings)
       {
-        if(GL.glShaderStorageBlockBinding)
+        GLuint idx =
+            GL.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, bind.Name.c_str());
+        if(idx != GL_INVALID_INDEX)
         {
-          GL.glShaderStorageBlockBinding(progDst, idx, bind.Binding);
-        }
-        else
-        {
-          // TODO glShaderStorageBlockBinding is not core GLES
-          RDCERR("glShaderStorageBlockBinding is not supported!");
+          if(GL.glShaderStorageBlockBinding)
+          {
+            GL.glShaderStorageBlockBinding(progDst, idx, bind.Binding);
+          }
+          else
+          {
+            RDCERR("glShaderStorageBlockBinding is not supported!");
+          }
         }
       }
     }

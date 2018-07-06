@@ -30,6 +30,7 @@
 #include "driver/gl/gl_dispatch_table.h"
 #include "driver/gl/gl_driver.h"
 #include "driver/gl/gl_resources.h"
+#include "driver/shaders/spirv/spirv_common.h"
 
 namespace glEmulate
 {
@@ -1386,6 +1387,199 @@ void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum fo
 
 #pragma region GLES Compatibility
 
+static ReflectionInterface ConvertInterface(GLenum programInterface)
+{
+  ReflectionInterface ret = ReflectionInterface::Uniform;
+
+  switch(programInterface)
+  {
+    case eGL_PROGRAM_INPUT: ret = ReflectionInterface::Input; break;
+    case eGL_PROGRAM_OUTPUT: ret = ReflectionInterface::Output; break;
+    case eGL_UNIFORM: ret = ReflectionInterface::Uniform; break;
+    case eGL_UNIFORM_BLOCK: ret = ReflectionInterface::UniformBlock; break;
+    case eGL_SHADER_STORAGE_BLOCK: ret = ReflectionInterface::ShaderStorageBlock; break;
+    case eGL_ATOMIC_COUNTER_BUFFER: ret = ReflectionInterface::AtomicCounterBuffer; break;
+    default:
+      RDCERR("Unexpected program interface being queried: %s", ToStr(programInterface).c_str());
+      break;
+  }
+
+  return ret;
+}
+
+static ReflectionProperty ConvertProperty(GLenum prop)
+{
+  ReflectionProperty ret = ReflectionProperty::ActiveResources;
+
+  switch(prop)
+  {
+    case eGL_ACTIVE_RESOURCES: ret = ReflectionProperty::ActiveResources; break;
+    case eGL_BUFFER_BINDING: ret = ReflectionProperty::BufferBinding; break;
+    case eGL_TOP_LEVEL_ARRAY_STRIDE: ret = ReflectionProperty::TopLevelArrayStride; break;
+    case eGL_BLOCK_INDEX: ret = ReflectionProperty::BlockIndex; break;
+    case eGL_ARRAY_SIZE: ret = ReflectionProperty::ArraySize; break;
+    case eGL_IS_ROW_MAJOR: ret = ReflectionProperty::IsRowMajor; break;
+    case eGL_NUM_ACTIVE_VARIABLES: ret = ReflectionProperty::NumActiveVariables; break;
+    case eGL_BUFFER_DATA_SIZE: ret = ReflectionProperty::BufferDataSize; break;
+    case eGL_NAME_LENGTH: ret = ReflectionProperty::NameLength; break;
+    case eGL_TYPE: ret = ReflectionProperty::Type; break;
+    case eGL_LOCATION_COMPONENT: ret = ReflectionProperty::LocationComponent; break;
+    case eGL_REFERENCED_BY_VERTEX_SHADER: ret = ReflectionProperty::ReferencedByVertexShader; break;
+    case eGL_REFERENCED_BY_TESS_CONTROL_SHADER:
+      ret = ReflectionProperty::ReferencedByTessControlShader;
+      break;
+    case eGL_REFERENCED_BY_TESS_EVALUATION_SHADER:
+      ret = ReflectionProperty::ReferencedByTessEvaluationShader;
+      break;
+    case eGL_REFERENCED_BY_GEOMETRY_SHADER:
+      ret = ReflectionProperty::ReferencedByGeometryShader;
+      break;
+    case eGL_REFERENCED_BY_FRAGMENT_SHADER:
+      ret = ReflectionProperty::ReferencedByFragmentShader;
+      break;
+    case eGL_REFERENCED_BY_COMPUTE_SHADER:
+      ret = ReflectionProperty::ReferencedByComputeShader;
+      break;
+    case eGL_ATOMIC_COUNTER_BUFFER_INDEX: ret = ReflectionProperty::AtomicCounterBufferIndex; break;
+    case eGL_OFFSET: ret = ReflectionProperty::Offset; break;
+    case eGL_MATRIX_STRIDE: ret = ReflectionProperty::MatrixStride; break;
+    case eGL_ARRAY_STRIDE: ret = ReflectionProperty::ArrayStride; break;
+    case eGL_LOCATION: ret = ReflectionProperty::Location; break;
+    default: RDCERR("Unexpected program property being queried: %s", ToStr(prop).c_str()); break;
+  }
+
+  return ret;
+}
+
+void APIENTRY _glGetProgramInterfaceiv(GLuint program, GLenum programInterface, GLenum pname,
+                                       GLint *params)
+{
+  if(driver == NULL)
+  {
+    RDCERR("No driver available, can't emulate glGetProgramInterfaceiv");
+    *params = 0;
+    return;
+  }
+
+  ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
+
+  WrappedOpenGL::ProgramData &details = driver->m_Programs[id];
+
+  if(!details.glslangProgram)
+  {
+    *params = 0;
+    return;
+  }
+
+  glslangGetProgramInterfaceiv(details.glslangProgram, ConvertInterface(programInterface),
+                               ConvertProperty(pname), params);
+}
+
+void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index,
+                                      GLsizei propCount, const GLenum *props, GLsizei bufSize,
+                                      GLsizei *length, GLint *params)
+{
+  if(driver == NULL)
+  {
+    RDCERR("No driver available, can't emulate glGetProgramResourceiv");
+    if(length)
+      *length = 0;
+    if(params)
+      memset(params, 0, sizeof(GLint) * bufSize);
+    return;
+  }
+
+  ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
+
+  WrappedOpenGL::ProgramData &details = driver->m_Programs[id];
+
+  if(!details.glslangProgram)
+  {
+    if(length)
+      *length = 0;
+    if(params)
+      memset(params, 0, sizeof(GLint) * bufSize);
+    return;
+  }
+
+  std::vector<ReflectionProperty> properties(propCount);
+
+  for(GLsizei i = 0; i < propCount; i++)
+    properties[i] = ConvertProperty(props[i]);
+
+  glslangGetProgramResourceiv(details.glslangProgram, ConvertInterface(programInterface), index,
+                              properties, bufSize, length, params);
+
+  // fetch locations by hand from the driver
+  for(GLsizei i = 0; i < propCount; i++)
+  {
+    if(props[i] == eGL_LOCATION)
+    {
+      if(params[i] >= 0)
+      {
+        const char *name = glslangGetProgramResourceName(details.glslangProgram,
+                                                         ConvertInterface(programInterface), index);
+
+        if(programInterface == eGL_UNIFORM)
+          params[i] = GL.glGetUniformLocation(program, name);
+        else if(programInterface == eGL_PROGRAM_INPUT)
+          params[i] = GL.glGetAttribLocation(program, name);
+        else
+          params[i] = index;
+      }
+    }
+  }
+}
+
+void APIENTRY _glGetProgramResourceName(GLuint program, GLenum programInterface, GLuint index,
+                                        GLsizei bufSize, GLsizei *length, GLchar *name)
+{
+  if(driver == NULL)
+  {
+    RDCERR("No driver available, can't emulate glGetProgramResourceName");
+    if(length)
+      *length = 0;
+    if(name && bufSize)
+      memset(name, 0, bufSize);
+    return;
+  }
+
+  ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
+
+  WrappedOpenGL::ProgramData &details = driver->m_Programs[id];
+
+  if(!details.glslangProgram)
+  {
+    if(length)
+      *length = 0;
+    if(name && bufSize)
+      memset(name, 0, bufSize);
+    return;
+  }
+
+  const char *fetchedName = glslangGetProgramResourceName(
+      details.glslangProgram, ConvertInterface(programInterface), index);
+
+  if(fetchedName)
+  {
+    size_t nameLen = strlen(fetchedName);
+    if(length)
+      *length = (int32_t)nameLen;
+
+    memcpy(name, fetchedName, RDCMIN((size_t)bufSize, nameLen));
+    name[bufSize - 1] = 0;
+    if(nameLen < (size_t)bufSize)
+      name[nameLen] = 0;
+  }
+  else
+  {
+    if(length)
+      *length = 0;
+    if(name && bufSize)
+      memset(name, 0, bufSize);
+  }
+}
+
 void APIENTRY _glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
 {
   if(driver == NULL)
@@ -1812,6 +2006,10 @@ void GLDispatchTable::EmulateRequiredExtensions()
     {
       EMULATE_FUNC(glGetTexLevelParameteriv);
       EMULATE_FUNC(glGetTexLevelParameterfv);
+
+      EMULATE_FUNC(glGetProgramInterfaceiv);
+      EMULATE_FUNC(glGetProgramResourceiv);
+      EMULATE_FUNC(glGetProgramResourceName);
     }
 
     if(GLCoreVersion < 32)

@@ -160,3 +160,59 @@ struct SpecConstant
 void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
                                std::vector<ShaderVariable> &outvars,
                                const std::vector<SpecConstant> &specInfo);
+
+namespace glslang
+{
+class TShader;
+class TProgram;
+};
+
+glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
+                                             const std::vector<std::string> &sources);
+glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *> &shaders);
+
+enum class ReflectionInterface
+{
+  Input,
+  Output,
+  Uniform,
+  UniformBlock,
+  ShaderStorageBlock,
+  AtomicCounterBuffer,
+};
+
+enum class ReflectionProperty
+{
+  ActiveResources,
+  BufferBinding,
+  TopLevelArrayStride,
+  BlockIndex,
+  ArraySize,
+  IsRowMajor,
+  NumActiveVariables,
+  BufferDataSize,
+  NameLength,
+  Type,
+  LocationComponent,
+  ReferencedByVertexShader,
+  ReferencedByTessControlShader,
+  ReferencedByTessEvaluationShader,
+  ReferencedByGeometryShader,
+  ReferencedByFragmentShader,
+  ReferencedByComputeShader,
+  AtomicCounterBufferIndex,
+  Offset,
+  MatrixStride,
+  ArrayStride,
+  Location,
+};
+
+void glslangGetProgramInterfaceiv(glslang::TProgram *program, ReflectionInterface programInterface,
+                                  ReflectionProperty pname, int32_t *params);
+
+void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface programInterface,
+                                 uint32_t index, const std::vector<ReflectionProperty> &props,
+                                 int32_t bufSize, int32_t *length, int32_t *params);
+
+const char *glslangGetProgramResourceName(glslang::TProgram *program,
+                                          ReflectionInterface programInterface, uint32_t index);

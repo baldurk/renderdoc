@@ -580,10 +580,10 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     m_DeviceRecord = m_ContextRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
-
-    InitSPIRVCompiler();
-    RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
   }
+
+  InitSPIRVCompiler();
+  RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
 
   m_FakeBB_FBO = 0;
   m_FakeBB_Color = 0;
