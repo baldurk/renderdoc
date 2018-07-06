@@ -581,6 +581,7 @@ extern bool IsGLES;
 // 99 means the extension never became core, so you can easily just do a check of CoreVersion >= NN
 // and they will always fail.
 #define EXTENSION_CHECKS()                                       \
+  EXT_TO_CHECK(13, 99, ARB_texture_border_clamp)                 \
   EXT_TO_CHECK(30, 30, EXT_transform_feedback)                   \
   EXT_TO_CHECK(30, 32, EXT_draw_buffers2)                        \
   EXT_TO_CHECK(31, 99, ARB_texture_buffer_object)                \
@@ -640,6 +641,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 32, EXT_color_buffer_float)                   \
   EXT_TO_CHECK(99, 32, EXT_primitive_bounding_box)               \
   EXT_TO_CHECK(99, 32, OES_primitive_bounding_box)               \
+  EXT_TO_CHECK(99, 32, OES_texture_border_color)                 \
   EXT_TO_CHECK(99, 32, OES_texture_storage_multisample_2d_array) \
   EXT_TO_CHECK(99, 99, EXT_clip_cull_distance)                   \
   EXT_TO_CHECK(99, 99, EXT_multisample_compatibility)            \
@@ -657,6 +659,7 @@ extern bool IsGLES;
 // Either promoted extensions from EXT to ARB, or
 // desktop extensions and their roughly equivalent GLES alternatives
 #define EXTENSION_COMPATIBILITY_CHECKS()                                                    \
+  EXT_COMP_CHECK(ARB_texture_border_clamp, OES_texture_border_color)                        \
   EXT_COMP_CHECK(ARB_polygon_offset_clamp, EXT_polygon_offset_clamp)                        \
   EXT_COMP_CHECK(ARB_texture_filter_anisotropic, EXT_texture_filter_anisotropic)            \
   EXT_COMP_CHECK(ARB_base_instance, EXT_base_instance)                                      \

@@ -701,8 +701,16 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                     (GLint *)&state.wrap[2]);
       GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MIN_LOD, &state.minLod);
       GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_LOD, &state.maxLod);
-      GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_BORDER_COLOR,
-                                    &state.border[0]);
+
+      // technically border color has been in since GL 1.0, but since this extension was really
+      // early and dovetails nicely with OES_texture_border_color which added both border colors and
+      // clamping, we check it.
+      if(HasExt[ARB_texture_border_clamp])
+        GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_BORDER_COLOR,
+                                      &state.border[0]);
+      else
+        state.border[0] = state.border[1] = state.border[2] = state.border[3] = 1.0f;
+
       if(!IsGLES)
         GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS,
                                       &state.lodBias);
@@ -1903,8 +1911,12 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
                                    (GLint *)&state.wrap[1]);
         GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_T,
                                    (GLint *)&state.wrap[2]);
-        GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_BORDER_COLOR,
-                                   state.border);
+
+        // see fetch in PrepareTextureInitialContents
+        if(HasExt[ARB_texture_border_clamp])
+          GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_BORDER_COLOR,
+                                     state.border);
+
         if(!IsGLES)
           GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_LOD_BIAS,
                                      &state.lodBias);
