@@ -168,7 +168,7 @@ struct GLWindowingData
   typedef void *GLESDisplayPtr;
   typedef void *GLESContextPtr;
   typedef void *GLESWindowPtr;
-  typedef vpod *GLESConfigPtr;
+  typedef void *GLESConfigPtr;
 #endif
 
   union

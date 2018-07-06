@@ -260,7 +260,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface
     data.egl_dpy = display;
     data.egl_wnd = draw;
     data.egl_ctx = ctx;
-    data.wnd = eglhook.windows[draw];
+    data.wnd = (decltype(data.wnd))eglhook.windows[draw];
 
     if(!data.wnd)
     {

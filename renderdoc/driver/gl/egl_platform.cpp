@@ -226,7 +226,7 @@ class EGLPlatform : public GLPlatform
         RDCERR("Couldn't create a suitable PBuffer");
     }
 
-    ret.wnd = window;
+    ret.wnd = (decltype(ret.wnd))window;
     ret.egl_wnd = surface;
 
     return ret;
