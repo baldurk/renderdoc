@@ -852,12 +852,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
   {
     if(ctxdata.Program)
       GL.glDeleteProgram(ctxdata.Program);
-    if(ctxdata.GeneralUBO)
-      GL.glDeleteBuffers(1, &ctxdata.GeneralUBO);
-    if(ctxdata.GlyphUBO)
-      GL.glDeleteBuffers(1, &ctxdata.GlyphUBO);
-    if(ctxdata.StringUBO)
-      GL.glDeleteBuffers(1, &ctxdata.StringUBO);
+    if(ctxdata.ArrayBuffer)
+      GL.glDeleteBuffers(1, &ctxdata.ArrayBuffer);
     if(ctxdata.GlyphTexture)
       GL.glDeleteTextures(1, &ctxdata.GlyphTexture);
   }

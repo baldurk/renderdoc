@@ -74,7 +74,6 @@ struct Vec4u
 
 #define OPENGL 1
 
-#define FONT_UBOS
 #define HISTOGRAM_UBOS
 
 #ifdef GL_ES

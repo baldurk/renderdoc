@@ -301,8 +301,10 @@ set(data
     data/glsl/gl_texsample.h
     data/glsl/gles_texsample.h
     data/glsl/vk_texsample.h
-    data/glsl/text.frag
-    data/glsl/text.vert
+    data/glsl/gltext.frag
+    data/glsl/gltext.vert
+    data/glsl/vktext.frag
+    data/glsl/vktext.vert
     data/glsl/array2ms.comp
     data/glsl/ms2array.comp
     data/glsl/trisize.frag

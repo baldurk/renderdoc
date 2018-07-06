@@ -835,12 +835,6 @@
     <None Include="data\glsl\texdisplay.frag">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\glsl\text.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\text.vert">
-      <Filter>Resources\glsl</Filter>
-    </None>
     <None Include="data\glsl\trisize.geom">
       <Filter>Resources\glsl</Filter>
     </None>
@@ -861,6 +855,18 @@
     </None>
     <None Include="api\replay\pipestate.inl">
       <Filter>Replay</Filter>
+    </None>
+    <None Include="data\glsl\vktext.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\vktext.vert">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\gltext.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\gltext.vert">
+      <Filter>Resources\glsl</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

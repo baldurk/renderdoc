@@ -308,7 +308,7 @@ private:
       attribsCreate = false;
       version = 0;
       isCore = false;
-      Program = GeneralUBO = StringUBO = GlyphUBO = 0;
+      Program = ArrayBuffer = 0;
       GlyphTexture = DummyVAO = 0;
       CharSize = CharAspect = 0.0f;
       RDCEraseEl(m_TextureRecord);
@@ -356,7 +356,7 @@ private:
     }
     bool Modern() { return !Legacy(); }
     GLuint Program;
-    GLuint GeneralUBO, StringUBO, GlyphUBO;
+    GLuint ArrayBuffer;
     GLuint GlyphTexture;
     GLuint DummyVAO;
 

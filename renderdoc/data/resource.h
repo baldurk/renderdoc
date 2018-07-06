@@ -17,8 +17,8 @@
 #define RESOURCE_glsl_blit_vert         401
 #define RESOURCE_glsl_checkerboard_frag 402
 #define RESOURCE_glsl_texdisplay_frag   403
-#define RESOURCE_glsl_text_vert         404
-#define RESOURCE_glsl_text_frag         405
+#define RESOURCE_glsl_vktext_vert       404
+#define RESOURCE_glsl_vktext_frag       405
 #define RESOURCE_glsl_fixedcol_frag     408
 #define RESOURCE_glsl_mesh_vert         409
 #define RESOURCE_glsl_mesh_geom         410
@@ -40,6 +40,8 @@
 #define RESOURCE_glsl_deptharr2ms_frag  426
 #define RESOURCE_glsl_depthms2arr_frag  427
 #define RESOURCE_glsl_gles_texsample_h  428
+#define RESOURCE_glsl_gltext_vert       429
+#define RESOURCE_glsl_gltext_frag       430
 
 // Next default values for new objects
 // 

@@ -489,6 +489,8 @@
     <None Include="data\glsl\deptharr2ms.frag" />
     <None Include="data\glsl\depthms2arr.frag" />
     <None Include="data\glsl\fixedcol.frag" />
+    <None Include="data\glsl\gltext.frag" />
+    <None Include="data\glsl\gltext.vert" />
     <None Include="data\glsl\histogram.comp" />
     <None Include="data\glsl\mesh.comp" />
     <None Include="data\glsl\mesh.frag" />
@@ -501,8 +503,8 @@
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />
     <None Include="data\glsl\texdisplay.frag" />
-    <None Include="data\glsl\text.frag" />
-    <None Include="data\glsl\text.vert" />
+    <None Include="data\glsl\vktext.frag" />
+    <None Include="data\glsl\vktext.vert" />
     <None Include="data\glsl\trisize.frag" />
     <None Include="data\glsl\trisize.geom" />
     <None Include="data\hlsl\debugcommon.hlsl" />

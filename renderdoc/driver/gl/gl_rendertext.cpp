@@ -29,18 +29,21 @@
 #include "strings/string_utils.h"
 #include "gl_driver.h"
 
-const int firstChar = int(' ') + 1;
-const int lastChar = 127;
-const int numChars = lastChar - firstChar;
 const float charPixelHeight = 20.0f;
+
+#define FONT_FIRST_CHAR 32
+#define FONT_LAST_CHAR 126
+
+const int numChars = FONT_LAST_CHAR - FONT_FIRST_CHAR + 1;
 
 stbtt_bakedchar chardata[numChars];
 
-#define OPENGL 1
-#include "data/glsl/debuguniforms.h"
-
 void WrappedOpenGL::ContextData::CreateDebugData()
 {
+  // if these constants change, update debuguniforms.h and gltext.vert
+  RDCCOMPILE_ASSERT(FONT_FIRST_CHAR == int(' '), "FONT_FIRST_CHAR is incorrect");
+  RDCCOMPILE_ASSERT(FONT_LAST_CHAR == 126, "FONT_LAST_CHAR is incorrect");
+
   // to let us display the overlay on old GL contexts, use as simple a subset of functionality as
   // possible to upload the texture. VAO and shaders are used optionally on modern contexts,
   // otherwise we fall back to immediate mode rendering by hand
@@ -52,7 +55,7 @@ void WrappedOpenGL::ContextData::CreateDebugData()
     byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
 
     stbtt_BakeFontBitmap(ttfdata, 0, charPixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT,
-                         firstChar, numChars, chardata);
+                         FONT_FIRST_CHAR + 1, numChars, chardata);
 
     CharSize = charPixelHeight;
 #if ENABLED(RDOC_ANDROID)
@@ -97,7 +100,12 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 
     delete[] buf;
 
-    Vec4f glyphData[2 * (numChars + 1)];
+    Vec4f posdata[numChars + 1] = {};
+    Vec4f uvdata[numChars + 1] = {};
+
+    // premultiply CharacterSize
+    const Vec4f uvscale =
+        Vec4f(1.0f / float(FONT_TEX_WIDTH), 1.0f / float(FONT_TEX_HEIGHT), 0.0f, 1.0f);
 
     for(int i = 0; i < numChars; i++)
     {
@@ -106,128 +114,143 @@ void WrappedOpenGL::ContextData::CreateDebugData()
       float x = b->xoff;
       float y = b->yoff + maxheight;
 
-      glyphData[(i + 1) * 2 + 0] =
-          Vec4f(x / b->xadvance, y / charPixelHeight, b->xadvance / float(b->x1 - b->x0),
-                charPixelHeight / float(b->y1 - b->y0));
-      glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
+      posdata[i + 1] = Vec4f(x / b->xadvance, y / charPixelHeight, b->xadvance / float(b->x1 - b->x0),
+                             charPixelHeight / float(b->y1 - b->y0));
+      uvdata[i + 1] =
+          Vec4f(b->x0 * uvscale.x, b->y0 * uvscale.y, b->x1 * uvscale.x, b->y1 * uvscale.y);
     }
 
-    if(Modern() && GL.glGenVertexArrays && GL.glBindVertexArray)
+    if(Modern())
     {
-      GLuint curvao = 0;
-      GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
-
-      GL.glGenVertexArrays(1, &DummyVAO);
-      GL.glBindVertexArray(DummyVAO);
-
-      GL.glBindVertexArray(curvao);
-    }
-
-    if(Modern() && GL.glGenBuffers && GL.glBufferData && GL.glBindBuffer)
-    {
-      GLuint curubo = 0;
-      GL.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&curubo);
-
-      GL.glGenBuffers(1, &GlyphUBO);
-      GL.glBindBuffer(eGL_UNIFORM_BUFFER, GlyphUBO);
-      GL.glBufferData(eGL_UNIFORM_BUFFER, sizeof(glyphData), glyphData, eGL_STATIC_DRAW);
-
-      GL.glGenBuffers(1, &GeneralUBO);
-      GL.glBindBuffer(eGL_UNIFORM_BUFFER, GeneralUBO);
-      GL.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUBOData), NULL, eGL_DYNAMIC_DRAW);
-
-      GL.glGenBuffers(1, &StringUBO);
-      GL.glBindBuffer(eGL_UNIFORM_BUFFER, StringUBO);
-      GL.glBufferData(eGL_UNIFORM_BUFFER, sizeof(uint32_t) * 4 * FONT_MAX_CHARS, NULL,
-                      eGL_DYNAMIC_DRAW);
-
-      GL.glBindBuffer(eGL_UNIFORM_BUFFER, curubo);
-    }
-
-    if(Modern() && GL.glCreateShader && GL.glShaderSource && GL.glCompileShader &&
-       GL.glGetShaderiv && GL.glGetShaderInfoLog && GL.glDeleteShader && GL.glCreateProgram &&
-       GL.glAttachShader && GL.glLinkProgram && GL.glGetProgramiv && GL.glGetProgramInfoLog)
-    {
-      vector<string> vs;
-      vector<string> fs;
-
-      ShaderType shaderType;
-      int glslVersion;
-      string fragDefines;
-
-      if(IsGLES)
+      if(GLCoreVersion > 20 && GL.glGenVertexArrays && GL.glBindVertexArray)
       {
-        shaderType = eShaderGLSLES;
-        glslVersion = 310;
-        fragDefines = "";
-      }
-      else
-      {
-        shaderType = eShaderGLSL;
-        glslVersion = 150;
-        fragDefines =
-            "#extension GL_ARB_shading_language_420pack : require\n"
-            "#extension GL_ARB_separate_shader_objects : require\n"
-            "#extension GL_ARB_explicit_attrib_location : require\n";
+        GLuint curvao = 0;
+        GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
+
+        GL.glGenVertexArrays(1, &DummyVAO);
+        GL.glBindVertexArray(DummyVAO);
+
+        GL.glBindVertexArray(curvao);
       }
 
-      GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_text_vert), glslVersion);
-      GenerateGLSLShader(fs, shaderType, fragDefines, GetEmbeddedResource(glsl_text_frag),
-                         glslVersion);
-
-      vector<const char *> vsc;
-      vsc.reserve(vs.size());
-      vector<const char *> fsc;
-      fsc.reserve(fs.size());
-
-      for(size_t i = 0; i < vs.size(); i++)
-        vsc.push_back(vs[i].c_str());
-
-      for(size_t i = 0; i < fs.size(); i++)
-        fsc.push_back(fs[i].c_str());
-
-      GLuint vert = GL.glCreateShader(eGL_VERTEX_SHADER);
-      GLuint frag = GL.glCreateShader(eGL_FRAGMENT_SHADER);
-
-      GL.glShaderSource(vert, (GLsizei)vs.size(), &vsc[0], NULL);
-      GL.glShaderSource(frag, (GLsizei)fs.size(), &fsc[0], NULL);
-
-      GL.glCompileShader(vert);
-      GL.glCompileShader(frag);
-
-      char buffer[1024] = {0};
-      GLint status = 0;
-
-      GL.glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
-      if(status == 0)
+      if(GL.glGenBuffers && GL.glBufferData && GL.glBindBuffer)
       {
-        GL.glGetShaderInfoLog(vert, 1024, NULL, buffer);
-        RDCERR("Shader error: %s", buffer);
+        GLuint curbuf = 0;
+        GL.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&curbuf);
+
+        GL.glGenBuffers(1, &ArrayBuffer);
+        GL.glBindBuffer(eGL_ARRAY_BUFFER, ArrayBuffer);
+        GL.glBufferData(eGL_ARRAY_BUFFER, sizeof(float) * 5 * FONT_MAX_CHARS * 6, NULL,
+                        eGL_DYNAMIC_DRAW);
+
+        GL.glBindBuffer(eGL_ARRAY_BUFFER, curbuf);
       }
 
-      GL.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
-      if(status == 0)
+      if(GL.glCreateShader && GL.glShaderSource && GL.glCompileShader && GL.glGetShaderiv &&
+         GL.glGetShaderInfoLog && GL.glDeleteShader && GL.glCreateProgram && GL.glAttachShader &&
+         GL.glLinkProgram && GL.glGetProgramiv && GL.glGetProgramInfoLog)
       {
-        GL.glGetShaderInfoLog(frag, 1024, NULL, buffer);
-        RDCERR("Shader error: %s", buffer);
+        vector<string> vs;
+        vector<string> fs;
+
+        ShaderType shaderType;
+        int glslVersion;
+        string fragDefines;
+
+        if(IsGLES)
+        {
+          shaderType = eShaderGLSLES;
+          glslVersion = 100;
+          fragDefines = "precision highp float;";
+        }
+        else
+        {
+          shaderType = eShaderGLSL;
+          glslVersion = 110;
+        }
+
+        GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_gltext_vert), glslVersion,
+                           false);
+        GenerateGLSLShader(fs, shaderType, fragDefines.c_str(),
+                           GetEmbeddedResource(glsl_gltext_frag), glslVersion, false);
+
+        vector<const char *> vsc;
+        vsc.reserve(vs.size());
+        vector<const char *> fsc;
+        fsc.reserve(fs.size());
+
+        for(size_t i = 0; i < vs.size(); i++)
+          vsc.push_back(vs[i].c_str());
+
+        for(size_t i = 0; i < fs.size(); i++)
+          fsc.push_back(fs[i].c_str());
+
+        GLuint vert = GL.glCreateShader(eGL_VERTEX_SHADER);
+        GLuint frag = GL.glCreateShader(eGL_FRAGMENT_SHADER);
+
+        GL.glShaderSource(vert, (GLsizei)vs.size(), &vsc[0], NULL);
+        GL.glShaderSource(frag, (GLsizei)fs.size(), &fsc[0], NULL);
+
+        GL.glCompileShader(vert);
+        GL.glCompileShader(frag);
+
+        char buffer[1024] = {0};
+        GLint status = 0;
+
+        GL.glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
+        if(status == 0)
+        {
+          GL.glGetShaderInfoLog(vert, 1024, NULL, buffer);
+          RDCERR("Shader error: %s", buffer);
+        }
+
+        GL.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
+        if(status == 0)
+        {
+          GL.glGetShaderInfoLog(frag, 1024, NULL, buffer);
+          RDCERR("Shader error: %s", buffer);
+        }
+
+        Program = GL.glCreateProgram();
+
+        GL.glAttachShader(Program, vert);
+        GL.glAttachShader(Program, frag);
+
+        GL.glBindAttribLocation(Program, 0, "pos");
+        GL.glBindAttribLocation(Program, 1, "uv");
+        GL.glBindAttribLocation(Program, 2, "charidx");
+
+        GL.glLinkProgram(Program);
+
+        GL.glGetProgramiv(Program, eGL_LINK_STATUS, &status);
+        if(status == 1)
+        {
+          GLuint prevProg = 0;
+          GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prevProg);
+
+          GL.glUseProgram(Program);
+
+          // texture is from texture0
+          GL.glUniform1i(GL.glGetUniformLocation(Program, "font_tex"), 0);
+
+          // upload posdata and uvdata
+          GL.glUniform4fv(GL.glGetUniformLocation(Program, "posdata"), numChars, &posdata[0].x);
+          GL.glUniform4fv(GL.glGetUniformLocation(Program, "uvdata"), numChars, &uvdata[0].x);
+
+          GL.glUseProgram(prevProg);
+        }
+        else
+        {
+          GL.glGetProgramInfoLog(Program, 1024, NULL, buffer);
+          RDCERR("Link error: %s", buffer);
+
+          GL.glDeleteProgram(Program);
+          Program = 0;
+        }
+
+        GL.glDeleteShader(vert);
+        GL.glDeleteShader(frag);
       }
-
-      Program = GL.glCreateProgram();
-
-      GL.glAttachShader(Program, vert);
-      GL.glAttachShader(Program, frag);
-
-      GL.glLinkProgram(Program);
-
-      GL.glGetProgramiv(Program, eGL_LINK_STATUS, &status);
-      if(status == 0)
-      {
-        GL.glGetProgramInfoLog(Program, 1024, NULL, buffer);
-        RDCERR("Link error: %s", buffer);
-      }
-
-      GL.glDeleteShader(vert);
-      GL.glDeleteShader(frag);
     }
 
     ready = true;
@@ -273,29 +296,13 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
   ContextData &ctxdata = GetCtxData();
 
-  if(!ctxdata.built || !ctxdata.ready)
+  if(!ctxdata.built || !ctxdata.ready || (ctxdata.Modern() && ctxdata.Program == 0))
     return;
 
   // if it's reasonably modern context, assume we can use buffers and UBOs
   if(ctxdata.Modern())
   {
-    GL.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GeneralUBO);
-
-    FontUBOData *ubo = (FontUBOData *)GL.glMapBufferRange(
-        eGL_UNIFORM_BUFFER, 0, sizeof(FontUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    ubo->TextPosition.x = x;
-    ubo->TextPosition.y = y;
-
-    ubo->FontScreenAspect.x = 1.0f / RDCMAX(1.0f, float(m_InitParams.width));
-    ubo->FontScreenAspect.y = 1.0f / RDCMAX(1.0f, float(m_InitParams.height));
-
-    ubo->TextSize = ctxdata.CharSize;
-    ubo->FontScreenAspect.x *= ctxdata.CharAspect;
-
-    ubo->CharacterSize.x = 1.0f / float(FONT_TEX_WIDTH);
-    ubo->CharacterSize.y = 1.0f / float(FONT_TEX_HEIGHT);
-
-    GL.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    GL.glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.ArrayBuffer);
 
     size_t len = strlen(text);
 
@@ -313,38 +320,46 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       len = FONT_MAX_CHARS;
     }
 
-    GL.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.StringUBO);
-    uint32_t *texs =
-        (uint32_t *)GL.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len * 4 * sizeof(uint32_t),
-                                        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    static const Vec2f basePos[] = {
+        Vec2f(0.0, 0.0), Vec2f(1.0, 0.0), Vec2f(0.0, 1.0),
+        Vec2f(1.0, 0.0), Vec2f(0.0, 1.0), Vec2f(1.0, 1.0),
+    };
 
-    if(texs)
+    const Vec2f FontScreenAspect(ctxdata.CharAspect / RDCMAX(1.0f, float(m_InitParams.width)),
+                                 1.0f / RDCMAX(1.0f, float(m_InitParams.height)));
+
+    float *vertexData = new float[5 * len * 6];
+
+    for(size_t i = 0; i < len; i++)
     {
-      for(size_t i = 0; i < len; i++)
+      for(int ch = 0; ch < 6; ch++)
       {
-        texs[i * 4 + 0] = text[i] - ' ';
-        texs[i * 4 + 1] = text[i] - ' ';
-        texs[i * 4 + 2] = text[i] - ' ';
-        texs[i * 4 + 3] = text[i] - ' ';
+        Vec2f uv = basePos[ch];
+
+        Vec2f pos = uv;
+        pos.x += float(i) + x;
+        pos.y += y;
+
+        pos.x *= 2.0f * ctxdata.CharSize * FontScreenAspect.x;
+        pos.y *= 2.0f * ctxdata.CharSize * FontScreenAspect.y;
+
+        pos.x -= 1.0f;
+        pos.y -= 1.0f;
+
+        vertexData[(i * 6 + ch) * 5 + 0] = pos.x;
+        vertexData[(i * 6 + ch) * 5 + 1] = -pos.y;
+        vertexData[(i * 6 + ch) * 5 + 2] = uv.x;
+        vertexData[(i * 6 + ch) * 5 + 3] = uv.y;
+        vertexData[(i * 6 + ch) * 5 + 4] = float(text[i] - FONT_FIRST_CHAR);
       }
     }
-    else
-    {
-      static bool printedWarning = false;
 
-      // this could be called once a frame, don't want to spam the log
-      if(!printedWarning)
-      {
-        printedWarning = true;
-        RDCWARN("failed to map %d characters for '%s' (%d)", (int)len, text, ctxdata.StringUBO);
-      }
-    }
-
-    GL.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+    // we read 6 * len vec2 positions and 6 * len float characters
+    GL.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(float) * 5 * len * 6, vertexData);
 
     //////////////////////////////////////////////////////////////////////////////////
     // Make sure if you change any other state in here, that you also update the push
-    // and pop functions above (RenderTextState)
+    // and pop functions in GLPushPopState
 
     // set blend state
     if(HasExt[ARB_draw_buffers_blend])
@@ -398,13 +413,17 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     if(GL.glClipControl && HasExt[ARB_clip_control])
       GL.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
 
-    // bind UBOs
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ctxdata.StringUBO);
-
-    // bind empty VAO just for valid rendering
+    // bind VAO so we can fiddle with vertex attrib state
     GL.glBindVertexArray(ctxdata.DummyVAO);
+
+    GLsizei stride = sizeof(float) * 5;
+
+    GL.glVertexAttribPointer(0, 2, eGL_FLOAT, false, stride, (void *)uintptr_t(sizeof(float) * 0));
+    GL.glVertexAttribPointer(1, 2, eGL_FLOAT, false, stride, (void *)uintptr_t(sizeof(float) * 2));
+    GL.glVertexAttribPointer(2, 1, eGL_FLOAT, false, stride, (void *)uintptr_t(sizeof(float) * 4));
+    GL.glEnableVertexAttribArray(0);
+    GL.glEnableVertexAttribArray(1);
+    GL.glEnableVertexAttribArray(2);
 
     // bind textures
     GL.glActiveTexture(eGL_TEXTURE0);
@@ -482,9 +501,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       while(*prepass)
       {
         char c = *prepass;
-        if(c >= firstChar && c <= lastChar)
+        if(c >= FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
         {
-          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - firstChar, &x, &y, &q, 1);
+          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR, &x, &y,
+                             &q, 1);
 
           maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
           maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
@@ -512,9 +532,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       while(*text)
       {
         char c = *text;
-        if(c >= firstChar && c <= lastChar)
+        if(c >= FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
         {
-          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - firstChar, &x, &y, &q, 1);
+          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR, &x, &y,
+                             &q, 1);
 
           vertices.push_back(Vec4f(q.x0, q.y0, q.s0, q.t0));
           vertices.push_back(Vec4f(q.x1, q.y0, q.s1, q.t0));

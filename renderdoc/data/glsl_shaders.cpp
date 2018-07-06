@@ -39,7 +39,10 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
   }
   else
   {
-    sources[0] = StringFormat::Fmt("#version %d core\n", version);
+    if(version == 110)
+      sources[0] = "#version 110";    // no core suffix
+    else
+      sources[0] = StringFormat::Fmt("#version %d core\n", version);
   }
 
   if(uniforms)

@@ -22,28 +22,35 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifdef VULKAN
-layout (binding = 3) uniform sampler2D tex0;
-#else // OPENGL
-layout (binding = 0) uniform sampler2D tex0;
-#endif
-layout (location = 0) out vec4 color_out;
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+};
 
-layout (location = 0) in vec4 tex;
-layout (location = 1) in vec2 glyphuv;
+layout (location = 0) out vec4 tex;
+layout (location = 1) out vec2 glyphuv;
 
 void main(void)
 {
-	float text = 0.0f;
+	const vec3 verts[6] = vec3[6](vec3( 0.0,  0.0, 0.5),
+                                  vec3( 1.0,  0.0, 0.5),
+                                  vec3( 0.0,  1.0, 0.5),
 
-	if(glyphuv.x >= 0.0f && glyphuv.x <= 1.0f &&
-	   glyphuv.y >= 0.0f && glyphuv.y <= 1.0f)
-	{
-		vec2 uv;
-		uv.x = mix(tex.x, tex.z, glyphuv.x);
-		uv.y = mix(tex.y, tex.w, glyphuv.y);
-		text = texture(tex0, uv.xy).x;
-	}
+                                  vec3( 1.0,  0.0, 0.5),
+                                  vec3( 0.0,  1.0, 0.5),
+                                  vec3( 1.0,  1.0, 0.5));
 
-	color_out = vec4(vec3(text), clamp(text + 0.5f, 0.0f, 1.0f));
+	uint vert = uint(VERTEX_ID)%6u;
+
+	vec3 pos = verts[vert];
+	uint strindex = uint(VERTEX_ID)/6u;
+	
+	vec2 charPos = vec2(float(strindex) + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
+
+	FontGlyphData G = glyphs.data[ str.chars[strindex].x ];
+	
+	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
+	glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
+	tex = G.uvdata * general.CharacterSize.xyxy;
 }
