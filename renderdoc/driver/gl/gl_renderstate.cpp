@@ -666,6 +666,9 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
         // see DoVendorChecks()
         return false;
 
+      case eGL_SAMPLE_MASK:
+        return HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample];
+
       case eGL_CLIP_DISTANCE0:
       case eGL_CLIP_DISTANCE1:
       case eGL_CLIP_DISTANCE2:
@@ -785,8 +788,15 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
     else
       TexBuffer[i].name = 0;
 
-    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint *)&Tex2DMS[i].name);
-    GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY, (GLint *)&Tex2DMSArray[i].name);
+    if(HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample])
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint *)&Tex2DMS[i].name);
+    else
+      Tex2DMS[i].name = 0;
+
+    if(HasExt[ARB_texture_multisample])
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY, (GLint *)&Tex2DMSArray[i].name);
+    else
+      Tex2DMSArray[i].name = 0;
 
     if(HasExt[ARB_texture_cube_map_array])
       GL.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY, (GLint *)&TexCubeArray[i].name);
@@ -1196,7 +1206,9 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
       memcpy(&ColorMasks[i], &ColorMasks[0], sizeof(ColorMask));
   }
 
-  GL.glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
+  if(HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample])
+    GL.glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
+
   GL.glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
 
   {
@@ -1300,20 +1312,31 @@ void GLRenderState::ApplyState(WrappedOpenGL *driver)
   for(GLuint i = 0; i < RDCMIN(maxTextures, (GLuint)ARRAY_COUNT(Tex2D)); i++)
   {
     GL.glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+
     if(!IsGLES)
       GL.glBindTexture(eGL_TEXTURE_1D, Tex1D[i].name);
+
     GL.glBindTexture(eGL_TEXTURE_2D, Tex2D[i].name);
     GL.glBindTexture(eGL_TEXTURE_3D, Tex3D[i].name);
+
     if(!IsGLES)
       GL.glBindTexture(eGL_TEXTURE_1D_ARRAY, Tex1DArray[i].name);
+
     GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, Tex2DArray[i].name);
+
     if(!IsGLES)
       GL.glBindTexture(eGL_TEXTURE_RECTANGLE, TexRect[i].name);
+
     if(HasExt[ARB_texture_buffer_object])
       GL.glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i].name);
+
     GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, TexCube[i].name);
-    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i].name);
-    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, Tex2DMSArray[i].name);
+
+    if(HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample])
+      GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i].name);
+
+    if(HasExt[ARB_texture_multisample])
+      GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, Tex2DMSArray[i].name);
 
     if(HasExt[ARB_sampler_objects])
       GL.glBindSampler(i, Samplers[i].name);
@@ -1641,8 +1664,11 @@ void GLRenderState::ApplyState(WrappedOpenGL *driver)
     GL.glColorMask(ColorMasks[0].red, ColorMasks[0].green, ColorMasks[0].blue, ColorMasks[0].alpha);
   }
 
-  GL.glSampleMaski(0, (GLbitfield)SampleMask[0]);
+  if(HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample])
+    GL.glSampleMaski(0, (GLbitfield)SampleMask[0]);
+
   GL.glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
+
   if(HasExt[ARB_sample_shading])
     GL.glMinSampleShading(MinSampleShading);
 

@@ -584,6 +584,12 @@ extern bool IsGLES;
   EXT_TO_CHECK(30, 30, EXT_transform_feedback)                   \
   EXT_TO_CHECK(30, 32, EXT_draw_buffers2)                        \
   EXT_TO_CHECK(31, 99, ARB_texture_buffer_object)                \
+  /* This is a hack, the extension doesn't exist but is      */  \
+  /* equivalent to GLES 3.1's addition of MSAA textures but  */  \
+  /* NOT array MSAA textures. We'll treat the real ext as a  */  \
+  /* super-set.                                              */  \
+  EXT_TO_CHECK(32, 31, ARB_texture_multisample_no_array)         \
+  EXT_TO_CHECK(32, 32, ARB_texture_multisample)                  \
   EXT_TO_CHECK(33, 30, ARB_explicit_attrib_location)             \
   EXT_TO_CHECK(33, 30, ARB_sampler_objects)                      \
   EXT_TO_CHECK(33, 30, ARB_texture_swizzle)                      \
