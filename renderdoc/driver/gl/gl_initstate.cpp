@@ -204,8 +204,12 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
       {
         GL.glGetNamedFramebufferAttachmentParameterivEXT(
             res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
-        GL.glGetNamedFramebufferAttachmentParameterivEXT(
-            res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+
+        if(HasExt[ARB_geometry_shader4])
+          GL.glGetNamedFramebufferAttachmentParameterivEXT(
+              res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+        else
+          layered = 0;
 
         if(layered == 0)
           GL.glGetNamedFramebufferAttachmentParameterivEXT(
