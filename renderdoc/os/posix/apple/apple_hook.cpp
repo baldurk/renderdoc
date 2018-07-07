@@ -32,6 +32,10 @@ void LibraryHooks::BeginHookRegistration()
   // nothing to do
 }
 
+void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
+{
+}
+
 void LibraryHooks::RegisterLibraryHook(char const *, FunctionLoadCallback cb)
 {
   if(cb)
