@@ -356,9 +356,9 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface
   init.isYFlipped = eglhook.IsYFlipped(dpy, surface);
 
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
-  eglhook.driver.WindowSize(eglhook.windows[surface], winwidth, winheight);
+  eglhook.driver.WindowSize((void *)eglhook.windows[surface], winwidth, winheight);
   if(!eglhook.driver.UsesVRFrameMarkers())
-    eglhook.driver.SwapBuffers(eglhook.windows[surface]);
+    eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
 
   return EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
 }
