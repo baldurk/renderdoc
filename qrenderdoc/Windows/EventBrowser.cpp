@@ -1279,7 +1279,7 @@ void EventBrowser::Find(bool forward)
   if(ui->findEvent->text().isEmpty())
     return;
 
-  uint32_t curEID = m_Ctx.CurEvent();
+  uint32_t curEID = m_Ctx.CurSelectedEvent();
 
   RDTreeWidgetItem *node = ui->events->selectedItem();
   if(node)
