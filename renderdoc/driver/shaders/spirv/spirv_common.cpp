@@ -283,7 +283,6 @@ void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
       {
         memcpy(outvars[v].value.uv, specInfo[i].data.data(),
                RDCMIN(specInfo[i].data.size(), sizeof(outvars[v].value.uv)));
-        break;
       }
     }
   }
