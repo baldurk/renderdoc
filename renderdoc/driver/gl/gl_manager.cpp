@@ -41,8 +41,7 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
 
     MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
-    GLint numVBufferBindings = 16;
-    GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+    GLint numVBufferBindings = GetNumVertexBuffers();
 
     for(GLuint i = 0; i < (GLuint)numVBufferBindings; i++)
     {

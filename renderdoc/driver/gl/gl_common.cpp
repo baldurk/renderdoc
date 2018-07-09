@@ -507,7 +507,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 
   RDCEraseEl(VendorCheck);
 
-  if(GL.glGetError && GL.glGetIntegeri_v)
+  if(GL.glGetError && GL.glGetIntegeri_v && HasExt[ARB_vertex_attrib_binding])
   {
     // clear all error flags.
     GLenum err = eGL_NONE;
@@ -1332,11 +1332,24 @@ void ClearGLErrors()
   }
 }
 
+GLint GetNumVertexBuffers()
+{
+  GLint numBindings = 16;
+
+  // when the extension isn't present we pretend attribs == vertex buffers
+  if(HasExt[ARB_vertex_attrib_binding])
+    GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numBindings);
+  else
+    GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numBindings);
+
+  return numBindings;
+}
+
 GLuint GetBoundVertexBuffer(GLuint i)
 {
   GLuint buffer = 0;
 
-  if(VendorCheck[VendorCheck_AMD_vertex_buffer_query])
+  if(VendorCheck[VendorCheck_AMD_vertex_buffer_query] || !HasExt[ARB_vertex_attrib_binding])
     GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
   else
     GL.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&buffer);

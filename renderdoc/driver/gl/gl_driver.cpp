@@ -4435,8 +4435,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   }
 
   // Vertex buffers and attributes
-  GLint numVBufferBindings = 16;
-  GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+  GLint numVBufferBindings = GetNumVertexBuffers();
 
   for(GLuint i = 0; i < (GLuint)numVBufferBindings; i++)
   {

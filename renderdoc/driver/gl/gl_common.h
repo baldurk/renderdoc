@@ -492,6 +492,7 @@ const char *SamplerString(GLenum smpenum);
 void ClearGLErrors();
 
 GLuint GetBoundVertexBuffer(GLuint idx);
+GLint GetNumVertexBuffers();
 
 void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
                          ShaderBindpointMapping &mapping);

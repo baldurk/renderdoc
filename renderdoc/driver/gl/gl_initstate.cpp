@@ -325,23 +325,46 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     {
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED,
                              (GLint *)&data.VertexAttribs[i].enabled);
-      GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&data.VertexAttribs[i].vbslot);
-      GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET,
-                             (GLint *)&data.VertexAttribs[i].offset);
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&data.VertexAttribs[i].type);
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED,
                              (GLint *)&data.VertexAttribs[i].normalized);
-      GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER,
-                             (GLint *)&data.VertexAttribs[i].integer);
+
+      // no extension for this, it just appeared in GL & GLES 3.0, along with glVertexAttribIPointer
+      if(GLCoreVersion >= 3.0)
+        GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER,
+                               (GLint *)&data.VertexAttribs[i].integer);
+      else
+        data.VertexAttribs[i].integer = 0;
+
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&data.VertexAttribs[i].size);
 
       GLuint buffer = GetBoundVertexBuffer(i);
 
       data.VertexBuffers[i].Buffer = BufferRes(ctx, buffer);
 
-      GL.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&data.VertexBuffers[i].Stride);
-      GL.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data.VertexBuffers[i].Offset);
-      GL.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&data.VertexBuffers[i].Divisor);
+      if(HasExt[ARB_vertex_attrib_binding])
+      {
+        GL.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&data.VertexBuffers[i].Stride);
+        GL.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data.VertexBuffers[i].Offset);
+        GL.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&data.VertexBuffers[i].Divisor);
+
+        GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET,
+                               (GLint *)&data.VertexAttribs[i].offset);
+        GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&data.VertexAttribs[i].vbslot);
+      }
+      else
+      {
+        GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_STRIDE,
+                               (GLint *)&data.VertexBuffers[i].Stride);
+        GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_DIVISOR,
+                               (GLint *)&data.VertexBuffers[i].Divisor);
+        data.VertexBuffers[i].Offset = 0;
+
+        void *ptr = NULL;
+        GL.glGetVertexAttribPointerv(i, eGL_VERTEX_ATTRIB_ARRAY_POINTER, &ptr);
+
+        data.VertexAttribs[i].offset = (uint32_t)(uintptr_t)ptr;
+      }
     }
 
     GLuint buffer = 0;
