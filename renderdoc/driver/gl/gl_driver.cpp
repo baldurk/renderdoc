@@ -709,10 +709,10 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
     }
 
     if(stencil)
-      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, target,
                                  m_FakeBB_DepthStencil, 0);
     else
-      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
+      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, target,
                                  m_FakeBB_DepthStencil, 0);
   }
 
