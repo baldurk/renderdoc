@@ -1103,6 +1103,7 @@ GLInitParams::GLInitParams()
   multiSamples = 1;
   width = 32;
   height = 32;
+  isYFlipped = false;
 }
 
 bool GLInitParams::IsSupportedVersion(uint64_t ver)
@@ -1120,6 +1121,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x1B)
     return true;
 
+  // 0x1C -> 0x1D - added isYFlipped init parameter for backbuffers on ANGLE.
+  if(ver == 0x1C)
+    return true;
+
   return false;
 }
 
@@ -1133,6 +1138,8 @@ void DoSerialise(SerialiserType &ser, GLInitParams &el)
   SERIALISE_MEMBER(multiSamples);
   SERIALISE_MEMBER(width);
   SERIALISE_MEMBER(height);
+  if(ser.VersionAtLeast(0x1D))
+    SERIALISE_MEMBER(isYFlipped);
 }
 
 INSTANTIATE_SERIALISE_TYPE(GLInitParams);

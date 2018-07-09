@@ -53,6 +53,24 @@ public:
   std::set<EGLContext> contexts;
   std::map<EGLContext, EGLConfig> configs;
   std::map<EGLSurface, EGLNativeWindowType> windows;
+
+  bool IsYFlipped(EGLDisplay dpy, EGLSurface surface)
+  {
+    if(strstr(EGL.QueryString(dpy, EGL_EXTENSIONS), "ANGLE_surface_orientation"))
+    {
+// https://github.com/google/angle/blob/master/extensions/EGL_ANGLE_surface_orientation.txt
+#define EGL_SURFACE_ORIENTATION_ANGLE 0x33A8
+#define EGL_SURFACE_ORIENTATION_INVERT_Y_ANGLE 0x0002
+
+      int mask = 0;
+      EGL.QuerySurface(dpy, surface, EGL_SURFACE_ORIENTATION_ANGLE, &mask);
+
+      return (mask & EGL_SURFACE_ORIENTATION_INVERT_Y_ANGLE) != 0;
+    }
+
+    return false;
+  }
+
 } eglhook;
 
 HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
@@ -302,6 +320,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface sur
   // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
   init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
 
+  init.isYFlipped = eglhook.IsYFlipped(dpy, surface);
+
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
   eglhook.driver.WindowSize(surface, width, height);
   if(!eglhook.driver.UsesVRFrameMarkers())
@@ -333,10 +353,12 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface
   // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
   init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
 
+  init.isYFlipped = eglhook.IsYFlipped(dpy, surface);
+
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
-  eglhook.driver.WindowSize(surface, winwidth, winheight);
+  eglhook.driver.WindowSize(eglhook.windows[surface], winwidth, winheight);
   if(!eglhook.driver.UsesVRFrameMarkers())
-    eglhook.driver.SwapBuffers(surface);
+    eglhook.driver.SwapBuffers(eglhook.windows[surface]);
 
   return EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
 }

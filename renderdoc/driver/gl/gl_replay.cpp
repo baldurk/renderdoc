@@ -3222,6 +3222,8 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
 
     ReadSerialiser ser(reader, Ownership::Stream);
 
+    ser.SetVersion(ver);
+
     SystemChunk chunk = ser.ReadChunk<SystemChunk>();
 
     if(chunk != SystemChunk::DriverInit)

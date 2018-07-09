@@ -257,7 +257,7 @@ void WrappedOpenGL::ContextData::CreateDebugData()
   }
 }
 
-void WrappedOpenGL::RenderOverlayText(float x, float y, const char *fmt, ...)
+void WrappedOpenGL::RenderOverlayText(float x, float y, bool yflipped, const char *fmt, ...)
 {
   static char tmpBuf[4096];
 
@@ -273,18 +273,18 @@ void WrappedOpenGL::RenderOverlayText(float x, float y, const char *fmt, ...)
 
   textState.Push(ctxdata.Modern());
 
-  RenderOverlayStr(x, y, tmpBuf);
+  RenderOverlayStr(x, y, yflipped, tmpBuf);
 
   textState.Pop(ctxdata.Modern());
 }
 
-void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
+void WrappedOpenGL::RenderOverlayStr(float x, float y, bool yflipped, const char *text)
 {
   if(char *t = strchr((char *)text, '\n'))
   {
     *t = 0;
-    RenderOverlayStr(x, y, text);
-    RenderOverlayStr(x, y + 1.0f, t + 1);
+    RenderOverlayStr(x, y, yflipped, text);
+    RenderOverlayStr(x, y + 1.0f, yflipped, t + 1);
     *t = '\n';
     return;
   }
@@ -347,7 +347,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
         pos.y -= 1.0f;
 
         vertexData[(i * 6 + ch) * 5 + 0] = pos.x;
-        vertexData[(i * 6 + ch) * 5 + 1] = -pos.y;
+        vertexData[(i * 6 + ch) * 5 + 1] = yflipped ? pos.y : -pos.y;
         vertexData[(i * 6 + ch) * 5 + 2] = uv.x;
         vertexData[(i * 6 + ch) * 5 + 3] = uv.y;
         vertexData[(i * 6 + ch) * 5 + 4] = float(text[i] - FONT_FIRST_CHAR);
@@ -529,6 +529,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       vertices.push_back(Vec4f(maxx, miny, 0.0f, 0.0f));
       vertices.push_back(Vec4f(minx, miny, 0.0f, 0.0f));
 
+      float mul = yflipped ? -1.0f : 1.0f;
+
       while(*text)
       {
         char c = *text;
@@ -537,10 +539,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
           stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR, &x, &y,
                              &q, 1);
 
-          vertices.push_back(Vec4f(q.x0, q.y0, q.s0, q.t0));
-          vertices.push_back(Vec4f(q.x1, q.y0, q.s1, q.t0));
-          vertices.push_back(Vec4f(q.x1, q.y1, q.s1, q.t1));
-          vertices.push_back(Vec4f(q.x0, q.y1, q.s0, q.t1));
+          vertices.push_back(Vec4f(q.x0, q.y0 * mul, q.s0, q.t0));
+          vertices.push_back(Vec4f(q.x1, q.y0 * mul, q.s1, q.t0));
+          vertices.push_back(Vec4f(q.x1, q.y1 * mul, q.s1, q.t1));
+          vertices.push_back(Vec4f(q.x0, q.y1 * mul, q.s0, q.t1));
 
           maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
           maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));

@@ -51,9 +51,10 @@ struct GLInitParams
   uint32_t multiSamples;
   uint32_t width;
   uint32_t height;
+  bool isYFlipped;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x1C;
+  static const uint64_t CurrentVersion = 0x1D;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -440,8 +441,8 @@ private:
   static const int FONT_TEX_HEIGHT = 128;
   static const int FONT_MAX_CHARS = 256;
 
-  void RenderOverlayText(float x, float y, const char *fmt, ...);
-  void RenderOverlayStr(float x, float y, const char *str);
+  void RenderOverlayText(float x, float y, bool yflipped, const char *fmt, ...);
+  void RenderOverlayStr(float x, float y, bool yflipped, const char *str);
 
   struct BackbufferImage
   {

@@ -51,6 +51,7 @@ typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
 typedef EGLint (*PFN_eglGetError)(void);
 typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute,
                                              EGLint *value);
+typedef const char *(*PFN_eglQueryString)(EGLDisplay dpy, EGLint name);
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 
 #define EGL_HOOKED_SYMBOLS(FUNC)    \
@@ -74,6 +75,7 @@ typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
   FUNC(GetCurrentSurface, false);    \
   FUNC(GetError, false);             \
   FUNC(Initialize, false);           \
+  FUNC(QueryString, false);          \
   FUNC(QuerySurface, false);
 
 struct EGLDispatchTable

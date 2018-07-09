@@ -1636,7 +1636,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
       }
 
       if(!overlayText.empty())
-        RenderOverlayText(0.0f, 0.0f, overlayText.c_str());
+        RenderOverlayText(0.0f, 0.0f, m_InitParams.isYFlipped, overlayText.c_str());
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the
@@ -1939,7 +1939,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     {
       ContextData &ctxdata = GetCtxData();
 
-      RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
+      RenderOverlayText(0.0f, 0.0f, m_InitParams.isYFlipped, "Failed to capture frame %u: %s",
+                        m_FrameCounter, reasonString);
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the
@@ -2059,24 +2060,27 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     }
 
     // flip the image in-place
-    for(uint16_t y = 0; y <= thheight / 2; y++)
+    if(!m_InitParams.isYFlipped)
     {
-      uint16_t flipY = (thheight - 1 - y);
-
-      for(uint16_t x = 0; x < thwidth; x++)
+      for(uint16_t y = 0; y <= thheight / 2; y++)
       {
-        byte save[3];
-        save[0] = thpixels[(y * thwidth + x) * 3 + 0];
-        save[1] = thpixels[(y * thwidth + x) * 3 + 1];
-        save[2] = thpixels[(y * thwidth + x) * 3 + 2];
+        uint16_t flipY = (thheight - 1 - y);
 
-        thpixels[(y * thwidth + x) * 3 + 0] = thpixels[(flipY * thwidth + x) * 3 + 0];
-        thpixels[(y * thwidth + x) * 3 + 1] = thpixels[(flipY * thwidth + x) * 3 + 1];
-        thpixels[(y * thwidth + x) * 3 + 2] = thpixels[(flipY * thwidth + x) * 3 + 2];
+        for(uint16_t x = 0; x < thwidth; x++)
+        {
+          byte save[3];
+          save[0] = thpixels[(y * thwidth + x) * 3 + 0];
+          save[1] = thpixels[(y * thwidth + x) * 3 + 1];
+          save[2] = thpixels[(y * thwidth + x) * 3 + 2];
 
-        thpixels[(flipY * thwidth + x) * 3 + 0] = save[0];
-        thpixels[(flipY * thwidth + x) * 3 + 1] = save[1];
-        thpixels[(flipY * thwidth + x) * 3 + 2] = save[2];
+          thpixels[(y * thwidth + x) * 3 + 0] = thpixels[(flipY * thwidth + x) * 3 + 0];
+          thpixels[(y * thwidth + x) * 3 + 1] = thpixels[(flipY * thwidth + x) * 3 + 1];
+          thpixels[(y * thwidth + x) * 3 + 2] = thpixels[(flipY * thwidth + x) * 3 + 2];
+
+          thpixels[(flipY * thwidth + x) * 3 + 0] = save[0];
+          thpixels[(flipY * thwidth + x) * 3 + 1] = save[1];
+          thpixels[(flipY * thwidth + x) * 3 + 2] = save[2];
+        }
       }
     }
 
