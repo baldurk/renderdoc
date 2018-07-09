@@ -1870,7 +1870,76 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
     byte *dst = (byte *)pixels + d * sliceSize;
     GLenum readFormat = fixBGRA ? eGL_RGBA : format;
-    GL.glReadPixels(0, 0, width, height, readFormat, type, (void *)dst);
+
+    GLenum implFormat = eGL_NONE, implType = eGL_NONE;
+
+    GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_FORMAT, (GLint *)&implFormat);
+    GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_TYPE, (GLint *)&implType);
+
+    // spec says this must be supported
+    bool validReadback = (readFormat == eGL_RGBA && type == eGL_UNSIGNED_BYTE);
+
+    // the implementation is allowed to support one other format/type pair, it can vary by texture.
+    // Normally this will be the 'natural' readback format/type pair that we are trying
+    validReadback |= (readFormat == implFormat && type == implType);
+
+    if(validReadback)
+    {
+      GL.glReadPixels(0, 0, width, height, readFormat, type, (void *)dst);
+    }
+    else
+    {
+      // unfortunately the readback is not supported directly, we'll need to fudge it.
+      RDCDEBUG("Reading as %s/%s but impl supported pair is %s/%s", ToStr(readFormat).c_str(),
+               ToStr(type).c_str(), ToStr(implFormat).c_str(), ToStr(implType).c_str());
+
+      if(readFormat == implFormat && (type == eGL_HALF_FLOAT_OES || type == eGL_HALF_FLOAT) &&
+         (implType == eGL_HALF_FLOAT_OES || implType == eGL_HALF_FLOAT))
+      {
+        // if the format itself is supported and we just have a mismatch between eGL_HALF_FLOAT_OES
+        // and eGL_HALF_FLOAT (different enum values), we can just use the implementation's pair
+        // as-is.
+
+        GL.glReadPixels(0, 0, width, height, readFormat, implType, (void *)dst);
+      }
+      else if(readFormat == eGL_RGB && implFormat == eGL_RGBA && type == implType)
+      {
+        // if the only difference is that the implementation wants to read RGBA for an RGB format
+        // (could be understandable if the native storage is RGBA anyway for RGB textures) then we
+        // can readback into a temporary buffer and strip the alpha.
+
+        size_t size = GetByteSize(width, height, 1, implFormat, type);
+        byte *readback = new byte[size];
+        GL.glReadPixels(0, 0, width, height, implFormat, implType, readback);
+
+        // how big is a component (1/2/4 bytes)
+        size_t compSize = GetByteSize(1, 1, 1, eGL_RED, type);
+
+        byte *src = readback;
+
+        // for each pixel
+        for(GLint i = 0; i < width * height; i++)
+        {
+          // copy RGB
+          memcpy(dst, src, compSize * 3);
+
+          // advance dst by RGB
+          dst += compSize * 3;
+
+          // advance src by RGBA
+          src += compSize * 4;
+        }
+
+        delete[] readback;
+
+        fixBGRA = false;
+      }
+      else
+      {
+        RDCERR("Unhandled readback failure");
+        memset(dst, 0, sliceSize);
+      }
+    }
 
     if(fixBGRA)
     {
