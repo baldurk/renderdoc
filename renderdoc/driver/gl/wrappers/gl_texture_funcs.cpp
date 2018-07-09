@@ -739,6 +739,12 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
     {
       AddEvent();
 
+      // all mips are now valid
+      ResourceId liveId = GetResourceManager()->GetID(texture);
+      uint32_t mips =
+          CalcNumMips(m_Textures[liveId].width, m_Textures[liveId].height, m_Textures[liveId].depth);
+      m_Textures[liveId].mipsValid = (1 << mips) - 1;
+
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt(
           "%s(%s)", ToStr(gl_CurChunk).c_str(),
@@ -782,7 +788,14 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
   }
   else if(IsBackgroundCapturing(m_State))
   {
-    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    ResourceId texId = record->GetResourceID();
+
+    GetResourceManager()->MarkDirtyResource(texId);
+
+    // all mips are now valid
+    uint32_t mips =
+        CalcNumMips(m_Textures[texId].width, m_Textures[texId].height, m_Textures[texId].depth);
+    m_Textures[texId].mipsValid = (1 << mips) - 1;
   }
 }
 
