@@ -1649,6 +1649,9 @@ void TextureViewer::textureTab_Changed(int index)
 {
   ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
 
+  if(!textureTabs)
+    return;
+
   QWidget *w = textureTabs->widget(index);
 
   if(w)
@@ -2803,6 +2806,12 @@ void TextureViewer::setPersistData(const QVariant &persistData)
 
   m_TexDisplay.backgroundColor =
       checker ? FloatVector() : FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f);
+
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+  while(textureTabs->count() > 1)
+    textureTabs->removeTab(1);
+
+  m_LockedTabs.clear();
 
   updateBackgroundColors();
 
