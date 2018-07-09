@@ -74,7 +74,8 @@ Returns the name to display for this host in the UI, either :data:`friendlyName`
   DOCUMENT("Returns ``True`` if this host represents a connected ADB (Android) device.");
   bool IsADB() const
   {
-    return hostname[0] == 'a' && hostname[1] == 'd' && hostname[2] == 'b' && hostname[3] == ':';
+    return hostname.count() > 4 && hostname[0] == 'a' && hostname[1] == 'd' && hostname[2] == 'b' &&
+           hostname[3] == ':';
   }
   DOCUMENT("Returns ``True`` if this host represents the special localhost device.");
   bool IsLocalhost() const { return hostname == "localhost"; }
