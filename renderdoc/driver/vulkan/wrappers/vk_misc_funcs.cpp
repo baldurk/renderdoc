@@ -639,15 +639,13 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFramebuffer);
       record->AddChunk(chunk);
 
-      record->imageAttachments = new AttachmentInfo[VkResourceRecord::MaxImageAttachments];
-      RDCASSERT(pCreateInfo->attachmentCount <= VkResourceRecord::MaxImageAttachments);
-
-      RDCEraseMem(record->imageAttachments,
-                  sizeof(AttachmentInfo) * VkResourceRecord::MaxImageAttachments);
-
       VkResourceRecord *rpRecord = GetRecord(pCreateInfo->renderPass);
-
       record->AddParent(rpRecord);
+
+      uint32_t arrayCount = pCreateInfo->attachmentCount + 1;
+
+      record->imageAttachments = new AttachmentInfo[arrayCount];
+      RDCEraseMem(record->imageAttachments, sizeof(AttachmentInfo) * arrayCount);
 
       for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
       {
@@ -847,11 +845,12 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pRenderPass);
       record->AddChunk(chunk);
 
-      record->imageAttachments = new AttachmentInfo[VkResourceRecord::MaxImageAttachments];
-      RDCASSERT(pCreateInfo->attachmentCount <= VkResourceRecord::MaxImageAttachments);
+      // +1 for the terminal value
+      uint32_t arrayCount = pCreateInfo->attachmentCount + 1;
 
-      RDCEraseMem(record->imageAttachments,
-                  sizeof(AttachmentInfo) * VkResourceRecord::MaxImageAttachments);
+      record->imageAttachments = new AttachmentInfo[arrayCount];
+
+      RDCEraseMem(record->imageAttachments, sizeof(AttachmentInfo) * arrayCount);
 
       for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
       {

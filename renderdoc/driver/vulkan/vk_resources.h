@@ -1110,8 +1110,6 @@ public:
 
   VkResourceRecord *bakedCommands;
 
-  static const int MaxImageAttachments = 17;    // 8 Input, 8 Colour and 1 Depth
-
   // pointer to either the pool this item is allocated from, or the children allocated
   // from this pool. Protected by the chunk lock
   VkResourceRecord *pool;

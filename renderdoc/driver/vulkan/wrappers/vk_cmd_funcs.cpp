@@ -1148,7 +1148,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
     VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
-    for(size_t i = 0; i < VkResourceRecord::MaxImageAttachments; i++)
+    for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
     {
       VkResourceRecord *att = fb->imageAttachments[i].record;
       if(att == NULL)
@@ -1334,7 +1334,7 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
 
     std::vector<VkImageMemoryBarrier> barriers;
 
-    for(size_t i = 0; i < VkResourceRecord::MaxImageAttachments; i++)
+    for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
     {
       if(fb->imageAttachments[i].barrier.oldLayout == fb->imageAttachments[i].barrier.newLayout)
         continue;
