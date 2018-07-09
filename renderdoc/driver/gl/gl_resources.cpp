@@ -307,7 +307,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     default: RDCERR("Unhandled Byte Size type %s!", ToStr(type).c_str()); break;
   }
 
-  switch((int)format)
+  switch(format)
   {
     case eGL_RED:
     case eGL_RED_INTEGER:
@@ -333,7 +333,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_RGBA_INTEGER:
     case eGL_BGRA:
     case eGL_BGRA_INTEGER: return w * h * d * elemSize * 4;
-    default: RDCERR("Unhandled Byte Size format %s!", ToStr(type).c_str()); break;
+    default: RDCERR("Unhandled Byte Size format %s!", ToStr(format).c_str()); break;
   }
 
   RDCERR("Unhandled Byte Size case!");
