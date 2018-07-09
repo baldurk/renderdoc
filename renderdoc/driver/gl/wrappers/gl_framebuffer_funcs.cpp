@@ -1794,7 +1794,7 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
   SERIALISE_ELEMENT(dstY0);
   SERIALISE_ELEMENT(dstX1);
   SERIALISE_ELEMENT(dstY1);
-  SERIALISE_ELEMENT(mask);
+  SERIALISE_ELEMENT_TYPED(GLframebufferbitfield, mask);
   SERIALISE_ELEMENT(filter);
 
   SERIALISE_CHECK_READ_ERRORS();

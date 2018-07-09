@@ -74,20 +74,14 @@ std::string DoStringise(const GLbarrierbitfield &el)
   END_BITFIELD_STRINGISE();
 }
 
-enum GLclearbitfield
-{
-};
-
-DECLARE_REFLECTION_ENUM(GLclearbitfield);
-
 template <>
-std::string DoStringise(const GLclearbitfield &el)
+std::string DoStringise(const GLframebufferbitfield &el)
 {
-  RDCCOMPILE_ASSERT(
-      sizeof(GLclearbitfield) == sizeof(GLbitfield) && sizeof(GLclearbitfield) == sizeof(uint32_t),
-      "Fake bitfield enum must be uint32_t sized");
+  RDCCOMPILE_ASSERT(sizeof(GLframebufferbitfield) == sizeof(GLbitfield) &&
+                        sizeof(GLframebufferbitfield) == sizeof(uint32_t),
+                    "Fake bitfield enum must be uint32_t sized");
 
-  BEGIN_BITFIELD_STRINGISE(GLclearbitfield);
+  BEGIN_BITFIELD_STRINGISE(GLframebufferbitfield);
   {
     STRINGISE_BITFIELD_BIT(GL_COLOR_BUFFER_BIT);
     STRINGISE_BITFIELD_BIT(GL_DEPTH_BUFFER_BIT);
@@ -4077,7 +4071,7 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
 {
-  SERIALISE_ELEMENT_TYPED(GLclearbitfield, mask);
+  SERIALISE_ELEMENT_TYPED(GLframebufferbitfield, mask);
 
   Serialise_DebugMessages(ser);
 

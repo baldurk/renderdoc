@@ -571,6 +571,12 @@ enum AttribType
 
 DECLARE_REFLECTION_ENUM(AttribType);
 
+enum GLframebufferbitfield
+{
+};
+
+DECLARE_REFLECTION_ENUM(GLframebufferbitfield);
+
 extern int GLCoreVersion;
 extern bool GLIsCore;
 extern bool IsGLES;
