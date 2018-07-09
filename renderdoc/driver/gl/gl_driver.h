@@ -633,6 +633,7 @@ public:
           samples(0),
           creationFlags(TextureCategory::NoFlags),
           internalFormat(eGL_NONE),
+          internalFormatHint(eGL_NONE),
           mipsValid(0),
           renderbufferReadTex(0)
     {
@@ -644,7 +645,7 @@ public:
     bool emulated, view;
     GLint width, height, depth, samples;
     TextureCategory creationFlags;
-    GLenum internalFormat;
+    GLenum internalFormat, internalFormatHint;
     GLuint mipsValid;
 
     // since renderbuffers cannot be read from, we have to create a texture of identical

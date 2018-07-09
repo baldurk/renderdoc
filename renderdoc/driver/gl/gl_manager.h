@@ -253,8 +253,9 @@ private:
   bool Prepare_InitialState(GLResource res);
   uint32_t GetSize_InitialState(ResourceId resid, GLResource res);
 
-  void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum textype, GLint dim, GLint width,
-                          GLint height, GLint depth, GLint samples, int mips);
+  void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
+                          GLenum textype, GLint dim, GLint width, GLint height, GLint depth,
+                          GLint samples, int mips);
   void PrepareTextureInitialContents(ResourceId liveid, ResourceId origid, GLResource res);
 
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);

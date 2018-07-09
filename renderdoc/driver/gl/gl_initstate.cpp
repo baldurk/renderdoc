@@ -494,9 +494,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   return true;
 }
 
-void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum textype,
-                                           GLint dim, GLint width, GLint height, GLint depth,
-                                           GLint samples, int mips)
+void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat,
+                                           GLenum internalFormatHint, GLenum textype, GLint dim,
+                                           GLint width, GLint height, GLint depth, GLint samples,
+                                           int mips)
 {
   if(textype == eGL_TEXTURE_BUFFER)
   {
@@ -523,11 +524,13 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GL
     bool isCompressed = IsCompressedFormat(internalFormat);
 
     GLenum baseFormat = eGL_RGBA;
-    GLenum dataType = eGL_UNSIGNED_BYTE;
+    GLenum dataType = internalFormatHint != eGL_NONE ? internalFormatHint : eGL_UNSIGNED_BYTE;
     if(!isCompressed)
     {
       baseFormat = GetBaseFormat(internalFormat);
-      dataType = GetDataType(internalFormat);
+
+      if(dataType == eGL_NONE)
+        dataType = GetDataType(internalFormat);
     }
 
     GLenum targets[] = {
@@ -750,8 +753,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         mips = 1;
 
       // create texture of identical format/size to store initial contents
-      CreateTextureImage(tex, details.internalFormat, details.curType, details.dimension,
-                         details.width, details.height, details.depth, details.samples, mips);
+      CreateTextureImage(tex, details.internalFormat, details.internalFormatHint, details.curType,
+                         details.dimension, details.width, details.height, details.depth,
+                         details.samples, mips);
 
       // we need to set maxlevel appropriately for number of mips to force the texture to be
       // complete.
@@ -1441,9 +1445,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
           GL.glGenTextures(1, &tex);
           GL.glBindTexture(TextureState.type, tex);
 
-          CreateTextureImage(tex, TextureState.internalformat, TextureState.type, TextureState.dim,
-                             TextureState.width, TextureState.height, TextureState.depth,
-                             TextureState.samples, TextureState.mips);
+          CreateTextureImage(tex, TextureState.internalformat, details.internalFormatHint,
+                             TextureState.type, TextureState.dim, TextureState.width,
+                             TextureState.height, TextureState.depth, TextureState.samples,
+                             TextureState.mips);
         }
         else if(ser.IsWriting())
         {
@@ -1520,6 +1525,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
                 else
                 {
                   // we avoid glGetTextureImageEXT as it seems buggy for cubemap faces
+                  RDCLOG("Getting tex image for %llu", resid);
                   GL.glGetTexImage(targets[trg], i, fmt, type, scratchBuf);
                 }
               }
