@@ -1757,7 +1757,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     m_pImmediateContext->CopyResource(initialStageBuf, initialBuf);
-    m_pImmediateContext->CopyResource(evalStageBuf, evalBuf);
+    if(evalStageBuf)
+      m_pImmediateContext->CopyResource(evalStageBuf, evalBuf);
   }
 
   D3D11_MAPPED_SUBRESOURCE mapped;
