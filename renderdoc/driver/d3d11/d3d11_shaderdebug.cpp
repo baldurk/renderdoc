@@ -2402,9 +2402,29 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
       switch(decl.operand.type)
       {
         case TYPE_INPUT_THREAD_GROUP_ID:
+          memcpy(v.value.uv, initialState.semantics.GroupID, sizeof(uint32_t) * 3);
+          v.columns = 3;
+          break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP:
-        case TYPE_INPUT_THREAD_ID: v.columns = 3; break;
-        case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED: v.columns = 1; break;
+          memcpy(v.value.uv, initialState.semantics.ThreadID, sizeof(uint32_t) * 3);
+          v.columns = 3;
+          break;
+        case TYPE_INPUT_THREAD_ID:
+          v.value.u.x = initialState.semantics.GroupID[0] * dxbc->DispatchThreadsDimension[0] +
+                        initialState.semantics.ThreadID[0];
+          v.value.u.y = initialState.semantics.GroupID[1] * dxbc->DispatchThreadsDimension[1] +
+                        initialState.semantics.ThreadID[1];
+          v.value.u.z = initialState.semantics.GroupID[2] * dxbc->DispatchThreadsDimension[2] +
+                        initialState.semantics.ThreadID[2];
+          v.columns = 3;
+          break;
+        case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+          v.value.u.x = initialState.semantics.ThreadID[2] * dxbc->DispatchThreadsDimension[0] *
+                            dxbc->DispatchThreadsDimension[1] +
+                        initialState.semantics.ThreadID[1] * dxbc->DispatchThreadsDimension[0] +
+                        initialState.semantics.ThreadID[0];
+          v.columns = 1;
+          break;
         default: v.columns = 4; break;
       }
 
