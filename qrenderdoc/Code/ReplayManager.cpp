@@ -165,14 +165,14 @@ rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *wind
 
   rdcstr remotepath;
 
-  bool copied = false;
+  QAtomicInt copied = 0;
   float progress = 0.0f;
 
   auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
     remotepath =
         m_Remote->CopyCaptureToRemote(localpath.c_str(), [&progress](float p) { progress = p; });
-    copied = true;
+    copied = 1;
   };
 
   // we should never have the thread running at this point, but let's be safe.
@@ -187,7 +187,7 @@ rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *wind
     thread->start();
   }
 
-  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied; },
+  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied == 0; },
                      [&progress]() { return progress; });
 
   return remotepath;
@@ -199,14 +199,14 @@ void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr
   if(!m_Remote)
     return;
 
-  bool copied = false;
+  QAtomicInt copied = 0;
   float progress = 0.0f;
 
   auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
     m_Remote->CopyCaptureFromRemote(remotepath.c_str(), localpath.c_str(),
                                     [&progress](float p) { progress = p; });
-    copied = true;
+    copied = 1;
   };
 
   // we should never have the thread running at this point, but let's be safe.
@@ -221,7 +221,7 @@ void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr
     thread->start();
   }
 
-  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied; },
+  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied == 0; },
                      [&progress]() { return progress; });
 }
 

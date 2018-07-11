@@ -105,13 +105,16 @@ rdcstr SPIRVDisassembler::DisassembleShader(QWidget *window, const ShaderReflect
 
     if(process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
-      GUIInvoke::call(window, [window]() {
-        RDDialog::critical(
-            window, QApplication::translate("SPIRVDisassembler", "Error running disassembler"),
-            QApplication::translate(
-                "SPIRVDisassembler",
-                "There was an error invoking the external SPIR-V disassembler."));
-      });
+      if(window)
+      {
+        GUIInvoke::call(window, [window]() {
+          RDDialog::critical(
+              window, QApplication::translate("SPIRVDisassembler", "Error running disassembler"),
+              QApplication::translate(
+                  "SPIRVDisassembler",
+                  "There was an error invoking the external SPIR-V disassembler."));
+        });
+      }
     }
 
     if(writesToFile)
