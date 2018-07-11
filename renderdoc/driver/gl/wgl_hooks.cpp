@@ -138,6 +138,8 @@ void WGLHook::ProcessSwapBuffers(HDC dc)
 {
   HWND w = WindowFromDC(dc);
 
+  SetDriverForHooks(&wglhook.driver);
+
   if(w != NULL && haveContextCreation && !swapRecurse)
   {
     RECT r;
@@ -166,6 +168,8 @@ static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
   if(ret)
   {
     DWORD err = GetLastError();
+
+    SetDriverForHooks(&wglhook.driver);
 
     wglhook.PopulateFromContext(dc, ret);
 
@@ -321,6 +325,8 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
     wglhook.createRecurse = false;
     return ret;
   }
+
+  SetDriverForHooks(&wglhook.driver);
 
   wglhook.PopulateFromContext(dc, ret);
 
