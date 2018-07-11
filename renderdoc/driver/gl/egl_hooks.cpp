@@ -56,7 +56,8 @@ public:
 
   bool IsYFlipped(EGLDisplay dpy, EGLSurface surface)
   {
-    if(strstr(EGL.QueryString(dpy, EGL_EXTENSIONS), "ANGLE_surface_orientation"))
+    const char *extString = EGL.QueryString(dpy, EGL_EXTENSIONS);
+    if(extString && strstr(extString, "ANGLE_surface_orientation"))
     {
 // https://github.com/google/angle/blob/master/extensions/EGL_ANGLE_surface_orientation.txt
 #define EGL_SURFACE_ORIENTATION_ANGLE 0x33A8
