@@ -1838,10 +1838,8 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
   {
     RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE &&
               m_InternalCmds.cmdpool != VK_NULL_HANDLE);
-  }
 
-  // create indirect draw buffer
-  {
+    // create indirect draw buffer
     m_IndirectBufferSize = AlignUp(m_IndirectBufferSize + 63, (size_t)64);
 
     m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize, 1, 0);
