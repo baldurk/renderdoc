@@ -707,7 +707,18 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
     {
       it->second.module = GetModuleHandleA(it->first.c_str());
       if(it->second.module)
+      {
+        // fetch all function hooks here, since we want to fill out the original function pointer
+        // even in case nothing imports from that function (which means it would not get filled
+        // out through FunctionHook::ApplyHook)
+        for(FunctionHook &hook : it->second.FunctionHooks)
+        {
+          if(hook.orig && *hook.orig == NULL)
+            *hook.orig = GetProcAddress(it->second.module, hook.function.c_str());
+        }
+
         it->second.FetchOrdinalNames();
+      }
     }
 
     bool match = (mod == it->second.module);
