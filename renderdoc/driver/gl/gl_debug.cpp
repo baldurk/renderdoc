@@ -1692,7 +1692,8 @@ void GLReplay::RenderCheckerboard()
 
   drv.glDisable(eGL_DEPTH_TEST);
 
-  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
+  if(HasExt[EXT_framebuffer_sRGB])
+    drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
   drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 

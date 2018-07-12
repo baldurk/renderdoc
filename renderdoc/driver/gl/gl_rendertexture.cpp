@@ -387,7 +387,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   drv.glDisable(eGL_DEPTH_TEST);
 
-  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
+  if(HasExt[EXT_framebuffer_sRGB])
+    drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
   drv.glBindVertexArray(DebugData.emptyVAO);
   drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);

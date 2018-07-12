@@ -194,7 +194,8 @@ void GLReplay::FlipOutputWindow(uint64_t id)
                              outw.BlitData.backbuffer, 0);
   drv.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
-  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
+  if(HasExt[EXT_framebuffer_sRGB])
+    drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
   drv.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
                         GL_COLOR_BUFFER_BIT, eGL_NEAREST);

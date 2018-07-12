@@ -66,7 +66,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
   drv.glUseProgram(prog);
 
-  drv.glEnable(eGL_FRAMEBUFFER_SRGB);
+  if(HasExt[EXT_framebuffer_sRGB])
+    drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
   drv.glDisable(eGL_CULL_FACE);
 

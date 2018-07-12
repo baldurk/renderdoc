@@ -656,7 +656,6 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
       case eGL_PROGRAM_POINT_SIZE:
       case eGL_PRIMITIVE_RESTART:
       case eGL_TEXTURE_CUBE_MAP_SEAMLESS:
-      case eGL_FRAMEBUFFER_SRGB:
         // these are not supported by OpenGL ES
         return false;
 
@@ -682,6 +681,8 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
       case eGL_MULTISAMPLE: return HasExt[EXT_multisample_compatibility];
 
       case eGL_SAMPLE_SHADING: return HasExt[ARB_sample_shading];
+
+      case eGL_FRAMEBUFFER_SRGB: return HasExt[EXT_framebuffer_sRGB];
 
       default: break;
     }

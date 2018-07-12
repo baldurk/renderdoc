@@ -212,7 +212,20 @@ class EGLPlatform : public GLPlatform
     EGLSurface surface = 0;
     if(window != 0)
     {
-      surface = EGL.CreateWindowSurface(eglDisplay, ret.egl_cfg, window, NULL);
+      const char *exts = EGL.QueryString(eglDisplay, EGL_EXTENSIONS);
+
+      // create an sRGB surface if possible
+      const EGLint *attrib_list = NULL;
+      const EGLint srgb_attribs[] = {EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_SRGB_KHR, EGL_NONE};
+
+      if(exts && strstr(exts, "KHR_gl_colorspace"))
+        attrib_list = srgb_attribs;
+
+      surface = EGL.CreateWindowSurface(eglDisplay, ret.egl_cfg, window, attrib_list);
+
+      // if the sRGB surface request failed, fall back to linear
+      if(surface == NULL && attrib_list != NULL)
+        surface = EGL.CreateWindowSurface(eglDisplay, ret.egl_cfg, window, NULL);
 
       if(surface == NULL)
         RDCERR("Couldn't create surface for window");
