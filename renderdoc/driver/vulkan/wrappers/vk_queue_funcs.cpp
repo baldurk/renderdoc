@@ -396,6 +396,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           VkSubmitInfo rerecordedSubmit = submitInfo;
 
+          byte *tempMem = GetTempMemory(GetNextPatchSize(rerecordedSubmit.pNext));
+
+          UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkGenericStruct *)&rerecordedSubmit);
+
           rerecordedSubmit.commandBufferCount = (uint32_t)rerecordedCmds.size();
           rerecordedSubmit.pCommandBuffers = &rerecordedCmds[0];
 
