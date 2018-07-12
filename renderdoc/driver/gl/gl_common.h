@@ -49,9 +49,9 @@ DECLARE_REFLECTION_ENUM(RDCGLenum);
 #define RENDERDOC_SUPPORT_GL
 #define RENDERDOC_SUPPORT_GLES
 
-// disable this option to disallow hooking EGL on windows. This means that the underlying GL or D3D
-// calls will be captured instead.
-#define RENDERDOC_HOOK_EGL OPTION_ON
+// checks a runtime opt-out option to disallow hooking EGL on windows. This means that the
+// underlying GL or D3D calls will be captured instead.
+bool ShouldHookEGL();
 
 #else
 

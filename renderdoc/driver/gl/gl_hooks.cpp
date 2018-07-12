@@ -185,11 +185,14 @@ void GLHook::RegisterHooks()
 
   ForEachSupported(RegisterFunc);
 
-#if ENABLED(RDOC_WIN32) && defined(RENDERDOC_SUPPORT_GLES)
-  // on windows where hooking is per-library, we also need to register these hooks for any GLES2/3
-  // wrapper library, when GLES support is enabled.
-  libraryName = "libGLESv2.dll";
+#if ENABLED(RDOC_WIN32)
+  if(ShouldHookEGL())
+  {
+    // on windows where hooking is per-library, we also need to register these hooks for any GLES2/3
+    // wrapper library, when GLES support is enabled.
+    libraryName = "libGLESv2.dll";
 
-  ForEachSupported(RegisterFunc);
+    ForEachSupported(RegisterFunc);
+  }
 #endif
 }

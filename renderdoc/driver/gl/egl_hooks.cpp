@@ -551,9 +551,28 @@ static void EGLHooked(void *handle)
   });
 }
 
+#if ENABLED(RDOC_WIN32)
+bool ShouldHookEGL()
+{
+  const char *toggle = Process::GetEnvVariable("RENDERDOC_HOOK_EGL");
+
+  // if the var is set to 0, then don't hook EGL
+  if(toggle && toggle[0] == '0')
+    return false;
+
+  return true;
+}
+#endif
+
 void EGLHook::RegisterHooks()
 {
-#if ENABLED(RENDERDOC_HOOK_EGL)
+#if ENABLED(RDOC_WIN32)
+  if(!ShouldHookEGL())
+  {
+    RDCLOG("EGL hooks disabled - if GLES emulator is in use, underlying API will be captured");
+    return;
+  }
+#endif
 
   RDCLOG("Registering EGL hooks");
 
@@ -591,10 +610,4 @@ void EGLHook::RegisterHooks()
       FunctionHook("egl" STRINGIZE(func), (void **)&EGL.func, (void *)&CONCAT(egl, func)));
   EGL_HOOKED_SYMBOLS(EGL_REGISTER)
 #undef EGL_REGISTER
-
-#else
-
-  RDCLOG("EGL hooks disabled - if GLES emulator is in use, underlying API will be captured");
-
-#endif
 }
