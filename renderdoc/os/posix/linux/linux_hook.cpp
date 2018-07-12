@@ -176,13 +176,13 @@ void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionH
 
 void LibraryHooks::RegisterLibraryHook(char const *name, FunctionLoadCallback cb)
 {
-  if(cb == NULL)
-    return;
-
   SCOPED_LOCK(libLock);
+
   if(std::find(libraryHooks.begin(), libraryHooks.end(), name) == libraryHooks.end())
     libraryHooks.push_back(name);
-  libraryCallbacks[name].push_back(cb);
+
+  if(cb)
+    libraryCallbacks[name].push_back(cb);
 }
 
 void LibraryHooks::IgnoreLibrary(const char *libraryName)
