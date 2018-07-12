@@ -300,19 +300,25 @@ HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext c
     data.dpy = dpy;
     data.wnd = drawable;
     data.ctx = ctx;
+    data.cfg = NULL;
 
-    int fbconfigid = -1;
-    GLX.glXQueryContext(dpy, ctx, GLX_FBCONFIG_ID, &fbconfigid);
+    GLXFBConfig *config = NULL;
 
-    int attribs[] = {GLX_FBCONFIG_ID, fbconfigid, 0};
+    if(ctx)
+    {
+      int fbconfigid = -1;
+      GLX.glXQueryContext(dpy, ctx, GLX_FBCONFIG_ID, &fbconfigid);
 
-    int numElems = 0;
-    GLXFBConfig *config = GLX.glXChooseFBConfig(dpy, DefaultScreen(dpy), attribs, &numElems);
+      int attribs[] = {GLX_FBCONFIG_ID, fbconfigid, 0};
 
-    if(config)
-      data.cfg = GLX.glXGetVisualFromFBConfig(dpy, *config);
-    else
-      data.cfg = NULL;
+      int numElems = 0;
+      config = GLX.glXChooseFBConfig(dpy, DefaultScreen(dpy), attribs, &numElems);
+
+      if(config)
+        data.cfg = GLX.glXGetVisualFromFBConfig(dpy, *config);
+      else
+        data.cfg = NULL;
+    }
 
     glxhook.driver.ActivateContext(data);
 
