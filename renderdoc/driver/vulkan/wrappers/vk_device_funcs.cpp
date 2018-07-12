@@ -664,9 +664,9 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   uint32_t memIdxMap[VK_MAX_MEMORY_TYPES] = {0};
   // not used at the moment but useful for reference and might be used
   // in the future
-  VkPhysicalDeviceProperties physProps;
-  VkPhysicalDeviceMemoryProperties memProps;
-  VkPhysicalDeviceFeatures physFeatures;
+  VkPhysicalDeviceProperties physProps = {};
+  VkPhysicalDeviceMemoryProperties memProps = {};
+  VkPhysicalDeviceFeatures physFeatures = {};
   uint32_t queueCount = 0;
   VkQueueFamilyProperties queueProps[16] = {};
 
