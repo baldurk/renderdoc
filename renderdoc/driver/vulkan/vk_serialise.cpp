@@ -3168,13 +3168,13 @@ void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoKHR &el)
   }
 
   {
-    std::string name = StringFormat::Wide2UTF8(std::wstring(el.name));
+    std::string name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
     ser.Serialise("name", name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
-      el.name = L"???";
+      el.name = NULL;
   }
 }
 
