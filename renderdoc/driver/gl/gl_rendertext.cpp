@@ -501,10 +501,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, bool yflipped, const char
       while(*prepass)
       {
         char c = *prepass;
-        if(c >= FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
+        if(c > FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
         {
-          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR, &x, &y,
-                             &q, 1);
+          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR - 1, &x,
+                             &y, &q, 1);
 
           maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
           maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
@@ -534,10 +534,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, bool yflipped, const char
       while(*text)
       {
         char c = *text;
-        if(c >= FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
+        if(c > FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
         {
-          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR, &x, &y,
-                             &q, 1);
+          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR - 1, &x,
+                             &y, &q, 1);
 
           vertices.push_back(Vec4f(q.x0, q.y0 * mul, q.s0, q.t0));
           vertices.push_back(Vec4f(q.x1, q.y0 * mul, q.s1, q.t0));
