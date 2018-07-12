@@ -534,6 +534,11 @@ void WGLHook::RegisterHooks()
 {
   RDCLOG("Registering WGL hooks");
 
+  // we load GL here to ensure that it is loaded by the time that we end hook registration and apply
+  // any callbacks. That ensures that it doesn't get loaded later e.g. while we're in the middle of
+  // loading libEGL, and break due to recursive calls.
+  LoadLibraryA("opengl32.dll");
+
   LibraryHooks::RegisterLibraryHook("opengl32.dll", &WGLHooked);
   LibraryHooks::RegisterLibraryHook("gdi32.dll", NULL);
   LibraryHooks::RegisterLibraryHook("user32.dll", NULL);

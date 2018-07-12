@@ -535,6 +535,12 @@ static void EGLHooked(void *handle)
   EGL_NONHOOKED_SYMBOLS(EGL_FETCH)
 #undef EGL_FETCH
 
+#if ENABLED(RDOC_WIN32)
+  // On windows we completely erase all GL function pointers. These might point into opengl32.dll
+  // which is not what we want to call when we're using a libEGL emulator
+  RDCEraseEl(GL);
+#endif
+
   // Now that libEGL is loaded, we can immediately fill out any missing functions that weren't
   // library hooked by calling eglGetProcAddress.
   GL.PopulateWithCallback([](const char *funcName) {
