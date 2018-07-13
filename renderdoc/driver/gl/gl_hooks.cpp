@@ -92,7 +92,9 @@ int ScopedPrinter::depth = 0;
 
 #else
 
-#define SCOPED_GLCALL(funcname) SCOPED_LOCK(glLock);
+#define SCOPED_GLCALL(funcname) \
+  SCOPED_LOCK(glLock);          \
+  gl_CurChunk = GLChunk::funcname;
 
 #endif
 
