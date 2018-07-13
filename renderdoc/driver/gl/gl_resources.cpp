@@ -388,6 +388,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGB12:
     case eGL_RGB16:
     case eGL_RGB16_SNORM:
+    case eGL_SRGB:
     case eGL_SRGB8:
     case eGL_RGB16F:
     case eGL_RGB32F:
@@ -410,6 +411,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGBA12:
     case eGL_RGBA16:
     case eGL_RGBA16_SNORM:
+    case eGL_SRGB_ALPHA:
     case eGL_SRGB8_ALPHA8:
     case eGL_RGBA16F:
     case eGL_RGBA32F:
@@ -461,6 +463,8 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_BGRA8_EXT:
     case eGL_SRGB8_ALPHA8:
     case eGL_SRGB8:
+    case eGL_SRGB_ALPHA:
+    case eGL_SRGB:
     case eGL_RED:
     case eGL_RG:
     case eGL_RGB:
@@ -1004,6 +1008,8 @@ bool IsSRGBFormat(GLenum internalFormat)
   {
     case eGL_SRGB8:
     case eGL_SRGB8_ALPHA8:
+    case eGL_SRGB:
+    case eGL_SRGB_ALPHA:
     case eGL_SLUMINANCE8:
     case eGL_SLUMINANCE8_ALPHA8:
     case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
