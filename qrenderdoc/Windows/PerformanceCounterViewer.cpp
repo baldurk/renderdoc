@@ -237,6 +237,8 @@ void PerformanceCounterViewer::CaptureCounters()
       ui->counterResults->setHorizontalHeaderLabels(headers);
       ui->counterResults->setRowCount(eventIdToRow.size());
 
+      ui->counterResults->setSortingEnabled(false);
+
       for(int i = 0; i < (int)results.size(); ++i)
       {
         int row = eventIdToRow[results[i].eventId];
@@ -251,6 +253,8 @@ void PerformanceCounterViewer::CaptureCounters()
 
         ui->counterResults->item(row, 0)->setData(Qt::UserRole, results[i].eventId);
       }
+
+      ui->counterResults->setSortingEnabled(true);
 
       ui->counterResults->resizeColumnsToContents();
     });
