@@ -194,9 +194,9 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
 
     // make sure we're on a consistent event before invoking viewer forms
     if(m_LastDrawcall)
-      SetEventID(viewers, m_LastDrawcall->eventId, true);
+      SetEventID(viewers, m_LastDrawcall->eventId, m_LastDrawcall->eventId, true);
     else if(!m_Drawcalls->empty())
-      SetEventID(viewers, m_Drawcalls->back().eventId, true);
+      SetEventID(viewers, m_Drawcalls->back().eventId, m_Drawcalls->back().eventId, true);
 
     GUIInvoke::blockcall(m_MainWindow, [&viewers]() {
       // notify all the registers viewers that a capture has been loaded
@@ -213,6 +213,9 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
         ShowCommentView();
       RaiseDockWindow(GetCommentView()->Widget());
     }
+
+    // refresh the UI without forcing the replay
+    SetEventID({}, m_SelectedEventID, m_EventID, false);
   }
 }
 

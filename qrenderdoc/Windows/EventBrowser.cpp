@@ -252,8 +252,6 @@ void EventBrowser::OnCaptureLoaded()
   ui->exportDraws->setEnabled(true);
   ui->stepPrev->setEnabled(true);
   ui->stepNext->setEnabled(true);
-
-  m_Ctx.SetEventID({this}, lastEIDDraw.first, lastEIDDraw.first);
 }
 
 void EventBrowser::OnCaptureClosed()
