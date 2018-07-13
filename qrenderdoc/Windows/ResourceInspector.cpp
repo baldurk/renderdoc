@@ -234,6 +234,8 @@ void ResourceInspector::Inspect(ResourceId id)
         ui->viewContents->setVisible(true);
       }
 
+      ui->resourceUsage->beginUpdate();
+
       CombineUsageEvents(m_Ctx, usage, [this](uint32_t startEID, uint32_t endEID, ResourceUsage use) {
         QString text;
 
@@ -249,6 +251,8 @@ void ResourceInspector::Inspect(ResourceId id)
 
         ui->resourceUsage->addTopLevelItem(item);
       });
+
+      ui->resourceUsage->endUpdate();
     });
   });
 
