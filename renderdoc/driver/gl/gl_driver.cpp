@@ -4197,7 +4197,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glMaxShaderCompilerThreadsARB:
     case GLChunk::glMaxShaderCompilerThreadsKHR:
     case GLChunk::Max:
-      RDCERR("Unexpected chunk, or missing case for processing! Skipping...");
+      RDCERR("Unexpected chunk %s, or missing case for processing! Skipping...",
+             ToStr(chunk).c_str());
       ser.SkipCurrentChunk();
       return false;
   }
