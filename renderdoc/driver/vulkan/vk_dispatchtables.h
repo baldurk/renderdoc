@@ -49,6 +49,8 @@ struct InstanceDeviceInfo
 #undef CheckExt
 #define CheckExt(name, ver) bool ext_##name;
 
+  bool brokenGetDeviceProcAddr = false;
+
   int vulkanVersion = VK_API_VERSION_1_0;
 
   CheckDeviceExts();

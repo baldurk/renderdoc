@@ -300,6 +300,11 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 
   HookInitVulkanDeviceExts();
 
+  if(instDevInfo->brokenGetDeviceProcAddr)
+  {
+    HookInitVulkanInstanceExts();
+  }
+
   if(GetDeviceDispatchTable(device)->GetDeviceProcAddr == NULL)
     return NULL;
   return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);

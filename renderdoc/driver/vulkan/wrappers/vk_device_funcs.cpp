@@ -27,6 +27,7 @@
 #include "../vk_rendertext.h"
 #include "../vk_shader_cache.h"
 #include "api/replay/version.h"
+#include "strings/string_utils.h"
 
 // intercept and overwrite the application info if present. We must use the same appinfo on
 // capture and replay, and the safer default is not to replay as if we were the original app but
@@ -454,9 +455,15 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
 
+  bool brokenGetDeviceProcAddr = false;
+
   // override applicationInfo with RenderDoc's, but preserve apiVersion
   if(modifiedCreateInfo.pApplicationInfo)
   {
+    if(modifiedCreateInfo.pApplicationInfo->pEngineName &&
+       strlower(modifiedCreateInfo.pApplicationInfo->pEngineName) == "idtech")
+      brokenGetDeviceProcAddr = true;
+
     if(modifiedCreateInfo.pApplicationInfo->apiVersion >= VK_API_VERSION_1_0)
       renderdocAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
 
@@ -480,6 +487,8 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   VkResourceRecord *record = GetResourceManager()->AddResourceRecord(m_Instance);
 
   record->instDevInfo = new InstanceDeviceInfo();
+
+  record->instDevInfo->brokenGetDeviceProcAddr = brokenGetDeviceProcAddr;
 
   record->instDevInfo->vulkanVersion = VK_API_VERSION_1_0;
 
@@ -1896,6 +1905,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       record->memIdxMap = GetRecord(physicalDevice)->memIdxMap;
 
       record->instDevInfo = new InstanceDeviceInfo();
+
+      record->instDevInfo->brokenGetDeviceProcAddr =
+          GetRecord(m_Instance)->instDevInfo->brokenGetDeviceProcAddr;
 
       record->instDevInfo->vulkanVersion = GetRecord(m_Instance)->instDevInfo->vulkanVersion;
 
