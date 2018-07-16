@@ -2783,6 +2783,13 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter);
 
     FlushLists(true);
+
+    // take this opportunity to reset command allocators to ensure we don't steadily leak over time.
+    if(m_DataUploadAlloc)
+      m_DataUploadAlloc->Reset();
+
+    for(ID3D12CommandAllocator *alloc : m_CommandAllocators)
+      alloc->Reset();
   }
 
   if(!partial)

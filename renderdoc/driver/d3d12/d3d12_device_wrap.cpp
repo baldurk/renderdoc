@@ -159,6 +159,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandAllocator(SerialiserType &ser,
     {
       ret = new WrappedID3D12CommandAllocator(ret, this);
 
+      m_CommandAllocators.push_back(ret);
+
       GetResourceManager()->AddLiveResource(pCommandAllocator, ret);
 
       AddResource(pCommandAllocator, ResourceType::Pool, "Command Queue");

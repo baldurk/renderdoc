@@ -250,6 +250,8 @@ private:
   HANDLE m_GPUSyncHandle;
   UINT64 m_GPUSyncCounter;
 
+  std::vector<ID3D12CommandAllocator *> m_CommandAllocators;
+
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
