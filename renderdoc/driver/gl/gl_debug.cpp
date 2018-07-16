@@ -1352,6 +1352,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
     uint8_t *idxs8 = (uint8_t *)idxs;
     uint16_t *idxs16 = (uint16_t *)idxs;
+    uint32_t *idxs32 = (uint32_t *)idxs;
 
     if(cfg.position.indexByteStride == 1)
     {
@@ -1417,7 +1418,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     {
       for(uint32_t i = 0; i < cfg.position.numIndices; i++)
       {
-        uint32_t idx = idxs[i];
+        uint32_t idx = idxs32[i];
 
         if(idx < idxclamp)
           idx = 0;
