@@ -479,7 +479,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
   else if(desc.GetType() == D3D12DescriptorType::UAV)
   {
     // need a non-shader visible heap for this one
-    ret = GetCPUHandle(TMP_UAV);
+    ret = GetUAVClearHandle(TMP_UAV);
 
     ID3D12Resource *counterRes =
         m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(desc.GetCounterResourceId());
