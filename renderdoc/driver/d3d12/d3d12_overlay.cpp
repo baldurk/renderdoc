@@ -537,6 +537,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       pipe->Fill(psoDesc);
 
       D3D12_CULL_MODE origCull = psoDesc.RasterizerState.CullMode;
+      BOOL origFrontCCW = psoDesc.RasterizerState.FrontCounterClockwise;
 
       float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
       ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(redCol);
@@ -586,6 +587,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       }
 
       psoDesc.RasterizerState.CullMode = origCull;
+      psoDesc.RasterizerState.FrontCounterClockwise = origFrontCCW;
       psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
       psoDesc.PS.BytecodeLength = green->GetBufferSize();
 
