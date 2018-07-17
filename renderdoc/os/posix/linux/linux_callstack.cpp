@@ -120,6 +120,8 @@ bool GetLoadedModules(byte *buf, size_t &size)
   // parsing without needing to recapture
   FILE *f = FileIO::fopen("/proc/self/maps", "r");
 
+  size = 0;
+
   if(buf)
     memcpy(buf, "LNUXCALL", 8);
 
@@ -196,18 +198,24 @@ private:
 
         if(line2)
         {
-          char *last = line2 + strlen(line2) - 1;
-          uint32_t mul = 1;
+          char *linenum = line2 + strlen(line2) - 1;
+          while(linenum > line2 && *linenum != ':')
+            linenum--;
+
           ret.line = 0;
-          while(*last >= '0' && *last <= '9')
+
+          if(*linenum == ':')
           {
-            ret.line += mul * (uint32_t(*last) - uint32_t('0'));
-            *last = 0;
-            last--;
-            mul *= 10;
+            *linenum = 0;
+            linenum++;
+
+            while(*linenum >= '0' && *linenum <= '9')
+            {
+              ret.line *= 10;
+              ret.line += (uint32_t(*linenum) - uint32_t('0'));
+              linenum++;
+            }
           }
-          if(*last == ':')
-            *last = 0;
 
           ret.filename = line2;
         }
