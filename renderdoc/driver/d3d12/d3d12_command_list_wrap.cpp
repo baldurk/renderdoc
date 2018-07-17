@@ -1242,12 +1242,6 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumRenderTargetDescriptors);
 
-  // if RTsSingleHandleToDescriptorRange is true, we only have up to 1 actual handle.
-  // This is only valid while writing, because we haven't serialised
-  // RTsSingleHandleToDescriptorRange yet!
-  UINT numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
-                                                     : NumRenderTargetDescriptors;
-
   std::vector<D3D12Descriptor> RTVs;
 
   if(ser.VersionAtLeast(0x5))
@@ -1276,16 +1270,37 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetRenderTargets(
   }
   else
   {
+    // this path is only used during reading, since during writing we're implicitly on the newest
+    // version above. We start with numHandles initialised to 0, as the array count is not used on
+    // reading (it's filled in), then we calculate it below after having serialised
+    // RTsSingleHandleToDescriptorRange
+    UINT numHandles = 0;
     SERIALISE_ELEMENT_ARRAY(pRenderTargetDescriptors, numHandles);
+    SERIALISE_ELEMENT_TYPED(bool, RTsSingleHandleToDescriptorRange);
+
+    numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, NumRenderTargetDescriptors)
+                                                  : NumRenderTargetDescriptors;
 
     if(IsReplayingAndReading())
     {
-      for(UINT h = 0; h < numHandles; h++)
-        RTVs.push_back(*GetWrapped(pRenderTargetDescriptors[h]));
+      if(RTsSingleHandleToDescriptorRange)
+      {
+        if(pRenderTargetDescriptors && NumRenderTargetDescriptors > 0)
+        {
+          const D3D12Descriptor *descs = GetWrapped(pRenderTargetDescriptors[0]);
+
+          RTVs.insert(RTVs.begin(), descs, descs + NumRenderTargetDescriptors);
+        }
+      }
+      else
+      {
+        for(UINT h = 0; h < numHandles; h++)
+        {
+          RTVs.push_back(*GetWrapped(pRenderTargetDescriptors[h]));
+        }
+      }
     }
   }
-
-  SERIALISE_ELEMENT_TYPED(bool, RTsSingleHandleToDescriptorRange);
 
   D3D12Descriptor DSV;
 
