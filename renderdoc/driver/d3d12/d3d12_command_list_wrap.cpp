@@ -2690,6 +2690,22 @@ void WrappedID3D12GraphicsCommandList2::ResolveQueryData(ID3D12QueryHeap *pQuery
                                                          ID3D12Resource *pDestinationBuffer,
                                                          UINT64 AlignedDestinationBufferOffset)
 {
+  SERIALISE_TIME_CALL(m_pList->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
+                                                Unwrap(pDestinationBuffer),
+                                                AlignedDestinationBufferOffset));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ResolveQueryData);
+    Serialise_ResolveQueryData(ser, pQueryHeap, Type, StartIndex, NumQueries, pDestinationBuffer,
+                               AlignedDestinationBufferOffset);
+
+    m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDestinationBuffer), eFrameRef_Write);
+  }
 }
 
 template <typename SerialiserType>
