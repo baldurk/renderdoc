@@ -1487,7 +1487,7 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
 
       unwrapped.object = data.unwrapped;
 
-      return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, &unwrapped);
+      return ObjDisp(device)->DebugMarkerSetObjectTagEXT(Unwrap(device), &unwrapped);
     }
   }
 
@@ -1534,7 +1534,7 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
     unwrapped.object = data.unwrapped;
 
     if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
-      ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, &unwrapped);
+      ObjDisp(device)->DebugMarkerSetObjectNameEXT(Unwrap(device), &unwrapped);
 
     if(data.record)
     {
@@ -1643,7 +1643,7 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectNameEXT(VkDevice device,
     unwrapped.objectHandle = data.unwrapped;
 
     if(ObjDisp(device)->SetDebugUtilsObjectNameEXT)
-      ObjDisp(device)->SetDebugUtilsObjectNameEXT(device, &unwrapped);
+      ObjDisp(device)->SetDebugUtilsObjectNameEXT(Unwrap(device), &unwrapped);
 
     if(data.record)
     {
@@ -1686,7 +1686,7 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectTagEXT(VkDevice device,
 
       unwrapped.objectHandle = data.unwrapped;
 
-      return ObjDisp(device)->SetDebugUtilsObjectTagEXT(device, &unwrapped);
+      return ObjDisp(device)->SetDebugUtilsObjectTagEXT(Unwrap(device), &unwrapped);
     }
   }
 
