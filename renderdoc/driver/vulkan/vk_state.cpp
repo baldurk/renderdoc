@@ -114,10 +114,15 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
         ibuffer.offs, ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
 
   for(size_t i = 0; i < vbuffers.size(); i++)
+  {
+    if(vbuffers[i].buf == ResourceId())
+      continue;
+
     ObjDisp(cmd)->CmdBindVertexBuffers(
         Unwrap(cmd), (uint32_t)i, 1,
         UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
         &vbuffers[i].offs);
+  }
 }
 
 void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0)
