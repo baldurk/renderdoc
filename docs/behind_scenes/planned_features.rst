@@ -11,7 +11,6 @@ Planned features
 ----------------
 
 * Debugging of all shader stages.
-* HLSL Debugging.
 * Mesh display after hull shader stage.
 * Diffing events in a given frame.
 * Modifying the pipeline on the fly to change state.

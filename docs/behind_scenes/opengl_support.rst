@@ -8,7 +8,7 @@ The latest information and up-to-date support is always available on the `GitHub
 Capture requirements
 --------------------
 
-RenderDoc only supports the core profile of OpenGL - from 3.2 up to 4.5 inclusive. This means any compatibility profile functionality will generally not be supported. There are a couple of concessions where it was easy to do so - like allowing the use of VAO 0, or luminance/intensity formats, but this in general will not happen.
+RenderDoc only supports the core profile of OpenGL - from 3.2 up to 4.6 inclusive. This means any compatibility profile functionality will generally not be supported. There are a couple of concessions where it was easy to do so - like allowing the use of VAO 0, or luminance/intensity formats, but this in general will not happen.
 
 .. note::
 

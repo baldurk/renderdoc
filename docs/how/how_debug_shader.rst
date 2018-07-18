@@ -12,6 +12,8 @@ Including debug info in shaders
 
 For the most part at least some debug information is included with shaders unless it is being explicitly stripped out at some point. There is usually an option to also include additional debug information - such as original source code in a high-level language. The exact process varies by API, but for D3D11 the flag ``/Zi`` to fxc or the equivalent flag to ``D3DCompile()`` will include additional debugging information, and ``/Qstrip_debug`` and ``/Qstrip_reflection`` will remove reflection information that can be useful - such as the names of variables in constant buffers.
 
+For shader debugging it's recommended that you build with ``/Od`` or ``D3DCOMPILE_SKIP_OPTIMIZATION``, as this will enable HLSL debugging by default.
+
 For more information on how to get this unstripped debug information to renderdoc, see :ref:`unstripped-shader-info`.
 
 Debugging a vertex
@@ -106,6 +108,25 @@ Hovering over a register in either the disassembly or in the view windows will o
 
 There is also a toggle available to control the 'default' interpretation of temporary register values - float or int. D3D registers are typeless but typically they are interpreted as float values. With this toggle you can toggle them to be interpreted as integers by default instead.
 
+HLSL Debugging
+--------------
+
+When debug information is available in the shader, RenderDoc allows debugging at the HLSL level. This is activated by default if the shader was built with optimisation disabled, but as long as debug information is available you can toggle between assembly and HLSL debugging at any time.
+
+In the toolbar there will be a 'Debug in HLSL' button when HLSL debugging is available, and similarly in reverse a 'Debug in Assembly' button. You can also right-click and select 'Go to Disassembly' or 'Go to Source'.
+
+While source debugging, the same controls are available to set breakpoints, run forwards and backwards, etc. Note that stepping and running in HLSL may skip over several assembly instructions at once.
+
+Debug information also includes HLSL callstack and locals mapping, which allows RenderDoc to display the function callstack at the current instruction and the name and values of any local variables that are in scope. They are displayed in the callstack and locals windows respectively.
+
+.. figure:: ../imgs/Screenshots/ShaderStackLocals.png
+
+	Callstack and Locals windows.
+
+.. note::
+
+	Callstack and local mapping information is only available with windows 8.0 and later versions of fxc. That corresponds to ``D3DCompiler_47.dll``.
+
 Debugging Displays
 ------------------
 
@@ -119,9 +140,9 @@ The other window will contain variable/mutable registers. These contain temporar
 
 .. figure:: ../imgs/Screenshots/ShaderRegs.png
 
-	Variable window: Variable registers - temporaries and outputs.
+	Registers window: Variable registers - temporaries and outputs.
 
-The final window is initially empty but can be filled out as needed. This shows custom watch expressions and their values. Here you can write any expression involving an input, temporary or output register along with a swizzle and typecast.
+The final window is initially empty but can be filled out as needed. This shows custom watch expressions and their values. Here you can write any expression involving an input, temporary or output register along with a swizzle and typecast. When debug information is present you can also include locals here.
 
 Swizzles follow the standard hlsl rules - ``.[xyzw]`` or ``.[rgba]`` in any permutation or repetition will show those channels.
 

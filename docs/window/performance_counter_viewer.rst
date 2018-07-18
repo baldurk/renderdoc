@@ -34,3 +34,11 @@ By default the table is sorted by EID, but each column is sortable individually 
 .. |save| image:: ../imgs/icons/save.png
 
 Clicking the |save| button lets you save the results of the counters as CSV.
+
+Hardware Counters
+-----------------
+
+RenderDoc ships with support for AMD's GPA library, which will allow access to AMD's hardware counters when running with a supported AMD GPU.
+
+RenderDoc also has support for nVidia's NvPerfKit library, but it does not ship as the library's license forbids redistribution. To enable support, place the ``NvPmApi.Core.dll`` file into either ``plugins/nv/counters/x64`` for 64-bit RenderDoc builds and ``plugins/nv/counters/x86`` for 32-bit RenderDoc builds.
+

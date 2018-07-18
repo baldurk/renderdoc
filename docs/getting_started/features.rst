@@ -70,7 +70,7 @@ Most of these should be intuitive if you've used a graphics debugger before.
 D3D11
 -----
 
-* Support for D3D11 up to D3D11.3, Windows Vista and above. Where hardware support isn't available for feature level 11, WARP will be used.
+* Support for D3D11 up to D3D11.4, Windows Vista and above. Where hardware support isn't available for feature level 11, WARP will be used.
 * Debug marker support comes from any available D3D interface (ID3DUserDefinedAnnotation, D3DPERF\_ functions, etc)
 * Pixel history view.
 * Vertex, Pixel and Compute shader debugging.
@@ -79,20 +79,20 @@ D3D11
 D3D12
 -----
 
-* Support for D3D12, Windows 10 only.
+* Support for D3D12 up to D3D12.3, Windows 10 only.
 * Debug marker uses the PIXSetMarker macros that go through SetMarker/BeginEvent/EndEvent on the command list
 
 Vulkan
 ------
 
-* Support for Vulkan 1.0 on Windows, Linux, and Android.
+* Support for Vulkan 1.1 on Windows, Linux, and Android.
 * Event markers and object naming both come from ``VK_EXT_debug_marker``.
 
 OpenGL & OpenGL ES
 ------------------
 
-* Support for OpenGL Core profile 3.2+ on Windows and Linux.
-* Support for OpenGL ES 2.0 - 3.2 on Linux and Android.
+* Support for OpenGL Core profile 3.2 - 4.6 on Windows and Linux.
+* Support for OpenGL ES 2.0 - 3.2 on Linux, Windows, and Android.
 * Tree hierarchy of events defined by any of the standard or vendor-specific extensions, and ``KHR_debug`` object labels used for object naming.
 
 Captures have a very limited amount of portability between machines. Many hardware-specific feature uses are baked into captures, and portability depends on how similar the capture and replay hardware are, whether these feature uses can map the same in both cases. Captures are however completely portable between different OSes with sufficiently comparable hardware.

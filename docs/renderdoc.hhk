@@ -1,5 +1,13 @@
 <UL>
 <LI> <OBJECT type="text/sitemap">
+	<param name="Keyword" value="Analytics">
+	<param name="Local" value="behind_scenes/analytics.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+	<param name="Keyword" value="Android">
+	<param name="Local" value="how/how_android_capture.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="API Calls">
     <param name="Local" value="window/api_inspector.html">
 </OBJECT>
@@ -33,20 +41,20 @@
 </OBJECT>
 	<UL>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Annotating textures">
-				<param name="Local" value="how/how_view_texture.html#annotating-resources-with-names">
+			<param name="Keyword" value="Annotating textures">
+			<param name="Local" value="how/how_view_texture.html#annotating-resources-with-names">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Creating Event Heirarchy">
-				<param name="Local" value="window/event_browser.html#annotating-your-frame">
+			<param name="Keyword" value="Creating Event Hierarchy">
+			<param name="Local" value="window/event_browser.html#annotating-your-frame">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Integrating RenderDoc functionality">
-				<param name="Local" value="in_application_api.html">
+			<param name="Keyword" value="Integrating RenderDoc functionality">
+			<param name="Local" value="in_application_api.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Manually triggered frame capture">
-				<param name="Local" value="in_application_api.html#_CPPv214TriggerCapturev">
+			<param name="Keyword" value="Manually triggered frame capture">
+			<param name="Local" value="in_application_api.html#_CPPv217StartFrameCapture23RENDERDOC_DevicePointer22RENDERDOC_WindowHandle">
 		</OBJECT>
 	</UL>
 <LI> <OBJECT type="text/sitemap">
@@ -58,12 +66,20 @@
     <param name="Local" value="introduction.html#contact-info-feedback-bug-reports">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
+	<param name="Keyword" value="Counters">
+	<param name="Local" value="window/performance_counter_viewer.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Current API State">
     <param name="Local" value="window/pipeline_state.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Custom Shader Display">
     <param name="Local" value="how/how_custom_visualisation.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="D3D12">
+    <param name="Local" value="behind_scenes/d3d12_support.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Drawcall Timings">
@@ -90,6 +106,10 @@
     <param name="Local" value="window/capture_attach.html#global-process-hook">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
+	<param name="Keyword" value="Hardware Counters">
+	<param name="Local" value="window/performance_counter_viewer.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Hot-reload Shaders">
     <param name="Local" value="how/how_edit_shader.html">
 </OBJECT>
@@ -99,12 +119,20 @@
 </OBJECT>
 	<UL>
 		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Annotate a capture">
+				<param name="Local" value="how/how_annotate_capture.html">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Capture a Frame">
+				<param name="Local" value="how/how_capture_frame.html">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Capture across a network">
 				<param name="Local" value="how/how_network_capture_replay">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Capture a Log">
-				<param name="Local" value="how/how_capture_frame.html">
+				<param name="Keyword" value="Capture from Android">
+				<param name="Local" value="how/how_android_capture.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Debug a Shader">
@@ -121,6 +149,14 @@
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Find a texture by name">
 				<param name="Local" value="how/how_view_texture.html#texture-list-in-texture-viewer">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Generate an RGP profile">
+				<param name="Local" value="how/how_rgp_profile.html">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Import or Export a capture">
+				<param name="Local" value="how/how_import_export.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Inspect a pixel value">
@@ -204,8 +240,8 @@
     <param name="Local" value="behind_scenes/opengl_support.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
-    <param name="Keyword" value="Settings">
-    <param name="Local" value="window/settings_window.html">
+	<param name="Keyword" value="Performance Counters">
+	<param name="Local" value="window/performance_counter_viewer.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Pixel History">
@@ -232,6 +268,10 @@
     <param name="Local" value="getting_started/quick_start.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
+	<param name="Keyword" value="Radeon GPU Profiler">
+	<param name="Local" value="how/how_rgp_profile.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Raw Buffer View">
     <param name="Local" value="window/buffer_viewer.html#raw-buffer-viewer">
 </OBJECT>
@@ -248,6 +288,14 @@
     <param name="Local" value="window/timeline_bar.html#resource-usage-display">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
+	<param name="Keyword" value="RGP">
+	<param name="Local" value="how/how_rgp_profile.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="Python Scripting">
+    <param name="Local" value="python_api/index.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Scripting the UI">
     <param name="Local" value="window/python_shell.html">
 </OBJECT>
@@ -261,24 +309,28 @@
 </OBJECT>
 	<UL>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Vertex Shader Debugging">
-				<param name="Local" value="how/how_debug_shader.html#debugging-a-vertex">
+			<param name="Keyword" value="Compute Shader Debugging">
+			<param name="Local" value="how/how_debug_shader.html#debugging-a-compute-thread">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Pixel Shader Debugging">
-				<param name="Local" value="how/how_debug_shader.html#debugging-a-pixel">
+			<param name="Keyword" value="HLSL Debugging">
+			<param name="Local" value="how/how_debug_shader.html#hlsl-debugging">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Compute Shader Debugging">
-				<param name="Local" value="how/how_debug_shader.html#debugging-a-compute-thread">
+			<param name="Keyword" value="Inspecting Shader Variables">
+			<param name="Local" value="how/how_debug_shader.html#debugging-displays">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Stepping through Shaders">
-				<param name="Local" value="how/how_debug_shader.html#debugging-controls">
+			<param name="Keyword" value="Stepping through Shaders">
+			<param name="Local" value="how/how_debug_shader.html#debugging-controls">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Inspecting Shader Variables">
-				<param name="Local" value="how/how_debug_shader.html#debugging-displays">
+			<param name="Keyword" value="Pixel Shader Debugging">
+			<param name="Local" value="how/how_debug_shader.html#debugging-a-pixel">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Keyword" value="Vertex Shader Debugging">
+			<param name="Local" value="how/how_debug_shader.html#debugging-a-vertex">
 		</OBJECT>
 	</UL>
 <LI> <OBJECT type="text/sitemap">
@@ -327,15 +379,15 @@
 				<param name="Local" value="window/api_inspector.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Buffer Viewer/Mesh Output">
-				<param name="Local" value="window/buffer_viewer.html">
+				<param name="Keyword" value="Capture Comments">
+				<param name="Local" value="window/capture_comments.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Capture Connection">
 				<param name="Local" value="window/capture_connection.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Capturing & Attaching">
+				<param name="Keyword" value="Capture Dialog">
 				<param name="Local" value="window/capture_attach.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
@@ -347,12 +399,16 @@
 				<param name="Local" value="window/event_browser.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-				<param name="Keyword" value="Window reference">
-				<param name="Local" value="window/index.html">
-		</OBJECT>
-		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Settings Window">
 				<param name="Local" value="window/settings_window.html">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Mesh Output">
+				<param name="Local" value="window/buffer_viewer.html#mesh-viewer">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Performance Counter Viewer">
+				<param name="Local" value="window/performance_counter_viewer.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Pipeline State">
@@ -361,6 +417,14 @@
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Python Shell">
 				<param name="Local" value="window/python_shell.html">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Raw Buffer Viewer">
+				<param name="Local" value="window/buffer_viewer.html#raw-buffer-viewer">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Resource Inspector">
+				<param name="Local" value="window/resource_inspector.html">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Shader Viewer">

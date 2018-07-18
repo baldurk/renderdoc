@@ -3,6 +3,8 @@ How do I use RenderDoc on Android?
 
 RenderDoc contains support for Android for both Vulkan and OpenGL ES. It requires a couple of extra steps more than capturing on a desktop computer, but generally the workflow is very similar.
 
+The Android device must be running at least Android 6.0.
+
 Android support is still quite new, so if you run into any rough spots please `open an issue on GitHub <https://github.com/baldurk/renderdoc/issues/new>`_ or `email me <mailto:baldurk@baldurk.org?subject=RenderDoc%20on%20Android>`_.
 
 .. caution::

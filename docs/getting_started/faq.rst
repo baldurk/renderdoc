@@ -138,9 +138,8 @@ The two primary causes of differences between the captured program and the repla
 
 #. ``Map()`` s that use DISCARD are filled with a marker value, so any values that aren't written to the buffer will be different - in application you can get lucky and they can be previous values that were uploaded, but in replay they will be ``0xCCCCCCCC``.
 
-#. RenderDoc will not save or restore the contents of render targets at the start of the frame if it believes they will be entirely overwritten in the frame. This detection is typically accurate but means targets are cleared to black or full depth rather than accumulating, even if that accumulation is not intentional it may be the cause of the bug.
+#. When buffers are created they have undefined contents - graphics APIs do not promise that they are filled with 0s. RenderDoc fills buffers with garbage data which can change behaviour.
 
-  This behaviour can be overridden by enabling 'Save all initials' in the :doc:`capture options <../how/how_capture_frame>`.
 
 I can't launch my program for capture directly. Can I capture it anyway?
 ------------------------------------------------------------------------
@@ -227,3 +226,14 @@ When launching a process in RenderDoc, by default only this process is debugged 
 In the case where your program launches sub-processes that you would like to debug, you can enable the ``Capture Child Processes`` capture option, which causes RenderDoc to recursively inject itself into all children (and grand-children, and so on). When you open a capture connection, the child processes will be displayed and you can open a connection to each child to locate the process you wish to debug.
 
 There are :ref:`more details available <child-process-hook>` in the documentation for the :doc:`../window/capture_attach` window.
+
+I'm debugging a program using an OpenGL ES emulator, how can I capture the underlying API?
+------------------------------------------------------------------------------------------
+
+Wherever possible on Windows RenderDoc will capture OpenGL ES natively and ignore any underlying API calls it makes. For libraries such as ANGLE that emulate GLES on windows using calls to D3D11, this means the GLES itself gets captured and debugged.
+
+If you don't want this to happen and you'd prefer OpenGL ES to be ignored during capture you can set the ``RENDERDOC_HOOK_EGL`` environment variable to ``0``.
+
+.. note::
+
+    This toggle only has effect on windows. On other platforms GLES is always natively captured as it is expected to have system-level support rather than being emulated.

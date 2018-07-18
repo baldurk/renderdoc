@@ -36,6 +36,8 @@ Likewise it will omit any slots which are completely empty (and also unused), an
 
 In some cases whole sections will be omitted unless there is anything set there - this is primarily for unused or rarely used features like shader subroutines/class linkage, and Read/Write bindings (Image load store or UAVs).
 
+Sections can be expanded and collapsed by clicking on the title text above them to toggle them in and out of the collapsed state. This can be used to temporarily close down some sections that you don't need to make room for more vertical space in sections you do need.
+
 When showing disabled or empty entries, they will either be in *italics* or on a dark red background respectively.
 
 .. |save| image:: ../imgs/icons/save.png

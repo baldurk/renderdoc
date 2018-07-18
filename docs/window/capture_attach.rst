@@ -1,5 +1,5 @@
-Launching & Attaching to Programs
-=================================
+Capture Dialog
+==============
 
 The Capture Dialog (which doubles as the inject-into-process dialog) is the single point where programs are launched and captures are saved to disk.
 
@@ -111,14 +111,6 @@ This option causes RenderDoc to hook into process creation calls from the target
 
 .. note::
   Due to the hook implementation on linux, child processes will always be hooked regardless of whether this option is enabled or disabled.
-
-----------
-
-  | :guilabel:`Save All Initials` Default: ``Disabled``
-
-RenderDoc will attempt to save overhead and particularly capture file size by omitting the initial contents of 2D textures that it believes will be unnecessary. Typically these textures are render targets or depth buffers that will be written to and fully covered in the course of the frame before they are ever read, and so saving their initial contents is unnecessary.
-
-In some cases this detection will be wrong, such as targets that are partially written such as pools, or if a target is accumulated to via blend modes. When this is the case, enabling Save All Initials will force RenderDoc to save these textures regardless of any auto-detection.
 
 ----------
 
