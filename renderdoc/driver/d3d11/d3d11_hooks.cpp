@@ -361,7 +361,7 @@ private:
             ID3D11DeviceContext **ppImmediateContext) {
           // we know that when we come back in here the swapchain parameters will be NULL because
           // that's what we pass below
-          RDCASSERT(!pSwapChainDesc && ppSwapChain);
+          RDCASSERT(!pSwapChainDesc && !ppSwapChain);
           return d3d11hooks.nvapi_CreateDevice_real(
               pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
               ppDevice, pFeatureLevel, ppImmediateContext, outNVLevel);
