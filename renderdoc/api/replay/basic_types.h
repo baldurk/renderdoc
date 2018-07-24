@@ -447,7 +447,8 @@ public:
       // destruct it before inserting.
 
       // first pass, copy
-      for(size_t i = 0; i < count; i++)
+      size_t copyCount = count < oldSize ? count : oldSize;
+      for(size_t i = 0; i < copyCount; i++)
         new(elems + oldSize + count - 1 - i) T(elems[oldSize - 1 - i]);
 
       // second pass, destruct & copy if there was any overlap

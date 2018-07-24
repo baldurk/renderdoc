@@ -286,6 +286,23 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(vec[7] == 5);
     CHECK(vec[8] == 4);
 
+    // insert a large amount of data to ensure this doesn't read off start/end of vector
+    std::vector<int> largedata;
+    largedata.resize(100000);
+
+    vec.insert(4, largedata);
+
+    REQUIRE(vec.size() == 9 + largedata.size());
+    CHECK(vec[0] == 9);
+    CHECK(vec[1] == 6);
+    CHECK(vec[2] == 3);
+    CHECK(vec[3] == 20);
+    CHECK(vec[4 + largedata.size()] == 21);
+    CHECK(vec[5 + largedata.size()] == 8);
+    CHECK(vec[6 + largedata.size()] == 13);
+    CHECK(vec[7 + largedata.size()] == 5);
+    CHECK(vec[8 + largedata.size()] == 4);
+
     vec.clear();
 
     REQUIRE(vec.size() == 0);
@@ -512,6 +529,25 @@ TEST_CASE("Test string type", "[basictypes][string]")
   CHECK(test.isEmpty());
   CHECK(test.begin() == test.end());
   CHECK_NULL_TERM(test);
+
+  rdcstr test2;
+
+  test2 = test;
+
+  CHECK(test.size() == test2.size());
+  CHECK(test.empty() == test2.empty());
+
+  for(size_t i = 0; i < test.size(); i++)
+  {
+    CHECK(test[i] == test2[i]);
+  }
+
+  rdcstr empty;
+
+  test2 = empty;
+
+  CHECK(test.size() == empty.size());
+  CHECK(test.empty() == empty.empty());
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)
