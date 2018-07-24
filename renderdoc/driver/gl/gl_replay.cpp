@@ -3196,7 +3196,8 @@ void GLReplay::CloseReplayContext()
   m_pDriver->m_Platform.DeleteReplayContext(m_ReplayCtx);
 }
 
-ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDriver **&driver)
+ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, GLPlatform &platform,
+                                IReplayDriver **&driver)
 {
   GLInitParams initParams;
   uint64_t ver = GLInitParams::CurrentVersion;
@@ -3243,7 +3244,7 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
 
   GLWindowingData data = {};
 
-  ReplayStatus status = platform.InitialiseAPI(data, rdc->GetDriver());
+  ReplayStatus status = platform.InitialiseAPI(data, rdcdriver);
 
   // any errors will be already printed, just pass the error up
   if(status != ReplayStatus::Succeeded)
@@ -3283,11 +3284,11 @@ ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDrive
   }
 
   WrappedOpenGL *gldriver = new WrappedOpenGL(platform);
-  gldriver->SetDriverType(rdc->GetDriver());
+  gldriver->SetDriverType(rdcdriver);
 
   GL.DriverForEmulation(gldriver);
 
-  RDCLOG("Created %s replay device.", ToStr(rdc->GetDriver()).c_str());
+  RDCLOG("Created %s replay device.", ToStr(rdcdriver).c_str());
 
   GLReplay *replay = gldriver->GetReplay();
   replay->SetProxy(rdc == NULL);
@@ -3377,7 +3378,7 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     return ReplayStatus::APIInitFailed;
   }
 
-  return CreateReplayDevice(rdc, GetGLPlatform(), driver);
+  return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGL, rdc, GetGLPlatform(), driver);
 }
 
 static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateReplayDevice);
@@ -3402,7 +3403,8 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       return ReplayStatus::APIInitFailed;
     }
 
-    return CreateReplayDevice(rdc, GetEGLPlatform(), driver);
+    return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGLES, rdc, GetEGLPlatform(),
+                              driver);
   }
 #if defined(RENDERDOC_SUPPORT_GL)
   else if(GetGLPlatform().CanCreateGLESContext())
@@ -3417,7 +3419,8 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       return ReplayStatus::APIInitFailed;
     }
 
-    return CreateReplayDevice(rdc, GetGLPlatform(), driver);
+    return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGLES, rdc, GetGLPlatform(),
+                              driver);
   }
 
   RDCERR(

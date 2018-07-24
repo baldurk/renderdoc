@@ -304,8 +304,6 @@ GLPlatform &GetEGLPlatform();
 class RDCFile;
 class IReplayDriver;
 
-ReplayStatus CreateReplayDevice(RDCFile *rdc, GLPlatform &platform, IReplayDriver **&driver);
-
 // define stubs so other platforms can define these functions, but empty
 #if DISABLED(RDOC_WIN32)
 typedef void *HANDLE;
