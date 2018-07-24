@@ -187,7 +187,7 @@ rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *wind
     thread->start();
   }
 
-  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied == 0; },
+  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied == 1; },
                      [&progress]() { return progress; });
 
   return remotepath;
@@ -221,7 +221,7 @@ void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr
     thread->start();
   }
 
-  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied == 0; },
+  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied == 1; },
                      [&progress]() { return progress; });
 }
 
