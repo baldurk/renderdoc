@@ -24,6 +24,23 @@
 
 #include <dlfcn.h>
 #include <stddef.h>
+#include "common/common.h"
+#include "hooks/hooks.h"
+
+class FakeVkHook : LibraryHook
+{
+public:
+  void RegisterHooks()
+  {
+    LibraryHooks::RegisterLibraryHook("libGL.so", &FakeVkHooked);
+    LibraryHooks::RegisterLibraryHook("libGL.so.1", &FakeVkHooked);
+  }
+
+  static void FakeVkHooked(void *handle) { searchHandle = handle; }
+  static void *searchHandle;
+} fakevkhook;
+
+void *FakeVkHook::searchHandle = RTLD_NEXT;
 
 extern "C" {
 
@@ -53,10 +70,15 @@ __attribute__((visibility("default"))) PFN_vkVoidFunction vk_icdGetInstanceProcA
     VkInstance instance, const char *pName)
 {
   PFN_vkGetInstanceProcAddr real =
-      (PFN_vkGetInstanceProcAddr)dlsym(RTLD_NEXT, "vk_icdGetInstanceProcAddr");
+      (PFN_vkGetInstanceProcAddr)dlsym(fakevkhook.searchHandle, "vk_icdGetInstanceProcAddr");
+
+  if(!real)
+    real = (PFN_vkGetInstanceProcAddr)dlsym(RTLD_NEXT, "vk_icdGetInstanceProcAddr");
 
   if(real)
     return real(instance, pName);
+
+  RDCERR("Couldn't get real vk_icdGetInstanceProcAddr!");
 
   return NULL;
 }
@@ -64,11 +86,16 @@ __attribute__((visibility("default"))) PFN_vkVoidFunction vk_icdGetInstanceProcA
 __attribute__((visibility("default"))) PFN_vkVoidFunction vk_icdGetPhysicalDeviceProcAddr(
     VkInstance instance, const char *pName)
 {
-  PFN_GetPhysicalDeviceProcAddr real =
-      (PFN_GetPhysicalDeviceProcAddr)dlsym(RTLD_NEXT, "vk_icdGetPhysicalDeviceProcAddr");
+  PFN_GetPhysicalDeviceProcAddr real = (PFN_GetPhysicalDeviceProcAddr)dlsym(
+      fakevkhook.searchHandle, "vk_icdGetPhysicalDeviceProcAddr");
+
+  if(!real)
+    real = (PFN_GetPhysicalDeviceProcAddr)dlsym(RTLD_NEXT, "vk_icdGetPhysicalDeviceProcAddr");
 
   if(real)
     return real(instance, pName);
+
+  RDCERR("Couldn't get real vk_icdGetPhysicalDeviceProcAddr!");
 
   return NULL;
 }
@@ -77,10 +104,16 @@ __attribute__((visibility("default"))) VkResult vk_icdNegotiateLoaderLayerInterf
     VkNegotiateLayerInterface *pVersionStruct)
 {
   PFN_vkNegotiateLoaderLayerInterfaceVersion real = (PFN_vkNegotiateLoaderLayerInterfaceVersion)dlsym(
-      RTLD_NEXT, "vk_icdNegotiateLoaderLayerInterfaceVersion");
+      fakevkhook.searchHandle, "vk_icdNegotiateLoaderLayerInterfaceVersion");
+
+  if(!real)
+    real = (PFN_vkNegotiateLoaderLayerInterfaceVersion)dlsym(
+        RTLD_NEXT, "vk_icdNegotiateLoaderLayerInterfaceVersion");
 
   if(real)
     return real(pVersionStruct);
+
+  RDCERR("Couldn't get real vk_icdNegotiateLoaderLayerInterfaceVersion!");
 
   return VK_ERROR_INCOMPATIBLE_DRIVER;
 }
