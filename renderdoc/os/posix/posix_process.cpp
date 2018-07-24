@@ -26,18 +26,65 @@
 #include <errno.h>
 #include <limits.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "api/app/renderdoc_app.h"
+#include "common/threading.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
 // defined in foo/foo_process.cpp
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
+
+Threading::CriticalSection zombieLock;
+struct sigaction old_action;
+
+static void ZombieWaiter(int signum, siginfo_t *handler_info, void *handler_context)
+{
+  // save errno
+  int saved_errno = errno;
+
+  // call the old handler
+  if(old_action.sa_handler != SIG_IGN && old_action.sa_handler != SIG_DFL)
+  {
+    if(old_action.sa_flags & SA_SIGINFO)
+      old_action.sa_sigaction(signum, handler_info, handler_context);
+    else
+      old_action.sa_handler(signum);
+  }
+
+  // wait for any children, but don't block (hang). Continue waiting while there are children to
+  // wait for.
+  while(waitpid(pid_t(-1), NULL, WNOHANG) > 0)
+  {
+  }
+
+  // restore errno
+  errno = saved_errno;
+}
+
+static void SetupZombieCollectionHandler()
+{
+  SCOPED_LOCK(zombieLock);
+
+  static bool installed = false;
+  if(installed)
+    return;
+
+  installed = true;
+
+  struct sigaction new_action = {};
+  sigemptyset(&new_action.sa_mask);
+  new_action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO | SA_RESTART;
+  new_action.sa_sigaction = &ZombieWaiter;
+
+  sigaction(SIGCHLD, &new_action, &old_action);
+}
 
 namespace FileIO
 {
@@ -368,8 +415,9 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   // don't fork if we didn't find anything to execute.
   if(!appPath.empty())
   {
-    // don't care about child processes, just ignore them
-    // signal(SIGCHLD, SIG_IGN);
+    // we have to handle child processes with wait otherwise they become zombies. Unfortunately Qt
+    // breaks if we just ignore the signal and let the system reap them.
+    SetupZombieCollectionHandler();
 
     childPid = fork();
     if(childPid == 0)
