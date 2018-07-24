@@ -347,6 +347,13 @@ int main(int argc, char *argv[])
     {
       PythonContext::GlobalInit();
 
+      if(updateApplied)
+      {
+        config.CheckUpdate_UpdateAvailable = false;
+        config.CheckUpdate_UpdateResponse = "";
+        config.Save();
+      }
+
       CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 
       Analytics::Prompt(ctx, config);
@@ -412,13 +419,6 @@ int main(int argc, char *argv[])
             qWarning() << "Invalid python script" << f;
           }
         }
-      }
-
-      if(updateApplied)
-      {
-        config.CheckUpdate_UpdateAvailable = false;
-        config.CheckUpdate_UpdateResponse = "";
-        config.Save();
       }
 
       while(ctx.isRunning())
