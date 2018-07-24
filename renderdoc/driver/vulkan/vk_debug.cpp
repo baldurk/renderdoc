@@ -1337,6 +1337,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     RDCASSERT(pData != NULL);
     memcpy(&ret[dstoffset], pData, (size_t)chunkSize);
 
+    srcoffset += chunkSize;
     dstoffset += (size_t)chunkSize;
     sizeRemaining -= chunkSize;
 
