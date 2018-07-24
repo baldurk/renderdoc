@@ -537,9 +537,10 @@ static void EGLHooked(void *handle)
   EGL_NONHOOKED_SYMBOLS(EGL_FETCH)
 #undef EGL_FETCH
 
-#if ENABLED(RDOC_WIN32)
-  // On windows we completely erase all GL function pointers. These might point into opengl32.dll
-  // which is not what we want to call when we're using a libEGL emulator
+// on systems where EGL isn't the primary/only way to get GL function pointers, we need to ensure we
+// re-fetch all function pointers through eglGetProcAddress and don't try to use any through the
+// primary system library (opengl32.dll/libGL.so), since they may not work correctly.
+#if DISABLED(RDOC_ANDROID)
   RDCEraseEl(GL);
 #endif
 
