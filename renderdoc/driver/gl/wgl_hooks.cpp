@@ -518,6 +518,8 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 
 static void WGLHooked(void *handle)
 {
+  RDCDEBUG("WGL library hooked");
+
   // as a hook callback this is only called while capturing
   RDCASSERT(!RenderDoc::Inst().IsReplayApp());
 

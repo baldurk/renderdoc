@@ -618,8 +618,10 @@ GLX_PASSTHRU_3(GLXPbuffer, glXCreatePbuffer, Display *, dpy, GLXFBConfig, config
                attrib_list);
 GLX_PASSTHRU_2(void, glXDestroyPbuffer, Display *, dpy, GLXPbuffer, pbuf);
 
-static void GLHooked(void *handle)
+static void GLXHooked(void *handle)
 {
+  RDCDEBUG("GLX library hooked");
+
   // store the handle for any pass-through implementations that need to look up their onward
   // pointers
   glxhook.handle = handle;
@@ -632,6 +634,18 @@ static void GLHooked(void *handle)
   GLX.func = (CONCAT(PFN_, func))Process::GetFunctionAddress(handle, STRINGIZE(func));
   GLX_NONHOOKED_SYMBOLS(GLX_FETCH)
 #undef GLX_FETCH
+
+// fetch any functions that weren't directly exported
+#define GPA_FUNC(func)                                                                         \
+  if(!GLX.func && GLX.glXGetProcAddressARB)                                                    \
+    GLX.func = (CONCAT(PFN_, func))GLX.glXGetProcAddressARB((const GLubyte *)STRINGIZE(func)); \
+                                                                                               \
+  if(!GLX.func && GLX.glXGetProcAddress)                                                       \
+    GLX.func = (CONCAT(PFN_, func))GLX.glXGetProcAddress((const GLubyte *)STRINGIZE(func));
+
+  GLX_HOOKED_SYMBOLS(GPA_FUNC)
+  GLX_NONHOOKED_SYMBOLS(GPA_FUNC)
+#undef GPA_FUNC
 
   // Now that libGL is loaded, we can immediately fill out any missing functions that weren't
   // library hooked by calling eglGetProcAddress.
@@ -657,8 +671,8 @@ void GLXHook::RegisterHooks()
   RDCLOG("Registering GLX hooks");
 
   // register library hooks
-  LibraryHooks::RegisterLibraryHook("libGL.so", &GLHooked);
-  LibraryHooks::RegisterLibraryHook("libGL.so.1", &GLHooked);
+  LibraryHooks::RegisterLibraryHook("libGL.so", &GLXHooked);
+  LibraryHooks::RegisterLibraryHook("libGL.so.1", &GLXHooked);
 
 // register EGL hooks
 #define GLX_REGISTER(func)            \

@@ -520,6 +520,8 @@ EGL_PASSTHRU_0(EGLContext, eglGetCurrentContext)
 
 static void EGLHooked(void *handle)
 {
+  RDCDEBUG("EGL library hooked");
+
   // store the handle for any pass-through implementations that need to look up their onward
   // pointers
   eglhook.handle = handle;

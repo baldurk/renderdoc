@@ -435,7 +435,6 @@ GLPlatform &GetGLPlatform()
 bool GLXDispatchTable::PopulateForReplay()
 {
   RDCASSERT(RenderDoc::Inst().IsReplayApp());
-  GetGLHandle();
 
   void *handle = GetGLHandle();
 
