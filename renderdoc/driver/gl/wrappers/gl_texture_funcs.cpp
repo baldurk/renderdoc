@@ -27,6 +27,28 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
+static GLenum RemapGenericCompressedFormat(GLint format)
+{
+  switch(format)
+  {
+    case eGL_COMPRESSED_RGB: return eGL_RGB8;
+    case eGL_COMPRESSED_RGBA: return eGL_RGBA8;
+    case eGL_COMPRESSED_SRGB: return eGL_SRGB8;
+    case eGL_COMPRESSED_SRGB_ALPHA: return eGL_SRGB8_ALPHA8;
+    case eGL_COMPRESSED_RED: return eGL_R8;
+    case eGL_COMPRESSED_RG: return eGL_RG8;
+    case eGL_COMPRESSED_ALPHA: return eGL_ALPHA8_EXT;
+    case eGL_COMPRESSED_LUMINANCE: return eGL_LUMINANCE8_EXT;
+    case eGL_COMPRESSED_LUMINANCE_ALPHA: return eGL_LUMINANCE8_ALPHA8_EXT;
+    case eGL_COMPRESSED_INTENSITY: return eGL_INTENSITY8_EXT;
+    case eGL_COMPRESSED_SLUMINANCE: return eGL_SLUMINANCE8;
+    case eGL_COMPRESSED_SLUMINANCE_ALPHA: return eGL_SLUMINANCE8_ALPHA8;
+    default: break;
+  }
+
+  return (GLenum)format;
+}
+
 static constexpr uint32_t numParams(GLenum pname)
 {
   return (pname == eGL_TEXTURE_BORDER_COLOR || pname == eGL_TEXTURE_SWIZZLE_RGBA) ? 4U : 1U;
@@ -2207,6 +2229,8 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
                                         GLint internalformat, GLsizei width, GLint border,
                                         GLenum format, GLenum type, const void *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glTextureImage1DEXT(texture, target, level, internalformat, width, border,
                                              format, type, pixels));
 
@@ -2217,6 +2241,8 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width,
                                  GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(
       GL.glTexImage1D(target, level, internalformat, width, border, format, type, pixels));
 
@@ -2241,6 +2267,8 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
                                          GLint internalformat, GLsizei width, GLint border,
                                          GLenum format, GLenum type, const GLvoid *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glMultiTexImage1DEXT(texunit, target, level, internalformat, width, border,
                                               format, type, pixels));
 
@@ -2446,6 +2474,8 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
                                         GLint internalformat, GLsizei width, GLsizei height,
                                         GLint border, GLenum format, GLenum type, const void *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glTextureImage2DEXT(texture, target, level, internalformat, width, height,
                                              border, format, type, pixels));
 
@@ -2457,6 +2487,8 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
                                  GLsizei height, GLint border, GLenum format, GLenum type,
                                  const GLvoid *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(
       GL.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels));
 
@@ -2482,6 +2514,8 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
                                          GLint border, GLenum format, GLenum type,
                                          const GLvoid *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glMultiTexImage2DEXT(texunit, target, level, internalformat, width, height,
                                               border, format, type, pixels));
 
@@ -2670,6 +2704,8 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
                                         GLsizei depth, GLint border, GLenum format, GLenum type,
                                         const void *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glTextureImage3DEXT(texture, target, level, internalformat, width, height,
                                              depth, border, format, type, pixels));
 
@@ -2682,6 +2718,8 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
                                  GLsizei height, GLsizei depth, GLint border, GLenum format,
                                  GLenum type, const GLvoid *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glTexImage3D(target, level, internalformat, width, height, depth, border,
                                       format, type, pixels));
 
@@ -2707,6 +2745,8 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
                                          GLsizei depth, GLint border, GLenum format, GLenum type,
                                          const GLvoid *pixels)
 {
+  internalformat = RemapGenericCompressedFormat(internalformat);
+
   SERIALISE_TIME_CALL(GL.glMultiTexImage3DEXT(texunit, target, level, internalformat, width, height,
                                               depth, border, format, type, pixels));
 
