@@ -488,7 +488,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   // turn environment string to a UTF-8 map
   char **currentEnvironment = GetCurrentEnvironment();
   map<string, string> env = EnvStringToEnvMap((const char **)currentEnvironment);
-  vector<EnvironmentModification> &modifications = GetEnvModifications();
+  vector<EnvironmentModification> modifications = GetEnvModifications();
 
   for(const EnvironmentModification &e : envList)
     modifications.push_back(e);
