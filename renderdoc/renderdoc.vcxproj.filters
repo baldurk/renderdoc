@@ -339,6 +339,30 @@
     <ClInclude Include="3rdparty\zstd\pool.h">
       <Filter>3rdparty\zstd</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\zstd\cpu.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\debug.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\hist.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\zstd_compress_internal.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\zstd_double_fast.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\zstd_fast.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\zstd_lazy.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\zstd\zstd_ldm.h">
+      <Filter>3rdparty\zstd</Filter>
+    </ClInclude>
     <ClInclude Include="3rdparty\zstd\threading.h">
       <Filter>3rdparty\zstd</Filter>
     </ClInclude>
@@ -645,6 +669,27 @@
       <Filter>3rdparty\zstd</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\zstd\xxhash.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\debug.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\hist.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_double_fast.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_fast.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_lazy.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_ldm.c">
+      <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_opt.c">
       <Filter>3rdparty\zstd</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\zstd\zstd_common.c">

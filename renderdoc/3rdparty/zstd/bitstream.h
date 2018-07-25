@@ -1,8 +1,7 @@
 /* ******************************************************************
    bitstream
    Part of FSE library
-   header file (to include)
-   Copyright (C) 2013-2017, Yann Collet.
+   Copyright (C) 2013-present, Yann Collet.
 
    BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
 
@@ -49,19 +48,8 @@ extern "C" {
 *  Dependencies
 ******************************************/
 #include "mem.h"            /* unaligned access routines */
+#include "debug.h"          /* assert(), DEBUGLOG(), RAWLOG() */
 #include "error_private.h"  /* error codes and messages */
-
-
-/*-*************************************
-*  Debug
-***************************************/
-#if defined(BIT_DEBUG) && (BIT_DEBUG>=1)
-#  include <assert.h>
-#else
-#  ifndef assert
-#    define assert(condition) ((void)0)
-#  endif
-#endif
 
 
 /*=========================================
@@ -83,8 +71,7 @@ extern "C" {
  * A critical property of these streams is that they encode and decode in **reverse** direction.
  * So the first bit sequence you add will be the last to be read, like a LIFO stack.
  */
-typedef struct
-{
+typedef struct {
     size_t bitContainer;
     unsigned bitPos;
     char*  startPtr;
@@ -118,8 +105,7 @@ MEM_STATIC size_t BIT_closeCStream(BIT_CStream_t* bitC);
 /*-********************************************
 *  bitStream decoding API (read backward)
 **********************************************/
-typedef struct
-{
+typedef struct {
     size_t   bitContainer;
     unsigned bitsConsumed;
     const char* ptr;
@@ -167,35 +153,41 @@ MEM_STATIC size_t BIT_readBitsFast(BIT_DStream_t* bitD, unsigned nbBits);
 /*-**************************************************************
 *  Internal functions
 ****************************************************************/
-MEM_STATIC unsigned BIT_highbit32 (register U32 val)
+MEM_STATIC unsigned BIT_highbit32 (U32 val)
 {
+    assert(val != 0);
+    {
 #   if defined(_MSC_VER)   /* Visual */
-    unsigned long r=0;
-    _BitScanReverse ( &r, val );
-    return (unsigned) r;
+        unsigned long r=0;
+        _BitScanReverse ( &r, val );
+        return (unsigned) r;
 #   elif defined(__GNUC__) && (__GNUC__ >= 3)   /* Use GCC Intrinsic */
-    return 31 - __builtin_clz (val);
+        return 31 - __builtin_clz (val);
 #   else   /* Software version */
-    static const unsigned DeBruijnClz[32] = { 0,  9,  1, 10, 13, 21,  2, 29,
-                                             11, 14, 16, 18, 22, 25,  3, 30,
-                                              8, 12, 20, 28, 15, 17, 24,  7,
-                                             19, 27, 23,  6, 26,  5,  4, 31 };
-    U32 v = val;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    return DeBruijnClz[ (U32) (v * 0x07C4ACDDU) >> 27];
+        static const unsigned DeBruijnClz[32] = { 0,  9,  1, 10, 13, 21,  2, 29,
+                                                 11, 14, 16, 18, 22, 25,  3, 30,
+                                                  8, 12, 20, 28, 15, 17, 24,  7,
+                                                 19, 27, 23,  6, 26,  5,  4, 31 };
+        U32 v = val;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        return DeBruijnClz[ (U32) (v * 0x07C4ACDDU) >> 27];
 #   endif
+    }
 }
 
 /*=====    Local Constants   =====*/
-static const unsigned BIT_mask[] = { 0, 1, 3, 7, 0xF, 0x1F, 0x3F, 0x7F,
-                                    0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF,
-                                    0xFFFF, 0x1FFFF, 0x3FFFF, 0x7FFFF, 0xFFFFF, 0x1FFFFF, 0x3FFFFF, 0x7FFFFF,
-                                    0xFFFFFF, 0x1FFFFFF, 0x3FFFFFF };   /* up to 26 bits */
-
+static const unsigned BIT_mask[] = {
+    0,          1,         3,         7,         0xF,       0x1F,
+    0x3F,       0x7F,      0xFF,      0x1FF,     0x3FF,     0x7FF,
+    0xFFF,      0x1FFF,    0x3FFF,    0x7FFF,    0xFFFF,    0x1FFFF,
+    0x3FFFF,    0x7FFFF,   0xFFFFF,   0x1FFFFF,  0x3FFFFF,  0x7FFFFF,
+    0xFFFFFF,   0x1FFFFFF, 0x3FFFFFF, 0x7FFFFFF, 0xFFFFFFF, 0x1FFFFFFF,
+    0x3FFFFFFF, 0x7FFFFFFF}; /* up to 31 bits */
+#define BIT_MASK_SIZE (sizeof(BIT_mask) / sizeof(BIT_mask[0]))
 
 /*-**************************************************************
 *  bitStream encoding
@@ -217,21 +209,26 @@ MEM_STATIC size_t BIT_initCStream(BIT_CStream_t* bitC,
 }
 
 /*! BIT_addBits() :
- *  can add up to 26 bits into `bitC`.
+ *  can add up to 31 bits into `bitC`.
  *  Note : does not check for register overflow ! */
 MEM_STATIC void BIT_addBits(BIT_CStream_t* bitC,
                             size_t value, unsigned nbBits)
 {
+    MEM_STATIC_ASSERT(BIT_MASK_SIZE == 32);
+    assert(nbBits < BIT_MASK_SIZE);
+    assert(nbBits + bitC->bitPos < sizeof(bitC->bitContainer) * 8);
     bitC->bitContainer |= (value & BIT_mask[nbBits]) << bitC->bitPos;
     bitC->bitPos += nbBits;
 }
 
 /*! BIT_addBitsFast() :
- *  works only if `value` is _clean_, meaning all high bits above nbBits are 0 */
+ *  works only if `value` is _clean_,
+ *  meaning all high bits above nbBits are 0 */
 MEM_STATIC void BIT_addBitsFast(BIT_CStream_t* bitC,
                                 size_t value, unsigned nbBits)
 {
     assert((value>>nbBits) == 0);
+    assert(nbBits + bitC->bitPos < sizeof(bitC->bitContainer) * 8);
     bitC->bitContainer |= value << bitC->bitPos;
     bitC->bitPos += nbBits;
 }
@@ -242,7 +239,7 @@ MEM_STATIC void BIT_addBitsFast(BIT_CStream_t* bitC,
 MEM_STATIC void BIT_flushBitsFast(BIT_CStream_t* bitC)
 {
     size_t const nbBytes = bitC->bitPos >> 3;
-    assert( bitC->bitPos <= (sizeof(bitC->bitContainer)*8) );
+    assert(bitC->bitPos < sizeof(bitC->bitContainer) * 8);
     MEM_writeLEST(bitC->ptr, bitC->bitContainer);
     bitC->ptr += nbBytes;
     assert(bitC->ptr <= bitC->endPtr);
@@ -258,7 +255,7 @@ MEM_STATIC void BIT_flushBitsFast(BIT_CStream_t* bitC)
 MEM_STATIC void BIT_flushBits(BIT_CStream_t* bitC)
 {
     size_t const nbBytes = bitC->bitPos >> 3;
-    assert( bitC->bitPos <= (sizeof(bitC->bitContainer)*8) );
+    assert(bitC->bitPos < sizeof(bitC->bitContainer) * 8);
     MEM_writeLEST(bitC->ptr, bitC->bitContainer);
     bitC->ptr += nbBytes;
     if (bitC->ptr > bitC->endPtr) bitC->ptr = bitC->endPtr;
@@ -350,12 +347,14 @@ MEM_STATIC size_t BIT_getMiddleBits(size_t bitContainer, U32 const start, U32 co
 #  endif
         return _bextr_u32(bitContainer, start, nbBits);
 #else
+    assert(nbBits < BIT_MASK_SIZE);
     return (bitContainer >> start) & BIT_mask[nbBits];
 #endif
 }
 
 MEM_STATIC size_t BIT_getLowerBits(size_t bitContainer, U32 const nbBits)
 {
+    assert(nbBits < BIT_MASK_SIZE);
     return bitContainer & BIT_mask[nbBits];
 }
 

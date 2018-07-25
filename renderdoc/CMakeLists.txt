@@ -170,12 +170,21 @@ set(sources
     3rdparty/miniz/miniz.h
     3rdparty/zstd/bitstream.h
     3rdparty/zstd/compiler.h
+    3rdparty/zstd/cpu.h
+    3rdparty/zstd/debug.c
+    3rdparty/zstd/debug.h
     3rdparty/zstd/entropy_common.c
     3rdparty/zstd/error_private.c
     3rdparty/zstd/error_private.h
     3rdparty/zstd/fse.h
+    3rdparty/zstd/fse_compress.c
     3rdparty/zstd/fse_decompress.c
+    3rdparty/zstd/hist.c
+    3rdparty/zstd/hist.h
     3rdparty/zstd/huf.h
+    3rdparty/zstd/huf_compress.c
+    3rdparty/zstd/huf_decompress.c
+    3rdparty/zstd/LICENSE
     3rdparty/zstd/mem.h
     3rdparty/zstd/pool.c
     3rdparty/zstd/pool.h
@@ -183,18 +192,25 @@ set(sources
     3rdparty/zstd/threading.h
     3rdparty/zstd/xxhash.c
     3rdparty/zstd/xxhash.h
+    3rdparty/zstd/zstd.h
     3rdparty/zstd/zstd_common.c
+    3rdparty/zstd/zstd_compress.c
+    3rdparty/zstd/zstd_compress_internal.h
+    3rdparty/zstd/zstd_decompress.c
+    3rdparty/zstd/zstd_double_fast.c
+    3rdparty/zstd/zstd_double_fast.h
     3rdparty/zstd/zstd_errors.h
+    3rdparty/zstd/zstd_fast.c
+    3rdparty/zstd/zstd_fast.h
     3rdparty/zstd/zstd_internal.h
-    3rdparty/zstd/fse_compress.c
-    3rdparty/zstd/huf_compress.c
+    3rdparty/zstd/zstd_lazy.c
+    3rdparty/zstd/zstd_lazy.h
+    3rdparty/zstd/zstd_ldm.c
+    3rdparty/zstd/zstd_ldm.h
+    3rdparty/zstd/zstd_opt.c
+    3rdparty/zstd/zstd_opt.h
     3rdparty/zstd/zstdmt_compress.c
     3rdparty/zstd/zstdmt_compress.h
-    3rdparty/zstd/zstd_compress.c
-    3rdparty/zstd/zstd_opt.h
-    3rdparty/zstd/huf_decompress.c
-    3rdparty/zstd/zstd_decompress.c
-    3rdparty/zstd/zstd.h
     3rdparty/stb/stb_image.h
     3rdparty/stb/stb_image_write.h
     3rdparty/stb/stb_image_resize.h
