@@ -2245,13 +2245,16 @@ HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
 HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
-  // don't support over sm6.0
   if(Feature == D3D12_FEATURE_SHADER_MODEL)
   {
     D3D12_FEATURE_DATA_SHADER_MODEL *model = (D3D12_FEATURE_DATA_SHADER_MODEL *)pFeatureSupportData;
-    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_SHADER_MODEL) ||
-       model->HighestShaderModel >= D3D_SHADER_MODEL_6_0)
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_SHADER_MODEL))
       return E_INVALIDARG;
+
+    // don't support sm6.0 and over
+    model->HighestShaderModel = RDCMIN(model->HighestShaderModel, D3D_SHADER_MODEL_5_1);
+
+    return S_OK;
   }
   return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
