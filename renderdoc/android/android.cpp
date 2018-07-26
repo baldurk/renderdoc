@@ -577,6 +577,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
   *deviceList = ret;
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidShutdown()
+{
+  Android::shutdownAdb();
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
 {
   int index = 0;

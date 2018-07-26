@@ -28,6 +28,7 @@
 
 namespace Android
 {
+static bool adbKillServer = false;
 bool toolExists(const std::string &path)
 {
   if(path.empty())
@@ -254,7 +255,15 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 
     toolpath = exedir + "/plugins/android/" + toolname;
     if(toolExists(toolpath))
+    {
+      if(toolname == "adb")
+      {
+        // if we're using our own adb, we should kill the server upon shutdown
+        adbKillServer = true;
+      }
+
       return toolpath;
+    }
   }
 
   toolpath = "";
@@ -297,5 +306,10 @@ Process::ProcessResult adbExecCommand(const std::string &device, const std::stri
   else
     deviceArgs = StringFormat::Fmt("-s %s %s", device.c_str(), args.c_str());
   return execCommand(adb, deviceArgs, workDir, silent);
+}
+void shutdownAdb()
+{
+  if(adbKillServer)
+    adbExecCommand("", "kill-server", ".", false);
 }
 };

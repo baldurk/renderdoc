@@ -2135,6 +2135,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
 DOCUMENT("Internal function for enumerating android devices.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList);
 
+DOCUMENT("Internal function for shutting down android use.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidShutdown();
+
 DOCUMENT("Internal function for starting an android remote server.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device);
 
