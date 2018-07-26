@@ -340,7 +340,7 @@ bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, 
   {
     textures.reserve(count);
     for(GLsizei i = 0; i < count; i++)
-      textures.push_back(TextureRes(GetCtx(), textureHandles[i] ? textureHandles[i] : 0));
+      textures.push_back(TextureRes(GetCtx(), textureHandles ? textureHandles[i] : 0));
   }
 
   SERIALISE_ELEMENT(textures);
