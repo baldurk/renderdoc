@@ -240,6 +240,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0xD -> 0xE - fixed serialisation directly of size_t members in VkDescriptorUpdateTemplateEntry
+  if(ver == 0xD)
+    return true;
+
   // 0xC -> 0xD - supported multiple queues. This didn't cause a large change to the serialisation
   // but there were some slight inconsistencies that required a version bump
   if(ver == 0xC)
