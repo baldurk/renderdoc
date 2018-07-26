@@ -1,5 +1,5 @@
-Fetch Shader details
-====================
+Fetch GPU Counter Data
+======================
 
 In this example we will gather GPU counter data over a capture and find any drawcalls that completely failed the depth/stencil test.
 
