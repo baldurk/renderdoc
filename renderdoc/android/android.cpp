@@ -579,7 +579,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidInitialise()
 {
-  Android::adbExecCommand("", "start-server", ".", true);
+  Android::initAdb();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidShutdown()

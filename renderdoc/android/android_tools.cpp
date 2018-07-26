@@ -307,6 +307,12 @@ Process::ProcessResult adbExecCommand(const std::string &device, const std::stri
     deviceArgs = StringFormat::Fmt("-s %s %s", device.c_str(), args.c_str());
   return execCommand(adb, deviceArgs, workDir, silent);
 }
+void initAdb()
+{
+  // we don't use adbExecCommand because we need to be sure we don't wait for it to exit
+  std::string adb = getToolPath(ToolDir::PlatformTools, "adb", false);
+  Process::LaunchProcess(adb.c_str(), ".", "start-server", true);
+}
 void shutdownAdb()
 {
   if(adbKillServer)
