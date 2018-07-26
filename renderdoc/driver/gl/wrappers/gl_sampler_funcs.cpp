@@ -190,7 +190,7 @@ bool WrappedOpenGL::Serialise_glBindSamplers(SerialiserType &ser, GLuint first, 
   {
     samplers.reserve(count);
     for(int32_t i = 0; i < count; i++)
-      samplers.push_back(SamplerRes(GetCtx(), samplerHandles[i]));
+      samplers.push_back(SamplerRes(GetCtx(), samplerHandles ? samplerHandles[i] : 0));
   }
 
   SERIALISE_ELEMENT(first);

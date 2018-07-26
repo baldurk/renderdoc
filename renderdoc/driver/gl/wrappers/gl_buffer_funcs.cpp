@@ -1320,7 +1320,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
   {
     buffers.reserve(count);
     for(GLsizei i = 0; i < count; i++)
-      buffers.push_back(BufferRes(GetCtx(), bufferHandles[i]));
+      buffers.push_back(BufferRes(GetCtx(), bufferHandles ? bufferHandles[i] : 0));
   }
 
   SERIALISE_ELEMENT(buffers);
@@ -1349,7 +1349,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 {
   SERIALISE_TIME_CALL(GL.glBindBuffersBase(target, first, count, buffers));
 
-  if(IsCaptureMode(m_State) && buffers && count > 0)
+  if(IsCaptureMode(m_State) && count > 0)
   {
     ContextData &cd = GetCtxData();
 
@@ -1357,7 +1357,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 
     GLResourceRecord *r = NULL;
 
-    if(buffers[0] == 0)
+    if(buffers == NULL || buffers[0] == 0)
       r = cd.m_BufferRecord[idx] = NULL;
     else
       r = cd.m_BufferRecord[idx] =
@@ -1375,7 +1375,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 
       for(GLsizei i = 0; i < count; i++)
       {
-        if(buffers[i])
+        if(buffers && buffers[i])
         {
           ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
           GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
@@ -1384,7 +1384,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
       }
     }
 
-    for(int i = 0; i < count; i++)
+    for(int i = 0; buffers && i < count; i++)
     {
       GLResourceRecord *bufrecord =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
@@ -1409,7 +1409,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
     }
 
     // store as transform feedback record state
-    if(IsBackgroundCapturing(m_State) && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
+    if(buffers && IsBackgroundCapturing(m_State) && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
       GLuint feedback = cd.m_FeedbackRecord->Resource.name;
@@ -1531,13 +1531,13 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 {
   SERIALISE_TIME_CALL(GL.glBindBuffersRange(target, first, count, buffers, offsets, sizes));
 
-  if(IsCaptureMode(m_State) && buffers && count > 0)
+  if(IsCaptureMode(m_State) && count > 0)
   {
     ContextData &cd = GetCtxData();
 
     size_t idx = BufferIdx(target);
 
-    if(buffers[0] == 0)
+    if(buffers == NULL || buffers[0] == 0)
       cd.m_BufferRecord[idx] = NULL;
     else
       cd.m_BufferRecord[idx] =
@@ -1553,7 +1553,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
          target == eGL_TRANSFORM_FEEDBACK_BUFFER)
         refType = eFrameRef_ReadBeforeWrite;
 
-      for(GLsizei i = 0; i < count; i++)
+      for(GLsizei i = 0; buffers && i < count; i++)
       {
         if(buffers[i])
         {
@@ -1565,7 +1565,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
     }
     else
     {
-      for(int i = 0; i < count; i++)
+      for(int i = 0; buffers && i < count; i++)
       {
         GLResourceRecord *r =
             GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
@@ -1591,7 +1591,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
     }
 
     // store as transform feedback record state
-    if(IsBackgroundCapturing(m_State) && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
+    if(buffers && IsBackgroundCapturing(m_State) && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
       GLuint feedback = cd.m_FeedbackRecord->Resource.name;
@@ -1610,8 +1610,8 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
     }
 
     // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-    if(target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-       target == eGL_ATOMIC_COUNTER_BUFFER)
+    if(buffers && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+                   target == eGL_ATOMIC_COUNTER_BUFFER))
     {
       if(IsBackgroundCapturing(m_State))
       {
