@@ -159,6 +159,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   m_RemoteProbeSemaphore.release();
   m_RemoteProbe = new LambdaThread([this]() {
+    RENDERDOC_AndroidInitialise();
+
     while(m_RemoteProbeSemaphore.available())
     {
       // do a remoteProbe immediately to populate the android hosts list on startup.
