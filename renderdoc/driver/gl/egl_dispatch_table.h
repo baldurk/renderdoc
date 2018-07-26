@@ -26,32 +26,36 @@
 
 #include "gl_common.h"
 
-typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
-typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
-typedef EGLContext (*PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config,
-                                           EGLContext share_context, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read,
-                                         EGLContext ctx);
-typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
-typedef EGLBoolean (*PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface, EGLint attribute,
-                                          EGLint *value);
-typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config,
-                                                  const EGLint *attrib_list);
-typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
-                                                 EGLNativeWindowType win, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list,
-                                          EGLConfig *configs, EGLint config_size, EGLint *num_config);
-typedef __eglMustCastToProperFunctionPointerType (*PFN_eglGetProcAddress)(const char *procname);
-typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
-typedef EGLContext (*PFN_eglGetCurrentContext)(void);
-typedef EGLDisplay (*PFN_eglGetCurrentDisplay)(void);
-typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
-typedef EGLint (*PFN_eglGetError)(void);
-typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute,
-                                             EGLint *value);
-typedef const char *(*PFN_eglQueryString)(EGLDisplay dpy, EGLint name);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglBindAPI)(EGLenum api);
+typedef EGLDisplay(EGLAPIENTRY *PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
+typedef EGLContext(EGLAPIENTRY *PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config,
+                                                      EGLContext share_context,
+                                                      const EGLint *attrib_list);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw,
+                                                    EGLSurface read, EGLContext ctx);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface,
+                                                     EGLint attribute, EGLint *value);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
+typedef EGLSurface(EGLAPIENTRY *PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config,
+                                                             const EGLint *attrib_list);
+typedef EGLSurface(EGLAPIENTRY *PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
+                                                            EGLNativeWindowType win,
+                                                            const EGLint *attrib_list);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list,
+                                                     EGLConfig *configs, EGLint config_size,
+                                                     EGLint *num_config);
+typedef __eglMustCastToProperFunctionPointerType(EGLAPIENTRY *PFN_eglGetProcAddress)(
+    const char *procname);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
+typedef EGLContext(EGLAPIENTRY *PFN_eglGetCurrentContext)(void);
+typedef EGLDisplay(EGLAPIENTRY *PFN_eglGetCurrentDisplay)(void);
+typedef EGLSurface(EGLAPIENTRY *PFN_eglGetCurrentSurface)(EGLint readdraw);
+typedef EGLint(EGLAPIENTRY *PFN_eglGetError)(void);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config,
+                                                        EGLint attribute, EGLint *value);
+typedef const char *(EGLAPIENTRY *PFN_eglQueryString)(EGLDisplay dpy, EGLint name);
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 
 #define EGL_HOOKED_SYMBOLS(FUNC)    \
