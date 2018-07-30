@@ -171,39 +171,56 @@ class EGLPlatform : public GLPlatform
     // extensions) to function.
     EGLContext ctx = NULL;
 
-    // don't change this ar ray without changing indices in the loop below
-    EGLint verAttribs[] = {EGL_CONTEXT_MAJOR_VERSION_KHR,
-                           3,
-                           EGL_CONTEXT_MINOR_VERSION_KHR,
-                           1,
-                           EGL_CONTEXT_FLAGS_KHR,
-                           EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
-                           EGL_NONE};
-
-    std::vector<GLVersion> versions = GetReplayVersions(RDCDriver::OpenGLES);
-
-    for(GLVersion v : versions)
+    // first we try with the debug bit set, then if that fails we try without debug
+    for(int debugPass = 0; debugPass < 2; debugPass++)
     {
-      verAttribs[1] = v.major;
-      verAttribs[3] = v.minor;
-      ctx = EGL.CreateContext(eglDisplay, ret.egl_cfg, share_ctx, verAttribs);
+      // don't change this ar ray without changing indices in the loop below
+      EGLint verAttribs[] = {
+          EGL_CONTEXT_MAJOR_VERSION_KHR,
+          3,
+          EGL_CONTEXT_MINOR_VERSION_KHR,
+          1,
+          debugPass == 0 ? EGL_CONTEXT_FLAGS_KHR : EGL_NONE,
+          EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
+          EGL_NONE,
+      };
 
+      std::vector<GLVersion> versions = GetReplayVersions(RDCDriver::OpenGLES);
+
+      for(GLVersion v : versions)
+      {
+        verAttribs[1] = v.major;
+        verAttribs[3] = v.minor;
+        ctx = EGL.CreateContext(eglDisplay, ret.egl_cfg, share_ctx, verAttribs);
+
+        if(ctx)
+          break;
+      }
+
+      // if we got it using the major/minor pattern, then stop
+      if(ctx)
+        break;
+
+      // if none of the above worked, try just creating with the client version as 3
+      const EGLint baseAttribs[] = {
+          EGL_CONTEXT_CLIENT_VERSION,
+          3,
+          debugPass == 0 ? EGL_CONTEXT_FLAGS_KHR : EGL_NONE,
+          EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
+          EGL_NONE,
+      };
+
+      ctx = EGL.CreateContext(eglDisplay, ret.egl_cfg, share_ctx, baseAttribs);
+
+      // if it succeeded, stop
       if(ctx)
         break;
     }
 
-    // if none of the above worked, try just creating with the client version as 3
-    if(!ctx)
-    {
-      static const EGLint baseAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
-                                           EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
-
-      ctx = EGL.CreateContext(eglDisplay, ret.egl_cfg, share_ctx, baseAttribs);
-    }
-
+    // if after that loop we still don't have a context, bail completely
     if(ctx == NULL)
     {
-      RDCERR("Couldn't create GL ES context");
+      RDCERR("Couldn't create GLES3 context");
       return ret;
     }
 
