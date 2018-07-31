@@ -335,6 +335,8 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
     Serialise_UpdateSubresource1(ser, pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch,
                                  SrcDepthPitch, CopyFlags);
 
+    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Write);
+
     m_MissingTracks.insert(GetIDForResource(pDstResource));
 
     m_ContextRecord->AddChunk(scope.Get());
