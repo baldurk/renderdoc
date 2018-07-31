@@ -34,6 +34,44 @@
 extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
+static UINT UpdateDataSize(UINT width, UINT height, UINT depth, DXGI_FORMAT fmt, UINT SrcRowPitch,
+                           UINT SrcDepthPitch, const D3D11_BOX *pDstBox)
+{
+  // if we have a box, apply its dimensions instead of the texture's
+  if(pDstBox)
+  {
+    width = RDCMIN(width, pDstBox->right - pDstBox->left);
+    height = pDstBox->bottom - pDstBox->top;
+    depth = pDstBox->back - pDstBox->front;
+  }
+
+  // empty boxes in any dimension are always 0 bytes
+  if(width == 0 || height == 0 || depth == 0)
+    return 0;
+
+  UINT rowheight = 1;
+  if(IsBlockFormat(fmt))
+  {
+    height = RDCMAX(1U, AlignUp4(height) / 4);
+    rowheight = 4;
+  }
+
+  UINT SourceDataLength = 0;
+
+  // if we're copying multiple slices, all but the last one consume SrcDepthPitch bytes
+  if(depth > 1)
+    SourceDataLength += SrcDepthPitch * (depth - 1);
+
+  // similarly if we're copying multiple rows (possibly block-sized rows) in the final slice
+  if(height > 1)
+    SourceDataLength += SrcRowPitch * (height - 1);
+
+  // lastly, the final row (or block row) consumes just a tightly packed amount of data
+  SourceDataLength += GetByteSize(width, rowheight, 1, fmt, 0);
+
+  return SourceDataLength;
+}
+
 template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
     SerialiserType &ser, ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
@@ -94,45 +132,48 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
                                             ? (WrappedID3D11Texture3D1 *)pDstResource
                                             : NULL;
 
-        UINT mipLevel = GetMipForSubresource(pDstResource, DstSubresource);
+        const UINT mipLevel = GetMipForSubresource(pDstResource, DstSubresource);
+
+        UINT width = 0, height = 0, depth = 0;
+        DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
 
         if(tex1)
         {
-          SourceDataLength = (uint32_t)record->Length;
+          D3D11_TEXTURE1D_DESC desc = {0};
+          tex1->GetDesc(&desc);
 
-          if(pDstBox)
-            SourceDataLength = RDCMIN(SourceDataLength, pDstBox->right - pDstBox->left);
+          fmt = desc.Format;
+          width = RDCMAX(1U, desc.Width >> mipLevel);
+          height = 1;
+          depth = 1;
         }
         else if(tex2)
         {
           D3D11_TEXTURE2D_DESC desc = {0};
           tex2->GetDesc(&desc);
-          UINT rows = RDCMAX(1U, desc.Height >> mipLevel);
-          DXGI_FORMAT fmt = desc.Format;
 
-          if(pDstBox)
-            rows = (pDstBox->bottom - pDstBox->top);
-
-          if(IsBlockFormat(fmt))
-            rows = RDCMAX(1U, rows / 4);
-
-          SourceDataLength = SrcRowPitch * rows;
+          fmt = desc.Format;
+          width = RDCMAX(1U, desc.Width >> mipLevel);
+          height = RDCMAX(1U, desc.Height >> mipLevel);
+          depth = 1;
         }
         else if(tex3)
         {
           D3D11_TEXTURE3D_DESC desc = {0};
           tex3->GetDesc(&desc);
-          UINT slices = RDCMAX(1U, desc.Depth >> mipLevel);
 
-          SourceDataLength = SrcDepthPitch * slices;
-
-          if(pDstBox)
-            SourceDataLength = SrcDepthPitch * (pDstBox->back - pDstBox->front);
+          fmt = desc.Format;
+          width = RDCMAX(1U, desc.Width >> mipLevel);
+          height = RDCMAX(1U, desc.Height >> mipLevel);
+          depth = RDCMAX(1U, desc.Depth >> mipLevel);
         }
         else
         {
           RDCERR("UpdateSubResource on unexpected resource type");
         }
+
+        SourceDataLength =
+            UpdateDataSize(width, height, depth, fmt, SrcRowPitch, SrcDepthPitch, pDstBox);
       }
 
       if(IsActiveCapturing(m_State))
@@ -2042,3 +2083,150 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
                                                    func(WriteSerialiser &ser, __VA_ARGS__));
 
 SERIALISED_ID3D11CONTEXT1_FUNCTIONS();
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+
+static D3D11_BOX *box(UINT x, UINT w, UINT y = 0, UINT h = 1, UINT z = 0, UINT d = 1)
+{
+  static D3D11_BOX ret = {};
+
+  ret.left = x;
+  ret.right = x + w;
+  ret.top = y;
+  ret.bottom = y + h;
+  ret.front = z;
+  ret.back = z + d;
+
+  return &ret;
+}
+
+TEST_CASE("Check UpdateSubresource data length calculations", "[d3d]")
+{
+  // when we want to check that pitches aren't used, we set a high value.
+  UINT p = 999999999U;
+
+  SECTION("1D with no box")
+  {
+    // simple pitch
+    CHECK(UpdateDataSize(45, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, p, p, NULL) == 45 * (4 * sizeof(byte)));
+
+    // 1D textures can be block compressed, they still consume N bytes per 4x4 block, even if only
+    // 4x1 is used. 9 blocks is 36 pixels (covering 35)
+    CHECK(UpdateDataSize(35, 1, 1, DXGI_FORMAT_BC1_UNORM, p, p, NULL) == 9 * (8 * sizeof(byte)));
+  }
+
+  SECTION("1D with box")
+  {
+    CHECK(UpdateDataSize(45, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, p, p, box(10, 5)) ==
+          5 * (4 * sizeof(byte)));
+
+    // 1D textures can be block compressed, they still consume N bytes per 4x4 block, even if only
+    // 4x1 is used. 4 blocks is 16 pixels (covering 15)
+    CHECK(UpdateDataSize(35, 1, 1, DXGI_FORMAT_BC1_UNORM, p, p, box(8, 15)) == 4 * (8 * sizeof(byte)));
+
+    // empty box
+    CHECK(UpdateDataSize(115, 1, 1, DXGI_FORMAT_R32G32B32_FLOAT, p, p, box(99, 0)) == 0);
+  }
+
+  SECTION("2D with no box")
+  {
+    // tightly packed pitch
+    CHECK(UpdateDataSize(45, 33, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 45 * (4 * sizeof(byte)), p, NULL) ==
+          45 * 33 * (4 * sizeof(byte)));
+
+    // degenerate 2D texture as 1D
+    CHECK(UpdateDataSize(45, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, p, p, NULL) == 45 * (4 * sizeof(byte)));
+
+    // pitch larger than a row
+    CHECK(UpdateDataSize(45, 33, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 4096, p, NULL) ==
+          4096 * 32 + 45 * (4 * sizeof(byte)));
+
+    // pitch smaller than a row
+    CHECK(UpdateDataSize(45, 33, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 12, p, NULL) ==
+          12 * 32 + 45 * (4 * sizeof(byte)));
+
+    // block compressed
+    //
+    // 48x48 = 12x12 blocks, tightly packed
+    CHECK(UpdateDataSize(48, 48, 1, DXGI_FORMAT_BC1_UNORM, 12 * (8 * sizeof(byte)), p, NULL) ==
+          12 * 12 * (8 * sizeof(byte)));
+    // with a larger pitch
+    CHECK(UpdateDataSize(48, 48, 1, DXGI_FORMAT_BC1_UNORM, 2500, p, NULL) ==
+          2500 * 11 + 12 * (8 * sizeof(byte)));
+
+    // 57x94 = 15x24 blocks, tightly packed
+    CHECK(UpdateDataSize(57, 94, 1, DXGI_FORMAT_BC1_UNORM, 15 * (8 * sizeof(byte)), p, NULL) ==
+          15 * 24 * (8 * sizeof(byte)));
+    // with a larger pitch
+    CHECK(UpdateDataSize(57, 94, 1, DXGI_FORMAT_BC1_UNORM, 797, p, NULL) ==
+          797 * 23 + 15 * (8 * sizeof(byte)));
+  }
+
+  SECTION("2D with box")
+  {
+    // tightly packed source data pitch
+    CHECK(UpdateDataSize(45, 33, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 7 * (4 * sizeof(byte)), p,
+                         box(5, 7, 13, 8)) == 7 * 8 * (4 * sizeof(byte)));
+
+    // degenerate 2D texture as 1D
+    CHECK(UpdateDataSize(45, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, p, p, box(20, 7)) ==
+          7 * (4 * sizeof(byte)));
+
+    // pitch larger than a row
+    CHECK(UpdateDataSize(45, 33, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 4096, p, box(19, 19, 20, 5)) ==
+          4096 * 4 + 19 * (4 * sizeof(byte)));
+
+    // pitch smaller than a row
+    CHECK(UpdateDataSize(45, 33, 1, DXGI_FORMAT_R8G8B8A8_UNORM, 12, p, box(2, 34, 5, 5)) ==
+          12 * 4 + 34 * (4 * sizeof(byte)));
+
+    // block compressed
+    //
+    // 16x24 = 4x6 blocks, tightly packed
+    CHECK(UpdateDataSize(48, 48, 1, DXGI_FORMAT_BC1_UNORM, 4 * (8 * sizeof(byte)), p,
+                         box(8, 16, 20, 24)) == 4 * 6 * (8 * sizeof(byte)));
+    // with a larger pitch
+    CHECK(UpdateDataSize(48, 48, 1, DXGI_FORMAT_BC1_UNORM, 2500, p, box(8, 16, 20, 24)) ==
+          2500 * 5 + 4 * (8 * sizeof(byte)));
+
+    // empty box
+    CHECK(UpdateDataSize(812, 384, 1, DXGI_FORMAT_R32G32B32_FLOAT, p, p, box(19, 0, 58, 200)) == 0);
+    CHECK(UpdateDataSize(812, 384, 1, DXGI_FORMAT_R32G32B32_FLOAT, p, p, box(19, 10, 58, 0)) == 0);
+  }
+
+  SECTION("3D with no box")
+  {
+    // simple pitch
+    CHECK(UpdateDataSize(45, 34, 23, DXGI_FORMAT_R8G8B8A8_UNORM, 45 * (4 * sizeof(byte)),
+                         45 * 34 * (4 * sizeof(byte)), NULL) == 45 * 34 * 23 * (4 * sizeof(byte)));
+
+    // larger row pitch
+    CHECK(UpdateDataSize(45, 34, 23, DXGI_FORMAT_R8G8B8A8_UNORM, 1200, 1200 * 34, NULL) ==
+          1200 * 34 * 22 + 33 * 1200 + 45 * (4 * sizeof(byte)));
+
+    // larger slice pitch
+    CHECK(UpdateDataSize(45, 34, 23, DXGI_FORMAT_R8G8B8A8_UNORM, 1200, 800000, NULL) ==
+          800000 * 22 + 33 * 1200 + 45 * (4 * sizeof(byte)));
+  }
+
+  SECTION("3D with box")
+  {
+    // simple pitch
+    CHECK(UpdateDataSize(45, 34, 23, DXGI_FORMAT_R8G8B8A8_UNORM, 5 * (4 * sizeof(byte)),
+                         5 * 10 * (4 * sizeof(byte)),
+                         box(9, 5, 20, 10, 15, 8)) == 5 * 10 * 8 * (4 * sizeof(byte)));
+
+    // larger row pitch
+    CHECK(UpdateDataSize(45, 34, 23, DXGI_FORMAT_R8G8B8A8_UNORM, 1200, 1200 * 34,
+                         box(9, 5, 20, 10, 15, 8)) ==
+          1200 * 34 * 7 + 1200 * 9 + 5 * (4 * sizeof(byte)));
+
+    // larger slice pitch
+    CHECK(UpdateDataSize(45, 34, 23, DXGI_FORMAT_R8G8B8A8_UNORM, 1200, 800000,
+                         box(9, 5, 20, 10, 15, 8)) == 800000 * 7 + 1200 * 9 + 5 * (4 * sizeof(byte)));
+  }
+}
+
+#endif
