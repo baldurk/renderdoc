@@ -85,6 +85,9 @@ void plthook_lib(void *handle)
 
 void *intercept_dlopen(const char *filename, int flag, void *ret)
 {
+  if(filename == NULL)
+    return ret;
+
   if(flag & RTLD_DEEPBIND)
     plthook_lib(ret);
 

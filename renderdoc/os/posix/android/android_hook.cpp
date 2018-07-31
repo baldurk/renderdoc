@@ -214,7 +214,7 @@ HookingInfo &GetHookInfo()
 
 void *intercept_dlopen(const char *filename, int flag)
 {
-  if(GetHookInfo().IsLibHook(filename))
+  if(filename && GetHookInfo().IsLibHook(std::string(filename)))
     return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
 
   return NULL;
@@ -420,7 +420,7 @@ uint64_t suppressTLS = 0;
 
 void process_dlopen(const char *filename, int flag)
 {
-  if(!GetHookInfo().IsHooked(filename))
+  if(filename && !GetHookInfo().IsHooked(std::string(filename)))
   {
     HOOK_DEBUG_PRINT("iterating after %s", filename);
     dl_iterate_phdr(dl_iterate_callback, NULL);
