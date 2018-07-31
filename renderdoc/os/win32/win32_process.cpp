@@ -480,11 +480,14 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
     if(!SetHandleInformation(*phChildStdError_Rd, HANDLE_FLAG_INHERIT, 0))
       RDCERR("Could not set pipe handle information");
 
-    si.dwFlags |= STARTF_USESHOWWINDOW    // Hide the command prompt window from showing.
-                  | STARTF_USESTDHANDLES;
+    si.dwFlags |= STARTF_USESTDHANDLES;
     si.hStdOutput = hChildStdOutput_Wr;
     si.hStdError = hChildStdError_Wr;
   }
+
+  // if it's a utility launch, hide the command prompt window from showing
+  if(phChildStdOutput_Rd || internal)
+    si.dwFlags |= STARTF_USESHOWWINDOW;
 
   if(!internal)
     RDCLOG("Running process %s", app);
