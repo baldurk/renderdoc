@@ -131,6 +131,21 @@ std::string GetPathForPackage(const std::string &deviceID, const std::string &pa
   return pkgPath;
 }
 
+bool IsSupported(std::string deviceID)
+{
+  std::string api =
+      trim(Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout);
+
+  int apiVersion = atoi(api.c_str());
+
+  // SDK 23 == Android 6.0, our minimum spec. Only fail if we did parse an SDK string, in case some
+  // Android devices don't support the query - we assume they are new enough.
+  if(apiVersion >= 0 && apiVersion < 23)
+    return false;
+
+  return true;
+}
+
 std::string GetFriendlyName(std::string deviceID)
 {
   auto it = friendlyNameCache.find(deviceID);
@@ -152,6 +167,9 @@ std::string GetFriendlyName(std::string deviceID)
     combined = manuf + " device";
   else if(!manuf.empty() && !model.empty())
     combined = manuf + " " + model;
+
+  if(!IsSupported(deviceID))
+    combined += " - Unsupported";
 
   return combined;
 }

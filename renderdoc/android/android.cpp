@@ -587,12 +587,25 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidShutdown()
   Android::shutdownAdb();
 }
 
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsAndroidSupported(const char *device)
+{
+  int index = 0;
+  std::string deviceID;
+
+  Android::ExtractDeviceIDAndIndex(device, index, deviceID);
+
+  return Android::IsSupported(deviceID);
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
 {
   int index = 0;
   std::string deviceID;
 
   Android::ExtractDeviceIDAndIndex(device, index, deviceID);
+
+  if(!Android::IsSupported(deviceID))
+    return;
 
   std::string packagesOutput = trim(
       Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
