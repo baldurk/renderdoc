@@ -62,6 +62,8 @@ typedef void (*PFN_glTexCoord2f)(float, float);
 typedef void (*PFN_glEnd)();
 
 #define GLX_HOOKED_SYMBOLS(FUNC)    \
+  FUNC(glXGetProcAddress);          \
+  FUNC(glXGetProcAddressARB);       \
   FUNC(glXCreateContext);           \
   FUNC(glXDestroyContext);          \
   FUNC(glXCreateContextAttribsARB); \
@@ -69,9 +71,7 @@ typedef void (*PFN_glEnd)();
   FUNC(glXMakeContextCurrent);      \
   FUNC(glXSwapBuffers);             \
   FUNC(glXCreateWindow);            \
-  FUNC(glXDestroyWindow);           \
-  FUNC(glXGetProcAddress);          \
-  FUNC(glXGetProcAddressARB);
+  FUNC(glXDestroyWindow);
 
 #define GLX_NONHOOKED_SYMBOLS(FUNC) \
   FUNC(glXGetConfig);               \

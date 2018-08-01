@@ -59,13 +59,13 @@ typedef const char *(EGLAPIENTRY *PFN_eglQueryString)(EGLDisplay dpy, EGLint nam
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 
 #define EGL_HOOKED_SYMBOLS(FUNC)    \
+  FUNC(GetProcAddress, false);      \
   FUNC(GetDisplay, false);          \
   FUNC(CreateContext, false);       \
   FUNC(DestroyContext, false);      \
   FUNC(CreateWindowSurface, false); \
   FUNC(MakeCurrent, false);         \
   FUNC(SwapBuffers, false);         \
-  FUNC(GetProcAddress, false);      \
   FUNC(PostSubBufferNV, true);
 
 #define EGL_NONHOOKED_SYMBOLS(FUNC)  \
