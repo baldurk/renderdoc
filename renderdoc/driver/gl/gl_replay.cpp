@@ -1212,7 +1212,8 @@ void GLReplay::SavePipelineState()
 
         pipe.samplers[unit].resourceId = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
 
-        if(target != eGL_TEXTURE_BUFFER)
+        if(target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
+           target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
         {
           if(samp != 0)
             drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
