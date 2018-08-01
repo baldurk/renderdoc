@@ -35,23 +35,23 @@ layout(binding = 2) writeonly uniform uimage2DMSArray dstMS;
 layout(push_constant) uniform multisamplePush
 {
 	int numMultiSamples;
-	int currentSample;
-	int currentSlice;
+	int sampleOffset;
+	int sliceOffset;
 	uint currentStencil;
 } mscopy;
 
 #define numMultiSamples (mscopy.numMultiSamples)
-#define currentSample (mscopy.currentSample)
-#define currentSlice (mscopy.currentSlice)
+#define sampleOffset (mscopy.sampleOffset)
+#define sliceOffset (mscopy.sliceOffset)
 #define currentStencil (mscopy.currentStencil)
 
 #else
 
-uniform uvec4 mscopy;
+uniform ivec4 mscopy;
 
-#define numMultiSamples (int(mscopy.x))
-#define currentSample (mscopy.y)
-#define currentSlice (mscopy.z)
+#define numMultiSamples (mscopy.x)
+#define sampleOffset (mscopy.y)
+#define sliceOffset (mscopy.z)
 #define currentStencil (mscopy.w)
 
 #endif
@@ -60,10 +60,10 @@ void main()
 {
 	uvec3 id = gl_GlobalInvocationID;
 
-	int slice = int(id.z / numMultiSamples);
-	int sampleIdx = int(id.z % numMultiSamples);
+	int slice = sliceOffset + int(id.z / numMultiSamples);
+	int sampleIdx = sampleOffset + int(id.z % numMultiSamples);
 
-	uvec4 data = texelFetch(srcArray, ivec3(int(id.x), int(id.y), int(id.z)), 0);
+	uvec4 data = texelFetch(srcArray, ivec3(int(id.x), int(id.y), slice * numMultiSamples + sampleIdx), 0);
 
 	imageStore(dstMS, ivec3(int(id.x), int(id.y), slice), sampleIdx, data);
 }

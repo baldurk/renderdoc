@@ -48,9 +48,9 @@ layout(push_constant) uniform multisamplePush
 
 #else
 
-uniform uvec4 mscopy;
+uniform ivec4 mscopy;
 
-#define numMultiSamples (int(mscopy.x))
+#define numMultiSamples (mscopy.x)
 #define currentSample (mscopy.y)
 #define currentSlice (mscopy.z)
 #define currentStencil (mscopy.w)

@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
  
+//#extension_nongles GL_ARB_sample_shading : require
+
 layout(binding = 0) uniform sampler2DArray srcDepthArray;
 layout(binding = 1) uniform usampler2DArray srcStencilArray;
 // binding = 2 used as an image in the colour copy compute shaders
@@ -43,12 +45,12 @@ layout(push_constant) uniform multisamplePush
 
 #else
 
-uniform uvec4 mscopy;
+uniform ivec4 mscopy;
 
-#define numMultiSamples (int(mscopy.x))
+#define numMultiSamples (mscopy.x)
 #define currentSample (mscopy.y)
 #define currentSlice (mscopy.z)
-#define currentStencil (mscopy.w)
+#define currentStencil (uint(mscopy.w))
 
 #endif
 
@@ -56,7 +58,7 @@ void main()
 {
 	ivec3 srcCoord = ivec3(int(gl_FragCoord.x), int(gl_FragCoord.y), currentSlice*numMultiSamples + gl_SampleID);
 
-	if(currentStencil < 256)
+	if(currentStencil < 256u)
 	{
 		uint stencil = texelFetch(srcStencilArray, srcCoord, 0).x;
 

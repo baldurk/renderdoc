@@ -522,6 +522,17 @@ void GLReplay::InitDebugData()
                                "GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
   }
 
+  if(glesShadersAreComplete && HasExt[ARB_texture_multisample])
+  {
+    GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
+
+    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_depthms2arr_frag), glslBaseVer);
+    DebugData.DepthMS2Array = CreateShaderProgram(vs, fs);
+
+    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_deptharr2ms_frag), glslBaseVer);
+    DebugData.DepthArray2MS = CreateShaderProgram(vs, fs);
+  }
+
   if(glesShadersAreComplete && HasExt[ARB_compute_shader])
   {
     string defines =
@@ -805,6 +816,9 @@ void GLReplay::DeleteDebugData()
 
   drv.glDeleteProgram(DebugData.Array2MS);
   drv.glDeleteProgram(DebugData.MS2Array);
+
+  drv.glDeleteProgram(DebugData.DepthArray2MS);
+  drv.glDeleteProgram(DebugData.DepthMS2Array);
 
   drv.glDeleteBuffers(1, &DebugData.minmaxTileResult);
   drv.glDeleteBuffers(1, &DebugData.minmaxResult);

@@ -21,6 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
+ 
+//#extension_nongles GL_ARB_sample_shading : require
 
 layout(binding = 0) uniform sampler2DMSArray srcDepthMS;
 layout(binding = 1) uniform usampler2DMSArray srcStencilMS;
@@ -43,12 +45,12 @@ layout(push_constant) uniform multisamplePush
 
 #else
 
-uniform uvec4 mscopy;
+uniform ivec4 mscopy;
 
-#define numMultiSamples (int(mscopy.x))
+#define numMultiSamples (mscopy.x)
 #define currentSample (mscopy.y)
 #define currentSlice (mscopy.z)
-#define currentStencil (mscopy.w)
+#define currentStencil (uint(mscopy.w))
 
 #endif
 
@@ -56,7 +58,7 @@ void main()
 {
 	ivec3 srcCoord = ivec3(int(gl_FragCoord.x), int(gl_FragCoord.y), currentSlice);
 
-	if(currentStencil < 256)
+	if(currentStencil < 256u)
 	{
 		uint stencil = texelFetch(srcStencilMS, srcCoord, currentSample).x;
 

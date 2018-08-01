@@ -245,9 +245,14 @@ private:
   void CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader);
 
   void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
-                          GLint arraySize, GLint samples, GLenum intFormat);
+                          GLint arraySize, GLint samples, GLenum intFormat, uint32_t selectedSlice);
   void CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
                           GLint arraySize, GLint samples, GLenum intFormat);
+  void CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
+                               GLint arraySize, GLint samples, GLenum intFormat,
+                               uint32_t selectedSlice);
+  void CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
+                               GLint arraySize, GLint samples, GLenum intFormat);
 
   struct OutputWindow : public GLWindowingData
   {
@@ -317,6 +322,7 @@ private:
     GLuint pickResultBuf;
 
     GLuint MS2Array, Array2MS;
+    GLuint DepthMS2Array, DepthArray2MS;
 
     GLuint pointSampler;
     GLuint pointNoMipSampler;
