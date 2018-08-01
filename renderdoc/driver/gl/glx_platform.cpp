@@ -37,10 +37,10 @@ typedef int (*X11ErrorHandler)(Display *display, XErrorEvent *error);
 
 void *GetGLHandle()
 {
-  void *handle = Process::LoadModule("libGL.so");
+  void *handle = Process::LoadModule("libGL.so.1");
 
   if(!handle)
-    handle = Process::LoadModule("libGL.so.1");
+    handle = Process::LoadModule("libGL.so");
 
   return handle;
 }

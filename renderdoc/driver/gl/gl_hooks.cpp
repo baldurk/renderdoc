@@ -175,7 +175,7 @@ void GLHook::RegisterHooks()
 #elif ENABLED(RDOC_ANDROID)
   const char *libraryName = "libEGL.so";
 #else
-  const char *libraryName = "libGL.so";
+  const char *libraryName = "libGL.so.1";
 #endif
 
   LibraryHooks::RegisterLibraryHook(libraryName, &GLHooked);
