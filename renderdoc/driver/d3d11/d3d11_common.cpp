@@ -467,7 +467,10 @@ bool D3D11InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
-  // we can check other older versions we support here.
+  // 0x0F -> 0x10 - serialised the number of subresources in resource initial states after
+  // multiplying on sample count rather than before
+  if(ver == 0x0F)
+    return true;
 
   return false;
 }

@@ -663,12 +663,27 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       tex->GetDesc(&desc);
 
     uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
-    SERIALISE_ELEMENT(NumSubresources);
-
     bool multisampled = desc.SampleDesc.Count > 1 || desc.SampleDesc.Quality > 0;
 
-    if(multisampled)
-      NumSubresources *= desc.SampleDesc.Count;
+    // in version 0xF and before, we mistakenly multiplied on the sample count to the number of
+    // subresources after serialisation - meaning the loop below breaks for pure structured data
+    // serialisation.
+    // After version 0x10 we pre-multiply before serialising, because the result is the same either
+    // way and we don't need the un-multiplied value.
+    if(ser.VersionAtLeast(0x10))
+    {
+      if(multisampled)
+        NumSubresources *= desc.SampleDesc.Count;
+
+      SERIALISE_ELEMENT(NumSubresources);
+    }
+    else
+    {
+      SERIALISE_ELEMENT(NumSubresources);
+
+      if(multisampled)
+        NumSubresources *= desc.SampleDesc.Count;
+    }
 
     // this value is serialised here for compatibility with pre-v1.1 captures. In prior versions the
     // 'save all initials' option, if disabled, meant a heuristic was used to determine if this
