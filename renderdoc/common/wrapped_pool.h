@@ -174,39 +174,31 @@ private:
   {
     ItemPool()
     {
-      lastAllocIdx = 0;
-      RDCEraseEl(allocated);
-
       items = (WrapType *)(new uint8_t[AllocCount * AllocByteSize]);
+      freeStack = new int[AllocCount];
+      for(int i = 0; i < (int)AllocCount; ++i)
+      {
+        freeStack[i] = i;
+      }
+      freeStackHead = AllocCount;
     }
-    ~ItemPool() { delete[](uint8_t *) items; }
+    ~ItemPool()
+    {
+      delete[](uint8_t *) items;
+      delete[] freeStack;
+    }
     void *Allocate()
     {
-      int lastAlloc = lastAllocIdx;
-
-      if(allocated[lastAlloc])
+      if(freeStackHead == 0)
       {
-        int end = lastAlloc;
-
-        do
-        {
-          lastAlloc = (lastAlloc + 1) % PoolCount;
-        } while(allocated[lastAlloc] && lastAlloc != end);
-
-        if(allocated[lastAlloc])
-        {
-          return NULL;
-        }
+        return NULL;
       }
-
-      void *ret = (void *)&items[lastAlloc];
-      allocated[lastAlloc] = true;
+      --freeStackHead;
+      void *ret = items + freeStack[freeStackHead];
 
 #if ENABLED(RDOC_DEVEL)
       memset(ret, 0xb0, AllocByteSize);
 #endif
-
-      lastAllocIdx = lastAlloc;
 
       return ret;
     }
@@ -223,9 +215,10 @@ private:
       }
 #endif
 
-      size_t idx = (WrapType *)p - &items[0];
+      int idx = (int)((WrapType *)p - &items[0]);
 
-      allocated[idx] = false;
+      freeStack[freeStackHead] = idx;
+      ++freeStackHead;
 
 #if ENABLED(RDOC_DEVEL)
       if(DebugClear)
@@ -235,17 +228,8 @@ private:
 
     bool IsAlloc(const void *p) const { return p >= &items[0] && p < &items[PoolCount]; }
     WrapType *items;
-
-    // could possibly make this uint32s and check via bitmasks, but
-    // we'll see if it shows up in profiling
-    bool allocated[PoolCount];
-
-    // store the last allocations index. Good place to start from and we
-    // go through the pool in a ring. Good performance when the pool is empty
-    // or contiguously allocated, poorer performance when the pool gets filled up.
-    // It also has the bonus of handling repeated new/free well by reallocating the
-    // same element.
-    int lastAllocIdx;
+    int *freeStack;
+    int freeStackHead;
   };
 
   ItemPool m_ImmediatePool;
