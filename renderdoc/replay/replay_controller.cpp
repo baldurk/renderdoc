@@ -1049,8 +1049,8 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
   // if we want a grayscale image of one channel, splat it across all channels
   // and set alpha to full
-  if(sd.channelExtract >= 0 && td.format.compByteWidth == 1 &&
-     (uint32_t)sd.channelExtract < td.format.compCount)
+  if(sd.channelExtract >= 0 && td.format.type == ResourceFormatType::Regular &&
+     td.format.compByteWidth == 1 && (uint32_t)sd.channelExtract < td.format.compCount)
   {
     uint32_t cc = td.format.compCount;
 
