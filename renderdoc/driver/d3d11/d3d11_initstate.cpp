@@ -815,7 +815,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
             ID3D11Texture2D *contentsMS = NULL;
             hr = m_pDevice->CreateTexture2D(&desc, NULL, &contentsMS);
 
-            m_DebugManager->CopyArrayToTex2DMS(contentsMS, dataTex);
+            m_DebugManager->CopyArrayToTex2DMS(contentsMS, dataTex, ~0U);
 
             SAFE_RELEASE(dataTex);
             dataTex = contentsMS;

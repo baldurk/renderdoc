@@ -102,7 +102,7 @@ public:
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
   void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, bytebuf &retData);
 
-  void CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray);
+  void CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray, UINT selectedSlice);
   void CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Texture2D *srcMS);
 
   ID3D11Buffer *MakeCBuffer(const void *data, size_t size);

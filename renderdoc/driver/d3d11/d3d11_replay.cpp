@@ -3325,13 +3325,13 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
 
     uint32_t mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
 
-    if(mip >= mips || arrayIdx >= desc.ArraySize)
+    UINT sampleCount = RDCMAX(1U, desc.SampleDesc.Count);
+
+    if(mip >= mips || arrayIdx >= desc.ArraySize * sampleCount)
     {
       RDCERR("arrayIdx %d and mip %d invalid for tex", arrayIdx, mip);
       return;
     }
-
-    uint32_t sub = arrayIdx * mips + mip;
 
     if(dataSize < GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip))
     {
@@ -3339,9 +3339,38 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data,
-                           GetByteSize(desc.Width, 1, 1, desc.Format, mip),
-                           GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
+    if(sampleCount > 1)
+    {
+      D3D11_TEXTURE2D_DESC uploadDesc = desc;
+      uploadDesc.MiscFlags = 0;
+      uploadDesc.CPUAccessFlags = 0;
+      uploadDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      uploadDesc.Usage = D3D11_USAGE_DEFAULT;
+      uploadDesc.SampleDesc.Count = 1;
+      uploadDesc.SampleDesc.Quality = 0;
+      uploadDesc.ArraySize *= desc.SampleDesc.Count;
+
+      // create an unwrapped texture to upload the data into a slice of
+      ID3D11Texture2D *uploadTex = NULL;
+      m_pDevice->GetReal()->CreateTexture2D(&uploadDesc, NULL, &uploadTex);
+
+      ctx->UpdateSubresource(uploadTex, arrayIdx, NULL, data,
+                             GetByteSize(desc.Width, 1, 1, desc.Format, mip),
+                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
+
+      // copy that slice into MSAA sample
+      GetDebugManager()->CopyArrayToTex2DMS(tex->GetReal(), uploadTex, arrayIdx);
+
+      uploadTex->Release();
+    }
+    else
+    {
+      uint32_t sub = arrayIdx * mips + mip;
+
+      ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data,
+                             GetByteSize(desc.Width, 1, 1, desc.Format, mip),
+                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
+    }
   }
   else if(WrappedID3D11Texture3D1::m_TextureList.find(texid) !=
           WrappedID3D11Texture3D1::m_TextureList.end())

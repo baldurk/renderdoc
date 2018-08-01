@@ -168,8 +168,11 @@ struct Tex2DMSToArrayStateTracker
   } OM;
 };
 
-void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray)
+void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray,
+                                           UINT selectedSlice)
 {
+  bool singleSliceMode = (selectedSlice != ~0U);
+
   // unlike CopyTex2DMSToArray we can use the wrapped context here, but for consistency
   // we accept unwrapped parameters.
 
@@ -182,7 +185,16 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   D3D11_TEXTURE2D_DESC descMS;
   destMS->GetDesc(&descMS);
 
-  bool depth = IsDepthFormat(descMS.Format);
+  UINT sampleMask = ~0U;
+
+  if(singleSliceMode)
+  {
+    sampleMask = 1U << (selectedSlice % descMS.SampleDesc.Count);
+    selectedSlice /= descMS.SampleDesc.Count;
+  }
+
+  bool depthFormat = IsDepthFormat(descMS.Format);
+  bool intFormat = IsUIntFormat(descMS.Format) || IsIntFormat(descMS.Format);
 
   ID3D11Texture2D *rtvResource = NULL;
   ID3D11Texture2D *srvResource = NULL;
@@ -190,10 +202,10 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   D3D11_TEXTURE2D_DESC rtvResDesc = descMS;
   D3D11_TEXTURE2D_DESC srvResDesc = descArr;
 
-  rtvResDesc.BindFlags = depth ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET;
+  rtvResDesc.BindFlags = depthFormat ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET;
   srvResDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-  if(depth)
+  if(depthFormat)
   {
     rtvResDesc.Format = GetTypelessFormat(rtvResDesc.Format);
     srvResDesc.Format = GetTypelessFormat(srvResDesc.Format);
@@ -221,6 +233,11 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     return;
   }
 
+  // if we're doing a partial update, need to preserve what was in the destination texture
+  if(singleSliceMode)
+    m_pImmediateContext->GetReal()->CopyResource(UNWRAP(WrappedID3D11Texture2D1, rtvResource),
+                                                 destMS);
+
   m_pImmediateContext->GetReal()->CopyResource(UNWRAP(WrappedID3D11Texture2D1, srvResource),
                                                srcArray);
 
@@ -233,7 +250,13 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 
   m_pImmediateContext->VSSetShader(MSArrayCopyVS, NULL, 0);
-  m_pImmediateContext->PSSetShader(depth ? DepthCopyArrayToMSPS : CopyArrayToMSPS, NULL, 0);
+
+  if(depthFormat)
+    m_pImmediateContext->PSSetShader(DepthCopyArrayToMSPS, NULL, 0);
+  else if(intFormat)
+    m_pImmediateContext->PSSetShader(CopyArrayToMSPS, NULL, 0);
+  else
+    m_pImmediateContext->PSSetShader(FloatCopyArrayToMSPS, NULL, 0);
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
   m_pImmediateContext->DSSetShader(NULL, NULL, 0);
@@ -247,7 +270,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   m_pImmediateContext->IASetInputLayout(NULL);
   m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   float blendFactor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-  m_pImmediateContext->OMSetBlendState(NULL, blendFactor, ~0U);
+  m_pImmediateContext->OMSetBlendState(NULL, blendFactor, sampleMask);
 
   {
     D3D11_DEPTH_STENCIL_DESC dsDesc;
@@ -257,7 +280,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     dsDesc.DepthEnable = TRUE;
     dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
     dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    if(depth)
+    if(depthFormat)
       dsDesc.StencilEnable = FALSE;
     else
       dsDesc.StencilEnable = TRUE;
@@ -281,8 +304,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
-  rtvDesc.Format =
-      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, CompType::UInt);
+  rtvDesc.Format = depthFormat ? GetUIntTypedFormat(descMS.Format)
+                               : GetTypedFormat(descMS.Format, CompType::UInt);
   rtvDesc.Texture2DMSArray.ArraySize = descMS.ArraySize;
   rtvDesc.Texture2DMSArray.FirstArraySlice = 0;
 
@@ -295,8 +318,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-  srvDesc.Format =
-      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, CompType::UInt);
+  srvDesc.Format = depthFormat ? GetUIntTypedFormat(descArr.Format)
+                               : GetTypedFormat(descArr.Format, CompType::UInt);
   srvDesc.Texture2DArray.ArraySize = descArr.ArraySize;
   srvDesc.Texture2DArray.FirstArraySlice = 0;
   srvDesc.Texture2DArray.MipLevels = descArr.MipLevels;
@@ -305,7 +328,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   bool stencil = false;
   DXGI_FORMAT stencilFormat = DXGI_FORMAT_UNKNOWN;
 
-  if(depth)
+  if(depthFormat)
   {
     switch(descArr.Format)
     {
@@ -351,6 +374,9 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   // loop over every array slice in MS texture
   for(UINT slice = 0; slice < descMS.ArraySize; slice++)
   {
+    if(singleSliceMode)
+      slice = selectedSlice;
+
     uint32_t cdata[4] = {descMS.SampleDesc.Count, 1000, 0, slice};
 
     ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
@@ -362,7 +388,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     dsvDesc.Texture2DMSArray.FirstArraySlice = slice;
     dsvDesc.Texture2DMSArray.ArraySize = 1;
 
-    if(depth)
+    if(depthFormat)
       hr = m_pDevice->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvMS);
     else
       hr = m_pDevice->CreateRenderTargetView(rtvResource, &rtvDesc, &rtvMS);
@@ -373,7 +399,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       return;
     }
 
-    if(depth)
+    if(depthFormat)
       m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvMS, 0, 0, NULL,
                                                                      NULL);
     else
@@ -384,6 +410,9 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
     SAFE_RELEASE(rtvMS);
     SAFE_RELEASE(dsvMS);
+
+    if(singleSliceMode)
+      break;
   }
 
   SAFE_RELEASE(srvArray);
@@ -426,6 +455,9 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     // loop over every array slice in MS texture
     for(UINT slice = 0; slice < descMS.ArraySize; slice++)
     {
+      if(singleSliceMode)
+        slice = selectedSlice;
+
       dsvDesc.Texture2DMSArray.FirstArraySlice = slice;
 
       hr = m_pDevice->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvMS);
@@ -455,6 +487,9 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       }
 
       SAFE_RELEASE(dsvMS);
+
+      if(singleSliceMode)
+        break;
     }
 
     SAFE_RELEASE(srvArray);
@@ -493,12 +528,13 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   D3D11_TEXTURE2D_DESC rtvResDesc = descArr;
   D3D11_TEXTURE2D_DESC srvResDesc = descMS;
 
-  bool depth = IsDepthFormat(descMS.Format);
+  bool depthFormat = IsDepthFormat(descMS.Format);
+  bool intFormat = IsUIntFormat(descMS.Format) || IsIntFormat(descMS.Format);
 
-  rtvResDesc.BindFlags = depth ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET;
+  rtvResDesc.BindFlags = depthFormat ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET;
   srvResDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-  if(depth)
+  if(depthFormat)
   {
     rtvResDesc.Format = GetTypelessFormat(rtvResDesc.Format);
     srvResDesc.Format = GetTypelessFormat(srvResDesc.Format);
@@ -537,9 +573,12 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   ctx->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 
   ctx->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, MSArrayCopyVS), NULL, 0);
-  ctx->PSSetShader(depth ? UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, DepthCopyMSToArrayPS)
-                         : UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, CopyMSToArrayPS),
-                   NULL, 0);
+  if(depthFormat)
+    ctx->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, DepthCopyMSToArrayPS), NULL, 0);
+  else if(intFormat)
+    ctx->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, CopyMSToArrayPS), NULL, 0);
+  else
+    ctx->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, FloatCopyMSToArrayPS), NULL, 0);
 
   D3D11_VIEWPORT view = {0.0f, 0.0f, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f};
 
@@ -558,7 +597,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     dsDesc.DepthEnable = TRUE;
     dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
     dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    if(depth)
+    if(depthFormat)
       dsDesc.StencilEnable = FALSE;
     else
       dsDesc.StencilEnable = TRUE;
@@ -582,8 +621,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-  rtvDesc.Format =
-      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, CompType::UInt);
+  rtvDesc.Format = depthFormat ? GetUIntTypedFormat(descArr.Format)
+                               : GetTypedFormat(descArr.Format, CompType::UInt);
   rtvDesc.Texture2DArray.FirstArraySlice = 0;
   rtvDesc.Texture2DArray.ArraySize = 1;
   rtvDesc.Texture2DArray.MipSlice = 0;
@@ -598,15 +637,15 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
-  srvDesc.Format =
-      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, CompType::UInt);
+  srvDesc.Format = depthFormat ? GetUIntTypedFormat(descMS.Format)
+                               : GetTypedFormat(descMS.Format, CompType::UInt);
   srvDesc.Texture2DMSArray.ArraySize = descMS.ArraySize;
   srvDesc.Texture2DMSArray.FirstArraySlice = 0;
 
   bool stencil = false;
   DXGI_FORMAT stencilFormat = DXGI_FORMAT_UNKNOWN;
 
-  if(depth)
+  if(depthFormat)
   {
     switch(descMS.Format)
     {
@@ -671,7 +710,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
       rtvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
       dsvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
 
-      if(depth)
+      if(depthFormat)
         hr = dev->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvArray);
       else
         hr = dev->CreateRenderTargetView(rtvResource, &rtvDesc, &rtvArray);
@@ -684,7 +723,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
         return;
       }
 
-      if(depth)
+      if(depthFormat)
         ctx->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvArray, 0, 0, NULL, NULL);
       else
         ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtvArray, NULL, 0, 0, NULL, NULL);
