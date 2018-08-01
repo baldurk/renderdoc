@@ -282,14 +282,17 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   {
     key = GetImplicitLayersKey(false, true);
 
-    // if we're on 64-bit, the layer isn't registered unless both keys are registered.
-    thisRegistered = false;
-
     if(key)
     {
-      thisRegistered = ProcessImplicitLayersKey(key, wow6432Path, &otherJSONs, false);
+      // if we're on 64-bit, the layer isn't registered unless both keys are registered.
+      thisRegistered &= ProcessImplicitLayersKey(key, wow6432Path, &otherJSONs, false);
 
       RegCloseKey(key);
+    }
+    else
+    {
+      flags = VulkanLayerFlags::NeedElevation | VulkanLayerFlags::RegisterAll;
+      return true;
     }
   }
 #endif
