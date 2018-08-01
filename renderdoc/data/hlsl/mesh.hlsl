@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-struct wireframeV2F
+struct meshV2F
 {
 	float4 pos : SV_Position;
 	float3 norm : Normal;
@@ -35,9 +35,9 @@ struct meshA2V
 	float4 secondary : sec;
 };
 
-wireframeV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
+meshV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
 {
-	wireframeV2F OUT = (wireframeV2F)0;
+	meshV2F OUT = (meshV2F)0;
   
 	float2 psprite[4] =
 	{
@@ -67,7 +67,7 @@ cbuffer viewportCBuf : register(b0)
 };
 
 [maxvertexcount(3)]
-void RENDERDOC_TriangleSizeGS(triangle wireframeV2F input[3], inout TriangleStream<triSizeV2F> TriStream)
+void RENDERDOC_TriangleSizeGS(triangle meshV2F input[3], inout TriangleStream<triSizeV2F> TriStream)
 {
 	triSizeV2F output;
 
@@ -114,9 +114,9 @@ float4 RENDERDOC_TriangleSizePS(triSizeV2F IN) : SV_Target0
 }
 
 [maxvertexcount(3)]
-void RENDERDOC_MeshGS(triangle wireframeV2F input[3], inout TriangleStream<wireframeV2F> TriStream)
+void RENDERDOC_MeshGS(triangle meshV2F input[3], inout TriangleStream<meshV2F> TriStream)
 {
-    wireframeV2F output;
+    meshV2F output;
 
     float4 faceEdgeA = mul(input[1].pos, InvProj) - mul(input[0].pos, InvProj);
     float4 faceEdgeB = mul(input[2].pos, InvProj) - mul(input[0].pos, InvProj);
@@ -137,7 +137,7 @@ cbuffer MeshColourPush : register(b2)
   float4 MeshColour;
 }
 
-float4 RENDERDOC_MeshPS(wireframeV2F IN) : SV_Target0
+float4 RENDERDOC_MeshPS(meshV2F IN) : SV_Target0
 {
 	uint type = OutputDisplayFormat;
 

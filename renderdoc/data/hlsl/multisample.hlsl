@@ -27,14 +27,6 @@
 // (or serialising it back in, for that matter), we copy each sample to a slice in a
 // 2DArray texture, and vice-versa. These shaders do that copy as appropriate.
 
-struct wireframeV2F
-{
-	float4 pos : SV_Position;
-	float3 norm : Normal;
-	float3 color : COLOR;
-	float2 tex : TEXCOORD0;
-};
-
 cbuffer msarraycopyconsts : register(b0)
 {
 	uint sampleCount;
@@ -49,9 +41,9 @@ Texture2DMSArray<uint4, 8> sourceMS8 : register(t3);
 Texture2DMSArray<uint4, 16> sourceMS16 : register(t4);
 Texture2DMSArray<uint4, 32> sourceMS32 : register(t5);
 
-uint4 RENDERDOC_CopyMSToArray(wireframeV2F IN) : SV_Target0
+uint4 RENDERDOC_CopyMSToArray(float4 pos : SV_Position) : SV_Target0
 {
-	uint3 srcCoord = uint3(IN.pos.x, IN.pos.y, currentSlice);
+	uint3 srcCoord = uint3(pos.x, pos.y, currentSlice);
 
 	if(sampleCount == 2)
 	{
@@ -83,9 +75,9 @@ Texture2DMSArray<float4, 8> sourceFloatMS8 : register(t3);
 Texture2DMSArray<float4, 16> sourceFloatMS16 : register(t4);
 Texture2DMSArray<float4, 32> sourceFloatMS32 : register(t5);
 
-float4 RENDERDOC_FloatCopyMSToArray(wireframeV2F IN) : SV_Target0
+float4 RENDERDOC_FloatCopyMSToArray(float4 pos : SV_Position) : SV_Target0
 {
-	uint3 srcCoord = uint3(IN.pos.x, IN.pos.y, currentSlice);
+	uint3 srcCoord = uint3(pos.x, pos.y, currentSlice);
 
 	if(sampleCount == 2)
 	{
@@ -123,9 +115,9 @@ Texture2DMSArray<uint2, 8> sourceStencilMS8 : register(t13);
 Texture2DMSArray<uint2, 16> sourceStencilMS16 : register(t14);
 Texture2DMSArray<uint2, 32> sourceStencilMS32 : register(t15);
 
-float RENDERDOC_DepthCopyMSToArray(wireframeV2F IN) : SV_Depth
+float RENDERDOC_DepthCopyMSToArray(float4 pos : SV_Position) : SV_Depth
 {
-	uint3 srcCoord = uint3(IN.pos.x, IN.pos.y, currentSlice);
+	uint3 srcCoord = uint3(pos.x, pos.y, currentSlice);
 	
 	if(currentStencil < 256)
 	{
@@ -182,18 +174,18 @@ float RENDERDOC_DepthCopyMSToArray(wireframeV2F IN) : SV_Depth
 
 Texture2DArray<uint4> sourceArray : register(t0);
 
-uint4 RENDERDOC_CopyArrayToMS(wireframeV2F IN, uint curSample : SV_SampleIndex) : SV_Target0
+uint4 RENDERDOC_CopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_SampleIndex) : SV_Target0
 {
-	uint4 srcCoord = uint4(IN.pos.x, IN.pos.y, currentSlice*sampleCount + curSample, 0);
+	uint4 srcCoord = uint4(pos.x, pos.y, currentSlice*sampleCount + curSample, 0);
 
 	return sourceArray.Load(srcCoord);
 }
 
 Texture2DArray<float4> sourceFloatArray : register(t0);
 
-float4 RENDERDOC_FloatCopyArrayToMS(wireframeV2F IN, uint curSample : SV_SampleIndex) : SV_Target0
+float4 RENDERDOC_FloatCopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_SampleIndex) : SV_Target0
 {
-	uint4 srcCoord = uint4(IN.pos.x, IN.pos.y, currentSlice*sampleCount + curSample, 0);
+	uint4 srcCoord = uint4(pos.x, pos.y, currentSlice*sampleCount + curSample, 0);
 
 	return sourceFloatArray.Load(srcCoord);
 }
@@ -201,9 +193,9 @@ float4 RENDERDOC_FloatCopyArrayToMS(wireframeV2F IN, uint curSample : SV_SampleI
 Texture2DArray<float2> sourceDepthArray : register(t0);
 Texture2DArray<uint2> sourceStencilArray : register(t1);
 
-float RENDERDOC_DepthCopyArrayToMS(wireframeV2F IN, uint curSample : SV_SampleIndex) : SV_Depth
+float RENDERDOC_DepthCopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_SampleIndex) : SV_Depth
 {
-	uint4 srcCoord = uint4(IN.pos.x, IN.pos.y, currentSlice*sampleCount + curSample, 0);
+	uint4 srcCoord = uint4(pos.x, pos.y, currentSlice*sampleCount + curSample, 0);
 	
 	if(currentStencil < 1000)
 	{

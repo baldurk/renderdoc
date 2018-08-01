@@ -195,36 +195,18 @@ struct MultipleOutput
 	float4 col7 : SV_Target7;
 };
 
-struct wireframeV2F
+float4 RENDERDOC_FullscreenVS(uint id : SV_VertexID) : SV_Position
 {
-	float4 pos : SV_Position;
-	float3 norm : Normal;
-	float4 secondary : Secondary;
-};
-
-wireframeV2F RENDERDOC_FullscreenVS(uint id : SV_VertexID)
-{
-	wireframeV2F OUT = (wireframeV2F)0;
-
 	float4 pos[] = {
 		float4( -1.0f,  1.0f, 0.0f, 1.0f),
 		float4(  3.0f,  1.0f, 0.0f, 1.0f),
 		float4( -1.0f, -3.0f, 0.0f, 1.0f)
 	};
-	
-	float2 uv[] = {
-		float2(0.0f, 0.0f),
-		float2(2.0f, 0.0f),
-		float2(0.0f, 2.0f)
-	};
 
-	OUT.pos = pos[id];
-	OUT.secondary = float4(uv[id].xy, 0, 1);
-
-	return OUT;
+	return pos[id];
 }
 
-MultipleOutput RENDERDOC_WireframePS(wireframeV2F IN)
+MultipleOutput RENDERDOC_WireframePS()
 {
 	MultipleOutput OUT = (MultipleOutput)0;
 
@@ -246,7 +228,7 @@ cbuffer overlayconsts : register(b0)
 	float4 overlaycol;
 };
 
-MultipleOutput RENDERDOC_FixedColPS(float4 IN : SV_Position)
+MultipleOutput RENDERDOC_FixedColPS()
 {
 	MultipleOutput OUT = (MultipleOutput)0;
 
@@ -263,11 +245,11 @@ MultipleOutput RENDERDOC_FixedColPS(float4 IN : SV_Position)
 	return OUT;
 }
 
-float4 RENDERDOC_OutlinePS(float4 IN : SV_Position) : SV_Target0
+float4 RENDERDOC_OutlinePS(float4 pos : SV_Position) : SV_Target0
 {
 	float4 ret = Channels;
 
-	float2 rectPos = IN.xy - float2(RangeMinimum, InverseRangeSize);
+	float2 rectPos = pos.xy - float2(RangeMinimum, InverseRangeSize);
 	float2 rectSize = TextureResolutionPS.xy;
  
 	float2 ab = fmod(rectPos.xy, 32.0.xx);
@@ -302,9 +284,9 @@ float4 RENDERDOC_OutlinePS(float4 IN : SV_Position) : SV_Target0
 	return ret;
 }
 
-float4 RENDERDOC_CheckerboardPS(float4 IN : SV_Position) : SV_Target0
+float4 RENDERDOC_CheckerboardPS(float4 pos : SV_Position) : SV_Target0
 {
-	float2 ab = fmod(IN.xy, 128.0.xx);
+	float2 ab = fmod(pos.xy, 128.0.xx);
 
 	if(
 		(ab.x < 64 && ab.y < 64) ||
