@@ -498,8 +498,9 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   return ret;
 }
 
-static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &buffers,
-                                   RDCFile *rdc, uint64_t &version, StructuredChunkList &chunks,
+static ReplayStatus XML2Structured(const char *xml, const bytebuf &thumbBytes,
+                                   const StructuredBufferList &buffers, RDCFile *rdc,
+                                   uint64_t &version, StructuredChunkList &chunks,
                                    RENDERDOC_ProgressCallback progress)
 {
   pugi::xml_document doc;
@@ -552,10 +553,10 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
 
     RDCThumb *thumb = NULL;
 
-    if(th.width > 0 && th.height > 0 && !buffers.empty())
+    if(th.width > 0 && th.height > 0 && !thumbBytes.empty())
     {
-      th.pixels = buffers.back()->data();
-      th.len = (uint32_t)buffers.back()->size();
+      th.pixels = thumbBytes.data();
+      th.len = (uint32_t)thumbBytes.size();
       thumb = &th;
     }
 
@@ -749,8 +750,8 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
   return ReplayStatus::Succeeded;
 }
 
-static bool ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers,
-                        RENDERDOC_ProgressCallback progress)
+static bool ZIP2Buffers(const std::string &filename, bytebuf &thumbBytes,
+                        StructuredBufferList &buffers, RENDERDOC_ProgressCallback progress)
 {
   std::string zipFile = filename;
   zipFile.erase(zipFile.size() - 4);    // remove the .xml, leave only the .zip
@@ -793,9 +794,8 @@ static bool ZIP2Buffers(const std::string &filename, StructuredBufferList &buffe
       }
       else
       {
-        // we store the thumbnail last to not mess up any buffer indices before then
-        buffers.back() = new bytebuf;
-        buffers.back()->assign(buf, sz);
+        // we store the thumbnail separately
+        thumbBytes.assign(buf, sz);
       }
 
       if(progress)
@@ -811,9 +811,10 @@ static bool ZIP2Buffers(const std::string &filename, StructuredBufferList &buffe
 ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc,
                         SDFile &structData, RENDERDOC_ProgressCallback progress)
 {
+  bytebuf thumbBytes;
   if(filename)
   {
-    bool success = ZIP2Buffers(filename, structData.buffers, progress);
+    bool success = ZIP2Buffers(filename, thumbBytes, structData.buffers, progress);
     if(!success)
     {
       RDCERR("Couldn't load zip to go with %s", filename);
@@ -826,8 +827,8 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
   reader.Read(buf, (size_t)len);
   buf[len] = 0;
 
-  return XML2Structured(buf, structData.buffers, rdc, structData.version, structData.chunks,
-                        progress);
+  return XML2Structured(buf, thumbBytes, structData.buffers, rdc, structData.version,
+                        structData.chunks, progress);
 }
 
 ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &structData,
