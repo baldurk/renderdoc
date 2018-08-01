@@ -910,6 +910,10 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
                   cmdlineDefines += "\n";
                 }
               }
+              else
+              {
+                c++;
+              }
             }
 
             Files.push_back(make_pair("@cmdline", cmdlineDefines));
