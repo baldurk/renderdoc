@@ -1967,11 +1967,23 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
         ret.compByteWidth = 4;
         ret.compCount = 1;
         break;
-      case eGL_DEPTH24_STENCIL8: ret.type = ResourceFormatType::D24S8; break;
+      case eGL_DEPTH24_STENCIL8:
+        ret.compByteWidth = 0;
+        ret.compCount = 2;
+        ret.type = ResourceFormatType::D24S8;
+        break;
       case eGL_DEPTH_STENCIL:
-      case eGL_DEPTH32F_STENCIL8: ret.type = ResourceFormatType::D32S8; break;
+      case eGL_DEPTH32F_STENCIL8:
+        ret.compByteWidth = 0;
+        ret.compCount = 2;
+        ret.type = ResourceFormatType::D32S8;
+        break;
       case eGL_STENCIL_INDEX:
-      case eGL_STENCIL_INDEX8: ret.type = ResourceFormatType::S8; break;
+      case eGL_STENCIL_INDEX8:
+        ret.compByteWidth = 1;
+        ret.compCount = 1;
+        ret.type = ResourceFormatType::S8;
+        break;
       default: RDCERR("Unexpected depth or stencil format '%s'", ToStr(fmt).c_str());
     }
   }
