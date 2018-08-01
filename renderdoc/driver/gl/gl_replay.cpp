@@ -2517,6 +2517,22 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         drv.glGetTexImage(target, (GLint)mip, fmt, type, data.data());
       }
 
+      // packed D24S8 comes out the wrong way around from what we expect, so we re-swizzle it.
+      if(intFormat == eGL_DEPTH24_STENCIL8)
+      {
+        uint32_t *ptr = (uint32_t *)data.data();
+
+        for(GLsizei y = 0; y < height; y++)
+        {
+          for(GLsizei x = 0; x < width; x++)
+          {
+            const uint32_t val = *ptr;
+            *ptr = (val >> 8) | ((val & 0xff) << 24);
+            ptr++;
+          }
+        }
+      }
+
       // if we're saving to disk we make the decision to vertically flip any non-compressed
       // images. This is a bit arbitrary, but really origin top-left is common for all disk
       // formats so we do this flip from bottom-left origin. We only do this for saving to
