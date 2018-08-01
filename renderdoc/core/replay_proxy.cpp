@@ -1797,20 +1797,34 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
       RemapProxyTextureIfNeeded(tex, proxy.params);
 
       proxy.id = m_Proxy->CreateProxyTexture(tex);
+      proxy.msSamp = RDCMAX(1U, tex.msSamp);
       m_ProxyTextures[texid] = proxy;
     }
 
     const ProxyTextureProperties &proxy = m_ProxyTextures[texid];
 
+    for(uint32_t sample = 0; sample < proxy.msSamp; sample++)
+    {
+      // MSAA array textures are remapped so it's:
+      // [slice 0 samp 0, slice 0 samp 1, slice 1 samp 0, slice 1 samp 1, ...]
+      // so we need to calculate the effective array index to fetch and set the data.
+      // For non-MSAA textures this operation does nothing (sample is 0, proxy.msSamp is 1)
+      uint32_t sampleArrayIdx = arrayIdx * proxy.msSamp + sample;
+
+      TextureCacheEntry sampleArrayEntry = entry;
+      sampleArrayEntry.arrayIdx = sampleArrayIdx;
+
 #if ENABLED(TRANSFER_RESOURCE_CONTENTS_DELTAS)
-    CacheTextureData(texid, arrayIdx, mip, proxy.params);
+      CacheTextureData(texid, sampleArrayIdx, mip, proxy.params);
 #else
-    GetTextureData(texid, arrayIdx, mip, proxy.params, m_ProxyTextureData[entry]);
+      GetTextureData(texid, sampleArrayIdx, mip, proxy.params, m_ProxyTextureData[entry]);
 #endif
 
-    auto it = m_ProxyTextureData.find(entry);
-    if(it != m_ProxyTextureData.end())
-      m_Proxy->SetProxyTextureData(proxy.id, arrayIdx, mip, it->second.data(), it->second.size());
+      auto it = m_ProxyTextureData.find(sampleArrayEntry);
+      if(it != m_ProxyTextureData.end())
+        m_Proxy->SetProxyTextureData(proxy.id, sampleArrayIdx, mip, it->second.data(),
+                                     it->second.size());
+    }
 
     m_TextureProxyCache.insert(entry);
   }

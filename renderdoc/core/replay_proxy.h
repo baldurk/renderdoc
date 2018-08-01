@@ -570,6 +570,7 @@ private:
   struct ProxyTextureProperties
   {
     ResourceId id;
+    uint32_t msSamp;
     GetTextureDataParams params;
 
     ProxyTextureProperties() {}
