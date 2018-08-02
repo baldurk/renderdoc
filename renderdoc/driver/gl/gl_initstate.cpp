@@ -552,7 +552,7 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat,
     {
       baseFormat = GetBaseFormat(internalFormat);
 
-      if(dataType == eGL_NONE)
+      if(internalFormatHint == eGL_NONE)
         dataType = GetDataType(internalFormat);
     }
 
