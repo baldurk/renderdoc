@@ -818,12 +818,12 @@ GLuint WrappedOpenGL::glCreateProgram()
 
     record->AddChunk(chunk);
   }
-
+  else
   {
     GetResourceManager()->AddLiveResource(id, res);
-
-    m_Programs[id].linked = false;
   }
+
+  m_Programs[id].linked = false;
 
   return real;
 }
