@@ -600,7 +600,8 @@ struct D3D12InitialContents
         resourceType(Resource_DescriptorHeap),
         descriptors(d),
         numDescriptors(n),
-        resource(NULL)
+        resource(NULL),
+        srcData(NULL)
   {
   }
   D3D12InitialContents(ID3D12DescriptorHeap *r)
@@ -608,7 +609,8 @@ struct D3D12InitialContents
         resourceType(Resource_DescriptorHeap),
         descriptors(NULL),
         numDescriptors(0),
-        resource(r)
+        resource(r),
+        srcData(NULL)
   {
   }
   D3D12InitialContents(ID3D12Resource *r)
@@ -616,7 +618,8 @@ struct D3D12InitialContents
         resourceType(Resource_DescriptorHeap),
         descriptors(NULL),
         numDescriptors(0),
-        resource(r)
+        resource(r),
+        srcData(NULL)
   {
   }
   D3D12InitialContents(Tag tg)
@@ -624,17 +627,24 @@ struct D3D12InitialContents
         resourceType(Resource_DescriptorHeap),
         descriptors(NULL),
         numDescriptors(0),
-        resource(NULL)
+        resource(NULL),
+        srcData(NULL)
   {
   }
   D3D12InitialContents()
-      : tag(Copy), resourceType(Resource_Unknown), descriptors(NULL), numDescriptors(0), resource(NULL)
+      : tag(Copy),
+        resourceType(Resource_Unknown),
+        descriptors(NULL),
+        numDescriptors(0),
+        resource(NULL),
+        srcData(NULL)
   {
   }
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
     SAFE_RELEASE(resource);
+    FreeAlignedBuffer(srcData);
   }
 
   Tag tag;
@@ -642,6 +652,7 @@ struct D3D12InitialContents
   D3D12Descriptor *descriptors;
   uint32_t numDescriptors;
   ID3D12DeviceChild *resource;
+  byte *srcData;
 };
 
 struct D3D12ResourceManagerConfiguration

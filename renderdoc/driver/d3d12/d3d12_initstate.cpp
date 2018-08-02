@@ -414,17 +414,29 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     {
       D3D12_RESOURCE_DESC resDesc = ((ID3D12Resource *)liveRes)->GetDesc();
 
+      D3D12_HEAP_PROPERTIES heapProps = {};
+      ((ID3D12Resource *)liveRes)->GetHeapProperties(&heapProps, NULL);
+
       if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && resDesc.SampleDesc.Count > 1)
       {
         initContents.tag = D3D12InitialContents::Multisampled;
         D3D12NOTIMP("Multisampled initial contents");
+      }
+      else if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+      {
+        // if destination is on the upload heap, it's impossible to copy via the device,
+        // so we have to CPU copy. To save time and make a more optimal copy, we just keep the data
+        // CPU-side
+        initContents.tag = D3D12InitialContents::Copy;
+
+        mappedBuffer = NULL;
+        ResourceContents = initContents.srcData = AllocAlignedBuffer(RDCMAX(ContentsLength, 64ULL));
       }
       else
       {
         initContents.tag = D3D12InitialContents::Copy;
 
         // create an upload buffer to contain the contents
-        D3D12_HEAP_PROPERTIES heapProps;
         heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
         heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
         heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -561,11 +573,10 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
     else if(data.tag == D3D12InitialContents::Copy)
     {
       ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
-      ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
 
-      if(!copySrc || !copyDst)
+      if(!copyDst)
       {
-        RDCERR("Missing copy source or destination in initial state apply (%p %p)", copySrc, copyDst);
+        RDCERR("Missing copy destination in initial state apply (%p)", copyDst);
         return;
       }
 
@@ -573,20 +584,19 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
       copyDst->GetHeapProperties(&heapProps, NULL);
 
       // if destination is on the upload heap, it's impossible to copy via the device,
-      // so we have to map both sides and CPU copy.
+      // so we have to CPU copy. We assume that we detected this case above and never uploaded a
+      // device copy in the first place, and just kept the data CPU-side to source from.
       if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
       {
-        byte *src = NULL, *dst = NULL;
+        byte *src = data.srcData, *dst = NULL;
+
+        if(!src)
+        {
+          RDCERR("Doing CPU-side copy, don't have source data");
+          return;
+        }
 
         HRESULT hr = S_OK;
-
-        hr = copySrc->Map(0, NULL, (void **)&src);
-
-        if(FAILED(hr))
-        {
-          RDCERR("Doing CPU-side copy, couldn't map source: HRESULT: %s", ToStr(hr).c_str());
-          src = NULL;
-        }
 
         if(copyDst->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         {
@@ -594,14 +604,12 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
 
           if(FAILED(hr))
           {
-            RDCERR("Doing CPU-side copy, couldn't map source: HRESULT: %s", ToStr(hr).c_str());
+            RDCERR("Doing CPU-side copy, couldn't map destination: HRESULT: %s", ToStr(hr).c_str());
             dst = NULL;
           }
 
           if(src && dst)
-          {
-            memcpy(dst, src, (size_t)copySrc->GetDesc().Width);
-          }
+            memcpy(dst, src, (size_t)copyDst->GetDesc().Width);
 
           if(dst)
             copyDst->Unmap(0, NULL);
@@ -657,12 +665,17 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
           delete[] numrows;
           delete[] rowsizes;
         }
-
-        if(src)
-          copySrc->Unmap(0, NULL);
       }
       else
       {
+        ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
+
+        if(!copySrc)
+        {
+          RDCERR("Missing copy source in initial state apply (%p)", copySrc);
+          return;
+        }
+
         ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
         vector<D3D12_RESOURCE_BARRIER> barriers;
