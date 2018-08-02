@@ -21,8 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
- 
-//#extension_nongles GL_ARB_sample_shading : require
 
 layout(binding = 0) uniform sampler2DMSArray srcDepthMS;
 layout(binding = 1) uniform usampler2DMSArray srcStencilMS;

@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
  
-//#extension_nongles GL_ARB_sample_shading : require
+//#extension_glcore GL_ARB_sample_shading : require
 
 layout(binding = 0) uniform sampler2DArray srcDepthArray;
 layout(binding = 1) uniform usampler2DArray srcStencilArray;

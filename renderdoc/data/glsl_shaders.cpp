@@ -98,6 +98,13 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
 
         ext.erase(ext.find("_gles"), 5);
       }
+      else if(ext.find("#extension_glcore") == 0)
+      {
+        if(type != eShaderGLSL)
+          continue;
+
+        ext.erase(ext.find("_glcore"), 7);
+      }
       else if(ext.find("#extension_nongles") == 0)
       {
         if(type == eShaderGLSLES)
