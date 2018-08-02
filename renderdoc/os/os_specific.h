@@ -88,6 +88,7 @@ namespace Timing
 double GetTickFrequency();
 uint64_t GetTick();
 uint64_t GetUnixTimestamp();
+time_t GetUTCTime();
 };
 
 namespace Threading
@@ -365,7 +366,7 @@ bool PlatformHasKeyInput();
 // implemented per-platform
 namespace StringFormat
 {
-void sntimef(char *str, size_t bufSize, const char *format);
+void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format);
 
 string Wide2UTF8(const std::wstring &s);
 
@@ -378,6 +379,8 @@ namespace StringFormat
 {
 int vsnprintf(char *str, size_t bufSize, const char *format, va_list v);
 int snprintf(char *str, size_t bufSize, const char *format, ...);
+
+void sntimef(char *str, size_t bufSize, const char *format);
 
 string Fmt(const char *format, ...);
 

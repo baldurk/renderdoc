@@ -776,13 +776,10 @@ void logfile_close(const char *filename)
 
 namespace StringFormat
 {
-void sntimef(char *str, size_t bufSize, const char *format)
+void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format)
 {
-  time_t tim;
-  time(&tim);
-
   tm tmv;
-  localtime_s(&tmv, &tim);
+  localtime_s(&tmv, &utcTime);
 
   wchar_t *buf = new wchar_t[bufSize + 1];
   buf[bufSize] = 0;

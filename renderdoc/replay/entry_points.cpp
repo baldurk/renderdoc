@@ -221,14 +221,16 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char 
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
-  rdclog_int(LogType::Comment, "EXT", "external", 0, "%s", text);
+  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), LogType::Comment, "EXT", "external",
+                0, "%s", text);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
                                                                 const char *file, unsigned int line,
                                                                 const char *text)
 {
-  rdclog_int(type, project ? project : "UNK?", file ? file : "unknown", line, "%s", text);
+  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), type, project ? project : "UNK?",
+                file ? file : "unknown", line, "%s", text);
 
 #if ENABLED(DEBUGBREAK_ON_ERROR_LOG)
   if(type == LogType::Error)

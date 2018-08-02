@@ -40,4 +40,8 @@ Process::ProcessResult adbExecCommand(const std::string &deviceID, const std::st
 void initAdb();
 void shutdownAdb();
 bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport);
+
+void ResetLogcat();
+void TickDeviceLogcat();
+void ProcessLogcat(std::string deviceID);
 };

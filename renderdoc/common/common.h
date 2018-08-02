@@ -296,10 +296,12 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg);
 #endif
 
 // printf() style main logger function
-void rdclog_int(LogType type, const char *project, const char *file, unsigned int line,
-                const char *fmt, ...);
+void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *project,
+                   const char *file, unsigned int line, const char *fmt, ...);
 
-#define rdclog(type, ...) rdclog_int(type, RDCLOG_PROJECT, __FILE__, __LINE__, __VA_ARGS__)
+#define rdclog(type, ...)                                                                       \
+  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), type, RDCLOG_PROJECT, __FILE__, \
+                __LINE__, __VA_ARGS__)
 
 const char *rdclog_getfilename();
 void rdclog_filename(const char *filename);

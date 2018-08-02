@@ -117,12 +117,15 @@ namespace OSUtility
 {
 void WriteOutput(int channel, const char *str)
 {
+  static uint32_t seq = 0;
+  seq++;
   if(channel == OSUtility::Output_StdOut)
     fprintf(stdout, "%s", str);
   else if(channel == OSUtility::Output_StdErr)
     fprintf(stderr, "%s", str);
   else if(channel == OSUtility::Output_DebugMon)
-    __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "%s", str);
+    __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "@%08x%08x@ %s",
+                        uint32_t(Timing::GetUTCTime()), seq, str);
 }
 
 uint64_t GetMachineIdent()

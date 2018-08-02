@@ -33,6 +33,11 @@ uint64_t Timing::GetUnixTimestamp()
   return (uint64_t)time(NULL);
 }
 
+time_t Timing::GetUTCTime()
+{
+  return time(NULL);
+}
+
 namespace Atomic
 {
 int32_t Inc32(volatile int32_t *i)

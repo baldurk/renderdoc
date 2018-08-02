@@ -575,12 +575,9 @@ void logfile_close(const char *filename)
 
 namespace StringFormat
 {
-void sntimef(char *str, size_t bufSize, const char *format)
+void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format)
 {
-  time_t tim;
-  time(&tim);
-
-  tm *tmv = localtime(&tim);
+  tm *tmv = localtime(&utcTime);
 
   strftime(str, bufSize, format, tmv);
 }

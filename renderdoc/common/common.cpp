@@ -81,7 +81,8 @@ float SRGB8_lookuptable[256] = {
 
 void rdcassert(const char *msg, const char *file, unsigned int line, const char *func)
 {
-  rdclog_int(LogType::Error, RDCLOG_PROJECT, file, line, "Assertion failed: %s", msg);
+  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), LogType::Error, RDCLOG_PROJECT,
+                file, line, "Assertion failed: %s", msg);
 }
 
 #if 0
@@ -387,8 +388,8 @@ static void write_newline(char *output)
   *output = 0;
 }
 
-void rdclog_int(LogType type, const char *project, const char *file, unsigned int line,
-                const char *fmt, ...)
+void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *project,
+                   const char *file, unsigned int line, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
@@ -399,7 +400,7 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
 
   char timestamp[64] = {0};
 #if ENABLED(INCLUDE_TIMESTAMP_IN_LOG)
-  StringFormat::sntimef(timestamp, 63, "[%H:%M:%S] ");
+  StringFormat::sntimef(utcTime, timestamp, 63, "[%H:%M:%S] ");
 #endif
 
   char location[64] = {0};
@@ -424,9 +425,8 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
 
   char *base = output;
 
-  int numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
-                                          Process::GetCurrentPID(), timestamp, location,
-                                          typestr[(uint32_t)type]);
+  int numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project, pid,
+                                          timestamp, location, typestr[(uint32_t)type]);
 
   if(numWritten < 0)
   {

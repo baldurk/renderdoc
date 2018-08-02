@@ -45,6 +45,11 @@ int snprintf(char *str, size_t bufSize, const char *fmt, ...)
   return ret;
 }
 
+void sntimef(char *str, size_t bufSize, const char *format)
+{
+  StringFormat::sntimef(Timing::GetUTCTime(), str, bufSize, format);
+}
+
 int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
 {
   return ::utf8printf(str, bufSize, format, args);

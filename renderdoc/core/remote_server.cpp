@@ -236,6 +236,9 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       if(proxy)
         proxy->RefreshPreviewWindow();
 
+      // insert a dummy line into our logcat so we can keep track of our progress
+      Android::TickDeviceLogcat();
+
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_Ping);
     }
@@ -1061,6 +1064,16 @@ public:
     if(!Connected())
       return false;
 
+    const char *host = hostname().c_str();
+    if(Android::IsHostADB(host))
+    {
+      int index = 0;
+      std::string deviceID;
+      Android::ExtractDeviceIDAndIndex(m_hostname, index, deviceID);
+
+      Android::ProcessLogcat(deviceID);
+    }
+
     {
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_Ping);
@@ -1828,6 +1841,8 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteS
   if(host != NULL && Android::IsHostADB(host))
   {
     s = "127.0.0.1";
+
+    Android::ResetLogcat();
 
     int index = 0;
     std::string deviceID;
