@@ -32,7 +32,7 @@ namespace Ui
 class ResourceInspector;
 }
 
-class QSortFilterProxyModel;
+class QCollatorSortFilterProxyModel;
 
 class RDTreeWidgetItem;
 class ResourceListItemModel;
