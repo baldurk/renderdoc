@@ -1026,6 +1026,7 @@ void CaptureContext::LoadBookmarks(const QString &data)
 
 bool CaptureContext::SaveNotes()
 {
+  // make sure this format matches SetCaptureFileComments in app_api.cpp if it changes
   QVariantMap root;
   for(const QString &key : m_Notes.keys())
     root[key] = m_Notes[key];

@@ -28,6 +28,7 @@
 #include "common/common.h"
 #include "core/core.h"
 #include "hooks/hooks.h"
+#include "serialise/rdcfile.h"
 
 static void SetFocusToggleKeys(RENDERDOC_InputButton *keys, int num)
 {
@@ -103,6 +104,79 @@ static uint32_t GetCapture(uint32_t idx, char *filename, uint32_t *pathlength, u
   return 1;
 }
 
+static void SetCaptureFileComments(const char *filePath, const char *comments)
+{
+  std::string path;
+  if(filePath == NULL || filePath[0] == 0)
+  {
+    vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+    if(caps.empty())
+    {
+      RDCERR(
+          "SetCaptureFileComments called with NULL/empty filePath, but no captures have been made");
+      return;
+    }
+
+    path = caps.back().path;
+  }
+  else
+  {
+    path = filePath;
+  }
+
+  RDCFile rdc;
+  rdc.Open(path.c_str());
+  if(rdc.ErrorCode() != ContainerError::NoError)
+  {
+    RDCERR("Error opening '%s' to add capture comments", path.c_str());
+    return;
+  }
+
+  SectionProperties props;
+  props.type = SectionType::Notes;
+  props.version = 1;
+
+  StreamWriter *writer = rdc.WriteSection(props);
+
+  if(comments)
+  {
+    std::string commentsjson = "{\"comments\":\"";
+
+    commentsjson.reserve(strlen(comments));
+
+    const char *c = comments;
+
+    while(*c)
+    {
+      // escape some characters
+      if(*c == '"')
+        commentsjson += "\\\"";
+      else if(*c == '\\')
+        commentsjson += "\\\\";
+      else if(*c == '\b')
+        commentsjson += "\\b";
+      else if(*c == '\f')
+        commentsjson += "\\f";
+      else if(*c == '\n')
+        commentsjson += "\\n";
+      else if(*c == '\r')
+        commentsjson += "\\r";
+      else if(*c == '\t')
+        commentsjson += "\\t";
+      else
+        commentsjson.push_back(*c);
+
+      c++;
+    }
+
+    commentsjson += "\"}";
+
+    writer->Write(commentsjson.c_str(), commentsjson.size());
+  }
+
+  delete writer;
+}
+
 static void TriggerCapture()
 {
   RenderDoc::Inst().TriggerCapture(1);
@@ -165,22 +239,22 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_1_2(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_2_0(int *major, int *minor, int *patch)
 {
   if(major)
     *major = 1;
   if(minor)
-    *minor = 1;
+    *minor = 2;
   if(patch)
-    *patch = 2;
+    *patch = 0;
 }
 
-RENDERDOC_API_1_1_2 api_1_1_2;
-void Init_1_1_2()
+RENDERDOC_API_1_2_0 api_1_2_0;
+void Init_1_2_0()
 {
-  RENDERDOC_API_1_1_2 &api = api_1_1_2;
+  RENDERDOC_API_1_2_0 &api = api_1_2_0;
 
-  api.GetAPIVersion = &GetAPIVersion_1_1_2;
+  api.GetAPIVersion = &GetAPIVersion_1_2_0;
 
   api.SetCaptureOptionU32 = &SetCaptureOptionU32;
   api.SetCaptureOptionF32 = &SetCaptureOptionF32;
@@ -215,6 +289,8 @@ void Init_1_1_2()
   api.EndFrameCapture = &EndFrameCapture;
 
   api.TriggerMultiFrameCapture = &TriggerMultiFrameCapture;
+
+  api.SetCaptureFileComments = &SetCaptureFileComments;
 }
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version version,
@@ -241,12 +317,13 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     ret = 1;                                                       \
   }
 
-  API_VERSION_HANDLE(1_0_0, 1_1_2);
-  API_VERSION_HANDLE(1_0_1, 1_1_2);
-  API_VERSION_HANDLE(1_0_2, 1_1_2);
-  API_VERSION_HANDLE(1_1_0, 1_1_2);
-  API_VERSION_HANDLE(1_1_1, 1_1_2);
-  API_VERSION_HANDLE(1_1_2, 1_1_2);
+  API_VERSION_HANDLE(1_0_0, 1_2_0);
+  API_VERSION_HANDLE(1_0_1, 1_2_0);
+  API_VERSION_HANDLE(1_0_2, 1_2_0);
+  API_VERSION_HANDLE(1_1_0, 1_2_0);
+  API_VERSION_HANDLE(1_1_1, 1_2_0);
+  API_VERSION_HANDLE(1_1_2, 1_2_0);
+  API_VERSION_HANDLE(1_2_0, 1_2_0);
 
 #undef API_VERSION_HANDLE
 
