@@ -25,6 +25,7 @@
 #include "QRDUtils.h"
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
+#include <QCollator>
 #include <QDesktopServices>
 #include <QElapsedTimer>
 #include <QFileSystemModel>
@@ -1126,6 +1127,24 @@ bool QFileFilterModel::filterAcceptsRow(int source_row, const QModelIndex &sourc
     return false;
 
   return true;
+}
+
+QCollatorSortFilterProxyModel::QCollatorSortFilterProxyModel(QObject *parent)
+    : QSortFilterProxyModel(parent)
+{
+  m_collator = new QCollator();
+}
+
+QCollatorSortFilterProxyModel::~QCollatorSortFilterProxyModel()
+{
+  delete m_collator;
+}
+
+bool QCollatorSortFilterProxyModel::lessThan(const QModelIndex &source_left,
+                                             const QModelIndex &source_right) const
+{
+  return m_collator->compare(sourceModel()->data(source_left, sortRole()).toString(),
+                             sourceModel()->data(source_right, sortRole()).toString()) < 0;
 }
 
 void addGridLines(QGridLayout *grid, QColor gridColor)

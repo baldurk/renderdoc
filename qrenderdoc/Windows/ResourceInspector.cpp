@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "ResourceInspector.h"
+#include <QCollator>
 #include <QKeyEvent>
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Widgets/Extended/RDHeaderView.h"
@@ -110,10 +111,13 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 
   m_ResourceModel = new ResourceListItemModel(this, m_Ctx);
 
-  m_FilterModel = new QSortFilterProxyModel(this);
+  m_FilterModel = new QCollatorSortFilterProxyModel(this);
   m_FilterModel->setSourceModel(m_ResourceModel);
   m_FilterModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
   m_FilterModel->setFilterRole(FilterRole);
+  m_FilterModel->sort(0);
+  m_FilterModel->collator()->setNumericMode(true);
+  m_FilterModel->collator()->setCaseSensitivity(Qt::CaseInsensitive);
 
   ui->resourceList->setModel(m_FilterModel);
 

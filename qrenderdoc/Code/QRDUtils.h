@@ -328,6 +328,25 @@ private:
   QDir::Filters m_requireMask, m_excludeMask;
 };
 
+class QCollator;
+
+class QCollatorSortFilterProxyModel : public QSortFilterProxyModel
+{
+  Q_OBJECT
+
+public:
+  explicit QCollatorSortFilterProxyModel(QObject *parent = Q_NULLPTR);
+  ~QCollatorSortFilterProxyModel();
+
+  QCollator *collator() { return m_collator; }
+protected:
+  virtual bool lessThan(const QModelIndex &source_left,
+                        const QModelIndex &source_right) const override;
+
+private:
+  QCollator *m_collator;
+};
+
 // Simple QStyledItemDelegate child that will either forward to an external delegate (allowing
 // chaining) or to the base implementation. Delegates can derive from this and specialise a couple
 // of functions to still be able to chain
