@@ -757,6 +757,7 @@ void RGPWorkerThreadFunc(void* pThreadParam)
             break;
 
         default:
+            DevDriver::Platform::Sleep(10);
             break;
         }
         g_workerThreadMutex.lock();
