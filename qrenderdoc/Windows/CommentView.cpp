@@ -57,6 +57,7 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
     if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT | SC_MOD_BEFOREDELETE))
     {
       QString text = QString::fromUtf8(m_commentsEditor->getText(m_commentsEditor->textLength() + 1));
+      text.remove(QLatin1Char('\r'));
       m_Ctx.SetNotes(lit("comments"), text);
     }
   });
