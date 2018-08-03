@@ -589,7 +589,10 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         {
           for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
               it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-            GetResourceManager()->MarkPendingDirty(*it);
+          {
+            if(GetResourceManager()->HasCurrentResource(*it))
+              GetResourceManager()->MarkPendingDirty(*it);
+          }
 
           capframe = true;
         }
@@ -597,7 +600,10 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         {
           for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
               it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-            GetResourceManager()->MarkDirtyResource(*it);
+          {
+            if(GetResourceManager()->HasCurrentResource(*it))
+              GetResourceManager()->MarkDirtyResource(*it);
+          }
         }
       }
 
