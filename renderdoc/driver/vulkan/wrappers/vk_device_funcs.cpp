@@ -969,7 +969,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     // see above in Serialise_vkEnumeratePhysicalDevices where this is encoded
     uint32_t physicalDeviceIndex = GetPhysicalDeviceIndexFromHandle(Unwrap(physicalDevice));
-    physicalDevice = m_ReplayPhysicalDevices[physicalDeviceIndex];
+    physicalDevice = m_PhysicalDevices[physicalDeviceIndex];
 
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
