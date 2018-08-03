@@ -35,11 +35,10 @@ static const char *PatchedMeshOutputEntryPoint = "rdc";
 static const uint32_t MeshOutputDispatchWidth = 128;
 static const uint32_t MeshOutputTBufferArraySize = 16;
 
-static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
-                                       const SPIRVPatchData &patchData, const char *entryName,
-                                       std::vector<uint32_t> instDivisor, uint32_t &descSet,
-                                       const DrawcallDescription *draw, int32_t indexOffset,
-                                       uint64_t numFetchVerts, uint32_t numVerts, uint32_t numViews,
+static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRVPatchData &patchData,
+                                       const char *entryName, std::vector<uint32_t> instDivisor,
+                                       uint32_t &descSet, const DrawcallDescription *draw,
+                                       uint32_t numVerts, uint32_t numViews,
                                        std::vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
   SPIRVEditor editor(modSpirv);
@@ -511,12 +510,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
   }
 
   SPIRVId outBufferVarID = 0;
-  SPIRVId numFetchVertsConstID = editor.AddConstantImmediate((int32_t)numFetchVerts);
   SPIRVId numVertsConstID = editor.AddConstantImmediate((int32_t)numVerts);
   SPIRVId numInstConstID = editor.AddConstantImmediate((int32_t)draw->numInstances);
   SPIRVId numViewsConstID = editor.AddConstantImmediate((int32_t)numViews);
 
-  editor.SetName(numFetchVertsConstID, "numFetchVerts");
   editor.SetName(numVertsConstID, "numVerts");
   editor.SetName(numInstConstID, "numInsts");
   editor.SetName(numViewsConstID, "numViews");
@@ -680,12 +677,15 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
       uint32_t intInvocationID = editor.MakeId();
       ops.push_back(SPIRVOperation(spv::OpBitcast, {sint32ID, intInvocationID, invocationID}));
 
-      editor.SetName(intInvocationID, "invocation");
+      // arraySlotID = intInvocationID;
+      uint32_t arraySlotID = intInvocationID;
 
-      // int viewinst = intInvocationID / numFetchVerts
+      editor.SetName(intInvocationID, "arraySlot");
+
+      // int viewinst = intInvocationID / numVerts
       uint32_t viewinstID = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpSDiv,
-                                   {sint32ID, viewinstID, intInvocationID, numFetchVertsConstID}));
+      ops.push_back(
+          SPIRVOperation(spv::OpSDiv, {sint32ID, viewinstID, intInvocationID, numVertsConstID}));
 
       editor.SetName(viewinstID, "viewInstance");
 
@@ -744,23 +744,6 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
         vertexIndex = editor.MakeId();
         ops.push_back(SPIRVOperation(spv::OpBitcast, {sint32ID, vertexIndex, uintIndex}));
       }
-
-      // int arraySlotID = viewinst * numVerts;
-      uint32_t arraySlotTempID = editor.MakeId();
-      ops.push_back(
-          SPIRVOperation(spv::OpIMul, {sint32ID, arraySlotTempID, viewinstID, numVertsConstID}));
-
-      // arraySlotID = arraySlotID + vertexIndex;
-      uint32_t arraySlotTemp2ID = editor.MakeId();
-      ops.push_back(
-          SPIRVOperation(spv::OpIAdd, {sint32ID, arraySlotTemp2ID, arraySlotTempID, vertexIndex}));
-
-      // arraySlotID = arraySlotID + indexOffset;
-      uint32_t arraySlotID = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpIAdd, {sint32ID, arraySlotID, arraySlotTemp2ID,
-                                                 editor.AddConstantImmediate(indexOffset)}));
-
-      editor.SetName(arraySlotID, "arraySlot");
 
       // we use the current value of vertexIndex and use instID, to lookup per-vertex and
       // per-instance attributes. This is because when we fetched the vertex data, we advanced by
@@ -1085,6 +1068,11 @@ void VulkanReplay::ClearPostVSCache()
 
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {
+    if(it->second.vsout.idxbuf != VK_NULL_HANDLE)
+    {
+      m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxbuf, NULL);
+      m_pDriver->vkFreeMemory(dev, it->second.vsout.idxbufmem, NULL);
+    }
     m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf, NULL);
     m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem, NULL);
   }
@@ -1124,6 +1112,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     // empty vertex output signature
     m_PostVSData[eventId].vsin.topo = pipeInfo.topology;
     m_PostVSData[eventId].vsout.buf = VK_NULL_HANDLE;
+    m_PostVSData[eventId].vsout.bufmem = VK_NULL_HANDLE;
     m_PostVSData[eventId].vsout.instStride = 0;
     m_PostVSData[eventId].vsout.vertStride = 0;
     m_PostVSData[eventId].vsout.numViews = 1;
@@ -1131,7 +1120,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     m_PostVSData[eventId].vsout.farPlane = 0.0f;
     m_PostVSData[eventId].vsout.useIndices = false;
     m_PostVSData[eventId].vsout.hasPosOut = false;
-    m_PostVSData[eventId].vsout.idxBuf = ResourceId();
+    m_PostVSData[eventId].vsout.idxbuf = VK_NULL_HANDLE;
+    m_PostVSData[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
 
     m_PostVSData[eventId].vsout.topo = pipeInfo.topology;
 
@@ -1171,8 +1161,10 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   VkDeviceMemory uniqIdxBufMem = VK_NULL_HANDLE;
   VkBufferView uniqIdxBufView = VK_NULL_HANDLE;
 
+  VkBuffer rebasedIdxBuf = VK_NULL_HANDLE;
+  VkDeviceMemory rebasedIdxBufMem = VK_NULL_HANDLE;
+
   uint32_t numVerts = drawcall->numIndices;
-  uint64_t numFetchVerts = drawcall->numIndices;
   VkDeviceSize bufSize = 0;
 
   uint32_t numViews = 1;
@@ -1192,9 +1184,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   uint32_t idxsize = state.ibuffer.bytewidth;
 
-  int32_t baseVertex = 0;
-
-  uint32_t minIndex = 0, maxIndex = RDCMAX(drawcall->baseVertex, 0) + numVerts - 1;
+  uint32_t maxIndex = RDCMAX(drawcall->baseVertex, 0) + numVerts - 1;
 
   uint32_t maxInstance = drawcall->instanceOffset + drawcall->numInstances - 1;
 
@@ -1291,18 +1281,30 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
       indices.insert(indices.begin(), 0);
 
-    minIndex = indices[0];
-    maxIndex = indices[indices.size() - 1];
+    maxIndex = indices.back();
 
     // set numVerts
-    numVerts = maxIndex - minIndex + 1;
-    numFetchVerts = (uint64_t)indices.size();
+    numVerts = (uint32_t)indices.size();
 
-    // An index buffer could be something like: 500, 520, 518, 553, 554, 556
-    // but in our vertex buffer that will be: 0, 20, 18, 53, 54, 56
-    // so we add -minIndex as the baseVertex when rendering. The existing baseVertex was 'applied'
-    // when we fetched the mesh output so it can be discarded.
-    baseVertex = -(int32_t)minIndex;
+    // An index buffer could be something like: 500, 501, 502, 501, 503, 502
+    // in which case we can't use the existing index buffer without filling 499 slots of vertex
+    // data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+    // 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+    //
+    // Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
+    // which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
+    // We just stream-out a tightly packed list of unique indices, and then remap the index buffer
+    // so that what did point to 500 points to 0 (accounting for rebasing), and what did point
+    // to 510 now points to 3 (accounting for the unique sort).
+
+    // we use a map here since the indices may be sparse. Especially considering if an index
+    // is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
+    map<uint32_t, size_t> indexRemap;
+    for(size_t i = 0; i < indices.size(); i++)
+    {
+      // by definition, this index will only appear once in indices[]
+      indexRemap[indices[i]] = i;
+    }
 
     // create buffer with unique 0-based indices
     VkBufferCreateInfo bufInfo = {
@@ -1350,6 +1352,54 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     memcpy(idxData, &indices[0], indices.size() * sizeof(uint32_t));
 
     m_pDriver->vkUnmapMemory(m_Device, uniqIdxBufMem);
+
+    // rebase existing index buffer to point to the right elements in our stream-out'd
+    // vertex buffer
+    for(uint32_t i = 0; i < numIndices; i++)
+    {
+      uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+      // preserve primitive restart indices
+      if(i32 == (index16 ? 0xffff : 0xffffffff))
+        continue;
+
+      // apply baseVertex but clamp to 0 (don't allow index to become negative)
+      if(i32 < idxclamp)
+        i32 = 0;
+      else if(drawcall->baseVertex < 0)
+        i32 -= idxclamp;
+      else if(drawcall->baseVertex > 0)
+        i32 += drawcall->baseVertex;
+
+      if(index16)
+        idx16[i] = uint16_t(indexRemap[i32]);
+      else
+        idx32[i] = uint32_t(indexRemap[i32]);
+    }
+
+    bufInfo.size = (VkDeviceSize)idxdata.size();
+    bufInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+    vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &rebasedIdxBuf);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    m_pDriver->vkGetBufferMemoryRequirements(dev, rebasedIdxBuf, &mrq);
+
+    allocInfo.allocationSize = mrq.size;
+    allocInfo.memoryTypeIndex = m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits);
+
+    vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &rebasedIdxBufMem);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    vkr = m_pDriver->vkBindBufferMemory(dev, rebasedIdxBuf, rebasedIdxBufMem, 0);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    vkr = m_pDriver->vkMapMemory(m_Device, rebasedIdxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    memcpy(idxData, idxdata.data(), idxdata.size());
+
+    m_pDriver->vkUnmapMemory(m_Device, rebasedIdxBufMem);
   }
 
   uint32_t bufStride = 0;
@@ -1695,9 +1745,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     m_pDriver->vkUpdateDescriptorSets(dev, numWrites, descWrites, 0, NULL);
   }
 
-  ConvertToMeshOutputCompute(
-      *refl, *pipeInfo.shaders[0].patchData, pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor,
-      descSet, drawcall, baseVertex, numFetchVerts, numVerts, numViews, modSpirv, bufStride);
+  ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
+                             pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor, descSet,
+                             drawcall, numVerts, numViews, modSpirv, bufStride);
 
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 
@@ -1870,7 +1920,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
     // do single draw
     modifiedstate.BindPipeline(cmd, VulkanRenderState::BindCompute, true);
-    uint64_t totalVerts = numFetchVerts * uint64_t(drawcall->numInstances) * uint64_t(numViews);
+    uint64_t totalVerts = numVerts * uint64_t(drawcall->numInstances) * uint64_t(numViews);
 
     // the validation layers will probably complain about this dispatch saying some arrays aren't
     // fully updated. That's because they don't statically analyse that only fixed indices are
@@ -2005,7 +2055,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   m_PostVSData[eventId].vsout.buf = meshBuffer;
   m_PostVSData[eventId].vsout.bufmem = meshMem;
 
-  m_PostVSData[eventId].vsout.baseVertex = baseVertex + drawcall->baseVertex;
+  m_PostVSData[eventId].vsout.baseVertex = 0;
 
   m_PostVSData[eventId].vsout.numViews = numViews;
 
@@ -2020,11 +2070,11 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   if(drawcall->flags & DrawFlags::Instanced)
     m_PostVSData[eventId].vsout.instStride = uint32_t(bufSize / (drawcall->numInstances * numViews));
 
-  m_PostVSData[eventId].vsout.idxBuf = ResourceId();
+  m_PostVSData[eventId].vsout.idxbuf = VK_NULL_HANDLE;
   if(m_PostVSData[eventId].vsout.useIndices && state.ibuffer.buf != ResourceId())
   {
-    m_PostVSData[eventId].vsout.idxBuf = GetResourceManager()->GetOriginalID(state.ibuffer.buf);
-    m_PostVSData[eventId].vsout.idxOffset = state.ibuffer.offs + drawcall->indexOffset * idxsize;
+    m_PostVSData[eventId].vsout.idxbuf = rebasedIdxBuf;
+    m_PostVSData[eventId].vsout.idxbufmem = rebasedIdxBufMem;
     m_PostVSData[eventId].vsout.idxFmt = idxsize == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
   }
 
@@ -2119,9 +2169,9 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
 
   MeshFormat ret;
 
-  if(s.useIndices && s.idxBuf != ResourceId())
+  if(s.useIndices && s.idxbuf != VK_NULL_HANDLE)
   {
-    ret.indexResourceId = s.idxBuf;
+    ret.indexResourceId = GetResID(s.idxbuf);
     ret.indexByteStride = s.idxFmt == VK_INDEX_TYPE_UINT16 ? 2 : 4;
   }
   else
@@ -2129,7 +2179,7 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
     ret.indexResourceId = ResourceId();
     ret.indexByteStride = 0;
   }
-  ret.indexByteOffset = s.idxOffset;
+  ret.indexByteOffset = 0;
   ret.baseVertex = s.baseVertex;
 
   if(s.buf != VK_NULL_HANDLE)

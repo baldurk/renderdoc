@@ -143,8 +143,8 @@ struct VulkanPostVSData
     uint32_t numViews;
 
     bool useIndices;
-    ResourceId idxBuf;
-    VkDeviceSize idxOffset;
+    VkBuffer idxbuf;
+    VkDeviceMemory idxbufmem;
     VkIndexType idxFmt;
 
     bool hasPosOut;
