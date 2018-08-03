@@ -310,6 +310,7 @@ public:
     if(IsReplayMode(m_State))
       ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 
+    ResourceManager::MarkCleanResource(id);
     ResourceManager::ReleaseCurrentResource(id);
     VkResourceRecord *record = GetRecord(obj);
     if(record)
