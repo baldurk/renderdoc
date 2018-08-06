@@ -317,10 +317,6 @@ bool ReplayController::ContainsMarker(const rdcarray<DrawcallDescription> &draws
 
 bool ReplayController::PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b)
 {
-  // executing command lists can have children
-  if(!a.children.empty() || !b.children.empty())
-    return false;
-
   // don't group draws and compute executes
   if((a.flags & DrawFlags::Dispatch) != (b.flags & DrawFlags::Dispatch))
     return false;
