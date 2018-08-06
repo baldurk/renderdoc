@@ -31,6 +31,8 @@
 
 class RDTreeView;
 
+typedef QSet<uint> RDTreeViewExpansionState;
+
 class RDTreeViewDelegate : public ForwardingDelegate
 {
 private:
@@ -94,6 +96,11 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
+  void saveExpansion(RDTreeViewExpansionState &state, QString prefix, int keyColumn,
+                     int role = Qt::DisplayRole);
+  void applySavedExpansion(const RDTreeViewExpansionState &state, QString prefix, int keyColumn,
+                           int role = Qt::DisplayRole);
+
 signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
@@ -118,6 +125,11 @@ private:
   bool m_VisibleBranches = true;
   bool m_VisibleGridLines = true;
   bool m_TooltipElidedItems = true;
+
+  void saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx, uint seed, int keyColumn,
+                     int role);
+  void applySavedExpansion(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                           int keyColumn, int role);
 
   QAbstractItemDelegate *m_userDelegate = NULL;
   RDTreeViewDelegate *m_delegate;

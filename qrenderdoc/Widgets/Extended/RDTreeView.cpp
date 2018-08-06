@@ -241,6 +241,58 @@ void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int 
   m_currentHoverIndex = QModelIndex();
 }
 
+void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QString prefix, int keyColumn,
+                               int role)
+{
+  state.clear();
+
+  for(int i = 0; i < model()->rowCount(); i++)
+    saveExpansion(state, model()->index(i, keyColumn), qHash(prefix), keyColumn, role);
+}
+
+void RDTreeView::applySavedExpansion(const RDTreeViewExpansionState &state, QString prefix,
+                                     int keyColumn, int role)
+{
+  for(int i = 0; i < model()->rowCount(); i++)
+    applySavedExpansion(state, model()->index(i, keyColumn), qHash(prefix), keyColumn, role);
+}
+
+void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                               int keyColumn, int role)
+{
+  if(!idx.isValid())
+    return;
+
+  uint key = qHash(model()->data(idx, role).toString(), seed);
+  if(isExpanded(idx))
+  {
+    state.insert(key);
+
+    // only recurse to children if this one is expanded - forget expansion state under collapsed
+    // branches. Technically we're losing information here but it allows us to skip a full expensive
+    // search
+    for(int i = 0; i < model()->rowCount(idx); i++)
+      saveExpansion(state, model()->index(i, keyColumn, idx), key, keyColumn, role);
+  }
+}
+
+void RDTreeView::applySavedExpansion(const RDTreeViewExpansionState &state, QModelIndex idx,
+                                     uint seed, int keyColumn, int role)
+{
+  if(!idx.isValid())
+    return;
+
+  uint key = qHash(model()->data(idx, role).toString(), seed);
+  if(state.contains(key))
+  {
+    expand(idx);
+
+    // same as above - only recurse when we have a parent that's expanded.
+    for(int i = 0; i < model()->rowCount(idx); i++)
+      applySavedExpansion(state, model()->index(i, keyColumn, idx), key, keyColumn, role);
+  }
+}
+
 void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
                          const QModelIndex &index) const
 {

@@ -29,8 +29,6 @@
 class RDTreeWidget;
 class RDTreeWidgetModel;
 
-typedef QSet<QString> RDTreeWidgetExpansionState;
-
 class RDTreeWidgetItem
 {
 public:
@@ -265,11 +263,6 @@ public:
   RDTreeWidgetItem *currentItem() const;
   void setSelectedItem(RDTreeWidgetItem *node);
   void setCurrentItem(RDTreeWidgetItem *node);
-
-  void saveExpansion(RDTreeWidgetExpansionState &state, QString prefix, RDTreeWidgetItem *root,
-                     int keyColumn);
-  void applySavedExpansion(RDTreeWidgetExpansionState &state, QString prefix,
-                           RDTreeWidgetItem *root, int keyColumn);
 
   RDTreeWidgetItem *itemAt(const QPoint &p) const;
   RDTreeWidgetItem *itemAt(int x, int y) const { return itemAt(QPoint(x, y)); }

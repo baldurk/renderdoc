@@ -855,28 +855,6 @@ void RDTreeWidget::setCurrentItem(RDTreeWidgetItem *node)
   setCurrentIndex(m_model->indexForItem(node, 0));
 }
 
-void RDTreeWidget::saveExpansion(RDTreeWidgetExpansionState &state, QString prefix,
-                                 RDTreeWidgetItem *root, int keyColumn)
-{
-  QModelIndex idx = m_model->indexForItem(root, keyColumn);
-  if(isExpanded(idx))
-    state.insert(prefix);
-
-  for(int i = 0; i < root->childCount(); i++)
-    saveExpansion(state, prefix + root->child(i)->text(keyColumn), root->child(i), keyColumn);
-}
-
-void RDTreeWidget::applySavedExpansion(RDTreeWidgetExpansionState &state, QString prefix,
-                                       RDTreeWidgetItem *root, int keyColumn)
-{
-  QModelIndex idx = m_model->indexForItem(root, keyColumn);
-  if(state.contains(prefix))
-    expand(idx);
-
-  for(int i = 0; i < root->childCount(); i++)
-    applySavedExpansion(state, prefix + root->child(i)->text(keyColumn), root->child(i), keyColumn);
-}
-
 RDTreeWidgetItem *RDTreeWidget::itemAt(const QPoint &p) const
 {
   return m_model->itemForIndex(indexAt(p));
