@@ -515,8 +515,10 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
             tr("Error launching %1 for capture.\n\n"
                "Something went wrong connecting to the debugger on the Android device.\n\n"
                "This can happen if the package is not "
-               "marked as debuggable, or if another android tool such as android studio "
-               "or other tool is interfering with the debug connection.")
+               "marked as debuggable, or if another android tool such as Android Studio "
+               "is interfering with the debug connection.\n\n"
+               "Close <b>all</b> instances of Android Studio or other Android programs"
+               "and try again.")
                 .arg(exe));
         return;
       }
@@ -573,8 +575,10 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
             tr("Error injecting into process %1 for capture.\n\n"
                "Something went wrong connecting to the debugger on the Android device.\n\n"
                "This can happen if the package is not "
-               "marked as debuggable, or if another android tool such as android studio "
-               "or other tool is interfering with the debug connection.")
+               "marked as debuggable, or if another android tool such as Android Studio "
+               "is interfering with the debug connection.\n\n"
+               "Close <b>all</b> instances of Android Studio or other Android programs"
+               "and try again.")
                 .arg(PID));
         return;
       }
