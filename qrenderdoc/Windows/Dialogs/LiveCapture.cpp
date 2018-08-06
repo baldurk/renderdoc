@@ -119,7 +119,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
 
   ui->apiIcon->setVisible(false);
 
-  ui->triggerCapture->setEnabled(false);
+  ui->triggerDelayedCapture->setEnabled(false);
+  ui->triggerImmediateCapture->setEnabled(false);
   ui->queueCap->setEnabled(false);
 
   ui->target->setText(QString());
@@ -275,19 +276,24 @@ void LiveCapture::on_queueCap_clicked()
   m_QueueCapture = true;
 }
 
-void LiveCapture::on_triggerCapture_clicked()
+void LiveCapture::on_triggerImmediateCapture_clicked()
+{
+  m_TriggerCapture = true;
+  m_CaptureNumFrames = (int)ui->numFrames->value();
+}
+
+void LiveCapture::on_triggerDelayedCapture_clicked()
 {
   if(ui->captureDelay->value() == 0.0)
   {
-    m_TriggerCapture = true;
-    m_CaptureNumFrames = (int)ui->numFrames->value();
+    on_triggerImmediateCapture_clicked();
   }
   else
   {
     m_CaptureCounter = (int)ui->captureDelay->value();
     countdownTimer.start();
-    ui->triggerCapture->setEnabled(false);
-    ui->triggerCapture->setText(tr("Triggering in %1s").arg(m_CaptureCounter));
+    ui->triggerDelayedCapture->setEnabled(false);
+    ui->triggerDelayedCapture->setText(tr("Triggering in %1s").arg(m_CaptureCounter));
   }
 }
 
@@ -479,13 +485,13 @@ void LiveCapture::captureCountdownTick()
   {
     m_TriggerCapture = true;
     m_CaptureNumFrames = (int)ui->numFrames->value();
-    ui->triggerCapture->setEnabled(true);
-    ui->triggerCapture->setText(tr("Trigger After Delay"));
+    ui->triggerDelayedCapture->setEnabled(true);
+    ui->triggerDelayedCapture->setText(tr("Trigger After Delay"));
   }
   else
   {
     countdownTimer.start();
-    ui->triggerCapture->setText(tr("Triggering in %1s").arg(m_CaptureCounter));
+    ui->triggerDelayedCapture->setText(tr("Triggering in %1s").arg(m_CaptureCounter));
   }
 }
 
@@ -1146,7 +1152,8 @@ void LiveCapture::connectionThreadEntry()
 
         if(presenting && supported)
         {
-          ui->triggerCapture->setEnabled(true);
+          ui->triggerImmediateCapture->setEnabled(true);
+          ui->triggerDelayedCapture->setEnabled(true);
           ui->queueCap->setEnabled(true);
         }
 
@@ -1225,7 +1232,8 @@ void LiveCapture::connectionThreadEntry()
     ui->numFrames->setEnabled(false);
     ui->captureDelay->setEnabled(false);
     ui->captureFrame->setEnabled(false);
-    ui->triggerCapture->setEnabled(false);
+    ui->triggerDelayedCapture->setEnabled(false);
+    ui->triggerImmediateCapture->setEnabled(false);
     ui->queueCap->setEnabled(false);
 
     ui->apiStatus->setText(tr("None"));
