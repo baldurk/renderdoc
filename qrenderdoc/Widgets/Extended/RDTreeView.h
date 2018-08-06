@@ -96,10 +96,36 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
-  void saveExpansion(RDTreeViewExpansionState &state, QString prefix, int keyColumn,
-                     int role = Qt::DisplayRole);
-  void applySavedExpansion(const RDTreeViewExpansionState &state, QString prefix, int keyColumn,
-                           int role = Qt::DisplayRole);
+  void saveInternalExpansion(uint key, int keyColumn, int role = Qt::DisplayRole);
+  void applyInternalExpansion(uint key, int keyColumn, int role = Qt::DisplayRole);
+  void clearInternalExpansions();
+
+  void saveExpansionExternal(RDTreeViewExpansionState &state, uint key, int keyColumn,
+                             int role = Qt::DisplayRole);
+  void applyExternalExpansion(const RDTreeViewExpansionState &state, uint key, int keyColumn,
+                              int role = Qt::DisplayRole);
+
+  // convenience overloads taking a string as a key that just hashes the string
+  void saveInternalExpansion(QString keystring, int keyColumn, int role = Qt::DisplayRole)
+  {
+    saveInternalExpansion(qHash(keystring), keyColumn, role);
+  }
+
+  void applyInternalExpansion(QString keystring, int keyColumn, int role = Qt::DisplayRole)
+  {
+    applyInternalExpansion(qHash(keystring), keyColumn, role);
+  }
+
+  void saveExpansionExternal(RDTreeViewExpansionState &state, QString keystring, int keyColumn,
+                             int role = Qt::DisplayRole)
+  {
+    saveExpansionExternal(state, qHash(keystring), keyColumn, role);
+  }
+  void applyExternalExpansion(const RDTreeViewExpansionState &state, QString keystring,
+                              int keyColumn, int role = Qt::DisplayRole)
+  {
+    applyExternalExpansion(state, qHash(keystring), keyColumn, role);
+  }
 
 signals:
   void leave(QEvent *e);
@@ -126,10 +152,12 @@ private:
   bool m_VisibleGridLines = true;
   bool m_TooltipElidedItems = true;
 
+  QMap<uint, RDTreeViewExpansionState> m_Expansions;
+
   void saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx, uint seed, int keyColumn,
                      int role);
-  void applySavedExpansion(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                           int keyColumn, int role);
+  void applyExpansion(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                      int keyColumn, int role);
 
   QAbstractItemDelegate *m_userDelegate = NULL;
   RDTreeViewDelegate *m_delegate;

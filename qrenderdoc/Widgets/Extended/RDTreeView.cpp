@@ -236,25 +236,44 @@ QAbstractItemDelegate *RDTreeView::itemDelegate() const
   return m_userDelegate;
 }
 
+void RDTreeView::saveInternalExpansion(uint key, int keyColumn, int role)
+{
+  RDTreeViewExpansionState &state = m_Expansions[key];
+
+  saveExpansionExternal(state, key, keyColumn, role);
+}
+
+void RDTreeView::applyInternalExpansion(uint key, int keyColumn, int role)
+{
+  RDTreeViewExpansionState &state = m_Expansions[key];
+
+  applyExternalExpansion(state, key, keyColumn, role);
+}
+
 void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
 {
   m_currentHoverIndex = QModelIndex();
 }
 
-void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QString prefix, int keyColumn,
-                               int role)
+void RDTreeView::clearInternalExpansions()
+{
+  m_Expansions.clear();
+}
+
+void RDTreeView::saveExpansionExternal(RDTreeViewExpansionState &state, uint key, int keyColumn,
+                                       int role)
 {
   state.clear();
 
   for(int i = 0; i < model()->rowCount(); i++)
-    saveExpansion(state, model()->index(i, keyColumn), qHash(prefix), keyColumn, role);
+    saveExpansion(state, model()->index(i, keyColumn), key, keyColumn, role);
 }
 
-void RDTreeView::applySavedExpansion(const RDTreeViewExpansionState &state, QString prefix,
-                                     int keyColumn, int role)
+void RDTreeView::applyExternalExpansion(const RDTreeViewExpansionState &state, uint key,
+                                        int keyColumn, int role)
 {
   for(int i = 0; i < model()->rowCount(); i++)
-    applySavedExpansion(state, model()->index(i, keyColumn), qHash(prefix), keyColumn, role);
+    applyExpansion(state, model()->index(i, keyColumn), key, keyColumn, role);
 }
 
 void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
@@ -276,8 +295,8 @@ void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx,
   }
 }
 
-void RDTreeView::applySavedExpansion(const RDTreeViewExpansionState &state, QModelIndex idx,
-                                     uint seed, int keyColumn, int role)
+void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                                int keyColumn, int role)
 {
   if(!idx.isValid())
     return;
@@ -289,7 +308,7 @@ void RDTreeView::applySavedExpansion(const RDTreeViewExpansionState &state, QMod
 
     // same as above - only recurse when we have a parent that's expanded.
     for(int i = 0; i < model()->rowCount(idx); i++)
-      applySavedExpansion(state, model()->index(i, keyColumn, idx), key, keyColumn, role);
+      applyExpansion(state, model()->index(i, keyColumn, idx), key, keyColumn, role);
   }
 }
 
