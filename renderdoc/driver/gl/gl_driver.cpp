@@ -1197,7 +1197,10 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         gl_CurChunk = GLChunk::glGenBuffers;
         glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
 
+        gl_CurChunk = GLChunk::glBindBuffer;
         glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
+
+        gl_CurChunk = GLChunk::glBufferData;
         glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
 
         if(HasExt[KHR_debug])
