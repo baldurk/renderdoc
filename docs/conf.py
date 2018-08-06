@@ -320,8 +320,11 @@ texinfo_documents = [
 #texinfo_no_detailmenu = False
 
 # custom theme based on sphinx_rtd_theme
-html_theme = "sphinx_rtd_theme_chm_friendly"
-html_theme_path = ["."]
+if os.path.isdir('sphinx_rtd_theme_chm_friendly'):
+	html_theme = "sphinx_rtd_theme_chm_friendly"
+	html_theme_path = ["."]
+else:
+	html_theme = "sphinx_rtd_theme"
 
 html_context = {
     'show_source': False,
