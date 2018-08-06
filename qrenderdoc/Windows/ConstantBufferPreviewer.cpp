@@ -88,6 +88,7 @@ void ConstantBufferPreviewer::OnCaptureLoaded()
 void ConstantBufferPreviewer::OnCaptureClosed()
 {
   ui->variables->clear();
+  ui->variables->clearInternalExpansions();
 
   ui->saveCSV->setEnabled(false);
 
@@ -101,6 +102,8 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   uint64_t offs = cb.byteOffset;
   uint64_t size = cb.byteSize;
 
+  ResourceId prevShader = m_shader;
+
   m_shader = m_Ctx.CurPipelineState().GetShader(m_stage);
   QString entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_stage);
   const ShaderReflection *reflection = m_Ctx.CurPipelineState().GetShaderReflection(m_stage);
@@ -108,6 +111,13 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   bool wasEmpty = ui->variables->topLevelItemCount() == 0;
 
   updateLabels();
+
+  if(m_formatOverride.empty())
+  {
+    // stage, slot, and array index are all invariant across a given ConstantBufferPreviewer
+    // instance. We only need to use the actual bound shader as a key.
+    ui->variables->saveInternalExpansion(ToQStr(prevShader), 0);
+  }
 
   if(reflection == NULL || m_slot >= reflection->constantBlocks.size())
   {
@@ -121,27 +131,43 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
       bytebuf data = r->GetBufferData(m_cbuffer, offs, size);
       rdcarray<ShaderVariable> vars = applyFormatOverride(data);
       GUIInvoke::call(this, [this, vars, wasEmpty] {
+        RDTreeViewExpansionState state;
+        ui->variables->saveExpansionExternal(state, 0, 0);
         setVariables(vars);
         if(wasEmpty)
         {
           for(int i = 0; i < 3; i++)
             ui->variables->resizeColumnToContents(i);
         }
+        ui->variables->applyExternalExpansion(state, 0, 0);
       });
     });
   }
   else
   {
-    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, wasEmpty](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, prevShader, wasEmpty](IReplayController *r) {
       rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
           m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
-      GUIInvoke::call(this, [this, vars, wasEmpty] {
+      GUIInvoke::call(this, [this, vars, prevShader, wasEmpty] {
+
+        // save this state to reapply if we don't already have an internal expansion for the new
+        // shader, since this means two shaders with the same or similar constants will preserve
+        // expansion across selections.
+        RDTreeViewExpansionState state;
+        if(!ui->variables->hasInternalExpansion(ToQStr(m_shader)))
+          ui->variables->saveExpansionExternal(state, 0, 0);
+
         setVariables(vars);
         if(wasEmpty)
         {
           for(int i = 0; i < 3; i++)
             ui->variables->resizeColumnToContents(i);
         }
+
+        if(ui->variables->hasInternalExpansion(ToQStr(m_shader)))
+          ui->variables->applyInternalExpansion(ToQStr(m_shader), 0);
+        else
+          ui->variables->applyExternalExpansion(state, 0, 0);
       });
     });
   }
@@ -262,71 +288,9 @@ void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
   }
 }
 
-bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
-                                              const rdcarray<ShaderVariable> &prevVars,
-                                              const rdcarray<ShaderVariable> &newVars)
-{
-  // mismatched child count? can't update
-  if(prevVars.size() != newVars.size())
-    return false;
-
-  for(int i = 0; i < prevVars.count(); i++)
-  {
-    const ShaderVariable &a = prevVars[i];
-    const ShaderVariable &b = newVars[i];
-
-    // different names? can't update
-    if(strcmp(a.name.c_str(), b.name.c_str()))
-      return false;
-
-    // different size or type? can't update
-    if(a.rows != b.rows || a.columns != b.columns || a.displayAsHex != b.displayAsHex ||
-       a.isStruct != b.isStruct || a.rowMajor != b.rowMajor || a.type != b.type)
-      return false;
-
-    // update this node's value column
-    RDTreeWidgetItem *node = root->child(i);
-
-    node->setText(1, VarString(b));
-
-    if(a.rows > 1)
-    {
-      for(uint32_t r = 0; r < a.rows; r++)
-        node->child(r)->setText(1, RowString(b, r));
-    }
-
-    if(!a.members.isEmpty())
-    {
-      // recurse to update child members. This handles a and b having different number of variables
-      bool updated = updateVariables(node, a.members, b.members);
-
-      if(!updated)
-        return false;
-    }
-  }
-
-  // got this far without bailing? we updated!
-  return true;
-}
-
 void ConstantBufferPreviewer::setVariables(const rdcarray<ShaderVariable> &vars)
 {
   ui->variables->beginUpdate();
-
-  // try to update the variables in-place by only changing their values, if the set of variables
-  // matches *exactly* to what we had before.
-  //
-  // This keeps things like expanded structs and matrices when moving between drawcalls
-  bool updated = updateVariables(ui->variables->invisibleRootItem(), m_Vars, vars);
-
-  // update the variables either way
-  m_Vars = vars;
-
-  if(updated)
-  {
-    ui->variables->endUpdate();
-    return;
-  }
 
   ui->variables->clear();
 

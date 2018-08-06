@@ -64,13 +64,20 @@ void APIInspector::OnCaptureClosed()
 {
   ui->apiEvents->clear();
   ui->callstack->clear();
+  ui->apiEvents->clearInternalExpansions();
+  m_EventID = 0;
 }
 
 void APIInspector::OnSelectedEventChanged(uint32_t eventId)
 {
+  ui->apiEvents->saveInternalExpansion(m_EventID, 0);
+
   ui->apiEvents->clearSelection();
 
   fillAPIView();
+
+  m_EventID = eventId;
+  ui->apiEvents->applyInternalExpansion(m_EventID, 0);
 }
 
 void APIInspector::addCallstack(rdcarray<rdcstr> calls)

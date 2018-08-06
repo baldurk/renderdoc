@@ -81,11 +81,6 @@ private:
   void addVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
   void setVariables(const rdcarray<ShaderVariable> &vars);
 
-  rdcarray<ShaderVariable> m_Vars;
-
-  bool updateVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &prevVars,
-                       const rdcarray<ShaderVariable> &newVars);
-
   void updateLabels();
 
   static QList<ConstantBufferPreviewer *> m_Previews;

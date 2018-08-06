@@ -97,6 +97,7 @@ public:
   QAbstractItemDelegate *itemDelegate() const;
 
   void saveInternalExpansion(uint key, int keyColumn, int role = Qt::DisplayRole);
+  bool hasInternalExpansion(uint key);
   void applyInternalExpansion(uint key, int keyColumn, int role = Qt::DisplayRole);
   void clearInternalExpansions();
 
@@ -111,6 +112,7 @@ public:
     saveInternalExpansion(qHash(keystring), keyColumn, role);
   }
 
+  bool hasInternalExpansion(QString keystring) { return hasInternalExpansion(qHash(keystring)); }
   void applyInternalExpansion(QString keystring, int keyColumn, int role = Qt::DisplayRole)
   {
     applyInternalExpansion(qHash(keystring), keyColumn, role);

@@ -243,6 +243,11 @@ void RDTreeView::saveInternalExpansion(uint key, int keyColumn, int role)
   saveExpansionExternal(state, key, keyColumn, role);
 }
 
+bool RDTreeView::hasInternalExpansion(uint key)
+{
+  return m_Expansions.contains(key);
+}
+
 void RDTreeView::applyInternalExpansion(uint key, int keyColumn, int role)
 {
   RDTreeViewExpansionState &state = m_Expansions[key];

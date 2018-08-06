@@ -201,6 +201,9 @@ void ResourceInspector::Inspect(ResourceId id)
   if(m_Resource == id)
     return;
 
+  if(m_Resource != ResourceId())
+    ui->initChunks->saveInternalExpansion(ToQStr(m_Resource), 0);
+
   m_Resource = id;
 
   ui->viewContents->setVisible(m_Ctx.GetTexture(id) || m_Ctx.GetBuffer(id));
@@ -325,6 +328,9 @@ void ResourceInspector::Inspect(ResourceId id)
   }
 
   ui->initChunks->setUpdatesEnabled(true);
+
+  if(m_Resource != ResourceId())
+    ui->initChunks->applyInternalExpansion(ToQStr(m_Resource), 0);
 }
 
 void ResourceInspector::OnCaptureLoaded()
@@ -347,6 +353,7 @@ void ResourceInspector::OnCaptureClosed()
   m_ResourceModel->reset();
 
   ui->initChunks->clear();
+  ui->initChunks->clearInternalExpansions();
   ui->relatedResources->clear();
   ui->resourceUsage->clear();
 
