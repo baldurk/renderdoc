@@ -212,7 +212,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_QueueRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
     m_QueueRecord->type = Resource_CommandQueue;
     m_QueueRecord->DataInSerialiser = false;
-    m_QueueRecord->SpecialResource = true;
+    m_QueueRecord->InternalResource = true;
     m_QueueRecord->Length = 0;
   }
 
@@ -792,7 +792,7 @@ WrappedID3D12GraphicsCommandList2::WrappedID3D12GraphicsCommandList2(ID3D12Graph
     m_ListRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
     m_ListRecord->type = Resource_GraphicsCommandList;
     m_ListRecord->DataInSerialiser = false;
-    m_ListRecord->SpecialResource = true;
+    m_ListRecord->InternalResource = true;
     m_ListRecord->Length = 0;
 
     m_ListRecord->cmdInfo = new CmdListRecordingInfo();
@@ -807,7 +807,7 @@ WrappedID3D12GraphicsCommandList2::WrappedID3D12GraphicsCommandList2(ID3D12Graph
     m_CreationRecord =
         m_pDevice->GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     m_CreationRecord->type = Resource_GraphicsCommandList;
-    m_CreationRecord->SpecialResource = true;
+    m_CreationRecord->InternalResource = true;
 
     m_ListRecord->AddParent(m_CreationRecord);
   }

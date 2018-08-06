@@ -187,6 +187,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
       VkResult vkr =
           driver->vkCreateShaderModule(m_Device, &modinfo, NULL, &m_BuiltinShaderModules[i]);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      driver->GetResourceManager()->SetInternalResource(GetResID(m_BuiltinShaderModules[i]));
     }
   }
 

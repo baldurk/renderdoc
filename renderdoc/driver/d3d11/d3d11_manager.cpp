@@ -49,31 +49,14 @@ ID3D11DeviceChild *D3D11ResourceManager::UnwrapResource(ID3D11DeviceChild *res)
   return res;
 }
 
-bool D3D11ResourceManager::SerialisableResource(ResourceId id, D3D11ResourceRecord *record)
+void D3D11ResourceManager::SetInternalResource(ID3D11DeviceChild *res)
 {
-  if(id == m_Device->GetImmediateContext()->GetResourceID())
-    return false;
-
-  if(id == m_Device->GetResourceID())
-    return true;
-
-  if(record->ignoreSerialise)
-    return false;
-
-  bool skip = false;
-  for(size_t i = 0; i < m_Device->GetNumDeferredContexts(); i++)
+  if(!RenderDoc::Inst().IsReplayApp())
   {
-    if(id == m_Device->GetDeferredContext(i)->GetResourceID())
-    {
-      skip = true;
-      break;
-    }
+    D3D11ResourceRecord *record = GetResourceRecord(GetIDForResource(res));
+    if(record)
+      record->InternalResource = true;
   }
-
-  if(skip)
-    return false;
-
-  return true;
 }
 
 ResourceId D3D11ResourceManager::GetID(ID3D11DeviceChild *res)

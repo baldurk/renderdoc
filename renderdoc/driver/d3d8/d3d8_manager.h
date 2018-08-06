@@ -69,7 +69,7 @@ class D3D8ResourceManager : public ResourceManager<D3D8ResourceManagerConfigurat
 public:
   D3D8ResourceManager(WrappedD3DDevice8 *dev) : m_Device(dev) {}
 private:
-  bool SerialisableResource(ResourceId id, D3D8ResourceRecord *record);
+  bool AutoReferenceResource(ResourceId id, D3D8ResourceRecord *record);
   ResourceId GetID(IUnknown *res);
 
   bool ResourceTypeRelease(IUnknown *res);

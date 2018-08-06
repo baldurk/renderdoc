@@ -27,7 +27,7 @@
 #include "d3d8_manager.h"
 #include "d3d8_resources.h"
 
-bool D3D8ResourceManager::SerialisableResource(ResourceId id, D3D8ResourceRecord *record)
+bool D3D8ResourceManager::AutoReferenceResource(ResourceId id, D3D8ResourceRecord *record)
 {
   return true;
 }

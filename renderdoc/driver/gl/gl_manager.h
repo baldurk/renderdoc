@@ -244,9 +244,9 @@ public:
     return Serialise_InitialState<WriteSerialiser>(ser, resid, res);
   }
 
-private:
-  bool SerialisableResource(ResourceId id, GLResourceRecord *record);
+  void SetInternalResource(GLResource res);
 
+private:
   bool ResourceTypeRelease(GLResource res);
   bool Force_InitialState(GLResource res, bool prepare);
   bool Need_InitialStateChunk(GLResource res);

@@ -140,7 +140,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
     m_DeviceRecord->DataInSerialiser = false;
-    m_DeviceRecord->SpecialResource = true;
+    m_DeviceRecord->InternalResource = true;
     m_DeviceRecord->Length = 0;
     m_DeviceRecord->NumSubResources = 0;
     m_DeviceRecord->SubResources = NULL;
@@ -1307,7 +1307,6 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
   {
     D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
     record->DataInSerialiser = false;
-    record->SpecialResource = true;
     record->Length = 0;
     record->NumSubResources = 0;
     record->SubResources = NULL;

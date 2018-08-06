@@ -76,7 +76,6 @@ struct D3D11ResourceRecord : public ResourceRecord
   {
     RDCEraseEl(ShadowPtr);
     RDCEraseEl(contexts);
-    ignoreSerialise = false;
   }
 
   ~D3D11ResourceRecord()
@@ -184,8 +183,6 @@ struct D3D11ResourceRecord : public ResourceRecord
     }
   }
 
-  bool ignoreSerialise;
-
   int NumSubResources;
   D3D11ResourceRecord **SubResources;
 
@@ -252,8 +249,9 @@ public:
     return (ID3D11Resource *)UnwrapResource((ID3D11DeviceChild *)res);
   }
 
+  void SetInternalResource(ID3D11DeviceChild *res);
+
 private:
-  bool SerialisableResource(ResourceId id, D3D11ResourceRecord *record);
   ResourceId GetID(ID3D11DeviceChild *res);
 
   bool ResourceTypeRelease(ID3D11DeviceChild *res);

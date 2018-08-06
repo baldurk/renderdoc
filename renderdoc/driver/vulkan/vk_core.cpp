@@ -153,7 +153,7 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
     m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     m_FrameCaptureRecord->DataInSerialiser = false;
     m_FrameCaptureRecord->Length = 0;
-    m_FrameCaptureRecord->SpecialResource = true;
+    m_FrameCaptureRecord->InternalResource = true;
   }
   else
   {

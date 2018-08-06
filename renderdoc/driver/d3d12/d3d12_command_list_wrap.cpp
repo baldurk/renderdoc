@@ -388,7 +388,7 @@ HRESULT WrappedID3D12GraphicsCommandList2::Reset(ID3D12CommandAllocator *pAlloca
     m_ListRecord->bakedCommands =
         GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     m_ListRecord->bakedCommands->type = Resource_GraphicsCommandList;
-    m_ListRecord->bakedCommands->SpecialResource = true;
+    m_ListRecord->bakedCommands->InternalResource = true;
     m_ListRecord->bakedCommands->cmdInfo = new CmdListRecordingInfo();
 
     {

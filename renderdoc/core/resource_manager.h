@@ -97,7 +97,7 @@ struct ResourceRecord
         DataOffset(0),
         Length(0),
         DataWritten(false),
-        SpecialResource(false)
+        InternalResource(false)
   {
     m_ChunkLock = NULL;
 
@@ -261,7 +261,16 @@ struct ResourceRecord
 
   int UpdateCount;
   bool DataInSerialiser;
-  bool SpecialResource;    // like the swap chain back buffers
+
+  // anything internal that shouldn't be automatically pulled in by 'Ref All Resources' or have
+  // initial contents stored. This could either be a type of object that would break if its chunks
+  // were inserted into the initialisation phase (like an D3D11 DeviceContext which contains
+  // commands) or just debug objects created during capture as helpers which shouldn't be included.
+  //
+  // The implication is that they are handled specially for being inserted into the capture, or
+  // aren't inserted at all. Note that if a resource is frame-referenced, it will be included
+  // regardless but still without initial contents, capture drivers should be careful.
+  bool InternalResource;
   bool DataWritten;
 
 protected:
@@ -413,7 +422,6 @@ public:
 protected:
   friend InitialContentData;
   // 'interface' to implement by derived classes
-  virtual bool SerialisableResource(ResourceId id, RecordType *record) = 0;
   virtual ResourceId GetID(WrappedResourceType res) = 0;
 
   virtual bool ResourceTypeRelease(WrappedResourceType res) = 0;
@@ -803,7 +811,8 @@ void ResourceManager<Configuration>::InsertReferencedChunks(WriteSerialiser &ser
       RenderDoc::Inst().SetProgress(CaptureProgress::AddReferencedResources, idx / num);
       idx += 1.0f;
 
-      if(!SerialisableResource(it->first, it->second))
+      if(m_FrameReferencedResources.find(it->first) == m_FrameReferencedResources.end() &&
+         it->second->InternalResource)
         continue;
 
       it->second->Insert(sortedChunks);
@@ -857,7 +866,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     RecordType *record = GetResourceRecord(id);
     WrappedResourceType res = GetCurrentResource(id);
 
-    if(record == NULL || record->SpecialResource)
+    if(record == NULL || record->InternalResource)
       continue;
 
     prepared++;
@@ -942,7 +951,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
       continue;
     }
 
-    if(record->SpecialResource)
+    if(record->InternalResource)
     {
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
       RDCDEBUG("Resource %llu is special - skipping", id);
@@ -1045,7 +1054,7 @@ void ResourceManager<Configuration>::ApplyInitialContentsNonChunks(WriteSerialis
 
     RecordType *record = GetResourceRecord(id);
 
-    if(!record || record->SpecialResource)
+    if(!record || record->InternalResource)
       continue;
 
     if(!Need_InitialStateChunk(res))

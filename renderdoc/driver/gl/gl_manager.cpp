@@ -113,11 +113,14 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   }
 }
 
-bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *record)
+void GLResourceManager::SetInternalResource(GLResource res)
 {
-  if(id == m_Driver->GetContextResourceID())
-    return false;
-  return true;
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    GLResourceRecord *record = GetResourceRecord(res);
+    if(record)
+      record->InternalResource = true;
+  }
 }
 
 bool GLResourceManager::ResourceTypeRelease(GLResource res)

@@ -163,7 +163,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandAllocator(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pCommandAllocator, ret);
 
-      AddResource(pCommandAllocator, ResourceType::Pool, "Command Queue");
+      AddResource(pCommandAllocator, ResourceType::Pool, "Command Allocator");
     }
   }
 

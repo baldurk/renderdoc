@@ -27,6 +27,7 @@
 #include "stb/stb_truetype.h"
 #include "d3d11_context.h"
 #include "d3d11_device.h"
+#include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
 
 #include "data/hlsl/debugcbuffers.h"
@@ -38,6 +39,8 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
 
   m_pDevice = wrapper;
   m_pImmediateContext = m_pDevice->GetImmediateContext();
+
+  D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
   HRESULT hr = S_OK;
 
@@ -61,6 +64,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create font blendstate HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(BlendState);
 
   D3D11_SAMPLER_DESC sampDesc;
   RDCEraseEl(sampDesc);
@@ -78,6 +82,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create linear sampler state HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(LinearSampler);
 
   D3D11_TEXTURE2D_DESC desc;
   RDCEraseEl(desc);
@@ -135,6 +140,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create debugTex HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(debugTex);
 
   delete[] buf;
 
@@ -144,6 +150,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create Tex HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(Tex);
 
   SAFE_RELEASE(debugTex);
 
@@ -164,6 +171,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create font GlyphData HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(GlyphData);
 
   for(int i = 0; i < numChars; i++)
   {
@@ -199,6 +207,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create font CBuffer HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(CBuffer);
 
   cbufDesc.ByteWidth = (2 + FONT_MAX_CHARS) * sizeof(uint32_t) * 4;
   hr = m_pDevice->CreateBuffer(&cbufDesc, NULL, &CharBuffer);
@@ -207,6 +216,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     RDCERR("Failed to create font CharBuffer HRESULT: %s", ToStr(hr).c_str());
 
   m_pDevice->InternalRef();
+  rm->SetInternalResource(CharBuffer);
 
   std::string fullhlsl = "";
   {
@@ -222,8 +232,11 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
 
   VS = shaderCache->MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0");
   m_pDevice->InternalRef();
+  rm->SetInternalResource(VS);
+
   PS = shaderCache->MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
   m_pDevice->InternalRef();
+  rm->SetInternalResource(PS);
 
   shaderCache->SetCaching(false);
 }

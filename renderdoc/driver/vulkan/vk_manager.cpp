@@ -25,13 +25,6 @@
 #include "vk_manager.h"
 #include "vk_core.h"
 
-bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord *record)
-{
-  if(record->SpecialResource || id == m_Core->GetContextResourceID())
-    return false;
-  return true;
-}
-
 // debugging logging for barriers
 #if 0
 #define TRDBG(...) RDCLOG(__VA_ARGS__)
@@ -378,6 +371,16 @@ void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
         VkDeviceSize(sparse->imgdim.width) * sparse->imgdim.height * sparse->imgdim.depth;
     for(VkDeviceSize i = 0; sparse->pages[a] && i < totalSize; i++)
       MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
+  }
+}
+
+void VulkanResourceManager::SetInternalResource(ResourceId id)
+{
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    VkResourceRecord *record = GetResourceRecord(id);
+    if(record)
+      record->InternalResource = true;
   }
 }
 

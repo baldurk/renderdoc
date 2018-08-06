@@ -480,8 +480,6 @@ public:
   uint64_t GetLogVersion() { return m_SectionVersion; }
   static std::string GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
-  ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
-  ResourceId GetContextResourceID() { return m_ContextResourceID; }
   CaptureState GetState() { return m_State; }
   GLReplay *GetReplay() { return &m_Replay; }
   WriteSerialiser &GetSerialiser() { return m_ScratchSerialiser; }

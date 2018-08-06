@@ -138,6 +138,8 @@ static void create(WrappedVulkan *driver, const char *objName, const int line,
   VkResult vkr = driver->vkCreateRenderPass(driver->GetDev(), &rpinfo, NULL, renderPass);
   if(vkr != VK_SUCCESS)
     RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
+
+  driver->GetResourceManager()->SetInternalResource(GetResID(*renderPass));
 }
 
 // Create a compute pipeline with a shader module
@@ -401,6 +403,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   m_Device = m_pDriver->GetDev();
   VkDevice dev = m_Device;
 
+  VulkanResourceManager *rm = driver->GetResourceManager();
+
   VkResult vkr = VK_SUCCESS;
 
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
@@ -421,8 +425,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
   CREATE_OBJECT(m_ArrayMSSampler, VK_FILTER_NEAREST);
 
+  rm->SetInternalResource(GetResID(m_ArrayMSSampler));
+
   vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolInfo, NULL, &m_ArrayMSDescriptorPool);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  rm->SetInternalResource(GetResID(m_ArrayMSDescriptorPool));
 
   CREATE_OBJECT(m_ArrayMSDescSetLayout,
                 {
@@ -431,7 +439,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
                     {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
 
+  rm->SetInternalResource(GetResID(m_ArrayMSDescSetLayout));
+
   CREATE_OBJECT(m_ArrayMSPipeLayout, m_ArrayMSDescSetLayout, sizeof(Vec4u));
+
+  rm->SetInternalResource(GetResID(m_ArrayMSPipeLayout));
 
   //////////////////////////////////////////////////////////////////
   // Color MS to Array copy (via compute)
@@ -441,10 +453,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   CREATE_OBJECT(m_Array2MSPipe, m_ArrayMSPipeLayout,
                 shaderCache->GetBuiltinModule(BuiltinShader::Array2MSCS));
 
+  rm->SetInternalResource(GetResID(m_MS2ArrayPipe));
+  rm->SetInternalResource(GetResID(m_Array2MSPipe));
+
   //////////////////////////////////////////////////////////////////
   // Depth MS to Array copy (via graphics)
 
   CREATE_OBJECT(m_ArrayMSDescSet, m_ArrayMSDescriptorPool, m_ArrayMSDescSetLayout);
+
+  rm->SetInternalResource(GetResID(m_ArrayMSDescSet));
 
   VkFormat formats[] = {
       VK_FORMAT_D16_UNORM,         VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_X8_D24_UNORM_PACK32,
@@ -499,6 +516,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     CREATE_OBJECT(m_DepthMS2ArrayPipe[f], depthPipeInfo);
 
+    rm->SetInternalResource(GetResID(m_DepthMS2ArrayPipe[f]));
+
     m_pDriver->vkDestroyRenderPass(dev, depthMS2ArrayRP, NULL);
 
     for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
@@ -522,6 +541,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
       depthPipeInfo.sampleRateShading = true;
 
       CREATE_OBJECT(m_DepthArray2MSPipe[f][s], depthPipeInfo);
+
+      rm->SetInternalResource(GetResID(m_DepthArray2MSPipe[f][s]));
 
       m_pDriver->vkDestroyRenderPass(dev, depthArray2MSRP, NULL);
     }

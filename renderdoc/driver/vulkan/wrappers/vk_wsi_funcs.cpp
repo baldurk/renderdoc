@@ -259,7 +259,7 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR 
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pSwapchainImages[i]);
         VkResourceRecord *swaprecord = GetRecord(swapchain);
 
-        record->SpecialResource = true;
+        record->InternalResource = true;
 
         record->AddParent(swaprecord);
 
@@ -498,6 +498,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       GetResourceManager()->WrapResource(Unwrap(device), swapInfo.rp);
+      GetResourceManager()->SetInternalResource(GetResID(swapInfo.rp));
     }
 
     // serialise out the swap chain images
@@ -561,6 +562,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
           GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
+          GetResourceManager()->SetInternalResource(GetResID(swapImInfo.view));
 
           VkFramebufferCreateInfo fbinfo = {
               VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -578,6 +580,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
           GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fb);
+          GetResourceManager()->SetInternalResource(GetResID(swapImInfo.fb));
         }
       }
 

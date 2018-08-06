@@ -526,9 +526,10 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         // might be partially recorded at the time of a submit of a previously baked list.
         VkResourceRecord *allocRecord =
             GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
-        allocRecord->SpecialResource = true;
+        allocRecord->InternalResource = true;
         allocRecord->AddChunk(chunk);
         record->AddParent(allocRecord);
+        record->InternalResource = true;
 
         record->bakedCommands = NULL;
 
@@ -840,7 +841,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
       record->bakedCommands->Delete(GetResourceManager());
 
     record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
-    record->bakedCommands->SpecialResource = true;
+    record->bakedCommands->InternalResource = true;
     record->bakedCommands->Resource = (WrappedVkRes *)commandBuffer;
     record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
 

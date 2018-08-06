@@ -228,12 +228,12 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
     m_DeviceRecord->type = Resource_Device;
     m_DeviceRecord->DataInSerialiser = false;
-    m_DeviceRecord->SpecialResource = true;
+    m_DeviceRecord->InternalResource = true;
     m_DeviceRecord->Length = 0;
 
     m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     m_FrameCaptureRecord->DataInSerialiser = false;
-    m_FrameCaptureRecord->SpecialResource = true;
+    m_FrameCaptureRecord->InternalResource = true;
     m_FrameCaptureRecord->Length = 0;
 
     RenderDoc::Inst().AddDeviceFrameCapturer((ID3D12Device *)this, this);
@@ -791,7 +791,6 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
     D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
     record->type = Resource_Resource;
     record->DataInSerialiser = false;
-    record->SpecialResource = true;
     record->Length = 0;
 
     WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
@@ -2229,8 +2228,13 @@ void WrappedID3D12Device::CreateInternalResources()
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
+  GetResourceManager()->SetInternalResource(m_Alloc);
+  GetResourceManager()->SetInternalResource(m_GPUSyncFence);
+
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_DataUploadAlloc);
+
+  GetResourceManager()->SetInternalResource(m_DataUploadAlloc);
 
   CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DataUploadAlloc, NULL,
                     __uuidof(ID3D12GraphicsCommandList), (void **)&m_DataUploadList);
@@ -2242,6 +2246,8 @@ void WrappedID3D12Device::CreateInternalResources()
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
   CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_RTVHeap);
+
+  GetResourceManager()->SetInternalResource(m_RTVHeap);
 
   D3D12_CPU_DESCRIPTOR_HANDLE handle;
 

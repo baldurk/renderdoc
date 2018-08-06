@@ -139,11 +139,10 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   {
     m_ContextRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
     m_ContextRecord->DataInSerialiser = false;
-    m_ContextRecord->SpecialResource = true;
+    m_ContextRecord->InternalResource = true;
     m_ContextRecord->Length = 0;
     m_ContextRecord->NumSubResources = 0;
     m_ContextRecord->SubResources = NULL;
-    m_ContextRecord->ignoreSerialise = true;
   }
 
   m_ScratchSerialiser.SetUserData(GetResourceManager());

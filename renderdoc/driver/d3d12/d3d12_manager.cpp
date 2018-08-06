@@ -694,15 +694,14 @@ template void D3D12ResourceManager::SerialiseResourceStates(
     WriteSerialiser &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
     std::map<ResourceId, SubresourceStateVector> &states);
 
-bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
+void D3D12ResourceManager::SetInternalResource(ID3D12DeviceChild *res)
 {
-  if(record->type == Resource_GraphicsCommandList || record->type == Resource_CommandQueue)
-    return false;
-
-  if(m_Device->GetFrameCaptureResourceId() == id)
-    return false;
-
-  return true;
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    D3D12ResourceRecord *record = GetResourceRecord(GetResID(res));
+    if(record)
+      record->InternalResource = true;
+  }
 }
 
 ResourceId D3D12ResourceManager::GetID(ID3D12DeviceChild *res)

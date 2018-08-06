@@ -5231,7 +5231,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
     D3D11ResourceRecord *record =
         m_pDevice->GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
     record->Length = 0;
-    record->ignoreSerialise = true;
+    record->InternalResource = true;
 
     if(IsActiveCapturing(m_State))
     {

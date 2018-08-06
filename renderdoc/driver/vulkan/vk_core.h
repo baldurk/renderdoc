@@ -802,7 +802,6 @@ public:
 
   APIProperties APIProps;
 
-  ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
   static std::string GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }

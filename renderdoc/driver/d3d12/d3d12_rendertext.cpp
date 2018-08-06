@@ -34,6 +34,8 @@
 
 D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 {
+  D3D12ResourceManager *rm = wrapper->GetResourceManager();
+
   HRESULT hr = S_OK;
 
   D3D12_DESCRIPTOR_HEAP_DESC desc;
@@ -48,6 +50,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create font descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
+
+  rm->SetInternalResource(descHeap);
 
   D3D12_HEAP_PROPERTIES uploadHeap;
   uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -83,6 +87,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   if(FAILED(hr))
     RDCERR("Failed to create uploadBuf HRESULT: %s", ToStr(hr).c_str());
 
+  rm->SetInternalResource(uploadBuf);
+
   D3D12_RESOURCE_DESC texDesc;
   texDesc.Alignment = 0;
   texDesc.DepthOrArraySize = 1;
@@ -104,6 +110,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
     RDCERR("Failed to create FontTex HRESULT: %s", ToStr(hr).c_str());
+
+  rm->SetInternalResource(Tex);
 
   std::string font = GetEmbeddedResource(sourcecodepro_ttf);
   byte *ttfdata = (byte *)font.c_str();
@@ -218,6 +226,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   if(FAILED(hr))
     RDCERR("Couldn't create GlyphData cbuffer! %s", ToStr(hr).c_str());
 
+  rm->SetInternalResource(GlyphData);
+
   for(int i = 0; i < numChars; i++)
   {
     stbtt_bakedchar *b = chardata + i;
@@ -255,6 +265,11 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
                                         D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                         __uuidof(ID3D12Resource), (void **)&Constants);
 
+  if(FAILED(hr))
+    RDCERR("Couldn't create Constants cbuffer! %s", ToStr(hr).c_str());
+
+  rm->SetInternalResource(Constants);
+
   cbDesc.Width = FONT_BUFFER_CHARS * sizeof(uint32_t) * 4;
   hr = wrapper->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc,
                                         D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
@@ -262,6 +277,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
     RDCERR("Couldn't create CharBuffer cbuffer! %s", ToStr(hr).c_str());
+
+  rm->SetInternalResource(CharBuffer);
 
   ConstRingIdx = 0;
 
@@ -325,6 +342,11 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   hr = wrapper->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                     __uuidof(ID3D12RootSignature), (void **)&RootSig);
 
+  if(FAILED(hr))
+    RDCERR("Couldn't create RootSig! %s", ToStr(hr).c_str());
+
+  rm->SetInternalResource(RootSig);
+
   SAFE_RELEASE(root);
 
   std::string fullhlsl = "";
@@ -379,6 +401,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   if(FAILED(hr))
     RDCERR("Couldn't create BGRA8 Pipe! HRESULT: %s", ToStr(hr).c_str());
 
+  rm->SetInternalResource(Pipe[BGRA8_BACKBUFFER]);
+
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
   hr = wrapper->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
@@ -387,6 +411,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   if(FAILED(hr))
     RDCERR("Couldn't create RGBA8 Pipe! HRESULT: %s", ToStr(hr).c_str());
 
+  rm->SetInternalResource(Pipe[RGBA8_BACKBUFFER]);
+
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
   hr = wrapper->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
@@ -394,6 +420,8 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
     RDCERR("Couldn't create RGBA16 Pipe! HRESULT: %s", ToStr(hr).c_str());
+
+  rm->SetInternalResource(Pipe[RGBA16_BACKBUFFER]);
 
   SAFE_RELEASE(TextVS);
   SAFE_RELEASE(TextPS);

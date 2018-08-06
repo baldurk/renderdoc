@@ -564,12 +564,12 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_DeviceResourceID);
     m_DeviceRecord->DataInSerialiser = false;
     m_DeviceRecord->Length = 0;
-    m_DeviceRecord->SpecialResource = true;
+    m_DeviceRecord->InternalResource = true;
 
     m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
     m_ContextRecord->DataInSerialiser = false;
     m_ContextRecord->Length = 0;
-    m_ContextRecord->SpecialResource = true;
+    m_ContextRecord->InternalResource = true;
 
     // we register an ID for the backbuffer, this will be tied to the fake-created backbuffer on
     // replay, and every context's FBO 0 will be pointed to it with ReplaceResource
@@ -921,7 +921,7 @@ void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *driver, voi
     m_ContextDataRecord = driver->GetResourceManager()->AddResourceRecord(m_ContextDataResourceID);
     m_ContextDataRecord->DataInSerialiser = false;
     m_ContextDataRecord->Length = 0;
-    m_ContextDataRecord->SpecialResource = true;
+    m_ContextDataRecord->InternalResource = true;
   }
 }
 
@@ -1186,6 +1186,12 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           gl_CurChunk = GLChunk::glBufferData;
           glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
 
+          // we mark these buffers as internal since initial contents are not needed - they're
+          // entirely handled internally and buffer data is uploaded immediately before draws - and
+          // we don't want them to be pulled in unless explicitly referenced.
+          GetResourceManager()->SetInternalResource(
+              BufferRes(GetCtx(), ctxdata.m_ClientMemoryVBOs[i]));
+
           if(HasExt[KHR_debug])
           {
             gl_CurChunk = GLChunk::glObjectLabel;
@@ -1199,6 +1205,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
         gl_CurChunk = GLChunk::glBindBuffer;
         glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
+
+        GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryIBO));
 
         gl_CurChunk = GLChunk::glBufferData;
         glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
@@ -1248,6 +1256,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
             record->AddChunk(scope.Get());
           }
 
+          GetResourceManager()->SetInternalResource(VertexArrayRes(GetCtx(), 0));
+
           // we immediately mark it dirty since the vertex array tracking functions expect a proper
           // VAO
           GetResourceManager()->MarkDirtyResource(id);
@@ -1265,6 +1275,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           USE_SCRATCH_SERIALISER();
           SCOPED_SERIALISE_CHUNK(GLChunk::glContextInit);
           Serialise_ContextInit(ser);
+
+          GetResourceManager()->SetInternalResource(FramebufferRes(GetCtx(), 0));
 
           m_DeviceRecord->AddChunk(scope.Get());
         }

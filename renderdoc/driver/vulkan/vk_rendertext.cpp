@@ -35,6 +35,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
   m_pDriver = driver;
   m_Device = driver->GetDev();
 
+  VulkanResourceManager *rm = driver->GetResourceManager();
+
   VkDevice dev = m_Device;
 
   VkResult vkr = VK_SUCCESS;
@@ -52,6 +54,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
 
   vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &m_LinearSampler);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  rm->SetInternalResource(GetResID(m_LinearSampler));
 
   // just need enough for text rendering
   VkDescriptorPoolSize captureDescPoolTypes[] = {
@@ -72,6 +76,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
   // create descriptor pool
   vkr = m_pDriver->vkCreateDescriptorPool(dev, &descpoolInfo, NULL, &m_DescriptorPool);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  rm->SetInternalResource(GetResID(m_DescriptorPool));
 
   // declare some common creation info structs
   VkPipelineLayoutCreateInfo pipeLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -110,15 +116,19 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
 
     attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8sRGBRP);
+    rm->SetInternalResource(GetResID(RGBA8sRGBRP));
 
     attDesc.format = VK_FORMAT_R8G8B8A8_UNORM;
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8LinearRP);
+    rm->SetInternalResource(GetResID(RGBA8LinearRP));
 
     attDesc.format = VK_FORMAT_B8G8R8A8_SRGB;
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &BGRA8sRGBRP);
+    rm->SetInternalResource(GetResID(BGRA8sRGBRP));
 
     attDesc.format = VK_FORMAT_B8G8R8A8_UNORM;
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &BGRA8LinearRP);
+    rm->SetInternalResource(GetResID(BGRA8LinearRP));
   }
 
   // declare the pipeline creation info and all of its sub-structures
@@ -229,23 +239,35 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
   vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_TextDescSetLayout);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  rm->SetInternalResource(GetResID(m_TextDescSetLayout));
+
   pipeLayoutInfo.pSetLayouts = &m_TextDescSetLayout;
 
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TextPipeLayout);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  rm->SetInternalResource(GetResID(m_TextPipeLayout));
+
   descSetAllocInfo.pSetLayouts = &m_TextDescSetLayout;
   vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_TextDescSet);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  rm->SetInternalResource(GetResID(m_TextDescSet));
 
   // make the ring conservatively large to handle many lines of text * several frames
   m_TextGeneralUBO.Create(driver, dev, 128, 100, 0);
   RDCCOMPILE_ASSERT(sizeof(FontUBOData) <= 128, "font uniforms size");
 
+  rm->SetInternalResource(GetResID(m_TextGeneralUBO.buf));
+  rm->SetInternalResource(GetResID(m_TextGeneralUBO.mem));
+
   // we only use a subset of the [MAX_SINGLE_LINE_LENGTH] array needed for each line, so this ring
   // can be smaller
   m_TextStringUBO.Create(driver, dev, 4096, 10, 0);
   RDCCOMPILE_ASSERT(sizeof(StringUBOData) <= 4096, "font uniforms size");
+
+  rm->SetInternalResource(GetResID(m_TextStringUBO.buf));
+  rm->SetInternalResource(GetResID(m_TextStringUBO.mem));
 
   pipeInfo.layout = m_TextPipeLayout;
 
@@ -254,20 +276,28 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
                                              &m_TextPipeline[0]);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  rm->SetInternalResource(GetResID(m_TextPipeline[0]));
+
   pipeInfo.renderPass = RGBA8LinearRP;
   vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                              &m_TextPipeline[1]);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  rm->SetInternalResource(GetResID(m_TextPipeline[1]));
 
   pipeInfo.renderPass = BGRA8sRGBRP;
   vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                              &m_TextPipeline[2]);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  rm->SetInternalResource(GetResID(m_TextPipeline[2]));
+
   pipeInfo.renderPass = BGRA8LinearRP;
   vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                              &m_TextPipeline[3]);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  rm->SetInternalResource(GetResID(m_TextPipeline[3]));
 
   // create the actual font texture data and glyph data, for upload
   {
@@ -323,6 +353,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
       vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TextAtlas);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+      rm->SetInternalResource(GetResID(m_TextAtlas));
+
       VkMemoryRequirements mrq = {0};
       m_pDriver->vkGetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
 
@@ -334,6 +366,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
 
       vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &m_TextAtlasMem);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      rm->SetInternalResource(GetResID(m_TextAtlasMem));
 
       vkr = m_pDriver->vkBindImageMemory(dev, m_TextAtlas, m_TextAtlasMem, 0);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -353,10 +387,15 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
       vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TextAtlasView);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+      rm->SetInternalResource(GetResID(m_TextAtlasView));
+
       // create temporary memory and buffer to upload atlas
       // doesn't need to be ring'd, as it's static
       m_TextAtlasUpload.Create(driver, dev, 32768, 1, 0);
       RDCCOMPILE_ASSERT(width * height <= 32768, "font uniform size");
+
+      rm->SetInternalResource(GetResID(m_TextAtlasUpload.buf));
+      rm->SetInternalResource(GetResID(m_TextAtlasUpload.mem));
 
       byte *pData = (byte *)m_TextAtlasUpload.Map();
       RDCASSERT(pData);
@@ -369,6 +408,9 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
     // doesn't need to be ring'd, as it's static
     m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0);
     RDCCOMPILE_ASSERT(sizeof(Vec4f) * 2 * (numChars + 1) < 4096, "font uniform size");
+
+    rm->SetInternalResource(GetResID(m_TextGlyphUBO.buf));
+    rm->SetInternalResource(GetResID(m_TextGlyphUBO.mem));
 
     FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map();
 

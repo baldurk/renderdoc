@@ -692,8 +692,9 @@ public:
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, ID3D12DeviceChild *res);
 
+  void SetInternalResource(ID3D12DeviceChild *res);
+
 private:
-  bool SerialisableResource(ResourceId id, D3D12ResourceRecord *record);
   ResourceId GetID(ID3D12DeviceChild *res);
 
   bool ResourceTypeRelease(ID3D12DeviceChild *res);

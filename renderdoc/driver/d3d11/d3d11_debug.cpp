@@ -131,6 +131,7 @@ ID3D11Buffer *D3D11DebugManager::MakeCBuffer(const void *data, size_t size)
 void D3D11DebugManager::InitCommonResources()
 {
   D3D11ShaderCache *shaderCache = m_pDevice->GetShaderCache();
+  D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
   std::string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
@@ -153,6 +154,14 @@ void D3D11DebugManager::InitCommonResources()
       shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
   m_pDevice->InternalRef();
 
+  // mark created resources as internal during capture so they aren't included in capture files.
+  rm->SetInternalResource(CopyMSToArrayPS);
+  rm->SetInternalResource(CopyArrayToMSPS);
+  rm->SetInternalResource(FloatCopyMSToArrayPS);
+  rm->SetInternalResource(FloatCopyArrayToMSPS);
+  rm->SetInternalResource(DepthCopyMSToArrayPS);
+  rm->SetInternalResource(DepthCopyArrayToMSPS);
+
   std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
   displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
   displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
@@ -160,10 +169,13 @@ void D3D11DebugManager::InitCommonResources()
   MSArrayCopyVS = shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
   m_pDevice->InternalRef();
 
+  rm->SetInternalResource(MSArrayCopyVS);
+
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
   {
     PublicCBuffers[i] = MakeCBuffer(sizeof(float) * 4 * 100);
     m_pDevice->InternalRef();
+    rm->SetInternalResource(PublicCBuffers[i]);
   }
 
   publicCBufIdx = 0;
