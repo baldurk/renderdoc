@@ -825,6 +825,7 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->CaptureCallstacksOnlyDraws->setChecked(settings.options.captureCallstacksOnlyDraws);
   ui->APIValidation->setChecked(settings.options.apiValidation);
   ui->RefAllResources->setChecked(settings.options.refAllResources);
+  ui->CaptureAllCmdLists->setChecked(settings.options.captureAllCmdLists);
   ui->DelayForDebugger->setValue(settings.options.delayForDebugger);
   ui->VerifyMapWrites->setChecked(settings.options.verifyMapWrites);
   ui->AutoStart->setChecked(settings.autoStart);
