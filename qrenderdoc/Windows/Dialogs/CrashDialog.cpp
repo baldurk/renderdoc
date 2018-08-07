@@ -122,6 +122,14 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
       tr("<p>RenderDoc encountered a serious problem. Please take a moment to look over this "
          "form and send it off so that RenderDoc can get better!</p>");
 
+  if(m_Config.CheckUpdate_UpdateAvailable)
+  {
+    text +=
+        tr("<p><b><a href=\"https://renderdoc.org/builds\">An updated version of RenderDoc</a> is "
+           "available</b>. This bug may be fixed in a newer version, it's advised that you "
+           "update to see if the bug is fixed.</p>");
+  }
+
   text += tr("<p>The contents of the report can be found <a href=\"%1\">in this zip</a> which "
              "you can edit/censor if you wish.</p>")
               .arg(QUrl::fromLocalFile(m_ReportPath).toString());
