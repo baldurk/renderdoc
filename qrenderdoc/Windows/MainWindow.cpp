@@ -777,7 +777,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
       {
         ANALYTIC_SET(UIFeatures.ImageViewer, true);
       }
-      else
+      else if(!driver.isEmpty())
       {
         ANALYTIC_ADDUNIQ(APIs, driver);
       }
