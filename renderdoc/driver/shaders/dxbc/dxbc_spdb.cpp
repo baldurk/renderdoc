@@ -358,6 +358,16 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
                   hlsl->subtype);
           break;
         }
+        case LF_ALIAS:
+        {
+          lfAlias *alias = (lfAlias *)leaf;
+          SPDBLOG("Type %x is an alias for %x", id, alias->utype);
+
+          typeInfo[id] = typeInfo[alias->utype];
+          typeInfo[id].name = (char *)alias->Name;
+
+          break;
+        }
         case LF_MODIFIER_EX:
         {
           lfModifierEx *modifier = (lfModifierEx *)leaf;
