@@ -82,8 +82,11 @@ void Command::Recv(StreamReader &reader)
   }
 
   data.clear();
-  data.resize(length - 11);
-  reader.Read(&data[0], data.size());
+  if(length >= 11)
+  {
+    data.resize(length - 11);
+    reader.Read(&data[0], data.size());
+  }
 }
 
 CommandData Command::GetData()
