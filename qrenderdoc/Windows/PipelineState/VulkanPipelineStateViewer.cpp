@@ -2368,6 +2368,9 @@ void VulkanPipelineStateViewer::shaderView_clicked()
                         ? m_Ctx.CurVulkanPipelineState()->compute.pipelineResourceId
                         : m_Ctx.CurVulkanPipelineState()->graphics.pipelineResourceId;
 
+  if(!shaderDetails)
+    return;
+
   IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, pipe);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);

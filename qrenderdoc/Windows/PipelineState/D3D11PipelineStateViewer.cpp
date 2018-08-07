@@ -2258,6 +2258,9 @@ void D3D11PipelineStateViewer::shaderView_clicked()
     shaderDetails = stage->reflection;
   }
 
+  if(!shaderDetails)
+    return;
+
   IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, ResourceId());
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);

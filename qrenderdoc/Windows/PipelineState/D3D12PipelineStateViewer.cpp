@@ -2097,6 +2097,9 @@ void D3D12PipelineStateViewer::shaderView_clicked()
   if(stage == NULL || stage->resourceId == ResourceId())
     return;
 
+  if(!stage->reflection)
+    return;
+
   IShaderViewer *shad =
       m_Ctx.ViewShader(stage->reflection, m_Ctx.CurD3D12PipelineState()->pipelineResourceId);
 

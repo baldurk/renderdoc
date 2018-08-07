@@ -2260,6 +2260,9 @@ void GLPipelineStateViewer::shaderView_clicked()
 
   ShaderReflection *shaderDetails = stage->reflection;
 
+  if(!shaderDetails)
+    return;
+
   IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, ResourceId());
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
