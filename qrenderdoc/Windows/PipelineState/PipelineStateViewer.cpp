@@ -202,6 +202,9 @@ void PipelineStateViewer::setToVulkan()
 
 QXmlStreamWriter *PipelineStateViewer::beginHTMLExport()
 {
+  if(!m_Ctx.IsCaptureLoaded())
+    return NULL;
+
   QString filename = RDDialog::getSaveFileName(this, tr("Export pipeline state as HTML"), QString(),
                                                tr("HTML files (*.html)"));
 
