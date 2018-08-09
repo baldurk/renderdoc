@@ -1411,14 +1411,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
       data += layout.offset;
 
-      float widthf = float(imInfo.extent.width);
-      float heightf = float(imInfo.extent.height);
-
-      float aspect = widthf / heightf;
-
       thwidth = (uint16_t)RDCMIN(maxSize, imInfo.extent.width);
       thwidth &= ~0x7;    // align down to multiple of 8
-      thheight = uint16_t(float(thwidth) / aspect);
+      thheight = uint16_t(thwidth * imInfo.extent.height / imInfo.extent.width);
 
       thpixelslen = 3U * thwidth * thheight;
       thpixels = new byte[thpixelslen];
@@ -1452,11 +1447,10 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       {
         for(uint32_t x = 0; x < thwidth; x++)
         {
-          float xf = float(x) / float(thwidth);
-          float yf = float(y) / float(thheight);
+          uint32_t xSource = x * imInfo.extent.width / thwidth;
+          uint32_t ySource = y * imInfo.extent.height / thheight;
 
-          byte *src =
-              &data[stride * uint32_t(xf * widthf) + layout.rowPitch * uint32_t(yf * heightf)];
+          byte *src = &data[stride * xSource + layout.rowPitch * ySource];
 
           if(buf1010102)
           {
