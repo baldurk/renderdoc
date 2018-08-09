@@ -229,6 +229,12 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     }
   }
 
+  // In development builds of RenderDoc, replay traces with validation
+  // layers forced ON to see reported Vulkan VL errors.
+#if ENABLED(RDOC_DEVEL)
+  bool hasValidationLayers = false;
+#endif
+
   // verify that extensions & layers are supported
   for(size_t i = 0; i < params.Layers.size(); i++)
   {
@@ -237,7 +243,17 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
       RDCERR("Capture requires layer '%s' which is not supported", params.Layers[i].c_str());
       return ReplayStatus::APIHardwareUnsupported;
     }
+
+#if ENABLED(RDOC_DEVEL)
+    if(params.Layers[i] == "VK_LAYER_LUNARG_standard_validation")
+      hasValidationLayers = true;
+#endif
   }
+
+#if ENABLED(RDOC_DEVEL)
+  if(!hasValidationLayers)
+    params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
 
   for(size_t i = 0; i < params.Extensions.size(); i++)
   {
