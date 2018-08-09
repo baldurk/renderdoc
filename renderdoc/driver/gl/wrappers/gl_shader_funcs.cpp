@@ -274,6 +274,8 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
       reflection.stage = MakeShaderStage(type);
 
+      reflection.debugInfo.encoding = ShaderEncoding::GLSL;
+
       reflection.debugInfo.files.resize(1);
       reflection.debugInfo.files[0].filename = "main.glsl";
       reflection.debugInfo.files[0].contents = concatenated;

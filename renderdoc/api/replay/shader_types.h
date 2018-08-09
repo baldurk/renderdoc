@@ -915,11 +915,14 @@ struct ShaderDebugInfo
   DOCUMENT("A :class:`ShaderCompileFlags` containing the flags used to compile this shader.");
   ShaderCompileFlags compileFlags;
 
-  DOCUMENT(R"(A list of :class:`ShaderSourceFile`.
+  DOCUMENT(R"(A list of :class:`ShaderSourceFile`, encoded in the form denoted by :data:`encoding`.
 
 The first entry in the list is always the file where the entry point is.
 )");
   rdcarray<ShaderSourceFile> files;
+
+  DOCUMENT("The :class:`ShaderEncoding` of the source. See :data:`files`.");
+  ShaderEncoding encoding = ShaderEncoding::Unknown;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugInfo);

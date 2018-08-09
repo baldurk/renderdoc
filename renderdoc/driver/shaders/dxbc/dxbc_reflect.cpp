@@ -226,6 +226,8 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
   {
     refl->entryPoint = dxbc->m_DebugInfo->GetEntryFunction();
 
+    refl->debugInfo.encoding = ShaderEncoding::HLSL;
+
     refl->debugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
 
     refl->debugInfo.files.resize(dxbc->m_DebugInfo->Files.size());

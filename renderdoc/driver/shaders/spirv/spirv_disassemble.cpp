@@ -3963,6 +3963,12 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())
   {
+    reflection.debugInfo.encoding = ShaderEncoding::Unknown;
+    if(sourceLang == spv::SourceLanguageHLSL)
+      reflection.debugInfo.encoding = ShaderEncoding::HLSL;
+    else if(sourceLang == spv::SourceLanguageGLSL || sourceLang == spv::SourceLanguageESSL)
+      reflection.debugInfo.encoding = ShaderEncoding::GLSL;
+
     reflection.debugInfo.files.reserve(sourceFiles.size());
 
     for(size_t i = 0; i < sourceFiles.size(); i++)

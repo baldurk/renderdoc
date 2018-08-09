@@ -1376,6 +1376,10 @@ constexpr inline bool IsD3D(GraphicsAPI api)
 
 DOCUMENT(R"(Identifies a shader encoding used to pass shader code to an API.
 
+.. data:: Unknown
+
+  Unknown or unprocessable format.
+
 .. data:: DXBC
 
   DXBC binary shader, used by D3D11 and D3D12.
@@ -1387,14 +1391,29 @@ DOCUMENT(R"(Identifies a shader encoding used to pass shader code to an API.
 .. data:: SPIRV
 
   SPIR-V binary shader, used by Vulkan and with an extension by OpenGL.
+
+.. data:: SPIRVAsm
+
+  Canonical SPIR-V assembly form, used (indirectly via :data:`SPIRV`) by Vulkan and with an
+  extension by OpenGL.
+
+.. data:: HLSL
+
+  HLSL in string format, used by D3D11, D3D12, and Vulkan/GL via compilation to SPIR-V.
 )");
 enum class ShaderEncoding : uint32_t
 {
+  Unknown,
+  First = Unknown,
   DXBC,
   GLSL,
   SPIRV,
+  SPIRVAsm,
+  HLSL,
+  Count,
 };
 
+ITERABLE_OPERATORS(ShaderEncoding);
 DECLARE_REFLECTION_ENUM(ShaderEncoding);
 
 DOCUMENT(R"(A primitive topology used for processing vertex data.
