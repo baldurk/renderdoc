@@ -373,13 +373,15 @@ struct CaptureContextInvoker : ICaptureContext
   {
     InvokeVoidFunction(&ICaptureContext::ShowResourceInspector);
   }
-  virtual IShaderViewer *EditShader(bool customShader, const rdcstr &entryPoint,
-                                    const rdcstrpairs &files,
+  virtual IShaderViewer *EditShader(bool customShader, ShaderStage stage, const rdcstr &entryPoint,
+                                    const rdcstrpairs &files, ShaderEncoding shaderEncoding,
+                                    ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,
                                     IShaderViewer::CloseCallback closeCallback) override
   {
-    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::EditShader, customShader,
-                                              entryPoint, files, saveCallback, closeCallback);
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::EditShader, customShader, stage,
+                                              entryPoint, files, shaderEncoding, flags,
+                                              saveCallback, closeCallback);
   }
 
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,

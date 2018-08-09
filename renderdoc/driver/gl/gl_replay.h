@@ -178,9 +178,10 @@ public:
 
   void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
-  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors);
   rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {ShaderEncoding::GLSL}; }
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         string *errors);
   void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                          ShaderStage type, ResourceId *id, string *errors);
   void FreeCustomShader(ResourceId id);

@@ -2330,7 +2330,9 @@ void GLPipelineStateViewer::shaderEdit_clicked()
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->shaderResourceId, shaderDetails, entryFunc, files);
+  // we always consider the input GLSL
+  m_Common.EditShader(stage->stage, stage->shaderResourceId, shaderDetails, entryFunc,
+                      ShaderEncoding::GLSL, files);
 }
 
 void GLPipelineStateViewer::shaderSave_clicked()

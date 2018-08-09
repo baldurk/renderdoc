@@ -987,8 +987,8 @@ rdcarray<ShaderEncoding> ReplayProxy::GetTargetShaderEncodings()
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                            std::string source, std::string entry,
-                                            const ShaderCompileFlags &compileFlags,
+                                            ShaderEncoding sourceEncoding, bytebuf source,
+                                            std::string entry, const ShaderCompileFlags &compileFlags,
                                             ShaderStage type, ResourceId *id, std::string *errors)
 {
   const ReplayProxyPacket packet = eReplayProxy_BuildTargetShader;
@@ -997,6 +997,7 @@ void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSer
 
   {
     BEGIN_PARAMS();
+    SERIALISE_ELEMENT(sourceEncoding);
     SERIALISE_ELEMENT(source);
     SERIALISE_ELEMENT(entry);
     SERIALISE_ELEMENT(compileFlags);
@@ -1005,7 +1006,8 @@ void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSer
   }
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-    m_Remote->BuildTargetShader(source, entry, compileFlags, type, &ret_id, &ret_errors);
+    m_Remote->BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, &ret_id,
+                                &ret_errors);
 
   {
     ReturnSerialiser &ser = retser;
@@ -1021,11 +1023,11 @@ void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSer
   }
 }
 
-void ReplayProxy::BuildTargetShader(std::string source, std::string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, std::string *errors)
+void ReplayProxy::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                    std::string entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId *id, std::string *errors)
 {
-  PROXY_FUNCTION(BuildTargetShader, source, entry, compileFlags, type, id, errors);
+  PROXY_FUNCTION(BuildTargetShader, sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2102,7 +2104,8 @@ bool ReplayProxy::Tick(int type)
     }
     case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, 0, MeshDataStage::Unknown); break;
     case eReplayProxy_BuildTargetShader:
-      BuildTargetShader("", "", ShaderCompileFlags(), ShaderStage::Vertex, NULL, NULL);
+      BuildTargetShader(ShaderEncoding::Unknown, bytebuf(), "", ShaderCompileFlags(),
+                        ShaderStage::Vertex, NULL, NULL);
       break;
     case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;

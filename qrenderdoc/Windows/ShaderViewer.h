@@ -61,15 +61,16 @@ class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
   Q_OBJECT
 
 public:
-  static IShaderViewer *EditShader(ICaptureContext &ctx, bool customShader,
+  static IShaderViewer *EditShader(ICaptureContext &ctx, bool customShader, ShaderStage stage,
                                    const QString &entryPoint, const rdcstrpairs &files,
+                                   ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                    IShaderViewer::SaveCallback saveCallback,
                                    IShaderViewer::CloseCallback closeCallback, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
     ret->m_SaveCallback = saveCallback;
     ret->m_CloseCallback = closeCallback;
-    ret->editShader(customShader, entryPoint, files);
+    ret->editShader(customShader, stage, entryPoint, files, shaderEncoding, flags);
     return ret;
   }
 
@@ -153,10 +154,13 @@ public slots:
 
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
-  void editShader(bool customShader, const QString &entryPoint, const rdcstrpairs &files);
+  void editShader(bool customShader, ShaderStage stage, const QString &entryPoint,
+                  const rdcstrpairs &files, ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
   bool eventFilter(QObject *watched, QEvent *event) override;
+
+  bool ProcessIncludeDirectives(QString &source, const rdcstrpairs &files);
 
   const rdcarray<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
   void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx, int &arrayIdx);
@@ -182,6 +186,9 @@ private:
   ICaptureContext &m_Ctx;
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
+  ShaderEncoding m_Encoding;
+  rdcstr m_EntryPoint;
+  ShaderCompileFlags m_Flags;
   ShaderStage m_Stage;
   QString m_DebugContext;
   ResourceId m_Pipeline;

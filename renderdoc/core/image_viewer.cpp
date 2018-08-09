@@ -242,10 +242,15 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors)
-  {
   rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {}; }
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         string *errors)
+  {
+    if(id)
+      *id = ResourceId();
+    if(errors)
+      *errors = "Building target shaders is unsupported";
   }
   void ReplaceResource(ResourceId from, ResourceId to) {}
   void RemoveReplacement(ResourceId id) {}

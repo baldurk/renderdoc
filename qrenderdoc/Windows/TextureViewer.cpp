@@ -3872,15 +3872,17 @@ void TextureViewer::on_customEdit_clicked()
   files.push_back(make_rdcpair<rdcstr, rdcstr>(filename, src));
 
   IShaderViewer *s = m_Ctx.EditShader(
-      true, lit("main"), files,
+      true, ShaderStage::Fragment, lit("main"), files,
+      IsD3D(m_Ctx.APIProps().localRenderer) ? ShaderEncoding::HLSL : ShaderEncoding::GLSL,
+      ShaderCompileFlags(),
       // Save Callback
-      [this, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer,
-                                  const rdcstrpairs &updatedfiles) {
+      [this, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer, ShaderEncoding encoding,
+                                  ShaderCompileFlags flags, rdcstr entryFunc, bytebuf bytes) {
         {
           QFile fileHandle(path);
           if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
           {
-            fileHandle.write(updatedfiles[0].second.c_str());
+            fileHandle.write(QByteArray(bytes));
             fileHandle.close();
 
             // watcher doesn't trigger on internal modifications

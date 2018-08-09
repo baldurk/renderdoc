@@ -2434,6 +2434,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
   rdcstrpairs files;
 
   bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
+  ShaderEncoding encoding = shaderDetails->debugInfo.encoding;
 
   if(hasOrigSource)
   {
@@ -2449,8 +2450,12 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
 
     if(!glsl.isEmpty())
     {
+      // if we decompiled, we expect the entry point name to be the same and assume GLSL
+      // decompilation for now
+      entryFunc = shaderDetails->entryPoint;
+      encoding = ShaderEncoding::GLSL;
       files.clear();
-      files.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", glsl));
+      files.push_back(make_rdcpair<rdcstr, rdcstr>("decompiled", glsl));
     }
     else
     {
@@ -2459,15 +2464,16 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
 
         GUIInvoke::call(this, [this, stage, shaderDetails, entryFunc, disasm]() {
           rdcstrpairs fileMap;
-          fileMap.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", disasm));
-          m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, fileMap);
+          fileMap.push_back(make_rdcpair<rdcstr, rdcstr>("pseudo_disassembly", disasm));
+          m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc,
+                              ShaderEncoding::Unknown, fileMap);
         });
       });
       return;
     }
   }
 
-  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, files);
+  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, encoding, files);
 }
 
 void VulkanPipelineStateViewer::shaderSave_clicked()

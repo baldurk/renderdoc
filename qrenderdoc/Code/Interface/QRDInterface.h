@@ -510,8 +510,11 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
   :param CaptureContext context: The current capture context.
   :param ShaderViewer viewer: The open shader viewer.
-  :param list files: A ``list`` with 2-tuples of ``str``, the first element being the filename and
-    the second element being the file contents.
+  :param ShaderEncoding encoding: The encoding of the files being passed.
+  :param ShaderCompileFlags flags: The flags to use during compilation.
+  :param str entryFunc: The name of the entry point.
+  :param bytes source: The byte buffer containing the source - may just be text depending on the
+    encoding.
 
 .. function:: CloseCallback(context)
 
@@ -523,7 +526,9 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 )");
 struct IShaderViewer
 {
-  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, const rdcstrpairs &)> SaveCallback;
+  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, ShaderEncoding,
+                             ShaderCompileFlags, rdcstr, bytebuf)>
+      SaveCallback;
   typedef std::function<void(ICaptureContext *ctx)> CloseCallback;
 
   DOCUMENT(
@@ -1721,9 +1726,12 @@ place if needed.
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing an editable view of a given shader.
 
 :param bool customShader: ``True`` if the shader being edited is a custom display shader.
+:param ~renderdoc.ShaderStage stage: The shader stage for this shader.
 :param str entryPoint: The entry point to be used when compiling the edited shader.
 :param list files: The files stored in a ``list`` with 2-tuples of ``str``. The first element being
   the filename and the second being the file contents.
+:param ~renderdoc.ShaderEncoding shaderEncoding: The encoding of the input files.
+:param ~renderdoc.ShaderCompileFlags flags: The flags originally used to compile the shader.
 :param ShaderViewer.SaveCallback saveCallback: The callback function to call when a save/update is
   triggered.
 :param ShaderViewer.CloseCallback closeCallback: The callback function to call when the shader
@@ -1731,8 +1739,9 @@ place if needed.
 :return: The new :class:`ShaderViewer` window opened but not shown for editing.
 :rtype: ShaderViewer
 )");
-  virtual IShaderViewer *EditShader(bool customShader, const rdcstr &entryPoint,
-                                    const rdcstrpairs &files,
+  virtual IShaderViewer *EditShader(bool customShader, ShaderStage stage, const rdcstr &entryPoint,
+                                    const rdcstrpairs &files, ShaderEncoding shaderEncoding,
+                                    ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,
                                     IShaderViewer::CloseCallback closeCallback) = 0;
 

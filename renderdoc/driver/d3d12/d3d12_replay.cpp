@@ -2688,12 +2688,10 @@ vector<DebugMessage> D3D12Replay::GetDebugMessages()
   return m_pDevice->GetDebugMessages();
 }
 
-void D3D12Replay::BuildShader(std::string source, std::string entry,
+void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                               const ShaderCompileFlags &compileFlags, ShaderStage type,
                               ResourceId *id, std::string *errors)
 {
-  uint32_t flags = DXBC::DecodeFlags(compileFlags);
-
   if(id == NULL || errors == NULL)
   {
     if(id)
@@ -2701,51 +2699,62 @@ void D3D12Replay::BuildShader(std::string source, std::string entry,
     return;
   }
 
-  char *profile = NULL;
-
-  switch(type)
+  if(sourceEncoding == ShaderEncoding::HLSL)
   {
-    case ShaderStage::Vertex: profile = "vs_5_0"; break;
-    case ShaderStage::Hull: profile = "hs_5_0"; break;
-    case ShaderStage::Domain: profile = "ds_5_0"; break;
-    case ShaderStage::Geometry: profile = "gs_5_0"; break;
-    case ShaderStage::Pixel: profile = "ps_5_0"; break;
-    case ShaderStage::Compute: profile = "cs_5_0"; break;
-    default:
-      RDCERR("Unexpected type in BuildShader!");
+    uint32_t flags = DXBC::DecodeFlags(compileFlags);
+
+    char *profile = NULL;
+
+    switch(type)
+    {
+      case ShaderStage::Vertex: profile = "vs_5_0"; break;
+      case ShaderStage::Hull: profile = "hs_5_0"; break;
+      case ShaderStage::Domain: profile = "ds_5_0"; break;
+      case ShaderStage::Geometry: profile = "gs_5_0"; break;
+      case ShaderStage::Pixel: profile = "ps_5_0"; break;
+      case ShaderStage::Compute: profile = "cs_5_0"; break;
+      default:
+        RDCERR("Unexpected type in BuildShader!");
+        *id = ResourceId();
+        return;
+    }
+
+    std::string hlsl;
+    hlsl.assign((const char *)source.data(), source.size());
+
+    ID3DBlob *blob = NULL;
+    *errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
+                                                         profile, &blob);
+
+    if(blob == NULL)
+    {
       *id = ResourceId();
       return;
-  }
+    }
 
-  ID3DBlob *blob = NULL;
-  *errors = m_pDevice->GetShaderCache()->GetShaderBlob(source.c_str(), entry.c_str(), flags,
-                                                       profile, &blob);
+    source.clear();
+    source.assign((byte *)blob->GetBufferPointer(), blob->GetBufferSize());
 
-  if(blob == NULL)
-  {
-    *id = ResourceId();
-    return;
+    SAFE_RELEASE(blob);
   }
 
   D3D12_SHADER_BYTECODE byteCode;
-  byteCode.BytecodeLength = blob->GetBufferSize();
-  byteCode.pShaderBytecode = blob->GetBufferPointer();
+  byteCode.BytecodeLength = source.size();
+  byteCode.pShaderBytecode = source.data();
 
   WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_pDevice, NULL);
-
-  SAFE_RELEASE(blob);
 
   *id = sh->GetResourceID();
 }
 
-void D3D12Replay::BuildTargetShader(std::string source, std::string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, std::string *errors)
+void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                    std::string entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId *id, std::string *errors)
 {
   ShaderCompileFlags debugCompileFlags =
       DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
 
-  BuildShader(source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
 }
 
 void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -3282,7 +3291,10 @@ void D3D12Replay::BuildCustomShader(std::string source, std::string entry,
                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
                                     ResourceId *id, std::string *errors)
 {
-  BuildShader(source, entry, compileFlags, type, id, errors);
+  bytebuf buf;
+  buf.resize(source.size());
+  memcpy(buf.data(), source.c_str(), buf.size());
+  BuildShader(ShaderEncoding::HLSL, buf, entry, compileFlags, type, id, errors);
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,

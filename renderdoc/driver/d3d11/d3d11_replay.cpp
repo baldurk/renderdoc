@@ -2210,12 +2210,10 @@ D3D11DebugManager *D3D11Replay::GetDebugManager()
   return m_pDevice->GetDebugManager();
 }
 
-void D3D11Replay::BuildShader(std::string source, std::string entry,
+void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                               const ShaderCompileFlags &compileFlags, ShaderStage type,
                               ResourceId *id, std::string *errors)
 {
-  uint32_t flags = DXBC::DecodeFlags(compileFlags);
-
   if(id == NULL || errors == NULL)
   {
     if(id)
@@ -2223,30 +2221,44 @@ void D3D11Replay::BuildShader(std::string source, std::string entry,
     return;
   }
 
-  char *profile = NULL;
-
-  switch(type)
+  if(sourceEncoding == ShaderEncoding::HLSL)
   {
-    case ShaderStage::Vertex: profile = "vs_5_0"; break;
-    case ShaderStage::Hull: profile = "hs_5_0"; break;
-    case ShaderStage::Domain: profile = "ds_5_0"; break;
-    case ShaderStage::Geometry: profile = "gs_5_0"; break;
-    case ShaderStage::Pixel: profile = "ps_5_0"; break;
-    case ShaderStage::Compute: profile = "cs_5_0"; break;
-    default:
-      RDCERR("Unexpected type in BuildShader!");
+    uint32_t flags = DXBC::DecodeFlags(compileFlags);
+
+    char *profile = NULL;
+
+    switch(type)
+    {
+      case ShaderStage::Vertex: profile = "vs_5_0"; break;
+      case ShaderStage::Hull: profile = "hs_5_0"; break;
+      case ShaderStage::Domain: profile = "ds_5_0"; break;
+      case ShaderStage::Geometry: profile = "gs_5_0"; break;
+      case ShaderStage::Pixel: profile = "ps_5_0"; break;
+      case ShaderStage::Compute: profile = "cs_5_0"; break;
+      default:
+        RDCERR("Unexpected type in BuildShader!");
+        *id = ResourceId();
+        return;
+    }
+
+    std::string hlsl;
+    hlsl.assign((const char *)source.data(), source.size());
+
+    ID3DBlob *blob = NULL;
+
+    *errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
+                                                         profile, &blob);
+
+    if(blob == NULL)
+    {
       *id = ResourceId();
       return;
-  }
+    }
 
-  ID3DBlob *blob = NULL;
-  *errors = m_pDevice->GetShaderCache()->GetShaderBlob(source.c_str(), entry.c_str(), flags,
-                                                       profile, &blob);
+    source.clear();
+    source.assign((byte *)blob->GetBufferPointer(), blob->GetBufferSize());
 
-  if(blob == NULL)
-  {
-    *id = ResourceId();
-    return;
+    SAFE_RELEASE(blob);
   }
 
   switch(type)
@@ -2254,105 +2266,124 @@ void D3D11Replay::BuildShader(std::string source, std::string entry,
     case ShaderStage::Vertex:
     {
       ID3D11VertexShader *sh = NULL;
-      m_pDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
+      HRESULT hr = m_pDevice->CreateVertexShader(source.data(), source.size(), NULL, &sh);
 
       if(sh != NULL)
+      {
         *id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
+      }
       else
+      {
+        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
         *id = ResourceId();
+      }
       return;
     }
     case ShaderStage::Hull:
     {
       ID3D11HullShader *sh = NULL;
-      m_pDevice->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
+      HRESULT hr = m_pDevice->CreateHullShader(source.data(), source.size(), NULL, &sh);
 
       if(sh != NULL)
+      {
         *id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
+      }
       else
+      {
+        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
         *id = ResourceId();
+      }
       return;
     }
     case ShaderStage::Domain:
     {
       ID3D11DomainShader *sh = NULL;
-      m_pDevice->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
+      HRESULT hr = m_pDevice->CreateDomainShader(source.data(), source.size(), NULL, &sh);
 
       if(sh != NULL)
+      {
         *id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
+      }
       else
+      {
+        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
         *id = ResourceId();
+      }
       return;
     }
     case ShaderStage::Geometry:
     {
       ID3D11GeometryShader *sh = NULL;
-      m_pDevice->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
+      HRESULT hr = m_pDevice->CreateGeometryShader(source.data(), source.size(), NULL, &sh);
 
       if(sh != NULL)
+      {
         *id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
+      }
       else
+      {
+        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
         *id = ResourceId();
+      }
       return;
     }
     case ShaderStage::Pixel:
     {
       ID3D11PixelShader *sh = NULL;
-      m_pDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
+      HRESULT hr = m_pDevice->CreatePixelShader(source.data(), source.size(), NULL, &sh);
 
       if(sh != NULL)
+      {
         *id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
+      }
       else
+      {
+        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
         *id = ResourceId();
+      }
       return;
     }
     case ShaderStage::Compute:
     {
       ID3D11ComputeShader *sh = NULL;
-      m_pDevice->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
-
-      SAFE_RELEASE(blob);
+      HRESULT hr = m_pDevice->CreateComputeShader(source.data(), source.size(), NULL, &sh);
 
       if(sh != NULL)
+      {
         *id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
+      }
       else
+      {
+        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
         *id = ResourceId();
+      }
       return;
     }
     default: break;
   }
 
-  SAFE_RELEASE(blob);
-
   RDCERR("Unexpected type in BuildShader!");
   *id = ResourceId();
 }
 
-void D3D11Replay::BuildTargetShader(std::string source, std::string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, std::string *errors)
+void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                    std::string entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId *id, std::string *errors)
 {
   ShaderCompileFlags debugCompileFlags =
       DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
 
-  BuildShader(source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
 }
 
 void D3D11Replay::BuildCustomShader(std::string source, std::string entry,
                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
                                     ResourceId *id, std::string *errors)
 {
-  BuildShader(source, entry, compileFlags, type, id, errors);
+  bytebuf buf;
+  buf.resize(source.size());
+  memcpy(buf.data(), source.c_str(), buf.size());
+  BuildShader(ShaderEncoding::HLSL, buf, entry, compileFlags, type, id, errors);
 }
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)

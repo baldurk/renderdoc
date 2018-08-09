@@ -192,8 +192,9 @@ public:
   void ShowPythonShell() override;
   void ShowResourceInspector() override;
 
-  IShaderViewer *EditShader(bool customShader, const rdcstr &entryPoint, const rdcstrpairs &files,
-                            IShaderViewer::SaveCallback saveCallback,
+  IShaderViewer *EditShader(bool customShader, ShaderStage stage, const rdcstr &entryPoint,
+                            const rdcstrpairs &files, ShaderEncoding shaderEncoding,
+                            ShaderCompileFlags flags, IShaderViewer::SaveCallback saveCallback,
                             IShaderViewer::CloseCallback closeCallback) override;
 
   IShaderViewer *DebugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,

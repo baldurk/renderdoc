@@ -494,10 +494,10 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugThread, uint32_t eventId,
                              const uint32_t groupid[3], const uint32_t threadid[3]);
 
-  IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, std::string source, std::string entry,
-                             const ShaderCompileFlags &compileFlags, ShaderStage type,
-                             ResourceId *id, std::string *errors);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEncoding>, GetTargetShaderEncodings);
+  IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, ShaderEncoding sourceEncoding, bytebuf source,
+                             std::string entry, const ShaderCompileFlags &compileFlags,
+                             ShaderStage type, ResourceId *id, std::string *errors);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplaceResource, ResourceId from, ResourceId to);
   IMPLEMENT_FUNCTION_PROXIED(void, RemoveReplacement, ResourceId id);
 

@@ -2338,7 +2338,9 @@ void D3D11PipelineStateViewer::shaderEdit_clicked()
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, files);
+  // we always consider the input HLSL, either the stub or the original source
+  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc,
+                      ShaderEncoding::HLSL, files);
 }
 
 void D3D11PipelineStateViewer::shaderSave_clicked()

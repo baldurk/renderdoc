@@ -881,14 +881,16 @@ See :meth:`BuildCustomShader`.
 The language used is native to the API's renderer - HLSL for D3D based renderers, GLSL otherwise.
 
 :param str entry: The entry point to use when compiling.
-:param str source: The source file.
+:param ShaderEncoding sourceEncoding: The encoding of the source data.
+:param bytes source: The source data itself.
 :param ShaderCompileFlags compileFlags: API-specific compilation flags.
 :param ShaderStage type: The stage that this shader will be executed at.
 :return: A ``tuple`` with the id of the new shader if compilation was successful,
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry, const char *source,
+  virtual rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry,
+                                                        ShaderEncoding sourceEncoding, bytebuf source,
                                                         const ShaderCompileFlags &flags,
                                                         ShaderStage type) = 0;
 

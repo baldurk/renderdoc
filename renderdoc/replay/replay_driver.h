@@ -137,8 +137,9 @@ public:
   virtual void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                               const GetTextureDataParams &params, bytebuf &data) = 0;
 
-  virtual void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                                 ShaderStage type, ResourceId *id, string *errors) = 0;
+  virtual void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+                                 const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                 ResourceId *id, string *errors) = 0;
   virtual rdcarray<ShaderEncoding> GetTargetShaderEncodings() = 0;
   virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual void RemoveReplacement(ResourceId id) = 0;

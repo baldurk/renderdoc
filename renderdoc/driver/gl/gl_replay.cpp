@@ -2736,8 +2736,9 @@ void GLReplay::FreeCustomShader(ResourceId id)
   m_pDriver->glDeleteProgram(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
-void GLReplay::BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                                 ShaderStage type, ResourceId *id, string *errors)
+void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+                                 const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                 ResourceId *id, string *errors)
 {
   if(id == NULL || errors == NULL)
   {
@@ -2768,7 +2769,8 @@ void GLReplay::BuildTargetShader(string source, string entry, const ShaderCompil
     }
   }
 
-  const char *src = source.c_str();
+  std::string glsl((char *)source.begin(), (char *)source.end());
+  const char *src = glsl.c_str();
   GLuint shader = drv.glCreateShader(shtype);
   drv.glShaderSource(shader, 1, &src, NULL);
   drv.glCompileShader(shader);

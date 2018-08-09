@@ -719,132 +719,35 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
 }
 
 void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
-                                     const ShaderReflection *shaderDetails,
-                                     const QString &entryFunc, const rdcstrpairs &files)
+                                     const ShaderReflection *shaderDetails, const QString &entry,
+                                     ShaderEncoding encoding, const rdcstrpairs &files)
 {
+  if(!shaderDetails)
+    return;
+
   IShaderViewer *sv = m_Ctx.EditShader(
-      false, entryFunc, files,
+      false, shaderDetails->stage, entry, files, encoding, shaderDetails->debugInfo.compileFlags,
       // save callback
-      [entryFunc, shaderType, id, shaderDetails](ICaptureContext *ctx, IShaderViewer *viewer,
-                                                 const rdcstrpairs &updatedfiles) {
-        QString compileSource = updatedfiles[0].second;
+      [shaderType, id, shaderDetails](ICaptureContext *ctx, IShaderViewer *viewer,
+                                      ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
+                                      rdcstr entryFunc, bytebuf shaderBytes) {
+
+        if(shaderBytes.isEmpty())
+          return;
 
         ANALYTIC_SET(UIFeatures.ShaderEditing, true);
 
-        // try and match up #includes against the files that we have. This isn't always
-        // possible as fxc only seems to include the source for files if something in
-        // that file was included in the compiled output. So you might end up with
-        // dangling #includes - we just have to ignore them
-        int offs = compileSource.indexOf(lit("#include"));
-
-        while(offs >= 0)
-        {
-          // search back to ensure this is a valid #include (ie. not in a comment).
-          // Must only see whitespace before, then a newline.
-          int ws = qMax(0, offs - 1);
-          while(ws >= 0 &&
-                (compileSource[ws] == QLatin1Char(' ') || compileSource[ws] == QLatin1Char('\t')))
-            ws--;
-
-          // not valid? jump to next.
-          if(ws > 0 && compileSource[ws] != QLatin1Char('\n'))
-          {
-            offs = compileSource.indexOf(lit("#include"), offs + 1);
-            continue;
-          }
-
-          int start = ws + 1;
-
-          bool tail = true;
-
-          int lineEnd = compileSource.indexOf(QLatin1Char('\n'), start + 1);
-          if(lineEnd == -1)
-          {
-            lineEnd = compileSource.length();
-            tail = false;
-          }
-
-          ws = offs + sizeof("#include") - 1;
-          while(compileSource[ws] == QLatin1Char(' ') || compileSource[ws] == QLatin1Char('\t'))
-            ws++;
-
-          QString line = compileSource.mid(offs, lineEnd - offs + 1);
-
-          if(compileSource[ws] != QLatin1Char('<') && compileSource[ws] != QLatin1Char('"'))
-          {
-            viewer->ShowErrors(lit("Invalid #include directive found:\r\n") + line);
-            return;
-          }
-
-          // find matching char, either <> or "";
-          int end = compileSource.indexOf(
-              compileSource[ws] == QLatin1Char('"') ? QLatin1Char('"') : QLatin1Char('>'), ws + 1);
-
-          if(end == -1)
-          {
-            viewer->ShowErrors(lit("Invalid #include directive found:\r\n") + line);
-            return;
-          }
-
-          QString fname = compileSource.mid(ws + 1, end - ws - 1);
-
-          QString fileText;
-
-          // look for exact match first
-          for(int i = 0; i < updatedfiles.count(); i++)
-          {
-            if(QString(updatedfiles[i].first) == fname)
-            {
-              fileText = updatedfiles[i].second;
-              break;
-            }
-          }
-
-          if(fileText.isEmpty())
-          {
-            QString search = QFileInfo(fname).fileName();
-
-            // if not, try and find the same filename (this is not proper include handling!)
-            for(const rdcstrpair &kv : updatedfiles)
-            {
-              if(QFileInfo(kv.first).fileName().compare(search, Qt::CaseInsensitive) == 0)
-              {
-                fileText = kv.second;
-                break;
-              }
-            }
-
-            if(fileText.isEmpty())
-              fileText = QFormatStr("// Can't find file %1\n").arg(fname);
-          }
-
-          compileSource = compileSource.left(offs) + lit("\n\n") + fileText + lit("\n\n") +
-                          (tail ? compileSource.mid(lineEnd + 1) : QString());
-
-          // need to start searching from the beginning - wasteful but allows nested includes to
-          // work
-          offs = compileSource.indexOf(lit("#include"));
-        }
-
-        for(const rdcstrpair &kv : updatedfiles)
-        {
-          if(kv.first == "@cmdline")
-            compileSource = QString(kv.second) + lit("\n\n") + compileSource;
-        }
-
         // invoke off to the ReplayController to replace the capture's shader
         // with our edited one
-        ctx->Replay().AsyncInvoke([ctx, entryFunc, compileSource, shaderType, id, shaderDetails,
-                                   viewer](IReplayController *r) {
+        ctx->Replay().AsyncInvoke([ctx, entryFunc, shaderBytes, shaderEncoding, flags, shaderType,
+                                   id, shaderDetails, viewer](IReplayController *r) {
           rdcstr errs;
-
-          const ShaderCompileFlags &flags = shaderDetails->debugInfo.compileFlags;
 
           ResourceId from = id;
           ResourceId to;
 
-          std::tie(to, errs) = r->BuildTargetShader(
-              entryFunc.toUtf8().data(), compileSource.toUtf8().data(), flags, shaderType);
+          std::tie(to, errs) = r->BuildTargetShader(entryFunc.c_str(), shaderEncoding, shaderBytes,
+                                                    flags, shaderType);
 
           GUIInvoke::call(viewer->Widget(), [viewer, errs]() { viewer->ShowErrors(errs); });
           if(to == ResourceId())

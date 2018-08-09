@@ -1777,8 +1777,16 @@ rdcarray<ShaderEncoding> ReplayController::GetTargetShaderEncodings()
 }
 
 rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
-    const char *entry, const char *source, const ShaderCompileFlags &compileFlags, ShaderStage type)
+    const char *entry, ShaderEncoding sourceEncoding, bytebuf source,
+    const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
+  rdcarray<ShaderEncoding> encodings = m_pDevice->GetTargetShaderEncodings();
+
+  if(encodings.indexOf(sourceEncoding) == -1)
+    return make_rdcpair<ResourceId, rdcstr>(
+        ResourceId(),
+        StringFormat::Fmt("Shader Encoding '%s' is not supported", ToStr(sourceEncoding).c_str()));
+
   ResourceId id;
   string errs;
 
@@ -1793,7 +1801,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
     default: RDCERR("Unexpected type in BuildShader!"); return rdcpair<ResourceId, rdcstr>();
   }
 
-  m_pDevice->BuildTargetShader(source, entry, compileFlags, type, &id, &errs);
+  m_pDevice->BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, &id, &errs);
 
   if(id != ResourceId())
     m_TargetResources.insert(id);

@@ -176,12 +176,13 @@ public:
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                       const GetTextureDataParams &params, bytebuf &data);
 
-  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors);
   rdcarray<ShaderEncoding> GetTargetShaderEncodings()
   {
     return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
   }
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         string *errors);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
@@ -242,8 +243,9 @@ private:
 
   D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
-  void BuildShader(std::string source, std::string entry, const ShaderCompileFlags &compileFlags,
-                   ShaderStage type, ResourceId *id, std::string *errors);
+  void BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
+                   const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                   std::string *errors);
 
   void ClearPostVSCache();
 

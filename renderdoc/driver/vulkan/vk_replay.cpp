@@ -3117,39 +3117,48 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   return GetResID(GetDebugManager()->GetCustomTexture());
 }
 
-void VulkanReplay::BuildTargetShader(string source, string entry,
+void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
                                      const ShaderCompileFlags &compileFlags, ShaderStage type,
                                      ResourceId *id, string *errors)
 {
-  SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
-
-  switch(type)
-  {
-    case ShaderStage::Vertex: stage = SPIRVShaderStage::Vertex; break;
-    case ShaderStage::Hull: stage = SPIRVShaderStage::TessControl; break;
-    case ShaderStage::Domain: stage = SPIRVShaderStage::TessEvaluation; break;
-    case ShaderStage::Geometry: stage = SPIRVShaderStage::Geometry; break;
-    case ShaderStage::Pixel: stage = SPIRVShaderStage::Fragment; break;
-    case ShaderStage::Compute: stage = SPIRVShaderStage::Compute; break;
-    default:
-      RDCERR("Unexpected type in BuildShader!");
-      *id = ResourceId();
-      return;
-  }
-
-  vector<string> sources;
-  sources.push_back(source);
   vector<uint32_t> spirv;
 
-  SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
-
-  string output = CompileSPIRV(settings, sources, spirv);
-
-  if(spirv.empty())
+  if(sourceEncoding == ShaderEncoding::GLSL)
   {
-    *id = ResourceId();
-    *errors = output;
-    return;
+    SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
+
+    switch(type)
+    {
+      case ShaderStage::Vertex: stage = SPIRVShaderStage::Vertex; break;
+      case ShaderStage::Hull: stage = SPIRVShaderStage::TessControl; break;
+      case ShaderStage::Domain: stage = SPIRVShaderStage::TessEvaluation; break;
+      case ShaderStage::Geometry: stage = SPIRVShaderStage::Geometry; break;
+      case ShaderStage::Pixel: stage = SPIRVShaderStage::Fragment; break;
+      case ShaderStage::Compute: stage = SPIRVShaderStage::Compute; break;
+      default:
+        RDCERR("Unexpected type in BuildShader!");
+        *id = ResourceId();
+        return;
+    }
+
+    vector<string> sources;
+    sources.push_back(std::string((char *)source.begin(), (char *)source.end()));
+
+    SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
+
+    string output = CompileSPIRV(settings, sources, spirv);
+
+    if(spirv.empty())
+    {
+      *id = ResourceId();
+      *errors = output;
+      return;
+    }
+  }
+  else
+  {
+    spirv.resize(source.size() / 4);
+    memcpy(&spirv[0], source.data(), source.size());
   }
 
   VkShaderModuleCreateInfo modinfo = {

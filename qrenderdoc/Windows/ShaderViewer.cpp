@@ -181,12 +181,19 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   m_Ctx.AddCaptureViewer(this);
 }
 
-void ShaderViewer::editShader(bool customShader, const QString &entryPoint, const rdcstrpairs &files)
+void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QString &entryPoint,
+                              const rdcstrpairs &files, ShaderEncoding shaderEncoding,
+                              ShaderCompileFlags flags)
 {
   m_Scintillas.removeOne(m_DisassemblyView);
   ui->docking->removeToolWindow(m_DisassemblyFrame);
 
   m_DisassemblyView = NULL;
+
+  m_Stage = stage;
+  m_Flags = flags;
+  m_Encoding = shaderEncoding;
+  m_EntryPoint = entryPoint;
 
   // hide debugging windows
   ui->watch->hide();
@@ -3179,6 +3186,111 @@ void ShaderViewer::on_findReplace_clicked()
   m_FindReplace->takeFocus();
 }
 
+bool ShaderViewer::ProcessIncludeDirectives(QString &source, const rdcstrpairs &files)
+{
+  // try and match up #includes against the files that we have. This isn't always
+  // possible as fxc only seems to include the source for files if something in
+  // that file was included in the compiled output. So you might end up with
+  // dangling #includes - we just have to ignore them
+  int offs = source.indexOf(lit("#include"));
+
+  while(offs >= 0)
+  {
+    // search back to ensure this is a valid #include (ie. not in a comment).
+    // Must only see whitespace before, then a newline.
+    int ws = qMax(0, offs - 1);
+    while(ws >= 0 && (source[ws] == QLatin1Char(' ') || source[ws] == QLatin1Char('\t')))
+      ws--;
+
+    // not valid? jump to next.
+    if(ws > 0 && source[ws] != QLatin1Char('\n'))
+    {
+      offs = source.indexOf(lit("#include"), offs + 1);
+      continue;
+    }
+
+    int start = ws + 1;
+
+    bool tail = true;
+
+    int lineEnd = source.indexOf(QLatin1Char('\n'), start + 1);
+    if(lineEnd == -1)
+    {
+      lineEnd = source.length();
+      tail = false;
+    }
+
+    ws = offs + sizeof("#include") - 1;
+    while(source[ws] == QLatin1Char(' ') || source[ws] == QLatin1Char('\t'))
+      ws++;
+
+    QString line = source.mid(offs, lineEnd - offs + 1);
+
+    if(source[ws] != QLatin1Char('<') && source[ws] != QLatin1Char('"'))
+    {
+      ShowErrors(lit("Invalid #include directive found:\r\n") + line);
+      return false;
+    }
+
+    // find matching char, either <> or "";
+    int end =
+        source.indexOf(source[ws] == QLatin1Char('"') ? QLatin1Char('"') : QLatin1Char('>'), ws + 1);
+
+    if(end == -1)
+    {
+      ShowErrors(lit("Invalid #include directive found:\r\n") + line);
+      return false;
+    }
+
+    QString fname = source.mid(ws + 1, end - ws - 1);
+
+    QString fileText;
+
+    // look for exact match first
+    for(int i = 0; i < files.count(); i++)
+    {
+      if(QString(files[i].first) == fname)
+      {
+        fileText = files[i].second;
+        break;
+      }
+    }
+
+    if(fileText.isEmpty())
+    {
+      QString search = QFileInfo(fname).fileName();
+
+      // if not, try and find the same filename (this is not proper include handling!)
+      for(const rdcstrpair &kv : files)
+      {
+        if(QFileInfo(kv.first).fileName().compare(search, Qt::CaseInsensitive) == 0)
+        {
+          fileText = kv.second;
+          break;
+        }
+      }
+
+      if(fileText.isEmpty())
+        fileText = QFormatStr("// Can't find file %1\n").arg(fname);
+    }
+
+    source = source.left(offs) + lit("\n\n") + fileText + lit("\n\n") +
+             (tail ? source.mid(lineEnd + 1) : QString());
+
+    // need to start searching from the beginning - wasteful but allows nested includes to
+    // work
+    offs = source.indexOf(lit("#include"));
+  }
+
+  for(const rdcstrpair &kv : files)
+  {
+    if(kv.first == "@cmdline")
+      source = QString(kv.second) + lit("\n\n") + source;
+  }
+
+  return true;
+}
+
 void ShaderViewer::on_refresh_clicked()
 {
   if(m_Trace)
@@ -3189,6 +3301,8 @@ void ShaderViewer::on_refresh_clicked()
 
   if(m_SaveCallback)
   {
+    ShaderEncoding encoding = m_Encoding;
+
     rdcstrpairs files;
     for(ScintillaEdit *s : m_Scintillas)
     {
@@ -3196,7 +3310,22 @@ void ShaderViewer::on_refresh_clicked()
       files.push_back(make_rdcpair<rdcstr, rdcstr>(
           w->property("filename").toString(), QString::fromUtf8(s->getText(s->textLength() + 1))));
     }
-    m_SaveCallback(&m_Ctx, this, files);
+
+    if(files.isEmpty())
+      return;
+
+    QString source = files[0].second;
+
+    if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::GLSL)
+    {
+      bool success = ProcessIncludeDirectives(source, files);
+      if(!success)
+        return;
+    }
+
+    bytebuf shaderBytes(source.toUtf8());
+
+    m_SaveCallback(&m_Ctx, this, encoding, m_Flags, m_EntryPoint, shaderBytes);
   }
 }
 

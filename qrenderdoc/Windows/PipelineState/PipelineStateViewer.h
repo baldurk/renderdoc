@@ -70,7 +70,7 @@ public:
                             rdcstrpairs &files);
   QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
   void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
-                  const QString &entryFunc, const rdcstrpairs &files);
+                  const QString &entryFunc, ShaderEncoding encoding, const rdcstrpairs &files);
 
   void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);
