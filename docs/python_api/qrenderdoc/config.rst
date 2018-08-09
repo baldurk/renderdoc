@@ -10,7 +10,7 @@ Config
 
 .. autoclass:: qrenderdoc.PersistantConfig
 
-.. autoclass:: qrenderdoc.SPIRVDisassembler
+.. autoclass:: qrenderdoc.ShaderProcessingTool
   :members:
   :undoc-members:
 
