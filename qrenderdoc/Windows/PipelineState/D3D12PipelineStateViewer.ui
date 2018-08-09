@@ -549,6 +549,9 @@
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
+            </property> 
+            <property name="popupMode">
+              <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -941,6 +944,9 @@
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
+            <property name="popupMode">
+              <enum>QToolButton::MenuButtonPopup</enum>
+            </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
             </property>
@@ -1326,6 +1332,9 @@
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
+            <property name="popupMode">
+              <enum>QToolButton::MenuButtonPopup</enum>
+            </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
             </property>
@@ -1710,6 +1719,9 @@
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
+            </property>
+            <property name="popupMode">
+              <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2694,6 +2706,9 @@
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
+            </property>
+            <property name="popupMode">
+              <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -3747,6 +3762,9 @@
                <property name="icon">
                 <iconset resource="../../Resources/resources.qrc">
                  <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
+               </property>
+               <property name="popupMode">
+                 <enum>QToolButton::MenuButtonPopup</enum>
                </property>
                <property name="toolButtonStyle">
                 <enum>Qt::ToolButtonTextBesideIcon</enum>

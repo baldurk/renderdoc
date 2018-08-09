@@ -35,6 +35,8 @@ class PipelineStateViewer;
 
 class QXmlStreamWriter;
 
+class QToolButton;
+class QMenu;
 class RDLabel;
 
 class D3D11PipelineStateViewer;
@@ -63,14 +65,10 @@ public:
   void OnEventChanged(uint32_t eventId) override;
 
   QVariant persistData();
-
   void setPersistData(const QVariant &persistData);
 
-  bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
-                            rdcstrpairs &files);
-  QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
-  void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
-                  const QString &entryFunc, ShaderEncoding encoding, const rdcstrpairs &files);
+  void SetupShaderEditButton(QToolButton *button, ResourceId pipelineId, ResourceId shaderId,
+                             const ShaderReflection *shaderDetails);
 
   void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);
@@ -81,9 +79,23 @@ public:
   void exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols, const QVariantList &row);
   void endHTMLExport(QXmlStreamWriter *xml);
 
+public slots:
+  void shaderEdit_clicked();
+
 private:
   Ui::PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
+
+  QMenu *editMenus[6] = {};
+
+  bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
+                            rdcstrpairs &files);
+  QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
+  void EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
+                  ShaderCompileFlags compileFlags, ShaderEncoding encoding, const rdcstrpairs &files);
+  void EditOriginalShaderSource(ResourceId id, const ShaderReflection *shaderDetails);
+  void EditDecompiledSource(const ShaderProcessingTool &tool, ResourceId id,
+                            const ShaderReflection *shaderDetails);
 
   void MakeShaderVariablesHLSL(bool cbufferContents, const rdcarray<ShaderConstant> &vars,
                                QString &struct_contents, QString &struct_defs);

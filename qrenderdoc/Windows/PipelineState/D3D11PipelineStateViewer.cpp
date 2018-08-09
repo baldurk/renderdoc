@@ -146,7 +146,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   }
 
   for(QToolButton *b : editButtons)
-    QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderEdit_clicked);
+    QObject::connect(b, &QToolButton::clicked, &m_Common, &PipelineStateViewer::shaderEdit_clicked);
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderSave_clicked);
@@ -1449,7 +1449,9 @@ void D3D11PipelineStateViewer::setState()
     if(stage == NULL || stage->resourceId == ResourceId())
       continue;
 
-    b->setEnabled(stage->reflection);
+    b->setEnabled(stage->reflection != NULL);
+
+    m_Common.SetupShaderEditButton(b, ResourceId(), stage->resourceId, stage->reflection);
   }
 
   vs = ui->csUAVs->verticalScrollBar()->value();
@@ -2307,40 +2309,6 @@ void D3D11PipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, ResourceId());
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
-}
-
-void D3D11PipelineStateViewer::shaderEdit_clicked()
-{
-  QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const D3D11Pipe::Shader *stage = stageForSender(sender);
-
-  if(!stage || stage->resourceId == ResourceId())
-    return;
-
-  const ShaderReflection *shaderDetails = stage->reflection;
-
-  if(!shaderDetails)
-    return;
-
-  QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::D3D11)[0]);
-
-  rdcstrpairs files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
-
-  if(!hasOrigSource)
-  {
-    files.clear();
-    files.push_back(make_rdcpair<rdcstr, rdcstr>(
-        "generated.hlsl", m_Common.GenerateHLSLStub(shaderDetails, entryFunc)));
-  }
-
-  if(files.empty())
-    return;
-
-  // we always consider the input HLSL, either the stub or the original source
-  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc,
-                      ShaderEncoding::HLSL, files);
 }
 
 void D3D11PipelineStateViewer::shaderSave_clicked()

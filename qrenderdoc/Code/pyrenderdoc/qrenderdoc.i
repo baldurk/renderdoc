@@ -80,7 +80,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 DOCUMENT("");
 
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, EventBookmark)
-TEMPLATE_ARRAY_INSTANTIATE(rdcarray, SPIRVDisassembler)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ShaderProcessingTool)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, rdcstrpair)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BugReport)
 TEMPLATE_ARRAY_INSTANTIATE_PTR(rdcarray, ICaptureViewer)

@@ -24,67 +24,14 @@
 
 #include "SettingsDialog.h"
 #include <QKeyEvent>
+#include <QTextEdit>
+#include <QToolButton>
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
 #include "Widgets/OrderedListEditor.h"
 #include "CaptureDialog.h"
 #include "ui_SettingsDialog.h"
-
-class KnownSPIRVToolDelegate : public QStyledItemDelegate
-{
-public:
-  explicit KnownSPIRVToolDelegate(QWidget *parent = NULL) : QStyledItemDelegate(parent) {}
-  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
-                        const QModelIndex &index) const override
-  {
-    QComboBox *editor = new QComboBox(parent);
-
-    editor->setEditable(true);
-    editor->setInsertPolicy(QComboBox::NoInsert);
-
-    QStringList items;
-    for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
-      items << ToQStr(tool);
-    editor->addItems(items);
-
-    return editor;
-  }
-
-  void setEditorData(QWidget *editor, const QModelIndex &index) const override
-  {
-    QComboBox *comboEditor = qobject_cast<QComboBox *>(editor);
-    if(comboEditor)
-    {
-      QString editData = index.data(Qt::EditRole).toString();
-
-      int idx = comboEditor->findText(editData);
-
-      if(idx >= 0)
-        comboEditor->setCurrentIndex(idx);
-      else
-        comboEditor->setCurrentText(index.data(Qt::EditRole).toString());
-
-      return;
-    }
-
-    QStyledItemDelegate::setEditorData(editor, index);
-  }
-
-  void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
-  {
-    QComboBox *comboEditor = qobject_cast<QComboBox *>(editor);
-    if(comboEditor)
-    {
-      model->setData(index, comboEditor->currentText(), Qt::EditRole);
-      return;
-    }
-
-    QStyledItemDelegate::setModelData(editor, model, index);
-  }
-
-private slots:
-};
 
 SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     : QDialog(parent), ui(new Ui::SettingsDialog), m_Ctx(ctx)
@@ -135,25 +82,22 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->saveDirectory->setText(m_Ctx.Config().DefaultCaptureSaveDirectory);
   ui->tempDirectory->setText(m_Ctx.Config().TemporaryCaptureDirectory);
 
-  ui->disassemblers->setColumnCount(3);
-  ui->disassemblers->setHorizontalHeaderLabels(QStringList() << tr("Tool") << tr("Executable")
-                                                             << tr("Arguments"));
+  ui->shaderTools->setColumnCount(2);
+  ui->shaderTools->setHorizontalHeaderLabels(QStringList() << tr("Tool") << tr("Process"));
 
-  ui->disassemblers->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
-  ui->disassemblers->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
-  ui->disassemblers->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+  ui->shaderTools->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+  ui->shaderTools->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
-  for(const SPIRVDisassembler &disasm : m_Ctx.Config().SPIRVDisassemblers)
-    addDisassembler(disasm);
+  for(const ShaderProcessingTool &tool : m_Ctx.Config().ShaderProcessors)
+    addProcessor(tool);
 
-  ui->disassemblers->horizontalHeader()->resizeSection(0, 100);
+  ui->shaderTools->horizontalHeader()->resizeSection(0, 100);
 
-  ui->disassemblers->verticalHeader()->setSectionsMovable(true);
-  ui->disassemblers->verticalHeader()->setMinimumWidth(20);
+  ui->shaderTools->verticalHeader()->setSectionsMovable(true);
+  ui->shaderTools->verticalHeader()->setMinimumWidth(20);
 
-  ui->disassemblers->setItemDelegateForColumn(0, new KnownSPIRVToolDelegate(this));
-
-  ui->deleteDisasm->setEnabled(false);
+  ui->deleteShaderTool->setEnabled(false);
+  ui->editShaderTool->setEnabled(false);
 
   ui->ExternalTool_RadeonGPUProfiler->setText(m_Ctx.Config().ExternalTool_RadeonGPUProfiler);
 
@@ -230,8 +174,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   m_Init = false;
 
-  QObject::connect(ui->disassemblers->verticalHeader(), &QHeaderView::sectionMoved, this,
-                   &SettingsDialog::disassemblers_rowMoved);
+  QObject::connect(ui->shaderTools->verticalHeader(), &QHeaderView::sectionMoved, this,
+                   &SettingsDialog::shaderTools_rowMoved);
   QObject::connect(ui->Formatter_MinFigures, OverloadedSlot<int>::of(&QSpinBox::valueChanged), this,
                    &SettingsDialog::formatter_valueChanged);
   QObject::connect(ui->Formatter_MaxFigures, OverloadedSlot<int>::of(&QSpinBox::valueChanged), this,
@@ -488,144 +432,349 @@ void SettingsDialog::on_ShaderViewer_FriendlyNaming_toggled(bool checked)
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::addDisassembler(const SPIRVDisassembler &disasm)
+void SettingsDialog::addProcessor(const ShaderProcessingTool &tool)
 {
-  // prevent calling cellChanged
-  m_AddingDisassembler = true;
+  int row = ui->shaderTools->rowCount();
+  ui->shaderTools->insertRow(row);
 
-  int row = ui->disassemblers->rowCount();
-  ui->disassemblers->insertRow(row);
+  ui->shaderTools->setVerticalHeaderItem(row, new QTableWidgetItem(QString()));
 
-  ui->disassemblers->setVerticalHeaderItem(row, new QTableWidgetItem(QString()));
+  ui->shaderTools->setItem(row, 0, new QTableWidgetItem(tool.name));
+  ui->shaderTools->setItem(
+      row, 1,
+      new QTableWidgetItem(QFormatStr("%1 -> %2").arg(ToQStr(tool.input)).arg(ToQStr(tool.output))));
+}
 
-  ui->disassemblers->setItem(row, 0, new QTableWidgetItem(disasm.name));
-  ui->disassemblers->setItem(row, 1, new QTableWidgetItem(disasm.executable));
+bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
+{
+  QDialog dialog;
+  dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  QTableWidgetItem *item = new QTableWidgetItem(
-      disasm.tool == KnownSPIRVTool::Unknown ? QString(disasm.args) : tr("Automatic"));
-  ui->disassemblers->setItem(row, 2, item);
+  dialog.resize(400, 0);
 
-  // make arguments non-editable for built-in tools
-  if(disasm.tool != KnownSPIRVTool::Unknown)
+  QGridLayout grid(&dialog);
+
+  QLabel *lab;
+
+  lab = new QLabel(tr("Name:"), &dialog);
+  lab->setAlignment(Qt::AlignRight | Qt::AlignTop);
+  grid.addWidget(lab, 0, 0, 1, 1);
+
+  lab = new QLabel(tr("Tool Type:"), &dialog);
+  lab->setAlignment(Qt::AlignRight | Qt::AlignTop);
+  grid.addWidget(lab, 1, 0, 1, 1);
+
+  lab = new QLabel(tr("Executable:"), &dialog);
+  lab->setAlignment(Qt::AlignRight | Qt::AlignTop);
+  grid.addWidget(lab, 2, 0, 1, 1);
+
+  lab = new QLabel(tr("Command Line:"), &dialog);
+  lab->setAlignment(Qt::AlignRight | Qt::AlignTop);
+  grid.addWidget(lab, 3, 0, 1, 1);
+
+  lab = new QLabel(tr("Input/Output:"), &dialog);
+  lab->setAlignment(Qt::AlignRight | Qt::AlignTop);
+  grid.addWidget(lab, 4, 0, 1, 1);
+
+  QLineEdit nameEdit;
+  nameEdit.setPlaceholderText(lit("Tool Name"));
+  nameEdit.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  nameEdit.setMinimumHeight(20);
+
+  QStringList strs;
+
+  for(KnownShaderTool t : values<KnownShaderTool>())
   {
-    Qt::ItemFlags flags = item->flags() & ~Qt::ItemIsEditable;
-    item->setFlags(flags);
+    if(t == KnownShaderTool::Unknown)
+      strs << tr("Custom Tool");
+    else
+      strs << ToQStr(t);
   }
 
-  m_AddingDisassembler = false;
-}
+  QComboBox toolEdit;
+  toolEdit.addItems(strs);
+  toolEdit.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-void SettingsDialog::on_addDisasm_clicked()
-{
-  SPIRVDisassembler disasm;
-  disasm.name = tr("Custom Tool");
-  disasm.executable = lit("path/to/executable");
-  disasm.args = lit("--input {spv_bin} --output {spv_disasm}");
-  m_Ctx.Config().SPIRVDisassemblers.push_back(disasm);
+  QHBoxLayout executableLayout;
 
-  addDisassembler(disasm);
+  QLineEdit executableEdit;
+  executableEdit.setPlaceholderText(lit("tool"));
+  executableEdit.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  executableEdit.setMinimumHeight(20);
+  QToolButton executableBrowse;
+  executableBrowse.setText(lit("..."));
+  executableBrowse.setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
-  m_Ctx.Config().Save();
-}
+  executableLayout.addWidget(&executableEdit);
+  executableLayout.addWidget(&executableBrowse);
 
-void SettingsDialog::on_deleteDisasm_clicked()
-{
-  int row = -1;
+  QTextEdit argsEdit;
+  argsEdit.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  argsEdit.setMinimumHeight(80);
 
-  QModelIndexList selected = ui->disassemblers->selectionModel()->selectedRows();
+  strs.clear();
 
-  if(!selected.isEmpty())
-    row = selected[0].row();
-
-  if(row < 0 || row >= m_Ctx.Config().SPIRVDisassemblers.count())
-    return;
-
-  const SPIRVDisassembler &disasm = m_Ctx.Config().SPIRVDisassemblers[row];
-
-  QMessageBox::StandardButton res = RDDialog::question(
-      this, tr("Are you sure?"), tr("Are you sure you want to delete '%1'?").arg(disasm.name),
-      QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-
-  if(res == QMessageBox::Yes)
+  for(ShaderEncoding enc : values<ShaderEncoding>())
   {
-    ui->disassemblers->removeRow(row);
-    m_Ctx.Config().SPIRVDisassemblers.erase(row);
+    if(enc == ShaderEncoding::Unknown)
+      continue;
+    else
+      strs << ToQStr(enc);
+  }
+
+  QHBoxLayout inputOutputLayout;
+
+  QComboBox inputEdit;
+  inputEdit.addItems(strs);
+
+  QComboBox outputEdit;
+  outputEdit.addItems(strs);
+
+  inputOutputLayout.addWidget(&inputEdit);
+  inputOutputLayout.addWidget(&outputEdit);
+
+  grid.addWidget(&nameEdit, 0, 1, 1, 1);
+  grid.addWidget(&toolEdit, 1, 1, 1, 1);
+  grid.addLayout(&executableLayout, 2, 1, 1, 1);
+  grid.addWidget(&argsEdit, 3, 1, 1, 1);
+  grid.addLayout(&inputOutputLayout, 4, 1, 1, 1);
+
+  QDialogButtonBox buttons;
+  buttons.setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+  grid.addWidget(&buttons, 5, 0, 1, 2);
+
+  QObject::connect(&buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  QObject::connect(&buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+  QObject::connect(&executableBrowse, &QToolButton::clicked, [&]() {
+    QString initDir;
+
+    QFileInfo f(executableEdit.text());
+    QDir dir = f.dir();
+    if(f.isAbsolute() && dir.exists())
+    {
+      initDir = dir.absolutePath();
+    }
+
+    QString filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir);
+
+    if(!filename.isEmpty())
+      executableEdit.setText(filename);
+  });
+
+  QObject::connect(&toolEdit, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
+                   [&](int index) {
+                     if(index > 0)
+                     {
+                       KnownShaderTool tool = KnownShaderTool(index);
+
+                       // -1 because we skip ShaderEncoding::Unknown
+                       inputEdit.setCurrentIndex(int(ToolInput(tool)) - 1);
+                       outputEdit.setCurrentIndex(int(ToolOutput(tool)) - 1);
+                       argsEdit.setEnabled(false);
+                       inputEdit.setEnabled(false);
+                       outputEdit.setEnabled(false);
+                     }
+                     else
+                     {
+                       argsEdit.setEnabled(true);
+                       inputEdit.setEnabled(true);
+                       outputEdit.setEnabled(true);
+                     }
+                   });
+
+  // -1 because we skip ShaderEncoding::Unknown
+  inputEdit.setCurrentIndex(int(tool.input) - 1);
+  outputEdit.setCurrentIndex(int(tool.output) - 1);
+  executableEdit.setText(tool.executable);
+  argsEdit.setText(tool.args);
+  nameEdit.setText(tool.name);
+  toolEdit.setCurrentIndex(int(tool.tool));
+
+  bool invalid = false;
+
+  do
+  {
+    RDDialog::show(&dialog);
+
+    // don't validate if they cancelled
+    if(dialog.result() != QDialog::Accepted)
+      return false;
+
+    tool.tool = KnownShaderTool(toolEdit.currentIndex());
+    tool.name = nameEdit.text();
+    tool.executable = executableEdit.text();
+    tool.args = argsEdit.toPlainText();
+    // +1 because we skip ShaderEncoding::Unknown
+    tool.input = ShaderEncoding(inputEdit.currentIndex() + 1);
+    tool.output = ShaderEncoding(outputEdit.currentIndex() + 1);
+
+    QString message;
+
+    // ensure we don't have an invalid name
+    if(tool.name == "Builtin")
+    {
+      invalid = true;
+      message = tr("'Builtin' is a reserved tool name, please select another.");
+    }
+    else if(tool.name.isEmpty())
+    {
+      invalid = true;
+      message = tr("No tool name specified.");
+    }
+    else if(tool.executable.isEmpty())
+    {
+      invalid = true;
+      message = tr("No tool executable selected.");
+    }
+    else if(tool.input == ShaderEncoding::Unknown)
+    {
+      invalid = true;
+      message = tr("Input type cannot be unknown.");
+    }
+    else if(tool.output == ShaderEncoding::Unknown)
+    {
+      invalid = true;
+      message = tr("Output type cannot be unknown.");
+    }
+    else if(tool.tool == KnownShaderTool::Unknown &&
+            !QString(tool.args).contains(lit("{input_file}")))
+    {
+      invalid = true;
+      message = tr("Custom tool arguments must include at least {input_file}.");
+    }
+    else
+    {
+      for(int i = 0; i < m_Ctx.Config().ShaderProcessors.count(); i++)
+      {
+        if(i == existing)
+          continue;
+
+        if(tool.name == m_Ctx.Config().ShaderProcessors[i].name)
+        {
+          invalid = true;
+          message = tr("There's already a tool named '%1', please select another.").arg(tool.name);
+          break;
+        }
+      }
+    }
+
+    if(invalid)
+    {
+      RDDialog::critical(this, tr("Invalid parameters specified"), message);
+    }
+  } while(invalid);
+
+  return true;
+}
+
+void SettingsDialog::on_addShaderTool_clicked()
+{
+  ShaderProcessingTool tool;
+  // start with example arguments
+  tool.args = lit("--input {input_file} --output {output_file} --mode foo");
+  // impossible to pick a single default, but at least show the principle.
+  tool.input = ShaderEncoding::HLSL;
+  tool.output = ShaderEncoding::SPIRV;
+
+  bool success = editTool(-1, tool);
+
+  if(success)
+  {
+    m_Ctx.Config().ShaderProcessors.push_back(tool);
+
+    addProcessor(tool);
 
     m_Ctx.Config().Save();
   }
 }
 
-void SettingsDialog::on_disassemblers_itemSelectionChanged()
+void SettingsDialog::on_editShaderTool_clicked()
 {
-  ui->deleteDisasm->setEnabled(!ui->disassemblers->selectionModel()->selectedIndexes().empty());
-}
+  int row = -1;
 
-void SettingsDialog::on_disassemblers_cellChanged(int row, int column)
-{
-  if(m_AddingDisassembler || row < 0 || row >= m_Ctx.Config().SPIRVDisassemblers.count())
+  QModelIndexList selected = ui->shaderTools->selectionModel()->selectedRows();
+
+  if(!selected.isEmpty())
+    row = selected[0].row();
+
+  if(row < 0 || row >= m_Ctx.Config().ShaderProcessors.count())
     return;
 
-  SPIRVDisassembler &disasm = m_Ctx.Config().SPIRVDisassemblers[row];
+  ShaderProcessingTool tool = m_Ctx.Config().ShaderProcessors[row];
 
-  QString cellData = ui->disassemblers->item(row, column)->text();
+  bool success = editTool(row, tool);
 
-  if(column == 0)
+  if(success)
   {
-    bool found = false;
-
-    for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
-    {
-      if(ToQStr(tool) == cellData)
-      {
-        disasm.tool = tool;
-        disasm.name = cellData;
-        found = true;
-
-        // make arguments non-editable
-        Qt::ItemFlags flags = ui->disassemblers->item(row, 2)->flags() & ~Qt::ItemIsEditable;
-        ui->disassemblers->item(row, 2)->setFlags(flags);
-      }
-    }
-
-    if(!found)
-    {
-      disasm.tool = KnownSPIRVTool::Unknown;
-      disasm.name = cellData;
-
-      // make arguments editable
-      Qt::ItemFlags flags = ui->disassemblers->item(row, 2)->flags() | Qt::ItemIsEditable;
-      ui->disassemblers->item(row, 2)->setFlags(flags);
-    }
+    ui->shaderTools->setItem(row, 0, new QTableWidgetItem(tool.name));
+    ui->shaderTools->setItem(
+        row, 1, new QTableWidgetItem(
+                    QFormatStr("%1 -> %2").arg(ToQStr(tool.input)).arg(ToQStr(tool.output))));
+    m_Ctx.Config().ShaderProcessors[row] = tool;
+    m_Ctx.Config().Save();
   }
-  else if(column == 1)
-  {
-    disasm.executable = cellData;
-  }
-  else if(column == 2)
-  {
-    disasm.args = cellData;
-  }
-
-  m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_disassemblers_keyPress(QKeyEvent *event)
+void SettingsDialog::on_deleteShaderTool_clicked()
+{
+  int row = -1;
+
+  QModelIndexList selected = ui->shaderTools->selectionModel()->selectedRows();
+
+  if(!selected.isEmpty())
+    row = selected[0].row();
+
+  if(row < 0 || row >= m_Ctx.Config().ShaderProcessors.count())
+    return;
+
+  const ShaderProcessingTool &tool = m_Ctx.Config().ShaderProcessors[row];
+
+  QMessageBox::StandardButton res = RDDialog::question(
+      this, tr("Are you sure?"), tr("Are you sure you want to delete '%1'?").arg(tool.name),
+      QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+  if(res == QMessageBox::Yes)
+  {
+    ui->shaderTools->removeRow(row);
+    m_Ctx.Config().ShaderProcessors.erase(row);
+
+    m_Ctx.Config().Save();
+  }
+}
+
+void SettingsDialog::on_shaderTools_itemSelectionChanged()
+{
+  ui->deleteShaderTool->setEnabled(!ui->shaderTools->selectionModel()->selectedIndexes().empty());
+  ui->editShaderTool->setEnabled(ui->deleteShaderTool->isEnabled());
+}
+
+void SettingsDialog::on_shaderTools_keyPress(QKeyEvent *event)
 {
   if(event->key() == Qt::Key_Delete)
   {
-    ui->deleteDisasm->click();
+    ui->deleteShaderTool->click();
+  }
+  if(event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return)
+  {
+    ui->editShaderTool->click();
   }
 }
 
-void SettingsDialog::disassemblers_rowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex)
+void SettingsDialog::on_shaderTools_itemDoubleClicked(QTableWidgetItem *item)
 {
-  if(oldVisualIndex < 0 || oldVisualIndex >= m_Ctx.Config().SPIRVDisassemblers.count() ||
-     newVisualIndex < 0 || newVisualIndex >= m_Ctx.Config().SPIRVDisassemblers.count())
+  ui->editShaderTool->click();
+}
+
+void SettingsDialog::shaderTools_rowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex)
+{
+  if(oldVisualIndex < 0 || oldVisualIndex >= m_Ctx.Config().ShaderProcessors.count() ||
+     newVisualIndex < 0 || newVisualIndex >= m_Ctx.Config().ShaderProcessors.count())
     return;
 
-  SPIRVDisassembler disasm = m_Ctx.Config().SPIRVDisassemblers.at(oldVisualIndex);
-  m_Ctx.Config().SPIRVDisassemblers.erase(oldVisualIndex);
-  m_Ctx.Config().SPIRVDisassemblers.insert(newVisualIndex, disasm);
+  ShaderProcessingTool tool = m_Ctx.Config().ShaderProcessors.at(oldVisualIndex);
+  m_Ctx.Config().ShaderProcessors.erase(oldVisualIndex);
+  m_Ctx.Config().ShaderProcessors.insert(newVisualIndex, tool);
 
   m_Ctx.Config().Save();
 }

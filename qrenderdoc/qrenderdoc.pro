@@ -158,7 +158,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/pyrenderdoc/PythonContext.cpp \
     Code/Interface/QRDInterface.cpp \
     Code/Interface/Analytics.cpp \
-    Code/Interface/SPIRVDisassembler.cpp \
+    Code/Interface/ShaderProcessingTool.cpp \
     Code/Interface/PersistantConfig.cpp \
     Code/Interface/RemoteHost.cpp \
     Styles/StyleData.cpp \

@@ -69,12 +69,24 @@ extern "C" PyObject *QWidgetToPy(QWidget *widget)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// SPIRVDisassembler.cpp stubs
+// ShaderProcessingTool.cpp stubs
 ////////////////////////////////////////////////////////////////////////////////
 
-rdcstr SPIRVDisassembler::DisassembleShader(QWidget *window, const ShaderReflection *shaderDetails) const
+rdcstr ShaderProcessingTool::DefaultArguments() const
 {
   return "";
+}
+
+rdcstr ShaderProcessingTool::DisassembleShader(QWidget *window, const ShaderReflection *shaderDetails,
+                                               rdcstr arguments) const
+{
+  return "";
+}
+
+bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint,
+                                            ShaderStage stage, rdcstr arguments) const
+{
+  return bytebuf();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -160,6 +160,8 @@ private:
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
   bool eventFilter(QObject *watched, QEvent *event) override;
 
+  void PopulateCompileTools();
+  void PopulateCompileToolParameters();
   bool ProcessIncludeDirectives(QString &source, const rdcstrpairs &files);
 
   const rdcarray<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
@@ -186,8 +188,6 @@ private:
   ICaptureContext &m_Ctx;
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
-  ShaderEncoding m_Encoding;
-  rdcstr m_EntryPoint;
   ShaderCompileFlags m_Flags;
   ShaderStage m_Stage;
   QString m_DebugContext;
@@ -241,7 +241,7 @@ private:
   static const int INDICATOR_FINDRESULT = 0;
   static const int INDICATOR_REGHIGHLIGHT = 1;
 
-  QString targetName(const SPIRVDisassembler &disasm);
+  QString targetName(const ShaderProcessingTool &disasm);
 
   void addFileList();
 

@@ -28,7 +28,7 @@
 #include "QRDInterface.h"
 #include "RemoteHost.h"
 
-DOCUMENT(R"(Identifies a particular known SPIR-V tool used for disassembly.
+DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
 .. data:: Unknown
 
@@ -41,39 +41,94 @@ DOCUMENT(R"(Identifies a particular known SPIR-V tool used for disassembly.
 .. data:: spirv_dis
 
   `spirv-dis from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+
+.. data:: glslangValidatorGLSL
+
+  `glslang compiler (GLSL) <https://github.com/KhronosGroup/glslang>`_.
+
+.. data:: glslangValidatorHLSL
+
+  `glslang compiler (HLSL) <https://github.com/KhronosGroup/glslang>`_.
+
+.. data:: spirv_as
+
+  `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
+
 )");
-enum class KnownSPIRVTool : uint32_t
+enum class KnownShaderTool : uint32_t
 {
   Unknown,
   First = Unknown,
   SPIRV_Cross,
   spirv_dis,
+  glslangValidatorGLSL,
+  glslangValidatorHLSL,
+  spirv_as,
   Count,
 };
 
-ITERABLE_OPERATORS(KnownSPIRVTool);
+ITERABLE_OPERATORS(KnownShaderTool);
 
-inline rdcstr ToolExecutable(KnownSPIRVTool tool)
+inline rdcstr ToolExecutable(KnownShaderTool tool)
 {
-  if(tool == KnownSPIRVTool::SPIRV_Cross)
+  if(tool == KnownShaderTool::SPIRV_Cross)
     return "spirv-cross";
-  else if(tool == KnownSPIRVTool::spirv_dis)
+  else if(tool == KnownShaderTool::spirv_dis)
     return "spirv-dis";
+  else if(tool == KnownShaderTool::glslangValidatorGLSL)
+    return "glslangValidator";
+  else if(tool == KnownShaderTool::glslangValidatorHLSL)
+    return "glslangValidator";
+  else if(tool == KnownShaderTool::spirv_as)
+    return "spirv-as";
 
   return "";
 }
 
-DOCUMENT("Describes an external program that can be used to disassemble SPIR-V.");
-struct SPIRVDisassembler
+inline ShaderEncoding ToolInput(KnownShaderTool tool)
+{
+  if(tool == KnownShaderTool::SPIRV_Cross || tool == KnownShaderTool::spirv_dis)
+    return ShaderEncoding::SPIRV;
+  else if(tool == KnownShaderTool::glslangValidatorGLSL)
+    return ShaderEncoding::GLSL;
+  else if(tool == KnownShaderTool::glslangValidatorHLSL)
+    return ShaderEncoding::HLSL;
+  else if(tool == KnownShaderTool::spirv_as)
+    return ShaderEncoding::SPIRVAsm;
+
+  return ShaderEncoding::Unknown;
+}
+
+inline ShaderEncoding ToolOutput(KnownShaderTool tool)
+{
+  if(tool == KnownShaderTool::SPIRV_Cross)
+    return ShaderEncoding::GLSL;
+  else if(tool == KnownShaderTool::spirv_dis)
+    return ShaderEncoding::SPIRVAsm;
+  else if(tool == KnownShaderTool::glslangValidatorGLSL ||
+          tool == KnownShaderTool::glslangValidatorHLSL || tool == KnownShaderTool::spirv_as)
+    return ShaderEncoding::SPIRV;
+
+  return ShaderEncoding::Unknown;
+}
+
+DOCUMENT(R"(Describes an external program that can be used to process shaders, typically either
+compiling from a high-level language to a binary format, or decompiling from the binary format to
+a high-level language or textual representation.
+
+Commonly used with SPIR-V.
+)");
+struct ShaderProcessingTool
 {
   DOCUMENT("");
-  SPIRVDisassembler() = default;
-  VARIANT_CAST(SPIRVDisassembler);
-  bool operator==(const SPIRVDisassembler &o) const
+  ShaderProcessingTool() = default;
+  VARIANT_CAST(ShaderProcessingTool);
+  bool operator==(const ShaderProcessingTool &o) const
   {
-    return tool == o.tool && name == o.name && executable == o.executable && args == o.args;
+    return tool == o.tool && name == o.name && executable == o.executable && args == o.args &&
+           input == o.input && output == o.output;
   }
-  bool operator<(const SPIRVDisassembler &o) const
+  bool operator<(const ShaderProcessingTool &o) const
   {
     if(tool != o.tool)
       return tool < o.tool;
@@ -83,28 +138,61 @@ struct SPIRVDisassembler
       return executable < o.executable;
     if(args != o.args)
       return args < o.args;
+    if(input != o.input)
+      return input < o.input;
+    if(output != o.output)
+      return output < o.output;
     return false;
   }
-  DOCUMENT("The :class:`KnownSPIRVTool` identifying which known tool this disassembler is.");
-  KnownSPIRVTool tool = KnownSPIRVTool::Unknown;
+  DOCUMENT("The :class:`KnownShaderTool` identifying which known tool this program is.");
+  KnownShaderTool tool = KnownShaderTool::Unknown;
   DOCUMENT("The human-readable name of the program.");
   rdcstr name;
   DOCUMENT("The path to the executable to run for this program.");
   rdcstr executable;
   DOCUMENT("The command line argmuents to pass to the program.");
   rdcstr args;
+  DOCUMENT("The input that this program expects.");
+  ShaderEncoding input = ShaderEncoding::Unknown;
+  DOCUMENT("The output that this program provides.");
+  ShaderEncoding output = ShaderEncoding::Unknown;
 
-  DOCUMENT(R"(Runs this disassembler for a given shader reflection.
+  DOCUMENT(R"(Return the default arguments used when invoking this tool
+
+:return: The arguments specified for this tool.
+:rtype: ``str``
+)");
+  rdcstr DefaultArguments() const;
+
+  DOCUMENT(R"(Runs this program to disassemble a given shader reflection.
 
 :param QWidget window: A handle to the window to use when showing a progress bar or error messages.
 :param ~renderdoc.ShaderReflection shader: The shader to disassemble.
+:param str args: arguments to pass to the tool. The default arguments can be obtained using
+  :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
+  default arguments.
 :return: The disassembly, or an empty string if something went wrong.
 :rtype: ``str``
 )");
-  rdcstr DisassembleShader(QWidget *window, const ShaderReflection *reflection) const;
+  rdcstr DisassembleShader(QWidget *window, const ShaderReflection *reflection, rdcstr args) const;
+
+  DOCUMENT(R"(Runs this program to disassemble a given shader source.
+
+:param QWidget window: A handle to the window to use when showing a progress bar or error messages.
+:param str source: The source code, preprocessed into a single file.
+:param str entryPoint: The name of the entry point in the shader to compile.
+:param ~renderdoc.ShaderStage stage: The pipeline stage that this shader represents.
+:param str args: arguments to pass to the tool. The default arguments can be obtained using
+  :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
+  default arguments.
+:return: The compiled shader code, or an empty buffer if something went wrong.
+:rtype: ``bytes``
+)");
+  bytebuf CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint, ShaderStage stage,
+                        rdcstr args) const;
 };
 
-DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
+DECLARE_REFLECTION_STRUCT(ShaderProcessingTool);
 
 #define BUGREPORT_URL "https://renderdoc.org/bugreporter"
 
@@ -239,7 +327,7 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
                                                                                            \
-  CONFIG_SETTING(public, QVariantList, rdcarray<SPIRVDisassembler>, SPIRVDisassemblers)    \
+  CONFIG_SETTING(public, QVariantList, rdcarray<ShaderProcessingTool>, ShaderProcessors)   \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Analytics_TotalOptOut, false)                     \
                                                                                            \
@@ -548,10 +636,10 @@ For more information about some of these settings that are user-facing see
 
   Defaults to ``False``.
 
-.. data:: SPIRVDisassemblers
+.. data:: ShaderProcessors
 
-  A list of :class:`SPIRVDisassembler` detailing the potential disassembler programs. The first one
-  in the list is the default.
+  A list of :class:`ShaderProcessingTool` detailing shader processing programs. The list comes in
+  priority order, with earlier processors preferred over later ones.
 
 .. data:: Analytics_TotalOptOut
 

@@ -578,7 +578,7 @@
     <ClCompile Include="Code\Interface\PersistantConfig.cpp" />
     <ClCompile Include="Code\Interface\QRDInterface.cpp" />
     <ClCompile Include="Code\Interface\RemoteHost.cpp" />
-    <ClCompile Include="Code\Interface\SPIRVDisassembler.cpp" />
+    <ClCompile Include="Code\Interface\ShaderProcessingTool.cpp" />
     <ClCompile Include="Code\precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

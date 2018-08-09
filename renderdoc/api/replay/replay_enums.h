@@ -1320,6 +1320,12 @@ enum class GPUVendor : uint32_t
 
 DECLARE_REFLECTION_ENUM(GPUVendor);
 
+DOCUMENT(R"(Get the GPUVendor for a given PCI Vendor ID.
+
+:param int vendorID: The PCI Vendor ID
+:return: The vendor identified
+:rtype: GPUVendor
+)");
 constexpr GPUVendor GPUVendorFromPCIVendor(uint32_t vendorID)
 {
   // temporarily disable clang-format to make this more readable.
@@ -1415,6 +1421,18 @@ enum class ShaderEncoding : uint32_t
 
 ITERABLE_OPERATORS(ShaderEncoding);
 DECLARE_REFLECTION_ENUM(ShaderEncoding);
+
+DOCUMENT(R"(Check whether or not this is a human readable text representation.
+
+:param ShaderEncoding e: The encoding to check.
+:return: ``True`` if it describes a text representation, ``False`` for a bytecode representation.
+:rtype: ``bool``
+)");
+constexpr inline bool IsTextRepresentation(ShaderEncoding encoding)
+{
+  return encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::GLSL ||
+         encoding == ShaderEncoding::SPIRVAsm;
+}
 
 DOCUMENT(R"(A primitive topology used for processing vertex data.
 
@@ -1683,7 +1701,7 @@ DOCUMENT(R"(Check whether or not this is a strip-type topology.
 
 :param Topology t: The topology to check.
 :return: ``True`` if it describes a strip topology, ``False`` for a list.
-:rtype: ``int``
+:rtype: ``bool``
 )");
 constexpr inline bool IsStrip(Topology topology)
 {

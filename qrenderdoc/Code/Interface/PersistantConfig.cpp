@@ -178,6 +178,7 @@ void PersistantConfig::applyValues(const QVariantMap &values)
   RENAMED_SETTING(QString, LastLogPath, LastCaptureFilePath);
   RENAMED_SETTING(QVariantList, RecentLogFiles, RecentCaptureFiles);
   RENAMED_SETTING(QDateTime, DegradedLog_LastUpdate, DegradedCapture_LastUpdate);
+  RENAMED_SETTING(QVariantList, SPIRVDisassemblers, ShaderProcessors);
 }
 
 int PersistantConfig::RemoteHostCount()
@@ -310,25 +311,25 @@ bool PersistantConfig::Load(const rdcstr &filename)
     RemoteHosts.insert(0, host);
   }
 
-  bool tools[arraydim<KnownSPIRVTool>()] = {};
+  bool tools[arraydim<KnownShaderTool>()] = {};
 
   // see which known tools are registered
-  for(const SPIRVDisassembler &dis : SPIRVDisassemblers)
+  for(const ShaderProcessingTool &dis : ShaderProcessors)
   {
     // if it's declared
-    if(dis.tool != KnownSPIRVTool::Unknown)
+    if(dis.tool != KnownShaderTool::Unknown)
       tools[(size_t)dis.tool] = true;
 
-    for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
+    for(KnownShaderTool tool : values<KnownShaderTool>())
     {
       if(QString(dis.executable).contains(ToolExecutable(tool)))
         tools[(size_t)tool] = true;
     }
   }
 
-  for(KnownSPIRVTool tool : values<KnownSPIRVTool>())
+  for(KnownShaderTool tool : values<KnownShaderTool>())
   {
-    if(tool == KnownSPIRVTool::Unknown || tools[(size_t)tool])
+    if(tool == KnownShaderTool::Unknown || tools[(size_t)tool])
       continue;
 
     QString exe = ToolExecutable(tool);
@@ -341,14 +342,14 @@ bool PersistantConfig::Load(const rdcstr &filename)
 
     if(!path.isEmpty())
     {
-      SPIRVDisassembler dis;
-      dis.name = ToQStr(tool);
+      ShaderProcessingTool s;
+      s.name = ToQStr(tool);
       // we store just the base name, so when we launch the process it will always find it in PATH,
       // rather than baking in the current PATH result.
-      dis.executable = exe;
-      dis.tool = tool;
+      s.executable = exe;
+      s.tool = tool;
 
-      SPIRVDisassemblers.push_back(dis);
+      ShaderProcessors.push_back(s);
 
       continue;
     }
@@ -359,10 +360,15 @@ bool PersistantConfig::Load(const rdcstr &filename)
     QStringList searchPaths = {appDir.absoluteFilePath(lit("plugins/spirv/"))};
 
 #if defined(Q_OS_WIN64)
+    // windows local
     searchPaths << appDir.absoluteFilePath(lit("../../plugins-win64/spirv/"));
-#elif defined(Q_OS_WIN64)
+#elif defined(Q_OS_WIN32)
+    // windows local
     searchPaths << appDir.absoluteFilePath(lit("../../plugins-win32/spirv/"));
 #elif defined(Q_OS_LINUX)
+    // linux installation
+    searchPaths << appDir.absoluteFilePath(lit("../share/renderdoc/plugins/spirv/"));
+    // linux local
     searchPaths << appDir.absoluteFilePath(lit("../../plugins-linux64/spirv/"));
 #endif
 
@@ -372,14 +378,26 @@ bool PersistantConfig::Load(const rdcstr &filename)
 
     if(!path.isEmpty())
     {
-      SPIRVDisassembler dis;
-      dis.name = ToQStr(tool);
-      dis.executable = path;
-      dis.tool = tool;
+      ShaderProcessingTool s;
+      s.name = ToQStr(tool);
+      s.executable = path;
+      s.tool = tool;
 
-      SPIRVDisassemblers.push_back(dis);
+      ShaderProcessors.push_back(s);
 
       continue;
+    }
+  }
+
+  // sanitisation pass, if a tool is declared as a known type ensure its inputs/outputs are correct.
+  // This is mostly for backwards compatibility with configs from before the inputs/outputs were
+  // added.
+  for(ShaderProcessingTool &dis : ShaderProcessors)
+  {
+    if(dis.tool != KnownShaderTool::Unknown)
+    {
+      dis.input = ToolInput(dis.tool);
+      dis.output = ToolOutput(dis.tool);
     }
   }
 
@@ -467,20 +485,64 @@ rdcstr PersistantConfig::GetConfigSetting(const rdcstr &name)
   return "";
 }
 
-SPIRVDisassembler::SPIRVDisassembler(const QVariant &var)
+ShaderProcessingTool::ShaderProcessingTool(const QVariant &var)
 {
   QVariantMap map = var.toMap();
   if(map.contains(lit("tool")))
-    tool = (KnownSPIRVTool)map[lit("tool")].toUInt();
+    tool = (KnownShaderTool)map[lit("tool")].toUInt();
   if(map.contains(lit("name")))
     name = map[lit("name")].toString();
   if(map.contains(lit("executable")))
     executable = map[lit("executable")].toString();
   if(map.contains(lit("args")))
-    args = map[lit("args")].toString();
+  {
+    QString a = map[lit("args")].toString();
+
+    // backwards compatibility
+    a.replace(lit("{spv_disasm}"), lit("{output_file}"));
+    a.replace(lit("{spv_bin}"), lit("{input_file}"));
+
+    args = a;
+  }
+
+  if(map.contains(lit("input")))
+  {
+    input = (ShaderEncoding)map[lit("input")].toUInt();
+  }
+  else
+  {
+    // backwards compatibility, it's a SPIR-V disassembler
+    input = ShaderEncoding::SPIRV;
+  }
+
+  if(map.contains(lit("output")))
+  {
+    output = (ShaderEncoding)map[lit("output")].toUInt();
+  }
+  else
+  {
+    // backwards compatibility, we have to guess, assume GLSL as a sensible default
+    output = ShaderEncoding::GLSL;
+  }
 }
 
-SPIRVDisassembler::operator QVariant() const
+rdcstr ShaderProcessingTool::DefaultArguments() const
+{
+  if(tool == KnownShaderTool::SPIRV_Cross)
+    return "--output {output_file} {input_file} --vulkan-semantics";
+  else if(tool == KnownShaderTool::spirv_dis)
+    return "--no-color -o {output_file} {input_file}";
+  else if(tool == KnownShaderTool::glslangValidatorGLSL)
+    return "-g -V -o {output_file} {input_file} -S {glsl_stage4}";
+  else if(tool == KnownShaderTool::glslangValidatorHLSL)
+    return "-D -g -V -o {output_file} {input_file} -S {glsl_stage4} -e {entry_point}";
+  else if(tool == KnownShaderTool::spirv_as)
+    return "-o {output_file} {input_file}";
+
+  return args;
+}
+
+ShaderProcessingTool::operator QVariant() const
 {
   QVariantMap map;
 
@@ -488,6 +550,8 @@ SPIRVDisassembler::operator QVariant() const
   map[lit("name")] = name;
   map[lit("executable")] = executable;
   map[lit("args")] = args;
+  map[lit("input")] = (uint32_t)input;
+  map[lit("output")] = (uint32_t)output;
 
   return map;
 }

@@ -23,9 +23,11 @@
  ******************************************************************************/
 
 #include "PipelineStateViewer.h"
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QSvgRenderer>
+#include <QToolButton>
 #include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/QRDUtils.h"
@@ -48,6 +50,9 @@ PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
   m_Vulkan = NULL;
 
   m_Current = NULL;
+
+  for(size_t i = 0; i < ARRAY_COUNT(editMenus); i++)
+    editMenus[i] = new QMenu(this);
 
   setToD3D11();
 
@@ -613,7 +618,7 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
 QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDetails,
                                               const QString &entryFunc)
 {
-  QString hlsl = lit("// No HLSL available - function stub generated\n\n");
+  QString hlsl = lit("// HLSL function stub generated\n\n");
 
   const QString textureDim[ENUM_ARRAY_SIZE(TextureType)] = {
       lit("Unknown"),          lit("Buffer"),      lit("Texture1D"),      lit("Texture1DArray"),
@@ -718,19 +723,27 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   return hlsl;
 }
 
-void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
-                                     const ShaderReflection *shaderDetails, const QString &entry,
-                                     ShaderEncoding encoding, const rdcstrpairs &files)
+void PipelineStateViewer::shaderEdit_clicked()
 {
-  if(!shaderDetails)
+  QToolButton *sender = qobject_cast<QToolButton *>(QObject::sender());
+  if(!sender)
     return;
 
+  // activate the first item in the menu, if there are any items, as the default action.
+  QMenu *menu = sender->menu();
+  if(menu && !menu->actions().isEmpty())
+    menu->actions()[0]->trigger();
+}
+
+void PipelineStateViewer::EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
+                                     ShaderCompileFlags compileFlags, ShaderEncoding encoding,
+                                     const rdcstrpairs &files)
+{
   IShaderViewer *sv = m_Ctx.EditShader(
-      false, shaderDetails->stage, entry, files, encoding, shaderDetails->debugInfo.compileFlags,
+      false, shaderType, entry, files, encoding, compileFlags,
       // save callback
-      [shaderType, id, shaderDetails](ICaptureContext *ctx, IShaderViewer *viewer,
-                                      ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
-                                      rdcstr entryFunc, bytebuf shaderBytes) {
+      [shaderType, id](ICaptureContext *ctx, IShaderViewer *viewer, ShaderEncoding shaderEncoding,
+                       ShaderCompileFlags flags, rdcstr entryFunc, bytebuf shaderBytes) {
 
         if(shaderBytes.isEmpty())
           return;
@@ -740,7 +753,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
         // invoke off to the ReplayController to replace the capture's shader
         // with our edited one
         ctx->Replay().AsyncInvoke([ctx, entryFunc, shaderBytes, shaderEncoding, flags, shaderType,
-                                   id, shaderDetails, viewer](IReplayController *r) {
+                                   id, viewer](IReplayController *r) {
           rdcstr errs;
 
           ResourceId from = id;
@@ -774,6 +787,151 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
       });
 
   m_Ctx.AddDockWindow(sv->Widget(), DockReference::AddTo, this);
+}
+
+void PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
+                                                   const ShaderReflection *shaderDetails)
+{
+  QSet<uint> uniqueFiles;
+  rdcstrpairs files;
+
+  for(const ShaderSourceFile &s : shaderDetails->debugInfo.files)
+  {
+    QString filename = s.filename;
+
+    uint filenameHash = qHash(filename.toLower());
+
+    if(uniqueFiles.contains(filenameHash))
+    {
+      qWarning() << lit("Duplicate full filename") << filename;
+      continue;
+    }
+    uniqueFiles.insert(filenameHash);
+
+    files.push_back(make_rdcpair(s.filename, s.contents));
+  }
+
+  EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
+             shaderDetails->debugInfo.compileFlags, shaderDetails->debugInfo.encoding, files);
+}
+
+void PipelineStateViewer::EditDecompiledSource(const ShaderProcessingTool &tool, ResourceId id,
+                                               const ShaderReflection *shaderDetails)
+{
+  QString source = tool.DisassembleShader(this, shaderDetails, "");
+
+  if(source.isEmpty())
+    return;
+
+  rdcstrpairs files;
+  files.push_back(make_rdcpair<rdcstr, rdcstr>("decompiled", source));
+
+  EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
+             shaderDetails->debugInfo.compileFlags, tool.output, files);
+}
+
+void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId pipelineId,
+                                                ResourceId shaderId,
+                                                const ShaderReflection *shaderDetails)
+{
+  if(!shaderDetails || !button->isEnabled() || button->popupMode() != QToolButton::MenuButtonPopup)
+    return;
+
+  QMenu *menu = editMenus[(int)shaderDetails->stage];
+
+  menu->clear();
+
+  rdcarray<ShaderEncoding> accepted = m_Ctx.TargetShaderEncodings();
+
+  // if we have original source and it's in a known format, display it as the first most preferred
+  // option
+  if(!shaderDetails->debugInfo.files.empty() &&
+     shaderDetails->debugInfo.encoding != ShaderEncoding::Unknown)
+  {
+    QAction *action =
+        new QAction(tr("Edit Source - %1").arg(shaderDetails->debugInfo.files[0].filename), menu);
+    action->setIcon(Icons::page_white_edit());
+
+    QObject::connect(action, &QAction::triggered, [this, shaderId, shaderDetails]() {
+      EditOriginalShaderSource(shaderId, shaderDetails);
+    });
+
+    menu->addAction(action);
+  }
+
+  // next up, try the shader processing tools in order - all the ones that will decompile from our
+  // native representation. We don't check here yet if we have a valid compiler to compile from the
+  // output to what we want.
+  for(const ShaderProcessingTool &tool : m_Ctx.Config().ShaderProcessors)
+  {
+    // skip tools that can't decode our shader, or doesn't produce a textual output
+    if(tool.input != shaderDetails->encoding || !IsTextRepresentation(tool.output))
+      continue;
+
+    QAction *action = new QAction(tr("Decompile with %1").arg(tool.name), menu);
+    action->setIcon(Icons::page_white_edit());
+
+    QObject::connect(action, &QAction::triggered, [this, tool, shaderId, shaderDetails]() {
+      EditDecompiledSource(tool, shaderId, shaderDetails);
+    });
+
+    menu->addAction(action);
+  }
+
+  // if all else fails we can generate a stub for editing. Skip this for GLSL as it always has
+  // source above which is preferred.
+  if(shaderDetails->encoding != ShaderEncoding::GLSL)
+  {
+    QString label = tr("Edit Generated Stub");
+
+    if(shaderDetails->encoding == ShaderEncoding::SPIRV)
+      label = tr("Edit Pseudocode");
+
+    QAction *action = new QAction(label, menu);
+    action->setIcon(Icons::page_white_edit());
+
+    QObject::connect(action, &QAction::triggered, [this, pipelineId, shaderId, shaderDetails]() {
+      QString entry;
+      QString src;
+
+      if(shaderDetails->encoding == ShaderEncoding::SPIRV)
+      {
+        m_Ctx.Replay().AsyncInvoke([this, pipelineId, shaderId, shaderDetails](IReplayController *r) {
+          rdcstr disasm = r->DisassembleShader(pipelineId, shaderDetails, "");
+
+          QString editeddisasm =
+              tr("####          PSEUDOCODE SPIR-V DISASSEMBLY            ###\n") +
+              tr("#### Use a SPIR-V decompiler to get compileable source ###\n\n");
+
+          editeddisasm += disasm;
+
+          GUIInvoke::call(this, [this, shaderId, shaderDetails, editeddisasm]() {
+            rdcstrpairs files;
+            files.push_back(make_rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
+
+            EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
+                       ShaderCompileFlags(), ShaderEncoding::Unknown, files);
+          });
+        });
+      }
+      else if(shaderDetails->encoding == ShaderEncoding::DXBC)
+      {
+        entry = lit("EditedShader%1S").arg(ToQStr(shaderDetails->stage, GraphicsAPI::D3D11)[0]);
+
+        rdcstrpairs files;
+        files.push_back(make_rdcpair<rdcstr, rdcstr>("decompiled_stub.hlsl",
+                                                     GenerateHLSLStub(shaderDetails, entry)));
+
+        EditShader(shaderId, shaderDetails->stage, entry, ShaderCompileFlags(),
+                   ShaderEncoding::HLSL, files);
+      }
+
+    });
+
+    menu->addAction(action);
+  }
+
+  button->setMenu(menu);
 }
 
 bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)

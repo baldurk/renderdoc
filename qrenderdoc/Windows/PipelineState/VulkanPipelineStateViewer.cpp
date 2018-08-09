@@ -138,7 +138,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   }
 
   for(QToolButton *b : editButtons)
-    QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderEdit_clicked);
+    QObject::connect(b, &QToolButton::clicked, &m_Common, &PipelineStateViewer::shaderEdit_clicked);
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderSave_clicked);
@@ -1771,6 +1771,8 @@ void VulkanPipelineStateViewer::setState()
                                                            : state.graphics.pipelineResourceId;
 
     b->setEnabled(shaderDetails && pipe != ResourceId());
+
+    m_Common.SetupShaderEditButton(b, pipe, stage->resourceId, shaderDetails);
   }
 
   ////////////////////////////////////////////////
@@ -2410,70 +2412,6 @@ void VulkanPipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, pipe);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
-}
-
-void VulkanPipelineStateViewer::shaderEdit_clicked()
-{
-  QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const VKPipe::Shader *stage = stageForSender(sender);
-
-  if(!stage || stage->resourceId == ResourceId())
-    return;
-
-  const ShaderReflection *shaderDetails = stage->reflection;
-
-  ResourceId pipe = stage->stage == ShaderStage::Compute
-                        ? m_Ctx.CurVulkanPipelineState()->compute.pipelineResourceId
-                        : m_Ctx.CurVulkanPipelineState()->graphics.pipelineResourceId;
-
-  if(!shaderDetails)
-    return;
-
-  QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::Vulkan)[0]);
-
-  rdcstrpairs files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
-  ShaderEncoding encoding = shaderDetails->debugInfo.encoding;
-
-  if(hasOrigSource)
-  {
-    if(files.empty())
-      return;
-  }
-  else
-  {
-    QString glsl;
-
-    if(!m_Ctx.Config().SPIRVDisassemblers.isEmpty())
-      glsl = m_Ctx.Config().SPIRVDisassemblers[0].DisassembleShader(this, shaderDetails);
-
-    if(!glsl.isEmpty())
-    {
-      // if we decompiled, we expect the entry point name to be the same and assume GLSL
-      // decompilation for now
-      entryFunc = shaderDetails->entryPoint;
-      encoding = ShaderEncoding::GLSL;
-      files.clear();
-      files.push_back(make_rdcpair<rdcstr, rdcstr>("decompiled", glsl));
-    }
-    else
-    {
-      m_Ctx.Replay().AsyncInvoke([this, stage, pipe, shaderDetails, entryFunc](IReplayController *r) {
-        rdcstr disasm = r->DisassembleShader(pipe, shaderDetails, "");
-
-        GUIInvoke::call(this, [this, stage, shaderDetails, entryFunc, disasm]() {
-          rdcstrpairs fileMap;
-          fileMap.push_back(make_rdcpair<rdcstr, rdcstr>("pseudo_disassembly", disasm));
-          m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc,
-                              ShaderEncoding::Unknown, fileMap);
-        });
-      });
-      return;
-    }
-  }
-
-  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc, encoding, files);
 }
 
 void VulkanPipelineStateViewer::shaderSave_clicked()

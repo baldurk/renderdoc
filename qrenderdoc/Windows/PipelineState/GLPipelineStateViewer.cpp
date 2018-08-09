@@ -142,7 +142,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
   }
 
   for(QToolButton *b : editButtons)
-    QObject::connect(b, &QToolButton::clicked, this, &GLPipelineStateViewer::shaderEdit_clicked);
+    QObject::connect(b, &QToolButton::clicked, &m_Common, &PipelineStateViewer::shaderEdit_clicked);
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &GLPipelineStateViewer::shaderSave_clicked);
@@ -1384,7 +1384,9 @@ void GLPipelineStateViewer::setState()
 
     ShaderReflection *shaderDetails = stage->reflection;
 
-    b->setEnabled(shaderDetails);
+    b->setEnabled(shaderDetails != NULL);
+
+    m_Common.SetupShaderEditButton(b, ResourceId(), stage->shaderResourceId, shaderDetails);
   }
 
   vs = ui->xfbBuffers->verticalScrollBar()->value();
@@ -2299,40 +2301,6 @@ void GLPipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, ResourceId());
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
-}
-
-void GLPipelineStateViewer::shaderEdit_clicked()
-{
-  QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const GLPipe::Shader *stage = stageForSender(sender);
-
-  if(!stage || stage->shaderResourceId == ResourceId())
-    return;
-
-  const ShaderReflection *shaderDetails = stage->reflection;
-
-  if(!shaderDetails)
-    return;
-
-  QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::OpenGL)[0]);
-
-  rdcstrpairs files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
-
-  if(!hasOrigSource)
-  {
-    // this would only happen if the GL program is uploading SPIR-V instead of GLSL.
-    files.clear();
-    files.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", "// TODO - disassemble SPIR-V"));
-  }
-
-  if(files.empty())
-    return;
-
-  // we always consider the input GLSL
-  m_Common.EditShader(stage->stage, stage->shaderResourceId, shaderDetails, entryFunc,
-                      ShaderEncoding::GLSL, files);
 }
 
 void GLPipelineStateViewer::shaderSave_clicked()

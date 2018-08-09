@@ -31,8 +31,9 @@ namespace Ui
 class SettingsDialog;
 }
 
+class QTableWidgetItem;
 class QListWidgetItem;
-struct SPIRVDisassembler;
+struct ShaderProcessingTool;
 
 struct ICaptureContext;
 
@@ -78,12 +79,13 @@ private slots:
   // shader viewer
   void on_ShaderViewer_FriendlyNaming_toggled(bool checked);
 
-  void on_addDisasm_clicked();
-  void on_deleteDisasm_clicked();
-  void on_disassemblers_itemSelectionChanged();
-  void on_disassemblers_cellChanged(int row, int column);
-  void on_disassemblers_keyPress(QKeyEvent *event);
-  void disassemblers_rowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex);
+  void on_addShaderTool_clicked();
+  void on_editShaderTool_clicked();
+  void on_deleteShaderTool_clicked();
+  void on_shaderTools_itemSelectionChanged();
+  void on_shaderTools_keyPress(QKeyEvent *event);
+  void on_shaderTools_itemDoubleClicked(QTableWidgetItem *item);
+  void shaderTools_rowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex);
 
   // event browser
   void on_EventBrowser_TimeUnit_currentIndexChanged(int index);
@@ -112,9 +114,9 @@ private slots:
 private:
   Ui::SettingsDialog *ui;
 
-  void addDisassembler(const SPIRVDisassembler &disasm);
+  void addProcessor(const ShaderProcessingTool &disasm);
+  bool editTool(int existing, ShaderProcessingTool &disasm);
 
   ICaptureContext &m_Ctx;
   bool m_Init = false;
-  bool m_AddingDisassembler = false;
 };

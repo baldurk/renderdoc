@@ -699,9 +699,6 @@
     <ClCompile Include="Windows\Dialogs\UpdateDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="Code\Interface\SPIRVDisassembler.cpp">
-      <Filter>Code\Interface</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\CollapseGroupBox.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
@@ -710,6 +707,9 @@
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_CollapseGroupBox.cpp">
       <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Interface\ShaderProcessingTool.cpp">
+      <Filter>Code\Interface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

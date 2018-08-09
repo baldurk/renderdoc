@@ -184,7 +184,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   }
 
   for(QToolButton *b : editButtons)
-    QObject::connect(b, &QToolButton::clicked, this, &D3D12PipelineStateViewer::shaderEdit_clicked);
+    QObject::connect(b, &QToolButton::clicked, &m_Common, &PipelineStateViewer::shaderEdit_clicked);
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D12PipelineStateViewer::shaderSave_clicked);
@@ -1468,6 +1468,8 @@ void D3D12PipelineStateViewer::setState()
       continue;
 
     b->setEnabled(stage->reflection && state.pipelineResourceId != ResourceId());
+
+    m_Common.SetupShaderEditButton(b, state.pipelineResourceId, stage->resourceId, stage->reflection);
   }
 
   bool streamoutSet = false;
@@ -2135,40 +2137,6 @@ void D3D12PipelineStateViewer::shaderView_clicked()
       m_Ctx.ViewShader(stage->reflection, m_Ctx.CurD3D12PipelineState()->pipelineResourceId);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
-}
-
-void D3D12PipelineStateViewer::shaderEdit_clicked()
-{
-  QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const D3D12Pipe::Shader *stage = stageForSender(sender);
-
-  if(!stage || stage->resourceId == ResourceId())
-    return;
-
-  const ShaderReflection *shaderDetails = stage->reflection;
-
-  if(!shaderDetails)
-    return;
-
-  QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::D3D12)[0]);
-
-  rdcstrpairs files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
-
-  if(!hasOrigSource)
-  {
-    files.clear();
-    files.push_back(make_rdcpair<rdcstr, rdcstr>(
-        "generated.hlsl", m_Common.GenerateHLSLStub(shaderDetails, entryFunc)));
-  }
-
-  if(files.empty())
-    return;
-
-  // we always consider the input HLSL, either the stub or the original source
-  m_Common.EditShader(stage->stage, stage->resourceId, shaderDetails, entryFunc,
-                      ShaderEncoding::HLSL, files);
 }
 
 void D3D12PipelineStateViewer::shaderSave_clicked()
