@@ -138,30 +138,43 @@ void RDTweakedNativeStyle::drawComplexControl(ComplexControl control, const QSty
   // autoraise toolbuttons are rendered flat with a semi-transparent highlight to show their state.
   if(control == QStyle::CC_ToolButton && (opt->state & State_AutoRaise))
   {
+    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
+
     QPen oldPen = p->pen();
     QColor backCol = opt->palette.color(QPalette::Normal, QPalette::Highlight);
-
     backCol.setAlphaF(0.2);
+
+    QStyleOptionToolButton menu;
+
+    // draw the menu arrow, if there is one
+    if((toolbutton->subControls & SC_ToolButtonMenu) ||
+       (toolbutton->features & QStyleOptionToolButton::MenuButtonPopup))
+    {
+      menu = *toolbutton;
+      menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);
+    }
+
     QStyle::State masked = opt->state & (State_On | State_MouseOver);
 
     if(!(opt->state & State_Enabled))
       masked &= ~State_MouseOver;
-
-    // when the mouse is over, make it a little stronger
-    if(masked && (masked & State_MouseOver))
-      backCol.setAlphaF(0.4);
 
     if(masked)
     {
       QRect rect = opt->rect.adjusted(0, 0, -1, -1);
       p->setPen(opt->palette.color(QPalette::Shadow));
       p->drawRect(rect);
+      if(menu.rect.isValid())
+        p->drawLine(menu.rect.topLeft(), menu.rect.bottomLeft());
+
+      // when the mouse is over, make it a little stronger
+      if(masked & State_MouseOver)
+        backCol.setAlphaF(0.4);
+
       p->fillRect(rect, QBrush(backCol));
     }
 
     p->setPen(oldPen);
-
-    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
 
     QStyleOptionToolButton labelTextIcon = *toolbutton;
     labelTextIcon.rect = subControlRect(control, opt, SC_ToolButton, widget);
@@ -169,12 +182,9 @@ void RDTweakedNativeStyle::drawComplexControl(ComplexControl control, const QSty
     // draw the label text/icon
     drawControl(CE_ToolButtonLabel, &labelTextIcon, p, widget);
 
-    // draw the menu arrow, if there is one
-    if((toolbutton->subControls & SC_ToolButtonMenu) ||
-       (toolbutton->features & QStyleOptionToolButton::MenuButtonPopup))
+    if(menu.rect.isValid())
     {
-      QStyleOptionToolButton menu = *toolbutton;
-      menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);
+      menu.rect.adjust(2, 0, 0, 0);
       drawPrimitive(PE_IndicatorArrowDown, &menu, p, widget);
     }
 
