@@ -145,7 +145,7 @@ bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcs
                                             ShaderStage stage, rdcstr arguments) const
 {
   if(executable.isEmpty())
-    return "";
+    return bytebuf();
 
   QString input_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_input"));
   QString output_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_output"));
@@ -162,7 +162,7 @@ bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcs
         window, QApplication::translate("ShaderProcessingTool", "Error writing temp file"),
         QApplication::translate("ShaderProcessingTool", "Couldn't write temporary file %1.")
             .arg(input_file));
-    return "";
+    return bytebuf();
   }
 
   QString programArguments = arguments;
@@ -177,7 +177,7 @@ bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcs
         QApplication::translate(
             "ShaderProcessingTool",
             "Please use {input_file} in the tool arguments to specify the input file."));
-    return "";
+    return bytebuf();
   }
 
   bytebuf outputData;

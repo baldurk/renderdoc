@@ -4727,7 +4727,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
                 else
                 {
                   RDCERR("Unexpected preamble line with OpModuleProcessed: %s",
-                         std::string(source.begin(), source.begin() + nextLine));
+                         std::string(source.begin(), source.begin() + nextLine).c_str());
                   break;
                 }
 
