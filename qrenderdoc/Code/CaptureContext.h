@@ -107,7 +107,7 @@ public:
   CaptureModifications GetCaptureModifications() override { return m_CaptureMods; }
   const FrameDescription &FrameInfo() override { return m_FrameInfo; }
   const APIProperties &APIProps() override { return m_APIProps; }
-  rdcarray<ShaderEncoding> TargetShaderEncodings() { return m_TargetEncodings; }
+  rdcarray<ShaderEncoding> TargetShaderEncodings() override { return m_TargetEncodings; }
   uint32_t CurSelectedEvent() override { return m_SelectedEventID; }
   uint32_t CurEvent() override { return m_EventID; }
   const DrawcallDescription *CurSelectedDrawcall() override
