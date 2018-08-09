@@ -560,6 +560,18 @@ void VulkanPipelineStateViewer::clearState()
   clearShaderState(ui->fsShader, ui->fsResources, ui->fsUBOs);
   clearShaderState(ui->csShader, ui->csResources, ui->csUBOs);
 
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
+      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
+      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
+      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+    b->setEnabled(false);
+
   const QPixmap &tick = Pixmaps::tick(this);
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
@@ -1736,6 +1748,30 @@ void VulkanPipelineStateViewer::setState()
   setShaderState(state.tessEvalShader, state.graphics, ui->tesShader, ui->tesResources, ui->tesUBOs);
   setShaderState(state.fragmentShader, state.graphics, ui->fsShader, ui->fsResources, ui->fsUBOs);
   setShaderState(state.computeShader, state.compute, ui->csShader, ui->csResources, ui->csUBOs);
+
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
+      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
+      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
+      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+  {
+    const VKPipe::Shader *stage = stageForSender(b);
+
+    if(stage == NULL || stage->resourceId == ResourceId())
+      continue;
+
+    ShaderReflection *shaderDetails = stage->reflection;
+
+    ResourceId pipe = stage->stage == ShaderStage::Compute ? state.compute.pipelineResourceId
+                                                           : state.graphics.pipelineResourceId;
+
+    b->setEnabled(shaderDetails && pipe != ResourceId());
+  }
 
   ////////////////////////////////////////////////
   // Rasterizer

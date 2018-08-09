@@ -805,6 +805,18 @@ void D3D11PipelineStateViewer::clearState()
   clearShaderState(ui->psShader, ui->psResources, ui->psSamplers, ui->psCBuffers, ui->psClasses);
   clearShaderState(ui->csShader, ui->csResources, ui->csSamplers, ui->csCBuffers, ui->csClasses);
 
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
+      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
+      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+    b->setEnabled(false);
+
   ui->csUAVs->clear();
 
   const QPixmap &tick = Pixmaps::tick(this);
@@ -849,6 +861,18 @@ void D3D11PipelineStateViewer::clearState()
   ui->stencils->clear();
 
   ui->predicateGroup->setVisible(false);
+
+  {
+    ui->groupX->setEnabled(false);
+    ui->groupY->setEnabled(false);
+    ui->groupZ->setEnabled(false);
+
+    ui->threadX->setEnabled(false);
+    ui->threadY->setEnabled(false);
+    ui->threadZ->setEnabled(false);
+
+    ui->debugThread->setEnabled(false);
+  }
 }
 
 void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RDLabel *shader,
@@ -1408,6 +1432,25 @@ void D3D11PipelineStateViewer::setState()
                  ui->psClasses);
   setShaderState(state.computeShader, ui->csShader, ui->csResources, ui->csSamplers, ui->csCBuffers,
                  ui->csClasses);
+
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
+      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
+      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+  {
+    const D3D11Pipe::Shader *stage = stageForSender(b);
+
+    if(stage == NULL || stage->resourceId == ResourceId())
+      continue;
+
+    b->setEnabled(stage->reflection);
+  }
 
   vs = ui->csUAVs->verticalScrollBar()->value();
   ui->csUAVs->beginUpdate();

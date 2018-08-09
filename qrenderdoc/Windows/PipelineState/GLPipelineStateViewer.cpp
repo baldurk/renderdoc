@@ -540,6 +540,18 @@ void GLPipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csTextures, ui->csSamplers, ui->csUBOs, ui->csSubroutines,
                    ui->csReadWrite);
 
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
+      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
+      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
+      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+    b->setEnabled(false);
+
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
 
@@ -1353,6 +1365,27 @@ void GLPipelineStateViewer::setState()
                  ui->fsSubroutines, ui->fsReadWrite);
   setShaderState(state.computeShader, ui->csShader, ui->csTextures, ui->csSamplers, ui->csUBOs,
                  ui->csSubroutines, ui->csReadWrite);
+
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
+      ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->tcsShaderEditButton, ui->tesShaderEditButton,
+      ui->gsShaderEditButton, ui->fsShaderEditButton,  ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->tcsShaderSaveButton, ui->tesShaderSaveButton,
+      ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+  {
+    const GLPipe::Shader *stage = stageForSender(b);
+
+    if(stage == NULL || stage->shaderResourceId == ResourceId())
+      continue;
+
+    ShaderReflection *shaderDetails = stage->reflection;
+
+    b->setEnabled(shaderDetails);
+  }
 
   vs = ui->xfbBuffers->verticalScrollBar()->value();
   ui->xfbBuffers->beginUpdate();

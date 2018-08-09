@@ -902,6 +902,18 @@ void D3D12PipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csRootSig, ui->csResources, ui->csSamplers, ui->csCBuffers,
                    ui->csUAVs);
 
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
+      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
+      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+    b->setEnabled(false);
+
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
 
@@ -1438,6 +1450,25 @@ void D3D12PipelineStateViewer::setState()
                  ui->psCBuffers, ui->psUAVs);
   setShaderState(state.computeShader, ui->csShader, ui->csRootSig, ui->csResources, ui->csSamplers,
                  ui->csCBuffers, ui->csUAVs);
+
+  QToolButton *shaderButtons[] = {
+      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
+      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
+      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
+      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
+      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+  };
+
+  for(QToolButton *b : shaderButtons)
+  {
+    const D3D12Pipe::Shader *stage = stageForSender(b);
+
+    if(stage == NULL || stage->resourceId == ResourceId())
+      continue;
+
+    b->setEnabled(stage->reflection && state.pipelineResourceId != ResourceId());
+  }
 
   bool streamoutSet = false;
   vs = ui->gsStreamOut->verticalScrollBar()->value();
