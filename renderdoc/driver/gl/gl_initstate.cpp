@@ -1548,7 +1548,6 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
                 else
                 {
                   // we avoid glGetTextureImageEXT as it seems buggy for cubemap faces
-                  RDCLOG("Getting tex image for %llu", resid);
                   GL.glGetTexImage(targets[trg], i, fmt, type, scratchBuf);
                 }
               }
