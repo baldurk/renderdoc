@@ -549,20 +549,20 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
 
   const RDCThumb &thumb = m_RDC->GetThumbnail();
 
-  const byte *jpgbuf = thumb.pixels;
+  const byte *thumbbuf = thumb.pixels;
   size_t thumblen = thumb.len;
   uint32_t thumbwidth = thumb.width, thumbheight = thumb.height;
 
-  if(jpgbuf == NULL)
+  if(thumbbuf == NULL)
     return ret;
 
   bytebuf buf;
 
-  // if the desired output is jpg and either there's no max size or it's already satisfied,
-  // return the data directly
-  if(type == FileType::JPG && (maxsize == 0 || (maxsize > thumbwidth && maxsize > thumbheight)))
+  // if the desired output is the format of stored thumbnail and either there's no max size or it's
+  // already satisfied, return the data directly
+  if(type == thumb.format && (maxsize == 0 || (maxsize > thumbwidth && maxsize > thumbheight)))
   {
-    buf.assign(jpgbuf, thumblen);
+    buf.assign(thumbbuf, thumblen);
   }
   else
   {
@@ -571,8 +571,28 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
     int w = (int)thumbwidth;
     int h = (int)thumbheight;
     int comp = 3;
-    byte *thumbpixels =
-        jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
+    const byte *thumbpixels = NULL;
+    byte *allocatedBuffer = NULL;
+    switch(thumb.format)
+    {
+      case FileType::JPG:
+        allocatedBuffer =
+            jpgd::decompress_jpeg_image_from_memory(thumbbuf, (int)thumblen, &w, &h, &comp, 3);
+        thumbpixels = allocatedBuffer;
+        break;
+
+      case FileType::Raw: thumbpixels = thumbbuf; break;
+
+      default:
+        allocatedBuffer = stbi_load_from_memory(thumbbuf, (int)thumblen, &w, &h, &comp, 3);
+        if(allocatedBuffer == NULL)
+        {
+          RDCERR("Couldn't decode provided thumbnail");
+          return ret;
+        }
+        thumbpixels = allocatedBuffer;
+        break;
+    }
 
     if(maxsize != 0)
     {
@@ -595,8 +615,9 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
         stbir_resize_uint8_srgb(thumbpixels, thumbwidth, thumbheight, 0, resizedpixels,
                                 clampedWidth, clampedHeight, 0, 3, -1, 0);
 
-        free(thumbpixels);
+        free(allocatedBuffer);
 
+        allocatedBuffer = resizedpixels;
         thumbpixels = resizedpixels;
         thumbwidth = clampedWidth;
         thumbheight = clampedHeight;
@@ -644,7 +665,7 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
       default:
       {
         RDCERR("Unsupported file type %d in thumbnail fetch", type);
-        free(thumbpixels);
+        free(allocatedBuffer);
         ret.width = 0;
         ret.height = 0;
         return ret;
@@ -653,7 +674,7 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
 
     buf = encodedBytes;
 
-    free(thumbpixels);
+    free(allocatedBuffer);
   }
 
   ret.data.swap(buf);

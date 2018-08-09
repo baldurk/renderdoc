@@ -1245,6 +1245,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   byte *thpixels = NULL;
   uint16_t thwidth = 0;
   uint16_t thheight = 0;
+  int thpixelslen = 0;
 
   // gather backbuffer screenshot
   const uint32_t maxSize = 2048;
@@ -1419,7 +1420,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       thwidth &= ~0x7;    // align down to multiple of 8
       thheight = uint16_t(float(thwidth) / aspect);
 
-      thpixels = new byte[3U * thwidth * thheight];
+      thpixelslen = 3U * thwidth * thheight;
+      thpixels = new byte[thpixelslen];
 
       uint32_t stride = fmt.compByteWidth * fmt.compCount;
 
@@ -1528,32 +1530,34 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     GetResourceManager()->ReleaseWrappedResource(readbackIm);
   }
 
-  byte *jpgbuf = NULL;
-  int len = thwidth * thheight;
+  byte *buf = NULL;
+  int buflen = 0;
+  FileType thformat = FileType::JPG;
 
   if(wnd)
   {
-    jpgbuf = new byte[len];
+    buflen = thwidth * thheight;
+    buf = new byte[buflen];
 
     jpge::params p;
     p.m_quality = 80;
 
     bool success =
-        jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+        jpge::compress_image_to_jpeg_file_in_memory(buf, buflen, thwidth, thheight, 3, thpixels, p);
 
     if(!success)
     {
       RDCERR("Failed to compress to jpg");
-      SAFE_DELETE_ARRAY(jpgbuf);
+      SAFE_DELETE_ARRAY(buf);
       thwidth = 0;
       thheight = 0;
     }
   }
 
   RDCFile *rdc = RenderDoc::Inst().CreateRDC(RDCDriver::Vulkan, m_CapturedFrames.back().frameNumber,
-                                             jpgbuf, len, thwidth, thheight);
+                                             buf, buflen, thwidth, thheight, thformat);
 
-  SAFE_DELETE_ARRAY(jpgbuf);
+  SAFE_DELETE_ARRAY(buf);
   SAFE_DELETE_ARRAY(thpixels);
 
   StreamWriter *captureWriter = NULL;

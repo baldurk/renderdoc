@@ -1631,7 +1631,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
     rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_CapturedFrames.back().frameNumber, jpgbuf,
-                                      len, thwidth, thheight);
+                                      len, thwidth, thheight, FileType::JPG);
 
     SAFE_DELETE_ARRAY(jpgbuf);
     SAFE_DELETE_ARRAY(thpixels);
