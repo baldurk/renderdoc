@@ -1771,6 +1771,11 @@ void ReplayController::Shutdown()
   delete this;
 }
 
+rdcarray<ShaderEncoding> ReplayController::GetTargetShaderEncodings()
+{
+  return m_pDevice->GetTargetShaderEncodings();
+}
+
 rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
     const char *entry, const char *source, const ShaderCompileFlags &compileFlags, ShaderStage type)
 {

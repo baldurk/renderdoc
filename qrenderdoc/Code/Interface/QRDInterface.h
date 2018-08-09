@@ -1184,6 +1184,15 @@ the UI which aren't reflected in the capture file on disk.
 )");
   virtual const APIProperties &APIProps() = 0;
 
+  DOCUMENT(R"(Retrieve the list of :class:`~renderdoc.ShaderEncoding` that are available for
+building target shaders for the currently loaded capture. See
+:meth:`~renderdoc.ReplayController.BuildTargetShader`.
+
+:return: The available encodings.
+:rtype: ``list`` of :class:`~renderdoc.ShaderEncoding`
+)");
+  virtual rdcarray<ShaderEncoding> TargetShaderEncodings() = 0;
+
   DOCUMENT(R"(Retrieve the currently selected :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 In most cases, prefer using :meth:`CurEvent`. See :meth:`CaptureViewer.OnSelectedEventChanged` for more

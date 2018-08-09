@@ -139,6 +139,7 @@ public:
 
   virtual void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, string *errors) = 0;
+  virtual rdcarray<ShaderEncoding> GetTargetShaderEncodings() = 0;
   virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual void RemoveReplacement(ResourceId id) = 0;
   virtual void FreeTargetResource(ResourceId id) = 0;

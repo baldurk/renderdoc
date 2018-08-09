@@ -279,6 +279,8 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
 
     m_APIProps = r->GetAPIProperties();
 
+    m_TargetEncodings = r->GetTargetShaderEncodings();
+
     m_PostloadProgress = 0.2f;
 
     m_Drawcalls = &r->GetDrawcalls();

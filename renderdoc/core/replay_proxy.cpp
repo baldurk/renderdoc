@@ -961,6 +961,31 @@ void ReplayProxy::FreeTargetResource(ResourceId id)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<ShaderEncoding> ReplayProxy::Proxied_GetTargetShaderEncodings(ParamSerialiser &paramser,
+                                                                       ReturnSerialiser &retser)
+{
+  const ReplayProxyPacket packet = eReplayProxy_GetTargetShaderEncodings;
+  rdcarray<ShaderEncoding> ret;
+
+  {
+    BEGIN_PARAMS();
+    END_PARAMS();
+  }
+
+  if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+    ret = m_Remote->GetTargetShaderEncodings();
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+rdcarray<ShaderEncoding> ReplayProxy::GetTargetShaderEncodings()
+{
+  PROXY_FUNCTION(GetTargetShaderEncodings);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                             std::string source, std::string entry,
                                             const ShaderCompileFlags &compileFlags,
@@ -2098,6 +2123,7 @@ bool ReplayProxy::Tick(int type)
       break;
     case eReplayProxy_DisassembleShader: DisassembleShader(ResourceId(), NULL, ""); break;
     case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;
+    case eReplayProxy_GetTargetShaderEncodings: GetTargetShaderEncodings(); break;
     default: RDCERR("Unexpected command %u", type); return false;
   }
 

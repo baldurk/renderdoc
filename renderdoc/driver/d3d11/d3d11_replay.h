@@ -178,6 +178,10 @@ public:
 
   void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                          ShaderStage type, ResourceId *id, string *errors);
+  rdcarray<ShaderEncoding> GetTargetShaderEncodings()
+  {
+    return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
+  }
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 

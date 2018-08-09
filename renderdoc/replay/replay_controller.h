@@ -151,6 +151,7 @@ public:
   void FreeCustomShader(ResourceId id);
 
   rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry, const char *source,
+  rdcarray<ShaderEncoding> GetTargetShaderEncodings();
                                                 const ShaderCompileFlags &compileFlags,
                                                 ShaderStage type);
   void ReplaceResource(ResourceId from, ResourceId to);

@@ -93,6 +93,7 @@ enum ReplayProxyPacket
 
   eReplayProxy_DisassembleShader,
   eReplayProxy_GetDisassemblyTargets,
+  eReplayProxy_GetTargetShaderEncodings,
 };
 
 #define IMPLEMENT_FUNCTION_PROXIED(rettype, name, ...)                                  \
@@ -496,6 +497,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, std::string source, std::string entry,
                              const ShaderCompileFlags &compileFlags, ShaderStage type,
                              ResourceId *id, std::string *errors);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEncoding>, GetTargetShaderEncodings);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplaceResource, ResourceId from, ResourceId to);
   IMPLEMENT_FUNCTION_PROXIED(void, RemoveReplacement, ResourceId id);
 
