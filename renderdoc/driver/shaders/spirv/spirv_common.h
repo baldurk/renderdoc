@@ -113,6 +113,7 @@ struct SPVModule
   spv::SourceLanguage sourceLang;
   uint32_t sourceVer;
 
+  std::string cmdline;
   vector<std::pair<string, string>> sourceFiles;
 
   vector<string> extensions;

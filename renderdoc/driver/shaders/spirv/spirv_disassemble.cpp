@@ -28,6 +28,7 @@
 #include "common/common.h"
 #include "maths/formatpacking.h"
 #include "serialise/serialiser.h"
+#include "strings/string_utils.h"
 #include "spirv_common.h"
 
 using std::pair;
@@ -3981,6 +3982,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     }
   }
 
+  if(!cmdline.empty())
+    reflection.debugInfo.compileFlags.flags = {{"@cmdline", cmdline}};
+
   // TODO need to fetch these
   reflection.dispatchThreadsDimension[0] = 0;
   reflection.dispatchThreadsDimension[1] = 0;
@@ -4649,6 +4653,15 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
   module.generator = spirv[2];
 
+  bool isglslang = false;
+
+  {
+    uint32_t toolid = (module.generator & 0xffff0000) >> 16;
+
+    if(toolid == 8)
+      isglslang = true;
+  }
+
   uint32_t idbound = spirv[3];
   module.ids.resize(idbound);
 
@@ -4686,7 +4699,50 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
           RDCASSERT(filenameInst);
 
           sourceFile.first = filenameInst->str;
-          sourceFile.second = (const char *)&spirv[it + 4];
+
+          std::string source = (const char *)&spirv[it + 4];
+
+          // glslang outputs command-line arguments as OpModuleProcessed - before SPIR-V 1.1 where
+          // it was an actual op, it was output as comments in the source.
+          if(isglslang)
+          {
+            const char compileFlagPrefix[] = "// OpModuleProcessed ";
+            const char endMarker[] = "#line 1\n";
+            if(source.find(compileFlagPrefix) == 0)
+            {
+              // process compile flags
+              size_t nextLine = source.find('\n');
+              while(nextLine != std::string::npos)
+              {
+                bool finished = false;
+                if(source.find(compileFlagPrefix) == 0)
+                {
+                  size_t offs = sizeof(compileFlagPrefix) - 1;
+                  module.cmdline += " --" + source.substr(offs, nextLine - offs);
+                }
+                else if(source.find(endMarker) == 0)
+                {
+                  finished = true;
+                }
+                else
+                {
+                  RDCERR("Unexpected preamble line with OpModuleProcessed: %s",
+                         std::string(source.begin(), source.begin() + nextLine));
+                  break;
+                }
+
+                // erase this line
+                source.erase(0, nextLine + 1);
+
+                nextLine = source.find('\n');
+
+                if(finished)
+                  break;
+              }
+            }
+          }
+
+          sourceFile.second = source;
 
           module.sourceFiles.push_back(sourceFile);
         }
@@ -4715,6 +4771,16 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       {
         op.str = (const char *)&spirv[it + 1];
         module.sourceexts.push_back(&op);
+        break;
+      }
+      case spv::OpModuleProcessed:
+      {
+        // glslang outputs command-line arguments as OpModuleProcessed
+        if(isglslang)
+        {
+          module.cmdline += " --";
+          module.cmdline += (const char *)&spirv[it + 1];
+        }
         break;
       }
       case spv::OpExtension:

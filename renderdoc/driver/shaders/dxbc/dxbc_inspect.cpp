@@ -1648,12 +1648,72 @@ void DXBCFile::GuessResources()
   }
 }
 
+struct FxcArg
+{
+  uint32_t bit;
+  const char *arg;
+} fxc_flags[] = {
+    {D3DCOMPILE_DEBUG, " /Zi "},
+    {D3DCOMPILE_SKIP_VALIDATION, " /Vd "},
+    {D3DCOMPILE_SKIP_OPTIMIZATION, " /Od "},
+    {D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, " /Zpr "},
+    {D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR, " /Zpc "},
+    {D3DCOMPILE_PARTIAL_PRECISION, " /Gpp "},
+    //{D3DCOMPILE_FORCE_VS_SOFTWARE_NO_OPT, " /XX "},
+    //{D3DCOMPILE_FORCE_PS_SOFTWARE_NO_OPT, " /XX "},
+    {D3DCOMPILE_NO_PRESHADER, " /Op "},
+    {D3DCOMPILE_AVOID_FLOW_CONTROL, " /Gfa "},
+    {D3DCOMPILE_PREFER_FLOW_CONTROL, " /Gfp "},
+    {D3DCOMPILE_ENABLE_STRICTNESS, " /Ges "},
+    {D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, " /Gec "},
+    {D3DCOMPILE_IEEE_STRICTNESS, " /Gis "},
+    {D3DCOMPILE_WARNINGS_ARE_ERRORS, " /WX "},
+    {D3DCOMPILE_RESOURCES_MAY_ALIAS, " /res_may_alias "},
+    {D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES, " /enable_unbounded_descriptor_tables "},
+    {D3DCOMPILE_ALL_RESOURCES_BOUND, " /all_resources_bound "},
+    {D3DCOMPILE_DEBUG_NAME_FOR_SOURCE, " /Zss "},
+    {D3DCOMPILE_DEBUG_NAME_FOR_BINARY, " /Zsb "},
+};
+
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags)
 {
   uint32_t ret = 0;
 
-  if(!compileFlags.flags.empty() && compileFlags.flags[0].name == "compileFlags")
-    ret = atoi(compileFlags.flags[0].value.c_str());
+  for(const ShaderCompileFlag flag : compileFlags.flags)
+  {
+    if(flag.name == "@cmdline")
+    {
+      std::string cmdline = flag.value;
+
+      // ensure cmdline is surrounded by spaces and all whitespace is spaces. This means we can
+      // search for our flags surrounded by space and ensure we get exact matches.
+      for(char &c : cmdline)
+        if(isspace(c))
+          c = ' ';
+
+      cmdline = " " + cmdline + " ";
+
+      for(const FxcArg &arg : fxc_flags)
+      {
+        if(strstr(cmdline.c_str(), arg.arg))
+          ret |= arg.bit;
+      }
+
+      // check optimisation special case
+      if(strstr(cmdline.c_str(), " /O0 "))
+        ret |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+      else if(strstr(cmdline.c_str(), " /O1 "))
+        ret |= D3DCOMPILE_OPTIMIZATION_LEVEL1;
+      else if(strstr(cmdline.c_str(), " /O2 "))
+        ret |= D3DCOMPILE_OPTIMIZATION_LEVEL2;
+      else if(strstr(cmdline.c_str(), " /O3 "))
+        ret |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+
+      // ignore any other flags we might not understand
+
+      break;
+    }
+  }
 
   return ret;
 }
@@ -1662,7 +1722,32 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
 {
   ShaderCompileFlags ret;
 
-  ret.flags = {{"compileFlags", StringFormat::Fmt("%u", flags)}};
+  std::string cmdline;
+
+  for(const FxcArg &arg : fxc_flags)
+  {
+    if(flags & arg.bit)
+      cmdline += arg.arg;
+  }
+
+  // optimization flags are a special case.
+  //
+  // D3DCOMPILE_OPTIMIZATION_LEVEL0 = (1 << 14)
+  // D3DCOMPILE_OPTIMIZATION_LEVEL1 = 0
+  // D3DCOMPILE_OPTIMIZATION_LEVEL2 = ((1 << 14) | (1 << 15))
+  // D3DCOMPILE_OPTIMIZATION_LEVEL3 = (1 << 15)
+
+  uint32_t opt = (flags & D3DCOMPILE_OPTIMIZATION_LEVEL2);
+  if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL0)
+    cmdline += " /O0";
+  else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL1)
+    cmdline += " /O1";
+  else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL2)
+    cmdline += " /O2";
+  else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL3)
+    cmdline += " /O3";
+
+  ret.flags = {{"@cmdline", cmdline}};
 
   // If D3DCOMPILE_SKIP_OPTIMIZATION is set, then prefer source-level debugging as it should be
   // accurate enough to work with.
@@ -1678,3 +1763,100 @@ ShaderCompileFlags EncodeFlags(const DXBCDebugChunk *dbg)
 }
 
 };    // namespace DXBC
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Check DXBC flags are non-overlapping", "[dxbc]")
+{
+  for(const DXBC::FxcArg &a : DXBC::fxc_flags)
+  {
+    for(const DXBC::FxcArg &b : DXBC::fxc_flags)
+    {
+      if(a.arg == b.arg)
+        continue;
+
+      // no argument should be a subset of another argument
+      std::string arga = trim(a.arg);
+      std::string argb = trim(b.arg);
+      INFO("a: '" << arga << "' b: '" << argb << "'");
+      CHECK(strstr(arga.c_str(), argb.c_str()) == NULL);
+      CHECK(strstr(argb.c_str(), arga.c_str()) == NULL);
+    }
+  }
+}
+
+TEST_CASE("Check DXBC flag encoding/decoding", "[dxbc]")
+{
+  SECTION("encode/decode identity")
+  {
+    uint32_t flags = D3DCOMPILE_PARTIAL_PRECISION | D3DCOMPILE_SKIP_OPTIMIZATION |
+                     D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_OPTIMIZATION_LEVEL2;
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+
+    flags = 0;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_DEBUG;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+  };
+
+  SECTION("encode/decode discards unrecognised parameters")
+  {
+    uint32_t flags = D3DCOMPILE_PARTIAL_PRECISION | (1 << 30);
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags2 == D3DCOMPILE_PARTIAL_PRECISION);
+
+    ShaderCompileFlags compileflags;
+
+    compileflags.flags = {
+        {"@cmdline", "/Zi /Z8 /JJ /WX /K other words embed/Odparam /DFoo=\"bar\""}};
+
+    flags2 = DXBC::DecodeFlags(compileflags);
+
+    CHECK(flags2 == (D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS));
+
+    flags = ~0U;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    uint32_t allflags = 0;
+    for(const DXBC::FxcArg &a : DXBC::fxc_flags)
+      allflags |= a.bit;
+
+    allflags |= D3DCOMPILE_OPTIMIZATION_LEVEL2;
+
+    CHECK(flags2 == allflags);
+  };
+
+  SECTION("optimisation flags are properly decoded and encoded")
+  {
+    uint32_t flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL1;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL2;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL3;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+
+    CHECK(flags == flags2);
+  };
+}
+#endif
