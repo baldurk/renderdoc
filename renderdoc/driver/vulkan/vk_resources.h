@@ -1217,6 +1217,8 @@ bool IsDoubleFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);
 bool IsYUVFormat(VkFormat f);
 
+uint32_t FormatNumPlanes(VkFormat f);
+
 VkFormat GetDepthOnlyFormat(VkFormat f);
 VkFormat GetUIntTypedFormat(VkFormat f);
 
