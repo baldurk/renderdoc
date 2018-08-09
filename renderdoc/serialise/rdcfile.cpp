@@ -153,7 +153,7 @@ struct FileHeader
   char progVersion[16];
 };
 
-struct BinaryThumbnail
+struct BinaryThumbnail_v100
 {
   // thumbnail width and height. If 0x0, no thumbnail data
   uint16_t width;
@@ -161,6 +161,21 @@ struct BinaryThumbnail
   // number of bytes in thumbnail array below
   uint32_t length;
   // JPG compressed thumbnail
+  byte data[1];
+};
+
+struct BinaryThumbnail
+{
+  // thumbnail width and height. If 0x0, no thumbnail data
+  uint16_t width;
+  uint16_t height;
+  // number of bytes in thumbnail array below
+  uint32_t length;
+  // thumbnail format (raw, jpeg, ...)
+  // this is placed after length, and before data[] so that head layout of BinaryThumbnail_v100 and
+  // BinaryThumbnail is the same
+  uint32_t format;
+  // Thumbnail
   byte data[1];
 };
 
@@ -315,27 +330,48 @@ void RDCFile::Init(StreamReader &reader)
 
   m_SerVer = header.version;
 
-  if(m_SerVer != SERIALISE_VERSION)
-  {
-    if(header.version < V1_0_VERSION)
-    {
-      RDCEraseEl(header.progVersion);
-      memcpy(header.progVersion, "v0.x", sizeof("v0.x"));
-    }
-
-    RETURNERROR(
-        ContainerError::UnsupportedVersion,
-        "Capture file from wrong version. This program (v%s) uses logfile version %u, this file is "
-        "logfile version %u captured on %s.",
-        MAJOR_MINOR_VERSION_STRING, SERIALISE_VERSION, header.version, header.progVersion);
-  }
+  static_assert(SERIALISE_VERSION <= V1_1_VERSION,
+                "Update the switch below when new file versions are created");
 
   BinaryThumbnail thumb;
-  reader.Read(&thumb, offsetof(BinaryThumbnail, data));
-
-  if(reader.IsErrored())
+  switch(m_SerVer)
   {
-    RETURNERROR(ContainerError::FileIO, "I/O error reading thumbnail header");
+    case V1_0_VERSION:
+      // We made the layout of BinaryThumbnail_v100 and BinaryThumbnail backward-compatible, so read
+      // just v1.00 layout into the new header
+      reader.Read(&thumb, offsetof(BinaryThumbnail_v100, data));
+      if(reader.IsErrored())
+      {
+        RETURNERROR(ContainerError::FileIO, "I/O error reading thumbnail header");
+      }
+      // v1.00 was always saving JPEGs only.
+      thumb.format = static_cast<uint32_t>(FileType::JPG);
+      break;
+
+    case V1_1_VERSION:
+      reader.Read(&thumb, offsetof(BinaryThumbnail, data));
+      if(reader.IsErrored())
+      {
+        RETURNERROR(ContainerError::FileIO, "I/O error reading thumbnail header");
+      }
+      if(thumb.format >= static_cast<uint32_t>(FileType::Count))
+      {
+        RETURNERROR(ContainerError::Corrupt, "Capture file has unsupported thumbnail format (%u)",
+                    thumb.format);
+      }
+      break;
+
+    default:
+      if(header.version < V1_0_VERSION)
+      {
+        RDCEraseEl(header.progVersion);
+        memcpy(header.progVersion, "v0.x", sizeof("v0.x"));
+      }
+
+      RETURNERROR(ContainerError::UnsupportedVersion,
+                  "Capture file from wrong version. This program (v%s) uses logfile version %u, "
+                  "this file is logfile version %u captured on %s.",
+                  MAJOR_MINOR_VERSION_STRING, SERIALISE_VERSION, header.version, header.progVersion);
   }
 
   // check the thumbnail size is sensible
@@ -387,6 +423,7 @@ void RDCFile::Init(StreamReader &reader)
   m_Thumb.width = thumb.width;
   m_Thumb.height = thumb.height;
   m_Thumb.len = thumb.length;
+  m_Thumb.format = static_cast<FileType>(thumb.format);
 
   if(m_Thumb.len > 0 && m_Thumb.width > 0 && m_Thumb.height > 0)
   {
@@ -642,20 +679,29 @@ void RDCFile::Create(const char *filename)
   thumbHeader.width = m_Thumb.width;
   thumbHeader.height = m_Thumb.height;
   thumbHeader.length = m_Thumb.len;
+  thumbHeader.format = static_cast<uint32_t>(m_Thumb.format);
+
+  uint32_t thumbHeaderLength = offsetof(BinaryThumbnail, data);
+  // If thumbnail is in JPEG format, this file can be saved as v1.0 and v1.1 is not needed.
+  if(m_Thumb.format == FileType::JPG && header.version == V1_1_VERSION)
+  {
+    header.version = V1_0_VERSION;
+    thumbHeaderLength = offsetof(BinaryThumbnail_v100, data);
+  }
 
   CaptureMetaData meta;
   meta.driverID = m_Driver;
   meta.machineIdent = m_MachineIdent;
   meta.driverNameLength = uint8_t(m_DriverName.size() + 1);
 
-  header.headerLength = sizeof(FileHeader) + offsetof(BinaryThumbnail, data) + thumbHeader.length +
+  header.headerLength = sizeof(FileHeader) + thumbHeaderLength + thumbHeader.length +
                         offsetof(CaptureMetaData, driverName) + meta.driverNameLength;
 
   {
     StreamWriter writer(m_File, Ownership::Nothing);
 
     writer.Write(header);
-    writer.Write(&thumbHeader, offsetof(BinaryThumbnail, data));
+    writer.Write(&thumbHeader, thumbHeaderLength);
 
     if(thumbHeader.length > 0)
       writer.Write(m_Thumb.pixels, thumbHeader.length);

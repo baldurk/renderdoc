@@ -1245,6 +1245,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   byte *thpixels = NULL;
   uint16_t thwidth = 0;
   uint16_t thheight = 0;
+  int thpixelslen = 0;
 
   // gather backbuffer screenshot
   const uint32_t maxSize = 2048;
@@ -1410,16 +1411,12 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
       data += layout.offset;
 
-      float widthf = float(imInfo.extent.width);
-      float heightf = float(imInfo.extent.height);
-
-      float aspect = widthf / heightf;
-
       thwidth = (uint16_t)RDCMIN(maxSize, imInfo.extent.width);
       thwidth &= ~0x7;    // align down to multiple of 8
-      thheight = uint16_t(float(thwidth) / aspect);
+      thheight = uint16_t(thwidth * imInfo.extent.height / imInfo.extent.width);
 
-      thpixels = new byte[3U * thwidth * thheight];
+      thpixelslen = 3U * thwidth * thheight;
+      thpixels = new byte[thpixelslen];
 
       uint32_t stride = fmt.compByteWidth * fmt.compCount;
 
@@ -1450,11 +1447,10 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       {
         for(uint32_t x = 0; x < thwidth; x++)
         {
-          float xf = float(x) / float(thwidth);
-          float yf = float(y) / float(thheight);
+          uint32_t xSource = x * imInfo.extent.width / thwidth;
+          uint32_t ySource = y * imInfo.extent.height / thheight;
 
-          byte *src =
-              &data[stride * uint32_t(xf * widthf) + layout.rowPitch * uint32_t(yf * heightf)];
+          byte *src = &data[stride * xSource + layout.rowPitch * ySource];
 
           if(buf1010102)
           {
@@ -1528,32 +1524,34 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     GetResourceManager()->ReleaseWrappedResource(readbackIm);
   }
 
-  byte *jpgbuf = NULL;
-  int len = thwidth * thheight;
+  byte *buf = NULL;
+  int buflen = 0;
+  FileType thformat = FileType::JPG;
 
   if(wnd)
   {
-    jpgbuf = new byte[len];
+    buflen = thwidth * thheight;
+    buf = new byte[buflen];
 
     jpge::params p;
     p.m_quality = 80;
 
     bool success =
-        jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+        jpge::compress_image_to_jpeg_file_in_memory(buf, buflen, thwidth, thheight, 3, thpixels, p);
 
     if(!success)
     {
       RDCERR("Failed to compress to jpg");
-      SAFE_DELETE_ARRAY(jpgbuf);
+      SAFE_DELETE_ARRAY(buf);
       thwidth = 0;
       thheight = 0;
     }
   }
 
   RDCFile *rdc = RenderDoc::Inst().CreateRDC(RDCDriver::Vulkan, m_CapturedFrames.back().frameNumber,
-                                             jpgbuf, len, thwidth, thheight);
+                                             buf, buflen, thwidth, thheight, thformat);
 
-  SAFE_DELETE_ARRAY(jpgbuf);
+  SAFE_DELETE_ARRAY(buf);
   SAFE_DELETE_ARRAY(thpixels);
 
   StreamWriter *captureWriter = NULL;

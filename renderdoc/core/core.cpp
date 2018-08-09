@@ -700,7 +700,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
 }
 
 RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixels, size_t thlen,
-                              uint16_t thwidth, uint16_t thheight)
+                              uint16_t thwidth, uint16_t thheight, FileType thformat)
 {
   RDCFile *ret = new RDCFile;
 
@@ -729,6 +729,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixel
     th.pixels = (const byte *)thpixels;
     th.width = thwidth;
     th.height = thheight;
+    th.format = thformat;
     thumb = &th;
   }
 

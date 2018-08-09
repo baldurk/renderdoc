@@ -130,6 +130,9 @@
     <Filter Include="3rdparty\miniz">
       <UniqueIdentifier>{5994c355-880b-45b9-b17a-2e9e1fc2044a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Serialise\Codecs\CPP">
+      <UniqueIdentifier>{a490548f-3737-463f-9b0c-f5b972be8a19}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -458,6 +461,24 @@
     </ClInclude>
     <ClInclude Include="api\replay\pipestate.h">
       <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\codecs\ext_object.h">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\codecs\intervals.h">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\codecs\vk_cpp_codec_file.h">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\codecs\vk_cpp_codec_state.h">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\codecs\vk_cpp_codec_tracker.h">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\codecs\vk_cpp_codec_writer.h">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -808,6 +829,36 @@
     </ClCompile>
     <ClCompile Include="3rdparty\miniz\miniz.c">
       <Filter>3rdparty\miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_state.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_tracker.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_tracker_cmd.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_tracker_filter.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_tracker_internal.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_tracker_state.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_writer.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_writer_generic.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\vk_cpp_codec_writer_template_files.cpp">
+      <Filter>Common\Serialise\Codecs\CPP</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

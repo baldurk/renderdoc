@@ -862,8 +862,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
     RDCLOG("No whitelist IP ranges configured - using default private IP ranges.");
     RDCLOG(
         "Create a config file remoteserver.conf in ~/.renderdoc or %%APPDATA%%/renderdoc to "
-        "narrow "
-        "this down or accept connections from more ranges.");
+        "narrow this down or accept connections from more ranges.");
 
     listenRanges.push_back(std::make_pair(Network::MakeIP(10, 0, 0, 0), 0xff000000));
     listenRanges.push_back(std::make_pair(Network::MakeIP(172, 16, 0, 0), 0xfff00000));

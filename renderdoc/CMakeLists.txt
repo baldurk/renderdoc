@@ -146,6 +146,22 @@ set(sources
     serialise/rdcfile.cpp
     serialise/rdcfile.h
     serialise/codecs/xml_codec.cpp
+    serialise/codecs/vk_cpp_codec.cpp
+    serialise/codecs/vk_cpp_codec_file.h
+    serialise/codecs/vk_cpp_codec_state.cpp
+    serialise/codecs/vk_cpp_codec_state.h
+    serialise/codecs/vk_cpp_codec_tracker.cpp
+    serialise/codecs/vk_cpp_codec_tracker.h
+    serialise/codecs/vk_cpp_codec_tracker_cmd.cpp
+    serialise/codecs/vk_cpp_codec_tracker_filter.cpp
+    serialise/codecs/vk_cpp_codec_tracker_internal.cpp
+    serialise/codecs/vk_cpp_codec_tracker_state.cpp
+    serialise/codecs/vk_cpp_codec_writer.cpp
+    serialise/codecs/vk_cpp_codec_writer_generic.cpp
+    serialise/codecs/vk_cpp_codec_writer_template_files.cpp
+    serialise/codecs/vk_cpp_codec_writer.h
+    serialise/codecs/intervals.h
+    serialise/codecs/ext_object.h
     serialise/codecs/chrome_json_codec.cpp
     serialise/comp_io_tests.cpp
     serialise/serialiser_tests.cpp
