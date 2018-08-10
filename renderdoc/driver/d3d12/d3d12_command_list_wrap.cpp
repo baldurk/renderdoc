@@ -1600,7 +1600,7 @@ void WrappedID3D12GraphicsCommandList2::SetComputeRootDescriptorTable(
       if(num == UINT_MAX)
       {
         // find out how many descriptors are left after rangeStart
-        num = HeapNumDescriptors - offset;
+        num = HeapNumDescriptors - rangeStart->GetHeapIndex();
       }
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
@@ -2163,7 +2163,7 @@ void WrappedID3D12GraphicsCommandList2::SetGraphicsRootDescriptorTable(
       if(num == UINT_MAX)
       {
         // find out how many descriptors are left after rangeStart
-        num = HeapNumDescriptors - offset;
+        num = HeapNumDescriptors - rangeStart->GetHeapIndex();
       }
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
