@@ -88,8 +88,6 @@ private:
 
   QMenu *editMenus[6] = {};
 
-  bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
-                            rdcstrpairs &files);
   QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
   void EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
                   ShaderCompileFlags compileFlags, ShaderEncoding encoding, const rdcstrpairs &files);

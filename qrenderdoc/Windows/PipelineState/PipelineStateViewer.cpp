@@ -549,34 +549,6 @@ void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
   });
 }
 
-bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDetails,
-                                               QString &entryFunc, rdcstrpairs &files)
-{
-  if(!shaderDetails->debugInfo.files.empty())
-  {
-    entryFunc = shaderDetails->entryPoint;
-
-    QStringList uniqueFiles;
-
-    for(const ShaderSourceFile &s : shaderDetails->debugInfo.files)
-    {
-      QString filename = s.filename;
-      if(uniqueFiles.contains(filename.toLower()))
-      {
-        qWarning() << lit("Duplicate full filename") << filename;
-        continue;
-      }
-      uniqueFiles.push_back(filename.toLower());
-
-      files.push_back(make_rdcpair(s.filename, s.contents));
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
 void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
                                                   const rdcarray<ShaderConstant> &vars,
                                                   QString &struct_contents, QString &struct_defs)
