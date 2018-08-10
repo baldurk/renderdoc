@@ -42,6 +42,9 @@ void *GetGLHandle()
   if(!handle)
     handle = Process::LoadModule("libGL.so");
 
+  if(!handle)
+    handle = Process::LoadModule("libGLX.so.0");
+
   return handle;
 }
 
@@ -278,6 +281,14 @@ class GLXPlatform : public GLPlatform
 
     if(!ret)
       ret = Process::GetFunctionAddress(GetGLHandle(), funcname);
+
+    if(!ret)
+    {
+      // last ditch attempt, try the libOpenGL version
+      static void *OpenGLhandle = Process::LoadModule("libOpenGL.so.0");
+      if(OpenGLhandle)
+        ret = Process::GetFunctionAddress(OpenGLhandle, funcname);
+    }
 
     return ret;
   }
