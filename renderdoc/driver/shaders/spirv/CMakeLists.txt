@@ -15,6 +15,7 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/Logger.h
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
     ${glslang_dir}/SPIRV/SpvBuilder.h
+    ${glslang_dir}/SPIRV/SpvPostProcess.cpp
     ${glslang_dir}/SPIRV/spvIR.h
     ${glslang_dir}/glslang/GenericCodeGen/CodeGen.cpp
     ${glslang_dir}/glslang/GenericCodeGen/Link.cpp
@@ -97,7 +98,7 @@ add_definitions(-DAMD_EXTENSIONS)
 add_definitions(-DNV_EXTENSIONS)
 
 set_source_files_properties(${glslang_sources}
-    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers")
+    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing")
 
 if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
     set_source_files_properties(${glslang_dir}/glslang/MachineIndependent/reflection.cpp

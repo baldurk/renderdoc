@@ -24,6 +24,9 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvPostProcess.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\GenericCodeGen\CodeGen.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
