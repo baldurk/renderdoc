@@ -133,6 +133,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\InReadableOrder.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvPostProcess.cpp" />
     <ClCompile Include="precompiled.cpp">
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>Create</PrecompiledHeader>
