@@ -283,21 +283,21 @@ TextureFilter MakeFilter(D3D12_FILTER filter)
   ret.filter = FilterFunction::Normal;
 
   if(filter >= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
-     filter < D3D12_FILTER_COMPARISON_ANISOTROPIC)
+     filter <= D3D12_FILTER_COMPARISON_ANISOTROPIC)
   {
     ret.filter = FilterFunction::Comparison;
     // the first 0x7f is the min/mag/mip filtering
     filter = D3D12_FILTER(filter & 0x7f);
   }
   else if(filter >= D3D12_FILTER_MINIMUM_MIN_MAG_MIP_POINT &&
-          filter < D3D12_FILTER_MINIMUM_ANISOTROPIC)
+          filter <= D3D12_FILTER_MINIMUM_ANISOTROPIC)
   {
     ret.filter = FilterFunction::Minimum;
     // the first 0x7f is the min/mag/mip filtering
     filter = D3D12_FILTER(filter & 0x7f);
   }
   else if(filter >= D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_POINT &&
-          filter < D3D12_FILTER_MAXIMUM_ANISOTROPIC)
+          filter <= D3D12_FILTER_MAXIMUM_ANISOTROPIC)
   {
     ret.filter = FilterFunction::Maximum;
     // the first 0x7f is the min/mag/mip filtering
