@@ -408,10 +408,14 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
       }
       else
       {
-        QProcess process;
-        process.start(qApp->applicationFilePath(), QStringList() << lit("--install_vulkan_layer")
-                                                                 << lit("user"));
-        process.waitForFinished(300);
+        QProcess *process = new QProcess;
+        process->start(qApp->applicationFilePath(), QStringList() << lit("--install_vulkan_layer")
+                                                                  << lit("user"));
+        process->waitForFinished(300);
+
+        // when the process exits, delete
+        QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
+                         [process](int exitCode) { process->deleteLater(); });
       }
     }
 
