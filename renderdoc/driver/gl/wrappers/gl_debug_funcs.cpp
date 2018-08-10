@@ -175,7 +175,8 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
 
   if(IsReplayingAndReading())
   {
-    GLMarkerRegion::Set(name);
+    if(m_ReplayMarkers)
+      GLMarkerRegion::Set(name);
 
     if(IsLoading(m_State))
     {
@@ -265,7 +266,8 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
 
   if(IsReplayingAndReading())
   {
-    GLMarkerRegion::Set(marker);
+    if(m_ReplayMarkers)
+      GLMarkerRegion::Set(marker);
 
     if(IsLoading(m_State))
     {
@@ -328,8 +330,11 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
 
   if(IsReplayingAndReading())
   {
-    GLMarkerRegion::Begin(message, source, id);
-    m_ReplayEventCount++;
+    if(m_ReplayMarkers)
+    {
+      GLMarkerRegion::Begin(message, source, id);
+      m_ReplayEventCount++;
+    }
 
     if(IsLoading(m_State))
     {
@@ -365,7 +370,8 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
 {
   if(IsReplayingAndReading())
   {
-    GLMarkerRegion::End();
+    if(m_ReplayMarkers)
+      GLMarkerRegion::End();
     m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1);
 
     if(IsLoading(m_State) && !m_CurEvents.empty())

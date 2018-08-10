@@ -4838,7 +4838,7 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   RDCASSERTEQUAL(status, ReplayStatus::Succeeded);
 
   // make sure to end any unbalanced replay events if we stopped in the middle of a frame
-  for(int i = 0; i < m_ReplayEventCount; i++)
+  for(int i = 0; m_ReplayMarkers && i < m_ReplayEventCount; i++)
     GLMarkerRegion::End();
 
   GLMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");

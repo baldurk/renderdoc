@@ -256,8 +256,11 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
 
     m_pDriver->ReplayLog(ctx.eventStart, d.eventId, eReplay_WithoutDraw);
 
+    ClearGLErrors();
+
     // Reverse order so that Timer counter is queried the last.
     for(int32_t q = uint32_t(GPUCounter::Count) - 1; q >= 0; q--)
+    {
       if(queries->obj[q])
       {
         m_pDriver->glBeginQuery(glCounters[q], queries->obj[q]);
@@ -267,6 +270,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
           queries->obj[q] = 0;
         }
       }
+    }
 
     m_pDriver->ReplayLog(ctx.eventStart, d.eventId, eReplay_OnlyDraw);
 
@@ -335,6 +339,8 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
 
   vector<uint32_t> eventIDs;
 
+  m_pDriver->ReplayMarkers(false);
+
   for(uint32_t p = 0; p < passCount; p++)
   {
     m_pAMDCounters->BeginPass();
@@ -349,6 +355,8 @@ vector<CounterResult> GLReplay::FetchCountersAMD(const vector<GPUCounter> &count
     m_pAMDCounters->EndCommandList();
     m_pAMDCounters->EndPass();
   }
+
+  m_pDriver->ReplayMarkers(true);
 
   m_pAMDCounters->EndSesssion(sessionID);
 
@@ -397,9 +405,13 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<GPUCounter> &allCount
   GLCounterContext ctx;
   ctx.eventStart = 0;
 
+  m_pDriver->ReplayMarkers(false);
+
   m_pDriver->SetFetchCounters(true);
   FillTimers(ctx, m_pDriver->GetRootDraw(), counters);
   m_pDriver->SetFetchCounters(false);
+
+  m_pDriver->ReplayMarkers(true);
 
   double nanosToSecs = 1.0 / 1000000000.0;
 

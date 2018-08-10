@@ -224,6 +224,8 @@ private:
   vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
+  bool m_ReplayMarkers = true;
+
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
   uint32_t m_CurEventID, m_CurDrawcallID;
@@ -536,6 +538,7 @@ public:
   bool UsesVRFrameMarkers() { return m_UsesVRMarkers; }
   void FirstFrame(void *ctx, void *wndHandle);
 
+  void ReplayMarkers(bool replay) { m_ReplayMarkers = replay; }
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
 
