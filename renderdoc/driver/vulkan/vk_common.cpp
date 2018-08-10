@@ -728,6 +728,40 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
     {
       CopyNextChainedStruct<VkDeviceGroupRenderPassBeginInfo>(tempMem, nextInput, nextChainTail);
     }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR)
+    {
+      CopyNextChainedStruct<VkImageFormatListCreateInfoKHR>(tempMem, nextInput, nextChainTail);
+    }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO)
+    {
+      CopyNextChainedStruct<VkRenderPassMultiviewCreateInfo>(tempMem, nextInput, nextChainTail);
+    }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO)
+    {
+      CopyNextChainedStruct<VkImageViewUsageCreateInfo>(tempMem, nextInput, nextChainTail);
+    }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO)
+    {
+      CopyNextChainedStruct<VkRenderPassInputAttachmentAspectCreateInfo>(tempMem, nextInput,
+                                                                         nextChainTail);
+    }
+    else if(nextInput->sType ==
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT)
+    {
+      CopyNextChainedStruct<VkPipelineRasterizationConservativeStateCreateInfoEXT>(
+          tempMem, nextInput, nextChainTail);
+    }
+    else if(nextInput->sType ==
+            VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO)
+    {
+      CopyNextChainedStruct<VkPipelineTessellationDomainOriginStateCreateInfo>(tempMem, nextInput,
+                                                                               nextChainTail);
+    }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT)
+    {
+      CopyNextChainedStruct<VkPipelineVertexInputDivisorStateCreateInfoEXT>(tempMem, nextInput,
+                                                                            nextChainTail);
+    }
     else
     {
       RDCERR("unrecognised struct %d in %s pNext chain", nextInput->sType, structName);
