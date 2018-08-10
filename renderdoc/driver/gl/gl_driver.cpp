@@ -3778,9 +3778,13 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glUniform1d:
     case GLChunk::glUniform1dv:
     case GLChunk::glUniform1f:
+    case GLChunk::glUniform1fARB:
     case GLChunk::glUniform1fv:
+    case GLChunk::glUniform1fvARB:
     case GLChunk::glUniform1i:
+    case GLChunk::glUniform1iARB:
     case GLChunk::glUniform1iv:
+    case GLChunk::glUniform1ivARB:
     case GLChunk::glUniform1ui:
     case GLChunk::glUniform1uiEXT:
     case GLChunk::glUniform1uiv:
@@ -3788,9 +3792,13 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glUniform2d:
     case GLChunk::glUniform2dv:
     case GLChunk::glUniform2f:
+    case GLChunk::glUniform2fARB:
     case GLChunk::glUniform2fv:
+    case GLChunk::glUniform2fvARB:
     case GLChunk::glUniform2i:
+    case GLChunk::glUniform2iARB:
     case GLChunk::glUniform2iv:
+    case GLChunk::glUniform2ivARB:
     case GLChunk::glUniform2ui:
     case GLChunk::glUniform2uiEXT:
     case GLChunk::glUniform2uiv:
@@ -3798,9 +3806,13 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glUniform3d:
     case GLChunk::glUniform3dv:
     case GLChunk::glUniform3f:
+    case GLChunk::glUniform3fARB:
     case GLChunk::glUniform3fv:
+    case GLChunk::glUniform3fvARB:
     case GLChunk::glUniform3i:
+    case GLChunk::glUniform3iARB:
     case GLChunk::glUniform3iv:
+    case GLChunk::glUniform3ivARB:
     case GLChunk::glUniform3ui:
     case GLChunk::glUniform3uiEXT:
     case GLChunk::glUniform3uiv:
@@ -3808,9 +3820,13 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glUniform4d:
     case GLChunk::glUniform4dv:
     case GLChunk::glUniform4f:
+    case GLChunk::glUniform4fARB:
     case GLChunk::glUniform4fv:
+    case GLChunk::glUniform4fvARB:
     case GLChunk::glUniform4i:
+    case GLChunk::glUniform4iARB:
     case GLChunk::glUniform4iv:
+    case GLChunk::glUniform4ivARB:
     case GLChunk::glUniform4ui:
     case GLChunk::glUniform4uiEXT:
     case GLChunk::glUniform4uiv:
@@ -3855,18 +3871,21 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glProgramUniformMatrix4x3fvEXT:
     case GLChunk::glUniformMatrix2dv:
     case GLChunk::glUniformMatrix2fv:
+    case GLChunk::glUniformMatrix2fvARB:
     case GLChunk::glUniformMatrix2x3dv:
     case GLChunk::glUniformMatrix2x3fv:
     case GLChunk::glUniformMatrix2x4dv:
     case GLChunk::glUniformMatrix2x4fv:
     case GLChunk::glUniformMatrix3dv:
     case GLChunk::glUniformMatrix3fv:
+    case GLChunk::glUniformMatrix3fvARB:
     case GLChunk::glUniformMatrix3x2dv:
     case GLChunk::glUniformMatrix3x2fv:
     case GLChunk::glUniformMatrix3x4dv:
     case GLChunk::glUniformMatrix3x4fv:
     case GLChunk::glUniformMatrix4dv:
     case GLChunk::glUniformMatrix4fv:
+    case GLChunk::glUniformMatrix4fvARB:
     case GLChunk::glUniformMatrix4x2dv:
     case GLChunk::glUniformMatrix4x2fv:
     case GLChunk::glUniformMatrix4x3dv:

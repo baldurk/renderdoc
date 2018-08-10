@@ -1973,6 +1973,26 @@ enum class GLChunk : uint32_t
   glSpecializeShader,
   glSpecializeShaderARB,
 
+  glUniform1fARB,
+  glUniform1iARB,
+  glUniform2fARB,
+  glUniform2iARB,
+  glUniform3fARB,
+  glUniform3iARB,
+  glUniform4fARB,
+  glUniform4iARB,
+  glUniform1fvARB,
+  glUniform1ivARB,
+  glUniform2fvARB,
+  glUniform2ivARB,
+  glUniform3fvARB,
+  glUniform3ivARB,
+  glUniform4fvARB,
+  glUniform4ivARB,
+  glUniformMatrix2fvARB,
+  glUniformMatrix3fvARB,
+  glUniformMatrix4fvARB,
+
   Max,
 };
 

@@ -492,45 +492,45 @@ struct GLDispatchTable
   PFNGLUNIFORMBLOCKBINDINGPROC glUniformBlockBinding;
   PFNGLSHADERSTORAGEBLOCKBINDINGPROC glShaderStorageBlockBinding;
   PFNGLUNIFORMSUBROUTINESUIVPROC glUniformSubroutinesuiv;
-  PFNGLUNIFORM1FPROC glUniform1f;
-  PFNGLUNIFORM1IPROC glUniform1i;
+  PFNGLUNIFORM1FPROC glUniform1f;      // aliases glUniform1fARB
+  PFNGLUNIFORM1IPROC glUniform1i;      // aliases glUniform1iARB
   PFNGLUNIFORM1UIPROC glUniform1ui;    // aliases glUniform1uiEXT
   PFNGLUNIFORM1DPROC glUniform1d;
-  PFNGLUNIFORM2FPROC glUniform2f;
-  PFNGLUNIFORM2IPROC glUniform2i;
+  PFNGLUNIFORM2FPROC glUniform2f;      // aliases glUniform2fARB
+  PFNGLUNIFORM2IPROC glUniform2i;      // aliases glUniform2iARB
   PFNGLUNIFORM2UIPROC glUniform2ui;    // aliases glUniform2uiEXT
   PFNGLUNIFORM2DPROC glUniform2d;
-  PFNGLUNIFORM3FPROC glUniform3f;
-  PFNGLUNIFORM3IPROC glUniform3i;
+  PFNGLUNIFORM3FPROC glUniform3f;      // aliases glUniform3fARB
+  PFNGLUNIFORM3IPROC glUniform3i;      // aliases glUniform3iARB
   PFNGLUNIFORM3UIPROC glUniform3ui;    // aliases glUniform3uiEXT
   PFNGLUNIFORM3DPROC glUniform3d;
-  PFNGLUNIFORM4FPROC glUniform4f;
-  PFNGLUNIFORM4IPROC glUniform4i;
+  PFNGLUNIFORM4FPROC glUniform4f;      // aliases glUniform4fARB
+  PFNGLUNIFORM4IPROC glUniform4i;      // aliases glUniform4iARB
   PFNGLUNIFORM4UIPROC glUniform4ui;    // aliases glUniform4uiEXT
   PFNGLUNIFORM4DPROC glUniform4d;
-  PFNGLUNIFORM1FVPROC glUniform1fv;
-  PFNGLUNIFORM1IVPROC glUniform1iv;
+  PFNGLUNIFORM1FVPROC glUniform1fv;      // aliases glUniform1fvARB
+  PFNGLUNIFORM1IVPROC glUniform1iv;      // aliases glUniform1ivARB
   PFNGLUNIFORM1UIVPROC glUniform1uiv;    // aliases glUniform1uivEXT
   PFNGLUNIFORM1DVPROC glUniform1dv;
-  PFNGLUNIFORM2FVPROC glUniform2fv;
-  PFNGLUNIFORM2IVPROC glUniform2iv;
+  PFNGLUNIFORM2FVPROC glUniform2fv;      // aliases glUniform2fvARB
+  PFNGLUNIFORM2IVPROC glUniform2iv;      // aliases glUniform2ivARB
   PFNGLUNIFORM2UIVPROC glUniform2uiv;    // aliases glUniform2uivEXT
   PFNGLUNIFORM2DVPROC glUniform2dv;
-  PFNGLUNIFORM3FVPROC glUniform3fv;
-  PFNGLUNIFORM3IVPROC glUniform3iv;
+  PFNGLUNIFORM3FVPROC glUniform3fv;      // aliases glUniform3fvARB
+  PFNGLUNIFORM3IVPROC glUniform3iv;      // aliases glUniform3ivARB
   PFNGLUNIFORM3UIVPROC glUniform3uiv;    // aliases glUniform3uivEXT
   PFNGLUNIFORM3DVPROC glUniform3dv;
-  PFNGLUNIFORM4FVPROC glUniform4fv;
-  PFNGLUNIFORM4IVPROC glUniform4iv;
+  PFNGLUNIFORM4FVPROC glUniform4fv;      // aliases glUniform4fvARB
+  PFNGLUNIFORM4IVPROC glUniform4iv;      // aliases glUniform4ivARB
   PFNGLUNIFORM4UIVPROC glUniform4uiv;    // aliases glUniform4uivEXT
   PFNGLUNIFORM4DVPROC glUniform4dv;
-  PFNGLUNIFORMMATRIX2FVPROC glUniformMatrix2fv;
+  PFNGLUNIFORMMATRIX2FVPROC glUniformMatrix2fv;      // aliases glUniformMatrix2fvARB
   PFNGLUNIFORMMATRIX2X3FVPROC glUniformMatrix2x3fv;
   PFNGLUNIFORMMATRIX2X4FVPROC glUniformMatrix2x4fv;
-  PFNGLUNIFORMMATRIX3FVPROC glUniformMatrix3fv;
+  PFNGLUNIFORMMATRIX3FVPROC glUniformMatrix3fv;      // aliases glUniformMatrix3fvARB
   PFNGLUNIFORMMATRIX3X2FVPROC glUniformMatrix3x2fv;
   PFNGLUNIFORMMATRIX3X4FVPROC glUniformMatrix3x4fv;
-  PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
+  PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;      // aliases glUniformMatrix4fvARB
   PFNGLUNIFORMMATRIX4X2FVPROC glUniformMatrix4x2fv;
   PFNGLUNIFORMMATRIX4X3FVPROC glUniformMatrix4x3fv;
   PFNGLUNIFORMMATRIX2DVPROC glUniformMatrix2dv;

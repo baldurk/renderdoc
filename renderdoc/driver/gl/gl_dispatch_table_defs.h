@@ -763,52 +763,71 @@
   FUNC(glShaderStorageBlockBinding, glShaderStorageBlockBinding); \
   FUNC(glUniformSubroutinesuiv, glUniformSubroutinesuiv); \
   FUNC(glUniform1f, glUniform1f); \
+  FUNC(glUniform1f, glUniform1fARB); \
   FUNC(glUniform1i, glUniform1i); \
+  FUNC(glUniform1i, glUniform1iARB); \
   FUNC(glUniform1ui, glUniform1ui); \
   FUNC(glUniform1ui, glUniform1uiEXT); \
   FUNC(glUniform1d, glUniform1d); \
   FUNC(glUniform2f, glUniform2f); \
+  FUNC(glUniform2f, glUniform2fARB); \
   FUNC(glUniform2i, glUniform2i); \
+  FUNC(glUniform2i, glUniform2iARB); \
   FUNC(glUniform2ui, glUniform2ui); \
   FUNC(glUniform2ui, glUniform2uiEXT); \
   FUNC(glUniform2d, glUniform2d); \
   FUNC(glUniform3f, glUniform3f); \
+  FUNC(glUniform3f, glUniform3fARB); \
   FUNC(glUniform3i, glUniform3i); \
+  FUNC(glUniform3i, glUniform3iARB); \
   FUNC(glUniform3ui, glUniform3ui); \
   FUNC(glUniform3ui, glUniform3uiEXT); \
   FUNC(glUniform3d, glUniform3d); \
   FUNC(glUniform4f, glUniform4f); \
+  FUNC(glUniform4f, glUniform4fARB); \
   FUNC(glUniform4i, glUniform4i); \
+  FUNC(glUniform4i, glUniform4iARB); \
   FUNC(glUniform4ui, glUniform4ui); \
   FUNC(glUniform4ui, glUniform4uiEXT); \
   FUNC(glUniform4d, glUniform4d); \
   FUNC(glUniform1fv, glUniform1fv); \
+  FUNC(glUniform1fv, glUniform1fvARB); \
   FUNC(glUniform1iv, glUniform1iv); \
+  FUNC(glUniform1iv, glUniform1ivARB); \
   FUNC(glUniform1uiv, glUniform1uiv); \
   FUNC(glUniform1uiv, glUniform1uivEXT); \
   FUNC(glUniform1dv, glUniform1dv); \
   FUNC(glUniform2fv, glUniform2fv); \
+  FUNC(glUniform2fv, glUniform2fvARB); \
   FUNC(glUniform2iv, glUniform2iv); \
+  FUNC(glUniform2iv, glUniform2ivARB); \
   FUNC(glUniform2uiv, glUniform2uiv); \
   FUNC(glUniform2uiv, glUniform2uivEXT); \
   FUNC(glUniform2dv, glUniform2dv); \
   FUNC(glUniform3fv, glUniform3fv); \
+  FUNC(glUniform3fv, glUniform3fvARB); \
   FUNC(glUniform3iv, glUniform3iv); \
+  FUNC(glUniform3iv, glUniform3ivARB); \
   FUNC(glUniform3uiv, glUniform3uiv); \
   FUNC(glUniform3uiv, glUniform3uivEXT); \
   FUNC(glUniform3dv, glUniform3dv); \
   FUNC(glUniform4fv, glUniform4fv); \
+  FUNC(glUniform4fv, glUniform4fvARB); \
   FUNC(glUniform4iv, glUniform4iv); \
+  FUNC(glUniform4iv, glUniform4ivARB); \
   FUNC(glUniform4uiv, glUniform4uiv); \
   FUNC(glUniform4uiv, glUniform4uivEXT); \
   FUNC(glUniform4dv, glUniform4dv); \
   FUNC(glUniformMatrix2fv, glUniformMatrix2fv); \
+  FUNC(glUniformMatrix2fv, glUniformMatrix2fvARB); \
   FUNC(glUniformMatrix2x3fv, glUniformMatrix2x3fv); \
   FUNC(glUniformMatrix2x4fv, glUniformMatrix2x4fv); \
   FUNC(glUniformMatrix3fv, glUniformMatrix3fv); \
+  FUNC(glUniformMatrix3fv, glUniformMatrix3fvARB); \
   FUNC(glUniformMatrix3x2fv, glUniformMatrix3x2fv); \
   FUNC(glUniformMatrix3x4fv, glUniformMatrix3x4fv); \
   FUNC(glUniformMatrix4fv, glUniformMatrix4fv); \
+  FUNC(glUniformMatrix4fv, glUniformMatrix4fvARB); \
   FUNC(glUniformMatrix4x2fv, glUniformMatrix4x2fv); \
   FUNC(glUniformMatrix4x3fv, glUniformMatrix4x3fv); \
   FUNC(glUniformMatrix2dv, glUniformMatrix2dv); \
@@ -1957,52 +1976,71 @@
   FuncWrapper3(void, glShaderStorageBlockBinding, GLuint, program, GLuint, storageBlockIndex, GLuint, storageBlockBinding); \
   FuncWrapper3(void, glUniformSubroutinesuiv, GLenum, shadertype, GLsizei, count, const GLuint *, indices); \
   FuncWrapper2(void, glUniform1f, GLint, location, GLfloat, v0); \
+  AliasWrapper2(void, glUniform1fARB, glUniform1f, GLint, location, GLfloat, v0); \
   FuncWrapper2(void, glUniform1i, GLint, location, GLint, v0); \
+  AliasWrapper2(void, glUniform1iARB, glUniform1i, GLint, location, GLint, v0); \
   FuncWrapper2(void, glUniform1ui, GLint, location, GLuint, v0); \
   AliasWrapper2(void, glUniform1uiEXT, glUniform1ui, GLint, location, GLuint, v0); \
   FuncWrapper2(void, glUniform1d, GLint, location, GLdouble, x); \
   FuncWrapper3(void, glUniform2f, GLint, location, GLfloat, v0, GLfloat, v1); \
+  AliasWrapper3(void, glUniform2fARB, glUniform2f, GLint, location, GLfloat, v0, GLfloat, v1); \
   FuncWrapper3(void, glUniform2i, GLint, location, GLint, v0, GLint, v1); \
+  AliasWrapper3(void, glUniform2iARB, glUniform2i, GLint, location, GLint, v0, GLint, v1); \
   FuncWrapper3(void, glUniform2ui, GLint, location, GLuint, v0, GLuint, v1); \
   AliasWrapper3(void, glUniform2uiEXT, glUniform2ui, GLint, location, GLuint, v0, GLuint, v1); \
   FuncWrapper3(void, glUniform2d, GLint, location, GLdouble, x, GLdouble, y); \
   FuncWrapper4(void, glUniform3f, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
+  AliasWrapper4(void, glUniform3fARB, glUniform3f, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
   FuncWrapper4(void, glUniform3i, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
+  AliasWrapper4(void, glUniform3iARB, glUniform3i, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
   FuncWrapper4(void, glUniform3ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
   AliasWrapper4(void, glUniform3uiEXT, glUniform3ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
   FuncWrapper4(void, glUniform3d, GLint, location, GLdouble, x, GLdouble, y, GLdouble, z); \
   FuncWrapper5(void, glUniform4f, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
+  AliasWrapper5(void, glUniform4fARB, glUniform4f, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
   FuncWrapper5(void, glUniform4i, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
+  AliasWrapper5(void, glUniform4iARB, glUniform4i, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
   FuncWrapper5(void, glUniform4ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
   AliasWrapper5(void, glUniform4uiEXT, glUniform4ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
   FuncWrapper5(void, glUniform4d, GLint, location, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
   FuncWrapper3(void, glUniform1fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+  AliasWrapper3(void, glUniform1fvARB, glUniform1fv, GLint, location, GLsizei, count, const GLfloat *, value); \
   FuncWrapper3(void, glUniform1iv, GLint, location, GLsizei, count, const GLint *, value); \
+  AliasWrapper3(void, glUniform1ivARB, glUniform1iv, GLint, location, GLsizei, count, const GLint *, value); \
   FuncWrapper3(void, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   AliasWrapper3(void, glUniform1uivEXT, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   FuncWrapper3(void, glUniform1dv, GLint, location, GLsizei, count, const GLdouble *, value); \
   FuncWrapper3(void, glUniform2fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+  AliasWrapper3(void, glUniform2fvARB, glUniform2fv, GLint, location, GLsizei, count, const GLfloat *, value); \
   FuncWrapper3(void, glUniform2iv, GLint, location, GLsizei, count, const GLint *, value); \
+  AliasWrapper3(void, glUniform2ivARB, glUniform2iv, GLint, location, GLsizei, count, const GLint *, value); \
   FuncWrapper3(void, glUniform2uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   AliasWrapper3(void, glUniform2uivEXT, glUniform2uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   FuncWrapper3(void, glUniform2dv, GLint, location, GLsizei, count, const GLdouble *, value); \
   FuncWrapper3(void, glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+  AliasWrapper3(void, glUniform3fvARB, glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
   FuncWrapper3(void, glUniform3iv, GLint, location, GLsizei, count, const GLint *, value); \
+  AliasWrapper3(void, glUniform3ivARB, glUniform3iv, GLint, location, GLsizei, count, const GLint *, value); \
   FuncWrapper3(void, glUniform3uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   AliasWrapper3(void, glUniform3uivEXT, glUniform3uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   FuncWrapper3(void, glUniform3dv, GLint, location, GLsizei, count, const GLdouble *, value); \
   FuncWrapper3(void, glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+  AliasWrapper3(void, glUniform4fvARB, glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
   FuncWrapper3(void, glUniform4iv, GLint, location, GLsizei, count, const GLint *, value); \
+  AliasWrapper3(void, glUniform4ivARB, glUniform4iv, GLint, location, GLsizei, count, const GLint *, value); \
   FuncWrapper3(void, glUniform4uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   AliasWrapper3(void, glUniform4uivEXT, glUniform4uiv, GLint, location, GLsizei, count, const GLuint *, value); \
   FuncWrapper3(void, glUniform4dv, GLint, location, GLsizei, count, const GLdouble *, value); \
   FuncWrapper4(void, glUniformMatrix2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  AliasWrapper4(void, glUniformMatrix2fvARB, glUniformMatrix2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix2x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix2x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  AliasWrapper4(void, glUniformMatrix3fvARB, glUniformMatrix3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix3x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix3x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  AliasWrapper4(void, glUniformMatrix4fvARB, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix4x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix4x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   FuncWrapper4(void, glUniformMatrix2dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
@@ -3010,25 +3048,6 @@
   FUNC(glLinkProgramARB); \
   FUNC(glUseProgramObjectARB); \
   FUNC(glValidateProgramARB); \
-  FUNC(glUniform1fARB); \
-  FUNC(glUniform2fARB); \
-  FUNC(glUniform3fARB); \
-  FUNC(glUniform4fARB); \
-  FUNC(glUniform1iARB); \
-  FUNC(glUniform2iARB); \
-  FUNC(glUniform3iARB); \
-  FUNC(glUniform4iARB); \
-  FUNC(glUniform1fvARB); \
-  FUNC(glUniform2fvARB); \
-  FUNC(glUniform3fvARB); \
-  FUNC(glUniform4fvARB); \
-  FUNC(glUniform1ivARB); \
-  FUNC(glUniform2ivARB); \
-  FUNC(glUniform3ivARB); \
-  FUNC(glUniform4ivARB); \
-  FUNC(glUniformMatrix2fvARB); \
-  FUNC(glUniformMatrix3fvARB); \
-  FUNC(glUniformMatrix4fvARB); \
   FUNC(glGetObjectParameterfvARB); \
   FUNC(glGetObjectParameterivARB); \
   FUNC(glGetInfoLogARB); \
@@ -4988,25 +5007,6 @@
   UnsupportedWrapper1(void, glLinkProgramARB, GLhandleARB, programObj); \
   UnsupportedWrapper1(void, glUseProgramObjectARB, GLhandleARB, programObj); \
   UnsupportedWrapper1(void, glValidateProgramARB, GLhandleARB, programObj); \
-  UnsupportedWrapper2(void, glUniform1fARB, GLint, location, GLfloat, v0); \
-  UnsupportedWrapper3(void, glUniform2fARB, GLint, location, GLfloat, v0, GLfloat, v1); \
-  UnsupportedWrapper4(void, glUniform3fARB, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
-  UnsupportedWrapper5(void, glUniform4fARB, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
-  UnsupportedWrapper2(void, glUniform1iARB, GLint, location, GLint, v0); \
-  UnsupportedWrapper3(void, glUniform2iARB, GLint, location, GLint, v0, GLint, v1); \
-  UnsupportedWrapper4(void, glUniform3iARB, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
-  UnsupportedWrapper5(void, glUniform4iARB, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
-  UnsupportedWrapper3(void, glUniform1fvARB, GLint, location, GLsizei, count, const GLfloat *, value); \
-  UnsupportedWrapper3(void, glUniform2fvARB, GLint, location, GLsizei, count, const GLfloat *, value); \
-  UnsupportedWrapper3(void, glUniform3fvARB, GLint, location, GLsizei, count, const GLfloat *, value); \
-  UnsupportedWrapper3(void, glUniform4fvARB, GLint, location, GLsizei, count, const GLfloat *, value); \
-  UnsupportedWrapper3(void, glUniform1ivARB, GLint, location, GLsizei, count, const GLint *, value); \
-  UnsupportedWrapper3(void, glUniform2ivARB, GLint, location, GLsizei, count, const GLint *, value); \
-  UnsupportedWrapper3(void, glUniform3ivARB, GLint, location, GLsizei, count, const GLint *, value); \
-  UnsupportedWrapper3(void, glUniform4ivARB, GLint, location, GLsizei, count, const GLint *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix2fvARB, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix3fvARB, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix4fvARB, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
   UnsupportedWrapper3(void, glGetObjectParameterfvARB, GLhandleARB, obj, GLenum, pname, GLfloat *, params); \
   UnsupportedWrapper3(void, glGetObjectParameterivARB, GLhandleARB, obj, GLenum, pname, GLint *, params); \
   UnsupportedWrapper4(void, glGetInfoLogARB, GLhandleARB, obj, GLsizei, maxLength, GLsizei *, length, GLcharARB *, infoLog); \
