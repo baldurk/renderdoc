@@ -40,8 +40,23 @@ ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList *obj)
   return ((WrappedID3D12GraphicsCommandList2 *)obj)->GetReal();
 }
 
-template <>
-ID3D12GraphicsCommandList1 *Unwrap(ID3D12GraphicsCommandList1 *obj)
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList1 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList2 *)obj)->GetReal();
+}
+
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList2 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList2 *)obj)->GetReal();
+}
+
+ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj)
 {
   if(obj == NULL)
     return NULL;
@@ -49,8 +64,7 @@ ID3D12GraphicsCommandList1 *Unwrap(ID3D12GraphicsCommandList1 *obj)
   return ((WrappedID3D12GraphicsCommandList2 *)obj)->GetReal1();
 }
 
-template <>
-ID3D12GraphicsCommandList2 *Unwrap(ID3D12GraphicsCommandList2 *obj)
+ID3D12GraphicsCommandList2 *Unwrap2(ID3D12GraphicsCommandList2 *obj)
 {
   if(obj == NULL)
     return NULL;

@@ -135,7 +135,9 @@ public:
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
-  ID3D12GraphicsCommandList2 *GetCrackedList();
+  ID3D12GraphicsCommandList *GetCrackedList();
+  ID3D12GraphicsCommandList1 *GetCrackedList1();
+  ID3D12GraphicsCommandList2 *GetCrackedList2();
   ID3D12GraphicsCommandList2 *GetWrappedCrackedList();
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
@@ -449,10 +451,11 @@ ResourceId GetResID(ID3D12GraphicsCommandList1 *obj);
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList2 *obj);
 
-template <>
-ID3D12GraphicsCommandList1 *Unwrap(ID3D12GraphicsCommandList1 *obj);
-template <>
-ID3D12GraphicsCommandList2 *Unwrap(ID3D12GraphicsCommandList2 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList1 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList2 *obj);
+
+ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj);
+ID3D12GraphicsCommandList2 *Unwrap2(ID3D12GraphicsCommandList2 *obj);
 
 WrappedID3D12GraphicsCommandList2 *GetWrapped(ID3D12GraphicsCommandList1 *obj);
 WrappedID3D12GraphicsCommandList2 *GetWrapped(ID3D12GraphicsCommandList2 *obj);

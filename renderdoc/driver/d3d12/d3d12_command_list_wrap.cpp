@@ -28,9 +28,19 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 
-ID3D12GraphicsCommandList2 *WrappedID3D12GraphicsCommandList2::GetCrackedList()
+ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList2::GetCrackedList()
 {
   return Unwrap(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
+}
+
+ID3D12GraphicsCommandList1 *WrappedID3D12GraphicsCommandList2::GetCrackedList1()
+{
+  return Unwrap1(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
+}
+
+ID3D12GraphicsCommandList2 *WrappedID3D12GraphicsCommandList2::GetCrackedList2()
+{
+  return Unwrap2(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
 }
 
 ID3D12GraphicsCommandList2 *WrappedID3D12GraphicsCommandList2::GetWrappedCrackedList()
