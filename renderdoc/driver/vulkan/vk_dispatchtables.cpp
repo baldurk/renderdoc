@@ -86,23 +86,16 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
     InstanceGPA(func);                \
   }
 
-// for promoted extensions, we check both suffixed and non-suffixed functions individually, make
-// sure that either they are identical or one came back as NULL, then cross-promote so if we got
-// either, we set the other. This makes it easier to handle promoted extensions without crazy
-// multiple paths
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, func, suffix)                              \
-  if(cond)                                                                         \
-  {                                                                                \
-    InstanceGPA(func);                                                             \
-    InstanceGPA(CONCAT(func, suffix));                                             \
-    RDCASSERT(table->func == table->CONCAT(func, suffix) || table->func == NULL || \
-                  table->CONCAT(func, suffix) == NULL,                             \
-              (void *)table->func, (void *)table->CONCAT(func, suffix));           \
-    if(table->func == NULL)                                                        \
-      table->func = table->CONCAT(func, suffix);                                   \
-    if(table->CONCAT(func, suffix) == NULL)                                        \
-      table->CONCAT(func, suffix) = table->func;                                   \
+#define HookInitPromotedExtension(cond, func, suffix) \
+  if(cond)                                            \
+  {                                                   \
+    InstanceGPA(func);                                \
+    InstanceGPA(CONCAT(func, suffix));                \
+    if(table->func == NULL)                           \
+      table->func = table->CONCAT(func, suffix);      \
+    if(table->CONCAT(func, suffix) == NULL)           \
+      table->CONCAT(func, suffix) = table->func;      \
   }
 
   CheckInstanceExts();
