@@ -46,6 +46,8 @@ std::string DoStringise(const GLNamespace &el)
     STRINGISE_ENUM_NAMED(eResFeedback, "Transform Feedback");
     STRINGISE_ENUM_NAMED(eResQuery, "Query");
     STRINGISE_ENUM_NAMED(eResSync, "Sync");
+    STRINGISE_ENUM_NAMED(eResExternalMemory, "External Memory");
+    STRINGISE_ENUM_NAMED(eResExternalSemaphore, "External Semaphore");
   }
   END_ENUM_STRINGISE();
 }

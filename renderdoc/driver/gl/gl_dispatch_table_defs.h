@@ -1010,6 +1010,40 @@
   FUNC(glMaxShaderCompilerThreadsKHR, glMaxShaderCompilerThreadsARB); \
   FUNC(glSpecializeShader, glSpecializeShader); \
   FUNC(glSpecializeShader, glSpecializeShaderARB); \
+  FUNC(glGetUnsignedBytevEXT, glGetUnsignedBytevEXT); \
+  FUNC(glGetUnsignedBytei_vEXT, glGetUnsignedBytei_vEXT); \
+  FUNC(glDeleteMemoryObjectsEXT, glDeleteMemoryObjectsEXT); \
+  FUNC(glIsMemoryObjectEXT, glIsMemoryObjectEXT); \
+  FUNC(glCreateMemoryObjectsEXT, glCreateMemoryObjectsEXT); \
+  FUNC(glMemoryObjectParameterivEXT, glMemoryObjectParameterivEXT); \
+  FUNC(glGetMemoryObjectParameterivEXT, glGetMemoryObjectParameterivEXT); \
+  FUNC(glTexStorageMem2DEXT, glTexStorageMem2DEXT); \
+  FUNC(glTexStorageMem2DMultisampleEXT, glTexStorageMem2DMultisampleEXT); \
+  FUNC(glTexStorageMem3DEXT, glTexStorageMem3DEXT); \
+  FUNC(glTexStorageMem3DMultisampleEXT, glTexStorageMem3DMultisampleEXT); \
+  FUNC(glBufferStorageMemEXT, glBufferStorageMemEXT); \
+  FUNC(glTextureStorageMem2DEXT, glTextureStorageMem2DEXT); \
+  FUNC(glTextureStorageMem2DMultisampleEXT, glTextureStorageMem2DMultisampleEXT); \
+  FUNC(glTextureStorageMem3DEXT, glTextureStorageMem3DEXT); \
+  FUNC(glTextureStorageMem3DMultisampleEXT, glTextureStorageMem3DMultisampleEXT); \
+  FUNC(glNamedBufferStorageMemEXT, glNamedBufferStorageMemEXT); \
+  FUNC(glTexStorageMem1DEXT, glTexStorageMem1DEXT); \
+  FUNC(glTextureStorageMem1DEXT, glTextureStorageMem1DEXT); \
+  FUNC(glGenSemaphoresEXT, glGenSemaphoresEXT); \
+  FUNC(glDeleteSemaphoresEXT, glDeleteSemaphoresEXT); \
+  FUNC(glIsSemaphoreEXT, glIsSemaphoreEXT); \
+  FUNC(glSemaphoreParameterui64vEXT, glSemaphoreParameterui64vEXT); \
+  FUNC(glGetSemaphoreParameterui64vEXT, glGetSemaphoreParameterui64vEXT); \
+  FUNC(glWaitSemaphoreEXT, glWaitSemaphoreEXT); \
+  FUNC(glSignalSemaphoreEXT, glSignalSemaphoreEXT); \
+  FUNC(glImportMemoryFdEXT, glImportMemoryFdEXT); \
+  FUNC(glImportSemaphoreFdEXT, glImportSemaphoreFdEXT); \
+  FUNC(glImportMemoryWin32HandleEXT, glImportMemoryWin32HandleEXT); \
+  FUNC(glImportMemoryWin32NameEXT, glImportMemoryWin32NameEXT); \
+  FUNC(glImportSemaphoreWin32HandleEXT, glImportSemaphoreWin32HandleEXT); \
+  FUNC(glImportSemaphoreWin32NameEXT, glImportSemaphoreWin32NameEXT); \
+  FUNC(glAcquireKeyedMutexWin32EXT, glAcquireKeyedMutexWin32EXT); \
+  FUNC(glReleaseKeyedMutexWin32EXT, glReleaseKeyedMutexWin32EXT); \
   FUNC(glCompressedTextureImage1DEXT, glCompressedTextureImage1DEXT); \
   FUNC(glCompressedTextureImage2DEXT, glCompressedTextureImage2DEXT); \
   FUNC(glCompressedTextureImage3DEXT, glCompressedTextureImage3DEXT); \
@@ -2223,6 +2257,40 @@
   AliasWrapper1(void, glMaxShaderCompilerThreadsARB, glMaxShaderCompilerThreadsKHR, GLuint, count); \
   FuncWrapper5(void, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
   AliasWrapper5(void, glSpecializeShaderARB, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
+  FuncWrapper2(void, glGetUnsignedBytevEXT, GLenum, pname, GLubyte *, data); \
+  FuncWrapper3(void, glGetUnsignedBytei_vEXT, GLenum, target, GLuint, index, GLubyte *, data); \
+  FuncWrapper2(void, glDeleteMemoryObjectsEXT, GLsizei, n, const GLuint *, memoryObjects); \
+  FuncWrapper1(GLboolean, glIsMemoryObjectEXT, GLuint, memoryObject); \
+  FuncWrapper2(void, glCreateMemoryObjectsEXT, GLsizei, n, GLuint *, memoryObjects); \
+  FuncWrapper3(void, glMemoryObjectParameterivEXT, GLuint, memoryObject, GLenum, pname, const GLint *, params); \
+  FuncWrapper3(void, glGetMemoryObjectParameterivEXT, GLuint, memoryObject, GLenum, pname, GLint *, params); \
+  FuncWrapper7(void, glTexStorageMem2DEXT, GLenum, target, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLuint, memory, GLuint64, offset); \
+  FuncWrapper8(void, glTexStorageMem2DMultisampleEXT, GLenum, target, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
+  FuncWrapper8(void, glTexStorageMem3DEXT, GLenum, target, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLuint, memory, GLuint64, offset); \
+  FuncWrapper9(void, glTexStorageMem3DMultisampleEXT, GLenum, target, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
+  FuncWrapper4(void, glBufferStorageMemEXT, GLenum, target, GLsizeiptr, size, GLuint, memory, GLuint64, offset); \
+  FuncWrapper7(void, glTextureStorageMem2DEXT, GLuint, texture, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLuint, memory, GLuint64, offset); \
+  FuncWrapper8(void, glTextureStorageMem2DMultisampleEXT, GLuint, texture, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
+  FuncWrapper8(void, glTextureStorageMem3DEXT, GLuint, texture, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLuint, memory, GLuint64, offset); \
+  FuncWrapper9(void, glTextureStorageMem3DMultisampleEXT, GLuint, texture, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
+  FuncWrapper4(void, glNamedBufferStorageMemEXT, GLuint, buffer, GLsizeiptr, size, GLuint, memory, GLuint64, offset); \
+  FuncWrapper6(void, glTexStorageMem1DEXT, GLenum, target, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLuint, memory, GLuint64, offset); \
+  FuncWrapper6(void, glTextureStorageMem1DEXT, GLuint, texture, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLuint, memory, GLuint64, offset); \
+  FuncWrapper2(void, glGenSemaphoresEXT, GLsizei, n, GLuint *, semaphores); \
+  FuncWrapper2(void, glDeleteSemaphoresEXT, GLsizei, n, const GLuint *, semaphores); \
+  FuncWrapper1(GLboolean, glIsSemaphoreEXT, GLuint, semaphore); \
+  FuncWrapper3(void, glSemaphoreParameterui64vEXT, GLuint, semaphore, GLenum, pname, const GLuint64 *, params); \
+  FuncWrapper3(void, glGetSemaphoreParameterui64vEXT, GLuint, semaphore, GLenum, pname, GLuint64 *, params); \
+  FuncWrapper6(void, glWaitSemaphoreEXT, GLuint, semaphore, GLuint, numBufferBarriers, const GLuint *, buffers, GLuint, numTextureBarriers, const GLuint *, textures, const GLenum *, srcLayouts); \
+  FuncWrapper6(void, glSignalSemaphoreEXT, GLuint, semaphore, GLuint, numBufferBarriers, const GLuint *, buffers, GLuint, numTextureBarriers, const GLuint *, textures, const GLenum *, dstLayouts); \
+  FuncWrapper4(void, glImportMemoryFdEXT, GLuint, memory, GLuint64, size, GLenum, handleType, GLint, fd); \
+  FuncWrapper3(void, glImportSemaphoreFdEXT, GLuint, semaphore, GLenum, handleType, GLint, fd); \
+  FuncWrapper4(void, glImportMemoryWin32HandleEXT, GLuint, memory, GLuint64, size, GLenum, handleType, void *, handle); \
+  FuncWrapper4(void, glImportMemoryWin32NameEXT, GLuint, memory, GLuint64, size, GLenum, handleType, const void *, name); \
+  FuncWrapper3(void, glImportSemaphoreWin32HandleEXT, GLuint, semaphore, GLenum, handleType, void *, handle); \
+  FuncWrapper3(void, glImportSemaphoreWin32NameEXT, GLuint, semaphore, GLenum, handleType, const void *, name); \
+  FuncWrapper3(GLboolean, glAcquireKeyedMutexWin32EXT, GLuint, memory, GLuint64, key, GLuint, timeout); \
+  FuncWrapper2(GLboolean, glReleaseKeyedMutexWin32EXT, GLuint, memory, GLuint64, key); \
   FuncWrapper8(void, glCompressedTextureImage1DEXT, GLuint, texture, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLint, border, GLsizei, imageSize, const void *, bits); \
   FuncWrapper9(void, glCompressedTextureImage2DEXT, GLuint, texture, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLsizei, imageSize, const void *, bits); \
   FuncWrapper10(void, glCompressedTextureImage3DEXT, GLuint, texture, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, bits); \
@@ -3449,28 +3517,6 @@
   FUNC(glApplyTextureEXT); \
   FUNC(glTextureLightEXT); \
   FUNC(glTextureMaterialEXT); \
-  FUNC(glGetUnsignedBytevEXT); \
-  FUNC(glGetUnsignedBytei_vEXT); \
-  FUNC(glDeleteMemoryObjectsEXT); \
-  FUNC(glIsMemoryObjectEXT); \
-  FUNC(glCreateMemoryObjectsEXT); \
-  FUNC(glMemoryObjectParameterivEXT); \
-  FUNC(glGetMemoryObjectParameterivEXT); \
-  FUNC(glTexStorageMem2DEXT); \
-  FUNC(glTexStorageMem2DMultisampleEXT); \
-  FUNC(glTexStorageMem3DEXT); \
-  FUNC(glTexStorageMem3DMultisampleEXT); \
-  FUNC(glBufferStorageMemEXT); \
-  FUNC(glTextureStorageMem2DEXT); \
-  FUNC(glTextureStorageMem2DMultisampleEXT); \
-  FUNC(glTextureStorageMem3DEXT); \
-  FUNC(glTextureStorageMem3DMultisampleEXT); \
-  FUNC(glNamedBufferStorageMemEXT); \
-  FUNC(glTexStorageMem1DEXT); \
-  FUNC(glTextureStorageMem1DEXT); \
-  FUNC(glImportMemoryFdEXT); \
-  FUNC(glImportMemoryWin32HandleEXT); \
-  FUNC(glImportMemoryWin32NameEXT); \
   FUNC(glMultiDrawElementsEXT); \
   FUNC(glSampleMaskEXT); \
   FUNC(glSamplePatternEXT); \
@@ -3502,16 +3548,6 @@
   FUNC(glSecondaryColor3usEXT); \
   FUNC(glSecondaryColor3usvEXT); \
   FUNC(glSecondaryColorPointerEXT); \
-  FUNC(glGenSemaphoresEXT); \
-  FUNC(glDeleteSemaphoresEXT); \
-  FUNC(glIsSemaphoreEXT); \
-  FUNC(glSemaphoreParameterui64vEXT); \
-  FUNC(glGetSemaphoreParameterui64vEXT); \
-  FUNC(glWaitSemaphoreEXT); \
-  FUNC(glSignalSemaphoreEXT); \
-  FUNC(glImportSemaphoreFdEXT); \
-  FUNC(glImportSemaphoreWin32HandleEXT); \
-  FUNC(glImportSemaphoreWin32NameEXT); \
   FUNC(glStencilClearTagEXT); \
   FUNC(glActiveStencilFaceEXT); \
   FUNC(glTexSubImage1DEXT); \
@@ -3581,8 +3617,6 @@
   FUNC(glVertexWeightfEXT); \
   FUNC(glVertexWeightfvEXT); \
   FUNC(glVertexWeightPointerEXT); \
-  FUNC(glAcquireKeyedMutexWin32EXT); \
-  FUNC(glReleaseKeyedMutexWin32EXT); \
   FUNC(glImportSyncEXT); \
   FUNC(glImageTransformParameteriHP); \
   FUNC(glImageTransformParameterfHP); \
@@ -5408,28 +5442,6 @@
   UnsupportedWrapper1(void, glApplyTextureEXT, GLenum, mode); \
   UnsupportedWrapper1(void, glTextureLightEXT, GLenum, pname); \
   UnsupportedWrapper2(void, glTextureMaterialEXT, GLenum, face, GLenum, mode); \
-  UnsupportedWrapper2(void, glGetUnsignedBytevEXT, GLenum, pname, GLubyte *, data); \
-  UnsupportedWrapper3(void, glGetUnsignedBytei_vEXT, GLenum, target, GLuint, index, GLubyte *, data); \
-  UnsupportedWrapper2(void, glDeleteMemoryObjectsEXT, GLsizei, n, const GLuint *, memoryObjects); \
-  UnsupportedWrapper1(GLboolean, glIsMemoryObjectEXT, GLuint, memoryObject); \
-  UnsupportedWrapper2(void, glCreateMemoryObjectsEXT, GLsizei, n, GLuint *, memoryObjects); \
-  UnsupportedWrapper3(void, glMemoryObjectParameterivEXT, GLuint, memoryObject, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glGetMemoryObjectParameterivEXT, GLuint, memoryObject, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper7(void, glTexStorageMem2DEXT, GLenum, target, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper8(void, glTexStorageMem2DMultisampleEXT, GLenum, target, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper8(void, glTexStorageMem3DEXT, GLenum, target, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper9(void, glTexStorageMem3DMultisampleEXT, GLenum, target, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper4(void, glBufferStorageMemEXT, GLenum, target, GLsizeiptr, size, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper7(void, glTextureStorageMem2DEXT, GLuint, texture, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper8(void, glTextureStorageMem2DMultisampleEXT, GLuint, texture, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper8(void, glTextureStorageMem3DEXT, GLuint, texture, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper9(void, glTextureStorageMem3DMultisampleEXT, GLuint, texture, GLsizei, samples, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper4(void, glNamedBufferStorageMemEXT, GLuint, buffer, GLsizeiptr, size, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper6(void, glTexStorageMem1DEXT, GLenum, target, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper6(void, glTextureStorageMem1DEXT, GLuint, texture, GLsizei, levels, GLenum, internalFormat, GLsizei, width, GLuint, memory, GLuint64, offset); \
-  UnsupportedWrapper4(void, glImportMemoryFdEXT, GLuint, memory, GLuint64, size, GLenum, handleType, GLint, fd); \
-  UnsupportedWrapper4(void, glImportMemoryWin32HandleEXT, GLuint, memory, GLuint64, size, GLenum, handleType, void *, handle); \
-  UnsupportedWrapper4(void, glImportMemoryWin32NameEXT, GLuint, memory, GLuint64, size, GLenum, handleType, const void *, name); \
   UnsupportedWrapper5(void, glMultiDrawElementsEXT, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount); \
   UnsupportedWrapper2(void, glSampleMaskEXT, GLclampf, value, GLboolean, invert); \
   UnsupportedWrapper1(void, glSamplePatternEXT, GLenum, pattern); \
@@ -5461,16 +5473,6 @@
   UnsupportedWrapper3(void, glSecondaryColor3usEXT, GLushort, red, GLushort, green, GLushort, blue); \
   UnsupportedWrapper1(void, glSecondaryColor3usvEXT, const GLushort *, v); \
   UnsupportedWrapper4(void, glSecondaryColorPointerEXT, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper2(void, glGenSemaphoresEXT, GLsizei, n, GLuint *, semaphores); \
-  UnsupportedWrapper2(void, glDeleteSemaphoresEXT, GLsizei, n, const GLuint *, semaphores); \
-  UnsupportedWrapper1(GLboolean, glIsSemaphoreEXT, GLuint, semaphore); \
-  UnsupportedWrapper3(void, glSemaphoreParameterui64vEXT, GLuint, semaphore, GLenum, pname, const GLuint64 *, params); \
-  UnsupportedWrapper3(void, glGetSemaphoreParameterui64vEXT, GLuint, semaphore, GLenum, pname, GLuint64 *, params); \
-  UnsupportedWrapper6(void, glWaitSemaphoreEXT, GLuint, semaphore, GLuint, numBufferBarriers, const GLuint *, buffers, GLuint, numTextureBarriers, const GLuint *, textures, const GLenum *, srcLayouts); \
-  UnsupportedWrapper6(void, glSignalSemaphoreEXT, GLuint, semaphore, GLuint, numBufferBarriers, const GLuint *, buffers, GLuint, numTextureBarriers, const GLuint *, textures, const GLenum *, dstLayouts); \
-  UnsupportedWrapper3(void, glImportSemaphoreFdEXT, GLuint, semaphore, GLenum, handleType, GLint, fd); \
-  UnsupportedWrapper3(void, glImportSemaphoreWin32HandleEXT, GLuint, semaphore, GLenum, handleType, void *, handle); \
-  UnsupportedWrapper3(void, glImportSemaphoreWin32NameEXT, GLuint, semaphore, GLenum, handleType, const void *, name); \
   UnsupportedWrapper2(void, glStencilClearTagEXT, GLsizei, stencilTagBits, GLuint, stencilClearTag); \
   UnsupportedWrapper1(void, glActiveStencilFaceEXT, GLenum, face); \
   UnsupportedWrapper7(void, glTexSubImage1DEXT, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLenum, type, const void *, pixels); \
@@ -5540,8 +5542,6 @@
   UnsupportedWrapper1(void, glVertexWeightfEXT, GLfloat, weight); \
   UnsupportedWrapper1(void, glVertexWeightfvEXT, const GLfloat *, weight); \
   UnsupportedWrapper4(void, glVertexWeightPointerEXT, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper3(GLboolean, glAcquireKeyedMutexWin32EXT, GLuint, memory, GLuint64, key, GLuint, timeout); \
-  UnsupportedWrapper2(GLboolean, glReleaseKeyedMutexWin32EXT, GLuint, memory, GLuint64, key); \
   UnsupportedWrapper3(GLsync, glImportSyncEXT, GLenum, external_sync_type, GLintptr, external_sync, GLbitfield, flags); \
   UnsupportedWrapper3(void, glImageTransformParameteriHP, GLenum, target, GLenum, pname, GLint, param); \
   UnsupportedWrapper3(void, glImageTransformParameterfHP, GLenum, target, GLenum, pname, GLfloat, param); \

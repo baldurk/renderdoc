@@ -77,6 +77,8 @@ enum GLNamespace
   eResFeedback,
   eResQuery,
   eResSync,
+  eResExternalMemory,
+  eResExternalSemaphore,
 };
 
 DECLARE_REFLECTION_ENUM(GLNamespace);
@@ -194,6 +196,14 @@ inline GLResource QueryRes(const ContextPair &c, GLuint i)
 inline GLResource SyncRes(const ContextPair &c, GLuint i)
 {
   return GLResource(c.shareGroup, eResSync, i);
+}
+inline GLResource ExtMemRes(const ContextPair &c, GLuint i)
+{
+  return GLResource(c.ctx, eResExternalMemory, i);
+}
+inline GLResource ExtSemRes(const ContextPair &c, GLuint i)
+{
+  return GLResource(c.ctx, eResExternalSemaphore, i);
 }
 
 struct GLResourceRecord : public ResourceRecord

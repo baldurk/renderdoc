@@ -2272,6 +2272,80 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glSpecializeShader, GLuint shader, const GLchar *pEntryPoint,
                                 GLuint numSpecializationConstants, const GLuint *pConstantIndex,
                                 const GLuint *pConstantValue);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetUnsignedBytevEXT, GLenum pname, GLubyte *data);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetUnsignedBytei_vEXT, GLenum target, GLuint index,
+                                GLubyte *data);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteMemoryObjectsEXT, GLsizei n,
+                                const GLuint *memoryObjects);
+  IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsMemoryObjectEXT, GLuint memoryObject);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glCreateMemoryObjectsEXT, GLsizei n, GLuint *memoryObjects);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glMemoryObjectParameterivEXT, GLuint memoryObject,
+                                GLenum pname, const GLint *params);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetMemoryObjectParameterivEXT, GLuint memoryObject,
+                                GLenum pname, GLint *params);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorageMem1DEXT, GLenum target, GLsizei levels,
+                                GLenum internalFormat, GLsizei width, GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorageMem2DEXT, GLenum target, GLsizei levels,
+                                GLenum internalFormat, GLsizei width, GLsizei height, GLuint memory,
+                                GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorageMem2DMultisampleEXT, GLenum target,
+                                GLsizei samples, GLenum internalFormat, GLsizei width, GLsizei height,
+                                GLboolean fixedSampleLocations, GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorageMem3DEXT, GLenum target, GLsizei levels,
+                                GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth,
+                                GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorageMem3DMultisampleEXT, GLenum target, GLsizei samples,
+                                GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth,
+                                GLboolean fixedSampleLocations, GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorageMem1DEXT, GLuint texture, GLsizei levels,
+                                GLenum internalFormat, GLsizei width, GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorageMem2DEXT, GLuint texture, GLsizei levels,
+                                GLenum internalFormat, GLsizei width, GLsizei height, GLuint memory,
+                                GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorageMem2DMultisampleEXT, GLuint texture,
+                                GLsizei samples, GLenum internalFormat, GLsizei width, GLsizei height,
+                                GLboolean fixedSampleLocations, GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorageMem3DEXT, GLuint texture, GLsizei levels,
+                                GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth,
+                                GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorageMem3DMultisampleEXT, GLuint texture,
+                                GLsizei samples, GLenum internalFormat, GLsizei width,
+                                GLsizei height, GLsizei depth, GLboolean fixedSampleLocations,
+                                GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glBufferStorageMemEXT, GLenum target, GLsizeiptr size,
+                                GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glNamedBufferStorageMemEXT, GLuint buffer, GLsizeiptr size,
+                                GLuint memory, GLuint64 offset);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGenSemaphoresEXT, GLsizei n, GLuint *semaphores);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteSemaphoresEXT, GLsizei n, const GLuint *semaphores);
+  IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsSemaphoreEXT, GLuint semaphore);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glSemaphoreParameterui64vEXT, GLuint semaphore, GLenum pname,
+                                const GLuint64 *params);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetSemaphoreParameterui64vEXT, GLuint semaphore,
+                                GLenum pname, GLuint64 *params);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glWaitSemaphoreEXT, GLuint semaphore, GLuint numBufferBarriers,
+                                const GLuint *buffers, GLuint numTextureBarriers,
+                                const GLuint *textures, const GLenum *srcLayouts);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glSignalSemaphoreEXT, GLuint semaphore,
+                                GLuint numBufferBarriers, const GLuint *buffers,
+                                GLuint numTextureBarriers, const GLuint *textures,
+                                const GLenum *dstLayouts);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glImportMemoryFdEXT, GLuint memory, GLuint64 size,
+                                GLenum handleType, GLint fd);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glImportSemaphoreFdEXT, GLuint semaphore, GLenum handleType,
+                                GLint fd);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glImportMemoryWin32HandleEXT, GLuint memory, GLuint64 size,
+                                GLenum handleType, void *handle);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glImportMemoryWin32NameEXT, GLuint memory, GLuint64 size,
+                                GLenum handleType, const void *name);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glImportSemaphoreWin32HandleEXT, GLuint semaphore,
+                                GLenum handleType, void *handle);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glImportSemaphoreWin32NameEXT, GLuint semaphore,
+                                GLenum handleType, const void *name);
+  IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glAcquireKeyedMutexWin32EXT, GLuint memory, GLuint64 key,
+                                GLuint timeout);
+  IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glReleaseKeyedMutexWin32EXT, GLuint memory, GLuint64 key);
 };
 
 class ScopedDebugContext

@@ -126,6 +126,16 @@ GLboolean WrappedOpenGL::glIsNamedStringARB(GLint namelen, const GLchar *name)
   return GL.glIsNamedStringARB(namelen, name);
 }
 
+GLboolean WrappedOpenGL::glIsMemoryObjectEXT(GLuint memoryObject)
+{
+  return GL.glIsMemoryObjectEXT(memoryObject);
+}
+
+GLboolean WrappedOpenGL::glIsSemaphoreEXT(GLuint semaphore)
+{
+  return GL.glIsSemaphoreEXT(semaphore);
+}
+
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
 {
   GL.glGetFloatv(pname, params);
@@ -239,6 +249,16 @@ void WrappedOpenGL::glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *data)
     return;
   }
   GL.glGetInteger64i_v(pname, index, data);
+}
+
+void WrappedOpenGL::glGetUnsignedBytevEXT(GLenum pname, GLubyte *data)
+{
+  GL.glGetUnsignedBytevEXT(pname, data);
+}
+
+void WrappedOpenGL::glGetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
+{
+  GL.glGetUnsignedBytei_vEXT(target, index, data);
 }
 
 void WrappedOpenGL::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
@@ -1174,4 +1194,14 @@ void WrappedOpenGL::glGetVertexArrayPointeri_vEXT(GLuint vaobj, GLuint index, GL
                                                   void **param)
 {
   GL.glGetVertexArrayPointeri_vEXT(vaobj, index, pname, param);
+}
+
+void WrappedOpenGL::glGetMemoryObjectParameterivEXT(GLuint memoryObject, GLenum pname, GLint *params)
+{
+  GL.glGetMemoryObjectParameterivEXT(memoryObject, pname, params);
+}
+
+void WrappedOpenGL::glGetSemaphoreParameterui64vEXT(GLuint semaphore, GLenum pname, GLuint64 *params)
+{
+  GL.glGetSemaphoreParameterui64vEXT(semaphore, pname, params);
 }

@@ -201,6 +201,9 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_framebuffer_object");
   m_GLExtensions.push_back("GL_EXT_framebuffer_sRGB");
   m_GLExtensions.push_back("GL_EXT_gpu_shader4");
+  m_GLExtensions.push_back("GL_EXT_memory_object");
+  m_GLExtensions.push_back("GL_EXT_memory_object_fd");
+  m_GLExtensions.push_back("GL_EXT_memory_object_win32");
   m_GLExtensions.push_back("GL_EXT_multisample");
   m_GLExtensions.push_back("GL_EXT_multi_draw_arrays");
   m_GLExtensions.push_back("GL_EXT_packed_depth_stencil");
@@ -212,6 +215,9 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_post_depth_coverage");
   m_GLExtensions.push_back("GL_EXT_provoking_vertex");
   m_GLExtensions.push_back("GL_EXT_raster_multisample");
+  m_GLExtensions.push_back("GL_EXT_semaphore");
+  m_GLExtensions.push_back("GL_EXT_semaphore_fd");
+  m_GLExtensions.push_back("GL_EXT_semaphore_win32");
   m_GLExtensions.push_back("GL_EXT_shader_image_load_store");
   m_GLExtensions.push_back("GL_EXT_shader_image_load_formatted");
   m_GLExtensions.push_back("GL_EXT_shader_integer_mix");
@@ -238,6 +244,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_timer_query");
   m_GLExtensions.push_back("GL_EXT_transform_feedback");
   m_GLExtensions.push_back("GL_EXT_vertex_attrib_64bit");
+  m_GLExtensions.push_back("GL_EXT_win32_keyed_mutex");
   m_GLExtensions.push_back("GL_GREMEDY_frame_terminator");
   m_GLExtensions.push_back("GL_GREMEDY_string_marker");
   m_GLExtensions.push_back("GL_KHR_blend_equation_advanced");
@@ -2320,6 +2327,8 @@ void WrappedOpenGL::ReleaseResource(GLResource res)
     case eResFeedback: GL.glDeleteTransformFeedbacks(1, &res.name); break;
     case eResQuery: GL.glDeleteQueries(1, &res.name); break;
     case eResSync: GL.glDeleteSync(GetResourceManager()->GetSync(res.name)); break;
+    case eResExternalMemory: GL.glDeleteMemoryObjectsEXT(1, &res.name); break;
+    case eResExternalSemaphore: GL.glDeleteSemaphoresEXT(1, &res.name); break;
   }
 }
 
@@ -3913,8 +3922,52 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       return Serialise_glSpecializeShader(ser, 0, NULL, 0, NULL, NULL);
 
     case GLChunk::glFinish: return Serialise_glFinish(ser);
-    case GLChunk::glFlush:
-      return Serialise_glFlush(ser);
+    case GLChunk::glFlush: return Serialise_glFlush(ser);
+
+    case GLChunk::glCreateMemoryObjectsEXT: return Serialise_glCreateMemoryObjectsEXT(ser, 0, NULL);
+    case GLChunk::glMemoryObjectParameterivEXT:
+      return Serialise_glMemoryObjectParameterivEXT(ser, 0, eGL_NONE, 0);
+    case GLChunk::glTexStorageMem1DEXT:
+    case GLChunk::glTextureStorageMem1DEXT:
+      return Serialise_glTextureStorageMem1DEXT(ser, 0, 0, eGL_NONE, 0, 0, 0);
+    case GLChunk::glTexStorageMem2DEXT:
+    case GLChunk::glTextureStorageMem2DEXT:
+      return Serialise_glTextureStorageMem2DEXT(ser, 0, 0, eGL_NONE, 0, 0, 0, 0);
+    case GLChunk::glTexStorageMem2DMultisampleEXT:
+    case GLChunk::glTextureStorageMem2DMultisampleEXT:
+      return Serialise_glTextureStorageMem2DMultisampleEXT(ser, 0, 0, eGL_NONE, 0, 0, GL_FALSE, 0, 0);
+    case GLChunk::glTexStorageMem3DEXT:
+    case GLChunk::glTextureStorageMem3DEXT:
+      return Serialise_glTextureStorageMem3DEXT(ser, 0, 0, eGL_NONE, 0, 0, 0, 0, 0);
+    case GLChunk::glTexStorageMem3DMultisampleEXT:
+    case GLChunk::glTextureStorageMem3DMultisampleEXT:
+      return Serialise_glTextureStorageMem3DMultisampleEXT(ser, 0, 0, eGL_NONE, 0, 0, 0, GL_FALSE,
+                                                           0, 0);
+    case GLChunk::glBufferStorageMemEXT:
+    case GLChunk::glNamedBufferStorageMemEXT:
+      return Serialise_glNamedBufferStorageMemEXT(ser, 0, 0, 0, 0);
+    case GLChunk::glGenSemaphoresEXT: return Serialise_glGenSemaphoresEXT(ser, 0, NULL);
+    case GLChunk::glSemaphoreParameterui64vEXT:
+      return Serialise_glSemaphoreParameterui64vEXT(ser, 0, eGL_NONE, NULL);
+    case GLChunk::glWaitSemaphoreEXT:
+      return Serialise_glWaitSemaphoreEXT(ser, 0, 0, NULL, 0, NULL, NULL);
+    case GLChunk::glSignalSemaphoreEXT:
+      return Serialise_glSignalSemaphoreEXT(ser, 0, 0, NULL, 0, NULL, NULL);
+    case GLChunk::glImportMemoryFdEXT: return Serialise_glImportMemoryFdEXT(ser, 0, 0, eGL_NONE, 0);
+    case GLChunk::glImportSemaphoreFdEXT:
+      return Serialise_glImportSemaphoreFdEXT(ser, 0, eGL_NONE, 0);
+    case GLChunk::glImportMemoryWin32HandleEXT:
+      return Serialise_glImportMemoryWin32HandleEXT(ser, 0, 0, eGL_NONE, NULL);
+    case GLChunk::glImportMemoryWin32NameEXT:
+      return Serialise_glImportMemoryWin32NameEXT(ser, 0, 0, eGL_NONE, NULL);
+    case GLChunk::glImportSemaphoreWin32HandleEXT:
+      return Serialise_glImportSemaphoreWin32HandleEXT(ser, 0, eGL_NONE, NULL);
+    case GLChunk::glImportSemaphoreWin32NameEXT:
+      return Serialise_glImportSemaphoreWin32NameEXT(ser, 0, eGL_NONE, NULL);
+    case GLChunk::glAcquireKeyedMutexWin32EXT:
+      return Serialise_glAcquireKeyedMutexWin32EXT(ser, 0, 0, 0);
+    case GLChunk::glReleaseKeyedMutexWin32EXT:
+      return Serialise_glReleaseKeyedMutexWin32EXT(ser, 0, 0);
 
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
@@ -4230,6 +4283,16 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::wglDXUnlockObjectsNV:
     case GLChunk::glMaxShaderCompilerThreadsARB:
     case GLChunk::glMaxShaderCompilerThreadsKHR:
+
+    case GLChunk::glGetUnsignedBytevEXT:
+    case GLChunk::glGetUnsignedBytei_vEXT:
+    case GLChunk::glDeleteMemoryObjectsEXT:
+    case GLChunk::glIsMemoryObjectEXT:
+    case GLChunk::glGetMemoryObjectParameterivEXT:
+    case GLChunk::glDeleteSemaphoresEXT:
+    case GLChunk::glIsSemaphoreEXT:
+    case GLChunk::glGetSemaphoreParameterui64vEXT:
+
     case GLChunk::Max:
       RDCERR("Unexpected chunk %s, or missing case for processing! Skipping...",
              ToStr(chunk).c_str());
