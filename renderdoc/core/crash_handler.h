@@ -42,7 +42,15 @@ public:
     google_breakpad::AppMemoryList mem;
 
     if(existing)
+    {
       mem = ((CrashHandler *)existing)->m_ExHandler->QueryRegisteredAppMemory();
+    }
+    else
+    {
+      CreateCrashHandlingServer();
+    }
+
+    _CrtSetReportMode(_CRT_ASSERT, 0);
 
     SAFE_DELETE(existing);
 
@@ -57,51 +65,6 @@ public:
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 
     MINIDUMP_TYPE dumpType = MINIDUMP_TYPE(MiniDumpNormal | MiniDumpWithIndirectlyReferencedMemory);
-
-    {
-      PROCESS_INFORMATION pi;
-      STARTUPINFOW si;
-      RDCEraseEl(pi);
-      RDCEraseEl(si);
-
-      HANDLE waitEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
-
-      wchar_t radpath[MAX_PATH] = {0};
-      GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), radpath, MAX_PATH - 1);
-
-      wchar_t *slash = wcsrchr(radpath, L'\\');
-
-      if(slash)
-      {
-        *slash = 0;
-      }
-      else
-      {
-        slash = wcsrchr(radpath, L'/');
-
-        if(slash)
-          *slash = 0;
-        else
-        {
-          radpath[0] = L'.';
-          radpath[1] = 0;
-        }
-      }
-
-      wstring cmdline = L"\"";
-      cmdline += radpath;
-      cmdline += L"/renderdoccmd.exe\" crashhandle";
-
-      wchar_t *paramsAlloc = new wchar_t[512];
-
-      wcscpy_s(paramsAlloc, 511, cmdline.c_str());
-
-      CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-
-      WaitForSingleObject(waitEvent, 2000);
-
-      CloseHandle(waitEvent);
-    }
 
     static google_breakpad::CustomInfoEntry breakpadCustomInfo[] = {
         google_breakpad::CustomInfoEntry(L"version", L""),
@@ -121,10 +84,22 @@ public:
     google_breakpad::CustomClientInfo custom = {&breakpadCustomInfo[0],
                                                 ARRAY_COUNT(breakpadCustomInfo)};
 
-    _CrtSetReportMode(_CRT_ASSERT, 0);
     m_ExHandler = new google_breakpad::ExceptionHandler(
         dumpFolder.c_str(), NULL, NULL, NULL, google_breakpad::ExceptionHandler::HANDLER_ALL,
         dumpType, L"\\\\.\\pipe\\RenderDocBreakpadServer", &custom);
+
+    if(!m_ExHandler->IsOutOfProcess())
+    {
+      RDCWARN("Couldn't find existing breakpad server");
+
+      SAFE_DELETE(m_ExHandler);
+
+      CreateCrashHandlingServer();
+
+      m_ExHandler = new google_breakpad::ExceptionHandler(
+          dumpFolder.c_str(), NULL, NULL, NULL, google_breakpad::ExceptionHandler::HANDLER_ALL,
+          dumpType, L"\\\\.\\pipe\\RenderDocBreakpadServer", &custom);
+    }
 
     m_ExHandler->set_handle_debug_exceptions(true);
 
@@ -132,13 +107,55 @@ public:
       m_ExHandler->RegisterAppMemory((void *)mem[i].ptr, mem[i].length);
   }
 
-  virtual ~CrashHandler() { SAFE_DELETE(m_ExHandler); }
-  void WriteMinidump() { m_ExHandler->WriteMinidump(); }
-  void WriteMinidump(void *data)
+  void CreateCrashHandlingServer()
   {
-    m_ExHandler->WriteMinidumpForException((EXCEPTION_POINTERS *)data);
+    RDCLOG("Creating crash-handling server");
+
+    PROCESS_INFORMATION pi;
+    STARTUPINFOW si;
+    RDCEraseEl(pi);
+    RDCEraseEl(si);
+
+    HANDLE waitEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
+
+    wchar_t radpath[MAX_PATH] = {0};
+    GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), radpath, MAX_PATH - 1);
+
+    wchar_t *slash = wcsrchr(radpath, L'\\');
+
+    if(slash)
+    {
+      *slash = 0;
+    }
+    else
+    {
+      slash = wcsrchr(radpath, L'/');
+
+      if(slash)
+        *slash = 0;
+      else
+      {
+        radpath[0] = L'.';
+        radpath[1] = 0;
+      }
+    }
+
+    wstring cmdline = L"\"";
+    cmdline += radpath;
+    cmdline += L"/renderdoccmd.exe\" crashhandle";
+
+    wchar_t *paramsAlloc = new wchar_t[512];
+
+    wcscpy_s(paramsAlloc, 511, cmdline.c_str());
+
+    CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+
+    WaitForSingleObject(waitEvent, 2000);
+
+    CloseHandle(waitEvent);
   }
 
+  virtual ~CrashHandler() { SAFE_DELETE(m_ExHandler); }
   void RegisterMemoryRegion(void *mem, size_t size) { m_ExHandler->RegisterAppMemory(mem, size); }
   void UnregisterMemoryRegion(void *mem) { m_ExHandler->UnregisterAppMemory(mem); }
 private:

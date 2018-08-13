@@ -181,8 +181,6 @@ RenderDoc &RenderDoc::Inst()
 
 void RenderDoc::RecreateCrashHandler()
 {
-  UnloadCrashHandler();
-
 #if ENABLED(RDOC_CRASH_HANDLER)
   m_ExHandler = new CrashHandler(m_ExHandler);
 #endif

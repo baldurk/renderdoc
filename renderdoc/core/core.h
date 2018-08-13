@@ -52,9 +52,6 @@ bool is_exr_file(FILE *f);
 struct ICrashHandler
 {
   virtual ~ICrashHandler() {}
-  virtual void WriteMinidump() = 0;
-  virtual void WriteMinidump(void *data) = 0;
-
   virtual void RegisterMemoryRegion(void *mem, size_t size) = 0;
   virtual void UnregisterMemoryRegion(void *mem) = 0;
 };
