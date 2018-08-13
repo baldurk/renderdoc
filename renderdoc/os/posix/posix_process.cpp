@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <set>
 #include "api/app/renderdoc_app.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
@@ -43,6 +44,7 @@ int GetIdentPort(pid_t childPid);
 
 Threading::CriticalSection zombieLock;
 struct sigaction old_action;
+std::set<pid_t> children;
 
 static void ZombieWaiter(int signum, siginfo_t *handler_info, void *handler_context)
 {
@@ -58,10 +60,28 @@ static void ZombieWaiter(int signum, siginfo_t *handler_info, void *handler_cont
       old_action.sa_handler(signum);
   }
 
-  // wait for any children, but don't block (hang). Continue waiting while there are children to
-  // wait for.
-  while(waitpid(pid_t(-1), NULL, WNOHANG) > 0)
+  std::vector<pid_t> waitedChildren;
+  std::set<pid_t> localChildren;
   {
+    SCOPED_LOCK(zombieLock);
+    localChildren = children;
+  }
+
+  // wait for any children, but don't block (hang). We must only wait for our own PIDs as waiting
+  // for any other handler's PIDs (like Qt's) might lose the one chance they have to wait for them
+  // themselves.
+  for(pid_t pid : localChildren)
+  {
+    // remember the child PIDs that we successfully waited on
+    if(waitpid(pid, NULL, WNOHANG) > 0)
+      waitedChildren.push_back(pid);
+  }
+
+  // remove any waited children from the list
+  {
+    SCOPED_LOCK(zombieLock);
+    for(pid_t pid : waitedChildren)
+      children.erase(pid);
   }
 
   // restore errno
@@ -438,6 +458,12 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
       execve(appPath.c_str(), argv, envp);
       fprintf(stderr, "exec failed\n");
       _exit(1);
+    }
+    else
+    {
+      // remember this PID so we can wait on it later
+      SCOPED_LOCK(zombieLock);
+      children.insert(childPid);
     }
   }
 
