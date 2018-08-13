@@ -1191,14 +1191,19 @@ void LiveCapture::connectionThreadEntry()
       int32_t thumbWidth = msg.newCapture.thumbWidth;
       int32_t thumbHeight = msg.newCapture.thumbHeight;
       QString path = msg.newCapture.path;
+      QString captureAPI = msg.newCapture.api;
       bool local = msg.newCapture.local;
 
-      GUIInvoke::call(this, [this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, local]() {
-        QString target = QString::fromUtf8(m_Connection->GetTarget());
-        QString api = QString::fromUtf8(m_Connection->GetAPI());
+      GUIInvoke::call(
+          this, [this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, captureAPI, local]() {
+            QString target = QString::fromUtf8(m_Connection->GetTarget());
 
-        captureAdded(capID, target, api, thumb, thumbWidth, thumbHeight, timestamp, path, local);
-      });
+            QString api = captureAPI;
+            if(api.isEmpty())
+              api = QString::fromUtf8(m_Connection->GetAPI());
+
+            captureAdded(capID, target, api, thumb, thumbWidth, thumbHeight, timestamp, path, local);
+          });
     }
 
     if(msg.type == TargetControlMessageType::CaptureCopied)

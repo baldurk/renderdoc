@@ -211,12 +211,13 @@ DECLARE_REFLECTION_ENUM(ReplayLogType);
 
 struct CaptureData
 {
-  CaptureData(string p, uint64_t t, uint32_t f)
-      : path(p), timestamp(t), frameNumber(f), retrieved(false)
+  CaptureData(string p, uint64_t t, RDCDriver d, uint32_t f)
+      : path(p), timestamp(t), driver(d), frameNumber(f), retrieved(false)
   {
   }
   string path;
   uint64_t timestamp;
+  RDCDriver driver;
   uint32_t frameNumber;
   bool retrieved;
 };

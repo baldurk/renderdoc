@@ -30,7 +30,19 @@
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
 
-static const uint32_t TargetControlProtocolVersion = 2;
+static const uint32_t TargetControlProtocolVersion = 3;
+
+static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
+{
+  // 2 -> 3 added a RDCDriver per capture
+  if(protocolVersion == 2)
+    return true;
+
+  if(protocolVersion == TargetControlProtocolVersion)
+    return true;
+
+  return false;
+}
 
 enum PacketType : uint32_t
 {
@@ -192,6 +204,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         SERIALISE_ELEMENT(captures.back().timestamp);
         SERIALISE_ELEMENT(path);
         SERIALISE_ELEMENT(buf);
+        if(version >= 3)
+          SERIALISE_ELEMENT(captures.back().driver);
       }
     }
     else if(childprocs.size() != children.size())
@@ -378,8 +392,9 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
       ser.EndChunk();
 
-      if(newClient.empty())
+      if(newClient.empty() || !IsProtocolVersionSupported(version))
       {
+        RDCLOG("Invalid/Unsupported handshake '%s' / %d", newClient.c_str(), version);
         SAFE_DELETE(client);
         continue;
       }
@@ -496,16 +511,23 @@ public:
     if(m_Socket == NULL)
       return;
 
-    uint32_t version = TargetControlProtocolVersion;
+    m_Version = 0;
 
     {
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(version);
+      SERIALISE_ELEMENT(m_Version);
       SERIALISE_ELEMENT(m_Target);
       SERIALISE_ELEMENT(m_PID);
     }
 
     reader.EndChunk();
+
+    if(!IsProtocolVersionSupported(m_Version))
+    {
+      RDCERR("Unsupported version, got %u", m_Version);
+      SAFE_DELETE(m_Socket);
+      return;
+    }
 
     if(type == ePacket_Handshake)
     {
@@ -659,13 +681,20 @@ public:
 
       bytebuf thumbnail;
 
+      RDCDriver driver = RDCDriver::Unknown;
+
       {
         READ_DATA_SCOPE();
         SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID");
         SERIALISE_ELEMENT(msg.newCapture.timestamp).Named("timestamp");
         SERIALISE_ELEMENT(msg.newCapture.path).Named("path");
         SERIALISE_ELEMENT(thumbnail);
+        if(m_Version >= 3)
+          SERIALISE_ELEMENT(driver);
       }
+
+      if(driver != RDCDriver::Unknown)
+        msg.newCapture.api = ToStr(driver);
 
       msg.newCapture.local = FileIO::exists(msg.newCapture.path.c_str());
 
@@ -763,7 +792,7 @@ private:
   WriteSerialiser writer;
   ReadSerialiser reader;
   std::string m_Target, m_API, m_BusyClient;
-  uint32_t m_PID;
+  uint32_t m_Version, m_PID;
 
   std::map<uint32_t, std::string> m_CaptureCopies;
 };

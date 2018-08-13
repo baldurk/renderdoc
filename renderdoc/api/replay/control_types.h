@@ -430,6 +430,12 @@ struct NewCaptureData
   int32_t thumbHeight = 0;
   DOCUMENT("The local path on the target system where the capture is saved.");
   rdcstr path;
+  DOCUMENT(R"(The API used for this capture, if available.
+
+.. note::
+  May be empty if running with an older version of RenderDoc
+)");
+  rdcstr api;
   DOCUMENT("``True`` if the target is running on the local system.");
   bool local = true;
 };
