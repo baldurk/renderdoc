@@ -1263,8 +1263,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
             record->AddChunk(scope.Get());
           }
 
-          GetResourceManager()->SetInternalResource(VertexArrayRes(GetCtx(), 0));
-
           // we immediately mark it dirty since the vertex array tracking functions expect a proper
           // VAO
           GetResourceManager()->MarkDirtyResource(id);
@@ -1282,8 +1280,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           USE_SCRATCH_SERIALISER();
           SCOPED_SERIALISE_CHUNK(GLChunk::glContextInit);
           Serialise_ContextInit(ser);
-
-          GetResourceManager()->SetInternalResource(FramebufferRes(GetCtx(), 0));
 
           m_DeviceRecord->AddChunk(scope.Get());
         }
