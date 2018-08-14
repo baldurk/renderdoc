@@ -364,6 +364,9 @@ private:
   WrappedIDXGISwapChain4 *m_LastSwap;
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS m_D3D12Opts;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS1 m_D3D12Opts1;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS2 m_D3D12Opts2;
+  D3D12_FEATURE_DATA_D3D12_OPTIONS3 m_D3D12Opts3;
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
   template <typename SerialiserType>
@@ -385,6 +388,10 @@ public:
     return m_DescriptorIncrements[type];
   }
 
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS &GetOpts() { return m_D3D12Opts; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS1 &GetOpts1() { return m_D3D12Opts1; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS2 &GetOpts2() { return m_D3D12Opts2; }
+  const D3D12_FEATURE_DATA_D3D12_OPTIONS3 &GetOpts3() { return m_D3D12Opts3; }
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
 
   ////////////////////////////////////////////////////////////////

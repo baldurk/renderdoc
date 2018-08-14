@@ -349,7 +349,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       list = GetDebugManager()->ResetDebugList();
 
-      rs.ApplyState(list);
+      rs.ApplyState(m_pDevice, list);
 
       list->SetPipelineState(pipe);
 
@@ -461,7 +461,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       list = GetDebugManager()->ResetDebugList();
 
-      rs.ApplyState(list);
+      rs.ApplyState(m_pDevice, list);
 
       list->SetPipelineState(pipe);
 
@@ -830,7 +830,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     {
       list = GetDebugManager()->ResetDebugList();
 
-      rs.ApplyState(list);
+      rs.ApplyState(m_pDevice, list);
 
       list->SetPipelineState(pipe);
 
@@ -919,7 +919,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         list->ResourceBarrier(1, &sobarr);
       }
 
-      rs.ApplyState(list);
+      rs.ApplyState(m_pDevice, list);
 
       list->SetPipelineState(pipe);
 
@@ -975,7 +975,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       {
         list = GetDebugManager()->ResetDebugList();
 
-        rs.ApplyState(list);
+        rs.ApplyState(m_pDevice, list);
 
         list->SetPipelineState(pipe);
 

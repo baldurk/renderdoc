@@ -4304,7 +4304,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ExecuteIndirect(
 
         m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.push_back(list);
 
-        m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.ApplyState(list);
+        m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.ApplyState(m_pDevice, list);
       }
 
       // perform indirect draw, but from patched buffer. It will be patched between the above list

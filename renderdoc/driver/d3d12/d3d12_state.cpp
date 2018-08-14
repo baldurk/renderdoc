@@ -73,7 +73,7 @@ ResourceId D3D12RenderState::GetDSVID() const
   return dsv.GetResResourceId();
 }
 
-void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList2 *cmd) const
+void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandList2 *cmd) const
 {
   D3D12_COMMAND_LIST_TYPE type = cmd->GetType();
 
@@ -96,10 +96,12 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList2 *cmd) const
 
     if(GetWrapped(cmd)->GetReal1())
     {
-      cmd->OMSetDepthBounds(depthBoundsMin, depthBoundsMax);
+      if(dev->GetOpts2().DepthBoundsTestSupported)
+        cmd->OMSetDepthBounds(depthBoundsMin, depthBoundsMax);
 
       // safe to set this - if the pipeline has view instancing disabled, it will do nothing
-      cmd->SetViewInstanceMask(viewInstMask);
+      if(dev->GetOpts3().ViewInstancingTier != D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
+        cmd->SetViewInstanceMask(viewInstMask);
     }
 
     if(ibuffer.buf != ResourceId())

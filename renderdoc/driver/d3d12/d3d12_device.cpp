@@ -148,6 +148,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_StructuredFile = &m_StoredStructuredData;
 
   RDCEraseEl(m_D3D12Opts);
+  RDCEraseEl(m_D3D12Opts1);
+  RDCEraseEl(m_D3D12Opts2);
+  RDCEraseEl(m_D3D12Opts3);
 
   m_pDevice1 = NULL;
   m_pDevice2 = NULL;
@@ -162,7 +165,20 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       m_DescriptorIncrements[i] =
           m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
 
-    m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts, sizeof(m_D3D12Opts));
+    HRESULT hr = S_OK;
+
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts,
+                                        sizeof(m_D3D12Opts));
+    RDCASSERTEQUAL(hr, S_OK);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &m_D3D12Opts1,
+                                        sizeof(m_D3D12Opts1));
+    RDCASSERTEQUAL(hr, S_OK);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &m_D3D12Opts2,
+                                        sizeof(m_D3D12Opts2));
+    RDCASSERTEQUAL(hr, S_OK);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &m_D3D12Opts3,
+                                        sizeof(m_D3D12Opts3));
+    RDCASSERTEQUAL(hr, S_OK);
   }
 
   // refcounters implicitly construct with one reference, but we don't start with any soft
@@ -2843,7 +2859,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     {
       ID3D12GraphicsCommandList2 *list = cmd.m_OutsideCmdList = GetNewList();
 
-      cmd.m_RenderState.ApplyState(list);
+      cmd.m_RenderState.ApplyState(this, list);
     }
 
     ReplayStatus status = ReplayStatus::Succeeded;

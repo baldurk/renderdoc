@@ -210,7 +210,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     // as we're changing the root signature, we need to reapply all elements,
     // so just apply all state
     if(cmd)
-      rs.ApplyState(cmd);
+      rs.ApplyState(m_pDevice, cmd);
   }
 
   bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd)
@@ -222,7 +222,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     m_pDevice->GetQueue()->GetCommandData()->m_RenderState = m_PrevState;
 
     RDCASSERT(cmd);
-    m_pDevice->GetQueue()->GetCommandData()->m_RenderState.ApplyState(cmd);
+    m_pDevice->GetQueue()->GetCommandData()->m_RenderState.ApplyState(m_pDevice, cmd);
 
     return true;
   }

@@ -280,6 +280,12 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetDepthBounds(SerialiserTyp
     return false;
   }
 
+  if(m_pDevice->GetOpts2().DepthBoundsTestSupported == 0)
+  {
+    RDCERR("Can't replay OMSetDepthBounds without device support");
+    return false;
+  }
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -523,6 +529,12 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetViewInstanceMask(Serialiser
   if(GetWrapped(pCommandList)->GetReal1() == NULL)
   {
     RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+    return false;
+  }
+
+  if(m_pDevice->GetOpts3().ViewInstancingTier == D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
+  {
+    RDCERR("Can't replay SetViewInstanceMask without device support");
     return false;
   }
 
