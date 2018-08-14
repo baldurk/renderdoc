@@ -119,9 +119,9 @@ void ThumbnailStrip::refreshLayout()
 
       QScrollBar *hs = ui->scrollArea->horizontalScrollBar();
 
-      avail.setHeight(avail.height() - hs->geometry().height());
+      avail.setHeight(qMax(1, avail.height() - hs->geometry().height()));
 
-      aspectWidth = (int)((float)avail.height() * 1.3f);
+      aspectWidth = qMax(1, (int)((float)avail.height() * 1.3f));
 
       int totalWidth = numActive * (aspectWidth + 20);
       hs->setEnabled(totalWidth > avail.width());
@@ -161,9 +161,9 @@ void ThumbnailStrip::refreshLayout()
 
       QScrollBar *vs = ui->scrollArea->verticalScrollBar();
 
-      avail.setWidth(avail.width() - vs->geometry().width());
+      avail.setWidth(qMax(1, avail.width() - vs->geometry().width()));
 
-      aspectHeight = (int)((float)avail.width() / 1.3f);
+      aspectHeight = qMax(1, (int)((float)avail.width() / 1.3f));
 
       int totalHeight = numActive * (aspectHeight + 6);
       vs->setEnabled(totalHeight > avail.height());
