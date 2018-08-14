@@ -512,13 +512,13 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       {
         RDDialog::critical(
             this, tr("Error connecting to debugger"),
-            tr("Error launching %1 for capture.\n\n"
+            tr("<html>Error launching %1 for capture.\n\n"
                "Something went wrong connecting to the debugger on the Android device.\n\n"
                "This can happen if the package is not "
                "marked as debuggable, or if another android tool such as Android Studio "
                "is interfering with the debug connection.\n\n"
-               "Close <b>all</b> instances of Android Studio or other Android programs"
-               "and try again.")
+               "Close <b>all</b> instances of Android Studio or other Android programs "
+               "and try again.</html>")
                 .arg(exe));
         return;
       }
@@ -572,13 +572,13 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
       {
         RDDialog::critical(
             this, tr("Error connecting to debugger"),
-            tr("Error injecting into process %1 for capture.\n\n"
+            tr("<html>Error injecting into process %1 for capture.\n\n"
                "Something went wrong connecting to the debugger on the Android device.\n\n"
                "This can happen if the package is not "
                "marked as debuggable, or if another android tool such as Android Studio "
                "is interfering with the debug connection.\n\n"
-               "Close <b>all</b> instances of Android Studio or other Android programs"
-               "and try again.")
+               "Close <b>all</b> instances of Android Studio or other Android programs "
+               "and try again.</html>")
                 .arg(PID));
         return;
       }
