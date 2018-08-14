@@ -1606,9 +1606,8 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
                                                     const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                     REFIID riid, void **ppvResource)
 {
-  D3D12NOTIMP("Tiled Resources");
-  return m_pDevice->CreateReservedResource(pDesc, InitialState, pOptimizedClearValue, riid,
-                                           ppvResource);
+  RDCERR("Tiled Resources are not currently implemented on D3D12");
+  return E_NOINTERFACE;
 }
 
 template <typename SerialiserType>
