@@ -112,6 +112,18 @@ inline ShaderEncoding ToolOutput(KnownShaderTool tool)
   return ShaderEncoding::Unknown;
 }
 
+DOCUMENT(R"(Contains the output from invoking a :class:`ShaderProcessingTool`, including both the
+actual output data desired as well as any stdout/stderr messages.
+)");
+struct ShaderToolOutput
+{
+  DOCUMENT("The output log - containing the information about the tool run and any errors.");
+  rdcstr log;
+
+  DOCUMENT("The actual output data from the tool");
+  bytebuf result;
+};
+
 DOCUMENT(R"(Describes an external program that can be used to process shaders, typically either
 compiling from a high-level language to a binary format, or decompiling from the binary format to
 a high-level language or textual representation.
@@ -171,10 +183,11 @@ struct ShaderProcessingTool
 :param str args: arguments to pass to the tool. The default arguments can be obtained using
   :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
   default arguments.
-:return: The disassembly, or an empty string if something went wrong.
-:rtype: ``str``
+:return: The result of running the tool.
+:rtype: ShaderToolOutput
 )");
-  rdcstr DisassembleShader(QWidget *window, const ShaderReflection *reflection, rdcstr args) const;
+  ShaderToolOutput DisassembleShader(QWidget *window, const ShaderReflection *reflection,
+                                     rdcstr args) const;
 
   DOCUMENT(R"(Runs this program to disassemble a given shader source.
 
@@ -185,11 +198,11 @@ struct ShaderProcessingTool
 :param str args: arguments to pass to the tool. The default arguments can be obtained using
   :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
   default arguments.
-:return: The compiled shader code, or an empty buffer if something went wrong.
-:rtype: ``bytes``
+:return: The result of running the tool.
+:rtype: ShaderToolOutput
 )");
-  bytebuf CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint, ShaderStage stage,
-                        rdcstr args) const;
+  ShaderToolOutput CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint,
+                                 ShaderStage stage, rdcstr args) const;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderProcessingTool);

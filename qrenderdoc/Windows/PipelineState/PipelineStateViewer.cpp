@@ -707,62 +707,63 @@ void PipelineStateViewer::shaderEdit_clicked()
     menu->actions()[0]->trigger();
 }
 
-void PipelineStateViewer::EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
-                                     ShaderCompileFlags compileFlags, ShaderEncoding encoding,
-                                     const rdcstrpairs &files)
+IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shaderType,
+                                               const rdcstr &entry, ShaderCompileFlags compileFlags,
+                                               ShaderEncoding encoding, const rdcstrpairs &files)
 {
-  IShaderViewer *sv = m_Ctx.EditShader(
-      false, shaderType, entry, files, encoding, compileFlags,
-      // save callback
-      [shaderType, id](ICaptureContext *ctx, IShaderViewer *viewer, ShaderEncoding shaderEncoding,
-                       ShaderCompileFlags flags, rdcstr entryFunc, bytebuf shaderBytes) {
+  auto saveCallback = [shaderType, id](ICaptureContext *ctx, IShaderViewer *viewer,
+                                       ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
+                                       rdcstr entryFunc, bytebuf shaderBytes) {
+    if(shaderBytes.isEmpty())
+      return;
 
-        if(shaderBytes.isEmpty())
-          return;
+    ANALYTIC_SET(UIFeatures.ShaderEditing, true);
 
-        ANALYTIC_SET(UIFeatures.ShaderEditing, true);
+    // invoke off to the ReplayController to replace the capture's shader
+    // with our edited one
+    ctx->Replay().AsyncInvoke([ctx, entryFunc, shaderBytes, shaderEncoding, flags, shaderType, id,
+                               viewer](IReplayController *r) {
+      rdcstr errs;
 
-        // invoke off to the ReplayController to replace the capture's shader
-        // with our edited one
-        ctx->Replay().AsyncInvoke([ctx, entryFunc, shaderBytes, shaderEncoding, flags, shaderType,
-                                   id, viewer](IReplayController *r) {
-          rdcstr errs;
+      ResourceId from = id;
+      ResourceId to;
 
-          ResourceId from = id;
-          ResourceId to;
+      std::tie(to, errs) =
+          r->BuildTargetShader(entryFunc.c_str(), shaderEncoding, shaderBytes, flags, shaderType);
 
-          std::tie(to, errs) = r->BuildTargetShader(entryFunc.c_str(), shaderEncoding, shaderBytes,
-                                                    flags, shaderType);
+      GUIInvoke::call(viewer->Widget(), [viewer, errs]() { viewer->ShowErrors(errs); });
+      if(to == ResourceId())
+      {
+        r->RemoveReplacement(from);
+        GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
+      }
+      else
+      {
+        r->ReplaceResource(from, to);
+        GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
+      }
+    });
+  };
 
-          GUIInvoke::call(viewer->Widget(), [viewer, errs]() { viewer->ShowErrors(errs); });
-          if(to == ResourceId())
-          {
-            r->RemoveReplacement(from);
-            GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
-          }
-          else
-          {
-            r->ReplaceResource(from, to);
-            GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
-          }
-        });
-      },
+  auto closeCallback = [id](ICaptureContext *ctx) {
+    // remove the replacement on close (we could make this more sophisticated if there
+    // was a place to control replaced resources/shaders).
+    ctx->Replay().AsyncInvoke([ctx, id](IReplayController *r) {
+      r->RemoveReplacement(id);
+      GUIInvoke::call(ctx->GetMainWindow()->Widget(), [ctx] { ctx->RefreshStatus(); });
+    });
+  };
 
-      // Close Callback
-      [id](ICaptureContext *ctx) {
-        // remove the replacement on close (we could make this more sophisticated if there
-        // was a place to control replaced resources/shaders).
-        ctx->Replay().AsyncInvoke([ctx, id](IReplayController *r) {
-          r->RemoveReplacement(id);
-          GUIInvoke::call(ctx->GetMainWindow()->Widget(), [ctx] { ctx->RefreshStatus(); });
-        });
-      });
+  IShaderViewer *sv = m_Ctx.EditShader(false, shaderType, entry, files, encoding, compileFlags,
+                                       saveCallback, closeCallback);
 
   m_Ctx.AddDockWindow(sv->Widget(), DockReference::AddTo, this);
+
+  return sv;
 }
 
-void PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
-                                                   const ShaderReflection *shaderDetails)
+IShaderViewer *PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
+                                                             const ShaderReflection *shaderDetails)
 {
   QSet<uint> uniqueFiles;
   rdcstrpairs files;
@@ -783,23 +784,28 @@ void PipelineStateViewer::EditOriginalShaderSource(ResourceId id,
     files.push_back(make_rdcpair(s.filename, s.contents));
   }
 
-  EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
-             shaderDetails->debugInfo.compileFlags, shaderDetails->debugInfo.encoding, files);
+  return EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
+                    shaderDetails->debugInfo.compileFlags, shaderDetails->debugInfo.encoding, files);
 }
 
-void PipelineStateViewer::EditDecompiledSource(const ShaderProcessingTool &tool, ResourceId id,
-                                               const ShaderReflection *shaderDetails)
+IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingTool &tool,
+                                                         ResourceId id,
+                                                         const ShaderReflection *shaderDetails)
 {
-  QString source = tool.DisassembleShader(this, shaderDetails, "");
+  ShaderToolOutput out = tool.DisassembleShader(this, shaderDetails, "");
 
-  if(source.isEmpty())
-    return;
+  rdcstr source;
+  source.assign((const char *)out.result.data(), out.result.size());
 
   rdcstrpairs files;
   files.push_back(make_rdcpair<rdcstr, rdcstr>("decompiled", source));
 
-  EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
-             shaderDetails->debugInfo.compileFlags, tool.output, files);
+  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->entryPoint,
+                                 shaderDetails->debugInfo.compileFlags, tool.output, files);
+
+  sv->ShowErrors(out.log);
+
+  return sv;
 }
 
 void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId pipelineId,

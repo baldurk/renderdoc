@@ -24,6 +24,7 @@
 
 #include <QApplication>
 #include <QFile>
+#include <QStandardPaths>
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
@@ -42,14 +43,150 @@ std::string DoStringise(const KnownShaderTool &el)
   END_ENUM_STRINGISE();
 }
 
-rdcstr ShaderProcessingTool::DisassembleShader(QWidget *window, const ShaderReflection *shaderDetails,
-                                               rdcstr arguments) const
+static QString tmpPath(const QString &filename)
 {
-  if(executable.isEmpty())
-    return "";
+  return QDir(QDir::tempPath()).absoluteFilePath(filename);
+}
 
-  QString input_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_input"));
-  QString output_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_output"));
+static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *window,
+                                QString input_file, QString output_file, QStringList &argList)
+{
+  bool writesToFile = true;
+
+  if(input_file.isEmpty())
+    input_file = tmpPath(lit("shader_input"));
+
+  if(output_file.isEmpty())
+  {
+    output_file = tmpPath(lit("shader_output"));
+    writesToFile = false;
+  }
+
+  // ensure we don't have any leftover output files.
+  QFile::remove(output_file);
+
+  QString stdout_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_stdout"));
+
+  ShaderToolOutput ret;
+
+  if(tool.executable.isEmpty())
+  {
+    ret.log = QApplication::translate("ShaderProcessingTool",
+                                      "ERROR: No Executable specified in tool '%1'")
+                  .arg(tool.name);
+
+    return ret;
+  }
+
+  QString path = tool.executable;
+
+  if(!QDir::isAbsolutePath(path))
+  {
+    path = QStandardPaths::findExecutable(path);
+
+    if(path.isEmpty())
+    {
+      ret.log = QApplication::translate("ShaderProcessingTool",
+                                        "ERROR: Couldn't find executable '%1' in path")
+                    .arg(tool.executable);
+
+      return ret;
+    }
+  }
+
+  QByteArray stdout_data;
+  QProcess process;
+
+  LambdaThread *thread = new LambdaThread([&]() {
+    if(!writesToFile)
+      process.setStandardOutputFile(output_file);
+    else
+      process.setStandardOutputFile(stdout_file);
+
+    // for now merge stdout/stderr together. Maybe we should separate these and somehow annotate
+    // them? Merging is difficult without messing up order, and some tools output non-errors to
+    // stderr
+    process.setStandardErrorFile(stdout_file);
+
+    process.start(tool.executable, argList);
+    process.waitForFinished();
+
+    {
+      QFile outputHandle(output_file);
+      if(outputHandle.open(QFile::ReadOnly))
+      {
+        ret.result = outputHandle.readAll();
+        outputHandle.close();
+      }
+    }
+
+    {
+      QFile stdoutHandle(stdout_file);
+      if(stdoutHandle.open(QFile::ReadOnly))
+      {
+        stdout_data = stdoutHandle.readAll();
+        stdoutHandle.close();
+      }
+    }
+
+    // The input files typically aren't large and we don't generate unique names so they won't be
+    // overwritten.
+    // Leaving them alone means the user can try to recreate the tool invocation themselves.
+    // QFile::remove(input_file);
+    QFile::remove(output_file);
+    QFile::remove(stdout_file);
+  });
+  thread->start();
+
+  ShowProgressDialog(window, QApplication::translate("ShaderProcessingTool",
+                                                     "Please wait - running external tool"),
+                     [thread]() { return !thread->isRunning(); });
+
+  thread->deleteLater();
+
+  QString processStatus;
+
+  if(process.exitStatus() == QProcess::CrashExit)
+  {
+    processStatus = QApplication::translate("ShaderProcessingTool", "Process crashed with code %1.")
+                        .arg(process.exitCode());
+  }
+  else
+  {
+    processStatus = QApplication::translate("ShaderProcessingTool", "Process exited with code %1.")
+                        .arg(process.exitCode());
+  }
+
+  ret.log = QApplication::translate("ShaderProcessingTool",
+                                    "Running \"%1\" %2\n"
+                                    "%3\n"
+                                    "%4\n"
+                                    "Output file is %5 bytes")
+                .arg(path)
+                .arg(argList.join(QLatin1Char(' ')))
+                .arg(QString::fromUtf8(stdout_data))
+                .arg(processStatus)
+                .arg(ret.result.count());
+
+  return ret;
+}
+
+ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
+                                                         const ShaderReflection *shaderDetails,
+                                                         rdcstr arguments) const
+{
+  QStringList argList = ParseArgsList(arguments.isEmpty() ? DefaultArguments() : arguments);
+
+  QString input_file, output_file;
+
+  // replace arguments after expansion to avoid problems with quoting paths etc
+  for(QString &arg : argList)
+  {
+    if(arg == lit("{input_file}"))
+      arg = input_file = tmpPath(lit("shader_input"));
+    if(arg == lit("{output_file}"))
+      arg = output_file = tmpPath(lit("shader_output"));
+  }
 
   QFile binHandle(input_file);
   if(binHandle.open(QFile::WriteOnly | QIODevice::Truncate))
@@ -60,95 +197,42 @@ rdcstr ShaderProcessingTool::DisassembleShader(QWidget *window, const ShaderRefl
   }
   else
   {
-    RDDialog::critical(
-        window, QApplication::translate("ShaderProcessingTool", "Error writing temp file"),
-        QApplication::translate("ShaderProcessingTool", "Couldn't write temporary file %1.")
-            .arg(input_file));
-    return "";
+    ShaderToolOutput ret;
+
+    ret.log = QApplication::translate("ShaderProcessingTool",
+                                      "ERROR: Couldn't write input to temporary file '%1'")
+                  .arg(input_file);
+
+    return ret;
   }
 
-  QString programArguments = arguments;
-
-  if(programArguments.isEmpty())
-    programArguments = DefaultArguments();
-
-  if(!programArguments.contains(lit("{input_file}")))
-  {
-    RDDialog::critical(
-        window, QApplication::translate("ShaderProcessingTool", "Wrongly configured tool"),
-        QApplication::translate(
-            "ShaderProcessingTool",
-            "Please use {input_file} in the tool arguments to specify the input file."));
-    return "";
-  }
-
-  QString outputData;
-
-  QString expandedargs = programArguments;
-
-  bool writesToFile = expandedargs.contains(lit("{output_file}"));
-
-  expandedargs.replace(lit("{input_file}"), input_file);
-  expandedargs.replace(lit("{output_file}"), output_file);
-
-  QStringList argList = ParseArgsList(expandedargs);
-
-  LambdaThread *thread =
-      new LambdaThread([this, window, &outputData, argList, input_file, output_file, writesToFile]() {
-        QProcess process;
-        process.start(executable, argList);
-        process.waitForFinished();
-
-        if(process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
-        {
-          if(window)
-          {
-            GUIInvoke::call(window, [window]() {
-              RDDialog::critical(
-                  window, QApplication::translate("ShaderProcessingTool", "Error running tool"),
-                  QApplication::translate(
-                      "ShaderProcessingTool",
-                      "There was an error invoking the external shader processing tool."));
-            });
-          }
-        }
-
-        if(writesToFile)
-        {
-          QFile outputHandle(output_file);
-          if(outputHandle.open(QFile::ReadOnly))
-          {
-            outputData = QString::fromUtf8(outputHandle.readAll());
-            outputHandle.close();
-          }
-        }
-        else
-        {
-          outputData = QString::fromUtf8(process.readAll());
-        }
-
-        QFile::remove(input_file);
-        QFile::remove(output_file);
-      });
-  thread->start();
-
-  ShowProgressDialog(window, QApplication::translate("ShaderProcessingTool",
-                                                     "Please wait - running external tool"),
-                     [thread]() { return !thread->isRunning(); });
-
-  thread->deleteLater();
-
-  return outputData;
+  return RunTool(*this, window, input_file, output_file, argList);
 }
 
-bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint,
-                                            ShaderStage stage, rdcstr arguments) const
+ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source,
+                                                     rdcstr entryPoint, ShaderStage stage,
+                                                     rdcstr arguments) const
 {
-  if(executable.isEmpty())
-    return bytebuf();
+  QStringList argList = ParseArgsList(arguments.isEmpty() ? DefaultArguments() : arguments);
 
-  QString input_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_input"));
-  QString output_file = QDir(QDir::tempPath()).absoluteFilePath(lit("shader_output"));
+  QString input_file, output_file;
+
+  const QString glsl_stage4[ENUM_ARRAY_SIZE(ShaderStage)] = {
+      lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
+  };
+
+  // replace arguments after expansion to avoid problems with quoting paths etc
+  for(QString &arg : argList)
+  {
+    if(arg == lit("{input_file}"))
+      arg = input_file = tmpPath(lit("shader_input"));
+    if(arg == lit("{output_file}"))
+      arg = output_file = tmpPath(lit("shader_output"));
+    if(arg == lit("{entry_point}"))
+      arg = entryPoint;
+    if(arg == lit("{glsl_stage4}"))
+      arg = glsl_stage4[int(stage)];
+  }
 
   QFile binHandle(input_file);
   if(binHandle.open(QFile::WriteOnly | QIODevice::Truncate))
@@ -158,90 +242,14 @@ bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcs
   }
   else
   {
-    RDDialog::critical(
-        window, QApplication::translate("ShaderProcessingTool", "Error writing temp file"),
-        QApplication::translate("ShaderProcessingTool", "Couldn't write temporary file %1.")
-            .arg(input_file));
-    return bytebuf();
+    ShaderToolOutput ret;
+
+    ret.log = QApplication::translate("ShaderProcessingTool",
+                                      "ERROR: Couldn't write input to temporary file '%1'")
+                  .arg(input_file);
+
+    return ret;
   }
 
-  QString programArguments = arguments;
-
-  if(programArguments.isEmpty())
-    programArguments = DefaultArguments();
-
-  if(!programArguments.contains(lit("{input_file}")))
-  {
-    RDDialog::critical(
-        window, QApplication::translate("ShaderProcessingTool", "Wrongly configured tool"),
-        QApplication::translate(
-            "ShaderProcessingTool",
-            "Please use {input_file} in the tool arguments to specify the input file."));
-    return bytebuf();
-  }
-
-  bytebuf outputData;
-
-  QString expandedargs = programArguments;
-
-  bool writesToFile = expandedargs.contains(lit("{output_file}"));
-
-  expandedargs.replace(lit("{input_file}"), input_file);
-  expandedargs.replace(lit("{entry_point}"), entryPoint);
-  expandedargs.replace(lit("{output_file}"), output_file);
-
-  const QString glsl_stage4[ENUM_ARRAY_SIZE(ShaderStage)] = {
-      lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
-  };
-
-  expandedargs.replace(lit("{glsl_stage4}"), glsl_stage4[int(stage)]);
-
-  QStringList argList = ParseArgsList(expandedargs);
-
-  LambdaThread *thread =
-      new LambdaThread([this, window, &outputData, argList, input_file, output_file, writesToFile]() {
-        QProcess process;
-        process.start(executable, argList);
-        process.waitForFinished();
-
-        if(process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
-        {
-          if(window)
-          {
-            GUIInvoke::call(window, [window]() {
-              RDDialog::critical(
-                  window, QApplication::translate("ShaderProcessingTool", "Error running tool"),
-                  QApplication::translate(
-                      "ShaderProcessingTool",
-                      "There was an error invoking the external shader processing tool."));
-            });
-          }
-        }
-
-        if(writesToFile)
-        {
-          QFile outputHandle(output_file);
-          if(outputHandle.open(QFile::ReadOnly))
-          {
-            outputData = outputHandle.readAll();
-            outputHandle.close();
-          }
-        }
-        else
-        {
-          outputData = process.readAll();
-        }
-
-        QFile::remove(input_file);
-        QFile::remove(output_file);
-      });
-  thread->start();
-
-  ShowProgressDialog(window, QApplication::translate("ShaderProcessingTool",
-                                                     "Please wait - running external tool"),
-                     [thread]() { return !thread->isRunning(); });
-
-  thread->deleteLater();
-
-  return outputData;
+  return RunTool(*this, window, input_file, output_file, argList);
 }

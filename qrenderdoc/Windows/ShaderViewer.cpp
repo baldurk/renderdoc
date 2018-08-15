@@ -306,9 +306,9 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   if(!customShader)
   {
     ui->compilationGroup->setWindowTitle(tr("Compilation Settings"));
-    ui->docking->addToolWindow(
-        ui->compilationGroup,
-        ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->docking->areaOf(m_Errors)));
+    ui->docking->addToolWindow(ui->compilationGroup,
+                               ToolWindowManager::AreaReference(
+                                   ToolWindowManager::LeftOf, ui->docking->areaOf(m_Errors), 0.5f));
     ui->docking->setToolWindowProperties(
         ui->compilationGroup,
         ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
@@ -1193,10 +1193,17 @@ void ShaderViewer::disassemble_typeChanged(int index)
   {
     if(targetStr == targetName(disasm))
     {
-      QString result = disasm.DisassembleShader(this, m_ShaderDetails, "");
+      ShaderToolOutput out = disasm.DisassembleShader(this, m_ShaderDetails, "");
+
+      const char *text;
+
+      if(out.result.isEmpty())
+        text = out.log.c_str();
+      else
+        text = (const char *)out.result.data();
 
       m_DisassemblyView->setReadOnly(false);
-      m_DisassemblyView->setText(result.toUtf8().data());
+      m_DisassemblyView->setText(text);
       m_DisassemblyView->setReadOnly(true);
       m_DisassemblyView->emptyUndoBuffer();
       return;
@@ -3462,17 +3469,16 @@ void ShaderViewer::on_refresh_clicked()
       {
         if(QString(tool.name) == ui->compileTool->currentText())
         {
-          bytebuf result = tool.CompileShader(this, source, ui->entryFunc->text(), m_Stage,
-                                              ui->toolCommandLine->toPlainText());
+          ShaderToolOutput out = tool.CompileShader(this, source, ui->entryFunc->text(), m_Stage,
+                                                    ui->toolCommandLine->toPlainText());
 
-          if(result.isEmpty())
-          {
-            ShowErrors(tr("Error invoking '%1' to compile source").arg(tool.name));
+          ShowErrors(out.log);
+
+          if(out.result.isEmpty())
             return;
-          }
 
           encoding = tool.output;
-          shaderBytes = result;
+          shaderBytes = out.result;
           break;
         }
       }

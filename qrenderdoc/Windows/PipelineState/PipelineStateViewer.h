@@ -89,11 +89,12 @@ private:
   QMenu *editMenus[6] = {};
 
   QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
-  void EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
-                  ShaderCompileFlags compileFlags, ShaderEncoding encoding, const rdcstrpairs &files);
-  void EditOriginalShaderSource(ResourceId id, const ShaderReflection *shaderDetails);
-  void EditDecompiledSource(const ShaderProcessingTool &tool, ResourceId id,
-                            const ShaderReflection *shaderDetails);
+  IShaderViewer *EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
+                            ShaderCompileFlags compileFlags, ShaderEncoding encoding,
+                            const rdcstrpairs &files);
+  IShaderViewer *EditOriginalShaderSource(ResourceId id, const ShaderReflection *shaderDetails);
+  IShaderViewer *EditDecompiledSource(const ShaderProcessingTool &tool, ResourceId id,
+                                      const ShaderReflection *shaderDetails);
 
   void MakeShaderVariablesHLSL(bool cbufferContents, const rdcarray<ShaderConstant> &vars,
                                QString &struct_contents, QString &struct_defs);

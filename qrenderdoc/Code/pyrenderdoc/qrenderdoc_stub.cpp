@@ -77,16 +77,18 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
   return "";
 }
 
-rdcstr ShaderProcessingTool::DisassembleShader(QWidget *window, const ShaderReflection *shaderDetails,
-                                               rdcstr arguments) const
+ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
+                                                         const ShaderReflection *shaderDetails,
+                                                         rdcstr arguments) const
 {
-  return "";
+  return {};
 }
 
-bytebuf ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source, rdcstr entryPoint,
-                                            ShaderStage stage, rdcstr arguments) const
+ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr source,
+                                                     rdcstr entryPoint, ShaderStage stage,
+                                                     rdcstr arguments) const
 {
-  return bytebuf();
+  return {};
 }
 
 ////////////////////////////////////////////////////////////////////////////////
