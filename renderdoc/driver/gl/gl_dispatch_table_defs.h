@@ -6389,6 +6389,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)() \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, ); \
     return glhook.driver->function(); \
   } \
   HOOK_EXPORT ret HOOK_CC function() \
@@ -6400,6 +6401,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)() \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, ); \
     return glhook.driver->realfunc(); \
   } \
   HOOK_EXPORT ret HOOK_CC function() \
@@ -6433,6 +6435,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1); \
     return glhook.driver->function(p1); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1) \
@@ -6444,6 +6447,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1); \
     return glhook.driver->realfunc(p1); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1) \
@@ -6477,6 +6481,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2); \
     return glhook.driver->function(p1, p2); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2) \
@@ -6488,6 +6493,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2); \
     return glhook.driver->realfunc(p1, p2); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2) \
@@ -6521,6 +6527,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3); \
     return glhook.driver->function(p1, p2, p3); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3) \
@@ -6532,6 +6539,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3); \
     return glhook.driver->realfunc(p1, p2, p3); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3) \
@@ -6565,6 +6573,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4); \
     return glhook.driver->function(p1, p2, p3, p4); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4) \
@@ -6576,6 +6585,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4); \
     return glhook.driver->realfunc(p1, p2, p3, p4); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4) \
@@ -6609,6 +6619,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5); \
     return glhook.driver->function(p1, p2, p3, p4, p5); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
@@ -6620,6 +6631,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
@@ -6653,6 +6665,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
@@ -6664,6 +6677,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
@@ -6697,6 +6711,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
@@ -6708,6 +6723,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
@@ -6741,6 +6757,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
@@ -6752,6 +6769,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
@@ -6785,6 +6803,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
@@ -6796,6 +6815,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
@@ -6829,6 +6849,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
@@ -6840,6 +6861,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
@@ -6873,6 +6895,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
@@ -6884,6 +6907,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
@@ -6917,6 +6941,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
@@ -6928,6 +6953,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
@@ -6961,6 +6987,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
@@ -6972,6 +6999,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
@@ -7005,6 +7033,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
@@ -7016,6 +7045,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
@@ -7049,6 +7079,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
@@ -7060,6 +7091,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
@@ -7093,6 +7125,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16) \
@@ -7104,6 +7137,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16) \
@@ -7137,6 +7171,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16, t17 p17) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(function, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17); \
     return glhook.driver->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16, t17 p17) \
@@ -7148,6 +7183,7 @@
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16, t17 p17) \
   { \
     SCOPED_GLCALL(function); \
+    UNINIT_CALL(realfunc, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17); \
     return glhook.driver->realfunc(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17); \
   } \
   HOOK_EXPORT ret HOOK_CC function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15, t16 p16, t17 p17) \

@@ -58,6 +58,7 @@ public:
 
   void *handle = NULL;
   WrappedOpenGL *driver = NULL;
+  bool enabled = false;
 } glhook;
 
 #if ENABLED(RDOC_DEVEL)
@@ -98,13 +99,35 @@ int ScopedPrinter::depth = 0;
 
 #endif
 
-DefineSupportedHooks();
-DefineUnsupportedHooks();
-
 void SetDriverForHooks(WrappedOpenGL *driver)
 {
   glhook.driver = driver;
 }
+
+#if ENABLED(RDOC_WIN32)
+void EnableHooks()
+{
+  glhook.enabled = true;
+}
+
+// if we were injected and aren't ready to capture, skip out and call the real function
+#define UNINIT_CALL(function, ...)                                                      \
+  if(!glhook.enabled)                                                                   \
+  {                                                                                     \
+    if(GL.function == NULL)                                                             \
+      RDCERR("No function pointer for '%s' while uninitialised!", STRINGIZE(function)); \
+    return GL.function(__VA_ARGS__);                                                    \
+  }
+
+#else
+
+// nothing to do - we always assume we are ready to capture
+#define UNINIT_CALL(function, ...)
+
+#endif
+
+DefineSupportedHooks();
+DefineUnsupportedHooks();
 
 void *HookedGetProcAddress(const char *func, void *realFunc)
 {

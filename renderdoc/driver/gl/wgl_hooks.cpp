@@ -54,6 +54,9 @@ public:
 
 void WGLHook::PopulateFromContext(HDC dc, HGLRC rc)
 {
+  SetDriverForHooks(&driver);
+  EnableHooks();
+
   // called from wglCreate*Context*, to populate GL functions as soon as possible by making a new
   // context current and fetching our function pointers
   {
@@ -168,8 +171,6 @@ static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
   if(ret)
   {
     DWORD err = GetLastError();
-
-    SetDriverForHooks(&wglhook.driver);
 
     wglhook.PopulateFromContext(dc, ret);
 
@@ -325,8 +326,6 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
     wglhook.createRecurse = false;
     return ret;
   }
-
-  SetDriverForHooks(&wglhook.driver);
 
   wglhook.PopulateFromContext(dc, ret);
 

@@ -221,6 +221,7 @@ template = '''
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)({argdecl}) \\
   {{ \\
     SCOPED_GLCALL(function); \\
+    UNINIT_CALL(function, {argpass}); \\
     return glhook.driver->function({argpass}); \\
   }} \\
   HOOK_EXPORT ret HOOK_CC function({argdecl}) \\
@@ -232,6 +233,7 @@ template = '''
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)({argdecl}) \\
   {{ \\
     SCOPED_GLCALL(function); \\
+    UNINIT_CALL(realfunc, {argpass}); \\
     return glhook.driver->realfunc({argpass}); \\
   }} \\
   HOOK_EXPORT ret HOOK_CC function({argdecl}) \\

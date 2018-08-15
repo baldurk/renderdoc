@@ -962,6 +962,14 @@ class WrappedOpenGL;
 // wgl or glX and EGL together in the same application.
 void SetDriverForHooks(WrappedOpenGL *driver);
 
+// On windows we support injecting into the program at runtime, so we need to only enable hooks when
+// we see context creation, to prevent crashes trying to handle function calls having seen no
+// intialisation. This can have false positives if the program creates a context late, but it's the
+// best we can do.
+#if ENABLED(RDOC_WIN32)
+void EnableHooks();
+#endif
+
 // this function looks up our list of hook entry points and returns our hook entry point instead of
 // the real function, if it exists, or the real function if not. It's used in the platform-specific
 // implementations of GetProcAddress to look up the shared list of hooks.
