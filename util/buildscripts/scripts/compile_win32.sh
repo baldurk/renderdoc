@@ -25,8 +25,8 @@ fi
 
 # Step into the docs folder and build
 pushd docs
-make clean
-make htmlhelp > /tmp/sphinx.log
+./make.sh clean
+./make.sh htmlhelp > /tmp/sphinx.log
 
 if [ $? -ne 0 ]; then
 	$ERROR_SCRIPT /tmp/sphinx.log
