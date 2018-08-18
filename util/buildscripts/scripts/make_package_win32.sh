@@ -27,9 +27,16 @@ pushd Win32/Release
 find * -not -path 'obj*' -and -not -path 'pymodules*' -exec cp -r --parents '{}' ../../dist/Release32/ \;
 popd
 
-# Copy in d3dcompiler from windows kit 8.1
-cp /c/Program\ Files\ \(x86\)/Windows\ Kits/8.1/Redist/D3D/x64/d3dcompiler_47.dll dist/Release64/
-cp /c/Program\ Files\ \(x86\)/Windows\ Kits/8.1/Redist/D3D/x86/d3dcompiler_47.dll dist/Release32/
+# Copy in d3dcompiler from windows kit. Prefer 10 over 8.1 but either works
+if [ -f "${WIN_ROOT}c/Program Files (x86)/Windows Kits/10/Redist/D3D/x64/d3dcompiler_47.dll" ]; then
+	cp "${WIN_ROOT}c/Program Files (x86)/Windows Kits/10/Redist/D3D/x64/d3dcompiler_47.dll" dist/Release64/
+	cp "${WIN_ROOT}c/Program Files (x86)/Windows Kits/10/Redist/D3D/x86/d3dcompiler_47.dll" dist/Release32/
+elif [ -f "${WIN_ROOT}c/Program Files (x86)/Windows Kits/8.1/Redist/D3D/x64/d3dcompiler_47.dll" ]; then 
+	cp "${WIN_ROOT}c/Program Files (x86)/Windows Kits/8.1/Redist/D3D/x64/d3dcompiler_47.dll" dist/Release64/
+	cp "${WIN_ROOT}c/Program Files (x86)/Windows Kits/8.1/Redist/D3D/x86/d3dcompiler_47.dll" dist/Release32/
+else
+	echo "WARNING: Couldn't find d3dcompiler_47.dll from Windows Kits redist.";
+fi
 
 # Copy associated files that should be included with the distribution
 cp LICENSE.md Documentation/htmlhelp/*.chm dist/Release64/
