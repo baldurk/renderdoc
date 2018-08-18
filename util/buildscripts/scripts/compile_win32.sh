@@ -1,7 +1,11 @@
 #!/bin/bash
 
+mkdir -p "${REPO_ROOT}/dist"
+
 # Get the logfile as a windows path
-LOGFILE=$(cd /tmp && pwd -W)/MSBuild.log
+LOGFILE=$(cd ${REPO_ROOT}/dist && cmd.exe /C cd | tr -d '[:space:]')/MSBuild.log
+
+echo "Building, log in ${LOGFILE}"
 
 # Store the path to the error-mail script
 ERROR_SCRIPT=$(readlink -f "${BUILD_ROOT}"/scripts/errormail.sh)
