@@ -11,16 +11,31 @@ if [ ! -f $1 ] ; then
    exit 1
 fi
 
+if ! which signtool.exe >/dev/null 2>&1; then
+   echo "Can't find signtool.exe in PATH"
+   exit 0
+fi
+
 if [ ! -f "${BUILD_ROOT}"/support/key.pass ] || [ ! -f "${BUILD_ROOT}"/support/key.pfx ] ; then
    echo Key key.pfx / key.pass does not exist
    exit 1
 fi
 
 PASS=$(cat "${BUILD_ROOT}"/support/key.pass)
+KEYFILE="${BUILD_ROOT}"/support/key.pfx
+INPUTFILE="$1"
+
+# Don't convert any arguments automatically, convert paths if needed
+MSYS2_ARG_CONV_EXCL="*"
+
+if which cygpath >/dev/null 2>&1; then
+	KEYFILE=$(cygpath -w "${KEYFILE}")
+	INPUTFILE=$(cygpath -w "${INPUTFILE}")
+fi
 
 # First check to see if it is already signed.
 # An exit value of 1 from signtool indicates it is not signed.
-signtool verify //pa $1 >/dev/null 2>&1
+signtool.exe verify /pa "$INPUTFILE" >/dev/null 2>&1
 if [ $? -eq 1 ] ; then
 
     # This is the list of timestamp servers to try.
@@ -33,9 +48,9 @@ if [ $? -eq 1 ] ; then
         http://timestamp.geotrust.com/tsa)
 
     TSS=${TSSLIST[0]}
-    echo Signing $1 using timestamp server $TSS ...
+    echo Signing $INPUTFILE using timestamp server $TSS ...
     sleep 1
-    signtool sign //d RenderDoc //f "${BUILD_ROOT}"/support/key.pfx //fd sha256 //p $PASS //tr $TSS //td sha256 $1
+    signtool.exe sign /d RenderDoc /f "${KEYFILE}" /fd sha256 /p $PASS /tr $TSS /td sha256 "${INPUTFILE}"
     if [ $? -eq 0 ] ; then
        # Successfully signed, return success
        exit 0
@@ -46,7 +61,7 @@ if [ $? -eq 1 ] ; then
         # Sometimes signtool returns failure, but the file was already signed.
         # Not sure why that happens. Since the file is now signed, return successs.
         sleep 1
-        signtool verify //pa $1 >/dev/null 2>&1
+        signtool.exe verify /pa "$INPUTFILE" >/dev/null 2>&1
         if [ $? -eq 0 ] ; then
            echo Signing returned failure, but file was signed. Returning success.
            exit 0
@@ -57,7 +72,7 @@ if [ $? -eq 1 ] ; then
         echo Signing failed, retry $RETRY. Using timestamp server $TSS ...
         sleep 4
         echo Retrying signing of $1
-        signtool sign //d RenderDoc //f "${BUILD_ROOT}"/support/key.pfx //p $PASS //tr $TSS  $1
+        signtool.exe sign /d RenderDoc /f "${KEYFILE}" /p $PASS /tr $TSS  "${INPUTFILE}"
         if [ $? -eq 0 ] ; then
            # Successfully signed, return success
            exit 0
@@ -66,6 +81,6 @@ if [ $? -eq 1 ] ; then
     # We didn't sign the file succesfully
     exit 1
 else
-    echo Signing of $1 skipped, already signed...
+    echo Signing of $INPUTFILE skipped, already signed...
     exit 0
 fi

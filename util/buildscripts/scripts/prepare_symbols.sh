@@ -90,7 +90,7 @@ for ARCH in Win32 x64; do
 	done
 
 	if [ -d /tmp/symstore ]; then
-		"${BUILD_ROOT}"/support/symstore.exe add //s "${SYMSTORE}" //compress //r //f /tmp/symstore //t RenderDoc //v $GITTAG
+		MSYS2_ARG_CONV_EXCL="*" "${BUILD_ROOT}"/support/symstore.exe add /s "${SYMSTORE}" /compress /r /f /tmp/symstore /t RenderDoc /v $GITTAG
 	fi
 
 done

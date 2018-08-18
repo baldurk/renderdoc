@@ -10,14 +10,14 @@ ERROR_SCRIPT=$(readlink -f "${BUILD_ROOT}"/scripts/errormail.sh)
 pushd "${REPO_ROOT}"
 
 # Build 32-bit Release
-msbuild.exe //nologo //fl4 /flp4':Verbosity=minimal;Encoding=ASCII;logfile='$LOGFILE renderdoc.sln //t:Rebuild //p:'Configuration=Release;Platform=x86'
+MSYS2_ARG_CONV_EXCL="*" msbuild.exe /nologo /fl4 /flp4':Verbosity=minimal;Encoding=ASCII;logfile='"${LOGFILE}" renderdoc.sln /t:Rebuild /p:'Configuration=Release;Platform=x86'
 if [ $? -ne 0 ]; then
 	$ERROR_SCRIPT /tmp/MSbuild.log
 	exit 1;
 fi
 
 # Build 64-bit Release
-msbuild.exe //nologo //fl4 /flp4':Verbosity=minimal;Encoding=ASCII;logfile='$LOGFILE renderdoc.sln //t:Rebuild //p:'Configuration=Release;Platform=x64'
+MSYS2_ARG_CONV_EXCL="*" msbuild.exe /nologo /fl4 /flp4':Verbosity=minimal;Encoding=ASCII;logfile='"${LOGFILE}" renderdoc.sln /t:Rebuild /p:'Configuration=Release;Platform=x64'
 if [ $? -ne 0 ]; then
 	$ERROR_SCRIPT /tmp/MSbuild.log
 	exit 1;
