@@ -119,9 +119,21 @@ PLATFORM=$(uname)
 
 if uname -a | grep -qiE 'msys|cygwin|microsoft'; then
 	PLATFORM=Windows
+
+	if [ -d /c/Windows ]; then
+		WIN_ROOT=/
+	elif [ -d /mnt/c/Windows ]; then
+		WIN_ROOT=/mnt/
+	elif [ -d /cygdrive/c/Windows ]; then
+		WIN_ROOT=/cygdrive/
+	else
+		echo "Can't locate Windows root";
+		exit 1;
+	fi
 fi
 
 export PLATFORM;
+export WIN_ROOT;
 
 echo "Platform: $PLATFORM";
 echo "Build root: $BUILD_ROOT";
