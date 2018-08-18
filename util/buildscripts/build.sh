@@ -115,7 +115,17 @@ if [ ! -f "${REPO_ROOT}"/renderdoc.sln ]; then
 	exit 1;
 fi
 
-echo "Repository root $REPO_ROOT";
+PLATFORM=$(uname)
+
+if uname -a | grep -qiE 'msys|cygwin|microsoft'; then
+	PLATFORM=Windows
+fi
+
+export PLATFORM;
+
+echo "Platform: $PLATFORM";
+echo "Build root: $BUILD_ROOT";
+echo "Repository root: $REPO_ROOT";
 
 if [[ "$TYPE" == "official" ]]; then
 
@@ -145,7 +155,7 @@ fi
 cd "${BUILD_ROOT}"
 
 # Do some windows-specific build steps, like binary signing and symbol server processing
-if [ "$(uname)" != "Linux" ]; then
+if [ "$PLATFORM" != "Linux" ]; then
 
 	cd "${BUILD_ROOT}"
 

@@ -2,7 +2,7 @@
 
 ## Packaging is platform-specific, dispatch to helper
 
-if [ "$(uname)" == "Linux" ]; then
+if [ "$PLATFORM" == "Linux" ]; then
 
 	./scripts/make_package_linux.sh $1
 

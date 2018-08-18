@@ -2,7 +2,7 @@
 
 ## Compilation is platform-specific, dispatch to helper
 
-if [ "$(uname)" == "Linux" ]; then
+if [ "$PLATFORM" == "Linux" ]; then
 
 	./scripts/compile_linux.sh
 

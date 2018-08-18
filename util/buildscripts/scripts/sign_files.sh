@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # We don't sign files on linux
-if [ "$(uname)" == "Linux" ]; then
+if [ "$PLATFORM" == "Linux" ]; then
 	exit;
 fi
 

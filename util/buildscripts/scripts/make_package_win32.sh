@@ -133,10 +133,8 @@ if [ -f "${REPO_ROOT}"/dist/Installer32.msi ]; then
 	gpg -o ${FILENAME}_64.msi.sig --detach-sign --armor ${FILENAME}_64.msi
 
 	# On windows, also sign the installers
-	if [ "$(uname)" != "Linux" ]; then
-		"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_32.msi
-		"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_64.msi
-	fi
+	"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_32.msi
+	"${BUILD_ROOT}"/scripts/sign.sh ${FILENAME}_64.msi
 
 fi;
 

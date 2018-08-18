@@ -2,14 +2,8 @@
 
 EMAIL_BODY_FILE=$1
 
-PLATFORM=Windows
-
 if [[ "$ERRORMAIL" == "" ]]; then
 	exit 0;
-fi
-
-if [ "$(uname)" == "Linux" ]; then
-	PLATFORM=Linux
 fi
 
 SUBJECT="[renderdoc] Compile error on $PLATFORM"
