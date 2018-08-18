@@ -81,6 +81,8 @@ fi
 # Generate a debug key for signing purposes
 if [ -f "$JAVA_HOME/bin/keytool.exe" ] && [ -d dist/Release64/plugins/android ]; then
 	"$JAVA_HOME/bin/keytool.exe" -genkey -keystore dist/Release64/plugins/android/renderdoc.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=, OU=, O=, L=,  S=, C="
+elif [ -f "$JAVA_HOME/bin/keytool" ] && [ -d dist/Release64/plugins/android ]; then
+	"$JAVA_HOME/bin/keytool" -genkey -keystore dist/Release64/plugins/android/renderdoc.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=, OU=, O=, L=,  S=, C="
 fi
 
 if [ -d dist/Release64/plugins/android ]; then
