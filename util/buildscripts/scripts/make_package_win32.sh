@@ -112,6 +112,9 @@ VERSION=`grep -E "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/api/replay/
 
 export RENDERDOC_VERSION="${VERSION}"
 
+# Ensure this variable passes through to windows on WSL
+export WSLENV=$WSLENV:RENDERDOC_VERSION
+
 "$WIX/bin/candle.exe" -o dist/Installer32.wixobj util/installer/Installer32.wxs
 "$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc util/installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj
 
