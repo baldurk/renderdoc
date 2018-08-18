@@ -4,12 +4,51 @@
 # For use in msys or similar environment with bash & python
 # in the path, but no make to run the makefile
 
-if [ z$SPHINXBUILD == "z" ]; then
-	SPHINXBUILD=sphinx-build
+# Autodetect sphinx-build or sphinx-build.exe
+if [ "z$SPHINXBUILD" == "z" ]; then
+
+	if which sphinx-build.exe > /dev/null 2>&1; then
+		SPHINXBUILD=sphinx-build.exe
+	elif which sphinx-build > /dev/null 2>&1; then
+		SPHINXBUILD=sphinx-build
+	else
+		echo "Can't find sphinx-build in PATH. Add path or set $SPHINXBUILD";
+		exit 1;
+	fi
+
 fi
-if [ z$HHCBUILD == "z" ]; then
-	HHCBUILD="C:\Program Files (x86)\HTML Help Workshop\hhc.exe"
+
+# Autodetect hhc.exe (windows only) in PATH or common locations
+if [ "z$HHCBUILD" == "z" ]; then
+
+	if which hhc.exe > /dev/null 2>&1; then
+		HHCBUILD="$(which hhc.exe)";
+	elif [ -f "C:\Program Files (x86)\HTML Help Workshop\hhc.exe" ]; then
+		HHCBUILD="C:\Program Files (x86)\HTML Help Workshop\hhc.exe"
+	elif [ -f "/c/Program Files (x86)/HTML Help Workshop/hhc.exe" ]; then
+		HHCBUILD="/c/Program Files (x86)/HTML Help Workshop/hhc.exe"
+	elif [ -f "/mnt/c/Program Files (x86)/HTML Help Workshop/hhc.exe" ]; then
+		HHCBUILD="/mnt/c/Program Files (x86)/HTML Help Workshop/hhc.exe"
+	else
+		# we won't invoke hhc.exe
+		HHCBUILD=""
+	fi
 fi
+
+# Autodetect python3 executable
+if which python3.exe > /dev/null 2>&1; then
+	PYTHON=python3.exe
+elif which python.exe > /dev/null 2>&1; then
+	PYTHON=python.exe
+elif which python3 > /dev/null 2>&1; then
+	PYTHON=python3
+elif which python > /dev/null 2>&1; then
+	PYTHON=python
+else
+	echo "Can't find python in PATH.";
+	exit 1;
+fi
+
 BUILDDIR="../Documentation"
 ALLSPHINXOPTS="-d $BUILDDIR/doctrees $SPHINXOPTS ."
 I18NSPHINXOPTS="$SPHINXOPTS ."
@@ -17,7 +56,6 @@ if [ z$PAPER != "z" ]; then
 	ALLSPHINXOPTS="-D latex_paper_size=$PAPER $ALLSPHINXOPTS"
 	I18NSPHINXOPTS="-D latex_paper_size=$PAPER $I18NSPHINXOPTS"
 fi
-
 
 if [ $# -ne 1 ] || [ z$1 == "z" ] || [ $1 == "help" ]; then
 	echo 'Please use "make <target>" where <target> is one of'
@@ -52,9 +90,9 @@ if [ $1 == "clean" ]; then
 fi
 
 # Check if sphinx-build is available and fallback to Python version if any
-$SPHINXBUILD > /dev/null 2>&1
+"$SPHINXBUILD" --help > /dev/null 2>&1
 
-if [ $? != 1 ]; then
+if [ $? != 0 ]; then
 	echo "The 'sphinx-build' command was not found at '$SPHINXBUILD'."
 	echo "Install sphinx-build with 'pip install sphinx' or set SPHINXBUILD"
 	echo "to the path of the sphinx-build command"
@@ -62,7 +100,7 @@ if [ $? != 1 ]; then
 fi
 
 if [ $1 == "html" ]; then
-	$SPHINXBUILD -b html $ALLSPHINXOPTS $BUILDDIR/html
+	"$SPHINXBUILD" -b html $ALLSPHINXOPTS $BUILDDIR/html
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The HTML pages are in $BUILDDIR/html."
@@ -70,7 +108,7 @@ if [ $1 == "html" ]; then
 fi
 
 if [ $1 == "dirhtml" ]; then
-	$SPHINXBUILD -b dirhtml $ALLSPHINXOPTS $BUILDDIR/dirhtml
+	"$SPHINXBUILD" -b dirhtml $ALLSPHINXOPTS $BUILDDIR/dirhtml
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The HTML pages are in $BUILDDIR/dirhtml."
@@ -78,7 +116,7 @@ if [ $1 == "dirhtml" ]; then
 fi
 
 if [ $1 == "singlehtml" ]; then
-	$SPHINXBUILD -b singlehtml $ALLSPHINXOPTS $BUILDDIR/singlehtml
+	"$SPHINXBUILD" -b singlehtml $ALLSPHINXOPTS $BUILDDIR/singlehtml
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The HTML pages are in $BUILDDIR/singlehtml."
@@ -86,7 +124,7 @@ if [ $1 == "singlehtml" ]; then
 fi
 
 if [ $1 == "pickle" ]; then
-	$SPHINXBUILD -b pickle $ALLSPHINXOPTS $BUILDDIR/pickle
+	"$SPHINXBUILD" -b pickle $ALLSPHINXOPTS $BUILDDIR/pickle
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished; now you can process the pickle files."
@@ -94,7 +132,7 @@ if [ $1 == "pickle" ]; then
 fi
 
 if [ $1 == "json" ]; then
-	$SPHINXBUILD -b json $ALLSPHINXOPTS $BUILDDIR/json
+	"$SPHINXBUILD" -b json $ALLSPHINXOPTS $BUILDDIR/json
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished; now you can process the JSON files."
@@ -102,14 +140,14 @@ if [ $1 == "json" ]; then
 fi
 
 if [ $1 == "htmlhelp" ]; then
-	$SPHINXBUILD -b htmlhelp -t htmlhelp $ALLSPHINXOPTS $BUILDDIR/htmlhelp
+	"$SPHINXBUILD" -b htmlhelp -t htmlhelp $ALLSPHINXOPTS $BUILDDIR/htmlhelp
 	if [ $? != 0 ]; then exit 1; fi
 	# Copy handwritten index file to output, overwriting auto-generated one
 	cp renderdoc.hhk $BUILDDIR/htmlhelp
 	# Copy introduction page over index.html
 	cp $BUILDDIR/htmlhelp/introduction.html $BUILDDIR/htmlhelp/index.html
 	# Filter out the auto-generated TOC to remove anchor links and root index.html
-	cat $BUILDDIR/htmlhelp/renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > $BUILDDIR/htmlhelp/tmp
+	cat $BUILDDIR/htmlhelp/renderdoc.hhc | "$PYTHON" remove_lines.py ".html#" | "$PYTHON" remove_lines.py "\"index.html\"" > $BUILDDIR/htmlhelp/tmp
 	mv $BUILDDIR/htmlhelp/tmp $BUILDDIR/htmlhelp/renderdoc.hhc
 	if [ -f "${HHCBUILD}" ]; then
 		"${HHCBUILD}" $BUILDDIR/htmlhelp/renderdoc.hhp
@@ -126,7 +164,7 @@ if [ $1 == "htmlhelp" ]; then
 fi
 
 if [ $1 == "qthelp" ]; then
-	$SPHINXBUILD -b qthelp $ALLSPHINXOPTS $BUILDDIR/qthelp
+	"$SPHINXBUILD" -b qthelp $ALLSPHINXOPTS $BUILDDIR/qthelp
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished; now you can run "qcollectiongenerator" with the "
@@ -138,7 +176,7 @@ if [ $1 == "qthelp" ]; then
 fi
 
 if [ $1 == "devhelp" ]; then
-	$SPHINXBUILD -b devhelp $ALLSPHINXOPTS $BUILDDIR/devhelp
+	"$SPHINXBUILD" -b devhelp $ALLSPHINXOPTS $BUILDDIR/devhelp
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished."
@@ -146,7 +184,7 @@ if [ $1 == "devhelp" ]; then
 fi
 
 if [ $1 == "epub" ]; then
-	$SPHINXBUILD -b epub $ALLSPHINXOPTS $BUILDDIR/epub
+	"$SPHINXBUILD" -b epub $ALLSPHINXOPTS $BUILDDIR/epub
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The epub file is in $BUILDDIR/epub."
@@ -154,7 +192,7 @@ if [ $1 == "epub" ]; then
 fi
 
 if [ $1 == "epub3" ]; then
-	$SPHINXBUILD -b epub3 $ALLSPHINXOPTS $BUILDDIR/epub3
+	"$SPHINXBUILD" -b epub3 $ALLSPHINXOPTS $BUILDDIR/epub3
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The epub3 file is in $BUILDDIR/epub3."
@@ -162,7 +200,7 @@ if [ $1 == "epub3" ]; then
 fi
 
 if [ $1 == "latex" ]; then
-	$SPHINXBUILD -b latex $ALLSPHINXOPTS $BUILDDIR/latex
+	"$SPHINXBUILD" -b latex $ALLSPHINXOPTS $BUILDDIR/latex
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished; the LaTeX files are in $BUILDDIR/latex."
@@ -170,21 +208,21 @@ if [ $1 == "latex" ]; then
 fi
 
 if [ $1 == "latexpdf" ]; then
-	$SPHINXBUILD -b latex $ALLSPHINXOPTS $BUILDDIR/latex
+	"$SPHINXBUILD" -b latex $ALLSPHINXOPTS $BUILDDIR/latex
 	cd $BUILDDIR/latex
 	echo "Need to now run 'make all-pdf' in $BUILDDIR/latex"
 	exit
 fi
 
 if [ $1 == "latexpdfja" ]; then
-	$SPHINXBUILD -b latex $ALLSPHINXOPTS $BUILDDIR/latex
+	"$SPHINXBUILD" -b latex $ALLSPHINXOPTS $BUILDDIR/latex
 	cd $BUILDDIR/latex
 	echo "Need to now run 'make all-pdf-ja' in $BUILDDIR/latex"
 	exit
 fi
 
 if [ $1 == "text" ]; then
-	$SPHINXBUILD -b text $ALLSPHINXOPTS $BUILDDIR/text
+	"$SPHINXBUILD" -b text $ALLSPHINXOPTS $BUILDDIR/text
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The text files are in $BUILDDIR/text."
@@ -192,7 +230,7 @@ if [ $1 == "text" ]; then
 fi
 
 if [ $1 == "man" ]; then
-	$SPHINXBUILD -b man $ALLSPHINXOPTS $BUILDDIR/man
+	"$SPHINXBUILD" -b man $ALLSPHINXOPTS $BUILDDIR/man
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The manual pages are in $BUILDDIR/man."
@@ -200,7 +238,7 @@ if [ $1 == "man" ]; then
 fi
 
 if [ $1 == "texinfo" ]; then
-	$SPHINXBUILD -b texinfo $ALLSPHINXOPTS $BUILDDIR/texinfo
+	"$SPHINXBUILD" -b texinfo $ALLSPHINXOPTS $BUILDDIR/texinfo
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The Texinfo files are in $BUILDDIR/texinfo."
@@ -208,7 +246,7 @@ if [ $1 == "texinfo" ]; then
 fi
 
 if [ $1 == "gettext" ]; then
-	$SPHINXBUILD -b gettext $I18NSPHINXOPTS $BUILDDIR/locale
+	"$SPHINXBUILD" -b gettext $I18NSPHINXOPTS $BUILDDIR/locale
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The message catalogs are in $BUILDDIR/locale."
@@ -216,7 +254,7 @@ if [ $1 == "gettext" ]; then
 fi
 
 if [ $1 == "changes" ]; then
-	$SPHINXBUILD -b changes $ALLSPHINXOPTS $BUILDDIR/changes
+	"$SPHINXBUILD" -b changes $ALLSPHINXOPTS $BUILDDIR/changes
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "The overview file is in $BUILDDIR/changes."
@@ -224,7 +262,7 @@ if [ $1 == "changes" ]; then
 fi
 
 if [ $1 == "linkcheck" ]; then
-	$SPHINXBUILD -b linkcheck $ALLSPHINXOPTS $BUILDDIR/linkcheck
+	"$SPHINXBUILD" -b linkcheck $ALLSPHINXOPTS $BUILDDIR/linkcheck
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Link check complete; look for any errors in the above output "
@@ -233,7 +271,7 @@ if [ $1 == "linkcheck" ]; then
 fi
 
 if [ $1 == "doctest" ]; then
-	$SPHINXBUILD -b doctest $ALLSPHINXOPTS $BUILDDIR/doctest
+	"$SPHINXBUILD" -b doctest $ALLSPHINXOPTS $BUILDDIR/doctest
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Testing of doctests in the sources finished, look at the "
@@ -242,7 +280,7 @@ if [ $1 == "doctest" ]; then
 fi
 
 if [ $1 == "coverage" ]; then
-	$SPHINXBUILD -b coverage $ALLSPHINXOPTS $BUILDDIR/coverage
+	"$SPHINXBUILD" -b coverage $ALLSPHINXOPTS $BUILDDIR/coverage
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Testing of coverage in the sources finished, look at the "
@@ -251,7 +289,7 @@ if [ $1 == "coverage" ]; then
 fi
 
 if [ $1 == "xml" ]; then
-	$SPHINXBUILD -b xml $ALLSPHINXOPTS $BUILDDIR/xml
+	"$SPHINXBUILD" -b xml $ALLSPHINXOPTS $BUILDDIR/xml
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The XML files are in $BUILDDIR/xml."
@@ -259,7 +297,7 @@ if [ $1 == "xml" ]; then
 fi
 
 if [ $1 == "pseudoxml" ]; then
-	$SPHINXBUILD -b pseudoxml $ALLSPHINXOPTS $BUILDDIR/pseudoxml
+	"$SPHINXBUILD" -b pseudoxml $ALLSPHINXOPTS $BUILDDIR/pseudoxml
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. The pseudo-XML files are in $BUILDDIR/pseudoxml."
@@ -267,7 +305,7 @@ if [ $1 == "pseudoxml" ]; then
 fi
 
 if [ $1 == "dummy" ]; then
-	$SPHINXBUILD -b dummy $ALLSPHINXOPTS $BUILDDIR/dummy
+	"$SPHINXBUILD" -b dummy $ALLSPHINXOPTS $BUILDDIR/dummy
 	if [ $? != 0 ]; then exit 1; fi
 	echo
 	echo "Build finished. Dummy builder generates no files."
