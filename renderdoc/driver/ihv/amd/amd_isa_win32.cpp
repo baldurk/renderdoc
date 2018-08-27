@@ -215,10 +215,14 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
       else if(amdil && !strcmp(name, ".amdil_disassembly"))
       {
         ret.insert(0, (const char *)data, (size_t)sectHeader->sh_size);
+        while(ret.back() == '\0')
+          ret.pop_back();
       }
       else if(!amdil && !strcmp(name, ".disassembly"))
       {
         ret.insert(0, (const char *)data, (size_t)sectHeader->sh_size);
+        while(ret.back() == '\0')
+          ret.pop_back();
       }
     }
 
