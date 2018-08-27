@@ -240,7 +240,36 @@ void CreateParentDirectory(const string &filename)
     if(wfn[i] == L'/')
       wfn[i] = L'\\';
 
-  SHCreateDirectoryExW(NULL, wfn.c_str(), NULL);
+  // Remove trailing \\s
+  size_t trailingSeperatorPos = wfn.find_last_of(L'\\');
+  while(trailingSeperatorPos == wfn.length() - 1)
+  {
+    wfn.erase(trailingSeperatorPos);
+    trailingSeperatorPos = wfn.find_last_of(L'\\');
+  }
+
+  // Find all directories we need to create
+  std::vector<wstring> directoriesToCreate;
+  while(!wfn.empty())
+  {
+    DWORD fileAttributes = GetFileAttributesW(wfn.c_str());
+    if(fileAttributes != INVALID_FILE_ATTRIBUTES)
+      break;
+
+    directoriesToCreate.push_back(wfn);
+
+    size_t seperatorPos = wfn.find_last_of(L'\\');
+    if(seperatorPos == string::npos)
+      break;
+    else
+      wfn = wfn.substr(0, seperatorPos);
+  }
+
+  // Create the directories in reverse order
+  for(ptrdiff_t i = directoriesToCreate.size() - 1; i >= 0; i--)
+  {
+    CreateDirectoryW(directoriesToCreate[i].c_str(), NULL);
+  }
 }
 
 string GetReplayAppFilename()
