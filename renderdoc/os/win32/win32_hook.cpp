@@ -98,9 +98,16 @@ struct DllHookset
   DWORD OrdinalBase = 0;
   vector<string> OrdinalNames;
   std::vector<FunctionLoadCallback> Callbacks;
+  Threading::CriticalSection ordinallock;
 
   void FetchOrdinalNames()
   {
+    SCOPED_LOCK(ordinallock);
+
+    // return if we already fetched the ordinals
+    if(!OrdinalNames.empty())
+      return;
+
     byte *baseAddress = (byte *)module;
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
