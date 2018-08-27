@@ -19,10 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{F1E59A05-60D4-4927-9E57-DD191EAE90EF}</ProjectGuid>
-    <Keyword>Win32Proj</Keyword>
-    <RootNamespace>renderdoc_d3d11</RootNamespace>
-    <ProjectName>d3d11</ProjectName>
+    <ProjectGuid>{7FCB5FC5-1DBD-4DA6-83A0-6BA4E945BDA5}</ProjectGuid>
+    <RootNamespace>Intel</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -63,7 +62,6 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -71,8 +69,6 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
       <DisableSpecificWarnings>4100</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -98,77 +94,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="d3d11_common.cpp" />
-    <ClCompile Include="d3d11_msaa_array_conv.cpp" />
-    <ClCompile Include="d3d11_outputwindow.cpp" />
-    <ClCompile Include="d3d11_overlay.cpp" />
-    <ClCompile Include="d3d11_pixelhistory.cpp" />
-    <ClCompile Include="d3d11_postvs.cpp" />
-    <ClCompile Include="d3d11_rendermesh.cpp" />
-    <ClCompile Include="d3d11_rendertext.cpp" />
-    <ClCompile Include="d3d11_rendertexture.cpp" />
-    <ClCompile Include="d3d11_serialise.cpp" />
-    <ClCompile Include="d3d11_context.cpp" />
-    <ClCompile Include="d3d11_context1_wrap.cpp" />
-    <ClCompile Include="d3d11_context2_wrap.cpp" />
-    <ClCompile Include="d3d11_context3_wrap.cpp" />
-    <ClCompile Include="d3d11_context_wrap.cpp" />
-    <ClCompile Include="d3d11_counters.cpp" />
-    <ClCompile Include="d3d11_debug.cpp" />
-    <ClCompile Include="d3d11_device.cpp" />
-    <ClCompile Include="d3d11_device1_wrap.cpp" />
-    <ClCompile Include="d3d11_device2_wrap.cpp" />
-    <ClCompile Include="d3d11_device3_wrap.cpp" />
-    <ClCompile Include="d3d11_device_wrap.cpp" />
-    <ClCompile Include="d3d11_hooks.cpp" />
-    <ClCompile Include="d3d11_initstate.cpp" />
-    <ClCompile Include="d3d11_manager.cpp" />
-    <ClCompile Include="d3d11_renderstate.cpp" />
-    <ClCompile Include="d3d11_replay.cpp" />
-    <ClCompile Include="d3d11_resources.cpp" />
-    <ClCompile Include="d3d11_shader_cache.cpp" />
-    <ClCompile Include="d3d11_shaderdebug.cpp" />
-    <ClCompile Include="d3d11_stringise.cpp" />
-    <ClCompile Include="precompiled.cpp">
-      <PrecompiledHeader>Create</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="intel_counters.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="d3d11_common.h" />
-    <ClInclude Include="d3d11_context.h" />
-    <ClInclude Include="d3d11_debug.h" />
-    <ClInclude Include="d3d11_device.h" />
-    <ClInclude Include="d3d11_manager.h" />
-    <ClInclude Include="d3d11_renderstate.h" />
-    <ClInclude Include="d3d11_rendertext.h" />
-    <ClInclude Include="d3d11_replay.h" />
-    <ClInclude Include="d3d11_resources.h" />
-    <ClInclude Include="..\dx\official\d3d11.h" />
-    <ClInclude Include="..\dx\official\d3d11_1.h" />
-    <ClInclude Include="..\dx\official\d3d11_2.h" />
-    <ClInclude Include="..\dx\official\d3d11_3.h" />
-    <ClInclude Include="..\dx\official\d3d11_4.h" />
-    <ClInclude Include="..\dx\official\d3d11sdklayers.h" />
-    <ClInclude Include="..\dx\official\d3dcommon.h" />
-    <ClInclude Include="..\dx\official\d3dcompiler.h" />
-    <ClInclude Include="d3d11_shader_cache.h" />
-    <ClInclude Include="precompiled.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ihv\amd\AMD.vcxproj">
-      <Project>{5de5a561-548a-4dd7-90f0-06a2b39eae9a}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\ihv\intel\Intel.vcxproj">
-      <Project>{7fcb5fc5-1dbd-4da6-83a0-6ba4e945bda5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">
-      <Project>{c43ff27e-a155-4852-88ec-5ce9334c07a8}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>false</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
-    </ProjectReference>
+    <ClInclude Include="intel_counters.h" />
+    <ClInclude Include="official\DriverStorePath.h" />
+    <ClInclude Include="official\metrics_discovery_api.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
