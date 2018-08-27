@@ -1569,8 +1569,15 @@ void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource *res, uint32_t
   // #mivance it might be nice to query the buffer to differentiate
   // between bindings for constant buffers
 
-  size_t bucket = BucketForRecord<ResourceUpdateStats>::Get(Size);
-  updates.sizes[bucket] += 1;
+  if(Size > 0)
+  {
+    size_t bucket = BucketForRecord<ResourceUpdateStats>::Get(Size);
+    updates.sizes[bucket] += 1;
+  }
+  else
+  {
+    updates.sizes[0] += 1;
+  }
 }
 
 void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount)
