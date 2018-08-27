@@ -78,7 +78,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>tdh.lib;ws2_32.lib;kernel32.lib;user32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tdh.lib;ws2_32.lib;kernel32.lib;user32.lib;shlwapi.lib;Setupapi.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectDir)os\win32\comexport.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <DelayLoadDLLs>tdh.dll</DelayLoadDLLs>
