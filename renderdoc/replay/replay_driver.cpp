@@ -216,7 +216,7 @@ uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput)
   // after that, just align the required size up to 16MB and allocate that. Otherwise we can
   // vastly-overallocate at large sizes.
   if(curSize < requiredOutput)
-    curSize = AlignUp(requiredOutput, 0x1000000ULL);
+    curSize = AlignUp(requiredOutput, (uint64_t)0x1000000ULL);
 
   return curSize;
 }
