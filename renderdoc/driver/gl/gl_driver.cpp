@@ -961,6 +961,16 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
   }
 
   RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
+
+  // re-configure callstack capture, since WrappedOpenGL constructor may run too early
+  uint32_t flags = m_ScratchSerialiser.GetChunkMetadataRecording();
+
+  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
+    flags |= WriteSerialiser::ChunkCallstack;
+  else
+    flags &= ~WriteSerialiser::ChunkCallstack;
+
+  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
 }
 
 void WrappedOpenGL::RegisterReplayContext(GLWindowingData winData, void *shareContext, bool core,
