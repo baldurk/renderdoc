@@ -236,6 +236,8 @@ DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> &d
 void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
                                uint32_t *idx32, std::vector<uint32_t> &patchedIndices);
 
+uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput);
+
 // simple cache for when we need buffer data for highlighting
 // vertices, typical use will be lots of vertices in the same
 // mesh, not jumping back and forth much between meshes.

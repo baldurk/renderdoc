@@ -207,6 +207,20 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 #undef IDX_VALUE
 }
 
+uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput)
+{
+  // resize exponentially up to 256MB to avoid repeated resizes
+  while(curSize < requiredOutput && curSize < 0x10000000ULL)
+    curSize *= 2;
+
+  // after that, just align the required size up to 16MB and allocate that. Otherwise we can
+  // vastly-overallocate at large sizes.
+  if(curSize < requiredOutput)
+    curSize = AlignUp(requiredOutput, 0x1000000ULL);
+
+  return curSize;
+}
+
 FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, const MeshDisplay &cfg,
                                             const byte *end, bool useidx, bool &valid)
 {

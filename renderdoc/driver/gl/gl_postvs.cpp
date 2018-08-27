@@ -375,8 +375,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     if(DebugData.feedbackBufferSize < outputSize)
     {
       uint64_t oldSize = DebugData.feedbackBufferSize;
-      while(DebugData.feedbackBufferSize < outputSize)
-        DebugData.feedbackBufferSize *= 2;
+      DebugData.feedbackBufferSize = CalcMeshOutputSize(DebugData.feedbackBufferSize, outputSize);
       RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
               DebugData.feedbackBufferSize);
       if(DebugData.feedbackBufferSize > INTPTR_MAX)
@@ -495,8 +494,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     if(DebugData.feedbackBufferSize < outputSize)
     {
       uint64_t oldSize = DebugData.feedbackBufferSize;
-      while(DebugData.feedbackBufferSize < outputSize)
-        DebugData.feedbackBufferSize *= 2;
+      DebugData.feedbackBufferSize = CalcMeshOutputSize(DebugData.feedbackBufferSize, outputSize);
       RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
               DebugData.feedbackBufferSize);
       if(DebugData.feedbackBufferSize > INTPTR_MAX)
@@ -1051,8 +1049,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(DebugData.feedbackBufferSize < maxOutputSize)
       {
         uint64_t oldSize = DebugData.feedbackBufferSize;
-        while(DebugData.feedbackBufferSize < maxOutputSize)
-          DebugData.feedbackBufferSize *= 2;
+        DebugData.feedbackBufferSize =
+            CalcMeshOutputSize(DebugData.feedbackBufferSize, maxOutputSize);
         RDCWARN("Conservatively resizing xfb buffer from %llu to %llu for output", oldSize,
                 DebugData.feedbackBufferSize);
         if(DebugData.feedbackBufferSize > INTPTR_MAX)

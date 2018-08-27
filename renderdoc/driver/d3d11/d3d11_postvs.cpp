@@ -324,8 +324,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
       if(m_SOBufferSize < outputSize)
       {
         uint64_t oldSize = m_SOBufferSize;
-        while(m_SOBufferSize < outputSize)
-          m_SOBufferSize *= 2;
+        m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
         RDCWARN("Resizing stream-out buffer from %llu to %llu", oldSize, m_SOBufferSize);
         CreateSOBuffers();
 
@@ -439,8 +438,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
       if(m_SOBufferSize < outputSize)
       {
         uint64_t oldSize = m_SOBufferSize;
-        while(m_SOBufferSize < outputSize)
-          m_SOBufferSize *= 2;
+        m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
         RDCWARN("Resizing stream-out buffer from %llu to %llu", oldSize, m_SOBufferSize);
         CreateSOBuffers();
         if(!m_SOStagingBuffer)
@@ -777,11 +775,12 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
                                           sizeof(D3D11_QUERY_DATA_SO_STATISTICS), 0);
       } while(hr == S_FALSE);
 
-      if(m_SOBufferSize < stride * numPrims.PrimitivesStorageNeeded * 3)
+      uint64_t outputSize = stride * numPrims.PrimitivesStorageNeeded * 3;
+
+      if(m_SOBufferSize < outputSize)
       {
         uint64_t oldSize = m_SOBufferSize;
-        while(m_SOBufferSize < stride * numPrims.PrimitivesStorageNeeded * 3)
-          m_SOBufferSize *= 2;
+        m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
         RDCWARN("Resizing stream-out buffer from %llu to %llu", oldSize, m_SOBufferSize);
         CreateSOBuffers();
         if(!m_SOStagingBuffer)
@@ -900,7 +899,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
         (uint32_t)bytesWritten, D3D11_USAGE_IMMUTABLE, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0,
     };
 
-    if(bytesWritten >= m_SOBufferSize)
+    if(bytesWritten > m_SOBufferSize)
     {
       RDCERR("Generated output data too large: %08x", bufferDesc.ByteWidth);
 

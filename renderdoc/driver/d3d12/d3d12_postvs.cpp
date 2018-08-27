@@ -329,8 +329,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     if(m_SOBufferSize < outputSize)
     {
       uint64_t oldSize = m_SOBufferSize;
-      while(m_SOBufferSize < outputSize)
-        m_SOBufferSize *= 2;
+      m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
       RDCWARN("Resizing stream-out buffer from %llu to %llu for output data", oldSize,
               m_SOBufferSize);
       recreate = true;
@@ -434,11 +433,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         indexRemap[indices[i]] = i;
       }
 
-      if(m_SOBufferSize / sizeof(Vec4f) < indices.size() * sizeof(uint32_t))
+      outputSize = uint64_t(indices.size() * sizeof(uint32_t) * sizeof(Vec4f));
+
+      if(m_SOBufferSize < outputSize)
       {
         uint64_t oldSize = m_SOBufferSize;
-        while(m_SOBufferSize / sizeof(Vec4f) < indices.size() * sizeof(uint32_t))
-          m_SOBufferSize *= 2;
+        m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
         RDCWARN("Resizing stream-out buffer from %llu to %llu for indices", oldSize, m_SOBufferSize);
         recreate = true;
       }
@@ -886,11 +886,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       range.End = 0;
       m_SOStagingBuffer->Unmap(0, &range);
 
-      if(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
+      uint64_t outputSize = data->PrimitivesStorageNeeded * 3 * stride;
+
+      if(m_SOBufferSize < outputSize)
       {
         uint64_t oldSize = m_SOBufferSize;
-        while(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
-          m_SOBufferSize *= 2;
+        m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
         RDCWARN("Resizing stream-out buffer from %llu to %llu for output", oldSize, m_SOBufferSize);
         CreateSOBuffers();
       }
@@ -1025,11 +1026,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         D3D12_QUERY_DATA_SO_STATISTICS *data;
         hr = m_SOStagingBuffer->Map(0, &range, (void **)&data);
 
-        if(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
+        uint64_t outputSize = data->PrimitivesStorageNeeded * 3 * stride;
+
+        if(m_SOBufferSize < outputSize)
         {
           uint64_t oldSize = m_SOBufferSize;
-          while(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
-            m_SOBufferSize *= 2;
+          m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
           RDCWARN("Resizing stream-out buffer from %llu to %llu for output", oldSize, m_SOBufferSize);
           CreateSOBuffers();
 
