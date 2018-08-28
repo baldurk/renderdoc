@@ -1,42 +1,42 @@
-/*****************************************************************************\
-
-  Copyright (C) 2018, Intel Corporation
-
-  Permission is hereby granted, free of charge, to any person obtaining a
-  copy of this software and associated documentation files (the "Software"),
-  to deal in the Software without restriction, including without limitation
-  the rights to use, copy, modify, merge, publish, distribute, sublicense,
-  and/or sell copies of the Software, and to permit persons to whom the
-  Software is furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included
-  in all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-  IN THE SOFTWARE.
-
-\*****************************************************************************/
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2018 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
 #include "common/common.h"
 
+#include "official/DriverStorePath.h"
 #include "intel_counters.h"
-#include "driver_store_path.h"
 
 #include <set>
 
 const static std::vector<std::string> metricSetBlacklist = {"TestOa"};
 
 IntelCounters::IntelCounters()
-    : m_MDLibraryHandle(nullptr),
-      m_metricsDevice(nullptr),
-      m_device(nullptr),
-      m_deviceContext(nullptr),
-      m_counter(nullptr),
+    : m_MDLibraryHandle(NULL),
+      m_metricsDevice(NULL),
+      m_device(NULL),
+      m_deviceContext(NULL),
+      m_counter(NULL),
       m_passIndex(0),
       m_sampleIndex(0)
 {
@@ -61,7 +61,7 @@ bool IntelCounters::Init(void *pContext)
   if(!m_deviceContext)
     return false;
 
-  m_MDLibraryHandle = LoadDynamicLibrary(L"igdmd64.dll", nullptr, 0);
+  m_MDLibraryHandle = LoadDynamicLibrary(L"igdmd64.dll", NULL, 0);
   if(!m_MDLibraryHandle)
     return false;
 
@@ -84,7 +84,7 @@ bool IntelCounters::Init(void *pContext)
   {
     CloseMetricsDevice(m_metricsDevice);
     FreeLibrary(m_MDLibraryHandle);
-    m_metricsDevice = nullptr;
+    m_metricsDevice = NULL;
     m_MDLibraryHandle = (HMODULE)0;
     return false;
   }
@@ -170,7 +170,11 @@ std::vector<CounterDescription> IntelCounters::EnumerateCounters()
         else if(strcmp(metricParams->MetricResultUnits, "percent") == 0)
           counterDesc.unit = CounterUnit::Percentage;
         else if(strcmp(metricParams->MetricResultUnits, "ns") == 0)
+        {
           counterDesc.unit = CounterUnit::Seconds;
+          counterDesc.resultType = CompType::Float;
+          counterDesc.resultByteWidth = sizeof(float);
+        }
 
         uint32_t counterId = (uint32_t)GPUCounter::FirstIntel + (uint32_t)m_Counters.size();
         counterDesc.counter = (GPUCounter)counterId;
@@ -220,7 +224,7 @@ uint32_t IntelCounters::BeginSession()
   return 0;
 }
 
-void IntelCounters::EndSesssion()
+void IntelCounters::EndSession()
 {
   if(!m_metricsDevice)
     return;
@@ -316,8 +320,8 @@ void IntelCounters::EndSample()
   m_deviceContext->End(m_counter);
   HRESULT hr = S_OK;
   uint32_t iteration = 0;
-  const uint32_t max_attempts = 0xFFFFFFFF;
-  void *counter_data = nullptr;
+  const uint32_t max_attempts = 0xFFFF;
+  void *counter_data = NULL;
 
   do
   {
@@ -381,9 +385,6 @@ std::vector<CounterResult> IntelCounters::GetCounterData(const std::vector<uint3
           {
             uint64_t value =
                 m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt64;
-            // RenderDoc expects time metrics in microceconds
-            if(desc.unit == CounterUnit::Seconds)
-              value /= 1000;
 
             if(desc.unit == CounterUnit::Percentage)
             {
@@ -401,6 +402,13 @@ std::vector<CounterResult> IntelCounters::GetCounterData(const std::vector<uint3
         case CompType::Float:
         {
           float value = m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueFloat;
+          if(desc.unit == CounterUnit::Seconds)
+          {
+            float nanoseconds =
+                (float)m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt64;
+            value = nanoseconds / 1e9f;
+          }
+
           if(fabs(value) < 1e-9)
           {
             value = 0.0f;

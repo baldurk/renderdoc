@@ -557,7 +557,7 @@ vector<CounterResult> D3D11Replay::FetchCountersIntel(const vector<GPUCounter> &
     m_pIntelCounters->EndPass();
   }
 
-  m_pIntelCounters->EndSesssion();
+  m_pIntelCounters->EndSession();
 
   return m_pIntelCounters->GetCounterData(eventIDs, counters);
 }
