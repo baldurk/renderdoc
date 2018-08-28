@@ -1197,8 +1197,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     uint32_t *idx32 = NULL;
 
     // fetch ibuffer
-    GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset * idxsize,
-                  uint64_t(drawcall->numIndices) * idxsize, idxdata);
+    if(state.ibuffer.buf != ResourceId())
+      GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset * idxsize,
+                    uint64_t(drawcall->numIndices) * idxsize, idxdata);
 
     // figure out what the maximum index could be, so we can clamp our index buffer to something
     // sane
@@ -1463,7 +1464,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
         offs += drawcall->vertexOffset * vi->pVertexBindingDescriptions[vb].stride;
       }
 
-      GetBufferData(state.vbuffers[vb].buf, offs, len, origVBs[vb]);
+      if(state.vbuffers[vb].buf != ResourceId())
+        GetBufferData(state.vbuffers[vb].buf, offs, len, origVBs[vb]);
     }
 
     for(uint32_t i = 0; i < vi->vertexAttributeDescriptionCount; i++)

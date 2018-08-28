@@ -371,8 +371,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     else    // drawcall is indexed
     {
       bytebuf idxdata;
-      GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
-                    RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
+      if(rs.ibuffer.buf != ResourceId())
+        GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
+                      RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
 
       vector<uint32_t> indices;
 
@@ -381,7 +382,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       // only read as many indices as were available in the buffer
       uint32_t numIndices =
-          RDCMIN(uint32_t(idxdata.size() / rs.ibuffer.bytewidth), drawcall->numIndices);
+          RDCMIN(uint32_t(idxdata.size() / RDCMAX(1, rs.ibuffer.bytewidth)), drawcall->numIndices);
 
       uint32_t idxclamp = 0;
       if(drawcall->baseVertex < 0)

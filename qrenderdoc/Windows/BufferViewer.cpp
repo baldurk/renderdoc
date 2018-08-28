@@ -2349,7 +2349,7 @@ void BufferViewer::configureMeshColumns()
 
       // drawing more than this many indices will read off the end of the index buffer - which while
       // technically not invalid is certainly not intended, so serves as a good 'upper bound'
-      numRowsUpperBound = bytesAvailable / draw->indexByteWidth;
+      numRowsUpperBound = bytesAvailable / qMax(1U, draw->indexByteWidth);
     }
     else
     {
