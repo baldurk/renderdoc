@@ -114,8 +114,13 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
     if(api != GraphicsAPI::OpenGL)
       targets.push_back("AMDIL");
 
+    int apiBitmask = 1 << (int)api;
+
     for(int i = 0; i < asicCount; i++)
-      targets.push_back(asicInfo[i].name);
+    {
+      if(asicInfo[i].apiBitmask & apiBitmask)
+        targets.push_back(asicInfo[i].name);
+    }
   }
   else
   {
@@ -137,7 +142,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
 ; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
   }
 
-  std::string cmdLine = "-set spirvDasmLegacyFormat=1 -Dall -l";
+  std::string cmdLine = "-Dall -l";
 
   bool found = false;
 
