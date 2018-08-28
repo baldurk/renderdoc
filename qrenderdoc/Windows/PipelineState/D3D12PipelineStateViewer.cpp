@@ -883,6 +883,7 @@ void D3D12PipelineStateViewer::clearShaderState(RDLabel *shader, RDLabel *rootSi
 void D3D12PipelineStateViewer::clearState()
 {
   m_VBNodes.clear();
+  m_EmptyNodes.clear();
 
   ui->iaLayouts->clear();
   ui->iaBuffers->clear();
@@ -1341,6 +1342,9 @@ void D3D12PipelineStateViewer::setState()
 
   bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
 
+  m_VBNodes.clear();
+  m_EmptyNodes.clear();
+
   vs = ui->iaBuffers->verticalScrollBar()->value();
   ui->iaBuffers->beginUpdate();
   ui->iaBuffers->clear();
@@ -1369,7 +1373,10 @@ void D3D12PipelineStateViewer::setState()
         setInactiveRow(node);
 
       if(state.inputAssembly.indexBuffer.resourceId == ResourceId())
+      {
         setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+      }
 
       ui->iaBuffers->addTopLevelItem(node);
     }
@@ -1387,6 +1394,7 @@ void D3D12PipelineStateViewer::setState()
                            (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
 
       setEmptyRow(node);
+      m_EmptyNodes.push_back(node);
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1395,10 +1403,28 @@ void D3D12PipelineStateViewer::setState()
     }
   }
 
-  m_VBNodes.clear();
-
-  for(int i = 0; i < state.inputAssembly.vertexBuffers.count(); i++)
+  for(int i = 0; i < 128; i++)
   {
+    if(i >= state.inputAssembly.vertexBuffers.count())
+    {
+      // for vbuffers that are referenced but not bound, make sure we add an empty row
+      if(usedVBuffers[i])
+      {
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
+        node->setTag(QVariant::fromValue(D3D12VBIBTag(ResourceId(), 0)));
+
+        setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+
+        m_VBNodes.push_back(node);
+
+        ui->iaBuffers->addTopLevelItem(node);
+      }
+
+      continue;
+    }
+
     const D3D12Pipe::VertexBuffer &v = state.inputAssembly.vertexBuffers[i];
 
     bool filledSlot = (v.resourceId != ResourceId());
@@ -1424,7 +1450,10 @@ void D3D12PipelineStateViewer::setState()
       node->setTag(QVariant::fromValue(D3D12VBIBTag(v.resourceId, v.byteOffset)));
 
       if(!filledSlot)
+      {
         setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+      }
 
       if(!usedSlot)
         setInactiveRow(node);
@@ -2022,8 +2051,11 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 
   if(slot < m_VBNodes.count())
   {
-    m_VBNodes[slot]->setBackgroundColor(col);
-    m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
+    if(!m_EmptyNodes.contains(m_VBNodes[slot]))
+    {
+      m_VBNodes[slot]->setBackgroundColor(col);
+      m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
+    }
   }
 
   for(int i = 0; i < ui->iaLayouts->topLevelItemCount(); i++)
@@ -2086,8 +2118,11 @@ void D3D12PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
     }
     else
     {
-      item->setBackground(ui->iaBuffers->palette().brush(QPalette::Window));
-      item->setForeground(ui->iaBuffers->palette().brush(QPalette::WindowText));
+      if(!m_EmptyNodes.contains(item))
+      {
+        item->setBackground(ui->iaBuffers->palette().brush(QPalette::Window));
+        item->setForeground(ui->iaBuffers->palette().brush(QPalette::WindowText));
+      }
     }
   }
 }
@@ -2108,6 +2143,9 @@ void D3D12PipelineStateViewer::vertex_leave(QEvent *e)
   for(int i = 0; i < ui->iaBuffers->topLevelItemCount(); i++)
   {
     RDTreeWidgetItem *item = ui->iaBuffers->topLevelItem(i);
+
+    if(m_EmptyNodes.contains(item))
+      continue;
 
     item->setBackground(QBrush());
     item->setForeground(QBrush());

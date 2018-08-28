@@ -520,6 +520,7 @@ void GLPipelineStateViewer::clearShaderState(RDLabel *shader, RDTreeWidget *tex,
 void GLPipelineStateViewer::clearState()
 {
   m_VBNodes.clear();
+  m_EmptyNodes.clear();
 
   ui->viAttrs->clear();
   ui->viBuffers->clear();
@@ -1261,6 +1262,9 @@ void GLPipelineStateViewer::setState()
     ui->primRestart->setVisible(false);
   }
 
+  m_VBNodes.clear();
+  m_EmptyNodes.clear();
+
   vs = ui->viBuffers->verticalScrollBar()->value();
   ui->viBuffers->beginUpdate();
   ui->viBuffers->clear();
@@ -1290,7 +1294,10 @@ void GLPipelineStateViewer::setState()
         setInactiveRow(node);
 
       if(state.vertexInput.indexBuffer == ResourceId())
+      {
         setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+      }
 
       ui->viBuffers->addTopLevelItem(node);
     }
@@ -1306,6 +1313,7 @@ void GLPipelineStateViewer::setState()
           state.vertexInput.indexBuffer, draw ? draw->indexOffset * draw->indexByteWidth : 0)));
 
       setEmptyRow(node);
+      m_EmptyNodes.push_back(node);
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1313,8 +1321,6 @@ void GLPipelineStateViewer::setState()
       ui->viBuffers->addTopLevelItem(node);
     }
   }
-
-  m_VBNodes.clear();
 
   for(int i = 0; i < state.vertexInput.vertexBuffers.count(); i++)
   {
@@ -1339,7 +1345,10 @@ void GLPipelineStateViewer::setState()
       node->setTag(QVariant::fromValue(GLVBIBTag(v.resourceId, v.byteOffset)));
 
       if(!filledSlot)
+      {
         setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+      }
 
       if(!usedSlot)
         setInactiveRow(node);
@@ -2190,8 +2199,11 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
   if(slot < m_VBNodes.count())
   {
-    m_VBNodes[slot]->setBackgroundColor(col);
-    m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
+    if(!m_EmptyNodes.contains(m_VBNodes[slot]))
+    {
+      m_VBNodes[slot]->setBackgroundColor(col);
+      m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
+    }
   }
 
   for(int i = 0; i < ui->viAttrs->topLevelItemCount(); i++)
@@ -2254,8 +2266,11 @@ void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
     }
     else
     {
-      item->setBackground(ui->viBuffers->palette().brush(QPalette::Window));
-      item->setForeground(ui->viBuffers->palette().brush(QPalette::WindowText));
+      if(!m_EmptyNodes.contains(item))
+      {
+        item->setBackground(ui->viBuffers->palette().brush(QPalette::Window));
+        item->setForeground(ui->viBuffers->palette().brush(QPalette::WindowText));
+      }
     }
   }
 }
@@ -2273,8 +2288,13 @@ void GLPipelineStateViewer::vertex_leave(QEvent *e)
 
   for(int i = 0; i < ui->viBuffers->topLevelItemCount(); i++)
   {
-    ui->viBuffers->topLevelItem(i)->setBackground(QBrush());
-    ui->viBuffers->topLevelItem(i)->setForeground(QBrush());
+    RDTreeWidgetItem *item = ui->viBuffers->topLevelItem(i);
+
+    if(m_EmptyNodes.contains(item))
+      continue;
+
+    item->setBackground(QBrush());
+    item->setForeground(QBrush());
   }
 
   ui->viAttrs->endUpdate();

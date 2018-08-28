@@ -546,6 +546,7 @@ void VulkanPipelineStateViewer::clearState()
 {
   m_VBNodes.clear();
   m_BindNodes.clear();
+  m_EmptyNodes.clear();
 
   ui->viAttrs->clear();
   ui->viBuffers->clear();
@@ -1570,6 +1571,8 @@ void VulkanPipelineStateViewer::setState()
   ui->viAttrs->verticalScrollBar()->setValue(vs);
 
   m_BindNodes.clear();
+  m_VBNodes.clear();
+  m_EmptyNodes.clear();
 
   Topology topo = draw != NULL ? draw->topology : Topology::Unknown;
 
@@ -1621,7 +1624,10 @@ void VulkanPipelineStateViewer::setState()
         setInactiveRow(node);
 
       if(state.inputAssembly.indexBuffer.resourceId == ResourceId())
+      {
         setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
+      }
 
       ui->viBuffers->addTopLevelItem(node);
     }
@@ -1638,6 +1644,7 @@ void VulkanPipelineStateViewer::setState()
                         draw != NULL ? draw->indexOffset * draw->indexByteWidth : 0)));
 
       setEmptyRow(node);
+      m_EmptyNodes.push_back(node);
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1645,8 +1652,6 @@ void VulkanPipelineStateViewer::setState()
       ui->viBuffers->addTopLevelItem(node);
     }
   }
-
-  m_VBNodes.clear();
 
   {
     int i = 0;
@@ -1707,7 +1712,10 @@ void VulkanPipelineStateViewer::setState()
             vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0)));
 
         if(!filledSlot || bind == NULL || vbuff == NULL)
+        {
           setEmptyRow(node);
+          m_EmptyNodes.push_back(node);
+        }
 
         if(!usedSlot)
           setInactiveRow(node);
@@ -1728,6 +1736,7 @@ void VulkanPipelineStateViewer::setState()
         node->setTag(QVariant::fromValue(VulkanVBIBTag(ResourceId(), 0)));
 
         setEmptyRow(node);
+        m_EmptyNodes.push_back(node);
 
         setInactiveRow(node);
 
@@ -2291,8 +2300,11 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
 
   if(slot < m_VBNodes.count())
   {
-    m_VBNodes[slot]->setBackgroundColor(col);
-    m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
+    if(!m_EmptyNodes.contains(m_VBNodes[slot]))
+    {
+      m_VBNodes[slot]->setBackgroundColor(col);
+      m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
+    }
   }
 
   if(slot < m_BindNodes.count())
@@ -2361,8 +2373,11 @@ void VulkanPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
     }
     else
     {
-      item->setBackground(ui->viBuffers->palette().brush(QPalette::Window));
-      item->setForeground(ui->viBuffers->palette().brush(QPalette::WindowText));
+      if(!m_EmptyNodes.contains(item))
+      {
+        item->setBackground(ui->viBuffers->palette().brush(QPalette::Window));
+        item->setForeground(ui->viBuffers->palette().brush(QPalette::WindowText));
+      }
     }
   }
 }
@@ -2380,8 +2395,13 @@ void VulkanPipelineStateViewer::vertex_leave(QEvent *e)
 
   for(int i = 0; i < ui->viBuffers->topLevelItemCount(); i++)
   {
-    ui->viBuffers->topLevelItem(i)->setBackground(QBrush());
-    ui->viBuffers->topLevelItem(i)->setForeground(QBrush());
+    RDTreeWidgetItem *item = ui->viBuffers->topLevelItem(i);
+
+    if(m_EmptyNodes.contains(item))
+      continue;
+
+    item->setBackground(QBrush());
+    item->setForeground(QBrush());
   }
 
   ui->viAttrs->endUpdate();

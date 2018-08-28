@@ -113,4 +113,6 @@ private:
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;
+  // list of empty VB nodes that shouldn't be highlighted on hover
+  QList<RDTreeWidgetItem *> m_EmptyNodes;
 };
