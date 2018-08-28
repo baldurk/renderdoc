@@ -1402,6 +1402,17 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     RDCASSERT(pData != NULL);
 
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        NULL,
+        Unwrap(readbackMem.mem),
+        readbackMem.offs,
+        readbackMem.size,
+    };
+
+    vkr = vt->InvalidateMappedMemoryRanges(Unwrap(device), 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
     // point sample info into raw buffer
     {
       ResourceFormat fmt = MakeResourceFormat(imInfo.format);
