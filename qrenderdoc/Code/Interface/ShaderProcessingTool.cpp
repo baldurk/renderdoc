@@ -28,6 +28,10 @@
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
+static const QString glsl_stage4[ENUM_ARRAY_SIZE(ShaderStage)] = {
+    lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
+};
+
 template <>
 std::string DoStringise(const KnownShaderTool &el)
 {
@@ -186,6 +190,8 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
       arg = input_file = tmpPath(lit("shader_input"));
     if(arg == lit("{output_file}"))
       arg = output_file = tmpPath(lit("shader_output"));
+    if(arg == lit("{glsl_stage4}"))
+      arg = glsl_stage4[int(shaderDetails->stage)];
   }
 
   QFile binHandle(input_file);
@@ -216,10 +222,6 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
   QStringList argList = ParseArgsList(arguments.isEmpty() ? DefaultArguments() : arguments);
 
   QString input_file, output_file;
-
-  const QString glsl_stage4[ENUM_ARRAY_SIZE(ShaderStage)] = {
-      lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
-  };
 
   // replace arguments after expansion to avoid problems with quoting paths etc
   for(QString &arg : argList)
