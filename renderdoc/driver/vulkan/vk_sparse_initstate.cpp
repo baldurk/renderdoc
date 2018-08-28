@@ -441,6 +441,18 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
     vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs, mappedMem.size, 0,
                                 (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    // invalidate the cpu cache for this memory range to avoid reading stale data
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        NULL,
+        Unwrap(mappedMem.mem),
+        mappedMem.offs,
+        mappedMem.size,
+    };
+
+    vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
   else if(IsReplayingAndReading() && !ser.IsErrored())
   {
@@ -477,7 +489,24 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
 
   // unmap the resource we mapped before - we need to do this on read and on write.
   if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)
+  {
+    if(IsReplayingAndReading())
+    {
+      // first ensure we flush the writes from the cpu to gpu memory
+      VkMappedMemoryRange range = {
+          VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+          NULL,
+          Unwrap(mappedMem.mem),
+          mappedMem.offs,
+          mappedMem.size,
+      };
+
+      vkr = ObjDisp(d)->FlushMappedMemoryRanges(Unwrap(d), 1, &range);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
     ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem.mem));
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
