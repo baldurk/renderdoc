@@ -1546,7 +1546,7 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const Bindpoint &bind, uint
 
 QString ShaderViewer::targetName(const ShaderProcessingTool &disasm)
 {
-  return lit("%1 (%2)").arg(ToQStr(disasm.input)).arg(disasm.name);
+  return lit("%1 (%2)").arg(ToQStr(disasm.output)).arg(disasm.name);
 }
 
 void ShaderViewer::addFileList()
