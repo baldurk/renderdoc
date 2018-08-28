@@ -138,12 +138,66 @@ wstring LookupModule(const wchar_t *modName, GUID guid, DWORD age)
   return ret;
 }
 
+wstring msdiapath = L"msdia140.dll";
+
+HRESULT MakeDiaDataSource(IDiaDataSource **source)
+{
+  // might need to CoInitialize on this thread
+  CoInitialize(NULL);
+
+  // try creating the object just normally, hopefully it's registered
+  HRESULT hr = CoCreateInstance(__uuidof(DiaSource), NULL, CLSCTX_INPROC_SERVER,
+                                __uuidof(IDiaDataSource), (void **)source);
+
+  if(SUCCEEDED(hr))
+    return hr;
+
+  // if not registered, try loading the DLL from the given path
+  HMODULE mod = LoadLibrary((wchar_t *)msdiapath.c_str());
+
+  if(mod == NULL)
+  {
+    RDCDEBUG("Couldn't load DIA from '%ls'", msdiapath.c_str());
+    return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+  }
+
+  // if it loaded, we should be able to manually load up DIA
+
+  // thanks to https://stackoverflow.com/a/2466264/4070143 for details of how to 'manually' create a
+  // COM object from msdia
+
+  typedef decltype(&DllGetClassObject) PFN_DllGetClassObject;
+
+  PFN_DllGetClassObject getobj = (PFN_DllGetClassObject)GetProcAddress(mod, "DllGetClassObject");
+
+  if(!getobj)
+    return HRESULT_FROM_WIN32(GetLastError());
+
+  IClassFactory *pClassFactory;
+  hr = getobj(__uuidof(DiaSource), IID_IClassFactory, (void **)&pClassFactory);
+  if(FAILED(hr))
+    return hr;
+
+  if(!pClassFactory)
+    return E_NOINTERFACE;
+
+  hr = pClassFactory->CreateInstance(NULL, __uuidof(IDiaDataSource), (void **)source);
+  if(FAILED(hr))
+    return hr;
+
+  if(*source == NULL)
+    return E_UNEXPECTED;
+
+  pClassFactory->Release();
+
+  return S_OK;
+}
+
 uint32_t GetModule(const wchar_t *pdbName, GUID guid, DWORD age)
 {
   Module m(NULL, NULL);
 
-  HRESULT hr = CoCreateInstance(__uuidof(DiaSource), NULL, CLSCTX_INPROC_SERVER,
-                                __uuidof(IDiaDataSource), (void **)&m.pSource);
+  HRESULT hr = MakeDiaDataSource(&m.pSource);
 
   if(FAILED(hr))
   {
@@ -706,7 +760,98 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
   }
   wstring ignores = inputBuf;
 
+  {
+    DWORD read =
+        GetPrivateProfileStringW(L"renderdoc", L"msdiapath", NULL, inputBuf, sz, configPath.c_str());
+
+    if(read > 0)
+      DIA2::msdiapath = inputBuf;
+  }
+
   delete[] inputBuf;
+
+  // check we can create an IDiaDataSource
+  {
+    IDiaDataSource *source = NULL;
+    HRESULT hr = DIA2::MakeDiaDataSource(&source);
+
+    if(FAILED(hr) || source == NULL)
+    {
+// try a bunch of common locations to try and find it without prompting the user.
+// These are just best-guess based on the defaults, since actually locating VS itself is super
+// complex in its own right.
+// We only check 2017 locations since 2015 and before seemed to register the dll like you'd
+// expect.
+#if ENABLED(RDOC_X64)
+#define DIA140 L"bin\\amd64\\msdia140.dll"
+#else
+#define DIA140 L"bin\\msdia140.dll"
+#endif
+
+      const wchar_t *DIApaths[] = {
+          // try to see if it's just in the PATH somewhere
+          L"msdia140.dll",
+          // otherwise try each VS2017 SKU
+          L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\DIA SDK\\" DIA140,
+          L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\DIA SDK\\" DIA140,
+          L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Professional\\DIA SDK\\" DIA140,
+      };
+
+      for(size_t i = 0; i < ARRAY_COUNT(DIApaths); i++)
+      {
+        SAFE_RELEASE(source);
+
+        DIA2::msdiapath = DIApaths[i];
+
+        hr = DIA2::MakeDiaDataSource(&source);
+
+        if(SUCCEEDED(hr) && source != NULL)
+          break;
+      }
+
+      while(FAILED(hr) || source == NULL)
+      {
+        SAFE_RELEASE(source);
+
+        int ret = MessageBoxW(NULL,
+                              L"Couldn't initialise DIA - it may not be registered. "
+                              L"In VS2017 and above, DIA is not registered by default.\n\n"
+                              L"Please locate msdia140.dll on your system, it may be in a DIA SDK "
+                              L"subdirectory under your VS2017 installation.",
+                              L"msdia140.dll not registered", MB_OKCANCEL);
+
+        if(ret == IDCANCEL)
+          return;
+
+        OPENFILENAMEW ofn;
+        RDCEraseMem(&ofn, sizeof(ofn));
+
+        wchar_t outBuf[MAX_PATH * 2] = {};
+
+        ofn.lStructSize = sizeof(OPENFILENAME);
+        ofn.lpstrTitle = L"Locate msdia140.dll";
+        ofn.lpstrFilter = L"msdia140.dll\0msdia140.dll\0";
+        ofn.lpstrFile = outBuf;
+        ofn.nMaxFile = MAX_PATH * 2 - 1;
+        ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+
+        BOOL opened = GetOpenFileNameW(&ofn);
+
+        if(opened == FALSE)
+          return;
+
+        DIA2::msdiapath = outBuf;
+
+        hr = DIA2::MakeDiaDataSource(&source);
+      }
+
+      // save whatever msdia path we found
+      WritePrivateProfileStringW(L"renderdoc", L"msdiapath", DIA2::msdiapath.c_str(),
+                                 configPath.c_str());
+    }
+
+    SAFE_RELEASE(source);
+  }
 
   split(ignores, pdbIgnores, L';');
 
