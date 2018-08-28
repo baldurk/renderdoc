@@ -527,6 +527,17 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
     vt->MapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0,
                   (void **)&pData);
 
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        NULL,
+        Unwrap(m_PixelPick.ReadbackBuffer.mem),
+        0,
+        VK_WHOLE_SIZE,
+    };
+
+    vkr = vt->InvalidateMappedMemoryRanges(Unwrap(dev), 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
     RDCASSERT(pData != NULL);
 
     if(pData == NULL)
@@ -2891,6 +2902,13 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   // map the buffer and copy to return buffer
   byte *pData = NULL;
   vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkMappedMemoryRange range = {
+      VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,
+  };
+
+  vkr = vt->InvalidateMappedMemoryRanges(Unwrap(dev), 1, &range);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   RDCASSERT(pData != NULL);

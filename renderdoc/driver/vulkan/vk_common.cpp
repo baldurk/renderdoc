@@ -127,6 +127,7 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
 {
   m_pDriver = driver;
   device = dev;
+  createFlags = flags;
 
   align = (VkDeviceSize)driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment;
 
@@ -216,6 +217,17 @@ void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
   void *ptr = NULL;
   VkResult vkr = m_pDriver->vkMapMemory(device, mem, offset, size, 0, (void **)&ptr);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  if(createFlags & eGPUBufferReadback)
+  {
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, mem, offset, size,
+    };
+
+    vkr = m_pDriver->vkInvalidateMappedMemoryRanges(device, 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
   return ptr;
 }
 
@@ -232,6 +244,16 @@ void *GPUBuffer::Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize)
 
 void GPUBuffer::Unmap()
 {
+  if(!(createFlags & eGPUBufferReadback) && !(createFlags & eGPUBufferGPULocal))
+  {
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, mem, 0, VK_WHOLE_SIZE,
+    };
+
+    VkResult vkr = m_pDriver->vkFlushMappedMemoryRanges(device, 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
   m_pDriver->vkUnmapMemory(device, mem);
 }
 

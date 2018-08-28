@@ -172,6 +172,7 @@ struct GPUBuffer
 
   WrappedVulkan *m_pDriver = NULL;
   VkDevice device = VK_NULL_HANDLE;
+  uint32_t createFlags = 0;
 };
 
 // in vk_<platform>.cpp

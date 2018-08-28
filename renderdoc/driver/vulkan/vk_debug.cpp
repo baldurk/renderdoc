@@ -1355,6 +1355,13 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
                         (void **)&pData);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE,
+    };
+
+    vkr = vt->InvalidateMappedMemoryRanges(Unwrap(dev), 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
     RDCASSERT(pData != NULL);
     memcpy(&ret[dstoffset], pData, (size_t)chunkSize);
 
