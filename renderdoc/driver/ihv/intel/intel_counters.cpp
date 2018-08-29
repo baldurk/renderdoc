@@ -345,7 +345,7 @@ void IntelCounters::EndSample()
   if(res != TCompletionCode::CC_OK)
     return;
 
-  for(size_t i = 0; i < m_subscribedMetricsByCounterSet[m_passIndex].size(); i++)
+  for(int i = 0; i < m_subscribedMetricsByCounterSet[m_passIndex].size(); i++)
   {
     GPUCounter counterId = m_subscribedMetricsByCounterSet[m_passIndex][i];
     uint32_t counterIndex = m_metricLocation[counterId].second;
