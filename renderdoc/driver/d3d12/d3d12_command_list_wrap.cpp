@@ -532,7 +532,13 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ResourceBarrier(
       ResourceId cmd = GetResID(pCommandList);
 
       for(UINT i = 0; i < NumBarriers; i++)
-        m_Cmd->m_BakedCmdListInfo[cmd].barriers.push_back(pBarriers[i]);
+      {
+        if(pBarriers[i].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
+           pBarriers[i].Transition.pResource)
+        {
+          m_Cmd->m_BakedCmdListInfo[cmd].barriers.push_back(pBarriers[i]);
+        }
+      }
     }
   }
 
