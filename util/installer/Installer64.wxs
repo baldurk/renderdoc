@@ -13,6 +13,8 @@
 
     <Property Id="MajorMinorVersion">$(env.RENDERDOC_VERSION)</Property>
 
+    <Property Id="REINSTALLMODE" Value="amus"/> 
+
     <Upgrade Id="D320753C-4B18-4905-A752-E68959943E7D">
       <UpgradeVersion Minimum="0.18.0"
         IncludeMinimum="yes"

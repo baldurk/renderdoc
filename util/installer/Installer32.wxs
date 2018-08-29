@@ -13,6 +13,8 @@
 
     <Property Id="MajorMinorVersion">$(env.RENDERDOC_VERSION)</Property>
 
+    <Property Id="REINSTALLMODE" Value="amus"/> 
+
     <CustomAction Id="Need64BitVersion" Error="25000" /> 
 
     <InstallUISequence> 
