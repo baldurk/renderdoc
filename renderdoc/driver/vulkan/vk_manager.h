@@ -419,6 +419,7 @@ private:
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);
+  std::vector<ResourceId> InitialContentResources();
 
   CaptureState m_State;
   WrappedVulkan *m_Core;
