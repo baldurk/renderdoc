@@ -307,6 +307,10 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     // render as points
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 
+    // disable MSAA
+    psoDesc.SampleDesc.Count = 1;
+    psoDesc.SampleDesc.Quality = 0;
+
     // disable outputs
     RDCEraseEl(psoDesc.RTVFormats);
     psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
