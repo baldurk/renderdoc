@@ -1,4 +1,11 @@
-import renderdoc as rd
+import sys
+
+# Import renderdoc if not already imported (e.g. in the UI)
+if 'renderdoc' not in sys.modules and '_renderdoc' not in sys.modules:
+	import renderdoc
+
+# Alias renderdoc for legibility
+rd = renderdoc
 
 draws = {}
 
