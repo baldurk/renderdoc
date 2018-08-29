@@ -26,7 +26,6 @@
 #include <iterator>
 #include "common/common.h"
 #include "driver/ihv/amd/amd_counters.h"
-#include "driver/ihv/intel/intel_counters.h"
 #include "driver/ihv/nv/nv_counters.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
@@ -62,12 +61,6 @@ vector<GPUCounter> D3D11Replay::EnumerateCounters()
     ret.insert(ret.end(), nvCounters.begin(), nvCounters.end());
   }
 
-  if(m_pIntelCounters)
-  {
-    vector<GPUCounter> intelCounters = m_pIntelCounters->GetPublicCounterIds();
-    ret.insert(ret.end(), intelCounters.begin(), intelCounters.end());
-  }
-
   return ret;
 }
 
@@ -91,15 +84,6 @@ CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
     if(m_pNVCounters)
     {
       return m_pNVCounters->GetCounterDescription(counterID);
-    }
-  }
-
-  // Intel
-  if(IsIntelCounter(counterID))
-  {
-    if(m_pIntelCounters)
-    {
-      return m_pIntelCounters->GetCounterDescription(counterID);
     }
   }
 
@@ -399,41 +383,6 @@ void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
   }
 }
 
-void D3D11Replay::FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex,
-                                  vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
-{
-  if(drawnode.children.empty())
-    return;
-
-  for(size_t i = 0; i < drawnode.children.size(); i++)
-  {
-    const DrawcallDescription &d = drawnode.children[i];
-
-    FillTimersIntel(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
-
-    if(d.events.empty() || (!(drawnode.children[i].flags & DrawFlags::Drawcall) &&
-                            !(drawnode.children[i].flags & DrawFlags::Dispatch)))
-      continue;
-
-    eventIDs.push_back(d.eventId);
-
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
-
-    SerializeImmediateContext();
-
-    m_pIntelCounters->BeginSample();
-
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
-
-    SerializeImmediateContext();
-
-    m_pIntelCounters->EndSample();
-
-    eventStartID = d.eventId + 1;
-    sampleIndex++;
-  }
-}
-
 vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &counters)
 {
   ID3D11Device *d3dDevice = m_pDevice->GetReal();
@@ -523,45 +472,6 @@ vector<CounterResult> D3D11Replay::FetchCountersNV(const vector<GPUCounter> &cou
   return ret;
 }
 
-vector<CounterResult> D3D11Replay::FetchCountersIntel(const vector<GPUCounter> &counters)
-{
-  m_pIntelCounters->DisableAllCounters();
-
-  // enable counters it needs
-  for(size_t i = 0; i < counters.size(); i++)
-  {
-    // This function is only called internally, and violating this assertion means our
-    // caller has invoked this method incorrectly
-    RDCASSERT(IsIntelCounter(counters[i]));
-    m_pIntelCounters->EnableCounter(counters[i]);
-  }
-
-  m_pIntelCounters->BeginSession();
-
-  uint32_t passCount = m_pIntelCounters->GetPassCount();
-
-  uint32_t sampleIndex = 0;
-
-  vector<uint32_t> eventIDs;
-
-  for(uint32_t p = 0; p < passCount; p++)
-  {
-    m_pIntelCounters->BeginPass();
-    uint32_t eventStartID = 0;
-
-    sampleIndex = 0;
-
-    eventIDs.clear();
-
-    FillTimersIntel(eventStartID, sampleIndex, eventIDs, m_pImmediateContext->GetRootDraw());
-    m_pIntelCounters->EndPass();
-  }
-
-  m_pIntelCounters->EndSesssion();
-
-  return m_pIntelCounters->GetCounterData(eventIDs, counters);
-}
-
 vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &counters)
 {
   vector<CounterResult> ret;
@@ -576,9 +486,7 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
 
   vector<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
-               [](const GPUCounter &c) {
-                 return !IsAMDCounter(c) && !IsNvidiaCounter(c) && !IsIntelCounter(c);
-               });
+               [](const GPUCounter &c) { return !IsAMDCounter(c) && !IsNvidiaCounter(c); });
 
   if(m_pAMDCounters)
   {
@@ -603,18 +511,6 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
     if(!nvCounters.empty())
     {
       ret = FetchCountersNV(nvCounters);
-    }
-  }
-
-  if(m_pIntelCounters)
-  {
-    vector<GPUCounter> intelCounters;
-    std::copy_if(counters.begin(), counters.end(), std::back_inserter(intelCounters),
-                 [](const GPUCounter &c) { return IsIntelCounter(c); });
-
-    if(!intelCounters.empty())
-    {
-      ret = FetchCountersIntel(intelCounters);
     }
   }
 
