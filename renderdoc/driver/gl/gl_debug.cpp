@@ -522,6 +522,8 @@ void GLReplay::InitDebugData()
                                "GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
   }
 
+  DebugData.DepthArray2MS = DebugData.DepthMS2Array = 0;
+
   if(glesShadersAreComplete && HasExt[ARB_texture_multisample])
   {
     GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
