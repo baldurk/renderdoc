@@ -435,6 +435,7 @@ protected:
                                       WrappedResourceType res) = 0;
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
   virtual void Apply_InitialState(WrappedResourceType live, InitialContentData initial) = 0;
+  virtual std::vector<ResourceId> InitialContentResources();
 
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
   // bottleneck
@@ -764,21 +765,31 @@ template <typename Configuration>
 void ResourceManager<Configuration>::ApplyInitialContents()
 {
   RDCDEBUG("Applying initial contents");
-  uint32_t numContents = 0;
+  std::vector<ResourceId> resources = InitialContentResources();
+  for(auto it = resources.begin(); it != resources.end(); ++it)
+  {
+    ResourceId id = *it;
+    InitialContentData data = m_InitialContents[id];
+    WrappedResourceType live = GetLiveResource(id);
+    Apply_InitialState(live, data);
+  }
+  RDCDEBUG("Applied %d", (uint32_t)resources.size());
+}
+
+template <typename Configuration>
+std::vector<ResourceId> ResourceManager<Configuration>::InitialContentResources()
+{
+  std::vector<ResourceId> resources;
   for(auto it = m_InitialContents.begin(); it != m_InitialContents.end(); ++it)
   {
     ResourceId id = it->first;
 
     if(HasLiveResource(id))
     {
-      WrappedResourceType live = GetLiveResource(id);
-
-      numContents++;
-
-      Apply_InitialState(live, it->second);
+      resources.push_back(id);
     }
   }
-  RDCDEBUG("Applied %d", numContents);
+  return resources;
 }
 
 template <typename Configuration>

@@ -612,6 +612,16 @@ void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, VkInitialCont
   return m_Core->Apply_InitialState(live, initial);
 }
 
+std::vector<ResourceId> VulkanResourceManager::InitialContentResources()
+{
+  std::vector<ResourceId> resources =
+      ResourceManager<VulkanResourceManagerConfiguration>::InitialContentResources();
+  std::sort(resources.begin(), resources.end(), [this](ResourceId a, ResourceId b) {
+    return m_InitialContents[a].type < m_InitialContents[b].type;
+  });
+  return resources;
+}
+
 bool VulkanResourceManager::ResourceTypeRelease(WrappedVkRes *res)
 {
   return m_Core->ReleaseResource(res);
