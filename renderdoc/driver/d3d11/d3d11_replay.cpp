@@ -26,7 +26,6 @@
 #include "d3d11_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/ihv/amd/amd_counters.h"
-#include "driver/ihv/intel/intel_counters.h"
 #include "driver/ihv/nv/nv_counters.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/camera.h"
@@ -160,7 +159,6 @@ void D3D11Replay::CreateResources()
 
   AMDCounters *countersAMD = NULL;
   NVCounters *countersNV = NULL;
-  IntelCounters *countersIntel = NULL;
 
   if(m_Vendor == GPUVendor::AMD)
   {
@@ -171,11 +169,6 @@ void D3D11Replay::CreateResources()
   {
     RDCLOG("nVidia GPU detected - trying to initialise nVidia counters");
     countersNV = new NVCounters();
-  }
-  else if(m_Vendor == GPUVendor::Intel)
-  {
-    RDCLOG("Intel GPU detected - trying to initialize Intel counters");
-    countersIntel = new IntelCounters();
   }
   else
   {
@@ -203,17 +196,6 @@ void D3D11Replay::CreateResources()
     delete countersNV;
     m_pNVCounters = NULL;
   }
-
-  if(countersIntel && countersIntel->Init(d3dDevice))
-  {
-    m_pIntelCounters = countersIntel;
-  }
-  else
-  {
-    delete countersIntel;
-    m_pIntelCounters = NULL;
-  }
-
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 }
 
@@ -232,7 +214,6 @@ void D3D11Replay::DestroyResources()
 
   SAFE_DELETE(m_pAMDCounters);
   SAFE_DELETE(m_pNVCounters);
-  SAFE_DELETE(m_pIntelCounters);
 
   ShutdownStreamOut();
   ClearPostVSCache();

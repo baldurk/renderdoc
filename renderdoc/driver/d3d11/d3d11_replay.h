@@ -38,7 +38,6 @@ class WrappedID3D11DeviceContext;
 
 class AMDCounters;
 class NVCounters;
-class IntelCounters;
 struct D3D11CounterContext;
 
 struct D3D11PostVSData
@@ -256,15 +255,12 @@ private:
 
   std::vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
   std::vector<CounterResult> FetchCountersNV(const vector<GPUCounter> &counters);
-  std::vector<CounterResult> FetchCountersIntel(const vector<GPUCounter> &counters);
 
   void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
   void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
                      const DrawcallDescription &drawnode);
   void FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
                     const DrawcallDescription &drawnode);
-  void FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
-                       const DrawcallDescription &drawnode);
 
   void SerializeImmediateContext();
 
@@ -305,7 +301,6 @@ private:
 
   AMDCounters *m_pAMDCounters = NULL;
   NVCounters *m_pNVCounters = NULL;
-  IntelCounters *m_pIntelCounters = NULL;
 
   WrappedID3D11Device *m_pDevice = NULL;
   WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
