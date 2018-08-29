@@ -3444,7 +3444,7 @@ static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateRepl
 
 ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
-  RDCDEBUG("Creating an OpenGL ES replay device");
+  RDCLOG("Creating an OpenGL ES replay device");
 
   // for GLES replay, we try to use EGL if it's available. If it's not available, we look to see if
   // we can create an OpenGL ES context via the platform GL functions
@@ -3458,13 +3458,15 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       return ReplayStatus::APIInitFailed;
     }
 
+    RDCLOG("Initialising GLES replay via libEGL");
+
     return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGLES, rdc, GetEGLPlatform(),
                               driver);
   }
 #if defined(RENDERDOC_SUPPORT_GL)
   else if(GetGLPlatform().CanCreateGLESContext())
   {
-    RDCDEBUG("libEGL is not available, falling back to EXT_create_context_es2_profile");
+    RDCLOG("libEGL is not available, falling back to EXT_create_context_es2_profile");
 
     bool load_ok = GetGLPlatform().PopulateForReplay();
 
