@@ -210,11 +210,15 @@ void PersistantConfig::AddAndroidHosts()
     }
   }
 
-  QString androidSDKPath = QFile::exists(Android_SDKPath) ? QString(Android_SDKPath) : QString();
+  QString androidSDKPath = (!Android_SDKPath.isEmpty() && QFile::exists(Android_SDKPath))
+                               ? QString(Android_SDKPath)
+                               : QString();
 
   SetConfigSetting("androidSDKPath", androidSDKPath);
 
-  QString androidJDKPath = QFile::exists(Android_JDKPath) ? QString(Android_JDKPath) : QString();
+  QString androidJDKPath = (!Android_JDKPath.isEmpty() && QFile::exists(Android_JDKPath))
+                               ? QString(Android_JDKPath)
+                               : QString();
 
   SetConfigSetting("androidJDKPath", androidJDKPath);
 
