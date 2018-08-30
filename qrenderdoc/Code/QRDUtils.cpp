@@ -900,6 +900,8 @@ void RDDialog::show(QMenu *menu, QPoint pos)
 
 int RDDialog::show(QDialog *dialog)
 {
+// workaround for QTBUG-56382 needed on windows only - it can break on other platforms
+#if defined(Q_OS_WIN32)
   dialog->setWindowModality(Qt::ApplicationModal);
   dialog->show();
   QEventLoop loop;
@@ -908,6 +910,9 @@ int RDDialog::show(QDialog *dialog)
     loop.processEvents(QEventLoop::WaitForMoreEvents);
     QCoreApplication::sendPostedEvents();
   }
+#else
+  dialog->exec();
+#endif
 
   return dialog->result();
 }
