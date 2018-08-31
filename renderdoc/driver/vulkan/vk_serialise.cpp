@@ -3185,7 +3185,10 @@ void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoKHR &el)
   }
 
   {
-    std::string name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
+    std::string name;
+
+    if(ser.IsWriting())
+      name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
     ser.Serialise("name", name);
 
@@ -3226,7 +3229,10 @@ void DoSerialise(SerialiserType &ser, VkExportFenceWin32HandleInfoKHR &el)
   SERIALISE_MEMBER_TYPED(uint32_t, dwAccess);
 
   {
-    std::string name = StringFormat::Wide2UTF8(std::wstring(el.name));
+    std::string name;
+
+    if(ser.IsWriting())
+      name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
     ser.Serialise("name", name);
 
@@ -3265,7 +3271,10 @@ void DoSerialise(SerialiserType &ser, VkExportSemaphoreWin32HandleInfoKHR &el)
   SERIALISE_MEMBER_TYPED(uint32_t, dwAccess);
 
   {
-    std::string name = StringFormat::Wide2UTF8(std::wstring(el.name));
+    std::string name;
+
+    if(ser.IsWriting())
+      name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
     ser.Serialise("name", name);
 
