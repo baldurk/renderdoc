@@ -1373,10 +1373,10 @@ void BufferViewer::OnCaptureLoaded()
   if(!m_MeshView)
     return;
 
-  WId renderID = ui->render->winId();
+  WindowingData winData = m_Ctx.CreateWindowingData(ui->render);
 
-  m_Ctx.Replay().BlockInvoke([renderID, this](IReplayController *r) {
-    m_Output = r->CreateOutput(m_Ctx.CreateWindowingData(renderID), ReplayOutputType::Mesh);
+  m_Ctx.Replay().BlockInvoke([winData, this](IReplayController *r) {
+    m_Output = r->CreateOutput(winData, ReplayOutputType::Mesh);
 
     ui->render->setOutput(m_Output);
 

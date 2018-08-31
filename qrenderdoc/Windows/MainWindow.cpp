@@ -2327,7 +2327,7 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
                              .arg(tr("nothing")));
   }
 
-  WindowingData winData = m_Ctx.CreateWindowingData(popup.winId());
+  WindowingData winData = m_Ctx.CreateWindowingData(&popup);
 
   m_Ctx.Replay().AsyncInvoke([winData, id](IReplayController *r) { r->ReplayLoop(winData, id); });
 
@@ -2386,7 +2386,7 @@ void MainWindow::on_action_Create_RGP_Profile_triggered()
   popup.resize(128, 16);
   popup.setWindowTitle(tr("Making RGP Profile from %1").arg(m_Ctx.GetCaptureFilename()));
 
-  WindowingData winData = m_Ctx.CreateWindowingData(popup.winId());
+  WindowingData winData = m_Ctx.CreateWindowingData(&popup);
 
   rdcstr path;
 

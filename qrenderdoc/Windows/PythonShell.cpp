@@ -111,10 +111,6 @@ struct CaptureContextInvoker : ICaptureContext
   virtual IRGPInterop *GetRGPInterop() override { return m_Ctx.GetRGPInterop(); }
   virtual const SDFile &GetStructuredFile() override { return m_Ctx.GetStructuredFile(); }
   virtual WindowingSystem CurWindowingSystem() override { return m_Ctx.CurWindowingSystem(); }
-  virtual WindowingData CreateWindowingData(uintptr_t winId) override
-  {
-    return m_Ctx.CreateWindowingData(winId);
-  }
   virtual const rdcarray<DebugMessage> &DebugMessages() override { return m_Ctx.DebugMessages(); }
   virtual int UnreadMessageCount() override { return m_Ctx.UnreadMessageCount(); }
   virtual void MarkMessagesRead() override { return m_Ctx.MarkMessagesRead(); }
@@ -168,6 +164,10 @@ struct CaptureContextInvoker : ICaptureContext
     return (m_Ctx.*ptr)(params...);
   }
 
+  virtual WindowingData CreateWindowingData(QWidget *window) override
+  {
+    return InvokeRetFunction<WindowingData>(&ICaptureContext::CreateWindowingData, window);
+  }
   virtual void LoadCapture(const rdcstr &capture, const rdcstr &origFilename, bool temporary,
                            bool local) override
   {

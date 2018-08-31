@@ -1965,18 +1965,18 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 
     prev->setResourceName(fullname);
 
-    WId handle = prev->thumbWinId();
+    WindowingData winData = m_Ctx.CreateWindowingData(prev);
 
     if(m_Ctx.GetTexture(id))
     {
-      m_Ctx.Replay().AsyncInvoke([this, handle, id, typeHint](IReplayController *) {
-        m_Output->AddThumbnail(m_Ctx.CreateWindowingData(handle), id, typeHint);
+      m_Ctx.Replay().AsyncInvoke([this, winData, id, typeHint](IReplayController *) {
+        m_Output->AddThumbnail(winData, id, typeHint);
       });
     }
     else
     {
-      m_Ctx.Replay().AsyncInvoke([this, handle](IReplayController *) {
-        m_Output->AddThumbnail(m_Ctx.CreateWindowingData(handle), ResourceId(), CompType::Typeless);
+      m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
+        m_Output->AddThumbnail(winData, ResourceId(), CompType::Typeless);
       });
     }
 
@@ -1991,9 +1991,9 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
     prev->setActive(true);
     prev->setSelected(true);
 
-    WId handle = prev->thumbWinId();
-    m_Ctx.Replay().AsyncInvoke([this, handle](IReplayController *) {
-      m_Output->AddThumbnail(m_Ctx.CreateWindowingData(handle), ResourceId(), CompType::Typeless);
+    WindowingData winData = m_Ctx.CreateWindowingData(prev);
+    m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
+      m_Output->AddThumbnail(winData, ResourceId(), CompType::Typeless);
     });
   }
   else
@@ -2504,8 +2504,8 @@ void TextureViewer::OnCaptureLoaded()
 {
   Reset();
 
-  WId renderID = ui->render->winId();
-  WId contextID = ui->pixelContext->winId();
+  WindowingData renderData = m_Ctx.CreateWindowingData(ui->render);
+  WindowingData contextData = m_Ctx.CreateWindowingData(ui->pixelContext);
 
   ui->saveTex->setEnabled(true);
   ui->locationGoto->setEnabled(true);
@@ -2541,10 +2541,10 @@ void TextureViewer::OnCaptureLoaded()
       backCol.isValid() ? FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f)
                         : FloatVector();
 
-  m_Ctx.Replay().BlockInvoke([renderID, contextID, this](IReplayController *r) {
-    m_Output = r->CreateOutput(m_Ctx.CreateWindowingData(renderID), ReplayOutputType::Texture);
+  m_Ctx.Replay().BlockInvoke([renderData, contextData, this](IReplayController *r) {
+    m_Output = r->CreateOutput(renderData, ReplayOutputType::Texture);
 
-    m_Output->SetPixelContext(m_Ctx.CreateWindowingData(contextID));
+    m_Output->SetPixelContext(contextData);
 
     ui->render->setOutput(m_Output);
     ui->pixelContext->setOutput(m_Output);

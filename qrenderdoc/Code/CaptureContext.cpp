@@ -1197,23 +1197,25 @@ int CaptureContext::ResourceNameCacheID()
   return m_CustomNameCachedID;
 }
 
-WindowingData CaptureContext::CreateWindowingData(uintptr_t widget)
+#if defined(RENDERDOC_PLATFORM_APPLE)
+extern "C" void makeNSViewMetalCompatible(void *handle);
+#endif
+
+WindowingData CaptureContext::CreateWindowingData(QWidget *window)
 {
+  if(!GUIInvoke::onUIThread())
+    qCritical() << "CreateWindowingData called on non-UI thread";
+
 #if defined(WIN32)
 
-  return CreateWin32WindowingData((HWND)widget);
+  return CreateWin32WindowingData((HWND)window->winId());
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
   if(m_CurWinSystem == WindowingSystem::XCB)
-    return CreateXCBWindowingData(m_XCBConnection, (xcb_window_t)widget);
+    return CreateXCBWindowingData(m_XCBConnection, (xcb_window_t)window->winId());
   else
-    return CreateXlibWindowingData(m_X11Display, (Drawable)widget);
-
-#elif defined(RENDERDOC_PLATFORM_APPLE)
-
-  WindowingData ret = {WindowingSystem::Unknown};
-  return ret;
+    return CreateXlibWindowingData(m_X11Display, (Drawable)window->winId());
 
 #else
 

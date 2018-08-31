@@ -1419,11 +1419,14 @@ called.
   DOCUMENT(R"(Create an opaque pointer suitable for passing to
 :meth:`~renderdoc.ReplayController.CreateOutput` or other functions that expect windowing data.
 
-:param int winId: The window ID as returned from ``QWidget.winId()``.
+.. note::
+  This function must be called on the main UI thread.
+
+:param QWidget window: The window to create windowing data for.
 :return: The windowing data.
 :rtype: ~renderdoc.WindowingData
 )");
-  virtual WindowingData CreateWindowingData(uintptr_t winId) = 0;
+  virtual WindowingData CreateWindowingData(QWidget *window) = 0;
 
   DOCUMENT(R"(Retrieve the current list of debug messages. This includes messages from the capture
 as well as messages generated during replay and analysis.
