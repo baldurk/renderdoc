@@ -1530,11 +1530,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         GetWrapped(it->res)->FreeShadow();
     }
 
-    byte *thpixels = NULL;
-    uint16_t thwidth = 0;
-    uint16_t thheight = 0;
-
     const uint32_t maxSize = 2048;
+    RenderDoc::FramePixels fp;
 
     // gather backbuffer screenshot
     if(backbuffer != NULL)
@@ -1547,7 +1544,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       heapProps.VisibleNodeMask = 1;
 
       D3D12_RESOURCE_DESC bufDesc;
-
       bufDesc.Alignment = 0;
       bufDesc.DepthOrArraySize = 1;
       bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -1614,84 +1610,35 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
         if(SUCCEEDED(hr) && data)
         {
+          fp.len = (uint32_t)bufDesc.Width;
+          fp.data = new uint8_t[fp.len];
+          memcpy(fp.data, data, fp.len);
+
           ResourceFormat fmt = MakeResourceFormat(desc.Format);
-
-          thwidth = (uint16_t)RDCMIN(maxSize, (uint32_t)desc.Width);
-          thwidth &= ~0x7;    // align down to multiple of 8
-          thheight = uint16_t(thwidth * desc.Height / desc.Width);
-
-          thpixels = new byte[3U * thwidth * thheight];
-
-          uint32_t stride = fmt.compByteWidth * fmt.compCount;
-
-          bool buf1010102 = false;
-          bool bufBGRA = (fmt.bgraOrder != false);
-
-          if(fmt.type == ResourceFormatType::R10G10B10A2)
+          fp.width = (uint32_t)desc.Width;
+          fp.height = (uint32_t)desc.Height;
+          fp.pitch = layout.Footprint.RowPitch;
+          fp.stride = fmt.compByteWidth * fmt.compCount;
+          fp.bpc = fmt.compByteWidth;
+          fp.bgra = fmt.bgraOrder;
+          fp.max_width = maxSize;
+          fp.pitch_requirement = 8;
+          switch(fmt.type)
           {
-            stride = 4;
-            buf1010102 = true;
+            case ResourceFormatType::R10G10B10A2:
+              fp.stride = 4;
+              fp.buf1010102 = true;
+              break;
+            case ResourceFormatType::R5G6B5:
+              fp.stride = 2;
+              fp.buf565 = true;
+              break;
+            case ResourceFormatType::R5G5B5A1:
+              fp.stride = 2;
+              fp.buf5551 = true;
+              break;
+            default: break;
           }
-
-          byte *dstPixels = thpixels;
-
-          for(uint32_t y = 0; y < thheight; y++)
-          {
-            for(uint32_t x = 0; x < thwidth; x++)
-            {
-              uint32_t xSource = uint32_t(x * desc.Width / thwidth);
-              uint32_t ySource = uint32_t(y * desc.Height / thheight);
-
-              byte *srcPixels = &data[stride * xSource + layout.Footprint.RowPitch * ySource];
-
-              if(buf1010102)
-              {
-                uint32_t *src1010102 = (uint32_t *)srcPixels;
-                Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
-                dstPixels[0] = (byte)(unorm.x * 255.0f);
-                dstPixels[1] = (byte)(unorm.y * 255.0f);
-                dstPixels[2] = (byte)(unorm.z * 255.0f);
-              }
-              else if(bufBGRA)
-              {
-                dstPixels[0] = srcPixels[2];
-                dstPixels[1] = srcPixels[1];
-                dstPixels[2] = srcPixels[0];
-              }
-              else if(fmt.compByteWidth == 2)    // R16G16B16A16 backbuffer
-              {
-                uint16_t *src16 = (uint16_t *)srcPixels;
-
-                float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
-                float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
-                float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
-
-                if(linearR < 0.0031308f)
-                  dstPixels[0] = byte(255.0f * (12.92f * linearR));
-                else
-                  dstPixels[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
-
-                if(linearG < 0.0031308f)
-                  dstPixels[1] = byte(255.0f * (12.92f * linearG));
-                else
-                  dstPixels[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
-
-                if(linearB < 0.0031308f)
-                  dstPixels[2] = byte(255.0f * (12.92f * linearB));
-                else
-                  dstPixels[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
-              }
-              else
-              {
-                dstPixels[0] = srcPixels[0];
-                dstPixels[1] = srcPixels[1];
-                dstPixels[2] = srcPixels[2];
-              }
-
-              dstPixels += 3;
-            }
-          }
-
           copyDst->Unmap(0, NULL);
         }
         else
@@ -1707,39 +1654,13 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    byte *jpgbuf = NULL;
-    int len = thwidth * thheight;
-
-    if(wnd && thpixels)
-    {
-      jpgbuf = new byte[len];
-
-      jpge::params p;
-      p.m_quality = 80;
-
-      bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3,
-                                                                 thpixels, p);
-
-      if(!success)
-      {
-        RDCERR("Failed to compress to jpg");
-        SAFE_DELETE_ARRAY(jpgbuf);
-        thwidth = 0;
-        thheight = 0;
-      }
-    }
-
     queues = m_Queues;
 
     for(auto it = queues.begin(); it != queues.end(); ++it)
       if((*it)->GetResourceRecord()->ContainsExecuteIndirect)
         WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
-    rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_CapturedFrames.back().frameNumber, jpgbuf,
-                                      len, thwidth, thheight, FileType::JPG);
-
-    SAFE_DELETE_ARRAY(jpgbuf);
-    SAFE_DELETE_ARRAY(thpixels);
+    rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_CapturedFrames.back().frameNumber, fp);
   }
 
   StreamWriter *captureWriter = NULL;

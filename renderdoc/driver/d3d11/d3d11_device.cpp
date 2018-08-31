@@ -1543,10 +1543,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
     }
 
     const uint32_t maxSize = 2048;
-
-    byte *thpixels = NULL;
-    uint16_t thwidth = 0;
-    uint16_t thheight = 0;
+    RenderDoc::FramePixels fp;
 
     if(swap != NULL)
     {
@@ -1626,85 +1623,36 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
           }
           else
           {
-            byte *data = (byte *)mapped.pData;
-
-            thwidth = (uint16_t)RDCMIN(maxSize, desc.Width);
-            thwidth &= ~0x7;    // align down to multiple of 8
-            thheight = uint16_t(thwidth * desc.Height / desc.Width);
-
-            thpixels = new byte[3U * thwidth * thheight];
-
-            uint32_t stride = fmt.compByteWidth * fmt.compCount;
-
-            bool buf1010102 = false;
-            bool bufBGRA = (fmt.bgraOrder != false);
-
-            if(fmt.type == ResourceFormatType::R10G10B10A2)
-            {
-              stride = 4;
-              buf1010102 = true;
-            }
-
-            byte *dst = thpixels;
-
-            for(uint32_t y = 0; y < thheight; y++)
-            {
-              for(uint32_t x = 0; x < thwidth; x++)
-              {
-                uint32_t xSource = x * desc.Width / thwidth;
-                uint32_t ySource = y * desc.Height / thheight;
-
-                byte *src = &data[stride * xSource + mapped.RowPitch * ySource];
-
-                if(buf1010102)
-                {
-                  uint32_t *src1010102 = (uint32_t *)src;
-                  Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
-                  dst[0] = (byte)(unorm.x * 255.0f);
-                  dst[1] = (byte)(unorm.y * 255.0f);
-                  dst[2] = (byte)(unorm.z * 255.0f);
-                }
-                else if(bufBGRA)
-                {
-                  dst[0] = src[2];
-                  dst[1] = src[1];
-                  dst[2] = src[0];
-                }
-                else if(fmt.compByteWidth == 2)    // R16G16B16A16 backbuffer
-                {
-                  uint16_t *src16 = (uint16_t *)src;
-
-                  float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
-                  float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
-                  float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
-
-                  if(linearR < 0.0031308f)
-                    dst[0] = byte(255.0f * (12.92f * linearR));
-                  else
-                    dst[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
-
-                  if(linearG < 0.0031308f)
-                    dst[1] = byte(255.0f * (12.92f * linearG));
-                  else
-                    dst[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
-
-                  if(linearB < 0.0031308f)
-                    dst[2] = byte(255.0f * (12.92f * linearB));
-                  else
-                    dst[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
-                }
-                else
-                {
-                  dst[0] = src[0];
-                  dst[1] = src[1];
-                  dst[2] = src[2];
-                }
-
-                dst += 3;
-              }
-            }
+            fp.len = (uint32_t)mapped.RowPitch * desc.Height;
+            fp.data = new uint8_t[fp.len];
+            memcpy(fp.data, mapped.pData, fp.len);
 
             m_pImmediateContext->GetReal()->Unmap(stagingTex, 0);
+
+            fp.width = (uint32_t)desc.Width;
+            fp.height = (uint32_t)desc.Height;
+            fp.pitch = mapped.RowPitch;
+            fp.stride = fmt.compByteWidth * fmt.compCount;
+            fp.bpc = fmt.compByteWidth;
+            fp.bgra = fmt.bgraOrder;
+            fp.max_width = maxSize;
+            fp.pitch_requirement = 8;
+            switch(fmt.type)
+            {
+              case ResourceFormatType::R10G10B10A2:
+                fp.stride = 4;
+                fp.buf1010102 = true;
+                break;
+              case ResourceFormatType::R5G6B5:
+                fp.stride = 2;
+                fp.buf565 = true;
+                break;
+              case ResourceFormatType::R5G5B5A1:
+                fp.stride = 2;
+                fp.buf5551 = true;
+                break;
+              default: break;
+            }
           }
         }
 
@@ -1712,33 +1660,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    byte *jpgbuf = NULL;
-    int len = thwidth * thheight;
-
-    if(wnd)
-    {
-      jpgbuf = new byte[len];
-
-      jpge::params p;
-      p.m_quality = 80;
-
-      bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3,
-                                                                 thpixels, p);
-
-      if(!success)
-      {
-        RDCERR("Failed to compress to jpg");
-        SAFE_DELETE_ARRAY(jpgbuf);
-        thwidth = 0;
-        thheight = 0;
-      }
-    }
-
-    RDCFile *rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D11, m_CapturedFrames.back().frameNumber,
-                                               jpgbuf, len, thwidth, thheight, FileType::JPG);
-
-    SAFE_DELETE_ARRAY(jpgbuf);
-    SAFE_DELETE_ARRAY(thpixels);
+    RDCFile *rdc =
+        RenderDoc::Inst().CreateRDC(RDCDriver::D3D11, m_CapturedFrames.back().frameNumber, fp);
 
     StreamWriter *captureWriter = NULL;
 

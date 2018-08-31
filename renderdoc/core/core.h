@@ -45,6 +45,7 @@ using std::pair;
 using std::set;
 
 class Chunk;
+struct RDCThumb;
 
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f);
@@ -346,6 +347,26 @@ typedef void (*ShutdownFunction)();
 class RenderDoc
 {
 public:
+  struct FramePixels
+  {
+    uint8_t *data = NULL;
+    uint32_t len = 0;
+    uint32_t width = 0;
+    uint32_t pitch = 0;
+    uint32_t height = 0;
+    uint32_t stride = 0;
+    uint32_t bpc = 0;    // bytes per channel
+    bool buf1010102 = false;
+    bool buf565 = false;
+    bool buf5551 = false;
+    bool bgra = false;
+    bool is_y_flipped = true;
+    uint32_t pitch_requirement = 0;
+    uint32_t max_width = 0;
+    FramePixels() {}
+    ~FramePixels() { SAFE_DELETE_ARRAY(data); }
+  };
+
   static RenderDoc &Inst();
 
   template <typename ProgressType>
@@ -410,8 +431,9 @@ public:
   void RecreateCrashHandler();
   void UnloadCrashHandler();
   ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
-  RDCFile *CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixels, size_t thlen,
-                     uint16_t thwidth, uint16_t thheight, FileType thformat);
+  void ResamplePixels(const FramePixels &in, RDCThumb &out);
+  void EncodePixelsPNG(const RDCThumb &in, RDCThumb &out);
+  RDCFile *CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePixels &fp);
   void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident)

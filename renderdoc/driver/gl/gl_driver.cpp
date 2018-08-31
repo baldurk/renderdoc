@@ -1875,7 +1875,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     ContextEndFrame();
     FinishCapture();
 
-    BackbufferImage *bbim = NULL;
+    RenderDoc::FramePixels *bbim = NULL;
 
     // if the specified context isn't current, try and see if we've saved
     // an appropriate backbuffer image during capture.
@@ -1895,9 +1895,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     if(bbim == NULL)
       bbim = SaveBackbufferImage();
 
-    RDCFile *rdc = RenderDoc::Inst().CreateRDC(GetDriverType(), m_CapturedFrames.back().frameNumber,
-                                               bbim->jpgbuf, bbim->len, bbim->thwidth,
-                                               bbim->thheight, FileType::JPG);
+    RDCFile *rdc =
+        RenderDoc::Inst().CreateRDC(GetDriverType(), m_CapturedFrames.back().frameNumber, bbim[0]);
 
     SAFE_DELETE(bbim);
 
@@ -2106,13 +2105,10 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
   }
 }
 
-WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
+RenderDoc::FramePixels *WrappedOpenGL::SaveBackbufferImage()
 {
   const uint16_t maxSize = 2048;
-
-  byte *thpixels = NULL;
-  uint16_t thwidth = 0;
-  uint16_t thheight = 0;
+  RenderDoc::FramePixels *fp = new RenderDoc::FramePixels();
 
   if(GL.glGetIntegerv && GL.glReadBuffer && GL.glBindFramebuffer && GL.glBindBuffer && GL.glReadPixels)
   {
@@ -2141,49 +2137,19 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 
     ContextData &dat = GetCtxData();
 
-    thwidth = (uint16_t)dat.initParams.width;
-    thheight = (uint16_t)dat.initParams.height;
-
-    thpixels = new byte[thwidth * thheight * 4];
+    fp->width = dat.initParams.width;
+    fp->height = dat.initParams.height;
+    fp->bpc = 1;
+    fp->stride = fp->bpc * 4;
+    fp->pitch = dat.initParams.width * fp->stride;
+    fp->max_width = maxSize;
+    fp->pitch_requirement = 4;
+    fp->len = (uint32_t)fp->pitch * fp->height;
+    fp->data = new uint8_t[fp->len];
+    fp->is_y_flipped = dat.initParams.isYFlipped;
 
     // GLES only supports GL_RGBA
-    GL.glReadPixels(0, 0, thwidth, thheight, eGL_RGBA, eGL_UNSIGNED_BYTE, thpixels);
-
-    // RGBA -> RGB
-    for(uint32_t y = 0; y < thheight; y++)
-    {
-      for(uint32_t x = 0; x < thwidth; x++)
-      {
-        thpixels[(y * thwidth + x) * 3 + 0] = thpixels[(y * thwidth + x) * 4 + 0];
-        thpixels[(y * thwidth + x) * 3 + 1] = thpixels[(y * thwidth + x) * 4 + 1];
-        thpixels[(y * thwidth + x) * 3 + 2] = thpixels[(y * thwidth + x) * 4 + 2];
-      }
-    }
-
-    // flip the image in-place
-    if(!dat.initParams.isYFlipped)
-    {
-      for(uint16_t y = 0; y <= thheight / 2; y++)
-      {
-        uint16_t flipY = (thheight - 1 - y);
-
-        for(uint16_t x = 0; x < thwidth; x++)
-        {
-          byte save[3];
-          save[0] = thpixels[(y * thwidth + x) * 3 + 0];
-          save[1] = thpixels[(y * thwidth + x) * 3 + 1];
-          save[2] = thpixels[(y * thwidth + x) * 3 + 2];
-
-          thpixels[(y * thwidth + x) * 3 + 0] = thpixels[(flipY * thwidth + x) * 3 + 0];
-          thpixels[(y * thwidth + x) * 3 + 1] = thpixels[(flipY * thwidth + x) * 3 + 1];
-          thpixels[(y * thwidth + x) * 3 + 2] = thpixels[(flipY * thwidth + x) * 3 + 2];
-
-          thpixels[(flipY * thwidth + x) * 3 + 0] = save[0];
-          thpixels[(flipY * thwidth + x) * 3 + 1] = save[1];
-          thpixels[(flipY * thwidth + x) * 3 + 2] = save[2];
-        }
-      }
-    }
+    GL.glReadPixels(0, 0, fp->width, fp->height, eGL_RGBA, eGL_UNSIGNED_BYTE, fp->data);
 
     GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
@@ -2192,69 +2158,9 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     GL.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
     GL.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
     GL.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
-
-    // scale down if necessary using simple point sampling
-    thwidth = RDCMIN(maxSize, uint16_t(dat.initParams.width));
-    // TODO(akharlamov): why does OpenGL align to 4 when Vulkan and DX11 align to 8?
-    thwidth &= ~0x3;    // align down to multiple of 4
-    thheight = uint16_t(thwidth * dat.initParams.height / dat.initParams.width);
-
-    byte *src = thpixels;
-    byte *dst = thpixels = new byte[3U * thwidth * thheight];
-
-    for(uint32_t y = 0; y < thheight; y++)
-    {
-      for(uint32_t x = 0; x < thwidth; x++)
-      {
-        uint32_t xSource = x * dat.initParams.width / thwidth;
-        uint32_t ySource = y * dat.initParams.height / thheight;
-
-        byte *pixelsrc = &src[3 * xSource + dat.initParams.width * 3 * ySource];
-
-        memcpy(dst, pixelsrc, 3);
-
-        dst += 3;
-      }
-    }
-
-    // src is the raw unscaled pixels, which is no longer needed
-    SAFE_DELETE_ARRAY(src);
   }
 
-  byte *jpgbuf = NULL;
-  int len = thwidth * thheight;
-
-  if(len > 0)
-  {
-    // jpge::compress_image_to_jpeg_file_in_memory requires at least 1024 bytes
-    len = len >= 1024 ? len : 1024;
-
-    jpgbuf = new byte[len];
-
-    jpge::params p;
-    p.m_quality = 80;
-
-    bool success =
-        jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
-
-    if(!success)
-    {
-      RDCERR("Failed to compress to jpg");
-      SAFE_DELETE_ARRAY(jpgbuf);
-      thwidth = 0;
-      thheight = 0;
-    }
-  }
-
-  SAFE_DELETE_ARRAY(thpixels);
-
-  BackbufferImage *bbim = new BackbufferImage();
-  bbim->jpgbuf = jpgbuf;
-  bbim->len = len;
-  bbim->thwidth = thwidth;
-  bbim->thheight = thheight;
-
-  return bbim;
+  return fp;
 }
 
 template <typename SerialiserType>
