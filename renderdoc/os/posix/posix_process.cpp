@@ -43,8 +43,11 @@ char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
 
 Threading::CriticalSection zombieLock;
-struct sigaction old_action;
 std::set<pid_t> children;
+
+#if DISABLED(RDOC_ANDROID)
+
+struct sigaction old_action;
 
 static void ZombieWaiter(int signum, siginfo_t *handler_info, void *handler_context)
 {
@@ -105,6 +108,14 @@ static void SetupZombieCollectionHandler()
 
   sigaction(SIGCHLD, &new_action, &old_action);
 }
+
+#else    // ANDROID
+
+static void SetupZombieCollectionHandler()
+{
+}
+
+#endif
 
 namespace FileIO
 {
