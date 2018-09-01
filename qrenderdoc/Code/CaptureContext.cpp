@@ -1217,6 +1217,11 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
   else
     return CreateXlibWindowingData(m_X11Display, (Drawable)window->winId());
 
+#elif defined(RENDERDOC_PLATFORM_APPLE)
+
+  WindowingData ret = {WindowingSystem::Unknown};
+  return ret;
+
 #else
 
 #error "Unknown platform"
