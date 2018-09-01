@@ -107,7 +107,7 @@ HOOK_EXPORT GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXConte
   init.isSRGB = value;
   value = 1;
   GLX.glXGetConfig(dpy, vis, GLX_SAMPLES_ARB, &value);
-  init.isSRGB = RDCMAX(1, value);
+  init.multiSamples = RDCMAX(1, value);
 
   GLWindowingData data;
   data.dpy = dpy;
@@ -248,7 +248,7 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig conf
   init.isSRGB = value;
   value = 1;
   GLX.glXGetConfig(dpy, vis, GLX_SAMPLES_ARB, &value);
-  init.isSRGB = RDCMAX(1, value);
+  init.multiSamples = RDCMAX(1, value);
 
   GLWindowingData data;
   data.dpy = dpy;
