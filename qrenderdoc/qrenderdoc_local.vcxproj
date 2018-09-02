@@ -1568,6 +1568,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Code\AppleUtils.mm" />
     <None Include="Code\pyrenderdoc\container_handling.i" />
     <None Include="Code\pyrenderdoc\ext_refcounts.i" />
     <None Include="Code\pyrenderdoc\pyconversion.h" />

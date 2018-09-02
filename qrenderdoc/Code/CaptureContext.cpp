@@ -316,6 +316,8 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
       m_XCBConnection = QX11Info::connection();
     else
       m_X11Display = QX11Info::display();
+#elif defined(RENDERDOC_PLATFORM_APPLE)
+    m_CurWinSystem = WindowingSystem::MacOS;
 #endif
 
     m_StructuredFile = &r->GetStructuredFile();
@@ -1198,7 +1200,7 @@ int CaptureContext::ResourceNameCacheID()
 }
 
 #if defined(RENDERDOC_PLATFORM_APPLE)
-extern "C" void makeNSViewMetalCompatible(void *handle);
+extern "C" void *makeNSViewMetalCompatible(void *handle);
 #endif
 
 WindowingData CaptureContext::CreateWindowingData(QWidget *window)
@@ -1216,6 +1218,14 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
     return CreateXCBWindowingData(m_XCBConnection, (xcb_window_t)window->winId());
   else
     return CreateXlibWindowingData(m_X11Display, (Drawable)window->winId());
+
+#elif defined(RENDERDOC_PLATFORM_APPLE)
+
+  void *view = (void *)window->winId();
+
+  void *layer = makeNSViewMetalCompatible(view);
+
+  return CreateMacOSWindowingData(layer);
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
 

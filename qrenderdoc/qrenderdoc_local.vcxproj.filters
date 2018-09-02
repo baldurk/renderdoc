@@ -1087,6 +1087,9 @@
     <None Include="Resources\README.md">
       <Filter>Resources\Files</Filter>
     </None>
+    <None Include="Code\AppleUtils.mm">
+      <Filter>Code</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\qrenderdoc.rc">

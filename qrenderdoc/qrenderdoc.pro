@@ -132,6 +132,10 @@ win32 {
 	QMAKE_CXXFLAGS_WARN_OFF -= -w
 
 	macx: {
+		SOURCES += Code/AppleUtils.mm
+
+		LIBS += -framework Cocoa -framework QuartzCore
+
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
 		ICON = $$OSX_ICONFILE
 		
