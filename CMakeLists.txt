@@ -141,8 +141,7 @@ set(RENDERDOC_VERSION "${RENDERDOC_VERSION_MAJOR}.${RENDERDOC_VERSION_MINOR}")
 message(STATUS "Building RenderDoc version ${RENDERDOC_VERSION}")
 
 if(APPLE)
-    message(STATUS "Disabling Vulkan and GLES drivers on apple")
-	set(ENABLE_VULKAN OFF CACHE BOOL "" FORCE)
+    message(STATUS "Disabling GLES driver on apple")
     set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
 endif()
 
