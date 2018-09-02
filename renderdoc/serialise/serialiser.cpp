@@ -745,6 +745,18 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
 // Basic types
 
 template <>
+std::string DoStringise(const std::string &el)
+{
+  return el;
+}
+
+template <>
+std::string DoStringise(const rdcstr &el)
+{
+  return el;
+}
+
+template <>
 std::string DoStringise(void *const &el)
 {
   return StringFormat::Fmt("%#p", el);
