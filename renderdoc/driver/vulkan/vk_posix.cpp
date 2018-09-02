@@ -22,8 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "api/replay/version.h"
+#include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_replay.h"
+
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 {
@@ -44,7 +50,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
 #define EXPECT_WSI 0
 
 #if(defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(VK_USE_PLATFORM_XCB_KHR) || \
-    defined(VK_USE_PLATFORM_XLIB_KHR))
+    defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_MACOS_MVK))
 
 #undef EXPECT_WSI
 #define EXPECT_WSI 1
@@ -88,12 +94,27 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     }
 #endif
 
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+    // must be supported
+    RDCASSERT(supportedExtensions.find(VK_MVK_MACOS_SURFACE_EXTENSION_NAME) !=
+              supportedExtensions.end());
+
+    m_SupportedWindowSystems.push_back(WindowingSystem::MacOS);
+
+    // don't add duplicates, application will have added this but just be sure
+    if(std::find(extensionList.begin(), extensionList.end(), VK_MVK_MACOS_SURFACE_EXTENSION_NAME) ==
+       extensionList.end())
+    {
+      extensionList.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+    }
+#endif
+
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
     // must be supported
     RDCASSERT(supportedExtensions.find(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) !=
               supportedExtensions.end());
 
-    m_SupportedWindowSystems.push_back(WindowingSystem::Android);
+    m_SupportedWindowSystems.push_back(WindowingSystem::macOS);
 
     // don't add duplicates, application will have added this but just be sure
     if(std::find(extensionList.begin(), extensionList.end(),
@@ -120,6 +141,11 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     if(m_SupportedWindowSystems.empty())
     {
       RDCWARN("No WSI support - only headless replay allowed.");
+
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+      RDCWARN("macOS Output requires the '%s' extension to be present",
+              VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+#endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
       RDCWARN("Android Output requires the '%s' extension to be present",
@@ -155,134 +181,286 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
   }
 }
 
-#if defined(VK_USE_PLATFORM_XCB_KHR)
+// defined in vk_linux.cpp or vk_apple.cpp
+string GetThisLibPath();
 
-VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice,
-                                                                     uint32_t queueFamilyIndex,
-                                                                     xcb_connection_t *connection,
-                                                                     xcb_visualid_t visual_id)
+// embedded data file
+
+extern unsigned char driver_vulkan_renderdoc_json[];
+extern int driver_vulkan_renderdoc_json_len;
+
+static std::string GenerateJSON(const std::string &sopath)
 {
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceXcbPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex,
-                                                   connection, visual_id);
-}
+  char *txt = (char *)driver_vulkan_renderdoc_json;
+  int len = driver_vulkan_renderdoc_json_len;
 
-namespace Keyboard
-{
-void UseConnection(xcb_connection_t *conn);
-}
+  string json = string(txt, txt + len);
 
-VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
-                                              const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
-                                              const VkAllocationCallbacks *pAllocator,
-                                              VkSurfaceKHR *pSurface)
-{
-  // should not come in here at all on replay
-  RDCASSERT(IsCaptureMode(m_State));
+  const char dllPathString[] = ".\\\\renderdoc.dll";
 
-  VkResult ret =
-      ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+  size_t idx = json.find(dllPathString);
 
-  if(ret == VK_SUCCESS)
+  json = json.substr(0, idx) + sopath + json.substr(idx + sizeof(dllPathString) - 1);
+
+  const char majorString[] = "[MAJOR]";
+
+  idx = json.find(majorString);
+  while(idx != string::npos)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MAJOR) +
+           json.substr(idx + sizeof(majorString) - 1);
 
-    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
-
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
-
-    Keyboard::UseConnection(pCreateInfo->connection);
+    idx = json.find(majorString);
   }
+
+  const char minorString[] = "[MINOR]";
+
+  idx = json.find(minorString);
+  while(idx != string::npos)
+  {
+    json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MINOR) +
+           json.substr(idx + sizeof(minorString) - 1);
+
+    idx = json.find(minorString);
+  }
+
+  return json;
+}
+
+static bool FileExists(const std::string &path)
+{
+  return access(path.c_str(), F_OK) == 0;
+}
+
+static std::string GetSOFromJSON(const std::string &json)
+{
+  char *json_string = new char[1024];
+  memset(json_string, 0, 1024);
+
+  FILE *f = fopen(json.c_str(), "r");
+
+  if(f)
+  {
+    fread(json_string, 1, 1024, f);
+
+    fclose(f);
+  }
+
+  string ret = "";
+
+  // The line is:
+  // "library_path": "/foo/bar/librenderdoc.so",
+  char *c = strstr(json_string, "library_path");
+
+  if(c)
+  {
+    c += sizeof("library_path\": \"") - 1;
+
+    char *quote = strchr(c, '"');
+
+    if(quote)
+    {
+      *quote = 0;
+      ret = c;
+    }
+  }
+
+  delete[] json_string;
 
   return ret;
 }
 
-#endif
-
-#if defined(VK_USE_PLATFORM_XLIB_KHR)
-
-VkBool32 WrappedVulkan::vkGetPhysicalDeviceXlibPresentationSupportKHR(
-    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, Display *dpy, VisualID visualID)
+enum class LayerPath : int
 {
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceXlibPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy,
-                                                    visualID);
-}
+  usr,
+  First = usr,
+  etc,
+  home,
+  Count,
+};
 
-namespace Keyboard
+ITERABLE_OPERATORS(LayerPath);
+
+string LayerRegistrationPath(LayerPath path)
 {
-void CloneDisplay(Display *dpy);
-}
-
-VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
-                                               const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
-                                               const VkAllocationCallbacks *pAllocator,
-                                               VkSurfaceKHR *pSurface)
-{
-  // should not come in here at all on replay
-  RDCASSERT(IsCaptureMode(m_State));
-
-  VkResult ret =
-      ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
-
-  if(ret == VK_SUCCESS)
+  switch(path)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    case LayerPath::usr: return "/usr/share/vulkan/implicit_layer.d/renderdoc_capture.json";
+    case LayerPath::etc: return "/etc/vulkan/implicit_layer.d/renderdoc_capture.json";
+    case LayerPath::home:
+    {
+      const char *xdg = getenv("XDG_DATA_HOME");
+      if(xdg && FileIO::exists(xdg))
+        return string(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
 
-    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
-
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)pCreateInfo->window;
-
-    Keyboard::CloneDisplay(pCreateInfo->dpy);
+      return string(getenv("HOME")) +
+             "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json";
+    }
+    default: break;
   }
 
-  return ret;
+  return "";
 }
 
-VkResult WrappedVulkan::vkAcquireXlibDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
-                                                VkDisplayKHR display)
+void MakeParentDirs(std::string file)
 {
-  // display is not wrapped so we can pass straight through
-  return ObjDisp(physicalDevice)->AcquireXlibDisplayEXT(Unwrap(physicalDevice), dpy, display);
+  std::string dir = dirname(file);
+
+  if(dir == "/" || dir.empty())
+    return;
+
+  MakeParentDirs(dir);
+
+  if(FileExists(dir))
+    return;
+
+  mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
-VkResult WrappedVulkan::vkGetRandROutputDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
-                                                   RROutput rrOutput, VkDisplayKHR *pDisplay)
+bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
+                                    std::vector<std::string> &otherJSONs)
 {
-  // display is not wrapped so we can pass straight through
-  return ObjDisp(physicalDevice)
-      ->GetRandROutputDisplayEXT(Unwrap(physicalDevice), dpy, rrOutput, pDisplay);
-}
+  // see if the user has suppressed all this checking as a "I know what I'm doing" measure
 
-#endif
-
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
-VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
-                                                  const VkAndroidSurfaceCreateInfoKHR *pCreateInfo,
-                                                  const VkAllocationCallbacks *pAllocator,
-                                                  VkSurfaceKHR *pSurface)
-{
-  // should not come in here at all on replay
-  RDCASSERT(IsCaptureMode(m_State));
-
-  VkResult ret = ObjDisp(instance)->CreateAndroidSurfaceKHR(Unwrap(instance), pCreateInfo,
-                                                            pAllocator, pSurface);
-
-  if(ret == VK_SUCCESS)
+  if(FileExists(string(getenv("HOME")) + "/.renderdoc/ignore_vulkan_layer_issues"))
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
-
-    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
-
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
+    flags = VulkanLayerFlags::ThisInstallRegistered;
+    return false;
   }
 
-  return ret;
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // check that there's only one layer registered, and it points to the same .so file that
+  // we are running with in this instance of renderdoccmd
+
+  string librenderdoc_path = GetThisLibPath();
+
+  if(librenderdoc_path.empty() || !FileExists(librenderdoc_path))
+  {
+    RDCERR("Couldn't determine current library path!");
+    flags = VulkanLayerFlags::ThisInstallRegistered;
+    return false;
+  }
+
+  // it's impractical to determine whether the currently running RenderDoc build is just a loose
+  // extract of a tarball or a distribution that decided to put all the files in the same folder,
+  // and whether or not the library is in ld's searchpath.
+  //
+  // Instead we just make the requirement that renderdoc.json will always contain an absolute path
+  // to the matching librenderdoc.so, so that we can check if it points to this build or another
+  // build etc.
+  //
+  // Note there are three places to register layers - /usr, /etc and /home. The first is reserved
+  // for distribution packages, so if it conflicts or needs to be deleted for this install to run,
+  // we can't do that and have to just prompt the user. /etc we can mess with since that's for
+  // non-distribution packages, but it will need root permissions.
+
+  bool exist[arraydim<LayerPath>()];
+  bool match[arraydim<LayerPath>()];
+
+  int numExist = 0;
+  int numMatch = 0;
+
+  for(LayerPath i : values<LayerPath>())
+  {
+    exist[(int)i] = FileExists(LayerRegistrationPath(i));
+    match[(int)i] = (GetSOFromJSON(LayerRegistrationPath(i)) == librenderdoc_path);
+
+    if(exist[(int)i])
+      numExist++;
+
+    if(match[(int)i])
+      numMatch++;
+  }
+
+  flags = VulkanLayerFlags::CouldElevate | VulkanLayerFlags::UpdateAllowed;
+
+  if(numMatch >= 1)
+    flags |= VulkanLayerFlags::ThisInstallRegistered;
+
+  // if we only have one registration, check that it points to us. If so, we're good
+  if(numExist == 1 && numMatch == 1)
+    return false;
+
+  if(exist[(int)LayerPath::usr] && !match[(int)LayerPath::usr])
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::usr));
+
+  if(exist[(int)LayerPath::etc] && !match[(int)LayerPath::etc])
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+
+  if(exist[(int)LayerPath::home] && !match[(int)LayerPath::home])
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::home));
+
+  if(!otherJSONs.empty())
+    flags |= VulkanLayerFlags::OtherInstallsRegistered;
+
+  if(exist[(int)LayerPath::usr] && match[(int)LayerPath::usr])
+  {
+    // just need to unregister others
+  }
+  else
+  {
+    myJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+    myJSONs.push_back(LayerRegistrationPath(LayerPath::home));
+  }
+
+  if(exist[(int)LayerPath::usr] && !match[(int)LayerPath::usr])
+  {
+    flags = VulkanLayerFlags::Unfixable | VulkanLayerFlags::OtherInstallsRegistered;
+    otherJSONs.clear();
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::usr));
+  }
+
+  return true;
 }
-#endif
+
+void VulkanReplay::InstallVulkanLayer(bool systemLevel)
+{
+  std::string homePath = LayerRegistrationPath(LayerPath::home);
+
+  // if we want to install to the system and there's a registration in $HOME, delete it
+  if(systemLevel && FileExists(homePath))
+  {
+    if(unlink(homePath.c_str()) < 0)
+    {
+      const char *const errtext = strerror(errno);
+      RDCERR("Error removing %s: %s", homePath.c_str(), errtext);
+    }
+  }
+
+  std::string etcPath = LayerRegistrationPath(LayerPath::etc);
+
+  // and vice-versa
+  if(!systemLevel && FileExists(etcPath))
+  {
+    if(unlink(etcPath.c_str()) < 0)
+    {
+      const char *const errtext = strerror(errno);
+      RDCERR("Error removing %s: %s", etcPath.c_str(), errtext);
+    }
+  }
+
+  LayerPath idx = systemLevel ? LayerPath::etc : LayerPath::home;
+
+  string jsonPath = LayerRegistrationPath(idx);
+  string path = GetSOFromJSON(jsonPath);
+  string libPath = GetThisLibPath();
+
+  if(path != libPath)
+  {
+    MakeParentDirs(jsonPath);
+
+    FILE *f = fopen(jsonPath.c_str(), "w");
+
+    if(f)
+    {
+      fputs(GenerateJSON(libPath).c_str(), f);
+
+      fclose(f);
+    }
+    else
+    {
+      const char *const errtext = strerror(errno);
+      RDCERR("Error writing %s: %s", jsonPath.c_str(), errtext);
+    }
+  }
+}

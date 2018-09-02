@@ -253,5 +253,8 @@
     <None Include="renderdoc.json">
       <Filter>Layer</Filter>
     </None>
+    <None Include="vk_apple.mm">
+      <Filter>OS\Posix</Filter>
+    </None>
   </ItemGroup>
 </Project>

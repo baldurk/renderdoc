@@ -1543,6 +1543,13 @@ public:
                                      const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 #endif
 
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+  // VK_MVK_macos_surface
+  VkResult vkCreateMacOSSurfaceMVK(VkInstance instance,
+                                   const VkMacOSSurfaceCreateInfoMVK *pCreateInfo,
+                                   const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
+#endif
+
 #if defined(VK_USE_PLATFORM_XCB_KHR)
   // VK_KHR_xcb_surface
   VkResult vkCreateXcbSurfaceKHR(VkInstance instance, const VkXcbSurfaceCreateInfoKHR *pCreateInfo,

@@ -186,6 +186,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="renderdoc.json" />
+    <None Include="vk_apple.mm" />
   </ItemGroup>
   <Target Name="_jsonProcess" BeforeTargets="PrepareForBuild">
     <!-- Read the version.h -->

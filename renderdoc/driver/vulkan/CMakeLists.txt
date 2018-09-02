@@ -81,7 +81,9 @@ if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_layer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 elseif(APPLE)
-    list(APPEND sources vk_posix.cpp vk_apple.cpp)
+    list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple.mm)
+
+    add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
 elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 

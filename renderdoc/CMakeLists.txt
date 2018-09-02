@@ -17,6 +17,14 @@ elseif(APPLE)
     list(APPEND RDOC_LIBRARIES
         PRIVATE -lm
         PRIVATE -ldl)
+
+    if(ENABLE_VULKAN)
+        find_library(COCOA_LIBRARY Cocoa)
+        list(APPEND RDOC_LIBRARIES PRIVATE ${COCOA_LIBRARY})
+
+        find_library(QUARTZCORE_LIBRARY QuartzCore)
+        list(APPEND RDOC_LIBRARIES PRIVATE ${QUARTZCORE_LIBRARY})
+    endif()
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)

@@ -152,9 +152,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   {
     if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
        *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
-       *it == "VK_KHR_android_surface" || *it == "VK_KHR_win32_surface" ||
-       *it == "VK_KHR_display" || *it == "VK_EXT_direct_mode_display" ||
-       *it == "VK_EXT_acquire_xlib_display" || *it == "VK_EXT_display_surface_counter")
+       *it == "VK_MVK_macos_surface " || *it == "VK_KHR_android_surface" ||
+       *it == "VK_KHR_win32_surface" || *it == "VK_KHR_display" ||
+       *it == "VK_EXT_direct_mode_display" || *it == "VK_EXT_acquire_xlib_display" ||
+       *it == "VK_EXT_display_surface_counter")
     {
       it = params.Extensions.erase(it);
     }

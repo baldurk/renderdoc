@@ -26,6 +26,31 @@
 #include "vk_core.h"
 #include "vk_replay.h"
 
+VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
+                                                  const VkAndroidSurfaceCreateInfoKHR *pCreateInfo,
+                                                  const VkAllocationCallbacks *pAllocator,
+                                                  VkSurfaceKHR *pSurface)
+{
+  // should not come in here at all on replay
+  RDCASSERT(IsCaptureMode(m_State));
+
+  VkResult ret = ObjDisp(instance)->CreateAndroidSurfaceKHR(Unwrap(instance), pCreateInfo,
+                                                            pAllocator, pSurface);
+
+  if(ret == VK_SUCCESS)
+  {
+    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+    // since there's no point in allocating a full resource record and storing the window
+    // handle under there somewhere, we just cast. We won't use the resource record for anything
+    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
+  }
+
+  return ret;
+}
+
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
 {
   RDCASSERT(window.system == WindowingSystem::Android, window.system);

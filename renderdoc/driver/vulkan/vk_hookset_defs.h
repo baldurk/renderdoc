@@ -69,6 +69,18 @@
   HookDefine3(VkResult, vkGetFenceWin32HandleKHR, VkDevice, device,                              \
               const VkFenceGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle);
 
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+
+#define HookInitInstance_PlatformSpecific() \
+  HookInitExtension(VK_MVK_macos_surface, CreateMacOSSurfaceMVK);
+
+#define HookInitDevice_PlatformSpecific()
+
+#define HookDefine_PlatformSpecific()                                                          \
+  HookDefine4(VkResult, vkCreateMacOSSurfaceMVK, VkInstance, instance,                         \
+              const VkMacOSSurfaceCreateInfoMVK *, pCreateInfo, const VkAllocationCallbacks *, \
+              pAllocator, VkSurfaceKHR *, pSurface);
+
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 
 #define HookInitInstance_PlatformSpecific() \
@@ -285,6 +297,7 @@
   CheckExt(KHR_xcb_surface, VKXX);                     \
   CheckExt(KHR_win32_surface, VKXX);                   \
   CheckExt(KHR_android_surface, VKXX);                 \
+  CheckExt(MVK_macos_surface, VKXX);                   \
   CheckExt(KHR_surface, VKXX);                         \
   CheckExt(EXT_debug_report, VKXX);                    \
   CheckExt(KHR_display, VKXX);                         \
