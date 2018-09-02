@@ -134,6 +134,10 @@ win32 {
 	macx: {
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
 		ICON = $$OSX_ICONFILE
+		
+		librd.files = $$files($$DESTDIR/librenderdoc.dylib)
+		librd.path = Contents/lib
+		QMAKE_BUNDLE_DATA += librd
 
 		INFO_PLIST_PATH = $$shell_quote($$DESTDIR/$${TARGET}.app/Contents/Info.plist)
 		QMAKE_POST_LINK += $$_PRO_FILE_PWD_/../util/set_plist_version.sh $${RENDERDOC_VERSION}.0 $${INFO_PLIST_PATH}

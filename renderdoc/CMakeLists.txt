@@ -449,6 +449,14 @@ if(UNIX AND NOT ANDROID AND NOT APPLE)
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.version -Wl,--no-undefined")
 endif()
 
+# On macOS set the rpath so that linked libraries are relative to the executable, not absolute
+if(APPLE)
+    set_target_properties(renderdoc PROPERTIES MACOSX_RPATH 1)
+    set_target_properties(renderdoc PROPERTIES INSTALL_RPATH "@executable_path/../lib")
+    set_target_properties(renderdoc PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib")
+    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_RPATH 1)
+endif()
+
 if(ANDROID)
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--build-id")
     # rename output library
