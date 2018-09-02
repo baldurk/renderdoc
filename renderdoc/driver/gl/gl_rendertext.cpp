@@ -155,7 +155,7 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 
         ShaderType shaderType;
         int glslVersion;
-        string fragDefines;
+        std::string vertDefines, fragDefines;
 
         if(IsGLES)
         {
@@ -167,10 +167,23 @@ void WrappedOpenGL::ContextData::CreateDebugData()
         {
           shaderType = eShaderGLSL;
           glslVersion = 110;
+
+#if ENABLED(RDOC_APPLE)
+          // on mac we need to define a more modern version and use modern texture sampling
+          glslVersion = GLCoreVersion * 10;
+          fragDefines =
+              "#define varying in\n"
+              "#define texture2D texture\n"
+              "#define gl_FragColor outcol\n"
+              "out vec4 outcol;";
+          vertDefines =
+              "#define varying out\n"
+              "#define attribute in";
+#endif
         }
 
-        GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_gltext_vert), glslVersion,
-                           false);
+        GenerateGLSLShader(vs, shaderType, vertDefines.c_str(),
+                           GetEmbeddedResource(glsl_gltext_vert), glslVersion, false);
         GenerateGLSLShader(fs, shaderType, fragDefines.c_str(),
                            GetEmbeddedResource(glsl_gltext_frag), glslVersion, false);
 
