@@ -379,8 +379,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
           m_TextAtlas,
           VK_IMAGE_VIEW_TYPE_2D,
           imInfo.format,
-          {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
-           VK_COMPONENT_SWIZZLE_ONE},
+          {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+           VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
       };
 
