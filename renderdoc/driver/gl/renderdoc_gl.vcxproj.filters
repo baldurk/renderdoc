@@ -117,6 +117,12 @@
     <ClInclude Include="glx_dispatch_table.h">
       <Filter>Platform Interfaces\Linux</Filter>
     </ClInclude>
+    <ClInclude Include="cgl_dispatch_table.h">
+      <Filter>Platform Interfaces\Apple</Filter>
+    </ClInclude>
+    <ClInclude Include="apple_gl_hook_defs.h">
+      <Filter>Platform Interfaces\Apple</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">

@@ -306,6 +306,32 @@ GLPlatform &GetEGLPlatform();
 
 #endif
 
+// on macOS we used compile time interposing to hook
+#if ENABLED(RDOC_APPLE)
+
+// never declare the actual raw function name as an export, declare the functions with a suffix that
+// will be connected in the struct below
+#define GL_EXPORT_NAME(function) CONCAT(interposed_, function)
+
+// from dyld-interposing.h - DYLD_INTERPOSE
+#define DECL_GL_HOOK_EXPORT(function)                                                                 \
+  __attribute__((used)) static struct                                                                 \
+  {                                                                                                   \
+    const void *replacment;                                                                           \
+    const void *replacee;                                                                             \
+  } _interpose_def_##function __attribute__((section("__DATA,__interpose"))) = {                      \
+      (const void *)(unsigned long)&GL_EXPORT_NAME(function), (const void *)(unsigned long)&function, \
+  };
+
+#else
+
+// on all other platforms we just export functions with the bare name, and don't declare anything to
+// hook.
+#define GL_EXPORT_NAME(function) function
+#define DECL_GL_HOOK_EXPORT(function)
+
+#endif
+
 class RDCFile;
 class IReplayDriver;
 

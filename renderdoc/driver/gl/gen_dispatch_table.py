@@ -224,10 +224,11 @@ template = '''
     UNINIT_CALL(function, {argpass}); \\
     return glhook.driver->function({argpass}); \\
   }} \\
-  HOOK_EXPORT ret HOOK_CC function({argdecl}) \\
+  HOOK_EXPORT ret HOOK_CC GL_EXPORT_NAME(function)({argdecl}) \\
   {{ \\
     return CONCAT(function, _renderdoc_hooked)({argpass}); \\
-  }}
+  }} \\
+  HOOK_EXPORT ret HOOK_CC function({argdecl});
 
 #define AliasWrapper{num}(ret, function, realfunc{macroargs}) \\
   ret HOOK_CC CONCAT(function, _renderdoc_hooked)({argdecl}) \\
@@ -236,10 +237,11 @@ template = '''
     UNINIT_CALL(realfunc, {argpass}); \\
     return glhook.driver->realfunc({argpass}); \\
   }} \\
-  HOOK_EXPORT ret HOOK_CC function({argdecl}) \\
+  HOOK_EXPORT ret HOOK_CC GL_EXPORT_NAME(function)({argdecl}) \\
   {{ \\
     return CONCAT(function, _renderdoc_hooked)({argpass}); \\
-  }}
+  }} \\
+  HOOK_EXPORT ret HOOK_CC function({argdecl});
 
 #define UnsupportedWrapper{num}(ret, function{macroargs}) \\
   typedef ret(HOOK_CC *CONCAT(function, _hooktype))({argdecl}); \\
@@ -257,10 +259,11 @@ template = '''
           (CONCAT(function, _hooktype))glhook.GetUnsupportedFunction(STRINGIZE(function)); \\
     return CONCAT(unsupported_real_, function)({argpass}); \\
   }} \\
-  HOOK_EXPORT ret HOOK_CC function({argdecl}) \\
+  HOOK_EXPORT ret HOOK_CC GL_EXPORT_NAME(function)({argdecl}) \\
   {{ \\
     return CONCAT(function, _renderdoc_hooked)({argpass}); \\
-  }}
+  }} \\
+  HOOK_EXPORT ret HOOK_CC function({argdecl});
 '''
 
 for num in range(parsed_args.maxparam+1):

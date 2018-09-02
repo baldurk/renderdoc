@@ -98,6 +98,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="apple_gl_hook_defs.h" />
+    <ClInclude Include="cgl_dispatch_table.h" />
     <ClInclude Include="glx_dispatch_table.h" />
     <ClInclude Include="gl_common.h" />
     <ClInclude Include="gl_driver.h" />

@@ -22,49 +22,37 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <OpenGL/OpenGL.h>
-#include "cgl_dispatch_table.h"
+#pragma once
+
 #include "gl_common.h"
 
-class CGLPlatform : public GLPlatform
+// cgl functions
+typedef CGLError (*PFN_CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj share,
+                                         CGLContextObj *ctx);
+typedef CGLError (*PFN_CGLSetCurrentContext)(CGLContextObj ctx);
+typedef CGLError (*PFN_CGLFlushDrawable)(CGLContextObj ctx);
+typedef CGLError (*PFN_CGLDestroyContext)(CGLContextObj ctx);
+
+#define CGL_HOOKED_SYMBOLS(FUNC) \
+  FUNC(CGLCreateContext);        \
+  FUNC(CGLSetCurrentContext);    \
+  FUNC(CGLFlushDrawable);
+
+#define CGL_NONHOOKED_SYMBOLS(FUNC) FUNC(CGLDestroyContext);
+
+struct CGLDispatchTable
 {
-  bool MakeContextCurrent(GLWindowingData data) { return false; }
-  GLWindowingData CloneTemporaryContext(GLWindowingData share)
-  {
-    GLWindowingData ret;
-    return ret;
-  }
+  // Although not needed on macOS, for consistency we follow the same pattern as EGLDispatchTable
+  // and GLXDispatchTable.
+  bool PopulateForReplay();
 
-  void DeleteClonedContext(GLWindowingData context) {}
-  void DeleteReplayContext(GLWindowingData context) {}
-  void SwapBuffers(GLWindowingData context) {}
-  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) { w = h = 0; }
-  bool IsOutputWindowVisible(GLWindowingData context) { return false; }
-  GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)
-  {
-    GLWindowingData ret = {};
-    return ret;
-  }
+// Generate the CGL function pointers. We need to consider hooked and non-hooked symbols separately
+// - non-hooked symbols don't have a function hook to register, or if they do it's a dummy
+// pass-through hook that will risk calling itself via trampoline.
+#define CGL_PTR_GEN(func) CONCAT(PFN_, func) func;
+  CGL_HOOKED_SYMBOLS(CGL_PTR_GEN)
+  CGL_NONHOOKED_SYMBOLS(CGL_PTR_GEN)
+#undef CGL_PTR_GEN
+};
 
-  void *GetReplayFunction(const char *funcname) { return NULL; }
-  bool CanCreateGLESContext() { return false; }
-  bool PopulateForReplay() { return false; }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
-  {
-    return ReplayStatus::APIUnsupported;
-  }
-
-  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
-} cglPlatform;
-
-CGLDispatchTable CGL = {};
-
-GLPlatform &GetGLPlatform()
-{
-  return cglPlatform;
-}
-
-bool CGLDispatchTable::PopulateForReplay()
-{
-  return false;
-}
+extern CGLDispatchTable CGL;

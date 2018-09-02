@@ -197,6 +197,8 @@ void GLHook::RegisterHooks()
   const char *libraryName = "opengl32.dll";
 #elif ENABLED(RDOC_ANDROID)
   const char *libraryName = "libEGL.so";
+#elif ENABLED(RDOC_APPLE)
+  const char *libraryName = "/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL";
 #else
   const char *libraryName = "libGL.so.1";
 #endif
@@ -221,3 +223,7 @@ void GLHook::RegisterHooks()
   }
 #endif
 }
+
+#if ENABLED(RDOC_APPLE)
+#include "apple_gl_hook_defs.h"
+#endif
