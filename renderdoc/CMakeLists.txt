@@ -429,7 +429,14 @@ add_library(renderdoc_libentry STATIC os/posix/posix_libentry.cpp)
 target_compile_definitions(renderdoc_libentry ${RDOC_DEFINITIONS})
 target_include_directories(renderdoc_libentry ${RDOC_INCLUDES})
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
-list(APPEND RDOC_LIBRARIES PRIVATE -lrenderdoc_libentry)
+
+# On apple we need to pass the force_load parameter here - if we set it with LINK_FLAGS below
+# it gets applied too early (even if the -lrenderdoc_libentry is later)
+if(APPLE)
+    list(APPEND RDOC_LIBRARIES PRIVATE "-Wl,-force_load,librenderdoc_libentry.a -lrenderdoc_libentry")
+else()
+    list(APPEND RDOC_LIBRARIES PRIVATE -lrenderdoc_libentry)
+endif()
 
 add_library(renderdoc SHARED ${renderdoc_objects})
 target_compile_definitions(renderdoc ${RDOC_DEFINITIONS})
