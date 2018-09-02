@@ -145,10 +145,10 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   }
   else
   {
-    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, prevShader, wasEmpty](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, wasEmpty](IReplayController *r) {
       rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
           m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
-      GUIInvoke::call(this, [this, vars, prevShader, wasEmpty] {
+      GUIInvoke::call(this, [this, vars, wasEmpty] {
 
         // save this state to reapply if we don't already have an internal expansion for the new
         // shader, since this means two shaders with the same or similar constants will preserve
