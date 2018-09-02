@@ -428,17 +428,30 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
       hasDebugReport = true;
   }
 
+  std::vector<VkExtensionProperties> supportedExts;
+
   // enumerate what instance extensions are available
   void *module = Process::LoadModule(VulkanLibraryName);
-  PFN_vkEnumerateInstanceExtensionProperties enumInstExts =
-      (PFN_vkEnumerateInstanceExtensionProperties)Process::GetFunctionAddress(
-          module, "vkEnumerateInstanceExtensionProperties");
+  if(module)
+  {
+    PFN_vkEnumerateInstanceExtensionProperties enumInstExts =
+        (PFN_vkEnumerateInstanceExtensionProperties)Process::GetFunctionAddress(
+            module, "vkEnumerateInstanceExtensionProperties");
 
-  uint32_t numSupportedExts = 0;
-  enumInstExts(NULL, &numSupportedExts, NULL);
+    if(enumInstExts)
+    {
+      uint32_t numSupportedExts = 0;
+      enumInstExts(NULL, &numSupportedExts, NULL);
 
-  std::vector<VkExtensionProperties> supportedExts(numSupportedExts);
-  enumInstExts(NULL, &numSupportedExts, &supportedExts[0]);
+      supportedExts.resize(numSupportedExts);
+      enumInstExts(NULL, &numSupportedExts, &supportedExts[0]);
+    }
+  }
+
+  if(supportedExts.empty())
+    RDCWARN(
+        "Couldn't load vkEnumerateInstanceExtensionProperties in vkCreateInstance to enumerate "
+        "instance extensions");
 
   // always enable debug report, if it's available
   if(!hasDebugReport)
