@@ -317,6 +317,21 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   string appName = app;
   string workDir = (workingDir && workingDir[0]) ? workingDir : dirname(appName);
 
+// handle funky apple .app folders that aren't actually executables
+#if ENABLED(RDOC_APPLE)
+  if(appName.size() > 5 && appName.rfind(".app") == appName.size() - 4)
+  {
+    std::string realAppName = appName + "/Contents/MacOS/" + basename(appName);
+    realAppName.erase(realAppName.size() - 4);
+
+    if(FileIO::exists(realAppName.c_str()))
+    {
+      RDCLOG("Running '%s' the actual executable for '%s'", realAppName.c_str(), appName.c_str());
+      appName = realAppName;
+    }
+  }
+#endif
+
   // do very limited expansion. wordexp(3) does too much for our needs, so we just expand ~
   // since that could be quite a common case.
   appName = shellExpand(appName);
