@@ -2236,11 +2236,17 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntry &el)
   SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER(descriptorType);
 
-  // these fields are size_t and should not be serialised as-is. They're not used so we can just
-  // serialise them as uint64_t. Unfortunately this wasn't correct initially and they were
-  // serialised as-is making a 32-bit/64-bit incompatibility, so for older versions all we can do is
-  // continue to serialise them as size_t as it's impossible to know which one was used.
+// these fields are size_t and should not be serialised as-is. They're not used so we can just
+// serialise them as uint64_t. Unfortunately this wasn't correct initially and they were
+// serialised as-is making a 32-bit/64-bit incompatibility, so for older versions all we can do is
+// continue to serialise them as size_t as it's impossible to know which one was used.
+//
+// On mac we can't compile a size_t serialise, which is good in general but makes this backwards
+// compatibility a bit more annoying. We just assume a 64-bit capture.
+
+#if DISABLED(RDOC_APPLE)
   if(ser.VersionAtLeast(0xE))
+#endif
   {
     uint64_t offset = el.offset;
     uint64_t stride = el.stride;
@@ -2249,11 +2255,13 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntry &el)
     el.offset = (size_t)offset;
     el.stride = (size_t)stride;
   }
+#if DISABLED(RDOC_APPLE)
   else
   {
     SERIALISE_MEMBER(offset);
     SERIALISE_MEMBER(stride);
   }
+#endif
 }
 
 template <typename SerialiserType>
