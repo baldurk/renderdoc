@@ -42,6 +42,20 @@
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
 
+#if ENABLED(RDOC_APPLE)
+
+#define PRELOAD_ENV_VAR "DYLD_INSERT_LIBRARIES"
+#define LIB_PATH_ENV_VAR "DYLD_LIBRARY_PATH"
+#define LIB_SUFFIX ".dylib"
+
+#else
+
+#define PRELOAD_ENV_VAR "LD_PRELOAD"
+#define LIB_PATH_ENV_VAR "LD_LIBRARY_PATH"
+#define LIB_SUFFIX ".so"
+
+#endif
+
 Threading::CriticalSection zombieLock;
 std::set<pid_t> children;
 
@@ -612,14 +626,21 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
 #endif
   }
 
+  std::string libfile = "librenderdoc" LIB_SUFFIX;
+
+// on macOS, the path must be absolute
+#if ENABLED(RDOC_APPLE)
+  libfile = libpath + "/" + libfile;
+#endif
+
   string optstr = opts.EncodeAsString();
 
-  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
-                                                  "LD_LIBRARY_PATH", binpath.c_str()));
-  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
-                                                  "LD_LIBRARY_PATH", libpath.c_str()));
   modifications.push_back(
-      EnvironmentModification(EnvMod::Append, EnvSep::Platform, "LD_PRELOAD", "librenderdoc.so"));
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, binpath.c_str()));
+  modifications.push_back(
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, libpath.c_str()));
+  modifications.push_back(
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, PRELOAD_ENV_VAR, libfile.c_str()));
   modifications.push_back(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_LOGFILE", logfile));
   modifications.push_back(
