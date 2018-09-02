@@ -33,7 +33,7 @@ double Timing::GetTickFrequency()
 
   uint64_t numer = timeInfo.numer;
   uint64_t denom = timeInfo.denom;
-  return (double)numer / (double)denom;
+  return ((double)numer / (double)denom) * 1000000.0;
 }
 
 uint64_t Timing::GetTick()
