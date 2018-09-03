@@ -1176,6 +1176,18 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
        IsBackgroundCapturing(m_State))
       return;
 
+    // because there's no DSA variant of the OVR framebuffer functions we must ensure that while
+    // background capturing the correct framebuffer is bound. Normally we don't serialise
+    // glBindFramebuffer calls.
+    if(IsBackgroundCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::glBindFramebuffer);
+      Serialise_glBindFramebuffer(ser, target, record->Resource.name);
+
+      record->AddChunk(scope.Get());
+    }
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glFramebufferTextureMultiviewOVR(ser, target, attachment, texture, level,
@@ -1274,6 +1286,18 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        IsBackgroundCapturing(m_State))
       return;
+
+    // because there's no DSA variant of the OVR framebuffer functions we must ensure that while
+    // background capturing the correct framebuffer is bound. Normally we don't serialise
+    // glBindFramebuffer calls.
+    if(IsBackgroundCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::glBindFramebuffer);
+      Serialise_glBindFramebuffer(ser, target, record->Resource.name);
+
+      record->AddChunk(scope.Get());
+    }
 
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
