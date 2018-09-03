@@ -708,6 +708,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
         uint32_t descriptorCount = layout.bindings[j].descriptorCount;
 
+        ResourceId *immutableSamplers = layout.bindings[j].immutableSampler;
+
         DescriptorSetSlot *src = srcData;
         srcData += descriptorCount;
 
@@ -752,6 +754,13 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
                 dstImage[d] = src[d].imageInfo;
+
+              if(immutableSamplers)
+              {
+                for(uint32_t d = 0; d < descriptorCount; d++)
+                  dstImage[d].sampler =
+                      GetResourceManager()->GetCurrentHandle<VkSampler>(immutableSamplers[d]);
+              }
 
               writes[bind].pImageInfo = dstImage;
               // NULL the others
