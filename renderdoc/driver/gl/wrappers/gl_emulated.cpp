@@ -2065,6 +2065,13 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glGetInternalformativ);
   }
 
+  if(!HasExt[ARB_program_interface_query])
+  {
+    EMULATE_FUNC(glGetProgramInterfaceiv);
+    EMULATE_FUNC(glGetProgramResourceiv);
+    EMULATE_FUNC(glGetProgramResourceName);
+  }
+
   // APIs that are not available at all in GLES.
   if(IsGLES)
   {
@@ -2075,10 +2082,6 @@ void GLDispatchTable::EmulateRequiredExtensions()
     {
       EMULATE_FUNC(glGetTexLevelParameteriv);
       EMULATE_FUNC(glGetTexLevelParameterfv);
-
-      EMULATE_FUNC(glGetProgramInterfaceiv);
-      EMULATE_FUNC(glGetProgramResourceiv);
-      EMULATE_FUNC(glGetProgramResourceName);
     }
 
     if(GLCoreVersion < 32)
