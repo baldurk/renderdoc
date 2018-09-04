@@ -115,3 +115,12 @@ void CustomPaintWidget::paintEvent(QPaintEvent *e)
     }
   }
 }
+
+#if defined(RENDERDOC_PLATFORM_APPLE)
+bool CustomPaintWidget::event(QEvent *e)
+{
+  if(m_Ctx && e->type() == QEvent::UpdateRequest)
+    paintEvent(NULL);
+  return QWidget::event(e);
+}
+#endif

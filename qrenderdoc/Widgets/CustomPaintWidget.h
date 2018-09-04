@@ -72,6 +72,10 @@ private:
 public slots:
 
 protected:
+#if defined(RENDERDOC_PLATFORM_APPLE)
+  bool event(QEvent *event) override;
+#endif
+
   void paintEvent(QPaintEvent *e) override;
   QPaintEngine *paintEngine() const override { return m_Ctx ? NULL : QWidget::paintEngine(); }
   ICaptureContext *m_Ctx;
