@@ -53,7 +53,7 @@ public:
   void clickEvent(QMouseEvent *e);
   void doubleClickEvent(QMouseEvent *e);
 
-  WId thumbWinId();
+  QWidget *thumbWidget();
 
   void setActive(bool b)
   {

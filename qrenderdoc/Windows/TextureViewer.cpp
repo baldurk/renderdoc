@@ -1965,7 +1965,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 
     prev->setResourceName(fullname);
 
-    WindowingData winData = m_Ctx.CreateWindowingData(prev);
+    WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
 
     if(m_Ctx.GetTexture(id))
     {
@@ -1991,7 +1991,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
     prev->setActive(true);
     prev->setSelected(true);
 
-    WindowingData winData = m_Ctx.CreateWindowingData(prev);
+    WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
     m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
       m_Output->AddThumbnail(winData, ResourceId(), CompType::Typeless);
     });

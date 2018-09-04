@@ -119,7 +119,7 @@ void ResourcePreview::changeEvent(QEvent *event)
     setSelected(m_Selected);
 }
 
-WId ResourcePreview::thumbWinId()
+QWidget *ResourcePreview::thumbWidget()
 {
-  return ui->thumbnail->winId();
+  return ui->thumbnail;
 }
