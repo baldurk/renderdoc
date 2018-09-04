@@ -176,7 +176,7 @@ struct GPUBuffer
 };
 
 // in vk_<platform>.cpp
-extern const char *VulkanLibraryName;
+extern void *LoadVulkanLibrary();
 
 class VkDriverInfo
 {

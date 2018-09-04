@@ -430,7 +430,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   std::vector<VkExtensionProperties> supportedExts;
 
   // enumerate what instance extensions are available
-  void *module = Process::LoadModule(VulkanLibraryName);
+  void *module = LoadVulkanLibrary();
   if(module)
   {
     PFN_vkEnumerateInstanceExtensionProperties enumInstExts =

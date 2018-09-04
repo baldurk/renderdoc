@@ -3405,7 +3405,7 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   Process::ApplyEnvironmentModification();
 
-  void *module = Process::LoadModule(VulkanLibraryName);
+  void *module = LoadVulkanLibrary();
 
   if(module == NULL)
   {

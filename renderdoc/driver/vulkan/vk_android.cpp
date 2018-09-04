@@ -81,7 +81,10 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
   h = ANativeWindow_getHeight(outw.wnd);
 }
 
-const char *VulkanLibraryName = "libvulkan.so";
+void *LoadVulkanLibrary()
+{
+  return Process::LoadModule("libvulkan.so");
+}
 
 bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                     std::vector<std::string> &otherJSONs)

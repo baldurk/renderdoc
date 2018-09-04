@@ -156,7 +156,10 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceWin32PresentationSupportKHR(VkPhysica
       ->GetPhysicalDeviceWin32PresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex);
 }
 
-const char *VulkanLibraryName = "vulkan-1.dll";
+void *LoadVulkanLibrary()
+{
+  return Process::LoadModule("vulkan-1.dll");
+}
 
 std::wstring GetJSONPath(bool wow6432)
 {
