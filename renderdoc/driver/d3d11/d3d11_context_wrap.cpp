@@ -5991,6 +5991,43 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
   {
     m_pRealContext->CopyStructureCount(UNWRAP(WrappedID3D11Buffer, pDstBuffer), DstAlignedByteOffset,
                                        UNWRAP(WrappedID3D11UnorderedAccessView1, pSrcView));
+
+    if(IsLoading(m_State))
+    {
+      WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pSrcView;
+
+      ResourceId dstLiveID = GetIDForResource(pDstBuffer);
+      ResourceId srcLiveID = view->GetResourceResID();
+      ResourceId dstOrigID = GetResourceManager()->GetOriginalID(dstLiveID);
+      ResourceId srcOrigID = GetResourceManager()->GetOriginalID(srcLiveID);
+
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = "CopyStructureCount(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
+      draw.flags |= DrawFlags::Copy;
+
+      if(pDstBuffer && pSrcView)
+      {
+        draw.copySource = srcOrigID;
+        draw.copyDestination = dstOrigID;
+
+        if(m_CurEventID)
+        {
+          if(dstLiveID == srcLiveID)
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+          }
+          else
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+            m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          }
+        }
+      }
+
+      AddDrawcall(draw, true);
+    }
   }
 
   return true;
@@ -6011,6 +6048,7 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
+    GET_SERIALISER.SetDrawChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopyStructureCount);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_CopyStructureCount(GET_SERIALISER, pDstBuffer, DstAlignedByteOffset, pSrcView);
