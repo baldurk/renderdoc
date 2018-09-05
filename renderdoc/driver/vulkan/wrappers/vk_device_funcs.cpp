@@ -1657,8 +1657,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
 
+    // MoltenVK reports 0x3fffffff for this limit so just ignore that value if it comes up
     RDCASSERT(m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets <
-                  ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID),
+                      ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID) ||
+                  m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets >= 0x10000000,
               m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets);
 
     for(int i = VK_FORMAT_BEGIN_RANGE + 1; i < VK_FORMAT_END_RANGE; i++)
