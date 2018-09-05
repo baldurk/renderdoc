@@ -283,14 +283,12 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
-  InstanceDeviceInfo extInfo;
-
 #undef CheckExt
 #define CheckExt(name, ver)                                       \
   if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || \
      (int)renderdocAppInfo.apiVersion >= ver)                     \
   {                                                               \
-    extInfo.ext_##name = true;                                    \
+    m_EnabledExtensions.ext_##name = true;                        \
   }
 
   for(uint32_t i = 0; i < instinfo.enabledExtensionCount; i++)
@@ -313,7 +311,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   AddResource(params.InstanceID, ResourceType::Device, "Instance");
   GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
 
-  InitInstanceExtensionTables(m_Instance, &extInfo);
+  InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
 
   m_DbgMsgCallback = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
@@ -1577,14 +1575,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     AddResource(Device, ResourceType::Device, "Device");
     DerivedResource(origPhysDevice, Device);
 
-    InstanceDeviceInfo extInfo;
-
 #undef CheckExt
 #define CheckExt(name, ver)                                         \
   if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
      (int)renderdocAppInfo.apiVersion >= ver)                       \
   {                                                                 \
-    extInfo.ext_##name = true;                                      \
+    m_EnabledExtensions.ext_##name = true;                          \
   }
 
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
@@ -1592,7 +1588,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       CheckDeviceExts();
     }
 
-    InitDeviceExtensionTables(device, &extInfo);
+    InitDeviceExtensionTables(device, &m_EnabledExtensions);
 
     RDCASSERT(m_Device == VK_NULL_HANDLE);    // MULTIDEVICE
 

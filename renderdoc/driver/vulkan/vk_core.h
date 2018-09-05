@@ -333,6 +333,13 @@ private:
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
+  InstanceDeviceInfo m_EnabledExtensions;
+
+  const InstanceDeviceInfo &GetExtensions(VkResourceRecord *record)
+  {
+    return record ? *record->instDevInfo : m_EnabledExtensions;
+  }
+
   // the instance corresponding to this WrappedVulkan
   VkInstance m_Instance;
   // the instance's dbg msg callback handle
