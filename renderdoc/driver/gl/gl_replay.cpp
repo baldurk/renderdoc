@@ -3429,7 +3429,7 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if(!load_ok)
   {
-    RDCERR("Couldn't find required GLX function addresses");
+    RDCERR("Couldn't find required platform GL function addresses");
     return ReplayStatus::APIInitFailed;
   }
 
