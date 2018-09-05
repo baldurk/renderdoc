@@ -1399,7 +1399,10 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_R64G64B64A64_SFLOAT: ret.compType = CompType::Double; break;
     case VK_FORMAT_D16_UNORM:
     case VK_FORMAT_X8_D24_UNORM_PACK32:
-    case VK_FORMAT_D32_SFLOAT: ret.compType = CompType::Depth; break;
+    case VK_FORMAT_D32_SFLOAT:
+    case VK_FORMAT_D16_UNORM_S8_UINT:
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+    case VK_FORMAT_D32_SFLOAT_S8_UINT: ret.compType = CompType::Depth; break;
     default: break;
   }
 
