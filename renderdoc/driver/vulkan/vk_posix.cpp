@@ -114,7 +114,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     RDCASSERT(supportedExtensions.find(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) !=
               supportedExtensions.end());
 
-    m_SupportedWindowSystems.push_back(WindowingSystem::macOS);
+    m_SupportedWindowSystems.push_back(WindowingSystem::Android);
 
     // don't add duplicates, application will have added this but just be sure
     if(std::find(extensionList.begin(), extensionList.end(),
