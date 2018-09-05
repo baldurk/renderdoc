@@ -396,6 +396,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
   m_GLESExtensions.push_back("GL_EXT_geometry_shader");
   m_GLESExtensions.push_back("GL_EXT_gpu_shader5");
+  m_GLESExtensions.push_back("GL_EXT_memory_object");
+  m_GLESExtensions.push_back("GL_EXT_memory_object_fd");
+  m_GLESExtensions.push_back("GL_EXT_memory_object_win32");
   m_GLESExtensions.push_back("GL_EXT_multisampled_render_to_texture");
   m_GLESExtensions.push_back("GL_EXT_primitive_bounding_box");
   m_GLESExtensions.push_back("GL_EXT_pvrtc_sRGB");
