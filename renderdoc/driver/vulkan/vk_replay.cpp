@@ -2033,9 +2033,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   uint32_t *buckets = (uint32_t *)m_Histogram.m_HistogramReadback.Map(NULL);
 
-  histogram.resize(HGRAM_NUM_BUCKETS);
-  for(size_t i = 0; i < HGRAM_NUM_BUCKETS; i++)
-    histogram[i] = buckets[i * 4];
+  histogram.assign(buckets, buckets + HGRAM_NUM_BUCKETS);
 
   m_Histogram.m_HistogramReadback.Unmap();
 

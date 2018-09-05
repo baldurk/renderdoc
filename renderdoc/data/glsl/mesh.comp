@@ -34,7 +34,12 @@ layout(binding = 2, std430) readonly buffer index_data
 
 layout(binding = 3, std140) buffer pickresult_buffer
 {
-	uvec4 counter;
+	uint counter;
+	// individual padding to prevent uint/uint3 packing woes
+	uint pad0;
+	uint pad1;
+	uint pad2;
+
 	uvec4 results[];
 } pickresult;
 
@@ -162,7 +167,7 @@ void trianglePath(uint threadID)
 		float dist1 = distance(pos1.xyz/pos1.w, hitPosition);
 		float dist2 = distance(pos2.xyz/pos2.w, hitPosition);
 
-		uint result_idx = atomicAdd(pickresult.counter.x, 1u);
+		uint result_idx = atomicAdd(pickresult.counter, 1u);
 
 		uint meshVert = vertid0;
 		if (dist1 < dist0 && dist1 < dist2)
@@ -208,7 +213,7 @@ void defaultPath(uint threadID)
 	float len = length(scr - meshpick.coords);
 	if(len < 35.0f)
 	{
-		uint result_idx = atomicAdd(pickresult.counter.x, 1u);
+		uint result_idx = atomicAdd(pickresult.counter, 1u);
 		pickresult.results[result_idx] = uvec4(vertid, idx, floatBitsToUint(len), floatBitsToUint(wpos.z));
 	}
 }

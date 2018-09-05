@@ -2399,9 +2399,9 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
   m_MinMaxResult.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1, GPUBuffer::eGPUBufferSSBO);
   m_MinMaxReadback.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1,
                           GPUBuffer::eGPUBufferReadback);
-  m_HistogramBuf.Create(driver, driver->GetDev(), sizeof(uint32_t) * 4 * HGRAM_NUM_BUCKETS, 1,
+  m_HistogramBuf.Create(driver, driver->GetDev(), sizeof(uint32_t) * HGRAM_NUM_BUCKETS, 1,
                         GPUBuffer::eGPUBufferSSBO);
-  m_HistogramReadback.Create(driver, driver->GetDev(), sizeof(uint32_t) * 4 * HGRAM_NUM_BUCKETS, 1,
+  m_HistogramReadback.Create(driver, driver->GetDev(), sizeof(uint32_t) * HGRAM_NUM_BUCKETS, 1,
                              GPUBuffer::eGPUBufferReadback);
 
   // don't need to ring this, as we hard-sync for readback anyway

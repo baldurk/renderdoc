@@ -500,7 +500,7 @@ void GLReplay::InitDebugData()
 
     drv.glNamedBufferDataEXT(DebugData.minmaxTileResult, byteSize, NULL, eGL_DYNAMIC_DRAW);
     drv.glNamedBufferDataEXT(DebugData.minmaxResult, sizeof(Vec4f) * 2, NULL, eGL_DYNAMIC_READ);
-    drv.glNamedBufferDataEXT(DebugData.histogramBuf, sizeof(uint32_t) * 4 * HGRAM_NUM_BUCKETS, NULL,
+    drv.glNamedBufferDataEXT(DebugData.histogramBuf, sizeof(uint32_t) * HGRAM_NUM_BUCKETS, NULL,
                              eGL_DYNAMIC_READ);
   }
 
@@ -1168,17 +1168,10 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   GL.glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   histogram.clear();
-  histogram.resize(HGRAM_NUM_BUCKETS * 4);
+  histogram.resize(HGRAM_NUM_BUCKETS);
 
   GL.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.histogramBuf);
-  GL.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t) * 4 * HGRAM_NUM_BUCKETS,
-                        &histogram[0]);
-
-  // compress down from uvec4, then resize down
-  for(size_t i = 1; i < HGRAM_NUM_BUCKETS; i++)
-    histogram[i] = histogram[i * 4];
-
-  histogram.resize(HGRAM_NUM_BUCKETS);
+  GL.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t) * HGRAM_NUM_BUCKETS, &histogram[0]);
 
   if(maxlevel >= 0)
     GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
