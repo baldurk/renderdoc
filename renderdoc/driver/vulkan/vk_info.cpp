@@ -92,9 +92,10 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
     DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
 
     // copy over any previous bindings that overlapped
-    memcpy(newSlots, descBindings[i],
-           sizeof(DescriptorSetSlot) *
-               RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
+    if(i < prevLayout.bindings.size())
+      memcpy(newSlots, descBindings[i],
+             sizeof(DescriptorSetSlot) *
+                 RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
 
     // delete old array, and assign the new one
     SAFE_DELETE_ARRAY(descBindings[i]);
