@@ -549,7 +549,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       // only write stencil to .y
       if(pass == 1)
       {
-        pixel[1] = ((uint32_t *)pData)[1] / 255.0f;
+        pixel[1] = ((uint32_t *)pData)[0] / 255.0f;
       }
       else
       {

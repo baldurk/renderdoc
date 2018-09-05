@@ -67,21 +67,6 @@ void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage li
   if(iminfo.type == VK_IMAGE_TYPE_3D)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
 
-  if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT)
-  {
-    viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-    viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
-    viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
-    viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
-  }
-  else if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
-  {
-    viewInfo.components.r = VK_COMPONENT_SWIZZLE_ZERO;
-    viewInfo.components.g = VK_COMPONENT_SWIZZLE_R;
-    viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
-    viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
-  }
-
   VkImageView view;
 
   VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &view);
@@ -180,6 +165,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
       // rescale the range so that stencil seems to fit to 0-1
       cfg.rangeMin *= 255.0f;
       cfg.rangeMax *= 255.0f;
+
+      // shuffle the channel selection, since stencil comes back in red
+      cfg.red = true;
+      cfg.green = false;
     }
   }
 
