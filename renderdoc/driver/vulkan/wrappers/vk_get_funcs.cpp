@@ -52,6 +52,51 @@ void WrappedVulkan::vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physica
 {
   ObjDisp(physicalDevice)
       ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), format, pFormatProperties);
+
+  // we require all these properties at minimum for an image to be created, since we add these to
+  // any usage. Fortunately, in the formats the spec requires an implementation to support,
+  // optimalTiledFeatures must contain all these and more, so we can safely remove support for any
+  // format that only includes a subset.
+  uint32_t minRequiredMask = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+
+  const InstanceDeviceInfo &exts = GetExtensions(GetRecord(physicalDevice));
+
+  // transfer src/dst bits were added in KHR_maintenance1. Before then we assume that if
+  // SAMPLED_IMAGE_BIT was present it's safe to add the transfer bits too.
+  if(exts.ext_KHR_maintenance1)
+    minRequiredMask |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+
+  if((pFormatProperties->linearTilingFeatures & minRequiredMask) != minRequiredMask)
+    pFormatProperties->linearTilingFeatures = 0;
+  if((pFormatProperties->optimalTilingFeatures & minRequiredMask) != minRequiredMask)
+    pFormatProperties->optimalTilingFeatures = 0;
+}
+
+void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
+                                                         VkFormat format,
+                                                         VkFormatProperties2 *pFormatProperties)
+{
+  ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceFormatProperties2(Unwrap(physicalDevice), format, pFormatProperties);
+
+  // we require transfer source and dest these properties at minimum for an image to be created,
+  // since we add these to
+  // any usage. Fortunately, in the formats the spec requires an implementation to support,
+  // optimalTiledFeatures must contain all these and more, so we can safely remove support for any
+  // format that only includes a subset.
+  uint32_t minRequiredMask = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+
+  const InstanceDeviceInfo &exts = GetExtensions(GetRecord(physicalDevice));
+
+  // transfer src/dst bits were added in KHR_maintenance1. Before then we assume that if
+  // SAMPLED_IMAGE_BIT was present it's safe to add the transfer bits too.
+  if(exts.ext_KHR_maintenance1)
+    minRequiredMask |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+
+  if((pFormatProperties->formatProperties.linearTilingFeatures & minRequiredMask) != minRequiredMask)
+    pFormatProperties->formatProperties.linearTilingFeatures = 0;
+  if((pFormatProperties->formatProperties.optimalTilingFeatures & minRequiredMask) != minRequiredMask)
+    pFormatProperties->formatProperties.optimalTilingFeatures = 0;
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
@@ -59,9 +104,64 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
     VkImageUsageFlags usage, VkImageCreateFlags flags,
     VkImageFormatProperties *pImageFormatProperties)
 {
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling, usage,
-                                               flags, pImageFormatProperties);
+  // we're going to add these usage bits implicitly on image create, so ensure we get an accurate
+  // response by adding them here. It's OK to add these, since these can't make a required format
+  // suddenly report as unsupported (all required formats must support these usages), so it can only
+  // make an optional format unsupported which is what we want.
+  usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+           VK_IMAGE_USAGE_SAMPLED_BIT;
+
+  VkResult vkr =
+      ObjDisp(physicalDevice)
+          ->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling,
+                                                   usage, flags, pImageFormatProperties);
+
+  if(vkr == VK_SUCCESS)
+  {
+    // check that the format is one we allow to be supported - if not we return an error to be
+    // consistent.
+    VkFormatProperties props;
+    vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+    if(props.linearTilingFeatures == 0 && props.optimalTilingFeatures == 0)
+    {
+      RDCEraseEl(*pImageFormatProperties);
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
+    }
+  }
+
+  return vkr;
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties2(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+    VkImageFormatProperties2 *pImageFormatProperties)
+{
+  // we're going to add these usage bits implicitly on image create, so ensure we get an accurate
+  // response by adding them here. It's OK to add these, since these can't make a required format
+  // suddenly report as unsupported (all required formats must support these usages), so it can only
+  // make an optional format unsupported which is what we want.
+  VkPhysicalDeviceImageFormatInfo2 info = *pImageFormatInfo;
+  info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT;
+
+  VkResult vkr = ObjDisp(physicalDevice)
+                     ->GetPhysicalDeviceImageFormatProperties2(Unwrap(physicalDevice), &info,
+                                                               pImageFormatProperties);
+
+  if(vkr == VK_SUCCESS)
+  {
+    // check that the format is one we allow to be supported - if not we return an error to be
+    // consistent.
+    VkFormatProperties props;
+    vkGetPhysicalDeviceFormatProperties(physicalDevice, pImageFormatInfo->format, &props);
+    if(props.linearTilingFeatures == 0 && props.optimalTilingFeatures == 0)
+    {
+      RDCEraseEl(pImageFormatProperties->imageFormatProperties);
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
+    }
+  }
+
+  return vkr;
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties(
@@ -454,23 +554,6 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevi
                                                    VkPhysicalDeviceProperties2 *pProperties)
 {
   return ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), pProperties);
-}
-
-void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
-                                                         VkFormat format,
-                                                         VkFormatProperties2 *pFormatProperties)
-{
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceFormatProperties2(Unwrap(physicalDevice), format, pFormatProperties);
-}
-
-VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties2(
-    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
-    VkImageFormatProperties2 *pImageFormatProperties)
-{
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceImageFormatProperties2(Unwrap(physicalDevice), pImageFormatInfo,
-                                                pImageFormatProperties);
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties2(
