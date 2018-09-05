@@ -85,14 +85,3 @@ void *LoadVulkanLibrary()
 {
   return Process::LoadModule("libvulkan.so");
 }
-
-bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
-                                    std::vector<std::string> &otherJSONs)
-{
-  // nothing to do
-  return false;
-}
-
-void VulkanReplay::InstallVulkanLayer(bool systemLevel)
-{
-}

@@ -320,6 +320,9 @@ void MakeParentDirs(std::string file)
 bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                     std::vector<std::string> &otherJSONs)
 {
+#if ENABLED(RDOC_ANDROID)
+  return false;
+#else
   // see if the user has suppressed all this checking as a "I know what I'm doing" measure
 
   if(FileExists(string(getenv("HOME")) + "/.renderdoc/ignore_vulkan_layer_issues"))
@@ -411,10 +414,12 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   }
 
   return true;
+#endif
 }
 
 void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 {
+#if DISABLED(RDOC_ANDROID)
   std::string homePath = LayerRegistrationPath(LayerPath::home);
 
   // if we want to install to the system and there's a registration in $HOME, delete it
@@ -463,4 +468,5 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
       RDCERR("Error writing %s: %s", jsonPath.c_str(), errtext);
     }
   }
+#endif
 }
