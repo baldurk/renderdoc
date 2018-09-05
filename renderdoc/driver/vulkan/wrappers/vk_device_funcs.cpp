@@ -1064,6 +1064,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_AMD_gpa_interface");
     }
 
+    // enable VK_AMD_gpa_interface if it's available, for detecting/controlling moltenvk.
+    // Currently this is used opaquely (extension present or not) rather than using anything the
+    // extension provides.
+    if(supportedExtensions.find("VK_MVK_moltenvk") != supportedExtensions.end())
+    {
+      Extensions.push_back("VK_MVK_moltenvk");
+      RDCLOG("Enabling VK_MVK_moltenvk");
+    }
+
     createInfo.enabledLayerCount = (uint32_t)Layers.size();
 
     const char **layerArray = NULL;

@@ -345,7 +345,8 @@
   CheckExt(EXT_vertex_attribute_divisor, VKXX);   \
   CheckExt(EXT_sampler_filter_minmax, VKXX);      \
   CheckExt(KHR_sampler_ycbcr_conversion, VK11);   \
-  CheckExt(KHR_device_group, VK11);
+  CheckExt(KHR_device_group, VK11);               \
+  CheckExt(MVK_moltenvk, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
