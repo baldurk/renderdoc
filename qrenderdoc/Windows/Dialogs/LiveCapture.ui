@@ -88,7 +88,7 @@
           </widget>
          </item>
          <item row="3" column="0">
-          <widget class="QLabel" name="captureProgressLabel">
+          <widget class="QLabel" name="progressLabel">
            <property name="text">
             <string>Capture in Progress:</string>
            </property>
@@ -159,7 +159,7 @@
           </widget>
          </item>
          <item row="4" column="0" colspan="3">
-          <widget class="QProgressBar" name="captureProgress">
+          <widget class="QProgressBar" name="progressBar">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
              <horstretch>0</horstretch>

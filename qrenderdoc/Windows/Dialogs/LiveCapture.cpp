@@ -125,8 +125,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
 
   ui->target->setText(QString());
 
-  ui->captureProgressLabel->setVisible(false);
-  ui->captureProgress->setVisible(false);
+  ui->progressLabel->setVisible(false);
+  ui->progressBar->setVisible(false);
 
   ui->captures->setItemDelegate(new NameEditOnlyDelegate(this));
 
@@ -1140,7 +1140,23 @@ void LiveCapture::connectionThreadEntry()
       return;
     }
 
-    TargetControlMessage msg = m_Connection->ReceiveMessage();
+    TargetControlMessage msg = m_Connection->ReceiveMessage([this](float progress) {
+      GUIInvoke::call(this, [this, progress]() {
+        if(progress >= 0.0f && progress < 1.0f)
+        {
+          ui->progressLabel->setText(tr("Copy in Progress:"));
+          ui->progressLabel->setVisible(true);
+          ui->progressBar->setVisible(true);
+          ui->progressBar->setMaximum(1000);
+          ui->progressBar->setValue(1000 * progress);
+        }
+        else
+        {
+          ui->progressLabel->setVisible(false);
+          ui->progressBar->setVisible(false);
+        }
+      });
+    });
 
     if(msg.type == TargetControlMessageType::RegisterAPI)
     {
@@ -1168,15 +1184,16 @@ void LiveCapture::connectionThreadEntry()
 
         if(progress >= 0.0f && progress < 1.0f)
         {
-          ui->captureProgressLabel->setVisible(true);
-          ui->captureProgress->setVisible(true);
-          ui->captureProgress->setMaximum(1000);
-          ui->captureProgress->setValue(1000 * progress);
+          ui->progressLabel->setText(tr("Capture in Progress:"));
+          ui->progressLabel->setVisible(true);
+          ui->progressBar->setVisible(true);
+          ui->progressBar->setMaximum(1000);
+          ui->progressBar->setValue(1000 * progress);
         }
         else
         {
-          ui->captureProgressLabel->setVisible(false);
-          ui->captureProgress->setVisible(false);
+          ui->progressLabel->setVisible(false);
+          ui->progressBar->setVisible(false);
         }
 
       });

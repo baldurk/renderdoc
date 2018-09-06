@@ -76,6 +76,7 @@ std::string DoStringise(const PacketType &el)
     STRINGISE_ENUM_NAMED(ePacket_DeleteCapture, "Delete Capture");
     STRINGISE_ENUM_NAMED(ePacket_QueueCapture, "Queue Capture");
     STRINGISE_ENUM_NAMED(ePacket_NewChild, "New Child");
+    STRINGISE_ENUM_NAMED(ePacket_CaptureProgress, "Capture Progress");
   }
   END_ENUM_STRINGISE();
 }
@@ -601,7 +602,7 @@ public:
       SAFE_DELETE(m_Socket);
   }
 
-  TargetControlMessage ReceiveMessage()
+  TargetControlMessage ReceiveMessage(RENDERDOC_ProgressCallback progress)
   {
     TargetControlMessage msg;
     if(m_Socket == NULL)
@@ -762,7 +763,7 @@ public:
 
       StreamWriter streamWriter(FileIO::fopen(msg.newCapture.path.c_str(), "wb"), Ownership::Stream);
 
-      ser.SerialiseStream(msg.newCapture.path.c_str(), streamWriter, NULL);
+      ser.SerialiseStream(msg.newCapture.path.c_str(), streamWriter, progress);
 
       if(reader.IsErrored())
       {

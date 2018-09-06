@@ -1297,10 +1297,13 @@ The details of the types of messages that can be received are listed under
   This function will block but only to a limited degree. If no message is waiting after a small time
   it will return with a No-op message to allow further processing.
 
+:param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
+  value when a long blocking message is coming through, e.g. a capture copy. Can be ``None`` if no
+  progress is desired.
 :return: The message that was received.
 :rtype: TargetControlMessage
 )");
-  virtual TargetControlMessage ReceiveMessage() = 0;
+  virtual TargetControlMessage ReceiveMessage(RENDERDOC_ProgressCallback progress) = 0;
 
 protected:
   ITargetControl() = default;
