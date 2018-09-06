@@ -274,8 +274,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, LastCapturePath, "")                         \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureExe, "")                          \
-                                                                                           \
   CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureSettings)            \
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, TemporaryCaptureDirectory, "")               \
@@ -449,10 +447,6 @@ For more information about some of these settings that are user-facing see
 
   The path containing the last executable that was captured, which is useful as a default location
   for browsing.
-
-.. data:: LastCaptureExe
-
-  The path to the last executable that was captured, inside :data:`LastCapturePath`.
 
 .. data:: RecentCaptureSettings
 
