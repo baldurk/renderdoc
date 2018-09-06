@@ -86,7 +86,7 @@ public:
   // work whether local or remote.
   ICaptureFile *GetCaptureFile() { return m_CaptureFile; }
   void ReopenCaptureFile(const QString &path);
-  const RemoteHost *CurrentRemote() { return m_RemoteHost; }
+  RemoteHost *CurrentRemote() { return m_RemoteHost; }
   ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
                                  const rdcarray<EnvironmentModification> &env,
                                  const rdcstr &capturefile, CaptureOptions opts);

@@ -67,6 +67,9 @@ public:
   DOCUMENT("The command to run locally to try to launch the server remotely.");
   rdcstr runCommand;
 
+  DOCUMENT("The last folder browser to on this host, to provide a reasonable default path.");
+  rdcstr lastCapturePath;
+
   DOCUMENT(R"(
 Returns the name to display for this host in the UI, either :data:`friendlyName` or :data:`hostname`
 )");

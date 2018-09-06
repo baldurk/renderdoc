@@ -708,7 +708,7 @@ struct IReplayManager
 :return: The host connected to, or ``None`` if no connection is active.
 :rtype: RemoteHost
 )");
-  virtual const RemoteHost *CurrentRemote() = 0;
+  virtual RemoteHost *CurrentRemote() = 0;
 
   DOCUMENT(R"(Retrieves the capture file handle for the currently open file.
 

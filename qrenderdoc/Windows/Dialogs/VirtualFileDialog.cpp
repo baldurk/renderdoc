@@ -550,7 +550,7 @@ protected:
   }
 };
 
-VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QWidget *parent)
+VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirectory, QWidget *parent)
     : QDialog(parent), ui(new Ui::VirtualFileDialog)
 {
   ui->setupUi(this);
@@ -591,7 +591,8 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QWidget *parent)
   ui->buttonBox->button(QDialogButtonBox::Ok)->setDefault(false);
 
   // switch to home folder and expand it
-  changeCurrentDir(m_Model->homeFolder());
+  changeCurrentDir(initialDirectory.isEmpty() ? m_Model->homeFolder()
+                                              : m_Model->indexForPath(initialDirectory));
   ui->dirList->expand(m_DirProxy->mapFromSource(currentDir()));
 
   QObject::connect(ui->fileList->selectionModel(), &QItemSelectionModel::selectionChanged, this,

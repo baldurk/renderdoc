@@ -575,6 +575,10 @@ void CaptureDialog::on_exePathBrowse_clicked()
   {
     initDir = dir.absolutePath();
   }
+  else if(m_Ctx.Replay().CurrentRemote())
+  {
+    initDir = m_Ctx.Replay().CurrentRemote()->lastCapturePath;
+  }
   else if(!m_Ctx.Config().LastCapturePath.isEmpty())
   {
     initDir = m_Ctx.Config().LastCapturePath;
@@ -584,7 +588,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
 
   if(m_Ctx.Replay().CurrentRemote())
   {
-    VirtualFileDialog vfd(m_Ctx, this);
+    VirtualFileDialog vfd(m_Ctx, initDir, this);
     RDDialog::show(&vfd);
     filename = vfd.chosenPath();
   }
@@ -606,26 +610,31 @@ void CaptureDialog::on_exePathBrowse_clicked()
 
 void CaptureDialog::on_workDirBrowse_clicked()
 {
-  QString initDir;
+  QString initDir = ui->workDirPath->text();
 
-  if(QDir(ui->workDirPath->text()).exists())
+  if(initDir.isEmpty())
   {
-    initDir = ui->workDirPath->text();
-  }
-  else
-  {
-    QDir dir = QFileInfo(ui->exePath->text()).dir();
-    if(dir.exists())
-      initDir = dir.absolutePath();
-    else if(!m_Ctx.Config().LastCapturePath.isEmpty())
-      initDir = m_Ctx.Config().LastCapturePath;
+    if(m_Ctx.Replay().CurrentRemote())
+    {
+      initDir = m_Ctx.Replay().CurrentRemote()->lastCapturePath;
+    }
+    else if(!QDir(initDir).exists())
+    {
+      QDir dir = QFileInfo(ui->exePath->text()).dir();
+      if(dir.exists())
+        initDir = dir.absolutePath();
+      else if(!m_Ctx.Config().LastCapturePath.isEmpty())
+        initDir = m_Ctx.Config().LastCapturePath;
+      else
+        initDir = QString();
+    }
   }
 
   QString dir;
 
   if(m_Ctx.Replay().CurrentRemote())
   {
-    VirtualFileDialog vfd(m_Ctx, this);
+    VirtualFileDialog vfd(m_Ctx, initDir, this);
     vfd.setDirBrowse();
     RDDialog::show(&vfd);
     dir = vfd.chosenPath();
@@ -921,10 +930,12 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
 
   ui->exePath->setText(fn);
 
-  if(!m_Ctx.Replay().CurrentRemote())
-  {
+  if(m_Ctx.Replay().CurrentRemote())
+    m_Ctx.Replay().CurrentRemote()->lastCapturePath = QFileInfo(fn).absolutePath();
+  else
     m_Ctx.Config().LastCapturePath = QFileInfo(fn).absolutePath();
-  }
+
+  m_Ctx.Config().Save();
 }
 
 void CaptureDialog::SetWorkingDirectory(const rdcstr &dir)

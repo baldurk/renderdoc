@@ -41,6 +41,8 @@ RemoteHost::RemoteHost(const QVariant &var)
     friendlyName = map[lit("friendlyName")].toString();
   if(map.contains(lit("runCommand")))
     runCommand = map[lit("runCommand")].toString();
+  if(map.contains(lit("lastCapturePath")))
+    lastCapturePath = map[lit("lastCapturePath")].toString();
 
   serverRunning = connected = busy = versionMismatch = false;
 }
@@ -51,6 +53,7 @@ RemoteHost::operator QVariant() const
   map[lit("hostname")] = hostname;
   map[lit("friendlyName")] = friendlyName;
   map[lit("runCommand")] = runCommand;
+  map[lit("lastCapturePath")] = lastCapturePath;
   return map;
 }
 
