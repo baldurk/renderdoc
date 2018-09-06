@@ -242,7 +242,7 @@
          </font>
         </property>
         <property name="text">
-         <string>NOTE: Injecting only works when the process has not used the target API</string>
+         <string>NOTE: Injection must happen &lt;b&gt;immediately&lt;/b&gt; after the process starts, before any graphics API has been initialized.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
