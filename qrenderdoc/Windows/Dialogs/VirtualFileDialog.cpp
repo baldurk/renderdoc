@@ -765,21 +765,21 @@ void VirtualFileDialog::on_filename_keyPress(QKeyEvent *e)
   re.setPatternSyntax(QRegExp::Wildcard);
 
   int fileCount = m_FileProxy->rowCount(curDir);
-  int matches = 0;
+  int matches = 0, dirmatches = 0;
   QString match;
+  QModelIndex idx;
 
   for(int f = 0; f < fileCount; f++)
   {
     QModelIndex file = m_FileProxy->index(f, 0, curDir);
     bool isDir = m_FileProxy->data(file, RemoteFileModel::FileIsDirRole).toBool();
 
-    if(isDir)
-      continue;
-
     QString filename = m_FileProxy->data(file, RemoteFileModel::FileNameRole).toString();
 
     if(re.exactMatch(filename))
     {
+      idx = file;
+      dirmatches += isDir ? 1 : 0;
       matches++;
       match = m_FileProxy->data(file, RemoteFileModel::FilePathRole).toString();
     }
@@ -787,8 +787,16 @@ void VirtualFileDialog::on_filename_keyPress(QKeyEvent *e)
 
   if(matches == 1)
   {
-    m_ChosenPath = match;
-    QDialog::accept();
+    if(dirmatches == 1)
+    {
+      changeCurrentDir(m_FileProxy->mapToSource(idx));
+      return;
+    }
+    else
+    {
+      m_ChosenPath = match;
+      QDialog::accept();
+    }
   }
 
   if(matches == 0 && !text.trimmed().isEmpty())
