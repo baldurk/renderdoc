@@ -145,11 +145,6 @@ void WGLHook::ProcessSwapBuffers(HDC dc)
 
   if(w != NULL && haveContextCreation && !swapRecurse)
   {
-    RECT r;
-    GetClientRect(w, &r);
-
-    driver.WindowSize(w, r.right - r.left, r.bottom - r.top);
-
     {
       SCOPED_LOCK(glLock);
       driver.SwapBuffers(w);
@@ -375,7 +370,16 @@ static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
     data.ctx = rc;
 
     if(wglhook.haveContextCreation)
+    {
+      RECT r;
+      GetClientRect(data.wnd, &r);
+
       wglhook.driver.ActivateContext(data);
+
+      GLInitParams &params = wglhook.driver.GetInitParams(data);
+      params.width = r.right - r.left;
+      params.height = r.bottom - r.top;
+    }
   }
 
   SetLastError(err);

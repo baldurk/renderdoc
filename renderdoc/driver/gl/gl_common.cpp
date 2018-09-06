@@ -1125,6 +1125,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x1C)
     return true;
 
+  // 0x1D -> 0x1E - added new chunk for context parameters and per-context tracking of backbuffers
+  if(ver == 0x1D)
+    return true;
+
   return false;
 }
 

@@ -580,10 +580,6 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     m_ContextRecord->DataInSerialiser = false;
     m_ContextRecord->Length = 0;
     m_ContextRecord->InternalResource = true;
-
-    // we register an ID for the backbuffer, this will be tied to the fake-created backbuffer on
-    // replay, and every context's FBO 0 will be pointed to it with ReplaceResource
-    m_FBO0_ID = ResourceIDGen::GetNewUniqueID();
   }
   else
   {
@@ -595,9 +591,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   InitSPIRVCompiler();
   RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
 
-  m_FakeBB_FBO = 0;
-  m_FakeBB_Color = 0;
-  m_FakeBB_DepthStencil = 0;
+  m_CurrentDefaultFBO = 0;
 
   m_CurChunkOffset = 0;
   m_AddedDrawcall = false;
@@ -607,14 +601,21 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
 void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
 {
-  // deliberately want to go through our own wrappers to set up e.g. m_Textures members
+  m_SectionVersion = sectionVersion;
+  m_GlobalInitParams = params;
+}
+
+void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId,
+                                           GLuint &fbo, std::string bbname)
+{
+  GLuint col = 0, depth = 0;
+
   WrappedOpenGL &drv = *this;
 
-  m_InitParams = params;
-  m_SectionVersion = sectionVersion;
+  drv.glGenFramebuffers(1, &fbo);
+  drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
 
-  drv.glGenFramebuffers(1, &m_FakeBB_FBO);
-  drv.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
+  m_CurrentDefaultFBO = fbo;
 
   GLenum colfmt = eGL_RGBA8;
 
@@ -629,27 +630,20 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
   if(params.multiSamples > 1)
     target = eGL_TEXTURE_2D_MULTISAMPLE;
 
-  drv.glGenTextures(1, &m_FakeBB_Color);
-  drv.glBindTexture(target, m_FakeBB_Color);
+  drv.glGenTextures(1, &col);
+  drv.glBindTexture(target, col);
 
-  ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
-  const char *name = "Backbuffer Color";
-
-  GetResourceManager()->SetName(colorId, name);
-
-  // we'll add the chunk later when we re-process it.
-  AddResource(colorId, ResourceType::SwapchainImage, name);
-  GetReplay()->GetResourceDesc(colorId).initialisationChunks.clear();
-  GetReplay()->GetResourceDesc(colorId).SetCustomName(name);
+  m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), col))].creationFlags |=
+      TextureCategory::SwapBuffer;
 
   if(params.multiSamples > 1)
   {
-    drv.glTextureStorage2DMultisampleEXT(m_FakeBB_Color, target, params.multiSamples, colfmt,
-                                         params.width, params.height, true);
+    drv.glTextureStorage2DMultisampleEXT(col, target, params.multiSamples, colfmt, params.width,
+                                         params.height, true);
   }
   else
   {
-    drv.glTextureImage2DEXT(m_FakeBB_Color, target, 0, colfmt, params.width, params.height, 0,
+    drv.glTextureImage2DEXT(col, target, 0, colfmt, params.width, params.height, 0,
                             GetBaseFormat(colfmt), GetDataType(colfmt), NULL);
     drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
     drv.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
@@ -657,15 +651,14 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
     drv.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
     drv.glTexParameteri(target, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   }
-  drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, m_FakeBB_Color, 0);
+  drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, col, 0);
 
   drv.glViewport(0, 0, params.width, params.height);
 
-  m_FakeBB_DepthStencil = 0;
   if(params.depthBits > 0 || params.stencilBits > 0)
   {
-    drv.glGenTextures(1, &m_FakeBB_DepthStencil);
-    drv.glBindTexture(target, m_FakeBB_DepthStencil);
+    drv.glGenTextures(1, &depth);
+    drv.glBindTexture(target, depth);
 
     GLenum depthfmt = eGL_DEPTH32F_STENCIL8;
     bool stencil = false;
@@ -696,50 +689,80 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
     else
       RDCERR("Unexpected # stencil bits: %d", params.stencilBits);
 
-    ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
-    name = stencil ? "Backbuffer Depth-stencil" : "Backbuffer Depth";
-
-    GetResourceManager()->SetName(depthId, name);
-
-    // we'll add the chunk later when we re-process it.
-    AddResource(depthId, ResourceType::SwapchainImage, name);
-    GetReplay()->GetResourceDesc(depthId).initialisationChunks.clear();
-    GetReplay()->GetResourceDesc(depthId).SetCustomName(name);
+    m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), depth))].creationFlags |=
+        TextureCategory::SwapBuffer;
 
     if(params.multiSamples > 1)
     {
-      drv.glTextureStorage2DMultisampleEXT(m_FakeBB_DepthStencil, target, params.multiSamples,
-                                           depthfmt, params.width, params.height, true);
+      drv.glTextureStorage2DMultisampleEXT(depth, target, params.multiSamples, depthfmt,
+                                           params.width, params.height, true);
     }
     else
     {
       drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-      drv.glTextureImage2DEXT(m_FakeBB_DepthStencil, target, 0, depthfmt, params.width,
-                              params.height, 0, GetBaseFormat(depthfmt), GetDataType(depthfmt), NULL);
+      drv.glTextureImage2DEXT(depth, target, 0, depthfmt, params.width, params.height, 0,
+                              GetBaseFormat(depthfmt), GetDataType(depthfmt), NULL);
     }
 
     if(stencil)
-      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, target,
-                                 m_FakeBB_DepthStencil, 0);
+      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, target, depth, 0);
     else
-      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, target,
-                                 m_FakeBB_DepthStencil, 0);
+      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, target, depth, 0);
   }
 
   // give the backbuffer a default clear color
-  drv.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-  drv.glClear(GL_COLOR_BUFFER_BIT);
+  float clearcol[] = {0.0f, 0.0f, 0.0f, 1.0f};
+  drv.glClearBufferfv(eGL_COLOR, 0, clearcol);
 
-  if(params.depthBits > 0)
+  if(params.depthBits > 0 || params.stencilBits > 0)
+    drv.glClearBufferfi(eGL_DEPTH_STENCIL, 0, 1.0f, 0);
+
+  GetResourceManager()->AddLiveResource(fboOrigId, FramebufferRes(GetCtx(), fbo));
+  AddResource(fboOrigId, ResourceType::SwapchainImage, "");
+  GetReplay()->GetResourceDesc(fboOrigId).SetCustomName(bbname + " FBO");
+
+  ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), col));
+  std::string name = bbname + " Color";
+
+  GetResourceManager()->SetName(colorId, name);
+
+  // we'll add the chunk later when we re-process it.
+  AddResource(colorId, ResourceType::SwapchainImage, name.c_str());
+  GetReplay()->GetResourceDesc(colorId).SetCustomName(name);
+
+  GetReplay()->GetResourceDesc(fboOrigId).derivedResources.push_back(colorId);
+  GetReplay()->GetResourceDesc(colorId).parentResources.push_back(fboOrigId);
+
+  if(depth)
   {
-    drv.glClearDepthf(1.0f);
-    drv.glClear(GL_DEPTH_BUFFER_BIT);
+    ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), depth));
+    name = bbname + (params.stencilBits > 0 ? " Depth-stencil" : " Depth");
+
+    GetResourceManager()->SetName(depthId, name);
+
+    // we'll add the chunk later when we re-process it.
+    AddResource(depthId, ResourceType::SwapchainImage, name.c_str());
+    GetReplay()->GetResourceDesc(depthId).SetCustomName(name);
+
+    GetReplay()->GetResourceDesc(fboOrigId).derivedResources.push_back(depthId);
+    GetReplay()->GetResourceDesc(depthId).parentResources.push_back(fboOrigId);
   }
 
-  if(params.stencilBits > 0)
+  if(fbo == m_Global_FBO0)
   {
-    drv.glClearStencil(0);
-    drv.glClear(GL_STENCIL_BUFFER_BIT);
+    GetReplay()->GetResourceDesc(fboOrigId).initialisationChunks.clear();
+    GetReplay()->GetResourceDesc(fboOrigId).initialisationChunks.push_back(m_InitChunkIndex);
+
+    GetReplay()->GetResourceDesc(colorId).initialisationChunks.clear();
+    GetReplay()->GetResourceDesc(colorId).initialisationChunks.push_back(m_InitChunkIndex);
+
+    if(depth)
+    {
+      ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), depth));
+
+      GetReplay()->GetResourceDesc(depthId).initialisationChunks.clear();
+      GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
+    }
   }
 }
 
@@ -753,13 +776,6 @@ std::string WrappedOpenGL::GetChunkName(uint32_t idx)
 
 WrappedOpenGL::~WrappedOpenGL()
 {
-  if(m_FakeBB_FBO)
-    GL.glDeleteFramebuffers(1, &m_FakeBB_FBO);
-  if(m_FakeBB_Color)
-    GL.glDeleteTextures(1, &m_FakeBB_Color);
-  if(m_FakeBB_DepthStencil)
-    GL.glDeleteTextures(1, &m_FakeBB_DepthStencil);
-
   if(m_IndirectBuffer)
     GL.glDeleteBuffers(1, &m_IndirectBuffer);
 
@@ -938,9 +954,6 @@ void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *driver, voi
 void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
                                   GLInitParams initParams, bool core, bool attribsCreate)
 {
-  // TODO: support multiple GL contexts more explicitly
-  m_InitParams = initParams;
-
   RDCLOG("%s context %p created %s, sharing with context %p", core ? "Core" : "Compatibility",
          winData.ctx, attribsCreate ? "with attribs" : "without attribs", shareContext);
 
@@ -948,6 +961,7 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
   ctxdata.ctx = winData.ctx;
   ctxdata.isCore = core;
   ctxdata.attribsCreate = attribsCreate;
+  ctxdata.initParams = initParams;
 
   if(shareContext == NULL)
   {
@@ -999,6 +1013,48 @@ void WrappedOpenGL::RegisterReplayContext(GLWindowingData winData, void *shareCo
   }
 
   ActivateContext(winData);
+}
+
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ctx)
+{
+  SERIALISE_ELEMENT_LOCAL(Context, m_ContextData[ctx].m_ContextDataResourceID);
+  SERIALISE_ELEMENT_LOCAL(FBO, m_ContextData[ctx].m_ContextFBOID);
+  SERIALISE_ELEMENT_LOCAL(InitParams, m_ContextData[ctx].initParams);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // we might encounter multiple instances of this chunk per frame, so only do work on the first
+    // one
+    if(!GetResourceManager()->HasLiveResource(FBO))
+    {
+      std::string name;
+
+      if(m_CurrentDefaultFBO == 0)
+      {
+        // if we haven't created a default FBO yet this is the first. Give it a nice friendly name
+        name = "Backbuffer";
+      }
+      else
+      {
+        // if not, we have multiple FBOs and we want to distinguish them. Give the subsequent
+        // backbuffers unique names
+        name = StringFormat::Fmt("Context %llu Backbuffer", Context);
+      }
+
+      GLuint fbo = 0;
+      CreateReplayBackbuffer(InitParams, FBO, fbo, name);
+
+      // also add a simple resource descriptor for the context
+      AddResource(Context, ResourceType::Device, "Context");
+    }
+
+    m_CurrentDefaultFBO = GetResourceManager()->GetLiveResource(FBO).name;
+  }
+
+  return true;
 }
 
 void WrappedOpenGL::ActivateContext(GLWindowingData winData)
@@ -1281,31 +1337,32 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           GetResourceManager()->MarkDirtyResource(id);
         }
 
-        // we also do the same for FBO 0, but this is treated 'specially' as we actually only create
-        // one backbuffer and re-point all FBOs at it, however there may be several IDs
-        // corresponding to the default backbuffer. We rename them all.
-        GLResource fbo0 = FramebufferRes(GetCtx(), 0);
+        // we also do the same for FBO 0, but we must force it not to be shared as even if FBOs are
+        // shared the FBO0 may not be :(.
+        GLResource fbo0 = FramebufferRes({GetCtx().ctx, GetCtx().ctx}, 0);
 
         if(!GetResourceManager()->HasCurrentResource(fbo0))
-        {
-          ResourceId id = GetResourceManager()->RegisterResource(fbo0);
-
-          USE_SCRATCH_SERIALISER();
-          SCOPED_SERIALISE_CHUNK(GLChunk::glContextInit);
-          Serialise_ContextInit(ser);
-
-          m_DeviceRecord->AddChunk(scope.Get());
-        }
+          ctxdata.m_ContextFBOID = GetResourceManager()->RegisterResource(fbo0);
       }
     }
 
     // if we're capturing, we need to serialise out the changed state vector
     if(IsActiveCapturing(m_State))
     {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
-      Serialise_BeginCaptureFrame(ser);
-      GetContextRecord()->AddChunk(scope.Get());
+      {
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
+        Serialise_BeginCaptureFrame(ser);
+        GetContextRecord()->AddChunk(scope.Get());
+      }
+
+      // also serialise out this context's backbuffer params
+      {
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(GLChunk::ContextConfiguration);
+        Serialise_ContextConfiguration(ser, winData.ctx);
+        GetContextRecord()->AddChunk(scope.Get());
+      }
     }
 
     // this is hack but GL context creation is an *utter mess*. For first-frame captures, only
@@ -1314,13 +1371,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     if(ctxdata.attribsCreate)
       FirstFrame(ctxdata.ctx, (void *)winData.wnd);
   }
-}
-
-void WrappedOpenGL::WindowSize(void *windowHandle, uint32_t w, uint32_t h)
-{
-  // TODO: support multiple window handles
-  m_InitParams.width = w;
-  m_InitParams.height = h;
 }
 
 struct ReplacementSearch
@@ -1667,7 +1717,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
       }
 
       if(!overlayText.empty())
-        RenderOverlayText(0.0f, 0.0f, m_InitParams.isYFlipped, overlayText.c_str());
+        RenderOverlayText(0.0f, 0.0f, overlayText.c_str());
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the
@@ -1778,6 +1828,14 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   AttemptCapture();
   BeginCaptureFrame();
 
+  // serialise out the context configuration for this current context first
+  {
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(GLChunk::ContextConfiguration);
+    Serialise_ContextConfiguration(ser, GetCtx().ctx);
+    GetContextRecord()->AddChunk(scope.Get());
+  }
+
   if(switchctx.ctx != prevctx.ctx)
   {
     m_Platform.MakeContextCurrent(prevctx);
@@ -1869,18 +1927,23 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       {
         SCOPED_SERIALISE_CHUNK(SystemChunk::DriverInit, sizeof(GLInitParams) + 16);
 
-        SERIALISE_ELEMENT(m_InitParams);
+        // we no longer use this one, but for ease of compatibility we still serialise it here. This
+        // will be immediately overridden by the actual parameters by a
+        // GLChunk::ContextConfiguration chunk
+        GLInitParams dummy;
+
+        SERIALISE_ELEMENT(dummy);
       }
 
       {
         // remember to update this estimated chunk length if you add more parameters
         SCOPED_SERIALISE_CHUNK(GLChunk::DeviceInitialisation, 32);
 
-        // legacy behaviour where we had a single global VAO 0. Ignore, but preserve for easier
+        // legacy behaviour where we had a single global VAO/FBO 0. Ignore, but preserve for easier
         // compatibility with old captures
-        ResourceId vao;
+        ResourceId vao, fbo;
         SERIALISE_ELEMENT(vao);
-        SERIALISE_ELEMENT(m_FBO0_ID);
+        SERIALISE_ELEMENT(fbo);
       }
 
       RDCDEBUG("Inserting Resource Serialisers");
@@ -1970,8 +2033,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     {
       ContextData &ctxdata = GetCtxData();
 
-      RenderOverlayText(0.0f, 0.0f, m_InitParams.isYFlipped, "Failed to capture frame %u: %s",
-                        m_FrameCounter, reasonString);
+      RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the
@@ -2071,8 +2133,10 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     GL.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
     GL.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
 
-    thwidth = (uint16_t)m_InitParams.width;
-    thheight = (uint16_t)m_InitParams.height;
+    ContextData &dat = GetCtxData();
+
+    thwidth = (uint16_t)dat.initParams.width;
+    thheight = (uint16_t)dat.initParams.height;
 
     thpixels = new byte[thwidth * thheight * 4];
 
@@ -2091,7 +2155,7 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     }
 
     // flip the image in-place
-    if(!m_InitParams.isYFlipped)
+    if(!dat.initParams.isYFlipped)
     {
       for(uint16_t y = 0; y <= thheight / 2; y++)
       {
@@ -2148,7 +2212,7 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
           float yf = float(y) / float(thheight);
 
           byte *pixelsrc =
-              &src[3 * uint32_t(xf * widthf) + m_InitParams.width * 3 * uint32_t(yf * heightf)];
+              &src[3 * uint32_t(xf * widthf) + dat.initParams.width * 3 * uint32_t(yf * heightf)];
 
           memcpy(dst, pixelsrc, 3);
 
@@ -2213,24 +2277,29 @@ bool WrappedOpenGL::Serialise_CaptureScope(SerialiserType &ser)
   return true;
 }
 
-template <typename SerialiserType>
-bool WrappedOpenGL::Serialise_ContextInit(SerialiserType &ser)
+bool WrappedOpenGL::Serialise_ContextInit(ReadSerialiser &ser)
 {
-  SERIALISE_ELEMENT_LOCAL(FBO0_ID, GetResourceManager()->GetID(FramebufferRes(GetCtx(), 0)));
+  SERIALISE_ELEMENT_LOCAL(FBO0_ID, ResourceId());
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    GetResourceManager()->ReplaceResource(FBO0_ID, m_FBO0_ID);
+    // this chunk has been replaced by the ContextConfiguration chunk. Previously this was used to
+    // register the ID of a framebuffer on another context, so it can be redirected to a single
+    // global FBO0. But now each context's FBO0 is unique. So if this is present, we also have the
+    // global FBO0 to redirect to.
+    ResourceId global_fbo0 = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_Global_FBO0));
+
+    GetResourceManager()->ReplaceResource(FBO0_ID, global_fbo0);
 
     AddResource(FBO0_ID, ResourceType::SwapchainImage, "");
     GetReplay()->GetResourceDesc(FBO0_ID).SetCustomName("Window FBO");
 
     // this is a hack, but we only support a single 'default' framebuffer so we set these
     // replacements up as derived resources
-    GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(FBO0_ID);
-    GetReplay()->GetResourceDesc(FBO0_ID).parentResources.push_back(m_FBO0_ID);
+    GetReplay()->GetResourceDesc(global_fbo0).derivedResources.push_back(FBO0_ID);
+    GetReplay()->GetResourceDesc(FBO0_ID).parentResources.push_back(global_fbo0);
   }
 
   return true;
@@ -2789,8 +2858,13 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
         draw.name = "SwapBuffers()";
         draw.flags |= DrawFlags::Present;
 
+        GLuint col = 0;
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(m_CurrentDefaultFBO, eGL_COLOR_ATTACHMENT0,
+                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                         (GLint *)&col);
+
         draw.copyDestination = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
+            GetResourceManager()->GetID(TextureRes(GetCtx(), col)));
 
         AddDrawcall(draw, true);
       }
@@ -2811,9 +2885,9 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
   {
     case GLChunk::DeviceInitialisation:
     {
-      ResourceId vao;
+      ResourceId vao, fbo;
       SERIALISE_ELEMENT(vao).Hidden();
-      SERIALISE_ELEMENT(m_FBO0_ID).Named("FBO 0 ID");
+      SERIALISE_ELEMENT(fbo).Named("FBO 0 ID");
 
       SERIALISE_CHECK_READ_ERRORS();
 
@@ -2823,36 +2897,18 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
         // it can be bound and have initial contents applied to it
         if(vao != ResourceId())
         {
-          glGenVertexArrays(1, &m_Fake_VAO0);
-          glBindVertexArray(m_Fake_VAO0);
-          GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Fake_VAO0));
+          glGenVertexArrays(1, &m_Global_VAO0);
+          glBindVertexArray(m_Global_VAO0);
+          GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
           AddResource(vao, ResourceType::StateObject, "Vertex Array");
           GetReplay()->GetResourceDesc(vao).SetCustomName("Default VAO");
 
           GetReplay()->GetResourceDesc(vao).initialisationChunks.push_back(m_InitChunkIndex);
         }
 
-        GetResourceManager()->AddLiveResource(m_FBO0_ID, FramebufferRes(GetCtx(), m_FakeBB_FBO));
-
-        AddResource(m_FBO0_ID, ResourceType::SwapchainImage, "");
-        GetReplay()->GetResourceDesc(m_FBO0_ID).SetCustomName("Default FBO");
-
-        GetReplay()->GetResourceDesc(m_FBO0_ID).initialisationChunks.push_back(m_InitChunkIndex);
-
-        ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
-        GetReplay()->GetResourceDesc(colorId).initialisationChunks.push_back(m_InitChunkIndex);
-        GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(colorId);
-        GetReplay()->GetResourceDesc(colorId).parentResources.push_back(m_FBO0_ID);
-
-        if(m_FakeBB_DepthStencil)
-        {
-          ResourceId depthId =
-              GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
-          GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
-
-          GetReplay()->GetResourceDesc(m_FBO0_ID).derivedResources.push_back(depthId);
-          GetReplay()->GetResourceDesc(depthId).parentResources.push_back(m_FBO0_ID);
-        }
+        // similar behaviour for a single global FBO 0.
+        if(fbo != ResourceId())
+          CreateReplayBackbuffer(m_GlobalInitParams, fbo, m_Global_FBO0, "Backbuffer");
       }
 
       return true;
@@ -3918,6 +3974,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::MakeContextCurrent:
       // re-use the serialisation for beginning of the frame
       return Serialise_BeginCaptureFrame(ser);
+
+    case GLChunk::ContextConfiguration: return Serialise_ContextConfiguration(ser, NULL);
 
     case GLChunk::glIndirectSubCommand:
       // this is a fake chunk generated at runtime as part of indirect draws.

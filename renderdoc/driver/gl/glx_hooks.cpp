@@ -62,6 +62,26 @@ public:
       m_GLXWindowMap.erase(it);
   }
 
+  void UpdateWindowSize(GLWindowingData data, Display *dpy, GLXDrawable drawable)
+  {
+    // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
+    // a BadDrawable error and things go south. Instead we track GLXWindows created
+    // in glXCreateWindow/glXDestroyWindow and look up the source window it was
+    // created from to use that.
+    // If the drawable didn't come through there, it just passes through unscathed
+    // through this function
+    Drawable d = UnwrapGLXWindow(drawable);
+
+    Window root;
+    int x, y;
+    unsigned int width, height, border_width, depth;
+    XGetGeometry(dpy, d, &root, &x, &y, &width, &height, &border_width, &depth);
+
+    GLInitParams &params = driver.GetInitParams(data);
+    params.width = width;
+    params.height = height;
+  }
+
   // default to RTLD_NEXT for GLX lookups if we haven't gotten a more specific library handle
   void *handle = RTLD_NEXT;
   WrappedOpenGL driver;
@@ -322,6 +342,8 @@ HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext c
 
     glxhook.driver.ActivateContext(data);
 
+    glxhook.UpdateWindowSize(data, dpy, drawable);
+
     if(config)
       XFree(config);
     if(data.cfg)
@@ -387,6 +409,8 @@ HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawab
 
     glxhook.driver.ActivateContext(data);
 
+    glxhook.UpdateWindowSize(data, dpy, draw);
+
     if(config)
       XFree(config);
     if(data.cfg)
@@ -407,21 +431,6 @@ HOOK_EXPORT void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
   }
 
   SCOPED_LOCK(glLock);
-
-  // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
-  // a BadDrawable error and things go south. Instead we track GLXWindows created
-  // in glXCreateWindow/glXDestroyWindow and look up the source window it was
-  // created from to use that.
-  // If the drawable didn't come through there, it just passes through unscathed
-  // through this function
-  Drawable d = glxhook.UnwrapGLXWindow(drawable);
-
-  Window root;
-  int x, y;
-  unsigned int width, height, border_width, depth;
-  XGetGeometry(dpy, d, &root, &x, &y, &width, &height, &border_width, &depth);
-
-  glxhook.driver.WindowSize((void *)drawable, width, height);
 
   glxhook.driver.SwapBuffers((void *)drawable);
 

@@ -202,8 +202,7 @@ std::vector<ResourceId> GLReplay::GetTextures()
     auto &res = m_pDriver->m_Textures[it->first];
 
     // skip textures that aren't from the log (except the 'default backbuffer' textures)
-    if(res.resource.name != m_pDriver->m_FakeBB_Color &&
-       res.resource.name != m_pDriver->m_FakeBB_DepthStencil &&
+    if(!(res.creationFlags & TextureCategory::SwapBuffer) &&
        m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
@@ -489,8 +488,6 @@ void GLReplay::CacheTexture(ResourceId id)
   }
 
   tex.creationFlags = res.creationFlags;
-  if(res.resource.name == drv.m_FakeBB_Color || res.resource.name == drv.m_FakeBB_DepthStencil)
-    tex.creationFlags |= TextureCategory::SwapBuffer;
 
   // surely this will be the same for each level... right? that would be insane if it wasn't
   GLint fmt = 0;

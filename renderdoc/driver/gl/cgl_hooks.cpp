@@ -74,7 +74,7 @@ CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj s
   init.isSRGB = value;
   value = 1;
   // GLX.glXGetConfig(dpy, vis, GLX_SAMPLES_ARB, &value);
-  init.isSRGB = RDCMAX(1, value);
+  init.multiSamples = RDCMAX(1, value);
 
   GLWindowingData data;
   data.wnd = NULL;
@@ -125,6 +125,10 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
     // data.cfg = NULL;
 
     cglhook.driver.ActivateContext(data);
+
+    GLInitParams &params = cglhook.driver.GetInitParams(data);
+    params.width = 400;
+    params.height = 200;
   }
 
   return ret;
@@ -141,8 +145,6 @@ CGLError GL_EXPORT_NAME(CGLFlushDrawable)(CGLContextObj ctx)
   }
 
   SCOPED_LOCK(glLock);
-
-  cglhook.driver.WindowSize((void *)0x4, 800, 200);
 
   cglhook.driver.SwapBuffers((void *)0x4);
 

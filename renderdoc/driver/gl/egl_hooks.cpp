@@ -294,6 +294,24 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface
     eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
 
     eglhook.driver.ActivateContext(data);
+
+    GLInitParams &params = eglhook.driver.GetInitParams(data);
+
+    int height, width;
+    EGL.QuerySurface(display, draw, EGL_HEIGHT, &height);
+    EGL.QuerySurface(display, draw, EGL_WIDTH, &width);
+
+    int colorspace = 0;
+    EGL.QuerySurface(display, draw, EGL_GL_COLORSPACE, &colorspace);
+    // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
+    bool isSRGB = params.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
+
+    bool isYFlipped = eglhook.IsYFlipped(display, draw);
+
+    params.width = width;
+    params.height = height;
+    params.isSRGB = isSRGB;
+    params.isYFlipped = isYFlipped;
   }
 
   return ret;
@@ -311,20 +329,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface sur
 
   SCOPED_LOCK(glLock);
 
-  int height, width;
-  EGL.QuerySurface(dpy, surface, EGL_HEIGHT, &height);
-  EGL.QuerySurface(dpy, surface, EGL_WIDTH, &width);
-
-  GLInitParams &init = eglhook.driver.GetInitParams();
-  int colorspace = 0;
-  EGL.QuerySurface(dpy, surface, EGL_GL_COLORSPACE, &colorspace);
-  // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
-  init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
-
-  init.isYFlipped = eglhook.IsYFlipped(dpy, surface);
-
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
-  eglhook.driver.WindowSize(surface, width, height);
   if(!eglhook.driver.UsesVRFrameMarkers())
     eglhook.driver.SwapBuffers(surface);
 
@@ -344,20 +349,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface
 
   SCOPED_LOCK(glLock);
 
-  int winheight, winwidth;
-  EGL.QuerySurface(dpy, surface, EGL_HEIGHT, &winheight);
-  EGL.QuerySurface(dpy, surface, EGL_WIDTH, &winwidth);
-
-  GLInitParams &init = eglhook.driver.GetInitParams();
-  int colorspace = 0;
-  EGL.QuerySurface(dpy, surface, EGL_GL_COLORSPACE, &colorspace);
-  // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
-  init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
-
-  init.isYFlipped = eglhook.IsYFlipped(dpy, surface);
-
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
-  eglhook.driver.WindowSize((void *)eglhook.windows[surface], winwidth, winheight);
   if(!eglhook.driver.UsesVRFrameMarkers())
     eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
 

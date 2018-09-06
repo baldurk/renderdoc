@@ -54,7 +54,7 @@ struct GLInitParams
   bool isYFlipped;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x1D;
+  static const uint64_t CurrentVersion = 0x1E;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -122,8 +122,8 @@ private:
   GLReplay m_Replay;
   RDCDriver m_DriverType;
 
-  GLInitParams m_InitParams;
   uint64_t m_SectionVersion;
+  GLInitParams m_GlobalInitParams;
 
   WriteSerialiser m_ScratchSerialiser;
   std::set<std::string> m_StringDB;
@@ -257,12 +257,15 @@ private:
 
   vector<pair<ResourceId, Replacement>> m_DependentReplacements;
 
-  GLuint m_FakeBB_FBO;
-  GLuint m_FakeBB_Color;
-  GLuint m_FakeBB_DepthStencil;
-  ResourceId m_FBO0_ID;
+  // this object is only created on old captures where VAO0 was a single global object. In new
+  // captures each context has its own VAO0.
+  GLuint m_Global_VAO0 = 0;
 
-  GLuint m_Fake_VAO0;
+  // Same principle here, but for FBOs.
+  GLuint m_Global_FBO0 = 0;
+
+  // This tracks whatever is the FBO for the last bound context
+  GLuint m_CurrentDefaultFBO;
 
   GLuint m_IndirectBuffer = 0;
   GLsizeiptr m_IndirectBufferSize = 0;
@@ -281,8 +284,7 @@ private:
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
 
-  template <typename SerialiserType>
-  bool Serialise_ContextInit(SerialiserType &ser);
+  bool Serialise_ContextInit(ReadSerialiser &ser);
 
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {
@@ -295,6 +297,9 @@ private:
   void BeginCaptureFrame();
   void FinishCapture();
   void ContextEndFrame();
+
+  template <typename SerialiserType>
+  bool Serialise_ContextConfiguration(SerialiserType &ser, void *ctx);
 
   void CleanupResourceRecord(GLResourceRecord *record, bool freeParents);
   void CleanupCapture();
@@ -336,6 +341,8 @@ private:
     int version;
     bool attribsCreate;
     bool isCore;
+
+    GLInitParams initParams;
 
     // map from window handle void* to uint64_t unix timestamp with
     // the last time a window was seen/associated with this context.
@@ -390,6 +397,8 @@ private:
 
     ResourceId m_ContextDataResourceID;
     GLResourceRecord *m_ContextDataRecord;
+
+    ResourceId m_ContextFBOID;
   };
 
   struct ClientMemoryData
@@ -443,8 +452,8 @@ private:
   static const int FONT_TEX_HEIGHT = 128;
   static const int FONT_MAX_CHARS = 256;
 
-  void RenderOverlayText(float x, float y, bool yflipped, const char *fmt, ...);
-  void RenderOverlayStr(float x, float y, bool yflipped, const char *str);
+  void RenderOverlayText(float x, float y, const char *fmt, ...);
+  void RenderOverlayStr(float x, float y, const char *str);
 
   struct BackbufferImage
   {
@@ -455,6 +464,9 @@ private:
     uint16_t thwidth;
     uint16_t thheight;
   };
+
+  void CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId, GLuint &fbo,
+                              std::string bbname);
 
   BackbufferImage *SaveBackbufferImage();
   map<void *, BackbufferImage *> m_BackbufferImages;
@@ -488,7 +500,6 @@ public:
   void SetDriverType(RDCDriver type) { m_DriverType = type; }
   bool isGLESMode() { return m_DriverType == RDCDriver::OpenGLES; }
   RDCDriver GetDriverType() { return m_DriverType; }
-  GLInitParams &GetInitParams() { return m_InitParams; }
   ContextPair &GetCtx();
   GLResourceRecord *GetContextRecord();
 
@@ -516,8 +527,8 @@ public:
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
-  GLuint GetFakeVAO0() { return m_Fake_VAO0; }
-  GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
+  GLuint GetFakeVAO0() { return m_Global_VAO0; }
+  GLuint GetCurrentDefaultFBO() { return m_CurrentDefaultFBO; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventId);
 
@@ -531,8 +542,11 @@ public:
   void RegisterReplayContext(GLWindowingData winData, void *shareContext, bool core,
                              bool attribsCreate);
   void DeleteContext(void *contextHandle);
+  GLInitParams &GetInitParams(GLWindowingData winData)
+  {
+    return m_ContextData[winData.ctx].initParams;
+  }
   void ActivateContext(GLWindowingData winData);
-  void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
   void SwapBuffers(void *windowHandle);
   void HandleVRFrameMarkers(const GLchar *buf, GLsizei length);
   bool UsesVRFrameMarkers() { return m_UsesVRMarkers; }

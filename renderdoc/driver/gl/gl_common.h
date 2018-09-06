@@ -2054,6 +2054,8 @@ enum class GLChunk : uint32_t
   glAcquireKeyedMutexWin32EXT,
   glReleaseKeyedMutexWin32EXT,
 
+  ContextConfiguration,
+
   Max,
 };
 
