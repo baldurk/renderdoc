@@ -638,10 +638,11 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
       message = tr("Output type cannot be unknown.");
     }
     else if(tool.tool == KnownShaderTool::Unknown &&
-            !QString(tool.args).contains(lit("{input_file}")))
+            !QString(tool.args).contains(lit("{input_file}")) &&
+            !QString(tool.args).contains(lit("{stdin}")))
     {
       invalid = true;
-      message = tr("Custom tool arguments must include at least {input_file}.");
+      message = tr("Custom tool arguments must include at least {input_file} or {stdin}.");
     }
     else
     {

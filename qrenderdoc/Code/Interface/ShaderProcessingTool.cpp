@@ -56,9 +56,14 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
                                 QString input_file, QString output_file, QStringList &argList)
 {
   bool writesToFile = true;
+  bool readStdin = false;
 
-  if(input_file.isEmpty())
-    input_file = tmpPath(lit("shader_input"));
+  int idx = argList.indexOf(lit("{stdin}"));
+  if(idx >= 0)
+  {
+    argList.removeAt(idx);
+    readStdin = true;
+  }
 
   if(output_file.isEmpty())
   {
@@ -102,6 +107,9 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
   QProcess process;
 
   LambdaThread *thread = new LambdaThread([&]() {
+    if(readStdin)
+      process.setStandardInputFile(input_file);
+
     if(!writesToFile)
       process.setStandardOutputFile(output_file);
     else
@@ -183,11 +191,13 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
 
   QString input_file, output_file;
 
+  input_file = tmpPath(lit("shader_input"));
+
   // replace arguments after expansion to avoid problems with quoting paths etc
   for(QString &arg : argList)
   {
     if(arg == lit("{input_file}"))
-      arg = input_file = tmpPath(lit("shader_input"));
+      arg = input_file;
     if(arg == lit("{output_file}"))
       arg = output_file = tmpPath(lit("shader_output"));
     if(arg == lit("{glsl_stage4}"))
@@ -223,11 +233,13 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
 
   QString input_file, output_file;
 
+  input_file = tmpPath(lit("shader_input"));
+
   // replace arguments after expansion to avoid problems with quoting paths etc
   for(QString &arg : argList)
   {
     if(arg == lit("{input_file}"))
-      arg = input_file = tmpPath(lit("shader_input"));
+      arg = input_file;
     if(arg == lit("{output_file}"))
       arg = output_file = tmpPath(lit("shader_output"));
     if(arg == lit("{entry_point}"))
