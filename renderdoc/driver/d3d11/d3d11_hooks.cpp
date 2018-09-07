@@ -395,6 +395,9 @@ private:
   {
     void *real = d3d11hooks.nvapi_QueryInterface()(ID);
 
+    if(real == NULL)
+      return real;
+
     if(ID == 0x6A16D3A0)
     {
       d3d11hooks.nvapi_CreateDevice_real = (PFNNVCreateDevice)real;
@@ -405,8 +408,17 @@ private:
       d3d11hooks.nvapi_CreateDeviceAndSwapChain_real = (PFNNVCreateDeviceAndSwapChain)real;
       return &nvapi_CreateDeviceAndSwapChain;
     }
-
-    return real;
+    else if(ID == 0xAD298D3F || ID == 0x0150E828 || ID == 0x33C7358C || ID == 0x593E8644)
+    {
+      // these seem to be fetched inside NvAPI_Initialize so we allow them through to avoid
+      // causing problems
+      return real;
+    }
+    else
+    {
+      RDCWARN("Returning NULL for nvapi_QueryInterface(%x)", ID);
+      return NULL;
+    }
   }
 
   PNVENCREGISTERRESOURCE real_nvEncRegisterResource = NULL;
