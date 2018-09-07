@@ -632,6 +632,12 @@ bool LiveCapture::checkAllowClose()
   m_IgnoreThreadClosed = true;
 
   bool suppressRemoteWarning = false;
+  bool notoall = false;
+
+  QMessageBox::StandardButtons msgFlags = RDDialog::YesNoCancel;
+
+  if(ui->captures->count() > 1)
+    msgFlags |= QMessageBox::NoToAll;
 
   for(int i = 0; i < ui->captures->count(); i++)
   {
@@ -648,13 +654,19 @@ bool LiveCapture::checkAllowClose()
 
     QMessageBox::StandardButton res = QMessageBox::No;
 
-    if(!suppressRemoteWarning)
+    if(!suppressRemoteWarning && !notoall)
     {
       res = RDDialog::question(this, tr("Unsaved capture"),
                                tr("Save this capture '%1' at %2?")
                                    .arg(cap->name)
                                    .arg(cap->timestamp.toString(lit("HH:mm:ss"))),
-                               RDDialog::YesNoCancel);
+                               msgFlags);
+
+      if(res == QMessageBox::NoToAll)
+      {
+        notoall = true;
+        res = QMessageBox::No;
+      }
     }
 
     if(res == QMessageBox::Cancel)
