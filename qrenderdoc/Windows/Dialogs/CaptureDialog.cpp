@@ -931,9 +931,17 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
   ui->exePath->setText(fn);
 
   if(m_Ctx.Replay().CurrentRemote())
-    m_Ctx.Replay().CurrentRemote()->lastCapturePath = QFileInfo(fn).absolutePath();
+  {
+    // remove the filename itself
+    int idx = fn.lastIndexOf(QLatin1Char('/'));
+    if(idx >= 0)
+      fn = fn.mid(0, idx);
+    m_Ctx.Replay().CurrentRemote()->lastCapturePath = fn;
+  }
   else
+  {
     m_Ctx.Config().LastCapturePath = QFileInfo(fn).absolutePath();
+  }
 
   m_Ctx.Config().Save();
 }
