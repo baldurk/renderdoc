@@ -45,14 +45,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_AtomicCopyBufferUINT(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal1() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal1() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
@@ -163,14 +163,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_AtomicCopyBufferUINT64(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal1() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal1() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
@@ -274,20 +274,20 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetDepthBounds(SerialiserTyp
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal1() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
-    return false;
-  }
-
-  if(m_pDevice->GetOpts2().DepthBoundsTestSupported == 0)
-  {
-    RDCERR("Can't replay OMSetDepthBounds without device support");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal1() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      return false;
+    }
+
+    if(m_pDevice->GetOpts2().DepthBoundsTestSupported == 0)
+    {
+      RDCERR("Can't replay OMSetDepthBounds without device support");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
@@ -343,14 +343,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetSamplePositions(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal1() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal1() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
@@ -429,14 +429,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ResolveSubresourceRegion(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal1() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal1() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
@@ -526,20 +526,20 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetViewInstanceMask(Serialiser
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal1() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
-    return false;
-  }
-
-  if(m_pDevice->GetOpts3().ViewInstancingTier == D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
-  {
-    RDCERR("Can't replay SetViewInstanceMask without device support");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal1() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList1 command");
+      return false;
+    }
+
+    if(m_pDevice->GetOpts3().ViewInstancingTier == D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
+    {
+      RDCERR("Can't replay SetViewInstanceMask without device support");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
@@ -594,14 +594,14 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_WriteBufferImmediate(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(GetWrapped(pCommandList)->GetReal2() == NULL)
-  {
-    RDCERR("Can't replay ID3D12GraphicsCommandList2 command");
-    return false;
-  }
-
   if(IsReplayingAndReading())
   {
+    if(GetWrapped(pCommandList)->GetReal2() == NULL)
+    {
+      RDCERR("Can't replay ID3D12GraphicsCommandList2 command");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))
