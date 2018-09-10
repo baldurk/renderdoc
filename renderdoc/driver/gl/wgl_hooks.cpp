@@ -369,7 +369,7 @@ static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
     data.wnd = WindowFromDC(dc);
     data.ctx = rc;
 
-    if(wglhook.haveContextCreation)
+    if(wglhook.haveContextCreation && data.ctx && data.wnd)
     {
       RECT r;
       GetClientRect(data.wnd, &r);

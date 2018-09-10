@@ -64,6 +64,9 @@ public:
 
   void UpdateWindowSize(GLWindowingData data, Display *dpy, GLXDrawable drawable)
   {
+    if(!data.ctx || !drawable)
+      return;
+
     // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
     // a BadDrawable error and things go south. Instead we track GLXWindows created
     // in glXCreateWindow/glXDestroyWindow and look up the source window it was

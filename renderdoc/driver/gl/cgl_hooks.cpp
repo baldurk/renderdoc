@@ -126,9 +126,12 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
 
     cglhook.driver.ActivateContext(data);
 
-    GLInitParams &params = cglhook.driver.GetInitParams(data);
-    params.width = 400;
-    params.height = 200;
+    if(data.ctx)
+    {
+      GLInitParams &params = cglhook.driver.GetInitParams(data);
+      params.width = 400;
+      params.height = 200;
+    }
   }
 
   return ret;

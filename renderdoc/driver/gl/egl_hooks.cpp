@@ -295,23 +295,26 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface
 
     eglhook.driver.ActivateContext(data);
 
-    GLInitParams &params = eglhook.driver.GetInitParams(data);
+    if(ctx && draw)
+    {
+      GLInitParams &params = eglhook.driver.GetInitParams(data);
 
-    int height, width;
-    EGL.QuerySurface(display, draw, EGL_HEIGHT, &height);
-    EGL.QuerySurface(display, draw, EGL_WIDTH, &width);
+      int height, width;
+      EGL.QuerySurface(display, draw, EGL_HEIGHT, &height);
+      EGL.QuerySurface(display, draw, EGL_WIDTH, &width);
 
-    int colorspace = 0;
-    EGL.QuerySurface(display, draw, EGL_GL_COLORSPACE, &colorspace);
-    // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
-    bool isSRGB = params.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
+      int colorspace = 0;
+      EGL.QuerySurface(display, draw, EGL_GL_COLORSPACE, &colorspace);
+      // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
+      bool isSRGB = params.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
 
-    bool isYFlipped = eglhook.IsYFlipped(display, draw);
+      bool isYFlipped = eglhook.IsYFlipped(display, draw);
 
-    params.width = width;
-    params.height = height;
-    params.isSRGB = isSRGB;
-    params.isYFlipped = isYFlipped;
+      params.width = width;
+      params.height = height;
+      params.isSRGB = isSRGB;
+      params.isYFlipped = isYFlipped;
+    }
   }
 
   return ret;
