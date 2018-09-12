@@ -1463,6 +1463,7 @@ void VulkanReplay::DestroyResources()
   m_VertexPick.Destroy(m_pDriver);
   m_PixelPick.Destroy(m_pDriver);
   m_Histogram.Destroy(m_pDriver);
+  m_PostVS.Destroy(m_pDriver);
 
   SAFE_DELETE(m_pAMDCounters);
 }
@@ -2411,4 +2412,10 @@ void VulkanReplay::HistogramMinMax::Destroy(WrappedVulkan *driver)
   m_HistogramBuf.Destroy();
   m_HistogramReadback.Destroy();
   m_HistogramUBO.Destroy();
+}
+
+void VulkanReplay::PostVS::Destroy(WrappedVulkan *driver)
+{
+  if(XFBQueryPool != VK_NULL_HANDLE)
+    driver->vkDestroyQueryPool(driver->GetDev(), XFBQueryPool, NULL);
 }

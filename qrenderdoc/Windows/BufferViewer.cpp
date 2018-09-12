@@ -2449,7 +2449,7 @@ void BufferViewer::configureMeshColumns()
       uint numComps = sig.format.compCount;
       uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
-      if(m_Ctx.CurPipelineState().HasAlignedPostVSData())
+      if(m_Ctx.CurPipelineState().HasAlignedPostVSData(MeshDataStage::VSOut))
       {
         if(numComps == 2)
           offset = AlignUp(offset, 2U * elemSize);
@@ -2516,7 +2516,7 @@ void BufferViewer::configureMeshColumns()
         uint numComps = sig.format.compCount;
         uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
-        if(m_Ctx.CurPipelineState().HasAlignedPostVSData())
+        if(m_Ctx.CurPipelineState().HasAlignedPostVSData(MeshDataStage::GSOut))
         {
           if(numComps == 2)
             offset = AlignUp(offset, 2U * elemSize);

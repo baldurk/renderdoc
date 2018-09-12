@@ -934,6 +934,33 @@ void VulkanReplay::SavePipelineState()
     m_VulkanPipelineState.tessellation.domainOriginUpperLeft =
         p.tessellationDomainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
 
+    // Transform feedback
+    m_VulkanPipelineState.transformFeedback.buffers.resize(state.xfbbuffers.size());
+    for(size_t i = 0; i < state.xfbbuffers.size(); i++)
+    {
+      m_VulkanPipelineState.transformFeedback.buffers[i].bufferResourceId =
+          rm->GetOriginalID(state.xfbbuffers[i].buf);
+      m_VulkanPipelineState.transformFeedback.buffers[i].byteOffset = state.xfbbuffers[i].offs;
+      m_VulkanPipelineState.transformFeedback.buffers[i].byteSize = state.xfbbuffers[i].size;
+
+      m_VulkanPipelineState.transformFeedback.buffers[i].active = false;
+      m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferResourceId = ResourceId();
+      m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferOffset = 0;
+
+      if(i >= state.firstxfbcounter)
+      {
+        size_t xfb = i - state.firstxfbcounter;
+        if(xfb < state.xfbcounters.size())
+        {
+          m_VulkanPipelineState.transformFeedback.buffers[i].active = true;
+          m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferResourceId =
+              rm->GetOriginalID(state.xfbcounters[xfb].buf);
+          m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferOffset =
+              state.xfbcounters[xfb].offs;
+        }
+      }
+    }
+
     // Viewport/Scissors
     size_t numViewScissors = p.viewportCount;
     m_VulkanPipelineState.viewportScissor.viewportScissors.resize(numViewScissors);

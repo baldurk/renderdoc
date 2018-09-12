@@ -153,10 +153,14 @@ vectors not crossing ``float4`` boundaries). APIs that use stream-out or transfo
 tightly packed data, but APIs that rewrite shaders to dump data might have these alignment
 requirements.
 
+:param MeshDataStage stage: The mesh data stage for the output data.
 :return: A boolean indicating if post-VS data is aligned.
 :rtype: ``bool``
 )");
-  bool HasAlignedPostVSData() const { return IsCaptureLoaded() && IsCaptureVK(); }
+  bool HasAlignedPostVSData(MeshDataStage stage) const
+  {
+    return IsCaptureLoaded() && IsCaptureVK() && stage == MeshDataStage::VSOut;
+  }
   DOCUMENT(R"(For APIs that have explicit barriers, retrieves the current layout of a resource.
 
 :return: The name of the current resource layout.

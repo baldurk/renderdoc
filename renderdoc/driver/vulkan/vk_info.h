@@ -190,6 +190,9 @@ struct VulkanCreationInfo
     float depthBiasSlopeFactor;
     float lineWidth;
 
+    // VkPipelineRasterizationStateStreamCreateInfoEXT
+    uint32_t rasterizationStream;
+
     // VkPipelineRasterizationConservativeStateCreateInfoEXT
     VkConservativeRasterizationModeEXT conservativeRasterizationMode;
     float extraPrimitiveOverestimationSize;

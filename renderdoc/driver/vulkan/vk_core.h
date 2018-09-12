@@ -69,6 +69,7 @@ enum class VkIndirectPatchType
   DrawIndexedIndirect,
   DrawIndirectCount,
   DrawIndexedIndirectCount,
+  DrawIndirectByteCount,
 };
 
 struct VkIndirectPatchData
@@ -78,6 +79,7 @@ struct VkIndirectPatchData
   VkBuffer buf;
   uint32_t count;
   uint32_t stride;
+  uint32_t vertexoffset;
 };
 
 struct VulkanDrawcallTreeNode
@@ -531,6 +533,9 @@ private:
       uint32_t idxWidth = 0;
       ResourceId ibuffer;
       std::vector<ResourceId> vbuffers;
+      std::vector<ResourceId> xfbbuffers;
+      uint32_t xfbfirst = 0;
+      uint32_t xfbcount = 0;
 
       ResourceId renderPass;
       ResourceId framebuffer;
@@ -711,7 +716,7 @@ private:
   {
     T *ret = GetTempArray<T>(count);
     for(uint32_t i = 0; i < count; i++)
-      ret[i] = Unwrap(wrapped[i]);
+      ret[i] = wrapped ? Unwrap(wrapped[i]) : VK_NULL_HANDLE;
     return ret;
   }
 
@@ -1926,4 +1931,28 @@ public:
                                 const VkSubpassEndInfoKHR *pSubpassEndInfo);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2KHR, VkCommandBuffer commandBuffer,
                                 const VkSubpassEndInfoKHR *pSubpassEndInfo);
+
+  // VK_EXT_transform_feedback
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindTransformFeedbackBuffersEXT,
+                                VkCommandBuffer commandBuffer, uint32_t firstBinding,
+                                uint32_t bindingCount, const VkBuffer *pBuffers,
+                                const VkDeviceSize *pOffsets, const VkDeviceSize *pSizes);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginTransformFeedbackEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstBuffer, uint32_t bufferCount,
+                                const VkBuffer *pCounterBuffers,
+                                const VkDeviceSize *pCounterBufferOffsets);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndTransformFeedbackEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstBuffer, uint32_t bufferCount,
+                                const VkBuffer *pCounterBuffers,
+                                const VkDeviceSize *pCounterBufferOffsets);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginQueryIndexedEXT, VkCommandBuffer commandBuffer,
+                                VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags,
+                                uint32_t index);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndQueryIndexedEXT, VkCommandBuffer commandBuffer,
+                                VkQueryPool queryPool, uint32_t query, uint32_t index);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirectByteCountEXT, VkCommandBuffer commandBuffer,
+                                uint32_t instanceCount, uint32_t firstInstance,
+                                VkBuffer counterBuffer, VkDeviceSize counterBufferOffset,
+                                uint32_t counterOffset, uint32_t vertexStride);
 };

@@ -52,6 +52,7 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
     case VkIndirectPatchType::DrawIndexedIndirectCount:
       dataSize = sizeof(VkDrawIndexedIndirectCommand) + (count > 0 ? count - 1 : 0) * stride;
       break;
+    case VkIndirectPatchType::DrawIndirectByteCount: dataSize = 4; break;
   }
 
   bufInfo.size = AlignUp16(dataSize);
@@ -79,6 +80,9 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
       dataOffset,
       dataSize,
   };
+
+  if(type == VkIndirectPatchType::DrawIndirectByteCount)
+    buf.srcAccessMask |= VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT;
 
   ObjDisp(commandBuffer)
       ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -3069,6 +3073,134 @@ void WrappedVulkan::vkCmdDrawIndexedIndirectCountKHR(VkCommandBuffer commandBuff
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t instanceCount,
+    uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset,
+    uint32_t counterOffset, uint32_t vertexStride)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(instanceCount);
+  SERIALISE_ELEMENT(firstInstance);
+  SERIALISE_ELEMENT(counterBuffer);
+  SERIALISE_ELEMENT(counterBufferOffset);
+  SERIALISE_ELEMENT(counterOffset);
+  SERIALISE_ELEMENT(vertexStride);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    // do execution (possibly partial)
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer);
+
+        ObjDisp(commandBuffer)
+            ->CmdDrawIndirectByteCountEXT(Unwrap(commandBuffer), instanceCount, firstInstance,
+                                          Unwrap(counterBuffer), counterBufferOffset, counterOffset,
+                                          vertexStride);
+
+        if(eventId && m_DrawcallCallback->PostDraw(eventId, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdDrawIndirectByteCountEXT(Unwrap(commandBuffer), instanceCount, firstInstance,
+                                            Unwrap(counterBuffer), counterBufferOffset,
+                                            counterOffset, vertexStride);
+          m_DrawcallCallback->PostRedraw(eventId, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      VkIndirectPatchData indirectPatch =
+          FetchIndirectData(VkIndirectPatchType::DrawIndirectByteCount, commandBuffer,
+                            counterBuffer, counterBufferOffset, 1, vertexStride);
+      indirectPatch.vertexoffset = counterOffset;
+
+      ObjDisp(commandBuffer)
+          ->CmdDrawIndirectByteCountEXT(Unwrap(commandBuffer), instanceCount, firstInstance,
+                                        Unwrap(counterBuffer), counterBufferOffset, counterOffset,
+                                        vertexStride);
+
+      string name = "vkCmdDrawIndirectByteCountEXT";
+
+      if(!IsDrawInRenderPass())
+      {
+        AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                        MessageSource::IncorrectAPIUse,
+                        "Drawcall in happening outside of render pass, or in secondary command "
+                        "buffer without RENDER_PASS_CONTINUE_BIT");
+      }
+
+      DrawcallDescription draw;
+
+      AddEvent();
+
+      draw.name = name;
+      draw.instanceOffset = firstInstance;
+      draw.numInstances = instanceCount;
+      draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+
+      AddDrawcall(draw, true);
+
+      VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+      drawNode.indirectPatch = indirectPatch;
+
+      drawNode.resourceUsage.push_back(std::make_pair(
+          GetResID(counterBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
+
+      return true;
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndirectByteCountEXT(VkCommandBuffer commandBuffer,
+                                                  uint32_t instanceCount, uint32_t firstInstance,
+                                                  VkBuffer counterBuffer,
+                                                  VkDeviceSize counterBufferOffset,
+                                                  uint32_t counterOffset, uint32_t vertexStride)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdDrawIndirectByteCountEXT(Unwrap(commandBuffer), instanceCount,
+                                                        firstInstance, Unwrap(counterBuffer),
+                                                        counterBufferOffset, counterOffset,
+                                                        vertexStride));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndirectByteCountEXT);
+    Serialise_vkCmdDrawIndirectByteCountEXT(ser, commandBuffer, instanceCount, firstInstance,
+                                            counterBuffer, counterBufferOffset, counterOffset,
+                                            vertexStride);
+
+    record->AddChunk(scope.Get());
+
+    record->MarkResourceFrameReferenced(GetResID(counterBuffer), eFrameRef_Read);
+    record->MarkResourceFrameReferenced(GetRecord(counterBuffer)->baseResource, eFrameRef_Read);
+    if(GetRecord(counterBuffer)->sparseInfo)
+      record->cmdInfo->sparse.insert(GetRecord(counterBuffer)->sparseInfo);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDraw, VkCommandBuffer commandBuffer, uint32_t vertexCount,
                                 uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
@@ -3144,3 +3276,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCountKHR,
                                 VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                                 VkBuffer countBuffer, VkDeviceSize countBufferOffset,
                                 uint32_t maxDrawCount, uint32_t stride);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectByteCountEXT, VkCommandBuffer commandBuffer,
+                                uint32_t instanceCount, uint32_t firstInstance,
+                                VkBuffer counterBuffer, VkDeviceSize counterBufferOffset,
+                                uint32_t counterOffset, uint32_t vertexStride);

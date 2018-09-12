@@ -281,6 +281,16 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   depthBiasSlopeFactor = pCreateInfo->pRasterizationState->depthBiasSlopeFactor;
   lineWidth = pCreateInfo->pRasterizationState->lineWidth;
 
+  // VkPipelineRasterizationStateStreamCreateInfoEXT
+  rasterizationStream = 0;
+
+  const VkPipelineRasterizationStateStreamCreateInfoEXT *rastStream =
+      (const VkPipelineRasterizationStateStreamCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pRasterizationState,
+          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT);
+  if(rastStream)
+    rasterizationStream = rastStream->rasterizationStream;
+
   // VkPipelineRasterizationConservativeStateCreateInfoEXT
   conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
   extraPrimitiveOverestimationSize = 0.0f;

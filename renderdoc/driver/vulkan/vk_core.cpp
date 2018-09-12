@@ -675,6 +675,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, VK_EXT_SWAPCHAIN_COLOR_SPACE_SPEC_VERSION,
     },
     {
+        VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME, VK_EXT_TRANSFORM_FEEDBACK_SPEC_VERSION,
+    },
+    {
         VK_EXT_VALIDATION_CACHE_EXTENSION_NAME, VK_EXT_VALIDATION_CACHE_SPEC_VERSION,
     },
     {
@@ -2691,6 +2694,21 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdEndRenderPass2KHR:
       return Serialise_vkCmdEndRenderPass2KHR(ser, VK_NULL_HANDLE, NULL);
 
+    case VulkanChunk::vkCmdBindTransformFeedbackBuffersEXT:
+      return Serialise_vkCmdBindTransformFeedbackBuffersEXT(ser, VK_NULL_HANDLE, 0, 0, NULL, NULL,
+                                                            NULL);
+    case VulkanChunk::vkCmdBeginTransformFeedbackEXT:
+      return Serialise_vkCmdBeginTransformFeedbackEXT(ser, VK_NULL_HANDLE, 0, 0, NULL, NULL);
+    case VulkanChunk::vkCmdEndTransformFeedbackEXT:
+      return Serialise_vkCmdEndTransformFeedbackEXT(ser, VK_NULL_HANDLE, 0, 0, NULL, NULL);
+    case VulkanChunk::vkCmdBeginQueryIndexedEXT:
+      return Serialise_vkCmdBeginQueryIndexedEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
+    case VulkanChunk::vkCmdEndQueryIndexedEXT:
+      return Serialise_vkCmdEndQueryIndexedEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+    case VulkanChunk::vkCmdDrawIndirectByteCountEXT:
+      return Serialise_vkCmdDrawIndirectByteCountEXT(ser, VK_NULL_HANDLE, 0, 0, VK_NULL_HANDLE, 0,
+                                                     0, 0);
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
@@ -2911,6 +2929,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     {
       VkCommandBuffer cmd = m_OutsideCmdBuffer;
+
+      // end any active XFB
+      if(!m_RenderState.xfbcounters.empty())
+        m_RenderState.EndTransformFeedback(cmd);
 
       // check if the render pass is active - it could have become active
       // even if it wasn't before (if the above event was a CmdBeginRenderPass)
@@ -3319,6 +3341,16 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
   for(size_t i = 0; i < state.vbuffers.size(); i++)
     drawNode.resourceUsage.push_back(
         std::make_pair(state.vbuffers[i], EventUsage(e, ResourceUsage::VertexBuffer)));
+
+  for(uint32_t i = state.xfbfirst;
+      i < state.xfbfirst + state.xfbcount && i < state.xfbbuffers.size(); i++)
+  {
+    if(state.xfbbuffers[i] != ResourceId())
+    {
+      drawNode.resourceUsage.push_back(
+          std::make_pair(state.xfbbuffers[i], EventUsage(e, ResourceUsage::StreamOut)));
+    }
+  }
 
   //////////////////////////////
   // Shaders

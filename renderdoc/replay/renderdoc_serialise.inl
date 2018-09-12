@@ -1925,6 +1925,27 @@ void DoSerialise(SerialiserType &ser, VKPipe::Tessellation &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VKPipe::XFBBuffer &el)
+{
+  SERIALISE_MEMBER(active);
+  SERIALISE_MEMBER(bufferResourceId);
+  SERIALISE_MEMBER(byteOffset);
+  SERIALISE_MEMBER(byteSize);
+  SERIALISE_MEMBER(counterBufferResourceId);
+  SERIALISE_MEMBER(counterBufferOffset);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VKPipe::TransformFeedback &el)
+{
+  SERIALISE_MEMBER(buffers);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::ViewportScissor &el)
 {
   SERIALISE_MEMBER(vp);
@@ -2118,7 +2139,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(images);
 
-  SIZE_CHECK(1344);
+  SIZE_CHECK(1360);
 }
 
 #pragma endregion Vulkan pipeline state

@@ -123,6 +123,50 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
         UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
         &vbuffers[i].offs);
   }
+
+  for(size_t i = 0; i < xfbbuffers.size(); i++)
+  {
+    if(xfbbuffers[i].buf == ResourceId())
+      continue;
+
+    ObjDisp(cmd)->CmdBindTransformFeedbackBuffersEXT(
+        Unwrap(cmd), (uint32_t)i, 1,
+        UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbbuffers[i].buf)),
+        &xfbbuffers[i].offs, &xfbbuffers[i].size);
+  }
+
+  if(!xfbcounters.empty())
+  {
+    std::vector<VkBuffer> buffers;
+    std::vector<VkDeviceSize> offsets;
+
+    for(size_t i = 0; i < xfbcounters.size(); i++)
+    {
+      buffers.push_back(Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
+      offsets.push_back(xfbcounters[i].offs);
+    }
+
+    ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(
+        Unwrap(cmd), firstxfbcounter, (uint32_t)xfbcounters.size(), buffers.data(), offsets.data());
+  }
+}
+
+void VulkanRenderState::EndTransformFeedback(VkCommandBuffer cmd)
+{
+  if(!xfbcounters.empty())
+  {
+    std::vector<VkBuffer> buffers;
+    std::vector<VkDeviceSize> offsets;
+
+    for(size_t i = 0; i < xfbcounters.size(); i++)
+    {
+      buffers.push_back(Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
+      offsets.push_back(xfbcounters[i].offs);
+    }
+
+    ObjDisp(cmd)->CmdEndTransformFeedbackEXT(
+        Unwrap(cmd), firstxfbcounter, (uint32_t)xfbcounters.size(), buffers.data(), offsets.data());
+  }
 }
 
 void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0)

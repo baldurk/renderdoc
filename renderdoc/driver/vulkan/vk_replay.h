@@ -128,6 +128,12 @@ struct VulkanAMDDrawCallback;
 
 struct VulkanPostVSData
 {
+  struct InstData
+  {
+    uint32_t numVerts = 0;
+    uint32_t bufOffset = 0;
+  };
+
   struct StageData
   {
     VkBuffer buf;
@@ -139,6 +145,9 @@ struct VulkanPostVSData
     uint32_t numVerts;
     uint32_t vertStride;
     uint32_t instStride;
+
+    // complex case - expansion per instance
+    std::vector<InstData> instData;
 
     uint32_t numViews;
 
@@ -249,8 +258,9 @@ public:
 
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(const std::vector<uint32_t> &passEvents);
+
   // indicates that EID alias is the same as eventId
-  void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVSAlias[alias] = eventId; }
+  void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVS.Alias[alias] = eventId; }
   void ClearPostVSCache();
 
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
@@ -331,6 +341,9 @@ public:
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 private:
+  void FetchVSOut(uint32_t eventId);
+  void FetchTessGSOut(uint32_t eventId);
+
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
   void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm,
@@ -573,8 +586,16 @@ private:
     VkPipeline m_MinMaxResultPipe[3] = {VK_NULL_HANDLE};
   } m_Histogram;
 
-  std::map<uint32_t, VulkanPostVSData> m_PostVSData;
-  std::map<uint32_t, uint32_t> m_PostVSAlias;
+  struct PostVS
+  {
+    void Destroy(WrappedVulkan *driver);
+
+    VkQueryPool XFBQueryPool = VK_NULL_HANDLE;
+    uint32_t XFBQueryPoolSize = 0;
+
+    std::map<uint32_t, VulkanPostVSData> Data;
+    std::map<uint32_t, uint32_t> Alias;
+  } m_PostVS;
 
   std::vector<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;

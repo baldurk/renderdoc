@@ -1080,6 +1080,20 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_MVK_moltenvk");
     }
 
+    // enable VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME if it's available, to fetch mesh output in
+    // tessellation/geometry stages
+    if(supportedExtensions.find(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      Extensions.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
+      RDCLOG("Enabling VK_EXT_transform_feedback_extension");
+    }
+    else
+    {
+      RDCWARN(
+          "VK_EXT_transform_feedback_extension not available, mesh output from "
+          "geometry/tessellation stages will not be available");
+    }
+
     createInfo.enabledLayerCount = (uint32_t)Layers.size();
 
     const char **layerArray = NULL;

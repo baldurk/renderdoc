@@ -262,7 +262,11 @@ SERIALISE_VK_HANDLES();
                                                                                                      \
   /* VK_EXT_validation_cache */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT,                     \
-               VkShaderModuleValidationCacheCreateInfoEXT)
+               VkShaderModuleValidationCacheCreateInfoEXT)                                           \
+                                                                                                     \
+  /* VK_EXT_transform_feedback */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,                \
+               VkPipelineRasterizationStateStreamCreateInfoEXT)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2558,6 +2562,23 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleValidationCacheCreateInfoEXT
   // we skip this, because it's unwrapped and has no ResourceId. The presence of this struct is
   // enough
   // SERIALISE_MEMBER(validationCache);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineRasterizationStateStreamCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(rasterizationStream);
+}
+
+template <>
+void Deserialise(const VkPipelineRasterizationStateStreamCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>

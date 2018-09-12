@@ -84,6 +84,9 @@ struct SPIRVPatchData
     // ID of the base variable
     uint32_t ID;
 
+    // ID of the struct parent of this variable
+    uint32_t structID;
+
     // the access chain of indices
     std::vector<uint32_t> accessChain;
 
@@ -95,6 +98,9 @@ struct SPIRVPatchData
   // SPIR-V.
   std::vector<InterfaceAccess> inputs;
   std::vector<InterfaceAccess> outputs;
+
+  // the output topology for tessellation and geometry shaders
+  Topology outTopo = Topology::Unknown;
 };
 
 struct SPVModule

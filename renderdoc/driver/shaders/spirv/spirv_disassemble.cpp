@@ -454,6 +454,8 @@ struct SPVTypeData
 
   SPVTypeData *baseType;
 
+  uint32_t id;
+
   string name;
 
   bool IsBasicInt() const { return type == eUInt || type == eSInt; }
@@ -3771,10 +3773,10 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_t &regIndex,
-                           std::vector<uint32_t> accessChain, string varName, SPVTypeData *type,
-                           const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray,
-                           SPIRVPatchData &patchData)
+void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_t structID,
+                           uint32_t &regIndex, std::vector<uint32_t> accessChain, string varName,
+                           SPVTypeData *type, const vector<SPVDecoration> &decorations,
+                           vector<SigParameter> &sigarray, SPIRVPatchData &patchData)
 {
   SigParameter sig;
 
@@ -3783,6 +3785,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
   SPIRVPatchData::InterfaceAccess patch;
   patch.accessChain = accessChain;
   patch.ID = id;
+  patch.structID = structID;
 
   bool rowmajor = true;
 
@@ -3867,7 +3870,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
         string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
 
-        AddSignatureParameter(isInput, stage, id, regIndex, patch.accessChain,
+        AddSignatureParameter(isInput, stage, id, type->id, regIndex, patch.accessChain,
                               baseName + "." + type->children[c].second, type->children[c].first,
                               type->childDecorations[c], sigarray, patchData);
 
@@ -4056,7 +4059,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         nm = StringFormat::Fmt("sig%u", inst->id);
 
       uint32_t dummy = 0;
-      AddSignatureParameter(isInput, stage, inst->id, dummy, std::vector<uint32_t>(), nm,
+      AddSignatureParameter(isInput, stage, inst->id, 0, dummy, std::vector<uint32_t>(), nm,
                             inst->var->type, inst->decorations, *sigarray, patchData);
 
       // eliminate any members of gl_PerVertex that are actually unused and just came along
@@ -4509,7 +4512,27 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     {
       for(const SPVExecutionMode &mode : inst->entry->modes)
       {
-        if(mode.mode == spv::ExecutionModeDepthGreater)
+        if(mode.mode == spv::ExecutionModeTriangles)
+        {
+          patchData.outTopo = Topology::TriangleList;
+        }
+        else if(mode.mode == spv::ExecutionModeIsolines)
+        {
+          patchData.outTopo = Topology::LineList;
+        }
+        else if(mode.mode == spv::ExecutionModeOutputPoints)
+        {
+          patchData.outTopo = Topology::PointList;
+        }
+        else if(mode.mode == spv::ExecutionModeOutputLineStrip)
+        {
+          patchData.outTopo = Topology::LineStrip;
+        }
+        else if(mode.mode == spv::ExecutionModeOutputTriangleStrip)
+        {
+          patchData.outTopo = Topology::TriangleStrip;
+        }
+        else if(mode.mode == spv::ExecutionModeDepthGreater)
         {
           for(SigParameter &sig : outputs)
           {
@@ -4518,7 +4541,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           }
           break;
         }
-        if(mode.mode == spv::ExecutionModeDepthLess)
+        else if(mode.mode == spv::ExecutionModeDepthLess)
         {
           for(SigParameter &sig : outputs)
           {
@@ -5019,6 +5042,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       {
         op.type = new SPVTypeData();
         op.type->type = SPVTypeData::eStruct;
+        op.type->id = spirv[it + 1];
 
         for(int i = 2; i < WordCount; i++)
         {

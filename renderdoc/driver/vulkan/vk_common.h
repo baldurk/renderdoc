@@ -469,6 +469,12 @@ enum class VulkanChunk : uint32_t
   vkCmdBeginRenderPass2KHR,
   vkCmdNextSubpass2KHR,
   vkCmdEndRenderPass2KHR,
+  vkCmdBindTransformFeedbackBuffersEXT,
+  vkCmdBeginTransformFeedbackEXT,
+  vkCmdEndTransformFeedbackEXT,
+  vkCmdBeginQueryIndexedEXT,
+  vkCmdEndQueryIndexedEXT,
+  vkCmdDrawIndirectByteCountEXT,
   Max,
 };
 
@@ -668,6 +674,7 @@ DECLARE_REFLECTION_STRUCT(VkSubpassEndInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDispatchIndirectCommand);
 DECLARE_REFLECTION_STRUCT(VkDrawIndirectCommand);
 DECLARE_REFLECTION_STRUCT(VkDrawIndexedIndirectCommand);
+DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationStateStreamCreateInfoEXT);
 
 DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
@@ -747,6 +754,7 @@ DECLARE_DESERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkRenderPassCreateInfo2KHR);
 DECLARE_DESERIALISE_TYPE(VkSubpassBeginInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkSubpassEndInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationStateStreamCreateInfoEXT);
 
 #if defined(VK_KHR_external_memory_win32) || defined(VK_NV_external_memory_win32)
 DECLARE_REFLECTION_STRUCT(VkImportMemoryWin32HandleInfoNV);

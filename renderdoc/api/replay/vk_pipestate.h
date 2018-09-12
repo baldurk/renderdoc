@@ -483,6 +483,67 @@ struct Tessellation
   bool domainOriginUpperLeft = true;
 };
 
+DOCUMENT("Describes a single transform feedback binding.");
+struct XFBBuffer
+{
+  DOCUMENT("");
+  XFBBuffer() = default;
+  XFBBuffer(const XFBBuffer &) = default;
+
+  bool operator==(const XFBBuffer &o) const
+  {
+    return active == o.active && bufferResourceId == o.bufferResourceId &&
+           byteOffset == o.byteOffset && byteSize == o.byteSize &&
+           counterBufferResourceId == o.counterBufferResourceId &&
+           counterBufferOffset == o.counterBufferOffset;
+  }
+  bool operator<(const XFBBuffer &o) const
+  {
+    if(!(active == o.active))
+      return active < o.active;
+    if(!(bufferResourceId == o.bufferResourceId))
+      return bufferResourceId < o.bufferResourceId;
+    if(!(byteOffset == o.byteOffset))
+      return byteOffset < o.byteOffset;
+    if(!(byteSize == o.byteSize))
+      return byteSize < o.byteSize;
+    if(!(counterBufferResourceId == o.counterBufferResourceId))
+      return counterBufferResourceId < o.counterBufferResourceId;
+    if(!(counterBufferOffset == o.counterBufferOffset))
+      return counterBufferOffset < o.counterBufferOffset;
+    return false;
+  }
+
+  DOCUMENT("A flag indicating if this buffer is active or not.");
+  bool active = false;
+
+  DOCUMENT("The :class:`ResourceId` of the bound data buffer.");
+  ResourceId bufferResourceId;
+
+  DOCUMENT("The offset in bytes to the start of the data in the :data:`bufferResourceId`.");
+  uint64_t byteOffset = 0;
+
+  DOCUMENT("The size in bytes of the data buffer.");
+  uint64_t byteSize = 0;
+
+  DOCUMENT("The :class:`ResourceId` of the buffer storing the counter value (if set).");
+  ResourceId counterBufferResourceId;
+
+  DOCUMENT("The offset in bytes to the counter in the :data:`counterBufferResourceId`.");
+  uint64_t counterBufferOffset = 0;
+};
+
+DOCUMENT("Describes the state of the fixed-function transform feedback.");
+struct TransformFeedback
+{
+  DOCUMENT("");
+  TransformFeedback() = default;
+  TransformFeedback(const TransformFeedback &) = default;
+
+  DOCUMENT("The bound transform feedback buffers.");
+  rdcarray<XFBBuffer> buffers;
+};
+
 DOCUMENT("Describes a combined viewport and scissor region.");
 struct ViewportScissor
 {
@@ -864,6 +925,9 @@ struct State
   DOCUMENT("A :class:`VKTessellation` describing the tessellation stage.");
   Tessellation tessellation;
 
+  DOCUMENT("A :class:`VKTransformFeedback` describing the tessellation stage.");
+  TransformFeedback transformFeedback;
+
   DOCUMENT("A :class:`VKViewState` describing the viewport setup.");
   ViewState viewportScissor;
   DOCUMENT("A :class:`VKRasterizer` describing rasterization.");
@@ -898,6 +962,8 @@ DECLARE_REFLECTION_STRUCT(VKPipe::VertexInput);
 DECLARE_REFLECTION_STRUCT(VKPipe::SpecializationConstant);
 DECLARE_REFLECTION_STRUCT(VKPipe::Shader);
 DECLARE_REFLECTION_STRUCT(VKPipe::Tessellation);
+DECLARE_REFLECTION_STRUCT(VKPipe::XFBBuffer);
+DECLARE_REFLECTION_STRUCT(VKPipe::TransformFeedback);
 DECLARE_REFLECTION_STRUCT(VKPipe::ViewportScissor);
 DECLARE_REFLECTION_STRUCT(VKPipe::ViewState);
 DECLARE_REFLECTION_STRUCT(VKPipe::Rasterizer);

@@ -449,6 +449,17 @@ bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescript
       valid = true;
     }
   }
+  else if(type == VkIndirectPatchType::DrawIndirectByteCount)
+  {
+    if(argptr && argptr + 4 <= argend)
+    {
+      uint32_t *arg = (uint32_t *)argptr;
+
+      draw.numIndices = *arg;
+
+      valid = true;
+    }
+  }
   else if(type == VkIndirectPatchType::DrawIndexedIndirect ||
           type == VkIndirectPatchType::DrawIndexedIndirectCount)
   {
@@ -540,7 +551,8 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
       n.draw.dispatchDimension[1] = args->y;
       n.draw.dispatchDimension[2] = args->z;
     }
-    else if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirect ||
+    else if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirectByteCount ||
+            n.indirectPatch.type == VkIndirectPatchType::DrawIndirect ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirect ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndirectCount ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount)
@@ -597,6 +609,16 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
       if(!hasCount && indirectCount == 1)
       {
         bool valid = PatchIndirectDraw(n.indirectPatch.type, n.draw, ptr, end);
+
+        if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirectByteCount)
+        {
+          if(n.draw.numIndices > n.indirectPatch.vertexoffset)
+            n.draw.numIndices -= n.indirectPatch.vertexoffset;
+          else
+            n.draw.numIndices = 0;
+
+          n.draw.numIndices /= n.indirectPatch.stride;
+        }
 
         if(valid)
           n.draw.name =

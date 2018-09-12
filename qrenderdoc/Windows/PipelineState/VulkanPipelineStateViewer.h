@@ -117,6 +117,7 @@ private:
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::VertexInput &vi);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::TransformFeedback &rs);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::Rasterizer &rs);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::ColorBlendState &cb);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds);
