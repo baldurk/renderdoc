@@ -7522,6 +7522,22 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
       diffStart = (uint32_t)s;
       diffEnd = (uint32_t)e;
 
+      // structured buffers must have copies aligned to their structure width, so we align down and
+      // up the detected diff start/end region to match.
+      if(WrappedID3D11Buffer::IsAlloc(pResource))
+      {
+        D3D11_BUFFER_DESC bufdesc = {};
+        ((WrappedID3D11Buffer *)pResource)->GetDesc(&bufdesc);
+
+        if(bufdesc.StructureByteStride)
+        {
+          diffStart -= (diffStart % bufdesc.StructureByteStride);
+
+          if((diffEnd % bufdesc.StructureByteStride) != 0)
+            diffEnd += bufdesc.StructureByteStride - (diffEnd % bufdesc.StructureByteStride);
+        }
+      }
+
       if(found)
       {
 #if ENABLED(RDOC_DEVEL)
