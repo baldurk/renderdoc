@@ -95,6 +95,7 @@ set(sources
     common/threading.h
     common/timing.h
     common/wrapped_pool.h
+    common/threading_tests.cpp
     core/core.cpp
     core/image_viewer.cpp
     core/core.h

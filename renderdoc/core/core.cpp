@@ -366,6 +366,8 @@ RenderDoc::~RenderDoc()
     m_RemoteThread = 0;
   }
 
+  Process::Shutdown();
+
   Network::Shutdown();
 
   Threading::Shutdown();

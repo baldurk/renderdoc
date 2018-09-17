@@ -55,9 +55,36 @@ public:
 private:
   RWLock *m_RW;
 };
+
+class SpinLock
+{
+public:
+  void Lock()
+  {
+    while(!Trylock())
+    {
+      // spin!
+    }
+  }
+  bool Trylock() { return Atomic::CmpExch32(&val, 0, 1) == 0; }
+  void Unlock() { Atomic::CmpExch32(&val, 1, 0); }
+private:
+  volatile int32_t val = 0;
+};
+
+class ScopedSpinLock
+{
+public:
+  ScopedSpinLock(SpinLock &spin) : m_Spin(&spin) { m_Spin->Lock(); }
+  ~ScopedSpinLock() { m_Spin->Unlock(); }
+private:
+  SpinLock *m_Spin;
+};
 };
 
 #define SCOPED_LOCK(cs) Threading::ScopedLock CONCAT(scopedlock, __LINE__)(cs);
 
 #define SCOPED_READLOCK(rw) Threading::ScopedReadLock CONCAT(scopedlock, __LINE__)(rw);
 #define SCOPED_WRITELOCK(rw) Threading::ScopedWriteLock CONCAT(scopedlock, __LINE__)(rw);
+
+#define SCOPED_SPINLOCK(cs) Threading::SpinLock CONCAT(scopedlock, __LINE__)(cs);

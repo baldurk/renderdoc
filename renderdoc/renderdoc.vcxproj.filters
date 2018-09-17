@@ -809,6 +809,9 @@
     <ClCompile Include="3rdparty\miniz\miniz.c">
       <Filter>3rdparty\miniz</Filter>
     </ClCompile>
+    <ClCompile Include="common\threading_tests.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

@@ -32,7 +32,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <set>
 #include "api/app/renderdoc_app.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
@@ -56,8 +55,83 @@ int GetIdentPort(pid_t childPid);
 
 #endif
 
-Threading::CriticalSection zombieLock;
-std::set<pid_t> children;
+Threading::SpinLock zombieLock;
+
+struct PIDNode
+{
+  PIDNode *next = NULL;
+  pid_t pid = 0;
+};
+
+struct PIDList
+{
+  PIDNode *head = NULL;
+
+  void append(PIDNode *node)
+  {
+    if(node == NULL)
+      return;
+
+    if(head == NULL)
+    {
+      head = node;
+      return;
+    }
+
+    // we keep this super simple, just always iterate to the tail rather than keeping a tail
+    // pointer. It's less efficient but these are short lists and accessed infrequently.
+    PIDNode *tail = head;
+    while(tail->next)
+      tail = tail->next;
+
+    tail->next = node;
+  }
+
+  void remove(PIDNode *node)
+  {
+    if(node == NULL)
+      return;
+
+    if(node == head)
+    {
+      // if the node we're removing is the head, just update our head pointer
+      head = head->next;
+      node->next = NULL;
+    }
+    else
+    {
+      // if it's not the head, then we iterate with two pointers - the previous element (starting at
+      // head) and the current element (starting at head's next pointer). If cur ever points to our
+      // node, we remove it from the list by updating prev's next pointer to point at cur's next
+      // pointer.
+      for(PIDNode *prev = head, *cur = head->next; cur;)
+      {
+        if(cur == node)
+        {
+          // remove cur from the list by modifying prev
+          prev->next = cur->next;
+          node->next = NULL;
+          return;
+        }
+
+        prev = cur;
+        cur = cur->next;
+      }
+
+      RDCERR("Couldn't find %p in list", node);
+    }
+  }
+
+  PIDNode *pop_front()
+  {
+    PIDNode *ret = head;
+    head = head->next;
+    ret->next = NULL;
+    return ret;
+  }
+};
+
+PIDList children, freeChildren;
 
 #if DISABLED(RDOC_ANDROID)
 
@@ -77,28 +151,42 @@ static void ZombieWaiter(int signum, siginfo_t *handler_info, void *handler_cont
       old_action.sa_handler(signum);
   }
 
-  std::vector<pid_t> waitedChildren;
-  std::set<pid_t> localChildren;
+  // we take the whole list here, process it and wait on all those PIDs, then restore it back at the
+  // end. We only take the list itself, not the free list
+  PIDList waitedChildren;
+  PIDList localChildren;
   {
-    SCOPED_LOCK(zombieLock);
-    localChildren = children;
+    SCOPED_SPINLOCK(zombieLock);
+    std::swap(localChildren.head, children.head);
   }
 
   // wait for any children, but don't block (hang). We must only wait for our own PIDs as waiting
   // for any other handler's PIDs (like Qt's) might lose the one chance they have to wait for them
   // themselves.
-  for(pid_t pid : localChildren)
+  for(PIDNode *cur = localChildren.head; cur;)
   {
+    // advance here immediately before potentially removing the node from the list
+    PIDNode *pid = cur;
+    cur = cur->next;
+
     // remember the child PIDs that we successfully waited on
-    if(waitpid(pid, NULL, WNOHANG) > 0)
-      waitedChildren.push_back(pid);
+    if(waitpid(pid->pid, NULL, WNOHANG) > 0)
+    {
+      // remove cur from the list
+      localChildren.remove(pid);
+
+      // add to the waitedChildren list
+      waitedChildren.append(pid);
+    }
   }
 
-  // remove any waited children from the list
+  // append the list back on rather than swapping again - since in between grabbing it above and
+  // putting it back here there might have been a new child added.
+  // Any waited children from the list are added to the free list
   {
-    SCOPED_LOCK(zombieLock);
-    for(pid_t pid : waitedChildren)
-      children.erase(pid);
+    SCOPED_SPINLOCK(zombieLock);
+    children.append(localChildren.head);
+    freeChildren.append(waitedChildren.head);
   }
 
   // restore errno
@@ -107,13 +195,15 @@ static void ZombieWaiter(int signum, siginfo_t *handler_info, void *handler_cont
 
 static void SetupZombieCollectionHandler()
 {
-  SCOPED_LOCK(zombieLock);
+  {
+    SCOPED_SPINLOCK(zombieLock);
 
-  static bool installed = false;
-  if(installed)
-    return;
+    static bool installed = false;
+    if(installed)
+      return;
 
-  installed = true;
+    installed = true;
+  }
 
   struct sigaction new_action = {};
   sigemptyset(&new_action.sa_mask);
@@ -502,8 +592,19 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     else
     {
       // remember this PID so we can wait on it later
-      SCOPED_LOCK(zombieLock);
-      children.insert(childPid);
+      SCOPED_SPINLOCK(zombieLock);
+
+      PIDNode *node = NULL;
+
+      // take a child from the free list if available, otherwise allocate a new one
+      if(freeChildren.head)
+        node = freeChildren.pop_front();
+      else
+        node = new PIDNode();
+
+      node->pid = childPid;
+
+      children.append(node);
     }
   }
 
@@ -758,3 +859,116 @@ uint32_t Process::GetCurrentPID()
 {
   return (uint32_t)getpid();
 }
+
+void Process::Shutdown()
+{
+  // delete all items in the freeChildren list
+  for(PIDNode *cur = freeChildren.head; cur;)
+  {
+    PIDNode *del = cur;
+    cur = cur->next;
+    delete del;
+  }
+}
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Test PID Node list handling", "[osspecific]")
+{
+  PIDNode *a = new PIDNode;
+  a->pid = (pid_t)500;
+
+  PIDList list1;
+
+  list1.append(a);
+
+  CHECK(list1.head == a);
+
+  PIDNode *b = new PIDNode;
+  b->pid = (pid_t)501;
+
+  list1.append(b);
+
+  CHECK(list1.head == a);
+  CHECK(list1.head->next == b);
+
+  PIDNode *c = new PIDNode;
+  c->pid = (pid_t)502;
+
+  list1.append(c);
+
+  CHECK(list1.head == a);
+  CHECK(list1.head->next == b);
+  CHECK(list1.head->next->next == c);
+
+  PIDNode *popped = list1.pop_front();
+
+  CHECK(popped == a);
+
+  CHECK(list1.head == b);
+  CHECK(list1.head->next == c);
+
+  list1.append(popped);
+
+  CHECK(list1.head == b);
+  CHECK(list1.head->next == c);
+  CHECK(list1.head->next->next == a);
+
+  list1.remove(c);
+
+  CHECK(list1.head == b);
+  CHECK(list1.head->next == a);
+
+  list1.append(c);
+
+  CHECK(list1.head == b);
+  CHECK(list1.head->next == a);
+  CHECK(list1.head->next->next == c);
+
+  list1.remove(c);
+
+  CHECK(list1.head == b);
+  CHECK(list1.head->next == a);
+
+  list1.append(c);
+
+  CHECK(list1.head == b);
+  CHECK(list1.head->next == a);
+  CHECK(list1.head->next->next == c);
+
+  list1.remove(b);
+
+  CHECK(list1.head == a);
+  CHECK(list1.head->next == c);
+
+  list1.append(b);
+
+  CHECK(list1.head == a);
+  CHECK(list1.head->next == c);
+  CHECK(list1.head->next->next == b);
+
+  PIDNode *d = new PIDNode;
+  d->pid = (pid_t)900;
+  PIDNode *e = new PIDNode;
+  b->pid = (pid_t)901;
+  PIDNode *f = new PIDNode;
+  c->pid = (pid_t)902;
+
+  PIDList list2;
+
+  list2.append(d);
+  list2.append(e);
+  list2.append(f);
+
+  list1.append(list2.head);
+
+  CHECK(list1.head == a);
+  CHECK(list1.head->next == c);
+  CHECK(list1.head->next->next == b);
+  CHECK(list1.head->next->next->next == d);
+  CHECK(list1.head->next->next->next->next == e);
+  CHECK(list1.head->next->next->next->next->next == f);
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)

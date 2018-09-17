@@ -78,6 +78,8 @@ ExecuteResult LaunchAndInjectIntoProcess(const char *app, const char *workingDir
 void *LoadModule(const char *module);
 void *GetFunctionAddress(void *module, const char *function);
 uint32_t GetCurrentPID();
+
+void Shutdown();
 };
 
 namespace Timing

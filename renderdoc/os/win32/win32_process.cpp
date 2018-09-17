@@ -1621,3 +1621,8 @@ uint32_t Process::GetCurrentPID()
 {
   return (uint32_t)GetCurrentProcessId();
 }
+
+void Process::Shutdown()
+{
+  // nothing to do
+}
