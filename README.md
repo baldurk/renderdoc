@@ -14,7 +14,7 @@ To install on windows run the appropriate installer for your OS ([64-bit](https:
 * **Downloads**: https://renderdoc.org/builds ( [Symbol server](https://renderdoc.org/symbols) )
 * **Documentation**: [HTML online](https://renderdoc.org/docs), [CHM in builds](https://renderdoc.org/docs/renderdoc.chm), [Videos](http://www.youtube.com/user/baldurkarlsson/)
 * **Contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org), [#renderdoc on freenode IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc)
-* **Code of Conduct**: [Contributor Covenant](CODE_OF_CONDUCT.md)
+* **Code of Conduct**: [Contributor Covenant](docs/CODE_OF_CONDUCT.md)
 * **Information for contributors**: [CONTRIBUTING.md](CONTRIBUTING.md), [Compilation instructions](CONTRIBUTING.md#compiling), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 
 Screenshots

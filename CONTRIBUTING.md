@@ -62,7 +62,7 @@ With GLES programs on Android, the built-in hooking method doesn't always work. 
 
 # Code of Conduct
 
-I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. If you have any queries in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
+I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](docs/CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. If you have any queries in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
 
 # Preparing commits
 
