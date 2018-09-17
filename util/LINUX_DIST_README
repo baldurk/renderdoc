@@ -73,6 +73,6 @@ Sending patches/contributions:
 ------------------------------
 
 Please submit your contributions as pull requests on github
-(https://github.com/baldurk/renderdoc). Please follow the CONTRIBUTING
-guidelines available in the repository regarding code formatting with
-clang-format and commit message formatting.
+(https://github.com/baldurk/renderdoc). Please follow the 
+docs/CONTRIBUTING.md guidelines available in the repository regarding
+code formatting with clang-format and commit message formatting.

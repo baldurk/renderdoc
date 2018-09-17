@@ -9,13 +9,13 @@ RenderDoc is a frame-capture based graphics debugger, currently available for Vu
 
 If you have any questions, suggestions or problems or you can [create an issue](https://github.com/baldurk/renderdoc/issues/new) here on github, [email me directly](mailto:baldurk@baldurk.org) or [come into IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc) to discuss it.
 
-To install on windows run the appropriate installer for your OS ([64-bit](https://renderdoc.org/stable/1.0/RenderDoc_1.0_64.msi) | [32-bit](https://renderdoc.org/stable/1.0/RenderDoc_1.0_32.msi)) or download the portable zip from the [builds page](https://renderdoc.org/builds). On linux there is a [binary tarball](https://renderdoc.org/stable/1.0/renderdoc_1.0.tar.gz) available, or your distribution may package it. If not you can [build from source](CONTRIBUTING.md#compiling).
+To install on windows run the appropriate installer for your OS ([64-bit](https://renderdoc.org/stable/1.0/RenderDoc_1.0_64.msi) | [32-bit](https://renderdoc.org/stable/1.0/RenderDoc_1.0_32.msi)) or download the portable zip from the [builds page](https://renderdoc.org/builds). On linux there is a [binary tarball](https://renderdoc.org/stable/1.0/renderdoc_1.0.tar.gz) available, or your distribution may package it. If not you can [build from source](docs/CONTRIBUTING/Compiling.md).
 
 * **Downloads**: https://renderdoc.org/builds ( [Symbol server](https://renderdoc.org/symbols) )
 * **Documentation**: [HTML online](https://renderdoc.org/docs), [CHM in builds](https://renderdoc.org/docs/renderdoc.chm), [Videos](http://www.youtube.com/user/baldurkarlsson/)
 * **Contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org), [#renderdoc on freenode IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc)
 * **Code of Conduct**: [Contributor Covenant](docs/CODE_OF_CONDUCT.md)
-* **Information for contributors**: [CONTRIBUTING.md](CONTRIBUTING.md), [Compilation instructions](CONTRIBUTING.md#compiling), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
+* **Information for contributors**: [All contribution information](docs/CONTRIBUTING.md), [Compilation instructions](docs/CONTRIBUTING/Compiling.md), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 
 Screenshots
 --------------
@@ -58,10 +58,13 @@ License
 
 RenderDoc is released under the MIT license, see [LICENSE.md](LICENSE.md) for full text as well as 3rd party library acknowledgements.
 
+Compiling
+---------
+
+Building RenderDoc is fairly straight forward on most platforms. See [Compiling.md](docs/CONTRIBUTING/Compiling.md) for more details.
+
 Contributing & Development
 --------------
 
-Building RenderDoc is fairly straight forward. See [CONTRIBUTING.md](CONTRIBUTING.md#compiling) for more details.
-
-I've added some notes on how to contribute, as well as where to get started looking through the code in [CONTRIBUTING.md](CONTRIBUTING.md).
+I've added some notes on how to contribute, as well as where to get started looking through the code in [Developing-Change.md](docs/CONTRIBUTING/Developing-Change.md). All contribution information is available under [CONTRIBUTING.md](docs/CONTRIBUTING.md).
 

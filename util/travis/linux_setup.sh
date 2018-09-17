@@ -18,7 +18,8 @@ if git log --oneline | tail -n +2 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
   echo "*** Please shorten them so they fit <= 72 chars ***";
   echo "*** on the first line, with a longer summary in ***";
   echo "*** the body after a blank line.                ***";
-  echo "*** For more information see CONTRIBUTING.md.   ***";
+  echo "*** For more information see                    ***";
+  echo "*** docs/CONTRIBUTING.md.                       ***";
   echo "*** Thanks!                                     ***";
   echo "***                                             ***";
   echo "*** Commit messages:                            ***";
