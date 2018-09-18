@@ -3871,13 +3871,16 @@ void TextureViewer::on_customEdit_clicked()
   rdcstrpairs files;
   files.push_back(make_rdcpair<rdcstr, rdcstr>(filename, src));
 
+  QPointer<TextureViewer> thisPointer(this);
+
   IShaderViewer *s = m_Ctx.EditShader(
       true, ShaderStage::Fragment, lit("main"), files,
       IsD3D(m_Ctx.APIProps().localRenderer) ? ShaderEncoding::HLSL : ShaderEncoding::GLSL,
       ShaderCompileFlags(),
       // Save Callback
-      [this, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer, ShaderEncoding encoding,
-                                  ShaderCompileFlags flags, rdcstr entryFunc, bytebuf bytes) {
+      [thisPointer, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer,
+                                         ShaderEncoding encoding, ShaderCompileFlags flags,
+                                         rdcstr entryFunc, bytebuf bytes) {
         {
           QFile fileHandle(path);
           if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
@@ -3886,18 +3889,25 @@ void TextureViewer::on_customEdit_clicked()
             fileHandle.close();
 
             // watcher doesn't trigger on internal modifications
-            reloadCustomShaders(filename);
+            if(thisPointer)
+              thisPointer->reloadCustomShaders(filename);
           }
           else
           {
-            RDDialog::critical(
-                this, tr("Cannot save shader"),
-                tr("Couldn't save file for shader %1\n%2").arg(filename).arg(fileHandle.errorString()));
+            if(thisPointer)
+            {
+              RDDialog::critical(
+                  thisPointer, tr("Cannot save shader"),
+                  tr("Couldn't save file for shader %1\n%2").arg(filename).arg(fileHandle.errorString()));
+            }
           }
         }
       },
 
-      [this, key](ICaptureContext *ctx) { m_CustomShaderEditor.remove(key); });
+      [thisPointer, key](ICaptureContext *ctx) {
+        if(thisPointer)
+          thisPointer->m_CustomShaderEditor.remove(key);
+      });
 
   m_CustomShaderEditor[key] = s;
 
