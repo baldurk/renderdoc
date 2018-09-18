@@ -1999,10 +1999,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
 
 DOCUMENT(R"(Retrieve the default and recommended set of capture options.
 
-:param CaptureOptions opts: A reference to a :class:`CaptureOptions` where the options will be
-  stored.
+:return: The default capture options.
+:rtype: CaptureOptions
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(CaptureOptions *opts);
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_GetDefaultCaptureOptions(CaptureOptions *defaultOpts);
 
 DOCUMENT(R"(Begin injecting speculatively into all new processes started on the system. Where
 supported by platform, configuration, and setup begin injecting speculatively into all new processes

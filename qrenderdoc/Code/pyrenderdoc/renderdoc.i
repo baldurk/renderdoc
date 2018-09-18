@@ -79,6 +79,12 @@
 // completely ignore rdcdatetime, we custom convert to/from a native python datetime
 %ignore rdcdatetime;
 
+// special handling for RENDERDOC_GetDefaultCaptureOptions to transform output parameter to a return value
+%typemap(in, numinputs=0) CaptureOptions *defaultOpts { $1 = new CaptureOptions; }
+%typemap(argout) CaptureOptions *defaultOpts {
+  $result = SWIG_NewPointerObj($1, $descriptor(struct CaptureOptions*), SWIG_POINTER_OWN);
+}
+
 // ignore some operators SWIG doesn't have to worry about
 %ignore SDType::operator=;
 %ignore StructuredObjectList::swap;
