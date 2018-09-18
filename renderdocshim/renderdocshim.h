@@ -27,7 +27,7 @@ struct ShimData
   wchar_t pathmatchstring[2048];
   wchar_t rdocpath[2048];
   char debuglog[2048];
-  char logfile[2048];
+  char capfile[2048];
 
   unsigned char opts[512];
 };

@@ -2057,6 +2057,7 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 :param str cmdLine: The command line to use when running the application, it will be processed in a
   platform specific way to generate arguments.
 :param list env: Any :class:`EnvironmentModification` that should be made when running the program.
+:param str capturefile: The capture file path template, or blank to use a default location.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :param bool waitForExit: If ``True`` this function will block until the process exits.
 :return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
@@ -2066,13 +2067,14 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 )");
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                           const rdcarray<EnvironmentModification> &env, const char *logfile,
+                           const rdcarray<EnvironmentModification> &env, const char *capturefile,
                            const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(Where supported by operating system and permissions, inject into a running process.
 
 :param int pid: The Process ID (PID) to inject into.
 :param list env: Any :class:`EnvironmentModification` that should be made when running the program.
+:param str capturefile: The capture file path template, or blank to use a default location.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :param bool waitForExit: If ``True`` this function will block until the process exits.
 :return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
@@ -2082,7 +2084,7 @@ DOCUMENT(R"(Where supported by operating system and permissions, inject into a r
 )");
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                            const char *logfile, const CaptureOptions &opts, bool waitForExit);
+                            const char *capturefile, const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
 temporary name. This function wraps up the use of the in-application API to start a capture.

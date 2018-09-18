@@ -821,7 +821,7 @@ struct CapAltBitCommand : public Command
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<uint32_t>("pid", 0, "");
-    parser.add<string>("log", 0, "");
+    parser.add<string>("capfile", 0, "");
     parser.add<string>("debuglog", 0, "");
     parser.add<string>("capopts", 0, "");
     parser.stop_at_rest(true);
@@ -916,7 +916,7 @@ struct CapAltBitCommand : public Command
     RENDERDOC_SetDebugLogFile(debuglog.c_str());
 
     ExecuteResult result = RENDERDOC_InjectIntoProcess(
-        parser.get<uint32_t>("pid"), env, parser.get<string>("log").c_str(), cmdopts, false);
+        parser.get<uint32_t>("pid"), env, parser.get<string>("capfile").c_str(), cmdopts, false);
 
     if(result.status == ReplayStatus::Succeeded)
       return result.ident;

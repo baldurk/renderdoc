@@ -48,7 +48,7 @@ void library_loaded()
   {
     RenderDoc::Inst().Initialise();
 
-    const char *logfile = Process::GetEnvVariable("RENDERDOC_LOGFILE");
+    const char *capturefile = Process::GetEnvVariable("RENDERDOC_CAPFILE");
     const char *opts = Process::GetEnvVariable("RENDERDOC_CAPTUREOPTS");
 
     if(opts)
@@ -61,9 +61,9 @@ void library_loaded()
       RenderDoc::Inst().SetCaptureOptions(optstruct);
     }
 
-    if(logfile)
+    if(capturefile)
     {
-      RenderDoc::Inst().SetCaptureFileTemplate(logfile);
+      RenderDoc::Inst().SetCaptureFileTemplate(capturefile);
     }
 
     RDCLOG("Loading into %s", curfile.c_str());

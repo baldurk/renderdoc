@@ -691,8 +691,8 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
 ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                                   const char *cmdLine,
                                                   const rdcarray<EnvironmentModification> &envList,
-                                                  const char *logfile, const CaptureOptions &opts,
-                                                  bool waitForExit)
+                                                  const char *capturefile,
+                                                  const CaptureOptions &opts, bool waitForExit)
 {
   if(app == NULL || app[0] == 0)
   {
@@ -708,8 +708,8 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   for(const EnvironmentModification &e : envList)
     modifications.push_back(e);
 
-  if(logfile == NULL)
-    logfile = "";
+  if(capturefile == NULL)
+    capturefile = "";
 
   string binpath, libpath;
   {
@@ -743,7 +743,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   modifications.push_back(
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, PRELOAD_ENV_VAR, libfile.c_str()));
   modifications.push_back(
-      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_LOGFILE", logfile));
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPFILE", capturefile));
   modifications.push_back(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
   modifications.push_back(EnvironmentModification(EnvMod::Set, EnvSep::NoSep,

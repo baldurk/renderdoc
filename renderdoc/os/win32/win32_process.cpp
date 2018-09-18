@@ -196,10 +196,10 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureOptions(Capture
     RenderDoc::Inst().SetCaptureOptions(*opts);
 }
 
-extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetLogFile(const char *log)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureFile(const char *capfile)
 {
-  if(log)
-    RenderDoc::Inst().SetCaptureFileTemplate(log);
+  if(capfile)
+    RenderDoc::Inst().SetCaptureFileTemplate(capfile);
 }
 
 static EnvironmentModification tempEnvMod;
@@ -540,10 +540,10 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 }
 
 ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                                         const char *logfile, const CaptureOptions &opts,
+                                         const char *capturefile, const CaptureOptions &opts,
                                          bool waitForExit)
 {
-  wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(logfile);
+  wstring wcapturefile = capturefile == NULL ? L"" : StringFormat::UTF82Wide(capturefile);
 
   HANDLE hProcess =
       OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
@@ -792,9 +792,10 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
     std::string debugLogfile = RDCGETLOGFILE();
     wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
-    _snwprintf_s(paramsAlloc, 2047, 2047,
-                 L"\"%ls\" capaltbit --pid=%d --log=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
-                 renderdocPath, pid, wlogfile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
+    _snwprintf_s(
+        paramsAlloc, 2047, 2047,
+        L"\"%ls\" capaltbit --pid=%d --capfile=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
+        renderdocPath, pid, wcapturefile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
 
     RDCDEBUG("params %ls", paramsAlloc);
 
@@ -911,8 +912,9 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
   {
     // safe to cast away the const as we know these functions don't modify the parameters
 
-    if(logfile != NULL)
-      InjectFunctionCall(hProcess, loc, "INTERNAL_SetLogFile", (void *)logfile, strlen(logfile) + 1);
+    if(capturefile != NULL)
+      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureFile", (void *)capturefile,
+                         strlen(capturefile) + 1);
 
     std::string debugLogfile = RDCGETLOGFILE();
 
@@ -1033,11 +1035,11 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
 ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                                   const char *cmdLine,
                                                   const rdcarray<EnvironmentModification> &env,
-                                                  const char *logfile, const CaptureOptions &opts,
-                                                  bool waitForExit)
+                                                  const char *capturefile,
+                                                  const CaptureOptions &opts, bool waitForExit)
 {
   void *func =
-      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "INTERNAL_SetLogFile");
+      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "INTERNAL_SetCaptureFile");
 
   if(func == NULL)
   {
@@ -1051,7 +1053,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   if(pi.dwProcessId == 0)
     return {ReplayStatus::InjectionFailed, 0};
 
-  ExecuteResult ret = InjectIntoProcess(pi.dwProcessId, {}, logfile, opts, false);
+  ExecuteResult ret = InjectIntoProcess(pi.dwProcessId, {}, capturefile, opts, false);
 
   CloseHandle(pi.hProcess);
   ResumeThread(pi.hThread);
@@ -1337,7 +1339,8 @@ static void GlobalHookThread()
   }
 }
 
-bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
+bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
+                              const CaptureOptions &opts)
 {
   if(pathmatch == NULL)
     return false;
@@ -1443,17 +1446,17 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   // serialise to string with two chars per byte
   string optstr = opts.EncodeAsString();
 
-  wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(string(logfile));
+  wstring wcapturefile = capturefile == NULL ? L"" : StringFormat::UTF82Wide(string(capturefile));
   wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));
 
   std::string debugLogfile = RDCGETLOGFILE();
   wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
   _snwprintf_s(&paramsAlloc[0], 2047, 2047,
-               L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" "
+               L"\"%ls\" globalhook --match \"%ls\" --capfile \"%ls\" --debuglog \"%ls\" "
                L"--capopts \"%hs\"",
-               cmdpathNative.c_str(), wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(),
-               optstr.c_str());
+               cmdpathNative.c_str(), wpathmatch.c_str(), wcapturefile.c_str(),
+               wdebugLogfile.c_str(), optstr.c_str());
 
   paramsAlloc[2047] = 0;
 
@@ -1515,10 +1518,10 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 // repeat the process for the Wow32 renderdoccmd
 #if ENABLED(RDOC_X64)
   _snwprintf_s(&paramsAlloc[0], 2047, 2047,
-               L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" "
+               L"\"%ls\" globalhook --match \"%ls\" --capfile \"%ls\" --debuglog \"%ls\" "
                L"--capopts \"%hs\"",
-               cmdpathWow32.c_str(), wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(),
-               optstr.c_str());
+               cmdpathWow32.c_str(), wpathmatch.c_str(), wcapturefile.c_str(),
+               wdebugLogfile.c_str(), optstr.c_str());
 
   paramsAlloc[2047] = 0;
 

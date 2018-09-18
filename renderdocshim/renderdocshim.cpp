@@ -124,8 +124,8 @@ void CheckHook()
         if(setopts)
           setopts((const CaptureOptions *)data->opts);
 
-        if(setlogfile && data->logfile[0])
-          setlogfile(data->logfile);
+        if(setlogfile && data->capfile[0])
+          setlogfile(data->capfile);
 
         if(setdebuglog && data->debuglog[0])
           setdebuglog(data->debuglog);
