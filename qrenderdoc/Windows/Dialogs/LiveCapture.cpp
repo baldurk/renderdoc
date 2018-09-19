@@ -122,6 +122,7 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
   ui->triggerDelayedCapture->setEnabled(false);
   ui->triggerImmediateCapture->setEnabled(false);
   ui->queueCap->setEnabled(false);
+  ui->cycleActiveWindow->setEnabled(false);
 
   ui->target->setText(QString());
 
@@ -280,6 +281,11 @@ void LiveCapture::on_triggerImmediateCapture_clicked()
 {
   m_TriggerCapture = true;
   m_CaptureNumFrames = (int)ui->numFrames->value();
+}
+
+void LiveCapture::on_cycleActiveWindow_clicked()
+{
+  m_Connection->CycleActiveWindow();
 }
 
 void LiveCapture::on_triggerDelayedCapture_clicked()
@@ -1257,6 +1263,12 @@ void LiveCapture::connectionThreadEntry()
         }
       }
     }
+
+    if(msg.type == TargetControlMessageType::CapturableWindowCount)
+    {
+      uint32_t windows = msg.capturableWindowCount;
+      GUIInvoke::call(this, [this, windows]() { ui->cycleActiveWindow->setEnabled(windows > 1); });
+    }
   }
 
   GUIInvoke::call(this, [this]() {
@@ -1269,6 +1281,7 @@ void LiveCapture::connectionThreadEntry()
     ui->triggerDelayedCapture->setEnabled(false);
     ui->triggerImmediateCapture->setEnabled(false);
     ui->queueCap->setEnabled(false);
+    ui->cycleActiveWindow->setEnabled(false);
 
     ui->apiStatus->setText(tr("None"));
     ui->apiIcon->setVisible(false);

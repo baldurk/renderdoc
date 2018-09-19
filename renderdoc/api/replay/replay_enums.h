@@ -3143,6 +3143,7 @@ enum class TargetControlMessageType : uint32_t
   RegisterAPI,
   NewChild,
   CaptureProgress,
+  CapturableWindowCount
 };
 
 DECLARE_REFLECTION_ENUM(TargetControlMessageType);

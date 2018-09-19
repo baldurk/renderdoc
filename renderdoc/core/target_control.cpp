@@ -30,12 +30,16 @@
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
 
-static const uint32_t TargetControlProtocolVersion = 3;
+static const uint32_t TargetControlProtocolVersion = 4;
 
 static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 {
   // 2 -> 3 added a RDCDriver per capture
   if(protocolVersion == 2)
+    return true;
+
+  // 3 -> 4 added active window cycle and window count packets
+  if(protocolVersion == 3)
     return true;
 
   if(protocolVersion == TargetControlProtocolVersion)
@@ -57,6 +61,8 @@ enum PacketType : uint32_t
   ePacket_QueueCapture,
   ePacket_NewChild,
   ePacket_CaptureProgress,
+  ePacket_CycleActiveWindow,
+  ePacket_CapturableWindowCount
 };
 
 DECLARE_REFLECTION_ENUM(PacketType);
@@ -77,6 +83,8 @@ std::string DoStringise(const PacketType &el)
     STRINGISE_ENUM_NAMED(ePacket_QueueCapture, "Queue Capture");
     STRINGISE_ENUM_NAMED(ePacket_NewChild, "New Child");
     STRINGISE_ENUM_NAMED(ePacket_CaptureProgress, "Capture Progress");
+    STRINGISE_ENUM_NAMED(ePacket_CycleActiveWindow, "Cycle Active Window");
+    STRINGISE_ENUM_NAMED(ePacket_CapturableWindowCount, "Capturable Window Count");
   }
   END_ENUM_STRINGISE();
 }
@@ -131,6 +139,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
   std::vector<pair<uint32_t, uint32_t> > children;
   std::map<RDCDriver, bool> drivers;
   float prevCaptureProgress = captureProgress;
+  uint32_t prevWindows = 0;
 
   while(client)
   {
@@ -147,6 +156,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
     std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
     std::vector<pair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
+
+    uint32_t curWindows = RenderDoc::Inst().GetCapturableWindowCount();
 
     if(curdrivers != drivers)
     {
@@ -242,6 +253,16 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         }
       }
     }
+    else if(version >= 4 && prevWindows != curWindows)
+    {
+      prevWindows = curWindows;
+
+      WRITE_DATA_SCOPE();
+      {
+        SCOPED_SERIALISE_CHUNK(ePacket_CapturableWindowCount);
+        SERIALISE_ELEMENT(curWindows);
+      }
+    }
 
     if(curtime > pingtime)
     {
@@ -320,6 +341,10 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
           else
             RenderDoc::Inst().MarkCaptureRetrieved(id);
         }
+      }
+      else if(type == ePacket_CycleActiveWindow)
+      {
+        RenderDoc::Inst().CycleActiveWindow();
       }
 
       reader.EndChunk();
@@ -602,6 +627,18 @@ public:
       SAFE_DELETE(m_Socket);
   }
 
+  void CycleActiveWindow()
+  {
+    if(m_Version < 4)
+      return;
+
+    WRITE_DATA_SCOPE();
+    SCOPED_SERIALISE_CHUNK(ePacket_CycleActiveWindow);
+
+    if(ser.IsErrored())
+      SAFE_DELETE(m_Socket);
+  }
+
   TargetControlMessage ReceiveMessage(RENDERDOC_ProgressCallback progress)
   {
     TargetControlMessage msg;
@@ -775,6 +812,16 @@ public:
 
       m_CaptureCopies.erase(msg.newCapture.captureId);
 
+      reader.EndChunk();
+      return msg;
+    }
+    else if(type == ePacket_CapturableWindowCount)
+    {
+      msg.type = TargetControlMessageType::CapturableWindowCount;
+      uint32_t windows = 0;
+      READ_DATA_SCOPE();
+      SERIALISE_ELEMENT(windows);
+      msg.capturableWindowCount = windows;
       reader.EndChunk();
       return msg;
     }

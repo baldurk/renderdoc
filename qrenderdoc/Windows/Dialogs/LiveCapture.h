@@ -70,6 +70,7 @@ private slots:
   void on_captures_itemActivated(QListWidgetItem *item);
   void on_childProcesses_itemActivated(QListWidgetItem *item);
   void on_triggerImmediateCapture_clicked();
+  void on_cycleActiveWindow_clicked();
   void on_triggerDelayedCapture_clicked();
   void on_queueCap_clicked();
   void on_previewSplit_splitterMoved(int pos, int index);
