@@ -542,6 +542,9 @@ When valid, will be in the range of 0.0 to 1.0 (0 - 100%). If not valid when a c
 or has finished, it will be -1.0
 )");
   float capProgress = -1.0f;
+
+  DOCUMENT("The number of the capturable windows");
+  uint32_t capturableWindowCount = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(TargetControlMessage);

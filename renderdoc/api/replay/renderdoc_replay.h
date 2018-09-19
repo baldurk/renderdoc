@@ -1342,6 +1342,9 @@ The details of the types of messages that can be received are listed under
 )");
   virtual TargetControlMessage ReceiveMessage(RENDERDOC_ProgressCallback progress) = 0;
 
+  DOCUMENT("Cycle the currently active window if there are more windows to capture.");
+  virtual void CycleActiveWindow() = 0;
+
 protected:
   ITargetControl() = default;
   ~ITargetControl() = default;

@@ -542,27 +542,7 @@ void RenderDoc::Tick()
 
   if(!prev_focus && cur_focus)
   {
-    m_Cap = 0;
-
-    // can only shift focus if we have multiple windows
-    if(m_WindowFrameCapturers.size() > 1)
-    {
-      for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end(); ++it)
-      {
-        if(it->first == m_ActiveWindow)
-        {
-          auto nextit = it;
-          ++nextit;
-
-          if(nextit != m_WindowFrameCapturers.end())
-            m_ActiveWindow = nextit->first;
-          else
-            m_ActiveWindow = m_WindowFrameCapturers.begin()->first;
-
-          break;
-        }
-      }
-    }
+    CycleActiveWindow();
   }
   if(!prev_cap && cur_cap)
   {
@@ -571,6 +551,31 @@ void RenderDoc::Tick()
 
   prev_focus = cur_focus;
   prev_cap = cur_cap;
+}
+
+void RenderDoc::CycleActiveWindow()
+{
+  m_Cap = 0;
+
+  // can only shift focus if we have multiple windows
+  if(m_WindowFrameCapturers.size() > 1)
+  {
+    for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end(); ++it)
+    {
+      if(it->first == m_ActiveWindow)
+      {
+        auto nextit = it;
+        ++nextit;
+
+        if(nextit != m_WindowFrameCapturers.end())
+          m_ActiveWindow = nextit->first;
+        else
+          m_ActiveWindow = m_WindowFrameCapturers.begin()->first;
+
+        break;
+      }
+    }
+  }
 }
 
 string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)

@@ -536,6 +536,8 @@ public:
 
   string GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
 
+  void CycleActiveWindow();
+  uint32_t GetCapturableWindowCount() { return (uint32_t)m_WindowFrameCapturers.size(); }
 private:
   RenderDoc();
   ~RenderDoc();
