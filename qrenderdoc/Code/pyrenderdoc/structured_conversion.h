@@ -237,6 +237,22 @@ struct TypeConversion<StructuredBufferList, false>
   // nicer failure error messages out with the index that failed
   static int ConvertFromPy(PyObject *in, StructuredBufferList &out, int *failIdx)
   {
+    swig_type_info *own_type = GetTypeInfo();
+    if(own_type)
+    {
+      StructuredBufferList *ptr = NULL;
+      int ret = SWIG_ConvertPtr(in, (void **)&ptr, own_type, 0);
+      if(SWIG_IsOK(ret))
+      {
+        // we need to duplicate the objects here, otherwise the owner of both lists will try and
+        // delete the same things when they destruct. Avoiding copies must be done another way
+        out.resize(ptr->size());
+        for(size_t i = 0; i < ptr->size(); i++)
+          out[i] = new bytebuf(*ptr->at(i));
+        return SWIG_OK;
+      }
+    }
+
     if(!PyList_Check(in))
       return SWIG_TypeError;
 
@@ -332,6 +348,33 @@ struct TypeConversion<StructuredObjectList, false>
   // nicer failure error messages out with the index that failed
   static int ConvertFromPy(PyObject *in, StructuredObjectList &out, int *failIdx)
   {
+    swig_type_info *own_type = GetTypeInfo();
+    if(own_type)
+    {
+      StructuredObjectList *ptr = NULL;
+      int ret = SWIG_ConvertPtr(in, (void **)&ptr, own_type, 0);
+      if(SWIG_IsOK(ret))
+      {
+        // we need to duplicate the objects here, otherwise the owner of both lists will try and
+        // delete the same things when they destruct. Avoiding copies must be done another way
+        out.resize(ptr->size());
+        for(size_t i = 0; i < ptr->size(); i++)
+        {
+          SDObject *obj = ptr->at(i);
+          if(ActiveRefcounter<SDObject>::HasPyObject(obj))
+          {
+            out[i] = obj;
+            ActiveRefcounter<SDObject>::Inc(obj);
+          }
+          else
+          {
+            out[i] = obj->Duplicate();
+          }
+        }
+        return SWIG_OK;
+      }
+    }
+
     swig_type_info *type_info = TypeConversion<SDObject>::GetTypeInfo();
     if(type_info == NULL)
       return SWIG_RuntimeError;
@@ -451,6 +494,33 @@ struct TypeConversion<StructuredChunkList, false>
   // nicer failure error messages out with the index that failed
   static int ConvertFromPy(PyObject *in, StructuredChunkList &out, int *failIdx)
   {
+    swig_type_info *own_type = GetTypeInfo();
+    if(own_type)
+    {
+      StructuredChunkList *ptr = NULL;
+      int ret = SWIG_ConvertPtr(in, (void **)&ptr, own_type, 0);
+      if(SWIG_IsOK(ret))
+      {
+        // we need to duplicate the objects here, otherwise the owner of both lists will try and
+        // delete the same things when they destruct. Avoiding copies must be done another way
+        out.resize(ptr->size());
+        for(size_t i = 0; i < ptr->size(); i++)
+        {
+          SDChunk *obj = ptr->at(i);
+          if(ActiveRefcounter<SDChunk>::HasPyObject(obj))
+          {
+            out[i] = obj;
+            ActiveRefcounter<SDChunk>::Inc(obj);
+          }
+          else
+          {
+            out[i] = obj->Duplicate();
+          }
+        }
+        return SWIG_OK;
+      }
+    }
+
     swig_type_info *type_info = TypeConversion<SDChunk>::GetTypeInfo();
     if(type_info == NULL)
       return SWIG_RuntimeError;
