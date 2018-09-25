@@ -30,7 +30,7 @@ elseif(UNIX)
 endif()
 
 if(ANDROID)
-    set(CMAKE_SHARED_LINKER_FLAGS "${LINKER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
     add_library(renderdoccmd SHARED ${sources})
 else()
     set(CMAKE_SKIP_BUILD_RPATH TRUE)
