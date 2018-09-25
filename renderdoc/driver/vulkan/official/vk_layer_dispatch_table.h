@@ -152,6 +152,12 @@ typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR GetPhysicalDeviceSurfaceCapabilities2KHR;
     PFN_vkGetPhysicalDeviceSurfaceFormats2KHR GetPhysicalDeviceSurfaceFormats2KHR;
 
+    // ---- VK_KHR_get_display_properties2 extension commands
+    PFN_vkGetPhysicalDeviceDisplayProperties2KHR GetPhysicalDeviceDisplayProperties2KHR;
+    PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR GetPhysicalDeviceDisplayPlaneProperties2KHR;
+    PFN_vkGetDisplayModeProperties2KHR GetDisplayModeProperties2KHR;
+    PFN_vkGetDisplayPlaneCapabilities2KHR GetDisplayPlaneCapabilities2KHR;
+
     // ---- VK_EXT_debug_report extension commands
     PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
     PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallbackEXT;
@@ -399,6 +405,12 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkDestroyDescriptorUpdateTemplateKHR DestroyDescriptorUpdateTemplateKHR;
     PFN_vkUpdateDescriptorSetWithTemplateKHR UpdateDescriptorSetWithTemplateKHR;
 
+    // ---- VK_KHR_create_renderpass2 extension commands
+    PFN_vkCreateRenderPass2KHR CreateRenderPass2KHR;
+    PFN_vkCmdBeginRenderPass2KHR CmdBeginRenderPass2KHR;
+    PFN_vkCmdNextSubpass2KHR CmdNextSubpass2KHR;
+    PFN_vkCmdEndRenderPass2KHR CmdEndRenderPass2KHR;
+
     // ---- VK_KHR_shared_presentable_image extension commands
     PFN_vkGetSwapchainStatusKHR GetSwapchainStatusKHR;
 
@@ -430,6 +442,10 @@ typedef struct VkLayerDispatchTable_ {
     // ---- VK_KHR_maintenance3 extension commands
     PFN_vkGetDescriptorSetLayoutSupportKHR GetDescriptorSetLayoutSupportKHR;
 
+    // ---- VK_KHR_draw_indirect_count extension commands
+    PFN_vkCmdDrawIndirectCountKHR CmdDrawIndirectCountKHR;
+    PFN_vkCmdDrawIndexedIndirectCountKHR CmdDrawIndexedIndirectCountKHR;
+
     // ---- VK_EXT_debug_marker extension commands
     PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
     PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectNameEXT;
@@ -448,6 +464,10 @@ typedef struct VkLayerDispatchTable_ {
 #ifdef VK_USE_PLATFORM_WIN32_KHR
     PFN_vkGetMemoryWin32HandleNV GetMemoryWin32HandleNV;
 #endif // VK_USE_PLATFORM_WIN32_KHR
+
+    // ---- VK_EXT_conditional_rendering extension commands
+    PFN_vkCmdBeginConditionalRenderingEXT CmdBeginConditionalRenderingEXT;
+    PFN_vkCmdEndConditionalRenderingEXT CmdEndConditionalRenderingEXT;
 
     // ---- VK_NVX_device_generated_commands extension commands
     PFN_vkCmdProcessCommandsNVX CmdProcessCommandsNVX;
@@ -510,6 +530,10 @@ typedef struct VkLayerDispatchTable_ {
 
     // ---- VK_AMD_buffer_marker extension commands
     PFN_vkCmdWriteBufferMarkerAMD CmdWriteBufferMarkerAMD;
+
+    // ---- VK_NV_device_diagnostic_checkpoints extension commands
+    PFN_vkCmdSetCheckpointNV CmdSetCheckpointNV;
+    PFN_vkGetQueueCheckpointDataNV GetQueueCheckpointDataNV;
 } VkLayerDispatchTable;
 
 

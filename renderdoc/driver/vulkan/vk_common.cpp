@@ -2184,7 +2184,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   m_Vendor = GPUVendorFromPCIVendor(physProps.vendorID);
 
   // add non-PCI vendor IDs
-  if(physProps.vendorID == 0x10002)
+  if(physProps.vendorID == VK_VENDOR_ID_VSI)
     m_Vendor = GPUVendor::Verisilicon;
 
   m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
