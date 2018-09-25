@@ -74,7 +74,7 @@ public:
 
 } eglhook;
 
-HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDisplayType display)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -91,8 +91,10 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
   return EGL.GetDisplay(display);
 }
 
-HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay display, EGLConfig config,
-                                                    EGLContext shareContext, EGLint const *attribList)
+HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay display,
+                                                                     EGLConfig config,
+                                                                     EGLContext shareContext,
+                                                                     EGLint const *attribList)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -200,7 +202,7 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay display, EGLConfi
   return ret;
 }
 
-HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext_renderdoc_hooked(EGLDisplay dpy, EGLContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -220,9 +222,10 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext 
   return EGL.DestroyContext(dpy, ctx);
 }
 
-HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
-                                                          EGLNativeWindowType win,
-                                                          const EGLint *attrib_list)
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface_renderdoc_hooked(EGLDisplay dpy,
+                                                                           EGLConfig config,
+                                                                           EGLNativeWindowType win,
+                                                                           const EGLint *attrib_list)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -244,8 +247,9 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLCon
   return ret;
 }
 
-HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface draw,
-                                                  EGLSurface read, EGLContext ctx)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay display,
+                                                                   EGLSurface draw, EGLSurface read,
+                                                                   EGLContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -320,7 +324,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface
   return ret;
 }
 
-HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dpy, EGLSurface surface)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -339,8 +343,10 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface sur
   return EGL.SwapBuffers(dpy, surface);
 }
 
-HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface surface, EGLint x,
-                                                      EGLint y, EGLint width, EGLint height)
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDisplay dpy,
+                                                                       EGLSurface surface, EGLint x,
+                                                                       EGLint y, EGLint width,
+                                                                       EGLint height)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -359,7 +365,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface
   return EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
 }
 
-HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *func)
+HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY
+eglGetProcAddress_renderdoc_hooked(const char *func)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -381,17 +388,19 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
 
   // return our egl hooks
   if(!strcmp(func, "eglCreateContext"))
-    return (__eglMustCastToProperFunctionPointerType)&eglCreateContext;
+    return (__eglMustCastToProperFunctionPointerType)&eglCreateContext_renderdoc_hooked;
   if(!strcmp(func, "eglGetDisplay"))
-    return (__eglMustCastToProperFunctionPointerType)&eglGetDisplay;
+    return (__eglMustCastToProperFunctionPointerType)&eglGetDisplay_renderdoc_hooked;
   if(!strcmp(func, "eglDestroyContext"))
-    return (__eglMustCastToProperFunctionPointerType)&eglDestroyContext;
+    return (__eglMustCastToProperFunctionPointerType)&eglDestroyContext_renderdoc_hooked;
   if(!strcmp(func, "eglMakeCurrent"))
-    return (__eglMustCastToProperFunctionPointerType)&eglMakeCurrent;
+    return (__eglMustCastToProperFunctionPointerType)&eglMakeCurrent_renderdoc_hooked;
   if(!strcmp(func, "eglSwapBuffers"))
-    return (__eglMustCastToProperFunctionPointerType)&eglSwapBuffers;
+    return (__eglMustCastToProperFunctionPointerType)&eglSwapBuffers_renderdoc_hooked;
   if(!strcmp(func, "eglPostSubBufferNV"))
-    return (__eglMustCastToProperFunctionPointerType)&eglPostSubBufferNV;
+    return (__eglMustCastToProperFunctionPointerType)&eglPostSubBufferNV_renderdoc_hooked;
+  if(!strcmp(func, "eglGetProcAddress"))
+    return (__eglMustCastToProperFunctionPointerType)&eglGetProcAddress_renderdoc_hooked;
 
   // any other egl functions are safe to pass through unchanged
   if(!strncmp(func, "egl", 3))
@@ -399,6 +408,57 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
 
   // otherwise, consult our database of hooks
   return (__eglMustCastToProperFunctionPointerType)HookedGetProcAddress(func, (void *)realFunc);
+}
+
+// on posix systems, someone might declare a global variable with the same name as a function. When
+// doing this, it might mean that our code for "&eglSwapBuffers" looking up that global symbol will
+// instead find the location fo the function pointer instead of our hook function. For this reason
+// we always refer to the _renderdoc_hooked name, but we still must export the functions under their
+// real names and just forward to the hook implementation.
+
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
+{
+  return eglGetDisplay_renderdoc_hooked(display);
+}
+
+HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay display, EGLConfig config,
+                                                    EGLContext shareContext, EGLint const *attribList)
+{
+  return eglCreateContext_renderdoc_hooked(display, config, shareContext, attribList);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
+{
+  return eglDestroyContext_renderdoc_hooked(dpy, ctx);
+}
+
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
+                                                          EGLNativeWindowType win,
+                                                          const EGLint *attrib_list)
+{
+  return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface draw,
+                                                  EGLSurface read, EGLContext ctx)
+{
+  return eglMakeCurrent_renderdoc_hooked(display, draw, read, ctx);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
+{
+  return eglSwapBuffers_renderdoc_hooked(dpy, surface);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface surface, EGLint x,
+                                                      EGLint y, EGLint width, EGLint height)
+{
+  return eglPostSubBufferNV_renderdoc_hooked(dpy, surface, x, y, width, height);
+}
+
+HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *func)
+{
+  return eglGetProcAddress_renderdoc_hooked(func);
 }
 
 // on posix systems we need to export the whole of the EGL API, since we will have redirected any
@@ -602,10 +662,10 @@ void EGLHook::RegisterHooks()
 #endif
 
 // register EGL hooks
-#define EGL_REGISTER(func, isext)     \
-  LibraryHooks::RegisterFunctionHook( \
-      "libEGL" LIBSUFFIX,             \
-      FunctionHook("egl" STRINGIZE(func), (void **)&EGL.func, (void *)&CONCAT(egl, func)));
+#define EGL_REGISTER(func, isext)                                                 \
+  LibraryHooks::RegisterFunctionHook(                                             \
+      "libEGL" LIBSUFFIX, FunctionHook("egl" STRINGIZE(func), (void **)&EGL.func, \
+                                       (void *)&CONCAT(egl, CONCAT(func, _renderdoc_hooked))));
   EGL_HOOKED_SYMBOLS(EGL_REGISTER)
 #undef EGL_REGISTER
 }

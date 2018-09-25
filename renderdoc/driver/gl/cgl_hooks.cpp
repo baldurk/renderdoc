@@ -185,10 +185,9 @@ void CGLHook::RegisterHooks()
   LibraryHooks::RegisterLibraryHook("libGL.dylib", NULL);
 
 // register CGL hooks
-#define CGL_REGISTER(func)                                                             \
-  LibraryHooks::RegisterFunctionHook("OpenGL",                                         \
-                                     FunctionHook(STRINGIZE(func), (void **)&CGL.func, \
-                                                  (void *)&GL_EXPORT_NAME(CGLFlushDrawable)));
+#define CGL_REGISTER(func)            \
+  LibraryHooks::RegisterFunctionHook( \
+      "OpenGL", FunctionHook(STRINGIZE(func), (void **)&CGL.func, (void *)&GL_EXPORT_NAME(func)));
   CGL_HOOKED_SYMBOLS(CGL_REGISTER)
 #undef CGL_REGISTER
 }

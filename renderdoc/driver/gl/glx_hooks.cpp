@@ -93,8 +93,8 @@ public:
   std::map<XID, XID> m_GLXWindowMap;
 } glxhook;
 
-HOOK_EXPORT GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList,
-                                        Bool direct)
+HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualInfo *vis,
+                                                         GLXContext shareList, Bool direct)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -146,7 +146,7 @@ HOOK_EXPORT GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXConte
   return ret;
 }
 
-HOOK_EXPORT void glXDestroyContext(Display *dpy, GLXContext ctx)
+HOOK_EXPORT void glXDestroyContext_renderdoc_hooked(Display *dpy, GLXContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -165,9 +165,9 @@ HOOK_EXPORT void glXDestroyContext(Display *dpy, GLXContext ctx)
   GLX.glXDestroyContext(dpy, ctx);
 }
 
-HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config,
-                                                  GLXContext shareList, Bool direct,
-                                                  const int *attribList)
+HOOK_EXPORT GLXContext glXCreateContextAttribsARB_renderdoc_hooked(Display *dpy, GLXFBConfig config,
+                                                                   GLXContext shareList, Bool direct,
+                                                                   const int *attribList)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -289,7 +289,7 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig conf
   return ret;
 }
 
-HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext ctx)
+HOOK_EXPORT Bool glXMakeCurrent_renderdoc_hooked(Display *dpy, GLXDrawable drawable, GLXContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -356,8 +356,8 @@ HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext c
   return ret;
 }
 
-HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawable read,
-                                       GLXContext ctx)
+HOOK_EXPORT Bool glXMakeContextCurrent_renderdoc_hooked(Display *dpy, GLXDrawable draw,
+                                                        GLXDrawable read, GLXContext ctx)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -423,7 +423,7 @@ HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawab
   return ret;
 }
 
-HOOK_EXPORT void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
+HOOK_EXPORT void glXSwapBuffers_renderdoc_hooked(Display *dpy, GLXDrawable drawable)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -440,8 +440,8 @@ HOOK_EXPORT void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
   GLX.glXSwapBuffers(dpy, drawable);
 }
 
-HOOK_EXPORT GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config, Window win,
-                                      const int *attribList)
+HOOK_EXPORT GLXWindow glXCreateWindow_renderdoc_hooked(Display *dpy, GLXFBConfig config, Window win,
+                                                       const int *attribList)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -461,7 +461,7 @@ HOOK_EXPORT GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config, Window w
   return ret;
 }
 
-HOOK_EXPORT void glXDestroyWindow(Display *dpy, GLXWindow window)
+HOOK_EXPORT void glXDestroyWindow_renderdoc_hooked(Display *dpy, GLXWindow window)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -479,7 +479,7 @@ HOOK_EXPORT void glXDestroyWindow(Display *dpy, GLXWindow window)
   return GLX.glXDestroyWindow(dpy, window);
 }
 
-HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
+HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress_renderdoc_hooked(const GLubyte *f)
 {
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -503,27 +503,27 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 
   // return our glX hooks
   if(!strcmp(func, "glXCreateContext"))
-    return (__GLXextFuncPtr)&glXCreateContext;
+    return (__GLXextFuncPtr)&glXCreateContext_renderdoc_hooked;
   if(!strcmp(func, "glXDestroyContext"))
-    return (__GLXextFuncPtr)&glXDestroyContext;
+    return (__GLXextFuncPtr)&glXDestroyContext_renderdoc_hooked;
   if(!strcmp(func, "glXCreateContextAttribsARB"))
-    return (__GLXextFuncPtr)&glXCreateContextAttribsARB;
+    return (__GLXextFuncPtr)&glXCreateContextAttribsARB_renderdoc_hooked;
   if(!strcmp(func, "glXMakeCurrent"))
-    return (__GLXextFuncPtr)&glXMakeCurrent;
+    return (__GLXextFuncPtr)&glXMakeCurrent_renderdoc_hooked;
   if(!strcmp(func, "glXMakeContextCurrent"))
-    return (__GLXextFuncPtr)&glXMakeContextCurrent;
+    return (__GLXextFuncPtr)&glXMakeContextCurrent_renderdoc_hooked;
   if(!strcmp(func, "glXSwapBuffers"))
-    return (__GLXextFuncPtr)&glXSwapBuffers;
+    return (__GLXextFuncPtr)&glXSwapBuffers_renderdoc_hooked;
   if(!strcmp(func, "glXCreateWindow"))
-    return (__GLXextFuncPtr)&glXCreateWindow;
+    return (__GLXextFuncPtr)&glXCreateWindow_renderdoc_hooked;
   if(!strcmp(func, "glXDestroyWindow"))
-    return (__GLXextFuncPtr)&glXDestroyWindow;
+    return (__GLXextFuncPtr)&glXDestroyWindow_renderdoc_hooked;
   if(!strcmp(func, "glXGetProcAddress"))
-    return (__GLXextFuncPtr)&glXGetProcAddress;
+    return (__GLXextFuncPtr)&glXGetProcAddress_renderdoc_hooked;
   if(!strcmp(func, "glXGetProcAddressARB"))
-    return (__GLXextFuncPtr)&glXGetProcAddressARB;
+    return (__GLXextFuncPtr)&glXGetProcAddress_renderdoc_hooked;
 
-  // any other egl functions are safe to pass through unchanged
+  // any other GLX functions are safe to pass through unchanged
   if(!strncmp(func, "glX", 3))
     return realFunc;
 
@@ -531,9 +531,70 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
   return (__GLXextFuncPtr)HookedGetProcAddress(func, (void *)realFunc);
 }
 
+HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB_renderdoc_hooked(const GLubyte *f)
+{
+  return glXGetProcAddress_renderdoc_hooked(f);
+}
+
+// on posix systems, someone might declare a global variable with the same name as a function. When
+// doing this, it might mean that our code for "&glXSwapBuffers" looking up that global symbol will
+// instead find the location fo the function pointer instead of our hook function. For this reason
+// we always refer to the _renderdoc_hooked name, but we still must export the functions under their
+// real names and just forward to the hook implementation.
+
+HOOK_EXPORT GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList,
+                                        Bool direct)
+{
+  return glXCreateContext_renderdoc_hooked(dpy, vis, shareList, direct);
+}
+
+HOOK_EXPORT void glXDestroyContext(Display *dpy, GLXContext ctx)
+{
+  return glXDestroyContext_renderdoc_hooked(dpy, ctx);
+}
+
+HOOK_EXPORT GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config,
+                                                  GLXContext shareList, Bool direct,
+                                                  const int *attribList)
+{
+  return glXCreateContextAttribsARB_renderdoc_hooked(dpy, config, shareList, direct, attribList);
+}
+
+HOOK_EXPORT Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext ctx)
+{
+  return glXMakeCurrent_renderdoc_hooked(dpy, drawable, ctx);
+}
+
+HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawable read,
+                                       GLXContext ctx)
+{
+  return glXMakeContextCurrent_renderdoc_hooked(dpy, draw, read, ctx);
+}
+
+HOOK_EXPORT void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
+{
+  return glXSwapBuffers_renderdoc_hooked(dpy, drawable);
+}
+
+HOOK_EXPORT GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config, Window win,
+                                      const int *attribList)
+{
+  return glXCreateWindow_renderdoc_hooked(dpy, config, win, attribList);
+}
+
+HOOK_EXPORT void glXDestroyWindow(Display *dpy, GLXWindow window)
+{
+  return glXDestroyWindow_renderdoc_hooked(dpy, window);
+}
+
+HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
+{
+  return glXGetProcAddress_renderdoc_hooked(f);
+}
+
 HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
 {
-  return glXGetProcAddress(f);
+  return glXGetProcAddressARB_renderdoc_hooked(f);
 }
 
 // on posix systems we need to export the whole of the GLX API, since we will have redirected any
@@ -695,7 +756,8 @@ void GLXHook::RegisterHooks()
 // register EGL hooks
 #define GLX_REGISTER(func)            \
   LibraryHooks::RegisterFunctionHook( \
-      "libGL.so", FunctionHook(STRINGIZE(func), (void **)&GLX.func, (void *)&func));
+      "libGL.so",                     \
+      FunctionHook(STRINGIZE(func), (void **)&GLX.func, (void *)&CONCAT(func, _renderdoc_hooked)));
   GLX_HOOKED_SYMBOLS(GLX_REGISTER)
 #undef GLX_REGISTER
 }
