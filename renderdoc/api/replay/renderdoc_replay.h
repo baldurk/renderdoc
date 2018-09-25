@@ -2165,6 +2165,15 @@ This will be in the form "MAJOR.MINOR"
 )");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetVersionString();
 
+DOCUMENT(R"(Retrieves the commit hash used to build.
+
+This will be in the form "0123456789abcdef0123456789abcdef01234567"
+
+:return: The commit hash.
+:rtype: ``str``
+)");
+extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash();
+
 DOCUMENT("Internal function for retrieving a config setting.");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
 
