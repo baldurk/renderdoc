@@ -92,59 +92,64 @@ VulkanHook VulkanHook::vkhooks;
 // as the first parameter
 
 #define HookDefine1(ret, function, t1, p1) \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1) { return CoreDisp(p1)->function(p1); }
-#define HookDefine2(ret, function, t1, p1, t2, p2) \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2) { return CoreDisp(p1)->function(p1, p2); }
-#define HookDefine3(ret, function, t1, p1, t2, p2, t3, p3)      \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3) \
-  {                                                             \
-    return CoreDisp(p1)->function(p1, p2, p3);                  \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1) { return CoreDisp(p1)->function(p1); }
+#define HookDefine2(ret, function, t1, p1, t2, p2)                  \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2) \
+  {                                                                 \
+    return CoreDisp(p1)->function(p1, p2);                          \
   }
-#define HookDefine4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)     \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4) \
-  {                                                                    \
-    return CoreDisp(p1)->function(p1, p2, p3, p4);                     \
+#define HookDefine3(ret, function, t1, p1, t2, p2, t3, p3)                 \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3) \
+  {                                                                        \
+    return CoreDisp(p1)->function(p1, p2, p3);                             \
   }
-#define HookDefine5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)    \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
-  {                                                                           \
-    return CoreDisp(p1)->function(p1, p2, p3, p4, p5);                        \
+#define HookDefine4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4) \
+  {                                                                               \
+    return CoreDisp(p1)->function(p1, p2, p3, p4);                                \
   }
-#define HookDefine6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)   \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
-  {                                                                                  \
-    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6);                           \
+#define HookDefine5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)               \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
+  {                                                                                      \
+    return CoreDisp(p1)->function(p1, p2, p3, p4, p5);                                   \
   }
-#define HookDefine7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7)  \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
-  {                                                                                         \
-    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7);                              \
+#define HookDefine6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)              \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
+  {                                                                                             \
+    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6);                                      \
+  }
+#define HookDefine7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7)      \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, \
+                                                      t7 p7)                                    \
+  {                                                                                             \
+    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7);                                  \
   }
 #define HookDefine8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6,    \
+                                                      t7 p7, t8 p8)                                \
   {                                                                                                \
     return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8);                                 \
   }
 #define HookDefine9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, \
                     t9, p9)                                                                        \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                           t9, p9)                                                 \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6,    \
+                                                      t7 p7, t8 p8, t9, p9)                        \
   {                                                                                                \
     return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                             \
   }
-#define HookDefine10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,    \
-                     p8, t9, p9, t10, p10)                                                         \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                           t9 p9, t10 p10)                                         \
-  {                                                                                                \
-    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                        \
+#define HookDefine10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                     p8, t9, p9, t10, p10)                                                      \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, \
+                                                      t7 p7, t8 p8, t9 p9, t10 p10)             \
+  {                                                                                             \
+    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                     \
   }
-#define HookDefine11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,    \
-                     p8, t9, p9, t10, p10, t11, p11)                                               \
-  ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                           t9 p9, t10 p10, t11 p11)                                \
-  {                                                                                                \
-    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                   \
+#define HookDefine11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                     p8, t9, p9, t10, p10, t11, p11)                                            \
+  VKAPI_ATTR ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, \
+                                                      t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)    \
+  {                                                                                             \
+    return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                \
   }
 
 DefineHooks();
@@ -152,15 +157,16 @@ DefineHooks();
 // need to implement vkCreateInstance and vkDestroyInstance specially,
 // to create and destroy the core WrappedVulkan object
 
-VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
-                                            const VkAllocationCallbacks *pAllocator,
-                                            VkInstance *pInstance)
+VKAPI_ATTR VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
+                                                       const VkAllocationCallbacks *pAllocator,
+                                                       VkInstance *pInstance)
 {
   WrappedVulkan *core = new WrappedVulkan();
   return core->vkCreateInstance(pCreateInfo, pAllocator, pInstance);
 }
 
-void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *pAllocator)
+VKAPI_ATTR void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance,
+                                                    const VkAllocationCallbacks *pAllocator)
 {
   WrappedVulkan *core = CoreDisp(instance);
   core->vkDestroyInstance(instance, pAllocator);
@@ -192,7 +198,7 @@ void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocation
 
 extern "C" {
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties(
+VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties(
     VkPhysicalDevice physicalDevice, uint32_t *pPropertyCount, VkLayerProperties *pProperties)
 {
   // must have a property count, either to fill out or use as a size
@@ -224,9 +230,11 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLay
   }
 }
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(
-    VkPhysicalDevice physicalDevice, const char *pLayerName, uint32_t *pPropertyCount,
-    VkExtensionProperties *pProperties)
+VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
+VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice,
+                                                             const char *pLayerName,
+                                                             uint32_t *pPropertyCount,
+                                                             VkExtensionProperties *pProperties)
 {
   // if pLayerName is NULL or not ours we're calling down through the layer chain to the ICD.
   // This is our chance to filter out any reported extensions that we don't support
@@ -237,7 +245,8 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExt
   return WrappedVulkan::GetProvidedDeviceExtensionProperties(pPropertyCount, pProperties);
 }
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
+VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
+VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
     const VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
     uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
@@ -278,7 +287,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateInstanceE
 
 // proc addr routines
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL
+VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 {
   if(!strcmp("vkGetDeviceProcAddr", pName))
@@ -310,7 +319,7 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
   return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
 }
 
-VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+VKAPI_ATTR VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName)
 {
   if(instance == VK_NULL_HANDLE)
@@ -329,7 +338,7 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   return GPDA(Unwrap(instance), pName);
 }
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL
+VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *pName)
 {
   if(!strcmp("vkGetInstanceProcAddr", pName))
@@ -384,8 +393,7 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 }
 
 // layer interface negotation (new interface)
-VK_LAYER_EXPORT
-VkResult VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion(
+VK_LAYER_EXPORT VKAPI_ATTR VkResult VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion(
     VkNegotiateLayerInterface *pVersionStruct)
 {
   if(pVersionStruct->sType != LAYER_NEGOTIATE_INTERFACE_STRUCT)
