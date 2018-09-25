@@ -29,6 +29,7 @@
 
 #include <android/dlext.h>
 #include <dlfcn.h>
+#include <errno.h>
 #include <jni.h>
 #include <link.h>
 #include <stddef.h>
