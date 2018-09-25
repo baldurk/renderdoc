@@ -216,7 +216,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
     for(size_t i = 0; i < ret.params.size(); i++)
     {
-      ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
+      ret.params[i].MakeFrom(desc->pParameters[i], ret.maxSpaceIndex);
 
       // Descriptor tables cost 1 DWORD each.
       // Root constants cost 1 DWORD each, since they are 32-bit values.
@@ -234,7 +234,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
       ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
 
       for(size_t i = 0; i < ret.samplers.size(); i++)
-        ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
+        ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.samplers[i].RegisterSpace + 1);
     }
 
     SAFE_RELEASE(deser);
@@ -274,7 +274,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
   for(size_t i = 0; i < ret.params.size(); i++)
   {
-    ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
+    ret.params[i].MakeFrom(desc->pParameters[i], ret.maxSpaceIndex);
 
     // Descriptor tables cost 1 DWORD each.
     // Root constants cost 1 DWORD each, since they are 32-bit values.
@@ -292,7 +292,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
     ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
 
     for(size_t i = 0; i < ret.samplers.size(); i++)
-      ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
+      ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.samplers[i].RegisterSpace + 1);
   }
 
   SAFE_RELEASE(deser);

@@ -993,7 +993,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
   {
     for(int reg = 0; reg < stage.spaces[space].srvs.count(); reg++)
     {
-      addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, space, reg, stage.spaces[space].srvs[reg]),
+      addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, stage.spaces[space].spaceIndex, reg,
+                                  stage.spaces[space].srvs[reg]),
                      &stage, resources);
     }
   }
@@ -1008,7 +1009,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
   {
     for(int reg = 0; reg < stage.spaces[space].uavs.count(); reg++)
     {
-      addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, space, reg, stage.spaces[space].uavs[reg]),
+      addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, stage.spaces[space].spaceIndex, reg,
+                                  stage.spaces[space].uavs[reg]),
                      &stage, uavs);
     }
   }
@@ -1047,7 +1049,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
           if(b.bind <= reg)
             regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-          if(b.bindset == space && regMatch)
+          if(b.bindset == (int32_t)stage.spaces[space].spaceIndex && regMatch)
           {
             bind = &b;
             shaderInput = &res;
@@ -1117,7 +1119,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
           filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {rootel, space, regname, addressing, filter,
+            {rootel, stage.spaces[space].spaceIndex, regname, addressing, filter,
              QFormatStr("%1 - %2")
                  .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
                  .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
@@ -1165,7 +1167,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
           if(bm.bind <= reg)
             regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > reg);
 
-          if(bm.bindset == space && regMatch)
+          if(bm.bindset == (int32_t)stage.spaces[space].spaceIndex && regMatch)
           {
             bind = &bm;
             shaderCBuf = &res;
@@ -1224,7 +1226,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
           filledSlot = false;
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {rootel, (qulonglong)space, regname, b.resourceId,
+            {rootel, (qulonglong)stage.spaces[space].spaceIndex, regname, b.resourceId,
              QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
 
         node->setTag(tag);
@@ -2478,7 +2480,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(b.bind <= reg)
               regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-            if(b.bindset == space && regMatch)
+            if(b.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
             {
               shaderInput = &res;
               break;
@@ -2492,7 +2494,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
         QVariantList row = exportViewHTML(v, false, shaderInput, QString());
 
         row.push_front(reg);
-        row.push_front(space);
+        row.push_front(sh.spaces[space].spaceIndex);
         row.push_front(rootel);
 
         rows.push_back(row);
@@ -2540,7 +2542,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(b.bind <= reg)
               regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-            if(b.bindset == space && regMatch)
+            if(b.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
             {
               shaderInput = &res;
               break;
@@ -2554,7 +2556,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
         QVariantList row = exportViewHTML(v, true, shaderInput, QString());
 
         row.push_front(reg);
-        row.push_front(space);
+        row.push_front(sh.spaces[space].spaceIndex);
         row.push_front(rootel);
 
         rows.push_back(row);
@@ -2602,7 +2604,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(b.bind <= reg)
               regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-            if(b.bindset == space && regMatch)
+            if(b.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
             {
               shaderInput = &res;
               break;
@@ -2666,7 +2668,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           else if(s.filter.filter != FilterFunction::Normal)
             filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
-          rows.push_back({rootel, space, regname, addressing, filter,
+          rows.push_back({rootel, sh.spaces[space].spaceIndex, regname, addressing, filter,
                           QFormatStr("%1 - %2")
                               .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
                               .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
@@ -2709,7 +2711,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(bm.bind <= reg)
               regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > reg);
 
-            if(bm.bindset == space && regMatch)
+            if(bm.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
             {
               shaderCBuf = &res;
               break;
@@ -2753,8 +2755,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
           length = qMin(length, (uint64_t)bytesize);
 
-          rows.push_back(
-              {rootel, space, regname, name, (qulonglong)offset, (qulonglong)length, numvars});
+          rows.push_back({rootel, sh.spaces[space].spaceIndex, regname, name, (qulonglong)offset,
+                          (qulonglong)length, numvars});
         }
       }
     }

@@ -231,7 +231,7 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     return *this;
   }
 
-  void MakeFrom(const D3D12_ROOT_PARAMETER1 &param, UINT &numSpaces)
+  void MakeFrom(const D3D12_ROOT_PARAMETER1 &param, UINT &maxSpaceIndex)
   {
     ParameterType = param.ParameterType;
     ShaderVisibility = param.ShaderVisibility;
@@ -247,7 +247,7 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
       {
         ranges[i] = param.DescriptorTable.pDescriptorRanges[i];
 
-        numSpaces = RDCMAX(numSpaces, ranges[i].RegisterSpace + 1);
+        maxSpaceIndex = RDCMAX(maxSpaceIndex, ranges[i].RegisterSpace + 1);
       }
 
       DescriptorTable.NumDescriptorRanges = (UINT)ranges.size();
@@ -255,11 +255,11 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     }
     else if(ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      numSpaces = RDCMAX(numSpaces, Constants.RegisterSpace + 1);
+      maxSpaceIndex = RDCMAX(maxSpaceIndex, Constants.RegisterSpace + 1);
     }
     else
     {
-      numSpaces = RDCMAX(numSpaces, Descriptor.RegisterSpace + 1);
+      maxSpaceIndex = RDCMAX(maxSpaceIndex, Descriptor.RegisterSpace + 1);
     }
   }
 
@@ -309,7 +309,7 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
 
 struct D3D12RootSignature
 {
-  uint32_t numSpaces = 0;
+  uint32_t maxSpaceIndex = 0;
   uint32_t dwordLength = 0;
 
   D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;

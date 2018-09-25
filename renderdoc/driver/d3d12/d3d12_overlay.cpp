@@ -90,13 +90,13 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
         {
           if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
           {
-            modsig.params[i].Descriptor.RegisterSpace = modsig.numSpaces;
+            modsig.params[i].Descriptor.RegisterSpace = modsig.maxSpaceIndex;
           }
           else if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
           {
             for(size_t r = 0; r < modsig.params[i].ranges.size(); r++)
             {
-              modsig.params[i].ranges[r].RegisterSpace = modsig.numSpaces;
+              modsig.params[i].ranges[r].RegisterSpace = modsig.maxSpaceIndex;
             }
           }
         }

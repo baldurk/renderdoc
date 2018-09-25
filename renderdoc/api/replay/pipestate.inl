@@ -924,12 +924,15 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
         const Bindpoint &bind =
             s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint];
 
-        if(bind.bindset >= s.spaces.count() ||
-           bind.bind >= s.spaces[bind.bindset].constantBuffers.count())
+        int32_t space = s.FindSpace(bind.bindset);
+
+        if(space == -1)
           return BoundCBuffer();
 
-        const D3D12Pipe::ConstantBuffer &descriptor =
-            s.spaces[bind.bindset].constantBuffers[bind.bind];
+        if(bind.bindset >= s.spaces.count() || bind.bind >= s.spaces[space].constantBuffers.count())
+          return BoundCBuffer();
+
+        const D3D12Pipe::ConstantBuffer &descriptor = s.spaces[space].constantBuffers[bind.bind];
 
         buf = descriptor.resourceId;
         ByteOffset = descriptor.byteOffset;
@@ -1031,7 +1034,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
         for(int reg = 0; reg < s.spaces[space].srvs.count(); reg++)
         {
           const D3D12Pipe::View &bind = s.spaces[space].srvs[reg];
-          Bindpoint key(space, reg);
+          Bindpoint key(s.spaces[space].spaceIndex, reg);
           BoundResource val;
 
           // consider this register to not exist - it's in a gap defined by sparse root signature
@@ -1174,7 +1177,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
         for(int reg = 0; reg < s.spaces[space].uavs.count(); reg++)
         {
           const D3D12Pipe::View &bind = s.spaces[space].uavs[reg];
-          Bindpoint key(space, reg);
+          Bindpoint key(s.spaces[space].spaceIndex, reg);
           BoundResource val;
 
           // consider this register to not exist - it's in a gap defined by sparse root signature

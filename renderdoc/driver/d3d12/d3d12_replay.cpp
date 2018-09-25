@@ -53,6 +53,32 @@ T &resize_and_add(rdcarray<T> &vec, size_t idx)
   return vec[idx];
 }
 
+D3D12Pipe::RegisterSpace &get_space(rdcarray<D3D12Pipe::RegisterSpace> &dstSpaces,
+                                    uint32_t RegisterSpace)
+{
+  // look to see if we've already added this space, if so then return it
+  for(D3D12Pipe::RegisterSpace &space : dstSpaces)
+    if(space.spaceIndex == RegisterSpace)
+      return space;
+
+  // otherwise look for the right place to insert it
+  for(size_t i = 0; i < dstSpaces.size(); i++)
+  {
+    if(RegisterSpace < dstSpaces[i].spaceIndex)
+    {
+      dstSpaces.insert(i, D3D12Pipe::RegisterSpace());
+      dstSpaces[i].spaceIndex = RegisterSpace;
+      return dstSpaces[i];
+    }
+  }
+
+  // if we got here, we didn't find an existing space nor a place to insert a new one, so we append
+  // it
+  dstSpaces.push_back(D3D12Pipe::RegisterSpace());
+  dstSpaces.back().spaceIndex = RegisterSpace;
+  return dstSpaces.back();
+}
+
 D3D12Replay::D3D12Replay()
 {
   m_pDevice = NULL;
@@ -826,8 +852,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
   // clear first to ensure the spaces are default-initialised
   dstSpaces.clear();
-  dstSpaces.resize(sig->sig.numSpaces);
-  D3D12Pipe::RegisterSpace *spaces = dstSpaces.data();
+  dstSpaces.reserve(8);
 
   for(size_t rootEl = 0; rootEl < sig->sig.params.size(); rootEl++)
   {
@@ -838,8 +863,9 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      D3D12Pipe::ConstantBuffer &cb = resize_and_add(
-          spaces[p.Constants.RegisterSpace].constantBuffers, p.Constants.ShaderRegister);
+      D3D12Pipe::ConstantBuffer &cb =
+          resize_and_add(get_space(dstSpaces, p.Constants.RegisterSpace).constantBuffers,
+                         p.Constants.ShaderRegister);
       cb.immediate = true;
       cb.rootElement = (uint32_t)rootEl;
       cb.byteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
@@ -857,8 +883,9 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
-      D3D12Pipe::ConstantBuffer &cb = resize_and_add(
-          spaces[p.Descriptor.RegisterSpace].constantBuffers, p.Descriptor.ShaderRegister);
+      D3D12Pipe::ConstantBuffer &cb =
+          resize_and_add(get_space(dstSpaces, p.Descriptor.RegisterSpace).constantBuffers,
+                         p.Descriptor.ShaderRegister);
       cb.immediate = true;
       cb.rootElement = (uint32_t)rootEl;
 
@@ -877,8 +904,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
-      D3D12Pipe::View &view =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].srvs, p.Descriptor.ShaderRegister);
+      D3D12Pipe::View &view = resize_and_add(get_space(dstSpaces, p.Descriptor.RegisterSpace).srvs,
+                                             p.Descriptor.ShaderRegister);
       view.immediate = true;
       view.rootElement = (uint32_t)rootEl;
 
@@ -902,8 +929,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
-      D3D12Pipe::View &view =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].uavs, p.Descriptor.ShaderRegister);
+      D3D12Pipe::View &view = resize_and_add(get_space(dstSpaces, p.Descriptor.RegisterSpace).uavs,
+                                             p.Descriptor.ShaderRegister);
       view.immediate = true;
       view.rootElement = (uint32_t)rootEl;
 
@@ -944,7 +971,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
 
         UINT shaderReg = range.BaseShaderRegister;
-        UINT regSpace = range.RegisterSpace;
+        D3D12Pipe::RegisterSpace &regSpace = get_space(dstSpaces, range.RegisterSpace);
 
         D3D12Descriptor *desc = NULL;
 
@@ -980,12 +1007,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].samplers.size())
-            spaces[regSpace].samplers.resize(maxReg + 1);
+          if(maxReg >= regSpace.samplers.size())
+            regSpace.samplers.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::Sampler &samp = spaces[regSpace].samplers[shaderReg];
+            D3D12Pipe::Sampler &samp = regSpace.samplers[shaderReg];
             samp.immediate = false;
             samp.rootElement = (uint32_t)rootEl;
             samp.tableIndex = offset + i;
@@ -1016,12 +1043,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].constantBuffers.size())
-            spaces[regSpace].constantBuffers.resize(maxReg + 1);
+          if(maxReg >= regSpace.constantBuffers.size())
+            regSpace.constantBuffers.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::ConstantBuffer &cb = spaces[regSpace].constantBuffers[shaderReg];
+            D3D12Pipe::ConstantBuffer &cb = regSpace.constantBuffers[shaderReg];
             cb.immediate = false;
             cb.rootElement = (uint32_t)rootEl;
             cb.tableIndex = offset + i;
@@ -1041,12 +1068,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].srvs.size())
-            spaces[regSpace].srvs.resize(maxReg + 1);
+          if(maxReg >= regSpace.srvs.size())
+            regSpace.srvs.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = spaces[regSpace].srvs[shaderReg];
+            D3D12Pipe::View &view = regSpace.srvs[shaderReg];
             view.immediate = false;
             view.rootElement = (uint32_t)rootEl;
             view.tableIndex = offset + i;
@@ -1062,12 +1089,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].uavs.size())
-            spaces[regSpace].uavs.resize(maxReg + 1);
+          if(maxReg >= regSpace.uavs.size())
+            regSpace.uavs.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = spaces[regSpace].uavs[shaderReg];
+            D3D12Pipe::View &view = regSpace.uavs[shaderReg];
             view.immediate = false;
             view.rootElement = (uint32_t)rootEl;
             view.tableIndex = offset + i;
@@ -1092,8 +1119,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
        sampDesc.ShaderVisibility != visibility)
       continue;
 
-    D3D12Pipe::Sampler &samp =
-        resize_and_add(spaces[sampDesc.RegisterSpace].samplers, sampDesc.ShaderRegister);
+    D3D12Pipe::Sampler &samp = resize_and_add(get_space(dstSpaces, sampDesc.RegisterSpace).samplers,
+                                              sampDesc.ShaderRegister);
     samp.immediate = true;
     samp.rootElement = (uint32_t)i;
 
@@ -3576,3 +3603,88 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 
 static StructuredProcessRegistration D3D12ProcessRegistration(RDCDriver::D3D12,
                                                               &D3D12_ProcessStructured);
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Test get_space ensures sorted nature", "[d3d12]")
+{
+  D3D12Pipe::Shader shader;
+  rdcarray<D3D12Pipe::RegisterSpace> &spaces = shader.spaces;
+
+  get_space(spaces, 0).samplers.resize(5);
+
+  CHECK(spaces.size() == 1);
+
+  REQUIRE(shader.FindSpace(0) == 0);
+
+  CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
+
+  SECTION("Adding in sorted order")
+  {
+    get_space(spaces, 3).srvs.resize(7);
+    get_space(spaces, 4).uavs.resize(9);
+    get_space(spaces, 1000).constantBuffers.resize(2);
+
+    CHECK(spaces.size() == 4);
+
+    REQUIRE(shader.FindSpace(0) == 0);
+    REQUIRE(shader.FindSpace(3) == 1);
+    REQUIRE(shader.FindSpace(4) == 2);
+    REQUIRE(shader.FindSpace(1000) == 3);
+    REQUIRE(shader.FindSpace(99) == -1);
+
+    CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
+    CHECK(spaces[shader.FindSpace(3)].srvs.size() == 7);
+    CHECK(spaces[shader.FindSpace(4)].uavs.size() == 9);
+    CHECK(spaces[shader.FindSpace(1000)].constantBuffers.size() == 2);
+  }
+
+  SECTION("Adding in reverse sorted order")
+  {
+    get_space(spaces, 1000).constantBuffers.resize(2);
+    get_space(spaces, 4).uavs.resize(9);
+    get_space(spaces, 3).srvs.resize(7);
+
+    CHECK(spaces.size() == 4);
+
+    REQUIRE(shader.FindSpace(0) == 0);
+    REQUIRE(shader.FindSpace(3) == 1);
+    REQUIRE(shader.FindSpace(4) == 2);
+    REQUIRE(shader.FindSpace(1000) == 3);
+    REQUIRE(shader.FindSpace(99) == -1);
+
+    CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
+    CHECK(spaces[shader.FindSpace(3)].srvs.size() == 7);
+    CHECK(spaces[shader.FindSpace(4)].uavs.size() == 9);
+    CHECK(spaces[shader.FindSpace(1000)].constantBuffers.size() == 2);
+  }
+
+  SECTION("Adding in random order")
+  {
+    get_space(spaces, 4).uavs.resize(9);
+    get_space(spaces, 19).samplers.resize(100);
+    get_space(spaces, 3).srvs.resize(7);
+    get_space(spaces, 1000).constantBuffers.resize(2);
+
+    CHECK(spaces.size() == 5);
+
+    REQUIRE(shader.FindSpace(0) == 0);
+    REQUIRE(shader.FindSpace(3) == 1);
+    REQUIRE(shader.FindSpace(4) == 2);
+    REQUIRE(shader.FindSpace(19) == 3);
+    REQUIRE(shader.FindSpace(1000) == 4);
+    REQUIRE(shader.FindSpace(99) == -1);
+
+    CHECK(spaces[shader.FindSpace(4)].uavs.size() == 9);
+    CHECK(spaces[shader.FindSpace(19)].samplers.size() == 100);
+    CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
+    CHECK(spaces[shader.FindSpace(3)].srvs.size() == 7);
+    CHECK(spaces[shader.FindSpace(1000)].constantBuffers.size() == 2);
+  }
+}
+
+#endif

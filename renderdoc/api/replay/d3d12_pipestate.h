@@ -413,11 +413,13 @@ struct RegisterSpace
   DOCUMENT("");
   bool operator==(const RegisterSpace &o) const
   {
-    return constantBuffers == o.constantBuffers && samplers == o.samplers && srvs == o.srvs &&
-           uavs == o.uavs;
+    return spaceIndex == o.spaceIndex && constantBuffers == o.constantBuffers &&
+           samplers == o.samplers && srvs == o.srvs && uavs == o.uavs;
   }
   bool operator<(const RegisterSpace &o) const
   {
+    if(!(spaceIndex == o.spaceIndex))
+      return spaceIndex < o.spaceIndex;
     if(!(constantBuffers == o.constantBuffers))
       return constantBuffers < o.constantBuffers;
     if(!(samplers == o.samplers))
@@ -428,6 +430,8 @@ struct RegisterSpace
       return uavs < o.uavs;
     return false;
   }
+  DOCUMENT("The index of this space, since space indices can be sparse");
+  uint32_t spaceIndex;
   DOCUMENT("List of :class:`D3D12ConstantBuffer` containing the constant buffers.");
   rdcarray<ConstantBuffer> constantBuffers;
   DOCUMENT("List of :class:`D3D12Sampler` containing the samplers.");
@@ -456,6 +460,20 @@ mapping data.
 
   DOCUMENT("A list of :class:`D3D12RegisterSpace` with the register spaces for this stage.");
   rdcarray<RegisterSpace> spaces;
+
+  DOCUMENT(R"(Return the index in the :data:`spaces` array of a given register space.
+
+:return: The index if the space exists, or ``-1`` if it doesn't.
+:rtype: ``int``
+)");
+  int32_t FindSpace(uint32_t spaceIndex) const
+  {
+    for(int32_t i = 0; i < spaces.count(); i++)
+      if(spaces[i].spaceIndex == spaceIndex)
+        return i;
+
+    return -1;
+  }
 };
 
 DOCUMENT("Describes a binding on the D3D12 stream-out stage.");

@@ -1303,12 +1303,13 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::ConstantBuffer &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::RegisterSpace &el)
 {
+  SERIALISE_MEMBER(spaceIndex);
   SERIALISE_MEMBER(constantBuffers);
   SERIALISE_MEMBER(samplers);
   SERIALISE_MEMBER(srvs);
   SERIALISE_MEMBER(uavs);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
