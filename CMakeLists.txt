@@ -3,27 +3,23 @@ cmake_minimum_required(VERSION 2.8.12)
 # Configure some stuff that needs to be set really early
 if(BUILD_ANDROID)
     set(CMAKE_TOOLCHAIN_FILE
-        "${CMAKE_SOURCE_DIR}/util/android.toolchain.cmake"
+        "$ENV{ANDROID_NDK}/build/cmake/android.toolchain.cmake"
         CACHE STRING
         "The Android toolchain file")
 
     option(STRIP_ANDROID_LIBRARY "Strip the resulting android library" OFF)
 
-    # Set same default API level for ANDROID_ABI=armeabi-v7a as for arm64-v8a.
-    set( ANDROID_DEFAULT_NDK_API_LEVEL_arm 21 )
+    # Set default API level to 21 if not configured explicitly
+    if(NOT ANDROID_PLATFORM)
+        set(ANDROID_PLATFORM "android-21")
+    endif()
+
+    # Choose clang if the NDK has both gcc and clang, since gcc sometimes fails
+    set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION "clang")
 
     # Default to arm32 if nothing is specified on the command line.
     # Options are {armeabi-v7a,arm64-v8a}
     set(ANDROID_ABI "armeabi-v7a" CACHE STRING "The Android ABI to build for")
-
-    # This will be overridden later, we just need to set it now so that the
-    # configuration will continue on to where the toolchain is available
-    if(WIN32)
-        set(CMAKE_MAKE_PROGRAM
-            "android-make-not-found"
-            CACHE STRING
-            "The path to the NDK's make.exe to use")
-    endif()
 endif()
 
 # disallow in-source builds because we have a top-level wrapper Makefile
@@ -162,21 +158,6 @@ if(ANDROID)
 
     message(STATUS "Using Android ABI ${ANDROID_ABI}")
     message(STATUS "Using Android native API level ${ANDROID_NATIVE_API_LEVEL}")
-
-    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-        set(MAKE_SEARCH_DIRS "windows-x86_64" "windows")
-
-        # For windows, we need to use the make program in the NDK
-        foreach(dir ${MAKE_SEARCH_DIRS})
-            set(__makepath "${ANDROID_NDK}/prebuilt/${dir}/bin/make.exe")
-            if( EXISTS "${__makepath}" )
-                set(CMAKE_MAKE_PROGRAM "${__makepath}" CACHE STRING "" FORCE)
-                break()
-            endif()
-        endforeach()
-
-        message(STATUS "Using build tool ${CMAKE_MAKE_PROGRAM}")
-    endif()
 endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

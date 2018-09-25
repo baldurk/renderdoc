@@ -9,6 +9,9 @@ elseif(ANDROID)
     include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
+    
+    set_source_files_properties(renderdoccmd.cpp PROPERTIES COMPILE_FLAGS "-fexceptions -frtti")
+    set_source_files_properties(renderdoccmd_android.cpp PROPERTIES COMPILE_FLAGS "-fexceptions")
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
@@ -62,15 +65,58 @@ if(ANDROID)
 
     set(ANDROID_BUILD_TOOLS_VERSION "" CACHE STRING "Version of Android build-tools to use instead of the default")
     if(ANDROID_BUILD_TOOLS_VERSION STREQUAL "")
-        set(ANDROID_BUILD_TOOLS_VERSION "26.0.1")
+        # Enumerate the build tools versions available, and pick the most recent
+        file(GLOB __buildTools RELATIVE "$ENV{ANDROID_SDK}/build-tools" "$ENV{ANDROID_SDK}/build-tools/*")
+        list(SORT __buildTools)
+
+        list(GET __buildTools -1 ANDROID_BUILD_TOOLS_VERSION)
+
+        unset(__buildTools)
     endif()
     message(STATUS "Using Android build-tools version ${ANDROID_BUILD_TOOLS_VERSION}")
+    
+    set(APK_TARGET_ID "" CACHE STRING "The Target ID to build the APK for like 'android-99', use <android list targets> to choose another one.")
+    if(APK_TARGET_ID STREQUAL "")
+        # This seems different from the platform we're targetting,
+        # default to the latest available that's greater or equal to our target platform
+        file(GLOB __platforms RELATIVE "$ENV{ANDROID_SDK}/platforms" "$ENV{ANDROID_SDK}/platforms/*")
+        list(SORT __platforms)
+
+        # In case we don't find one, target the latest platform
+        list(GET __platforms -1 APK_TARGET_ID)
+
+        string(REPLACE "android-" "" __targetPlat "${ANDROID_PLATFORM}")
+
+        # We require at least android 23 for Activity.requestPermissions
+        if(__targetPlat LESS 23)
+            set(__targetPlat 23)
+        endif()
+
+        foreach( __plat ${__platforms})
+            string(REPLACE "android-" "" __curPlat "${__plat}")
+
+            if(NOT (__curPlat LESS __targetPlat) )
+                set(APK_TARGET_ID "android-${__curPlat}")
+                break()
+            endif()
+        endforeach()
+
+        unset(__platforms)
+        unset(__targetPlat)
+        unset(__curPlat)
+    endif()
+    message(STATUS "Using android.jar from platform ${APK_TARGET_ID}")
+
+    # Suffix for scripts rather than binaries, which is needed explicitly on windows
+    set(TOOL_SCRIPT_EXTENSION "")
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        set(TOOL_SCRIPT_EXTENSION ".bat")
+    endif()
 
     set(BUILD_TOOLS "$ENV{ANDROID_SDK}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}")
     set(RT_JAR "$ENV{JAVA_HOME}/jre/lib/rt.jar")
     set(JAVA_BIN "$ENV{JAVA_HOME}/bin")
 
-    set(APK_TARGET_ID "android-23" CACHE STRING "The Target ID to build the APK for, use <android list targets> to choose another one.")
     set(ANDROID_JAR "$ENV{ANDROID_SDK}/platforms/${APK_TARGET_ID}/android.jar")
     if(CMAKE_HOST_WIN32)
         set(CLASS_PATH "${ANDROID_JAR}\;obj")
@@ -118,10 +164,10 @@ if(ANDROID)
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
                        COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
-                       COMMAND ${BUILD_TOOLS}/dx --dex --output=bin/classes.dex ./obj
+                       COMMAND ${BUILD_TOOLS}/dx${TOOL_SCRIPT_EXTENSION} --dex --output=bin/classes.dex ./obj
                        COMMAND ${BUILD_TOOLS}/aapt package -f -M AndroidManifest.xml --version-code ${APK_VERSION_CODE} --version-name ${APK_VERSION_NAME} -S res -I ${ANDROID_JAR} -F RenderDocCmd-unaligned.apk bin libs
                        COMMAND ${BUILD_TOOLS}/zipalign -f 4 RenderDocCmd-unaligned.apk RenderDocCmd.apk
-                       COMMAND ${BUILD_TOOLS}/apksigner sign --ks ${KEYSTORE} --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey RenderDocCmd.apk
+                       COMMAND ${BUILD_TOOLS}/apksigner${TOOL_SCRIPT_EXTENSION} sign --ks ${KEYSTORE} --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey RenderDocCmd.apk
                        COMMAND ${CMAKE_COMMAND} -E copy RenderDocCmd.apk ${APK_FILE})
 
 endif()

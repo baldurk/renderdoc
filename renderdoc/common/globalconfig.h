@@ -186,4 +186,14 @@ enum
 // this strips them completely
 #define STRIP_DEBUG_LOGS OPTION_OFF
 
+// disable unit tests on android
+#if ENABLED(RDOC_ANDROID)
+
+#define ENABLE_UNIT_TESTS OPTION_OFF
+
+#else
+
+// otherwise, enable them in development builds
 #define ENABLE_UNIT_TESTS RDOC_DEVEL
+
+#endif
