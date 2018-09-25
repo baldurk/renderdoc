@@ -536,7 +536,7 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       state.refData = NULL;
 
       state.mapOffset = offset;
-      state.mapSize = size == VK_WHOLE_SIZE ? memrecord->Length : size;
+      state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset) : size;
       state.mapFlushed = false;
 
       *ppData = realData;
