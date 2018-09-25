@@ -751,6 +751,7 @@ void GLXHook::RegisterHooks()
   // register library hooks
   LibraryHooks::RegisterLibraryHook("libGL.so", &GLXHooked);
   LibraryHooks::RegisterLibraryHook("libGL.so.1", &GLXHooked);
+  LibraryHooks::RegisterLibraryHook("libGLX.so", &GLXHooked);
   LibraryHooks::RegisterLibraryHook("libGLX.so.0", &GLXHooked);
 
 // register EGL hooks
