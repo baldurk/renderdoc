@@ -1838,4 +1838,21 @@ public:
                                                  const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
                                                  uint32_t *pSurfaceFormatCount,
                                                  VkSurfaceFormat2KHR *pSurfaceFormats);
+
+  // VK_KHR_get_display_properties2
+  VkResult vkGetPhysicalDeviceDisplayProperties2KHR(VkPhysicalDevice physicalDevice,
+                                                    uint32_t *pPropertyCount,
+                                                    VkDisplayProperties2KHR *pProperties);
+
+  VkResult vkGetPhysicalDeviceDisplayPlaneProperties2KHR(VkPhysicalDevice physicalDevice,
+                                                         uint32_t *pPropertyCount,
+                                                         VkDisplayPlaneProperties2KHR *pProperties);
+
+  VkResult vkGetDisplayModeProperties2KHR(VkPhysicalDevice physicalDevice, VkDisplayKHR display,
+                                          uint32_t *pPropertyCount,
+                                          VkDisplayModeProperties2KHR *pProperties);
+
+  VkResult vkGetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physicalDevice,
+                                             const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
+                                             VkDisplayPlaneCapabilities2KHR *pCapabilities);
 };

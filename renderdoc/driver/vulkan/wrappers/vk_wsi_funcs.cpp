@@ -1002,6 +1002,40 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceFormats2KHR(
                                             pSurfaceFormats);
 }
 
+VkResult WrappedVulkan::vkGetPhysicalDeviceDisplayProperties2KHR(VkPhysicalDevice physicalDevice,
+                                                                 uint32_t *pPropertyCount,
+                                                                 VkDisplayProperties2KHR *pProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceDisplayProperties2KHR(Unwrap(physicalDevice), pPropertyCount, pProperties);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceDisplayPlaneProperties2KHR(
+    VkPhysicalDevice physicalDevice, uint32_t *pPropertyCount,
+    VkDisplayPlaneProperties2KHR *pProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceDisplayPlaneProperties2KHR(Unwrap(physicalDevice), pPropertyCount,
+                                                    pProperties);
+}
+
+VkResult WrappedVulkan::vkGetDisplayModeProperties2KHR(VkPhysicalDevice physicalDevice,
+                                                       VkDisplayKHR display, uint32_t *pPropertyCount,
+                                                       VkDisplayModeProperties2KHR *pProperties)
+{
+  // displays are not wrapped
+  return ObjDisp(physicalDevice)
+      ->GetDisplayModeProperties2KHR(Unwrap(physicalDevice), display, pPropertyCount, pProperties);
+}
+
+VkResult WrappedVulkan::vkGetDisplayPlaneCapabilities2KHR(
+    VkPhysicalDevice physicalDevice, const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
+    VkDisplayPlaneCapabilities2KHR *pCapabilities)
+{
+  return ObjDisp(physicalDevice)
+      ->GetDisplayPlaneCapabilities2KHR(Unwrap(physicalDevice), pDisplayPlaneInfo, pCapabilities);
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,
                                 const VkSwapchainCreateInfoKHR *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkSwapchainKHR *pSwapchain);

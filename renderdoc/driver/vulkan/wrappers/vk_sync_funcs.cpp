@@ -73,7 +73,8 @@
 
 void WrappedVulkan::RemapQueueFamilyIndices(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily)
 {
-  if(srcQueueFamily == VK_QUEUE_FAMILY_EXTERNAL || dstQueueFamily == VK_QUEUE_FAMILY_EXTERNAL)
+  if(srcQueueFamily == VK_QUEUE_FAMILY_EXTERNAL || dstQueueFamily == VK_QUEUE_FAMILY_EXTERNAL ||
+     srcQueueFamily == VK_QUEUE_FAMILY_FOREIGN_EXT || dstQueueFamily == VK_QUEUE_FAMILY_FOREIGN_EXT)
   {
     // we should ignore this family transition since we're not synchronising with an
     // external access.
