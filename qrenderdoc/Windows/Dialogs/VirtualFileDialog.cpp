@@ -590,9 +590,19 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirect
 
   ui->buttonBox->button(QDialogButtonBox::Ok)->setDefault(false);
 
+  QModelIndex index;
+
+  if(!initialDirectory.isEmpty() && !ctx.Replay().CurrentRemote()->IsADB())
+  {
+    index = m_Model->indexForPath(initialDirectory);
+  }
+  if(!index.isValid())
+  {
+    index = m_Model->homeFolder();
+  }
   // switch to home folder and expand it
-  changeCurrentDir(initialDirectory.isEmpty() ? m_Model->homeFolder()
-                                              : m_Model->indexForPath(initialDirectory));
+  changeCurrentDir(index);
+
   ui->dirList->expand(m_DirProxy->mapFromSource(currentDir()));
 
   QObject::connect(ui->fileList->selectionModel(), &QItemSelectionModel::selectionChanged, this,
