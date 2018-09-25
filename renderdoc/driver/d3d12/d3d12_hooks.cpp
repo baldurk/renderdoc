@@ -28,6 +28,18 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
+#if ENABLED(RDOC_X64)
+
+#define BIT_SPECIFIC_DLL(dll32, dll64) dll64
+
+#else
+
+#define BIT_SPECIFIC_DLL(dll32, dll64) dll32
+
+#endif
+
+typedef HRESULT(__cdecl *PFN_AmdExtD3DCreateInterface)(IUnknown *, REFIID, void **);
+
 typedef HRESULT(WINAPI *PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)(UINT NumFeatures, const IID *pIIDs,
                                                                 void *pConfigurationStructs,
                                                                 UINT *pConfigurationStructSizes);
@@ -101,6 +113,12 @@ public:
 
     LibraryHooks::RegisterLibraryHook("d3d12.dll", NULL);
 
+    // these are hooked to prevent AMD extensions from activating and causing later crashes when not
+    // replayed correctly
+    LibraryHooks::RegisterLibraryHook(BIT_SPECIFIC_DLL("amdxc32.dll", "amdxc64.dll"), NULL);
+    AmdExtD3DCreateInterface.Register(BIT_SPECIFIC_DLL("amdxc32.dll", "amdxc64.dll"),
+                                      "AmdExtD3DCreateInterface", AmdExtD3DCreateInterface_hook);
+
     CreateDevice.Register("d3d12.dll", "D3D12CreateDevice", D3D12CreateDevice_hook);
     GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
     EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
@@ -109,6 +127,18 @@ public:
 
 private:
   static D3D12Hook d3d12hooks;
+
+  HookedFunction<PFN_AmdExtD3DCreateInterface> AmdExtD3DCreateInterface;
+
+  static HRESULT __cdecl AmdExtD3DCreateInterface_hook(IUnknown *, REFIID, void **ppvObject)
+  {
+    RDCLOG("Attempt to create AMD extension interface via AmdExtD3DCreateInterface was blocked.");
+
+    if(ppvObject)
+      *ppvObject = NULL;
+
+    return E_FAIL;
+  }
 
   HookedFunction<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
   HookedFunction<PFN_D3D12_CREATE_DEVICE> CreateDevice;
