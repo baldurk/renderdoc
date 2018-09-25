@@ -1828,6 +1828,16 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   compPipeInfo.stage.pName = PatchedMeshOutputEntryPoint;
   compPipeInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 
+  // copy over specialization info
+  for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
+  {
+    if(pipeCreateInfo.pStages[s].stage == VK_SHADER_STAGE_VERTEX_BIT)
+    {
+      compPipeInfo.stage.pSpecializationInfo = pipeCreateInfo.pStages[s].pSpecializationInfo;
+      break;
+    }
+  }
+
   // create new pipeline
   VkPipeline pipe;
   vkr = m_pDriver->vkCreateComputePipelines(m_Device, VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &pipe);
