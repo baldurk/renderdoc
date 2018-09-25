@@ -807,12 +807,13 @@ void D3D11PipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csResources, ui->csSamplers, ui->csCBuffers, ui->csClasses);
 
   QToolButton *shaderButtons[] = {
-      ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
-      ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
-      ui->vsShaderEditButton, ui->hsShaderEditButton, ui->dsShaderEditButton,
-      ui->gsShaderEditButton, ui->psShaderEditButton, ui->csShaderEditButton,
-      ui->vsShaderSaveButton, ui->hsShaderSaveButton, ui->dsShaderSaveButton,
-      ui->gsShaderSaveButton, ui->psShaderSaveButton, ui->csShaderSaveButton,
+      ui->vsShaderViewButton,   ui->hsShaderViewButton, ui->dsShaderViewButton,
+      ui->gsShaderViewButton,   ui->psShaderViewButton, ui->csShaderViewButton,
+      ui->vsShaderEditButton,   ui->hsShaderEditButton, ui->dsShaderEditButton,
+      ui->gsShaderEditButton,   ui->psShaderEditButton, ui->csShaderEditButton,
+      ui->vsShaderSaveButton,   ui->hsShaderSaveButton, ui->dsShaderSaveButton,
+      ui->gsShaderSaveButton,   ui->psShaderSaveButton, ui->csShaderSaveButton,
+      ui->iaBytecodeViewButton,
   };
 
   for(QToolButton *b : shaderButtons)
@@ -1462,6 +1463,8 @@ void D3D11PipelineStateViewer::setState()
 
     m_Common.SetupShaderEditButton(b, ResourceId(), stage->resourceId, stage->reflection);
   }
+
+  ui->iaBytecodeViewButton->setEnabled(true);
 
   vs = ui->csUAVs->verticalScrollBar()->value();
   ui->csUAVs->beginUpdate();
