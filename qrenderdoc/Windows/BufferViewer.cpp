@@ -2177,7 +2177,7 @@ void BufferViewer::updatePreviewColumns()
         m_VSInPosition.instanced = el.perinstance;
         m_VSInPosition.instStepRate = el.instancerate;
 
-        if(el.buffer < vbs.count())
+        if(el.buffer < vbs.count() && !m_ModelVSIn->genericsEnabled[elIdx])
         {
           m_VSInPosition.vertexResourceId = vbs[el.buffer].resourceId;
           m_VSInPosition.vertexByteStride = vbs[el.buffer].byteStride;
@@ -2203,7 +2203,7 @@ void BufferViewer::updatePreviewColumns()
         m_VSInSecondary.instanced = el.perinstance;
         m_VSInSecondary.instStepRate = el.instancerate;
 
-        if(el.buffer < vbs.count())
+        if(el.buffer < vbs.count() && !m_ModelVSIn->genericsEnabled[elIdx])
         {
           m_VSInSecondary.vertexResourceId = vbs[el.buffer].resourceId;
           m_VSInSecondary.vertexByteStride = vbs[el.buffer].byteStride;
