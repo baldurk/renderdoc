@@ -152,10 +152,11 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     // old header.
     const uint32_t MAGIC_HEADER = MAKE_FOURCC('R', 'D', 'O', 'C');
 
-    byte *readPtr = &captureHeader[0];
+    byte *readPtr = captureHeader.data();
     byte *readEnd = readPtr + captureHeader.size();
 
-    if(memcmp(&MAGIC_HEADER, readPtr, sizeof(MAGIC_HEADER)))
+    if(captureHeader.size() < sizeof(MAGIC_HEADER) ||
+       memcmp(&MAGIC_HEADER, readPtr, sizeof(MAGIC_HEADER)))
     {
       RDCDEBUG("Legacy header did not have expected magic number");
       return;
@@ -163,6 +164,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
     // uint64_t MAGIC_HEADER
     readPtr += sizeof(uint64_t);
+
+    if(readPtr + sizeof(uint32_t) >= readEnd)
+      return;
 
     uint32_t version = 0;
     memcpy(&version, readPtr, sizeof(version));
@@ -173,6 +177,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     if(version == 0x31)
     {
       readPtr += sizeof(uint64_t);    // uint64_t filesize
+
+      if(readPtr + sizeof(uint64_t) >= readEnd)
+        return;
 
       uint64_t resolveDBSize = 0;
       memcpy(&resolveDBSize, readPtr, sizeof(resolveDBSize));
@@ -185,9 +192,15 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       }
 
       // now readPtr points to data
+
+      if(readPtr >= readEnd)
+        return;
     }
     else if(version == 0x32)
     {
+      if(readPtr >= readEnd)
+        return;
+
       // only support a binary capture section as the first section
       if(*readPtr != '0')
       {
@@ -197,12 +210,18 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
       readPtr += sizeof(byte) * 4;    // isASCII and 3 padding bytes
 
+      if(readPtr + sizeof(uint32_t) >= readEnd)
+        return;
+
       uint32_t sectionFlags = 0;
       memcpy(&sectionFlags, readPtr, sizeof(sectionFlags));
       readPtr += sizeof(sectionFlags);
 
       readPtr += sizeof(uint32_t);    // uint32_t sectionType
       readPtr += sizeof(uint32_t);    // uint32_t sectionLength
+
+      if(readPtr + sizeof(uint32_t) >= readEnd)
+        return;
 
       uint32_t sectionNameLength = 0;
       memcpy(&sectionNameLength, readPtr, sizeof(sectionNameLength));
@@ -243,7 +262,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
         captureHeader = uncompressed;
 
-        readPtr = &captureHeader[0];
+        readPtr = captureHeader.data();
         readEnd = readPtr + captureHeader.size();
       }
     }
@@ -258,6 +277,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     // now we're at the first chunk. It should be THUMBNAIL_DATA
     const uint16_t THUMBNAIL_DATA = 2;
 
+    if(readPtr + sizeof(uint16_t) >= readEnd)
+      return;
+
     uint16_t chunkID = 0;
     memcpy(&chunkID, readPtr, sizeof(chunkID));
     readPtr += sizeof(chunkID);
@@ -269,6 +291,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     }
 
     readPtr += sizeof(uint32_t);    // uint32_t chunkSize
+
+    if(readPtr + sizeof(bool) + sizeof(uint32_t) * 3 >= readEnd)
+      return;
 
     // contents we care about
     bool hasThumbnail = false;
