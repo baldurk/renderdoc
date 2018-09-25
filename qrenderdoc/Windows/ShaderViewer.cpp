@@ -1195,15 +1195,15 @@ void ShaderViewer::disassemble_typeChanged(int index)
     {
       ShaderToolOutput out = disasm.DisassembleShader(this, m_ShaderDetails, "");
 
-      const char *text;
+      rdcstr text;
 
       if(out.result.isEmpty())
-        text = out.log.c_str();
+        text = out.log;
       else
-        text = (const char *)out.result.data();
+        text.assign((const char *)out.result.data(), out.result.size());
 
       m_DisassemblyView->setReadOnly(false);
-      m_DisassemblyView->setText(text);
+      m_DisassemblyView->setText(text.c_str());
       m_DisassemblyView->setReadOnly(true);
       m_DisassemblyView->emptyUndoBuffer();
       return;
