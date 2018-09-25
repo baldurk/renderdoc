@@ -56,6 +56,9 @@ if(ANDROID)
     if(NOT DEFINED ENV{ANDROID_SDK})
         message(FATAL_ERROR "ANDROID_SDK environment variable must be defined for Android build")
     endif()
+    if(NOT DEFINED ENV{ANDROID_NDK})
+        message(FATAL_ERROR "ANDROID_NDK environment variable must be defined for Android build")
+    endif()
 
     if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND CMAKE_BUILD_TYPE STREQUAL "Release")
         add_custom_command(TARGET renderdoccmd POST_BUILD
