@@ -340,6 +340,9 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   VkResult vkr = ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, NULL);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  if(count == 0)
+    return ReplayStatus::APIHardwareUnsupported;
+
   m_ReplayPhysicalDevices.resize(count);
   m_ReplayPhysicalDevicesUsed.resize(count);
   m_OriginalPhysicalDevices.resize(count);
