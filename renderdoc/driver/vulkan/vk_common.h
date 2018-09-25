@@ -217,14 +217,7 @@ enum
   VkCheckExt_Max,
 };
 
-// structure for casting to easily iterate and template specialising Serialise
-struct VkGenericStruct
-{
-  VkStructureType sType;
-  const VkGenericStruct *pNext;
-};
-
-DECLARE_REFLECTION_STRUCT(VkGenericStruct);
+DECLARE_REFLECTION_STRUCT(VkBaseInStructure);
 
 // we cast to this type when serialising as a placeholder indicating that
 // the given flags field doesn't have any bits defined
@@ -235,15 +228,15 @@ enum VkFlagWithNoBits
 
 size_t GetNextPatchSize(const void *next);
 void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
-                     VkGenericStruct *infoStruct);
+                     VkBaseInStructure *infoStruct);
 
 template <typename VkStruct>
-const VkGenericStruct *FindNextStruct(const VkStruct *haystack, VkStructureType needle)
+const VkBaseInStructure *FindNextStruct(const VkStruct *haystack, VkStructureType needle)
 {
   if(!haystack)
     return NULL;
 
-  const VkGenericStruct *next = (const VkGenericStruct *)haystack->pNext;
+  const VkBaseInStructure *next = (const VkBaseInStructure *)haystack->pNext;
   while(next)
   {
     if(next->sType == needle)
@@ -256,19 +249,19 @@ const VkGenericStruct *FindNextStruct(const VkStruct *haystack, VkStructureType 
 }
 
 template <typename VkStruct>
-VkGenericStruct *FindNextStruct(VkStruct *haystack, VkStructureType needle)
+VkBaseInStructure *FindNextStruct(VkStruct *haystack, VkStructureType needle)
 {
   if(!haystack)
     return NULL;
 
-  VkGenericStruct *next = (VkGenericStruct *)haystack->pNext;
+  VkBaseInStructure *next = (VkBaseInStructure *)haystack->pNext;
   while(next)
   {
     if(next->sType == needle)
       return next;
 
     // assume non-const pNext in the original struct
-    next = (VkGenericStruct *)next->pNext;
+    next = (VkBaseInStructure *)next->pNext;
   }
 
   return NULL;

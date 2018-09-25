@@ -284,8 +284,8 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
 // lets us just copy across a struct unmodified into some temporary memory and
 // append it onto a pNext chain we're building
 template <typename VkStruct>
-void CopyNextChainedStruct(byte *&tempMem, const VkGenericStruct *nextInput,
-                           VkGenericStruct *&nextChainTail)
+void CopyNextChainedStruct(byte *&tempMem, const VkBaseInStructure *nextInput,
+                           VkBaseInStructure *&nextChainTail)
 {
   const VkStruct *instruct = (const VkStruct *)nextInput;
   VkStruct *outstruct = (VkStruct *)tempMem;
@@ -299,15 +299,15 @@ void CopyNextChainedStruct(byte *&tempMem, const VkGenericStruct *nextInput,
   outstruct->pNext = NULL;
 
   // append this onto the chain
-  nextChainTail->pNext = (const VkGenericStruct *)outstruct;
-  nextChainTail = (VkGenericStruct *)outstruct;
+  nextChainTail->pNext = (const VkBaseInStructure *)outstruct;
+  nextChainTail = (VkBaseInStructure *)outstruct;
 }
 
 // this is similar to the above function, but for use after we've modified a struct locally
 // e.g. to unwrap some members or patch flags, etc.
 template <typename VkStruct>
 void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
-                                 VkGenericStruct *&nextChainTail)
+                                 VkBaseInStructure *&nextChainTail)
 {
   tempMem = (byte *)(outputStruct + 1);
 
@@ -315,13 +315,13 @@ void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   outputStruct->pNext = NULL;
 
   // append this onto the chain
-  nextChainTail->pNext = (const VkGenericStruct *)outputStruct;
-  nextChainTail = (VkGenericStruct *)outputStruct;
+  nextChainTail->pNext = (const VkBaseInStructure *)outputStruct;
+  nextChainTail = (VkBaseInStructure *)outputStruct;
 }
 
 size_t GetNextPatchSize(const void *pNext)
 {
-  const VkGenericStruct *next = (const VkGenericStruct *)pNext;
+  const VkBaseInStructure *next = (const VkBaseInStructure *)pNext;
   size_t memSize = 0;
 
   while(next)
@@ -472,7 +472,7 @@ size_t GetNextPatchSize(const void *pNext)
 }
 
 void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
-                     VkGenericStruct *infoStruct)
+                     VkBaseInStructure *infoStruct)
 {
   // during capture, this walks the pNext chain and either copies structs that can be passed
   // straight through, or copies and modifies any with vulkan objects that need to be unwrapped.
@@ -482,8 +482,8 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
   // serialised and available for future use and for user inspection, but isn't replayed when not
   // necesary.
 
-  VkGenericStruct *nextChainTail = infoStruct;
-  const VkGenericStruct *nextInput = (const VkGenericStruct *)infoStruct->pNext;
+  VkBaseInStructure *nextChainTail = infoStruct;
+  const VkBaseInStructure *nextInput = (const VkBaseInStructure *)infoStruct->pNext;
 
   // start with an empty chain. Every call to AppendModifiedChainedStruct / CopyNextChainedStruct
   // pushes on a new entry, but if there's only one entry in the list and it's one we want to skip,

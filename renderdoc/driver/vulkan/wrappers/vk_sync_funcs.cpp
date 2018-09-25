@@ -115,7 +115,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
 
-    UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkGenericStruct *)&patched);
+    UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkBaseInStructure *)&patched);
 
     VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &patched, NULL, &fence);
 
@@ -144,7 +144,7 @@ VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
 
-  UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkGenericStruct *)&info);
+  UnwrapNextChain(m_State, "VkFenceCreateInfo", tempMem, (VkBaseInStructure *)&info);
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, pAllocator, pFence));
@@ -523,7 +523,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
 
-    UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkGenericStruct *)&patched);
+    UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkBaseInStructure *)&patched);
 
     VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &patched, NULL, &sem);
 
@@ -573,7 +573,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCrea
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
 
-  UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkGenericStruct *)&info);
+  UnwrapNextChain(m_State, "VkSemaphoreCreateInfo", tempMem, (VkBaseInStructure *)&info);
 
   VkResult ret;
   SERIALISE_TIME_CALL(

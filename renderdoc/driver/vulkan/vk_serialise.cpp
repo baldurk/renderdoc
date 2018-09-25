@@ -333,7 +333,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
   }
 
     // walk the pNext chain, skipping any structs we don't care about serialising.
-    VkGenericStruct *next = (VkGenericStruct *)pNext;
+    VkBaseInStructure *next = (VkBaseInStructure *)pNext;
 
     while(next)
     {
@@ -348,7 +348,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
       }
 
       // walk to the next item if we didn't serialise the current one
-      next = (VkGenericStruct *)next->pNext;
+      next = (VkBaseInStructure *)next->pNext;
     }
 
     // if we got here, either pNext was NULL (common) or we skipped the whole chain. Serialise a
@@ -372,7 +372,7 @@ static inline void DeserialiseNext(const void *pNext)
     return;
 
   // walk the chain, deserialising from the tail back
-  const VkGenericStruct *gen = (const VkGenericStruct *)pNext;
+  const VkBaseInStructure *gen = (const VkBaseInStructure *)pNext;
   DeserialiseNext(gen->pNext);
   delete gen;
 }

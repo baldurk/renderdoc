@@ -425,7 +425,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
 
-    UnwrapNextChain(m_State, "VkSamplerCreateInfo", tempMem, (VkGenericStruct *)&patched);
+    UnwrapNextChain(m_State, "VkSamplerCreateInfo", tempMem, (VkBaseInStructure *)&patched);
 
     VkResult ret = ObjDisp(device)->CreateSampler(Unwrap(device), &patched, NULL, &samp);
 
@@ -472,7 +472,7 @@ VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateIn
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
 
-  UnwrapNextChain(m_State, "VkSamplerCreateInfo", tempMem, (VkGenericStruct *)&info);
+  UnwrapNextChain(m_State, "VkSamplerCreateInfo", tempMem, (VkBaseInStructure *)&info);
 
   VkResult ret;
   SERIALISE_TIME_CALL(

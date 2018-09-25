@@ -646,7 +646,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
   unwrappedInfo.pWaitSemaphores = unwrappedInfo.waitSemaphoreCount ? &unwrappedSems[0] : NULL;
 
   // Don't support any extensions for present info
-  const VkGenericStruct *next = (const VkGenericStruct *)pPresentInfo->pNext;
+  const VkBaseInStructure *next = (const VkBaseInStructure *)pPresentInfo->pNext;
   while(next)
   {
     // allowed (and ignored) pNext structs

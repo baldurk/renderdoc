@@ -230,7 +230,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
         tempMem += unwrapped.commandBufferCount * sizeof(VkCommandBuffer);
 
-        UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkGenericStruct *)&unwrapped);
+        UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkBaseInStructure *)&unwrapped);
 
         ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &unwrapped, VK_NULL_HANDLE);
 
@@ -398,7 +398,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           byte *tempMem = GetTempMemory(GetNextPatchSize(rerecordedSubmit.pNext));
 
-          UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkGenericStruct *)&rerecordedSubmit);
+          UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkBaseInStructure *)&rerecordedSubmit);
 
           rerecordedSubmit.commandBufferCount = (uint32_t)rerecordedCmds.size();
           rerecordedSubmit.pCommandBuffers = &rerecordedCmds[0];
@@ -548,7 +548,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     for(uint32_t o = 0; o < unwrappedSubmits[i].signalSemaphoreCount; o++)
       unwrappedSignalSems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
 
-    UnwrapNextChain(m_State, "VkSubmitInfo", memory, (VkGenericStruct *)&unwrappedSubmits[i]);
+    UnwrapNextChain(m_State, "VkSubmitInfo", memory, (VkBaseInStructure *)&unwrappedSubmits[i]);
   }
 
   VkResult ret;
@@ -924,7 +924,7 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
     RDCASSERT(pBindInfo[i].sType == VK_STRUCTURE_TYPE_BIND_SPARSE_INFO && pBindInfo[i].pNext == NULL);
     unwrapped[i] = pBindInfo[i];
 
-    UnwrapNextChain(m_State, "VkBindSparseInfo", next, (VkGenericStruct *)&unwrapped[i]);
+    UnwrapNextChain(m_State, "VkBindSparseInfo", next, (VkBaseInStructure *)&unwrapped[i]);
 
     // unwrap the signal semaphores into a new array
     VkSemaphore *signal = (VkSemaphore *)next;
