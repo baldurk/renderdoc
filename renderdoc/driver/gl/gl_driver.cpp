@@ -1243,66 +1243,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       if(IsCaptureMode(m_State))
       {
-        PUSH_CURRENT_CHUNK;
-        GLuint prevArrayBuffer = 0;
-        glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
-
-        GLuint prevElementArrayBuffer = 0;
-        glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&prevElementArrayBuffer);
-
-        // Initialize VBOs used in case we copy from client memory.
-        gl_CurChunk = GLChunk::glGenBuffers;
-        glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
-
-        for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
-        {
-          gl_CurChunk = GLChunk::glBindBuffer;
-          glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
-
-          gl_CurChunk = GLChunk::glBufferData;
-          glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
-
-          // we mark these buffers as internal since initial contents are not needed - they're
-          // entirely handled internally and buffer data is uploaded immediately before draws - and
-          // we don't want them to be pulled in unless explicitly referenced.
-          GetResourceManager()->SetInternalResource(
-              BufferRes(GetCtx(), ctxdata.m_ClientMemoryVBOs[i]));
-
-          if(HasExt[KHR_debug])
-          {
-            gl_CurChunk = GLChunk::glObjectLabel;
-            glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
-                          StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
-          }
-        }
-
-        gl_CurChunk = GLChunk::glGenBuffers;
-        glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
-
-        gl_CurChunk = GLChunk::glBindBuffer;
-        glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
-
-        GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryIBO));
-
-        gl_CurChunk = GLChunk::glBufferData;
-        glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
-
-        if(HasExt[KHR_debug])
-        {
-          gl_CurChunk = GLChunk::glObjectLabel;
-          glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1,
-                        "Client-memory pointer data (IB)");
-        }
-
-        gl_CurChunk = GLChunk::glBindBuffer;
-        glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
-
-        gl_CurChunk = GLChunk::glBindBuffer;
-        glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, prevElementArrayBuffer);
-      }
-
-      if(IsCaptureMode(m_State))
-      {
         // check if we already have VAO 0 registered for this context. This could be possible if
         // VAOs are shared and a previous context in the share group created it.
         GLResource vao0 = VertexArrayRes(GetCtx(), 0);
@@ -1363,6 +1303,67 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         Serialise_ContextConfiguration(ser, winData.ctx);
         GetContextRecord()->AddChunk(scope.Get());
       }
+    }
+
+    // we create these buffers last after serialising the apply of the new state, so that in the
+    // event that this context is created mid-capture, we don't serialise out buffer binding calls
+    // that trash the state of the previous context while creating these buffers.
+    if(ctxdata.m_ClientMemoryIBO == 0 && IsCaptureMode(m_State))
+    {
+      PUSH_CURRENT_CHUNK;
+      GLuint prevArrayBuffer = 0;
+      glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
+
+      GLuint prevElementArrayBuffer = 0;
+      glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&prevElementArrayBuffer);
+
+      // Initialize VBOs used in case we copy from client memory.
+      gl_CurChunk = GLChunk::glGenBuffers;
+      glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+
+      for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
+      {
+        gl_CurChunk = GLChunk::glBindBuffer;
+        glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
+
+        gl_CurChunk = GLChunk::glBufferData;
+        glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+
+        // we mark these buffers as internal since initial contents are not needed - they're
+        // entirely handled internally and buffer data is uploaded immediately before draws - and
+        // we don't want them to be pulled in unless explicitly referenced.
+        GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryVBOs[i]));
+
+        if(HasExt[KHR_debug])
+        {
+          gl_CurChunk = GLChunk::glObjectLabel;
+          glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
+                        StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
+        }
+      }
+
+      gl_CurChunk = GLChunk::glGenBuffers;
+      glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
+
+      gl_CurChunk = GLChunk::glBindBuffer;
+      glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
+
+      GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryIBO));
+
+      gl_CurChunk = GLChunk::glBufferData;
+      glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+
+      if(HasExt[KHR_debug])
+      {
+        gl_CurChunk = GLChunk::glObjectLabel;
+        glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1, "Client-memory pointer data (IB)");
+      }
+
+      gl_CurChunk = GLChunk::glBindBuffer;
+      glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
+
+      gl_CurChunk = GLChunk::glBindBuffer;
+      glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, prevElementArrayBuffer);
     }
 
     // this is hack but GL context creation is an *utter mess*. For first-frame captures, only
