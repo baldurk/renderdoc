@@ -932,10 +932,23 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
 
   if(m_Ctx.Replay().CurrentRemote())
   {
-    // remove the filename itself
+    // remove the filename itself before setting the last capture path. Try /, then \ as path
+    // separator. If no separators are found, there is no path to set.
     int idx = fn.lastIndexOf(QLatin1Char('/'));
     if(idx >= 0)
+    {
       fn = fn.mid(0, idx);
+    }
+    else
+    {
+      idx = fn.lastIndexOf(QLatin1Char('\\'));
+
+      if(idx >= 0)
+        fn = fn.mid(0, idx);
+      else
+        fn = QString();
+    }
+
     m_Ctx.Replay().CurrentRemote()->lastCapturePath = fn;
   }
   else
