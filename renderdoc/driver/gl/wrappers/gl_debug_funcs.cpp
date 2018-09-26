@@ -27,6 +27,35 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
+GLResource WrappedOpenGL::GetResource(GLenum identifier, GLuint name)
+{
+  GLResource Resource;
+
+  switch(identifier)
+  {
+    case eGL_TEXTURE: Resource = TextureRes(GetCtx(), name); break;
+    case eGL_BUFFER_OBJECT_EXT:
+    case eGL_BUFFER: Resource = BufferRes(GetCtx(), name); break;
+    case eGL_PROGRAM_OBJECT_EXT:
+    case eGL_PROGRAM: Resource = ProgramRes(GetCtx(), name); break;
+    case eGL_PROGRAM_PIPELINE_OBJECT_EXT:
+    case eGL_PROGRAM_PIPELINE: Resource = ProgramPipeRes(GetCtx(), name); break;
+    case eGL_VERTEX_ARRAY_OBJECT_EXT:
+    case eGL_VERTEX_ARRAY: Resource = VertexArrayRes(GetCtx(), name); break;
+    case eGL_SHADER_OBJECT_EXT:
+    case eGL_SHADER: Resource = ShaderRes(GetCtx(), name); break;
+    case eGL_QUERY_OBJECT_EXT:
+    case eGL_QUERY: Resource = QueryRes(GetCtx(), name); break;
+    case eGL_TRANSFORM_FEEDBACK: Resource = FeedbackRes(GetCtx(), name); break;
+    case eGL_SAMPLER: Resource = SamplerRes(GetCtx(), name); break;
+    case eGL_RENDERBUFFER: Resource = RenderbufferRes(GetCtx(), name); break;
+    case eGL_FRAMEBUFFER: Resource = FramebufferRes(GetCtx(), name); break;
+    default: RDCERR("Unhandled namespace in glObjectLabel");
+  }
+
+  return Resource;
+}
+
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifier, GLuint name,
                                             GLsizei length, const GLchar *label)
@@ -53,27 +82,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
     else
       Label = std::string(label, label + realLength);
 
-    switch(identifier)
-    {
-      case eGL_TEXTURE: Resource = TextureRes(GetCtx(), name); break;
-      case eGL_BUFFER_OBJECT_EXT:
-      case eGL_BUFFER: Resource = BufferRes(GetCtx(), name); break;
-      case eGL_PROGRAM_OBJECT_EXT:
-      case eGL_PROGRAM: Resource = ProgramRes(GetCtx(), name); break;
-      case eGL_PROGRAM_PIPELINE_OBJECT_EXT:
-      case eGL_PROGRAM_PIPELINE: Resource = ProgramPipeRes(GetCtx(), name); break;
-      case eGL_VERTEX_ARRAY_OBJECT_EXT:
-      case eGL_VERTEX_ARRAY: Resource = VertexArrayRes(GetCtx(), name); break;
-      case eGL_SHADER_OBJECT_EXT:
-      case eGL_SHADER: Resource = ShaderRes(GetCtx(), name); break;
-      case eGL_QUERY_OBJECT_EXT:
-      case eGL_QUERY: Resource = QueryRes(GetCtx(), name); break;
-      case eGL_TRANSFORM_FEEDBACK: Resource = FeedbackRes(GetCtx(), name); break;
-      case eGL_SAMPLER: Resource = SamplerRes(GetCtx(), name); break;
-      case eGL_RENDERBUFFER: Resource = RenderbufferRes(GetCtx(), name); break;
-      case eGL_FRAMEBUFFER: Resource = FramebufferRes(GetCtx(), name); break;
-      default: RDCERR("Unhandled namespace in glObjectLabel");
-    }
+    Resource = GetResource(identifier, name);
   }
 
   SERIALISE_ELEMENT(Resource);
@@ -107,7 +116,14 @@ void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei len
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glObjectLabel(ser, identifier, name, length, label);
 
-    m_DeviceRecord->AddChunk(scope.Get());
+    GLResourceRecord *record = m_DeviceRecord;
+
+    GLResource res = GetResource(identifier, name);
+
+    if(GetResourceManager()->HasResourceRecord(res))
+      record = GetResourceManager()->GetResourceRecord(res);
+
+    record->AddChunk(scope.Get());
   }
 }
 
@@ -121,7 +137,14 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glObjectLabel(ser, identifier, name, length, label);
 
-    m_DeviceRecord->AddChunk(scope.Get());
+    GLResourceRecord *record = m_DeviceRecord;
+
+    GLResource res = GetResource(identifier, name);
+
+    if(GetResourceManager()->HasResourceRecord(res))
+      record = GetResourceManager()->GetResourceRecord(res);
+
+    record->AddChunk(scope.Get());
   }
 }
 
@@ -137,7 +160,7 @@ void WrappedOpenGL::glObjectPtrLabel(const void *ptr, GLsizei length, const GLch
     Serialise_glObjectLabel(ser, eGL_SYNC_FENCE, GetResourceManager()->GetCurrentResource(id).name,
                             length, label);
 
-    m_DeviceRecord->AddChunk(scope.Get());
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
