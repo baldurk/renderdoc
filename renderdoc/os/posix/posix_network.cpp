@@ -118,7 +118,7 @@ Socket *Socket::AcceptClient(bool wait)
 
     int err = errno;
 
-    if(err != EWOULDBLOCK && err != EAGAIN)
+    if(err != EWOULDBLOCK && err != EAGAIN && err != EINTR)
     {
       RDCWARN("accept: %s", errno_string(err).c_str());
       Shutdown();
@@ -159,7 +159,7 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
     {
       int err = errno;
 
-      if(err == EWOULDBLOCK || err == EAGAIN)
+      if(err == EWOULDBLOCK || err == EAGAIN || err == EINTR)
       {
         RDCWARN("Timeout in send");
         Shutdown();
@@ -201,7 +201,7 @@ bool Socket::IsRecvDataWaiting()
   {
     int err = errno;
 
-    if(err == EWOULDBLOCK || err == EAGAIN)
+    if(err == EWOULDBLOCK || err == EAGAIN || err == EINTR)
     {
       ret = 0;
     }
@@ -233,7 +233,7 @@ bool Socket::RecvDataNonBlocking(void *buf, uint32_t &length)
     length = 0;
     int err = errno;
 
-    if(err == EWOULDBLOCK || err == EAGAIN)
+    if(err == EWOULDBLOCK || err == EAGAIN || err == EINTR)
     {
       return true;
     }
@@ -282,7 +282,7 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
     {
       int err = errno;
 
-      if(err == EWOULDBLOCK || err == EAGAIN)
+      if(err == EWOULDBLOCK || err == EAGAIN || err == EINTR)
       {
         RDCWARN("Timeout in recv");
         Shutdown();
@@ -438,7 +438,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
       int err = errno;
 
-      if(err == EWOULDBLOCK || err == EINPROGRESS)
+      if(err == EWOULDBLOCK || err == EINPROGRESS || err == EINTR)
       {
         timeval timeout;
         timeout.tv_sec = (timeoutMS / 1000);
