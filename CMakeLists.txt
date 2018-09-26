@@ -13,6 +13,11 @@ if(BUILD_ANDROID)
     if(NOT ANDROID_PLATFORM)
         set(ANDROID_PLATFORM "android-21")
     endif()
+    
+    # default to libc++_static as the other options can cause crashes
+    if(NOT ANDROID_STL)
+        set(ANDROID_STL "c++_static")
+    endif()
 
     # Choose clang if the NDK has both gcc and clang, since gcc sometimes fails
     set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION "clang")
