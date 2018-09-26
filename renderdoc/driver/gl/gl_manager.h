@@ -104,7 +104,7 @@ public:
   void DeleteContext(void *context)
   {
     size_t count = 0;
-    for(auto it = m_CurrentResourceIds.begin(); it != m_CurrentResourceIds.end(); it++)
+    for(auto it = m_CurrentResourceIds.begin(); it != m_CurrentResourceIds.end();)
     {
       if(it->first.ContextShareGroup == context && it->first.Namespace != eResSpecial)
       {
@@ -115,6 +115,10 @@ public:
           GetResourceRecord(res)->Delete(this);
         ReleaseCurrentResource(it->second);
         it = m_CurrentResourceIds.erase(it);
+      }
+      else
+      {
+        ++it;
       }
     }
     RDCDEBUG("Removed %zu/%zu resources belonging to context/sharegroup %p", count,
