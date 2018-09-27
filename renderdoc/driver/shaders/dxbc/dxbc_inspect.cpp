@@ -431,6 +431,8 @@ CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, 
 
       ret.members.push_back(v);
     }
+
+    ret.descriptor.bytesize *= RDCMAX(1U, ret.descriptor.elements);
   }
   else
   {
