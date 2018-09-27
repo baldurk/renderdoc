@@ -952,7 +952,7 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS:
       {
-        GS = ptr->data.shader;
+        HS = ptr->data.shader;
         ITER_ADV(D3D12_SHADER_BYTECODE);
         break;
       }
@@ -970,7 +970,7 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS:
       {
-        GS = ptr->data.shader;
+        CS = ptr->data.shader;
         ITER_ADV(D3D12_SHADER_BYTECODE);
         break;
       }
