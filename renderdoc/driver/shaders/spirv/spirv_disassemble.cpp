@@ -486,11 +486,21 @@ struct SPVTypeData
     }
     else if(type == eArray)
     {
+      std::string arraySuffix;
+
+      SPVTypeData *eltype = baseType;
+      while(eltype->type == eArray)
+      {
+        arraySuffix += StringFormat::Fmt("[%u]", eltype->arraySize);
+        eltype = eltype->baseType;
+      }
+
       if(arraySize != ~0U)
-        ret +=
-            StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
+        ret += StringFormat::Fmt("%s %s[%u]%s", eltype->GetName().c_str(), varName.c_str(),
+                                 arraySize, arraySuffix.c_str());
       else
-        ret += StringFormat::Fmt("%s %s[]", baseType->GetName().c_str(), varName.c_str());
+        ret += StringFormat::Fmt("%s %s[]%s", eltype->GetName().c_str(), varName.c_str(),
+                                 arraySuffix.c_str());
     }
     else
     {
@@ -3461,7 +3471,8 @@ string SPVModule::Disassemble(const string &entryPoint)
   return retDisasm;
 }
 
-void MakeConstantBlockVariables(SPVTypeData *structType, rdcarray<ShaderConstant> &cblock);
+void MakeConstantBlockVariables(SPVTypeData *structType, uint32_t arraySize,
+                                uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock);
 
 void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, const std::string &name,
                                const std::vector<SPVDecoration> &decorations)
@@ -3582,12 +3593,46 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
 
     outConst.type.descriptor.name = type->GetName();
 
-    MakeConstantBlockVariables(type, outConst.type.members);
+    MakeConstantBlockVariables(type, outConst.type.descriptor.elements,
+                               outConst.type.descriptor.arrayByteStride, outConst.type.members);
+
+    if(type->type == SPVTypeData::eArray)
+    {
+      // if the inner type is an array, it will be expanded in our members list. So don't also
+      // redundantly keep the element count
+      outConst.type.descriptor.elements = 1;
+    }
   }
 }
 
-void MakeConstantBlockVariables(SPVTypeData *structType, rdcarray<ShaderConstant> &cblock)
+void MakeConstantBlockVariables(SPVTypeData *structType, uint32_t arraySize,
+                                uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock)
 {
+  // we get here for multi-dimensional arrays
+  if(structType->type == SPVTypeData::eArray)
+  {
+    std::vector<SPVDecoration> empty;
+
+    uint32_t relativeOffset = 0;
+
+    cblock.resize(arraySize);
+    for(uint32_t i = 0; i < arraySize; i++)
+    {
+      MakeConstantBlockVariable(cblock[i], structType, StringFormat::Fmt("[%u]", i),
+                                structType->decorations ? *structType->decorations : empty);
+
+      uint32_t byteOffset = relativeOffset;
+      RDCASSERT(byteOffset % 4 == 0);    // assume uint32_t aligned
+      byteOffset /= 4;
+      cblock[i].reg.vec = byteOffset / 4;
+      cblock[i].reg.comp = byteOffset % 4;
+
+      relativeOffset += arrayByteStride;
+    }
+
+    return;
+  }
+
   if(structType->children.empty())
     return;
 
@@ -4225,11 +4270,11 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           res.variableType.descriptor.type = VarType::Float;
           res.variableType.descriptor.name = type->GetName();
 
-          MakeConstantBlockVariables(type, res.variableType.members);
+          MakeConstantBlockVariables(type, 0, 0, res.variableType.members);
         }
         else
         {
-          MakeConstantBlockVariables(type, cblock.variables);
+          MakeConstantBlockVariables(type, 0, 0, cblock.variables);
 
           if(!type->children.empty())
             cblock.byteSize = CalculateMinimumByteSize(cblock.variables);
