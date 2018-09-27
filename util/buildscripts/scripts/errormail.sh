@@ -14,5 +14,5 @@ if [ -f "${EMAILHOST}" ]; then
 	ssh $(cat "${EMAILHOST}") "mail -s \"$SUBJECT\" $ERRORMAIL" < $EMAIL_BODY_FILE
 	exit;
 else
-	mail -s \"$SUBJECT\" $ERRORMAIL < $EMAIL_BODY_FILE
+	mail -s "$SUBJECT" $ERRORMAIL < $EMAIL_BODY_FILE
 fi
