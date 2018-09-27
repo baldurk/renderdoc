@@ -751,6 +751,9 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
   char *nm = &var.name[0];
 
+  bool multiDimArray = false;
+  int arrayIdx = 0;
+
   // reverse figure out structures and structure arrays
   while(strchr(nm, '.') || strchr(nm, '['))
   {
@@ -764,7 +767,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     *nm = 0;
     nm++;
 
-    int arrayIdx = 0;
+    arrayIdx = 0;
 
     // if it's an array, get the index used
     if(isarray)
@@ -789,15 +792,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
       }
       else
       {
-        // we strip any trailing [0] above (which is useful for non-structure variables),
-        // so we should not hit this path unless two variables exist like:
-        // structure.member[0]
-        // structure.member[1]
-        // The program introspection should only return the first for a basic type,
-        // and we should not hit this case
-        parentmembers = NULL;
-        RDCWARN("Unexpected naked array as member (expected only one [0], which should be trimmed");
-        break;
+        // if there's no . after the array index, this is a multi-dimensional array.
+        multiDimArray = true;
       }
     }
 
@@ -811,7 +807,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.columns = 0;
     parentVar.type.descriptor.rowMajorStorage = false;
     parentVar.type.descriptor.type = var.type.descriptor.type;
-    parentVar.type.descriptor.elements = isarray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
+    parentVar.type.descriptor.elements =
+        isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
     parentVar.type.descriptor.arrayByteStride = topLevelStride;
 
     bool found = false;
@@ -842,6 +839,61 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
       parentmembers = &(parentmembers->back().type.members);
     }
 
+    if(multiDimArray)
+    {
+      // if this is a multi-dimensional array, we've now selected the root array.
+      // We now iterate all the way down to the last element, then break out of the list so it can
+      // be added as an array.
+      //
+      // Note: this means that for float foo[4][3] we won't iterate here - we've already selected
+      // foo, and outside of the loop we'll push back a float[3] for each of foo[0], foo[1], foo[2],
+      // foo[3] that we encounter in this iteration process.
+      //
+      // For bar[4][3][2] we've selected bar, we'll then push back a [4] member and then outside of
+      // the loop we'll push back each of bar[.][0], bar[.][1], etc as a float[2]
+
+      while(*nm)
+      {
+        parentVar.name = StringFormat::Fmt("[%d]", arrayIdx);
+
+        found = false;
+        for(size_t i = 0; i < parentmembers->size(); i++)
+        {
+          if((*parentmembers)[i].name == parentVar.name)
+          {
+            parentmembers = &((*parentmembers)[i].type.members);
+            found = true;
+
+            break;
+          }
+        }
+
+        if(!found)
+        {
+          parentmembers->push_back(parentVar);
+          parentmembers = &(parentmembers->back().type.members);
+        }
+
+        arrayIdx = 0;
+
+        RDCASSERT(*nm == '[');
+        nm++;
+
+        while(*nm >= '0' && *nm <= '9')
+        {
+          arrayIdx *= 10;
+          arrayIdx += int(*nm) - int('0');
+          nm++;
+        }
+
+        RDCASSERT(*nm == ']');
+        *nm = 0;
+        nm++;
+      }
+
+      break;
+    }
+
     // the 0th element of each array fills out the actual members, when we
     // encounter an index above that we only use it to increase the type.descriptor.elements
     // member (which we've done by this point) and can stop recursing
@@ -857,6 +909,10 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     // nm points into var.name's storage, so copy out to a temporary
     string n = nm;
     var.name = n;
+
+    // for multidimensional arrays there will be no proper name, so name the variable by the index
+    if(multiDimArray)
+      var.name = StringFormat::Fmt("[%d]", arrayIdx);
 
     parentmembers->push_back(var);
   }

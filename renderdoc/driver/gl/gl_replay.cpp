@@ -1908,6 +1908,11 @@ void GLReplay::FillCBufferVariables(GLuint prog, bool bufferBacked, std::string 
   {
     const ShaderVariableDescriptor &desc = variables[i].type.descriptor;
 
+    // remove implicit '.' for recursing through "structs" if it's actually a multi-dimensional
+    // array.
+    if(!prefix.empty() && prefix.back() == '.' && variables[i].name[0] == '[')
+      prefix.pop_back();
+
     ShaderVariable var;
     var.name = variables[i].name;
     var.rows = desc.rows;
@@ -1985,7 +1990,12 @@ void GLReplay::FillCBufferVariables(GLuint prog, bool bufferBacked, std::string 
           for(uint32_t a = 0; a < desc.elements; a++)
           {
             ShaderVariable el = var;
-            el.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
+
+            // if this is the last part of a multidimensional array, don't include the variable name
+            if(var.name[0] != '[')
+              el.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
+            else
+              el.name = StringFormat::Fmt("[%u]", a);
 
             FillCBufferValue(prog, bufferBacked, values[0] + values[2] * a, values[1], data, el);
 
