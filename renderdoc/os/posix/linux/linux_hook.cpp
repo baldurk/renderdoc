@@ -83,6 +83,33 @@ void plthook_lib(void *handle)
   plthook_close(plthook);
 }
 
+static void CheckLoadedLibraries()
+{
+  // iterate over the libraries and see which ones are already loaded, process function hooks for
+  // them and call callbacks.
+  for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
+  {
+    std::string libName = *it;
+    void *handle = realdlopen(libName.c_str(), RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
+
+    if(handle)
+    {
+      for(FunctionHook &hook : functionHooks)
+      {
+        if(hook.orig && *hook.orig == NULL)
+          *hook.orig = dlsym(handle, hook.function.c_str());
+      }
+
+      for(FunctionLoadCallback cb : libraryCallbacks[libName])
+        if(cb)
+          cb(handle);
+
+      // don't call callbacks again if the library is dlopen'd again
+      libraryCallbacks[libName].clear();
+    }
+  }
+}
+
 void *intercept_dlopen(const char *filename, int flag, void *ret)
 {
   if(filename == NULL)
@@ -118,6 +145,11 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
     }
   }
 
+  // for local library loads, this library might depend on one we care about, so check again as we
+  // did in EndHookRegistration to see if any library has been loaded.
+  if((flag & RTLD_GLOBAL) == 0)
+    CheckLoadedLibraries();
+
   return ret;
 }
 
@@ -138,29 +170,7 @@ void LibraryHooks::RemoveHooks()
 
 void LibraryHooks::EndHookRegistration()
 {
-  // iterate over the libraries and see which ones are already loaded, process function hooks for
-  // them and call callbacks.
-  for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
-  {
-    std::string libName = *it;
-    void *handle = realdlopen(libName.c_str(), RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
-
-    if(handle)
-    {
-      for(FunctionHook &hook : functionHooks)
-      {
-        if(hook.orig && *hook.orig == NULL)
-          *hook.orig = dlsym(handle, hook.function.c_str());
-      }
-
-      for(FunctionLoadCallback cb : libraryCallbacks[libName])
-        if(cb)
-          cb(handle);
-
-      // don't call callbacks again if the library is dlopen'd again
-      libraryCallbacks[libName].clear();
-    }
-  }
+  CheckLoadedLibraries();
 }
 
 void LibraryHooks::Refresh()
