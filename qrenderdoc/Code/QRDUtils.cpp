@@ -48,6 +48,7 @@
 #include <QTextBlock>
 #include <QTextDocument>
 #include <QtMath>
+#include "Code/Resources.h"
 #include "Widgets/Extended/RDTreeWidget.h"
 
 // normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
@@ -107,6 +108,8 @@ struct RichResourceText
 
     int i = 0;
 
+    bool highdpi = widget->devicePixelRatioF() > 1.0;
+
     QVector<int> fragmentIndexFromBlockIndex;
 
     // there's an empty block at the start.
@@ -119,7 +122,9 @@ struct RichResourceText
       if(v.userType() == qMetaTypeId<ResourceId>())
       {
         QString resname = QString(ctx.GetResourceName(v.value<ResourceId>())).toHtmlEscaped();
-        html += lit("<td><b>%1</b></td><td><img src=':/link.png'></td>").arg(resname);
+        html += lit("<td><b>%1</b></td><td><img width=\"16\" src=':/link%3.png'></td>")
+                    .arg(resname)
+                    .arg(highdpi ? lit("@2x") : QString());
         text += resname;
 
         // these generate two blocks (one for each cell)
