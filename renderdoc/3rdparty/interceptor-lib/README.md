@@ -14,7 +14,7 @@ To use this in RenderDoc you must set `-DUSE_INTERCEPTOR_LIB=On -DLLVM_DIR=/path
 
 You'll need the Android NDK r16b, and you'll need python available in your path.
 
-### These instructions currently do not work for cygwin. I have not been able to figure out how to build LLVM for android from windows. If you know a way, it is welcome.
+### These instructions currently do not work for cygwin. I have not been able to figure out how to build LLVM for android from windows. If you know a way, it would be very welcome so please get in touch.
 
 Before we get started, I found the LLVMHello pass would fail to compile on both windows and linux, so simply comment the `add_subdirectory(Hello)` line in `lib/Transforms/CMakeLists.txt` as well as removing the LLVMHello line in `test/CMakeLists.txt`.
 
@@ -35,7 +35,7 @@ cd build_native
 
 cmake ..
 make -j$(nproc) llvm-tblgen
-readlink -f bin/llvm-tblgen # remember this path
+TBLGEN_PATH=$(readlink -f bin/llvm-tblgen) # remember this path
 ```
 
 Next we'll make `build_arm32` and `build_arm64` folders and build for each. The instructions are listed once here, pointing out where things need to change between one and the other:
@@ -50,11 +50,19 @@ LLVM_ANDROID_ABI=armeabi-v7a # this is arm64-v8a for arm64
 LLVM_TRIPLE=armv8.2a-unknown-linux-android # this is aarch64-unknown-linux-android for arm64
 LLVM_ARCH=ARM # this is AArch64 for arm64
 
-TBLGEN_PATH=/path/from/above/to/bin/llvm-tblgen
+# Should be set above, but if not set it manually here
+# TBLGEN_PATH=/path/from/above/to/bin/llvm-tblgen
 NDK_PATH=/path/to/ndk16
 TARGET_PATH=/path/to/llvm/install_arm32 # or /path/to/llvm/install_arm64 for arm64
 
-cmake -DLLVM_HOST_TRIPLE:STRING=$LLVM_TRIPLE -LLVM_TARGET_ARCH:STRING=$LLVM_ARCH -DLLVM_TARGETS_TO_BUILD:STRING=$LLVM_ARCH -DANDROID_ABI=$LLVM_ANDROID_ABI -DANDROID_NATIVE_API_LEVEL=21 -DANDROID_TOOLCHAIN=clang -DCMAKE_TOOLCHAIN_FILE:PATH=$NDK_PATH/build/cmake/android.toolchain.cmake -DCMAKE_INSTALL_PREFIX=$TARGET_PATH -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_BUILD_RUNTIME=Off -DLLVM_INCLUDE_TESTS=Off -DLLVM_INCLUDE_EXAMPLES=Off -DLLVM_ENABLE_BACKTRACES=Off -DLLVM_TABLEGEN=$TBLGEN_PATH -DLLVM_BUILD_TOOLS=Off -DLLVM_INCLUDE_TOOLS=Off -DLLVM_USE_HOST_TOOLS=Off ..
+cmake -DLLVM_HOST_TRIPLE:STRING=$LLVM_TRIPLE -LLVM_TARGET_ARCH:STRING=$LLVM_ARCH \
+      -DLLVM_TARGETS_TO_BUILD:STRING=$LLVM_ARCH -DANDROID_ABI=$LLVM_ANDROID_ABI \
+      -DANDROID_NATIVE_API_LEVEL=21 -DANDROID_TOOLCHAIN=clang -DANDROID_STL="c++_static" \
+      -DCMAKE_TOOLCHAIN_FILE:PATH=$NDK_PATH/build/cmake/android.toolchain.cmake \
+      -DCMAKE_INSTALL_PREFIX=$TARGET_PATH -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DLLVM_BUILD_RUNTIME=Off -DLLVM_INCLUDE_TESTS=Off -DLLVM_INCLUDE_EXAMPLES=Off \
+      -DLLVM_ENABLE_BACKTRACES=Off -DLLVM_TABLEGEN=$TBLGEN_PATH \
+      -DLLVM_BUILD_TOOLS=Off -DLLVM_INCLUDE_TOOLS=Off -DLLVM_USE_HOST_TOOLS=Off ..
 make -j8 install
 ```
 
