@@ -1121,7 +1121,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   float curArea = area(curSize);
   float prevArea = area(m_PrevSize);
 
-  if(prevArea > 0.0f)
+  if(prevArea > 0.0f && m_PrevSize.width() > 0.0f)
   {
     float prevX = m_TexDisplay.xOffset;
     float prevY = m_TexDisplay.yOffset;
