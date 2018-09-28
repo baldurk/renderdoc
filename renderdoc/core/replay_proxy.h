@@ -651,6 +651,7 @@ private:
 
   FrameRecord m_FrameRecord;
   APIProperties m_APIProps;
+  std::map<ResourceId, TextureDescription> m_TextureInfo;
 
   std::vector<DrawcallDescription *> m_Drawcalls;
 

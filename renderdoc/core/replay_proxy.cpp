@@ -230,6 +230,9 @@ TextureDescription ReplayProxy::Proxied_GetTexture(ParamSerialiser &paramser,
 
   SERIALISE_RETURN(ret);
 
+  if(retser.IsReading())
+    m_TextureInfo[id] = ret;
+
   return ret;
 }
 
@@ -1810,6 +1813,13 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
     return;
 
   TextureCacheEntry entry = {texid, arrayIdx, mip};
+
+  // 3D textures shouldn't cache by array index, since we fetch the whole texture at once.
+  {
+    auto it = m_TextureInfo.find(texid);
+    if(it != m_TextureInfo.end() && it->second.dimension == 3)
+      entry.arrayIdx = 0;
+  }
 
   if(m_LocalTextures.find(texid) != m_LocalTextures.end())
     return;
