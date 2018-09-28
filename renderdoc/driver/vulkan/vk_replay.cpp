@@ -2835,6 +2835,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   }
   else
   {
+    if(imInfo.type == VK_IMAGE_TYPE_3D)
+      copyregion[0].imageSubresource.baseArrayLayer = 0;
+
     // copy from desired subresource in srcImage to buffer
     vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                              readbackBuf, 1, copyregion);
