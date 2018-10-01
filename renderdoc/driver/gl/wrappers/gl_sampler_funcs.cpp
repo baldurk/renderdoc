@@ -254,7 +254,11 @@ bool WrappedOpenGL::Serialise_glSamplerParameteri(SerialiserType &ser, GLuint sa
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     GL.glSamplerParameteri(sampler.name, pname, param);
+
+    AddResourceInitChunk(sampler);
+  }
 
   return true;
 }
@@ -297,7 +301,11 @@ bool WrappedOpenGL::Serialise_glSamplerParameterf(SerialiserType &ser, GLuint sa
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     GL.glSamplerParameterf(sampler.name, pname, param);
+
+    AddResourceInitChunk(sampler);
+  }
 
   return true;
 }
@@ -340,7 +348,11 @@ bool WrappedOpenGL::Serialise_glSamplerParameteriv(SerialiserType &ser, GLuint s
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     GL.glSamplerParameteriv(sampler.name, pname, params);
+
+    AddResourceInitChunk(sampler);
+  }
 
   return true;
 }
@@ -384,7 +396,11 @@ bool WrappedOpenGL::Serialise_glSamplerParameterfv(SerialiserType &ser, GLuint s
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     GL.glSamplerParameterfv(sampler.name, pname, params);
+
+    AddResourceInitChunk(sampler);
+  }
 
   return true;
 }
@@ -428,7 +444,11 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIiv(SerialiserType &ser, GLuint 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     GL.glSamplerParameterIiv(sampler.name, pname, params);
+
+    AddResourceInitChunk(sampler);
+  }
 
   return true;
 }
@@ -472,7 +492,11 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIuiv(SerialiserType &ser, GLuint
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     GL.glSamplerParameterIuiv(sampler.name, pname, params);
+
+    AddResourceInitChunk(sampler);
+  }
 
   return true;
 }

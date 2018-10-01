@@ -1381,6 +1381,8 @@ bool WrappedOpenGL::Serialise_glTextureParameteriEXT(SerialiserType &ser, GLuint
       GL.glTextureParameteriEXT(texture.name, target, pname, param);
     else
       GL.glTextureParameteri(texture.name, pname, param);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -1482,6 +1484,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterivEXT(SerialiserType &ser, GLuin
       GL.glTextureParameterivEXT(texture.name, target, pname, params);
     else
       GL.glTextureParameteriv(texture.name, pname, params);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -1587,6 +1591,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterIivEXT(SerialiserType &ser, GLui
       GL.glTextureParameterIivEXT(texture.name, target, pname, params);
     else
       GL.glTextureParameterIiv(texture.name, pname, params);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -1692,6 +1698,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterIuivEXT(SerialiserType &ser, GLu
       GL.glTextureParameterIuivEXT(texture.name, target, pname, params);
     else
       GL.glTextureParameterIuiv(texture.name, pname, params);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -1796,6 +1804,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterfEXT(SerialiserType &ser, GLuint
       GL.glTextureParameterfEXT(texture.name, target, pname, param);
     else
       GL.glTextureParameterf(texture.name, pname, param);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -1897,6 +1907,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(SerialiserType &ser, GLuin
       GL.glTextureParameterfvEXT(texture.name, target, pname, params);
     else
       GL.glTextureParameterfv(texture.name, pname, params);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -4732,6 +4744,8 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -4941,6 +4955,8 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -5158,6 +5174,8 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -5358,6 +5376,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -5564,6 +5584,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -5778,6 +5800,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;

@@ -172,6 +172,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(SerialiserType &ser,
     {
       m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -313,6 +315,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(SerialiserType &ser
     {
       m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -457,6 +461,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(SerialiserType &ser
     {
       m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -612,6 +618,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(
     {
       m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -711,6 +719,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(SerialiserType &ser
     {
       m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -860,6 +870,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(SerialiserType &
       m_Textures[GetResourceManager()->GetID(renderbuffer)].creationFlags |=
           TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -987,6 +999,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(SerialiserType &
     {
       m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -1135,6 +1149,12 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(SerialiserType &s
         m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
             TextureCategory::ColorTarget;
     }
+
+    {
+      GLuint fbo = 0;
+      GL.glGetIntegerv(FramebufferBinding(target), (GLint *)&fbo);
+      AddResourceInitChunk(FramebufferRes(GetCtx(), fbo));
+    }
   }
 
   return true;
@@ -1245,6 +1265,12 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultisampleMultiviewOVR(
         m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
             TextureCategory::ColorTarget;
     }
+
+    {
+      GLuint fbo = 0;
+      GL.glGetIntegerv(FramebufferBinding(target), (GLint *)&fbo);
+      AddResourceInitChunk(FramebufferRes(GetCtx(), fbo));
+    }
   }
 
   return true;
@@ -1347,6 +1373,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(SerialiserType &se
 
     if(framebuffer.name)
       GL.glNamedFramebufferParameteriEXT(framebuffer.name, pname, param);
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -1420,6 +1448,8 @@ bool WrappedOpenGL::Serialise_glFramebufferReadBufferEXT(SerialiserType &ser,
       mode = eGL_COLOR_ATTACHMENT0;
 
     GL.glFramebufferReadBufferEXT(framebuffer.name, mode);
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -1541,6 +1571,8 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBufferEXT(SerialiserType &ser,
       buf = eGL_COLOR_ATTACHMENT0;
 
     GL.glFramebufferDrawBufferEXT(framebuffer.name, buf);
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;
@@ -1625,6 +1657,8 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
     }
 
     GL.glFramebufferDrawBuffersEXT(framebuffer.name, n, bufs);
+
+    AddResourceInitChunk(framebuffer);
   }
 
   return true;

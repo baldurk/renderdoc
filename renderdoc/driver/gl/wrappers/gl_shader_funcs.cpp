@@ -932,6 +932,8 @@ bool WrappedOpenGL::Serialise_glUniformBlockBinding(SerialiserType &ser, GLuint 
   if(IsReplayingAndReading())
   {
     GL.glUniformBlockBinding(program.name, uniformBlockIndex, uniformBlockBinding);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -972,6 +974,8 @@ bool WrappedOpenGL::Serialise_glShaderStorageBlockBinding(SerialiserType &ser, G
   if(IsReplayingAndReading())
   {
     GL.glShaderStorageBlockBinding(program.name, storageBlockIndex, storageBlockBinding);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1011,6 +1015,8 @@ bool WrappedOpenGL::Serialise_glBindAttribLocation(SerialiserType &ser, GLuint p
   if(IsReplayingAndReading())
   {
     GL.glBindAttribLocation(program.name, index, name);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1049,6 +1055,8 @@ bool WrappedOpenGL::Serialise_glBindFragDataLocation(SerialiserType &ser, GLuint
   if(IsReplayingAndReading())
   {
     GL.glBindFragDataLocation(program.name, color, name);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1123,6 +1131,8 @@ bool WrappedOpenGL::Serialise_glBindFragDataLocationIndexed(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     GL.glBindFragDataLocationIndexed(program.name, colorNumber, index, name);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1165,6 +1175,8 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackVaryings(SerialiserType &ser, G
   if(IsReplayingAndReading())
   {
     GL.glTransformFeedbackVaryings(program.name, count, varyings, bufferMode);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1204,6 +1216,8 @@ bool WrappedOpenGL::Serialise_glProgramParameteri(SerialiserType &ser, GLuint pr
   if(IsReplayingAndReading())
   {
     GL.glProgramParameteri(program.name, pname, value);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1412,6 +1426,8 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(SerialiserType &ser, GLuint pip
 
       GL.glUseProgramStages(pipeline.name, stages, 0);
     }
+
+    AddResourceInitChunk(pipeline);
   }
 
   return true;

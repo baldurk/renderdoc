@@ -887,6 +887,8 @@ bool WrappedOpenGL::Serialise_glSemaphoreParameterui64vEXT(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     GL.glSemaphoreParameterui64vEXT(semaphore.name, pname, params);
+
+    AddResourceInitChunk(semaphore);
   }
 
   return true;
