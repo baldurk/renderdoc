@@ -147,6 +147,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
         // fall through
         case eGL_DEPTH24_STENCIL8:
         case eGL_DEPTH32F_STENCIL8:
+        case eGL_DEPTH_STENCIL:
         case eGL_STENCIL_INDEX8: rangeScale = 255.0f; break;
         case eGL_STENCIL_INDEX16: rangeScale = 65535.0f; break;
       }

@@ -1658,6 +1658,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
     // at the same time.
     if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
        texDetails.internalFormat == eGL_DEPTH32F_STENCIL8 ||
+       texDetails.internalFormat == eGL_DEPTH_STENCIL ||
        texDetails.internalFormat == eGL_STENCIL_INDEX8)
     {
       texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
