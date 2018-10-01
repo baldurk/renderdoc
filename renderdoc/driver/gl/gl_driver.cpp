@@ -1024,7 +1024,7 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayingAndReading())
+  if(IsReplayingAndReading() && FBO != ResourceId())
   {
     // we might encounter multiple instances of this chunk per frame, so only do work on the first
     // one
