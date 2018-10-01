@@ -368,8 +368,11 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(SerialiserType &ser, GLenum ta
 
   if(IsReplayingAndReading())
   {
-    GL.glBeginQueryIndexed(target, index, query.name);
-    m_ActiveQueries[QueryIdx(target)][index] = true;
+    if(!m_FetchCounters)
+    {
+      GL.glBeginQueryIndexed(target, index, query.name);
+      m_ActiveQueries[QueryIdx(target)][index] = true;
+    }
   }
 
   return true;
@@ -436,8 +439,11 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(SerialiserType &ser, GLenum targ
 
   if(IsReplayingAndReading())
   {
-    GL.glEndQueryIndexed(target, index);
-    m_ActiveQueries[QueryIdx(target)][index] = false;
+    if(!m_FetchCounters)
+    {
+      GL.glEndQueryIndexed(target, index);
+      m_ActiveQueries[QueryIdx(target)][index] = false;
+    }
   }
 
   return true;
@@ -528,7 +534,10 @@ bool WrappedOpenGL::Serialise_glQueryCounter(SerialiserType &ser, GLuint query_,
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
-    GL.glQueryCounter(query.name, target);
+  {
+    if(!m_FetchCounters)
+      GL.glQueryCounter(query.name, target);
+  }
 
   return true;
 }
