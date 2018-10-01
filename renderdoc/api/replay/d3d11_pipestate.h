@@ -39,6 +39,9 @@ DOCUMENT(R"(Describes a single D3D11 input layout element for one vertex input.
 struct Layout
 {
   DOCUMENT("");
+  Layout() = default;
+  Layout(const Layout &) = default;
+
   bool operator==(const Layout &o) const
   {
     return semanticName == o.semanticName && semanticIndex == o.semanticIndex &&
@@ -102,6 +105,9 @@ DOCUMENT("Describes a single D3D11 vertex buffer binding.")
 struct VertexBuffer
 {
   DOCUMENT("");
+  VertexBuffer() = default;
+  VertexBuffer(const VertexBuffer &) = default;
+
   bool operator==(const VertexBuffer &o) const
   {
     return resourceId == o.resourceId && byteStride == o.byteStride && byteOffset == o.byteOffset;
@@ -129,6 +135,10 @@ struct VertexBuffer
 DOCUMENT("Describes the D3D11 index buffer binding.")
 struct IndexBuffer
 {
+  DOCUMENT("");
+  IndexBuffer() = default;
+  IndexBuffer(const IndexBuffer &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the index buffer.");
   ResourceId resourceId;
 
@@ -139,6 +149,10 @@ struct IndexBuffer
 DOCUMENT("Describes the input assembler data.");
 struct InputAssembly
 {
+  DOCUMENT("");
+  InputAssembly() = default;
+  InputAssembly(const InputAssembly &) = default;
+
   DOCUMENT("A list of :class:`D3D11Layout` describing the input layout elements in this layout.");
   rdcarray<Layout> layouts;
 
@@ -159,6 +173,9 @@ DOCUMENT("Describes the details of a D3D11 resource view - any one of UAV, SRV, 
 struct View
 {
   DOCUMENT("");
+  View() = default;
+  View(const View &) = default;
+
   bool operator==(const View &o) const
   {
     return viewResourceId == o.viewResourceId && resourceResourceId == o.resourceResourceId &&
@@ -246,6 +263,9 @@ DOCUMENT("Describes a sampler state object.");
 struct Sampler
 {
   DOCUMENT("");
+  Sampler() = default;
+  Sampler(const Sampler &) = default;
+
   bool operator==(const Sampler &o) const
   {
     return resourceId == o.resourceId && addressU == o.addressU && addressV == o.addressV &&
@@ -326,6 +346,9 @@ DOCUMENT("Describes a constant buffer binding.");
 struct ConstantBuffer
 {
   DOCUMENT("");
+  ConstantBuffer() = default;
+  ConstantBuffer(const ConstantBuffer &) = default;
+
   bool operator==(const ConstantBuffer &o) const
   {
     return resourceId == o.resourceId && vecOffset == o.vecOffset && vecCount == o.vecCount;
@@ -359,6 +382,10 @@ If the capture isn't using the D3D11.1 binding methods, this offset will be 4096
 DOCUMENT("Describes a D3D11 shader stage.");
 struct Shader
 {
+  DOCUMENT("");
+  Shader() = default;
+  Shader(const Shader &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the shader itself.");
   ResourceId resourceId;
 
@@ -392,6 +419,9 @@ DOCUMENT("Describes a binding on the D3D11 stream-out stage.");
 struct StreamOutBind
 {
   DOCUMENT("");
+  StreamOutBind() = default;
+  StreamOutBind(const StreamOutBind &) = default;
+
   bool operator==(const StreamOutBind &o) const
   {
     return resourceId == o.resourceId && byteOffset == o.byteOffset;
@@ -414,6 +444,10 @@ struct StreamOutBind
 DOCUMENT("Describes the stream-out stage bindings.");
 struct StreamOut
 {
+  DOCUMENT("");
+  StreamOut() = default;
+  StreamOut(const StreamOut &) = default;
+
   DOCUMENT("A list of ``D3D11StreamOutBind`` with the bound buffers.");
   rdcarray<StreamOutBind> outputs;
 };
@@ -421,6 +455,10 @@ struct StreamOut
 DOCUMENT("Describes a rasterizer state object.");
 struct RasterizerState
 {
+  DOCUMENT("");
+  RasterizerState() = default;
+  RasterizerState(const RasterizerState &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the rasterizer state object.");
   ResourceId resourceId;
   DOCUMENT("The polygon :class:`FillMode`.");
@@ -460,6 +498,10 @@ not force any sample count.
 DOCUMENT("Describes the rasterization state of the D3D11 pipeline.");
 struct Rasterizer
 {
+  DOCUMENT("");
+  Rasterizer() = default;
+  Rasterizer(const Rasterizer &) = default;
+
   DOCUMENT("A list of :class:`Viewport` with the bound viewports.");
   rdcarray<Viewport> viewports;
 
@@ -473,6 +515,10 @@ struct Rasterizer
 DOCUMENT("Describes a depth-stencil state object.");
 struct DepthStencilState
 {
+  DOCUMENT("");
+  DepthStencilState() = default;
+  DepthStencilState(const DepthStencilState &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the depth-stencil state object.");
   ResourceId resourceId;
   DOCUMENT("``True`` if depth testing should be performed.");
@@ -493,6 +539,10 @@ struct DepthStencilState
 DOCUMENT("Describes a blend state object.");
 struct BlendState
 {
+  DOCUMENT("");
+  BlendState() = default;
+  BlendState(const BlendState &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the blend state object.");
   ResourceId resourceId;
 
@@ -516,6 +566,10 @@ struct BlendState
 DOCUMENT("Describes the current state of the output-merger stage of the D3D11 pipeline.");
 struct OutputMerger
 {
+  DOCUMENT("");
+  OutputMerger() = default;
+  OutputMerger(const OutputMerger &) = default;
+
   DOCUMENT("A :class:`D3D11DepthStencilState` with the details of the depth-stencil state.");
   DepthStencilState depthStencilState;
   DOCUMENT("A :class:`D3D11BlendState` with the details of the blend state.");
@@ -540,6 +594,10 @@ struct OutputMerger
 DOCUMENT("Describes the current state of predicated rendering.");
 struct Predication
 {
+  DOCUMENT("");
+  Predication() = default;
+  Predication(const Predication &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the active predicate.");
   ResourceId resourceId;
 

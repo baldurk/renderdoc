@@ -31,6 +31,7 @@ DOCUMENT("A floating point four-component vector");
 struct FloatVector
 {
   FloatVector() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+  FloatVector(const FloatVector &) = default;
   FloatVector(float X, float Y, float Z, float W) : x(X), y(Y), z(Z), w(W) {}
 #if defined(RENDERDOC_QT_COMPAT)
   FloatVector(const QColor &col) : x(col.redF()), y(col.greenF()), z(col.blueF()), w(col.alphaF())
@@ -54,6 +55,7 @@ struct PathEntry
 {
   DOCUMENT("");
   PathEntry() : flags(PathProperty::NoFlags), lastmod(0), size(0) {}
+  PathEntry(const PathEntry &) = default;
   PathEntry(const char *fn, PathProperty f) : filename(fn), flags(f), lastmod(0), size(0) {}
   bool operator==(const PathEntry &o) const
   {
@@ -89,6 +91,10 @@ DECLARE_REFLECTION_STRUCT(PathEntry);
 DOCUMENT("Properties of a section in a renderdoc capture file.");
 struct SectionProperties
 {
+  DOCUMENT("");
+  SectionProperties() = default;
+  SectionProperties(const SectionProperties &) = default;
+
   DOCUMENT("The name of this section.");
   rdcstr name;
 
@@ -130,6 +136,7 @@ struct ResourceFormat
     bgraOrder = false;
     srgbCorrected = false;
   }
+  ResourceFormat(const ResourceFormat &) = default;
 
   bool operator==(const ResourceFormat &r) const
   {
@@ -192,6 +199,9 @@ DOCUMENT("The details of a texture filter in a sampler.");
 struct TextureFilter
 {
   DOCUMENT("");
+  TextureFilter() = default;
+  TextureFilter(const TextureFilter &) = default;
+
   bool operator==(const TextureFilter &o) const
   {
     return minify == o.minify && magnify == o.magnify && mip == o.mip && filter == o.filter;
@@ -224,6 +234,9 @@ DOCUMENT("A description of any type of resource.");
 struct ResourceDescription
 {
   DOCUMENT("");
+  ResourceDescription() = default;
+  ResourceDescription(const ResourceDescription &) = default;
+
   bool operator==(const ResourceDescription &o) const { return resourceId == o.resourceId; }
   bool operator<(const ResourceDescription &o) const { return resourceId < o.resourceId; }
   DOCUMENT("The unique :class:`ResourceId` that identifies this resource.");
@@ -278,6 +291,9 @@ DOCUMENT("A description of a buffer resource.");
 struct BufferDescription
 {
   DOCUMENT("");
+  BufferDescription() = default;
+  BufferDescription(const BufferDescription &) = default;
+
   bool operator==(const BufferDescription &o) const
   {
     return resourceId == o.resourceId && creationFlags == o.creationFlags && length == o.length;
@@ -308,6 +324,9 @@ DOCUMENT("A description of a texture resource.");
 struct TextureDescription
 {
   DOCUMENT("");
+  TextureDescription() = default;
+  TextureDescription(const TextureDescription &) = default;
+
   bool operator==(const TextureDescription &o) const
   {
     return format == o.format && dimension == o.dimension && type == o.type && width == o.width &&
@@ -397,6 +416,9 @@ DOCUMENT("An individual API-level event, generally corresponds one-to-one with a
 struct APIEvent
 {
   DOCUMENT("");
+  APIEvent() = default;
+  APIEvent(const APIEvent &) = default;
+
   bool operator==(const APIEvent &o) const { return eventId == o.eventId; }
   bool operator<(const APIEvent &o) const { return eventId < o.eventId; }
   DOCUMENT(R"(The API event's Event ID.
@@ -435,6 +457,9 @@ DOCUMENT("A debugging message from the API validation or internal analysis and e
 struct DebugMessage
 {
   DOCUMENT("");
+  DebugMessage() = default;
+  DebugMessage(const DebugMessage &) = default;
+
   bool operator==(const DebugMessage &o) const
   {
     return eventId == o.eventId && category == o.category && severity == o.severity &&
@@ -508,6 +533,10 @@ DOCUMENT(R"(Contains the statistics for constant binds in a frame.
 )");
 struct ConstantBindStats
 {
+  DOCUMENT("");
+  ConstantBindStats() = default;
+  ConstantBindStats(const ConstantBindStats &) = default;
+
   static const BucketRecordType BucketType = BucketRecordType::Pow2;
   static const size_t BucketCount = 31;
 
@@ -532,6 +561,10 @@ DECLARE_REFLECTION_STRUCT(ConstantBindStats);
 DOCUMENT("Contains the statistics for sampler binds in a frame.");
 struct SamplerBindStats
 {
+  DOCUMENT("");
+  SamplerBindStats() = default;
+  SamplerBindStats(const SamplerBindStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -550,6 +583,10 @@ DECLARE_REFLECTION_STRUCT(SamplerBindStats);
 DOCUMENT("Contains the statistics for resource binds in a frame.");
 struct ResourceBindStats
 {
+  DOCUMENT("");
+  ResourceBindStats() = default;
+  ResourceBindStats(const ResourceBindStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -583,6 +620,10 @@ DOCUMENT(R"(Contains the statistics for resource updates in a frame.
 )");
 struct ResourceUpdateStats
 {
+  DOCUMENT("");
+  ResourceUpdateStats() = default;
+  ResourceUpdateStats(const ResourceUpdateStats &) = default;
+
   static const BucketRecordType BucketType = BucketRecordType::Pow2;
   static const size_t BucketCount = 31;
 
@@ -623,6 +664,10 @@ DOCUMENT(R"(Contains the statistics for draws in a frame.
 )");
 struct DrawcallStats
 {
+  DOCUMENT("");
+  DrawcallStats() = default;
+  DrawcallStats(const DrawcallStats &) = default;
+
   static const BucketRecordType BucketType = BucketRecordType::Linear;
   static const size_t BucketSize = 1;
   static const size_t BucketCount = 16;
@@ -643,6 +688,10 @@ DECLARE_REFLECTION_STRUCT(DrawcallStats);
 DOCUMENT("Contains the statistics for compute dispatches in a frame.");
 struct DispatchStats
 {
+  DOCUMENT("");
+  DispatchStats() = default;
+  DispatchStats(const DispatchStats &) = default;
+
   DOCUMENT("How many dispatch calls were made.");
   uint32_t calls;
 
@@ -655,6 +704,10 @@ DECLARE_REFLECTION_STRUCT(DispatchStats);
 DOCUMENT("Contains the statistics for index buffer binds in a frame.");
 struct IndexBindStats
 {
+  DOCUMENT("");
+  IndexBindStats() = default;
+  IndexBindStats(const IndexBindStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -670,6 +723,10 @@ DECLARE_REFLECTION_STRUCT(IndexBindStats);
 DOCUMENT("Contains the statistics for vertex buffer binds in a frame.");
 struct VertexBindStats
 {
+  DOCUMENT("");
+  VertexBindStats() = default;
+  VertexBindStats(const VertexBindStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -689,6 +746,10 @@ DECLARE_REFLECTION_STRUCT(VertexBindStats);
 DOCUMENT("Contains the statistics for vertex layout binds in a frame.");
 struct LayoutBindStats
 {
+  DOCUMENT("");
+  LayoutBindStats() = default;
+  LayoutBindStats(const LayoutBindStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -704,6 +765,10 @@ DECLARE_REFLECTION_STRUCT(LayoutBindStats);
 DOCUMENT("Contains the statistics for shader binds in a frame.");
 struct ShaderChangeStats
 {
+  DOCUMENT("");
+  ShaderChangeStats() = default;
+  ShaderChangeStats(const ShaderChangeStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -722,6 +787,10 @@ DECLARE_REFLECTION_STRUCT(ShaderChangeStats);
 DOCUMENT("Contains the statistics for blend state binds in a frame.");
 struct BlendStats
 {
+  DOCUMENT("");
+  BlendStats() = default;
+  BlendStats(const BlendStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -740,6 +809,10 @@ DECLARE_REFLECTION_STRUCT(BlendStats);
 DOCUMENT("Contains the statistics for depth stencil state binds in a frame.");
 struct DepthStencilStats
 {
+  DOCUMENT("");
+  DepthStencilStats() = default;
+  DepthStencilStats(const DepthStencilStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -758,6 +831,10 @@ DECLARE_REFLECTION_STRUCT(DepthStencilStats);
 DOCUMENT("Contains the statistics for rasterizer state binds in a frame.");
 struct RasterizationStats
 {
+  DOCUMENT("");
+  RasterizationStats() = default;
+  RasterizationStats(const RasterizationStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -782,6 +859,10 @@ DECLARE_REFLECTION_STRUCT(RasterizationStats);
 DOCUMENT("Contains the statistics for output merger or UAV binds in a frame.");
 struct OutputTargetStats
 {
+  DOCUMENT("");
+  OutputTargetStats() = default;
+  OutputTargetStats(const OutputTargetStats &) = default;
+
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
 
@@ -803,6 +884,10 @@ Currently this information is only available on D3D11 and is fairly API-centric.
 )");
 struct FrameStatistics
 {
+  DOCUMENT("");
+  FrameStatistics() = default;
+  FrameStatistics(const FrameStatistics &) = default;
+
   DOCUMENT("``True`` if the statistics in this structure are valid.");
   bool recorded;
 
@@ -854,6 +939,7 @@ DECLARE_REFLECTION_STRUCT(FrameStatistics);
 DOCUMENT("Contains frame-level global information");
 struct FrameDescription
 {
+  DOCUMENT("");
   FrameDescription()
       : frameNumber(0),
         fileOffset(0),
@@ -864,6 +950,7 @@ struct FrameDescription
         captureTime(0)
   {
   }
+  FrameDescription(const FrameDescription &) = default;
 
   DOCUMENT(R"(Starting from frame #1 defined as the time from application startup to first present,
 this counts the frame number when the capture was made.
@@ -910,6 +997,7 @@ struct EventUsage
 {
   DOCUMENT("");
   EventUsage() : eventId(0), usage(ResourceUsage::Unused) {}
+  EventUsage(const EventUsage &) = default;
   EventUsage(uint32_t e, ResourceUsage u) : eventId(e), usage(u) {}
   EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventId(e), usage(u), view(v) {}
   bool operator<(const EventUsage &o) const
@@ -935,7 +1023,10 @@ DECLARE_REFLECTION_STRUCT(EventUsage);
 DOCUMENT("Describes the properties of a drawcall, dispatch, debug marker, or similar event.");
 struct DrawcallDescription
 {
+  DOCUMENT("");
   DrawcallDescription() { Reset(); }
+  DrawcallDescription(const DrawcallDescription &) = default;
+
   DOCUMENT("Resets the drawcall back to a default/empty state.");
   void Reset()
   {
@@ -1071,6 +1162,10 @@ DECLARE_REFLECTION_STRUCT(DrawcallDescription);
 DOCUMENT("Gives some API-specific information about the capture.");
 struct APIProperties
 {
+  DOCUMENT("");
+  APIProperties() = default;
+  APIProperties(const APIProperties &) = default;
+
   DOCUMENT("The :class:`GraphicsAPI` of the actual log/capture.");
   GraphicsAPI pipelineType = GraphicsAPI::D3D11;
 
@@ -1111,6 +1206,7 @@ DECLARE_REFLECTION_STRUCT(APIProperties);
 DOCUMENT("A 128-bit Uuid.");
 struct Uuid
 {
+  DOCUMENT("");
   Uuid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
   {
     words[0] = a;
@@ -1120,6 +1216,8 @@ struct Uuid
   }
 
   Uuid() { words[0] = words[1] = words[2] = words[3] = 0; }
+  Uuid(const Uuid &) = default;
+
   DOCUMENT("Compares two ``Uuid`` objects for less-than.");
   bool operator<(const Uuid &rhs) const
   {
@@ -1137,6 +1235,10 @@ DECLARE_REFLECTION_STRUCT(Uuid);
 DOCUMENT("Describes a GPU counter's purpose and result value.");
 struct CounterDescription
 {
+  DOCUMENT("");
+  CounterDescription() = default;
+  CounterDescription(const CounterDescription &) = default;
+
   DOCUMENT(R"(The :class:`GPUCounter` this counter represents.
 
 .. note:: The value may not correspond to any of the predefined values if it's a hardware-specific
@@ -1189,6 +1291,7 @@ DOCUMENT("The resulting value from a counter at an event.");
 struct CounterResult
 {
   CounterResult() : eventId(0), counter(GPUCounter::EventGPUDuration) { value.u64 = 0; }
+  CounterResult(const CounterResult &) = default;
   CounterResult(uint32_t e, GPUCounter c, float data) : eventId(e), counter(c) { value.f = data; }
   CounterResult(uint32_t e, GPUCounter c, double data) : eventId(e), counter(c) { value.d = data; }
   CounterResult(uint32_t e, GPUCounter c, uint32_t data) : eventId(e), counter(c)
@@ -1248,6 +1351,9 @@ DOCUMENT("The value of pixel output at a particular event.");
 struct ModificationValue
 {
   DOCUMENT("");
+  ModificationValue() = default;
+  ModificationValue(const ModificationValue &) = default;
+
   bool operator==(const ModificationValue &o) const
   {
     return !memcmp(&col, &o.col, sizeof(col)) && depth == o.depth && stencil == o.stencil;
@@ -1278,6 +1384,9 @@ DOCUMENT("An attempt to modify a pixel by a particular event.");
 struct PixelModification
 {
   DOCUMENT("");
+  PixelModification() = default;
+  PixelModification(const PixelModification &) = default;
+
   bool operator==(const PixelModification &o) const
   {
     return eventId == o.eventId && directShaderWrite == o.directShaderWrite &&
@@ -1388,6 +1497,10 @@ DECLARE_REFLECTION_STRUCT(PixelModification);
 DOCUMENT("Contains the bytes and metadata describing a thumbnail.");
 struct Thumbnail
 {
+  DOCUMENT("");
+  Thumbnail() = default;
+  Thumbnail(const Thumbnail &) = default;
+
   DOCUMENT("The :class:`FileType` of the data in the thumbnail.");
   FileType type = FileType::Raw;
 

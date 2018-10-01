@@ -32,6 +32,10 @@
 DOCUMENT("A ``float`` 4 component vector.")
 struct FloatVecVal
 {
+  DOCUMENT("");
+  FloatVecVal() = default;
+  FloatVecVal(const FloatVecVal &) = default;
+
   DOCUMENT("The x component.");
   float x;
   DOCUMENT("The y component.");
@@ -45,6 +49,10 @@ struct FloatVecVal
 DOCUMENT("A ``double`` 4 component vector.")
 struct DoubleVecVal
 {
+  DOCUMENT("");
+  DoubleVecVal() = default;
+  DoubleVecVal(const DoubleVecVal &) = default;
+
   DOCUMENT("The x component.");
   double x;
   DOCUMENT("The y component.");
@@ -58,6 +66,10 @@ struct DoubleVecVal
 DOCUMENT("A 32-bit signed ``int`` 4 component vector.")
 struct IntVecVal
 {
+  DOCUMENT("");
+  IntVecVal() = default;
+  IntVecVal(const IntVecVal &) = default;
+
   DOCUMENT("The x component.");
   int32_t x;
   DOCUMENT("The y component.");
@@ -71,6 +83,10 @@ struct IntVecVal
 DOCUMENT("A 32-bit unsigned ``int`` 4 component vector.")
 struct UIntVecVal
 {
+  DOCUMENT("");
+  UIntVecVal() = default;
+  UIntVecVal(const UIntVecVal &) = default;
+
   DOCUMENT("The x component.");
   uint32_t x;
   DOCUMENT("The y component.");
@@ -127,6 +143,7 @@ struct ShaderVariable
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
   }
+  ShaderVariable(const ShaderVariable &) = default;
   ShaderVariable(const char *n, float x, float y, float z, float w)
   {
     name = n;
@@ -231,6 +248,9 @@ DOCUMENT(
 struct RegisterRange
 {
   DOCUMENT("");
+  RegisterRange() = default;
+  RegisterRange(const RegisterRange &) = default;
+
   bool operator==(const RegisterRange &o) const
   {
     return type == o.type && index == o.index && component == o.component;
@@ -271,6 +291,9 @@ Since locals don't always map directly this can change over time.
 struct LocalVariableMapping
 {
   DOCUMENT("");
+  LocalVariableMapping() = default;
+  LocalVariableMapping(const LocalVariableMapping &) = default;
+
   bool operator==(const LocalVariableMapping &o) const
   {
     return localName == o.localName && type == o.type && builtin == o.builtin && rows == o.rows &&
@@ -327,6 +350,9 @@ DOCUMENT("Details the current region of code that an instruction maps to");
 struct LineColumnInfo
 {
   DOCUMENT("");
+  LineColumnInfo() = default;
+  LineColumnInfo(const LineColumnInfo &) = default;
+
   bool operator==(const LineColumnInfo &o) const
   {
     return fileIndex == o.fileIndex && lineStart == o.lineStart && lineEnd == o.lineEnd &&
@@ -384,6 +410,9 @@ with all mutable variable contents.
 struct ShaderDebugState
 {
   DOCUMENT("");
+  ShaderDebugState() = default;
+  ShaderDebugState(const ShaderDebugState &) = default;
+
   bool operator==(const ShaderDebugState &o) const
   {
     return registers == o.registers && outputs == o.outputs && indexableTemps == o.indexableTemps &&
@@ -438,6 +467,10 @@ change with shader execution.
 )");
 struct ShaderDebugTrace
 {
+  DOCUMENT("");
+  ShaderDebugTrace() = default;
+  ShaderDebugTrace(const ShaderDebugTrace &) = default;
+
   DOCUMENT("The input variables for this shader as a list of :class:`ShaderValue`.");
   rdcarray<ShaderVariable> inputs;
   DOCUMENT(R"(Constant variables for this shader as a list of :class:`ShaderValue` lists.
@@ -473,6 +506,9 @@ between shader stages.
 struct SigParameter
 {
   DOCUMENT("");
+  SigParameter() = default;
+  SigParameter(const SigParameter &) = default;
+
   bool operator==(const SigParameter &o) const
   {
     return varName == o.varName && semanticName == o.semanticName &&
@@ -566,6 +602,9 @@ DOCUMENT("Describes the storage characteristics for a basic :class:`ShaderConsta
 struct ShaderVariableDescriptor
 {
   DOCUMENT("");
+  ShaderVariableDescriptor() = default;
+  ShaderVariableDescriptor(const ShaderVariableDescriptor &) = default;
+
   bool operator==(const ShaderVariableDescriptor &o) const
   {
     return type == o.type && rows == o.rows && columns == o.columns &&
@@ -612,6 +651,9 @@ DOCUMENT("Describes the type and members of a :class:`ShaderConstant`.");
 struct ShaderVariableType
 {
   DOCUMENT("");
+  ShaderVariableType() = default;
+  ShaderVariableType(const ShaderVariableType &) = default;
+
   bool operator==(const ShaderVariableType &o) const
   {
     return descriptor == o.descriptor && members == o.members;
@@ -637,6 +679,9 @@ DOCUMENT("Describes the offset of a constant in memory in terms of 16 byte vecto
 struct ShaderRegister
 {
   DOCUMENT("");
+  ShaderRegister() = default;
+  ShaderRegister(const ShaderRegister &) = default;
+
   bool operator==(const ShaderRegister &o) const { return vec == o.vec && comp == o.comp; }
   bool operator<(const ShaderRegister &o) const
   {
@@ -658,6 +703,9 @@ DOCUMENT("Contains the detail of a constant within a :class:`ConstantBlock` in m
 struct ShaderConstant
 {
   DOCUMENT("");
+  ShaderConstant() = default;
+  ShaderConstant(const ShaderConstant &) = default;
+
   bool operator==(const ShaderConstant &o) const
   {
     return name == o.name && reg == o.reg && defaultValue == o.defaultValue && type == o.type;
@@ -696,6 +744,9 @@ information.
 struct ConstantBlock
 {
   DOCUMENT("");
+  ConstantBlock() = default;
+  ConstantBlock(const ConstantBlock &) = default;
+
   bool operator==(const ConstantBlock &o) const
   {
     return name == o.name && variables == o.variables && bindPoint == o.bindPoint &&
@@ -743,6 +794,9 @@ relevant.
 struct ShaderSampler
 {
   DOCUMENT("");
+  ShaderSampler() = default;
+  ShaderSampler(const ShaderSampler &) = default;
+
   bool operator==(const ShaderSampler &o) const
   {
     return name == o.name && bindPoint == o.bindPoint;
@@ -775,6 +829,9 @@ directly by means of the API resource binding system.
 struct ShaderResource
 {
   DOCUMENT("");
+  ShaderResource() = default;
+  ShaderResource(const ShaderResource &) = default;
+
   bool operator==(const ShaderResource &o) const
   {
     return resType == o.resType && name == o.name && variableType == o.variableType &&
@@ -825,6 +882,7 @@ DOCUMENT("Describes an entry point in a shader.");
 struct ShaderEntryPoint
 {
   ShaderEntryPoint() = default;
+  ShaderEntryPoint(const ShaderEntryPoint &) = default;
   ShaderEntryPoint(const rdcstr &n, ShaderStage s) : name(n), stage(s) {}
   DOCUMENT("");
   bool operator==(const ShaderEntryPoint &o) const { return name == o.name && stage == o.stage; }
@@ -849,6 +907,9 @@ DOCUMENT("Contains a single flag used at compile-time on a shader.");
 struct ShaderCompileFlag
 {
   DOCUMENT("");
+  ShaderCompileFlag() = default;
+  ShaderCompileFlag(const ShaderCompileFlag &) = default;
+
   bool operator==(const ShaderCompileFlag &o) const { return name == o.name && value == o.value; }
   bool operator<(const ShaderCompileFlag &o) const
   {
@@ -870,6 +931,10 @@ DECLARE_REFLECTION_STRUCT(ShaderCompileFlag);
 DOCUMENT("Contains the information about the compilation environment of a shader");
 struct ShaderCompileFlags
 {
+  DOCUMENT("");
+  ShaderCompileFlags() = default;
+  ShaderCompileFlags(const ShaderCompileFlags &) = default;
+
   DOCUMENT(R"(A list of :class:`ShaderCompileFlag`.
 
 Each entry is an API or compiler specific flag used to compile this shader originally.
@@ -883,6 +948,9 @@ DOCUMENT("Contains a source file available in a debug-compiled shader.");
 struct ShaderSourceFile
 {
   DOCUMENT("");
+  ShaderSourceFile() = default;
+  ShaderSourceFile(const ShaderSourceFile &) = default;
+
   bool operator==(const ShaderSourceFile &o) const
   {
     return filename == o.filename && contents == o.contents;
@@ -912,6 +980,8 @@ Primarily this means the embedded original source files.
 struct ShaderDebugInfo
 {
   ShaderDebugInfo() {}
+  ShaderDebugInfo(const ShaderDebugInfo &) = default;
+
   DOCUMENT("A :class:`ShaderCompileFlags` containing the flags used to compile this shader.");
   ShaderCompileFlags compileFlags;
 
@@ -935,6 +1005,10 @@ and resource binding scheme.
 )");
 struct ShaderReflection
 {
+  DOCUMENT("");
+  ShaderReflection() = default;
+  ShaderReflection(const ShaderReflection &) = default;
+
   DOCUMENT("The :class:`ResourceId` of this shader.");
   ResourceId resourceId;
 
@@ -997,6 +1071,7 @@ struct Bindpoint
     used = false;
     arraySize = 1;
   }
+  Bindpoint(const Bindpoint &) = default;
 
   Bindpoint(int32_t s, int32_t b)
   {
@@ -1066,6 +1141,10 @@ API specific details:
 )");
 struct ShaderBindpointMapping
 {
+  DOCUMENT("");
+  ShaderBindpointMapping() = default;
+  ShaderBindpointMapping(const ShaderBindpointMapping &) = default;
+
   DOCUMENT(R"(This maps input attributes as a simple swizzle on the
 :data:`ShaderReflection.inputSignature` indices for APIs where this mapping is mutable at runtime.
 )");

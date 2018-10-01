@@ -38,6 +38,9 @@ DOCUMENT(R"(Describes the configuration for a single vertex attribute.
 struct VertexAttribute
 {
   DOCUMENT("");
+  VertexAttribute() = default;
+  VertexAttribute(const VertexAttribute &) = default;
+
   bool operator==(const VertexAttribute &o) const
   {
     return enabled == o.enabled && format == o.format &&
@@ -78,6 +81,9 @@ DOCUMENT("Describes a single OpenGL vertex buffer binding.")
 struct VertexBuffer
 {
   DOCUMENT("");
+  VertexBuffer() = default;
+  VertexBuffer(const VertexBuffer &) = default;
+
   bool operator==(const VertexBuffer &o) const
   {
     return resourceId == o.resourceId && byteStride == o.byteStride && byteOffset == o.byteOffset &&
@@ -115,6 +121,10 @@ If it's ``1`` then one element is read for each instance, and for ``N`` greater 
 DOCUMENT("Describes the setup for fixed-function vertex input fetch.");
 struct VertexInput
 {
+  DOCUMENT("");
+  VertexInput() = default;
+  VertexInput(const VertexInput &) = default;
+
   DOCUMENT("A list of :class:`GLVertexAttribute` with the vertex attributes.");
   rdcarray<VertexAttribute> attributes;
 
@@ -138,6 +148,10 @@ struct VertexInput
 DOCUMENT("Describes an OpenGL shader stage.");
 struct Shader
 {
+  DOCUMENT("");
+  Shader() = default;
+  Shader(const Shader &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the shader object itself.");
   ResourceId shaderResourceId;
 
@@ -161,6 +175,10 @@ mapping data.
 DOCUMENT("Describes the setup for fixed vertex processing operations.");
 struct FixedVertexProcessing
 {
+  DOCUMENT("");
+  FixedVertexProcessing() = default;
+  FixedVertexProcessing(const FixedVertexProcessing &) = default;
+
   DOCUMENT("A list of ``float`` giving the default inner level of tessellation.");
   float defaultInnerLevel[2] = {0.0f, 0.0f};
   DOCUMENT("A list of ``float`` giving the default outer level of tessellation.");
@@ -186,6 +204,9 @@ DOCUMENT("Describes the details of a texture.");
 struct Texture
 {
   DOCUMENT("");
+  Texture() = default;
+  Texture(const Texture &) = default;
+
   bool operator==(const Texture &o) const
   {
     return resourceId == o.resourceId && firstSlice == o.firstSlice && firstMip == o.firstMip &&
@@ -242,6 +263,9 @@ DOCUMENT("Describes the sampler properties of a texture.");
 struct Sampler
 {
   DOCUMENT("");
+  Sampler() = default;
+  Sampler(const Sampler &) = default;
+
   bool operator==(const Sampler &o) const
   {
     return resourceId == o.resourceId && addressS == o.addressS && addressT == o.addressT &&
@@ -327,6 +351,9 @@ DOCUMENT("Describes the properties of a buffer.");
 struct Buffer
 {
   DOCUMENT("");
+  Buffer() = default;
+  Buffer(const Buffer &) = default;
+
   bool operator==(const Buffer &o) const
   {
     return resourceId == o.resourceId && byteOffset == o.byteOffset && byteSize == o.byteSize;
@@ -353,6 +380,9 @@ DOCUMENT("Describes the properties of a load/store image.");
 struct ImageLoadStore
 {
   DOCUMENT("");
+  ImageLoadStore() = default;
+  ImageLoadStore(const ImageLoadStore &) = default;
+
   bool operator==(const ImageLoadStore &o) const
   {
     return resourceId == o.resourceId && mipLevel == o.mipLevel && layered == o.layered &&
@@ -402,6 +432,10 @@ struct ImageLoadStore
 DOCUMENT("Describes the current feedback state.");
 struct Feedback
 {
+  DOCUMENT("");
+  Feedback() = default;
+  Feedback(const Feedback &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the transform feedback binding.");
   ResourceId feedbackResourceId;
   DOCUMENT("A list of :class:`ResourceId` with the buffer bindings.");
@@ -419,6 +453,10 @@ struct Feedback
 DOCUMENT("Describes the rasterizer state toggles.");
 struct RasterizerState
 {
+  DOCUMENT("");
+  RasterizerState() = default;
+  RasterizerState(const RasterizerState &) = default;
+
   DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
   DOCUMENT("The polygon :class:`CullMode`.");
@@ -480,6 +518,10 @@ resolve the final output color.
 DOCUMENT("Describes the rasterization state of the OpenGL pipeline.");
 struct Rasterizer
 {
+  DOCUMENT("");
+  Rasterizer() = default;
+  Rasterizer(const Rasterizer &) = default;
+
   DOCUMENT("A list of :class:`Viewport` with the bound viewports.");
   rdcarray<Viewport> viewports;
 
@@ -493,6 +535,10 @@ struct Rasterizer
 DOCUMENT("Describes the depth state.");
 struct DepthState
 {
+  DOCUMENT("");
+  DepthState() = default;
+  DepthState(const DepthState &) = default;
+
   DOCUMENT("``True`` if depth testing should be performed.");
   bool depthEnable = false;
   DOCUMENT("The :class:`CompareFunction` to use for testing depth values.");
@@ -510,6 +556,10 @@ struct DepthState
 DOCUMENT("Describes the stencil state.");
 struct StencilState
 {
+  DOCUMENT("");
+  StencilState() = default;
+  StencilState(const StencilState &) = default;
+
   DOCUMENT("``True`` if stencil operations should be performed.");
   bool stencilEnable = false;
 
@@ -523,6 +573,9 @@ DOCUMENT("Describes the state of a framebuffer attachment.");
 struct Attachment
 {
   DOCUMENT("");
+  Attachment() = default;
+  Attachment(const Attachment &) = default;
+
   bool operator==(const Attachment &o) const
   {
     return resourceId == o.resourceId && slice == o.slice && mipLevel == o.mipLevel &&
@@ -561,6 +614,10 @@ struct Attachment
 DOCUMENT("Describes the contents of a framebuffer object.");
 struct FBO
 {
+  DOCUMENT("");
+  FBO() = default;
+  FBO(const FBO &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the framebuffer.");
   ResourceId resourceId;
   DOCUMENT("The list of :class:`GLAttachment` with the framebuffer color attachments.");
@@ -579,6 +636,10 @@ struct FBO
 DOCUMENT("Describes the blend pipeline state.");
 struct BlendState
 {
+  DOCUMENT("");
+  BlendState() = default;
+  BlendState(const BlendState &) = default;
+
   DOCUMENT("A list of :class:`ColorBlend` describing the blend operations for each target.");
   rdcarray<ColorBlend> blends;
 
@@ -589,6 +650,10 @@ struct BlendState
 DOCUMENT("Describes the current state of the framebuffer stage of the pipeline.");
 struct FrameBuffer
 {
+  DOCUMENT("");
+  FrameBuffer() = default;
+  FrameBuffer(const FrameBuffer &) = default;
+
   DOCUMENT(
       "``True`` if sRGB correction should be applied when writing to an sRGB-formatted texture.");
   bool framebufferSRGB = false;
@@ -607,6 +672,10 @@ struct FrameBuffer
 DOCUMENT("Describes the current state of GL hints and smoothing.");
 struct Hints
 {
+  DOCUMENT("");
+  Hints() = default;
+  Hints(const Hints &) = default;
+
   DOCUMENT("A :class:`QualityHint` with the derivatives hint.");
   QualityHint derivatives = QualityHint::DontCare;
   DOCUMENT("A :class:`QualityHint` with the line smoothing hint.");

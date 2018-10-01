@@ -38,6 +38,9 @@ DOCUMENT(R"(Describes a single D3D12 input layout element for one vertex input.
 struct Layout
 {
   DOCUMENT("");
+  Layout() = default;
+  Layout(const Layout &) = default;
+
   bool operator==(const Layout &o) const
   {
     return semanticName == o.semanticName && semanticIndex == o.semanticIndex &&
@@ -101,6 +104,9 @@ DOCUMENT("Describes a single D3D12 vertex buffer binding.")
 struct VertexBuffer
 {
   DOCUMENT("");
+  VertexBuffer() = default;
+  VertexBuffer(const VertexBuffer &) = default;
+
   bool operator==(const VertexBuffer &o) const
   {
     return resourceId == o.resourceId && byteStride == o.byteStride && byteSize == o.byteSize &&
@@ -134,6 +140,10 @@ struct VertexBuffer
 DOCUMENT("Describes the D3D12 index buffer binding.")
 struct IndexBuffer
 {
+  DOCUMENT("");
+  IndexBuffer() = default;
+  IndexBuffer(const IndexBuffer &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the index buffer.");
   ResourceId resourceId;
 
@@ -147,6 +157,10 @@ struct IndexBuffer
 DOCUMENT("Describes the input assembler state in the PSO.");
 struct InputAssembly
 {
+  DOCUMENT("");
+  InputAssembly() = default;
+  InputAssembly(const InputAssembly &) = default;
+
   DOCUMENT("A list of :class:`D3D12Layout` describing the input layout elements in this layout.");
   rdcarray<Layout> layouts;
 
@@ -169,6 +183,9 @@ DOCUMENT("Describes the details of a D3D12 resource view - any one of UAV, SRV, 
 struct View
 {
   DOCUMENT("");
+  View() = default;
+  View(const View &) = default;
+
   bool operator==(const View &o) const
   {
     return resourceId == o.resourceId && type == o.type && viewFormat == o.viewFormat &&
@@ -273,6 +290,9 @@ DOCUMENT("Describes the details of a sampler descriptor.");
 struct Sampler
 {
   DOCUMENT("");
+  Sampler() = default;
+  Sampler(const Sampler &) = default;
+
   bool operator==(const Sampler &o) const
   {
     return immediate == o.immediate && rootElement == o.rootElement && tableIndex == o.tableIndex &&
@@ -363,6 +383,9 @@ DOCUMENT("Describes the details of a constant buffer view descriptor.");
 struct ConstantBuffer
 {
   DOCUMENT("");
+  ConstantBuffer() = default;
+  ConstantBuffer(const ConstantBuffer &) = default;
+
   bool operator==(const ConstantBuffer &o) const
   {
     return immediate == o.immediate && rootElement == o.rootElement && tableIndex == o.tableIndex &&
@@ -411,6 +434,9 @@ DOCUMENT("Contains all of the registers in a single register space mapped to by 
 struct RegisterSpace
 {
   DOCUMENT("");
+  RegisterSpace() = default;
+  RegisterSpace(const RegisterSpace &) = default;
+
   bool operator==(const RegisterSpace &o) const
   {
     return spaceIndex == o.spaceIndex && constantBuffers == o.constantBuffers &&
@@ -445,6 +471,10 @@ struct RegisterSpace
 DOCUMENT("Describes a D3D12 shader stage.");
 struct Shader
 {
+  DOCUMENT("");
+  Shader() = default;
+  Shader(const Shader &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the shader object itself.");
   ResourceId resourceId;
 
@@ -480,6 +510,9 @@ DOCUMENT("Describes a binding on the D3D12 stream-out stage.");
 struct StreamOutBind
 {
   DOCUMENT("");
+  StreamOutBind() = default;
+  StreamOutBind(const StreamOutBind &) = default;
+
   bool operator==(const StreamOutBind &o) const
   {
     return resourceId == o.resourceId && byteOffset == o.byteOffset && byteSize == o.byteSize &&
@@ -520,6 +553,10 @@ written.
 DOCUMENT("Describes the stream-out state in the PSO.");
 struct StreamOut
 {
+  DOCUMENT("");
+  StreamOut() = default;
+  StreamOut(const StreamOut &) = default;
+
   DOCUMENT("A list of ``D3D12SOBind`` with the bound buffers.");
   rdcarray<StreamOutBind> outputs;
 };
@@ -527,6 +564,10 @@ struct StreamOut
 DOCUMENT("Describes the rasterizer state in the PSO.");
 struct RasterizerState
 {
+  DOCUMENT("");
+  RasterizerState() = default;
+  RasterizerState(const RasterizerState &) = default;
+
   DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
   DOCUMENT("The polygon :class:`CullMode`.");
@@ -562,6 +603,10 @@ not force any sample count.
 DOCUMENT("Describes the rasterization state of the D3D12 pipeline.");
 struct Rasterizer
 {
+  DOCUMENT("");
+  Rasterizer() = default;
+  Rasterizer(const Rasterizer &) = default;
+
   DOCUMENT("The mask determining which samples are written to.");
   uint32_t sampleMask = ~0U;
 
@@ -578,6 +623,10 @@ struct Rasterizer
 DOCUMENT("Describes the state of the depth-stencil state in the PSO.");
 struct DepthStencilState
 {
+  DOCUMENT("");
+  DepthStencilState() = default;
+  DepthStencilState(const DepthStencilState &) = default;
+
   DOCUMENT("``True`` if depth testing should be performed.");
   bool depthEnable = false;
   DOCUMENT("``True`` if depth values should be written to the depth target.");
@@ -603,6 +652,10 @@ struct DepthStencilState
 DOCUMENT("Describes the blend state in the PSO.");
 struct BlendState
 {
+  DOCUMENT("");
+  BlendState() = default;
+  BlendState(const BlendState &) = default;
+
   DOCUMENT("``True`` if alpha-to-coverage should be used when blending to an MSAA target.");
   bool alphaToCoverage = false;
   DOCUMENT(R"(``True`` if independent blending for each target should be used.
@@ -621,6 +674,10 @@ struct BlendState
 DOCUMENT("Describes the current state of the output-merger stage of the D3D12 pipeline.");
 struct OM
 {
+  DOCUMENT("");
+  OM() = default;
+  OM(const OM &) = default;
+
   DOCUMENT("A :class:`D3D12DepthStencilState` with the details of the depth-stencil state.");
   DepthStencilState depthStencilState;
   DOCUMENT("A :class:`D3D12BlendState` with the details of the blend state.");
@@ -646,6 +703,9 @@ DOCUMENT("Describes the current state that a sub-resource is in.");
 struct ResourceState
 {
   DOCUMENT("");
+  ResourceState() = default;
+  ResourceState(const ResourceState &) = default;
+
   bool operator==(const ResourceState &o) const { return name == o.name; }
   bool operator<(const ResourceState &o) const
   {
@@ -661,6 +721,9 @@ DOCUMENT("Contains the current state of a given resource.");
 struct ResourceData
 {
   DOCUMENT("");
+  ResourceData() = default;
+  ResourceData(const ResourceData &) = default;
+
   bool operator==(const ResourceData &o) const
   {
     return resourceId == o.resourceId && states == o.states;

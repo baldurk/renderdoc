@@ -30,6 +30,13 @@ DOCUMENT("Information about a viewport.");
 struct Viewport
 {
   DOCUMENT("");
+  Viewport() = default;
+  Viewport(float X, float Y, float W, float H, float MN, float MX, bool en = true)
+      : x(X), y(Y), width(W), height(H), minDepth(MN), maxDepth(MX), enabled(en)
+  {
+  }
+  Viewport(const Viewport &) = default;
+
   bool operator==(const Viewport &o) const
   {
     return x == o.x && y == o.y && width == o.width && height == o.height &&
@@ -50,11 +57,6 @@ struct Viewport
     if(!(maxDepth == o.maxDepth))
       return maxDepth < o.maxDepth;
     return false;
-  }
-  Viewport() = default;
-  Viewport(float X, float Y, float W, float H, float MN, float MX, bool en = true)
-      : x(X), y(Y), width(W), height(H), minDepth(MN), maxDepth(MX), enabled(en)
-  {
   }
 
   DOCUMENT("Is this viewport enabled.");
@@ -79,6 +81,12 @@ DOCUMENT("Describes a single scissor region.");
 struct Scissor
 {
   DOCUMENT("");
+  Scissor() = default;
+  Scissor(int X, int Y, int W, int H, bool en = true) : x(X), y(Y), width(W), height(H), enabled(en)
+  {
+  }
+  Scissor(const Scissor &) = default;
+
   bool operator==(const Scissor &o) const
   {
     return x == o.x && y == o.y && width == o.width && height == o.height && enabled == o.enabled;
@@ -96,10 +104,6 @@ struct Scissor
     if(!(enabled == o.enabled))
       return enabled < o.enabled;
     return false;
-  }
-  Scissor() = default;
-  Scissor(int X, int Y, int W, int H, bool en = true) : x(X), y(Y), width(W), height(H), enabled(en)
-  {
   }
   DOCUMENT("X co-ordinate of the scissor region.");
   int32_t x = 0;
@@ -119,6 +123,9 @@ DOCUMENT("Describes the details of a blend operation.");
 struct BlendEquation
 {
   DOCUMENT("");
+  BlendEquation() = default;
+  BlendEquation(const BlendEquation &) = default;
+
   bool operator==(const BlendEquation &o) const
   {
     return source == o.source && destination == o.destination && operation == o.operation;
@@ -147,6 +154,9 @@ DOCUMENT("Describes the blend configuration for a given output target.");
 struct ColorBlend
 {
   DOCUMENT("");
+  ColorBlend() = default;
+  ColorBlend(const ColorBlend &) = default;
+
   bool operator==(const ColorBlend &o) const
   {
     return enabled == o.enabled && logicOperationEnabled == o.logicOperationEnabled &&
@@ -193,6 +203,10 @@ DECLARE_REFLECTION_STRUCT(ColorBlend);
 DOCUMENT("Describes the details of a stencil operation.");
 struct StencilFace
 {
+  DOCUMENT("");
+  StencilFace() = default;
+  StencilFace(const StencilFace &) = default;
+
   DOCUMENT("The :class:`StencilOperation` to apply if the stencil-test fails.");
   StencilOperation failOperation = StencilOperation::Keep;
   DOCUMENT("the :class:`StencilOperation` to apply if the depth-test fails.");
@@ -229,6 +243,7 @@ struct BoundResource
     firstSlice = -1;
     typeHint = CompType::Typeless;
   }
+  BoundResource(const BoundResource &) = default;
 
   bool operator==(const BoundResource &o) const
   {
@@ -268,6 +283,7 @@ struct BoundResourceArray
 {
   DOCUMENT("");
   BoundResourceArray() = default;
+  BoundResourceArray(const BoundResourceArray &) = default;
   BoundResourceArray(Bindpoint b) : bindPoint(b) {}
   BoundResourceArray(Bindpoint b, const rdcarray<BoundResource> &r) : bindPoint(b), resources(r) {}
   // for convenience for searching the array, we compare only using the BindPoint
@@ -287,6 +303,9 @@ DOCUMENT("Information about a single vertex or index buffer binding.");
 struct BoundVBuffer
 {
   DOCUMENT("");
+  BoundVBuffer() = default;
+  BoundVBuffer(const BoundVBuffer &) = default;
+
   bool operator==(const BoundVBuffer &o) const
   {
     return resourceId == o.resourceId && byteOffset == o.byteOffset && byteStride == o.byteStride;
@@ -314,6 +333,10 @@ DECLARE_REFLECTION_STRUCT(BoundVBuffer);
 DOCUMENT("Information about a single constant buffer binding.");
 struct BoundCBuffer
 {
+  DOCUMENT("");
+  BoundCBuffer() = default;
+  BoundCBuffer(const BoundCBuffer &) = default;
+
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
   ResourceId resourceId;
   DOCUMENT("The offset in bytes from the start of the buffer to the constant data.");
@@ -328,6 +351,9 @@ DOCUMENT("Information about a vertex input attribute feeding the vertex shader."
 struct VertexInputAttribute
 {
   DOCUMENT("");
+  VertexInputAttribute() = default;
+  VertexInputAttribute(const VertexInputAttribute &) = default;
+
   bool operator==(const VertexInputAttribute &o) const
   {
     return name == o.name && vertexBuffer == o.vertexBuffer && byteOffset == o.byteOffset &&

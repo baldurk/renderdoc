@@ -48,6 +48,7 @@ struct MeshFormat
     instanced = false;
     nearPlane = farPlane = 0.0f;
   }
+  MeshFormat(const MeshFormat &o) = default;
 
   DOCUMENT("The :class:`ResourceId` of the index buffer that goes with this mesh element.");
   ResourceId indexResourceId;
@@ -108,6 +109,10 @@ well as what options to use when rendering both the current mesh, and any other 
 )");
 struct MeshDisplay
 {
+  DOCUMENT("");
+  MeshDisplay() = default;
+  MeshDisplay(const MeshDisplay &) = default;
+
   DOCUMENT("The :class:`MeshDataStage` where this mesh data comes from.");
   MeshDataStage type;
 
@@ -173,6 +178,10 @@ particular subresource (such as array slice, mip or multi-sampled sample).
 )");
 struct TextureDisplay
 {
+  DOCUMENT("");
+  TextureDisplay() = default;
+  TextureDisplay(const TextureDisplay &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the texture to display.");
   ResourceId resourceId;
 
@@ -278,6 +287,10 @@ DECLARE_REFLECTION_STRUCT(TextureDisplay);
 DOCUMENT("How to map components to normalised ``[0, 255]`` for saving to 8-bit file formats.");
 struct TextureComponentMapping
 {
+  DOCUMENT("");
+  TextureComponentMapping() = default;
+  TextureComponentMapping(const TextureComponentMapping &) = default;
+
   DOCUMENT("The value that should be mapped to ``0``");
   float blackPoint = 0.0f;
   DOCUMENT("The value that should be mapped to ``255``");
@@ -294,6 +307,10 @@ DOCUMENT(R"(How to map multisampled textures for saving to non-multisampled file
 )");
 struct TextureSampleMapping
 {
+  DOCUMENT("");
+  TextureSampleMapping() = default;
+  TextureSampleMapping(const TextureSampleMapping &) = default;
+
   DOCUMENT(R"(
 ``True`` if the samples should be mapped to array slices. A multisampled array expands each slice
 in-place, so it would be slice 0: sample 0, slice 0: sample 1, slice 1: sample 0, etc.
@@ -321,6 +338,10 @@ format doesn't support saving all slices, only slice 0 is saved.
 )");
 struct TextureSliceMapping
 {
+  DOCUMENT("");
+  TextureSliceMapping() = default;
+  TextureSliceMapping(const TextureSliceMapping &) = default;
+
   DOCUMENT(R"(
 Selects the (depth/array) slice to save.
 
@@ -363,6 +384,10 @@ DECLARE_REFLECTION_STRUCT(TextureSliceMapping);
 DOCUMENT("Describes a texture to save and how to map it to the destination file format.");
 struct TextureSave
 {
+  DOCUMENT("");
+  TextureSave() = default;
+  TextureSave(const TextureSave &) = default;
+
   DOCUMENT("The :class:`ResourceId` of the texture to save.");
   ResourceId resourceId;
 
@@ -418,6 +443,10 @@ DECLARE_REFLECTION_STRUCT(TextureSave);
 DOCUMENT("Information about the a new capture created by the target.");
 struct NewCaptureData
 {
+  DOCUMENT("");
+  NewCaptureData() = default;
+  NewCaptureData(const NewCaptureData &) = default;
+
   DOCUMENT("An identifier to use to refer to this capture.");
   uint32_t captureId = 0;
   DOCUMENT("The time the capture was created, as a unix timestamp in UTC.");
@@ -445,6 +474,10 @@ DECLARE_REFLECTION_STRUCT(NewCaptureData);
 DOCUMENT("Information about the API that the target is using.");
 struct APIUseData
 {
+  DOCUMENT("");
+  APIUseData() = default;
+  APIUseData(const APIUseData &) = default;
+
   DOCUMENT("The name of the API.");
   rdcstr name;
 
@@ -460,6 +493,10 @@ DECLARE_REFLECTION_STRUCT(APIUseData);
 DOCUMENT("Information about why the target is busy.");
 struct BusyData
 {
+  DOCUMENT("");
+  BusyData() = default;
+  BusyData(const BusyData &) = default;
+
   DOCUMENT("The name of the client currently connected to the target.");
   rdcstr clientName;
 };
@@ -469,6 +506,10 @@ DECLARE_REFLECTION_STRUCT(BusyData);
 DOCUMENT("Information about a new child process spawned by the target.");
 struct NewChildData
 {
+  DOCUMENT("");
+  NewChildData() = default;
+  NewChildData(const NewChildData &) = default;
+
   DOCUMENT("The PID (Process ID) of the new child.");
   uint32_t processId = 0;
   DOCUMENT("The ident where the new child's target control is active.");
@@ -480,6 +521,10 @@ DECLARE_REFLECTION_STRUCT(NewChildData);
 DOCUMENT("A message from a target control connection.");
 struct TargetControlMessage
 {
+  DOCUMENT("");
+  TargetControlMessage() = default;
+  TargetControlMessage(const TargetControlMessage &) = default;
+
   DOCUMENT("The :class:`type <TargetControlMessageType>` of message received");
   TargetControlMessageType type = TargetControlMessageType::Unknown;
 
@@ -504,12 +549,14 @@ DECLARE_REFLECTION_STRUCT(TargetControlMessage);
 DOCUMENT("A modification to a single environment variable.");
 struct EnvironmentModification
 {
+  DOCUMENT("");
   EnvironmentModification() : mod(EnvMod::Set), sep(EnvSep::NoSep), name(""), value("") {}
+  EnvironmentModification(const EnvironmentModification &) = default;
   EnvironmentModification(EnvMod m, EnvSep s, const char *n, const char *v)
       : mod(m), sep(s), name(n), value(v)
   {
   }
-  DOCUMENT("");
+
   bool operator==(const EnvironmentModification &o) const
   {
     return mod == o.mod && sep == o.sep && name == o.name && value == o.value;
@@ -542,6 +589,9 @@ DOCUMENT("The format for a capture file either supported to read from, or export
 struct CaptureFileFormat
 {
   DOCUMENT("");
+  CaptureFileFormat() = default;
+  CaptureFileFormat(const CaptureFileFormat &) = default;
+
   bool operator==(const CaptureFileFormat &o) const
   {
     return extension == o.extension && name == o.name && description == o.description &&

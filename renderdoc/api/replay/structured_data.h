@@ -219,6 +219,10 @@ DECLARE_REFLECTION_ENUM(SDChunkFlags);
 DOCUMENT("The metadata that goes along with a :class:`SDChunk` to detail how it was recorded.");
 struct SDChunkMetaData
 {
+  DOCUMENT("");
+  SDChunkMetaData() = default;
+  SDChunkMetaData(const SDChunkMetaData &) = default;
+
   DOCUMENT("The internal chunk ID - unique given a particular driver in use.");
   uint32_t chunkID = 0;
 
@@ -308,6 +312,9 @@ DECLARE_REFLECTION_STRUCT(StructuredObjectList);
 DOCUMENT("The data inside an class:`SDObject`, whether it's plain old data or complex children.");
 struct SDObjectData
 {
+  DOCUMENT("");
+  SDObjectData() = default;
+
   DOCUMENT("The plain-old data contents of the object, in a :class:`SDObjectPODData`.");
   SDObjectPODData basic;
 
@@ -317,6 +324,7 @@ struct SDObjectData
   DOCUMENT("A ``list`` of class:`SDObject` containing the children of this class:`SDObject`.");
   StructuredObjectList children;
 
+  SDObjectData(const SDObjectData &) = delete;
   SDObjectData &operator=(const SDObjectData &other) = delete;
 };
 

@@ -279,6 +279,9 @@ DOCUMENT(R"(This is an opaque identifier that uniquely locates a resource.
 struct ResourceId
 {
   ResourceId() : id() {}
+#if defined(SWIG)
+  ResourceId(const ResourceId &other) : id(other.id) {}
+#endif
   DOCUMENT("A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.");
   inline static ResourceId Null() { return ResourceId(); }
   DOCUMENT("Compares two ``ResourceId`` objects for equality.");
@@ -510,6 +513,10 @@ DECLARE_REFLECTION_STRUCT(ResourceId);
 DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
 struct GlobalEnvironment
 {
+  DOCUMENT("");
+  GlobalEnvironment() = default;
+  GlobalEnvironment(const GlobalEnvironment &) = default;
+
   DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
   Display *xlibDisplay = NULL;
 };
@@ -517,6 +524,10 @@ struct GlobalEnvironment
 DOCUMENT("The result of executing or injecting into a program.")
 struct ExecuteResult
 {
+  DOCUMENT("");
+  ExecuteResult() = default;
+  ExecuteResult(const ExecuteResult &) = default;
+
   DOCUMENT(
       "The :class:`ReplayStatus` resulting from the operation, indicating success or failure.");
   ReplayStatus status;
