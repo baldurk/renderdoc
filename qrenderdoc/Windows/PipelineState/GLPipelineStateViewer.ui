@@ -164,7 +164,7 @@
    <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
-      <number>8</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -219,68 +219,7 @@
            <property name="bottomMargin">
             <number>0</number>
            </property>
-           <item row="0" column="0" colspan="3">
-            <widget class="QGroupBox" name="attribGroup">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="title">
-              <string>Vertex Attribute Formats</string>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
-              <property name="leftMargin">
-               <number>2</number>
-              </property>
-              <property name="topMargin">
-               <number>2</number>
-              </property>
-              <property name="rightMargin">
-               <number>2</number>
-              </property>
-              <property name="bottomMargin">
-               <number>2</number>
-              </property>
-              <item>
-               <widget class="RDTreeWidget" name="viAttrs">
-                <property name="frameShape">
-                 <enum>QFrame::Box</enum>
-                </property>
-                <property name="frameShadow">
-                 <enum>QFrame::Plain</enum>
-                </property>
-                <property name="editTriggers">
-                 <set>QAbstractItemView::NoEditTriggers</set>
-                </property>
-                <property name="showDropIndicator" stdset="0">
-                 <bool>false</bool>
-                </property>
-                <property name="indentation">
-                 <number>0</number>
-                </property>
-                <property name="rootIsDecorated">
-                 <bool>false</bool>
-                </property>
-                <property name="itemsExpandable">
-                 <bool>false</bool>
-                </property>
-                <property name="allColumnsShowFocus">
-                 <bool>true</bool>
-                </property>
-                <property name="expandsOnDoubleClick">
-                 <bool>false</bool>
-                </property>
-                <attribute name="headerStretchLastSection">
-                 <bool>false</bool>
-                </attribute>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item row="1" column="0">
+           <item row="2" column="0">
             <widget class="QGroupBox" name="buffersGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -344,50 +283,68 @@
              </layout>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QGroupBox" name="meshViewGroup">
+           <item row="0" column="0" colspan="3">
+            <widget class="QGroupBox" name="attribGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="title">
-              <string>Mesh View</string>
+              <string>Vertex Attribute Formats</string>
              </property>
-             <layout class="QVBoxLayout" name="verticalLayout_3">
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <property name="leftMargin">
+               <number>2</number>
+              </property>
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
               <item>
-               <widget class="RDLabel" name="meshView">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Maximum" vsizetype="Ignored">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+               <widget class="RDTreeWidget" name="viAttrs">
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
                 </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>75</width>
-                  <height>75</height>
-                 </size>
+                <property name="frameShadow">
+                 <enum>QFrame::Plain</enum>
                 </property>
-                <property name="cursor">
-                 <cursorShape>PointingHandCursor</cursorShape>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
                 </property>
-                <property name="toolTip">
-                 <string>View the mesh input data</string>
+                <property name="showDropIndicator" stdset="0">
+                 <bool>false</bool>
                 </property>
-                <property name="pixmap">
-                 <pixmap resource="../../Resources/resources.qrc">:/wireframe_mesh.png</pixmap>
+                <property name="indentation">
+                 <number>0</number>
                 </property>
-                <property name="scaledContents">
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
+                </property>
+                <property name="itemsExpandable">
+                 <bool>false</bool>
+                </property>
+                <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
+                <property name="expandsOnDoubleClick">
+                 <bool>false</bool>
+                </property>
+                <attribute name="headerStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
                </widget>
               </item>
              </layout>
             </widget>
            </item>
-           <item row="1" column="2">
+           <item row="2" column="2">
             <widget class="QGroupBox" name="topologyGroup">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -453,6 +410,102 @@
                  <set>Qt::AlignBottom|Qt::AlignHCenter</set>
                 </property>
                </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QGroupBox" name="meshViewGroup">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string>Mesh View</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_3">
+              <item>
+               <widget class="RDLabel" name="meshView">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Ignored">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>75</width>
+                  <height>75</height>
+                 </size>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="toolTip">
+                 <string>View the mesh input data</string>
+                </property>
+                <property name="pixmap">
+                 <pixmap resource="../../Resources/resources.qrc">:/wireframe_mesh.png</pixmap>
+                </property>
+                <property name="scaledContents">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item row="1" column="0" colspan="3">
+            <widget class="QGroupBox" name="groupBox">
+             <property name="title">
+              <string>Vertex Array Object</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_42">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>9</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>9</number>
+              </property>
+              <property name="bottomMargin">
+               <number>4</number>
+              </property>
+              <item>
+               <widget class="RDLabel" name="vaoLabel">
+                <property name="minimumSize">
+                 <size>
+                  <width>250</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_4">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
               </item>
              </layout>
             </widget>
@@ -903,6 +956,12 @@
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
             </spacer>
            </item>
           </layout>
@@ -1351,6 +1410,12 @@
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
             </spacer>
            </item>
           </layout>
@@ -1798,6 +1863,12 @@
              </property>
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
              </property>
             </spacer>
            </item>
@@ -2348,6 +2419,12 @@
              </property>
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
              </property>
             </spacer>
            </item>
@@ -3673,6 +3750,12 @@
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
             </spacer>
            </item>
           </layout>
@@ -4628,6 +4711,12 @@
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
             </spacer>
            </item>
           </layout>
@@ -4642,14 +4731,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDTreeWidget</class>
-   <extends>QTreeView</extends>
-   <header>Widgets/Extended/RDTreeWidget.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDLabel</class>
    <extends>QLabel</extends>
    <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>
    <class>PipelineFlowChart</class>

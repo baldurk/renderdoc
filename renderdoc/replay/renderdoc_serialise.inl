@@ -1491,6 +1491,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::VertexBuffer &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GLPipe::VertexInput &el)
 {
+  SERIALISE_MEMBER(vertexArrayObject);
   SERIALISE_MEMBER(attributes);
   SERIALISE_MEMBER(vertexBuffers);
   SERIALISE_MEMBER(indexBuffer);
@@ -1498,7 +1499,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::VertexInput &el)
   SERIALISE_MEMBER(restartIndex);
   SERIALISE_MEMBER(provokingVertexLast);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(64);
 }
 
 template <typename SerialiserType>
@@ -1755,7 +1756,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(1568);
+  SIZE_CHECK(1576);
 }
 
 #pragma endregion OpenGL pipeline state

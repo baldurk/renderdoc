@@ -80,7 +80,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
   const QIcon &action_hover = Icons::action_hover();
 
   RDLabel *shaderLabels[] = {
-      ui->vsShader, ui->tcsShader, ui->tesShader, ui->gsShader, ui->fsShader, ui->csShader,
+      ui->vaoLabel, ui->vsShader, ui->tcsShader, ui->tesShader,
+      ui->gsShader, ui->fsShader, ui->csShader,
   };
 
   QToolButton *viewButtons[] = {
@@ -361,6 +362,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
   m_Common.setMeshViewPixmap(ui->meshView);
 
+  ui->vaoLabel->setFont(Formatter::PreferredFont());
   ui->viAttrs->setFont(Formatter::PreferredFont());
   ui->viBuffers->setFont(Formatter::PreferredFont());
   ui->xfbBuffers->setFont(Formatter::PreferredFont());
@@ -521,6 +523,8 @@ void GLPipelineStateViewer::clearState()
 {
   m_VBNodes.clear();
   m_EmptyNodes.clear();
+
+  ui->vaoLabel->setText(QString());
 
   ui->viAttrs->clear();
   ui->viBuffers->clear();
@@ -1264,6 +1268,8 @@ void GLPipelineStateViewer::setState()
 
   m_VBNodes.clear();
   m_EmptyNodes.clear();
+
+  ui->vaoLabel->setText(ToQStr(state.vertexInput.vertexArrayObject));
 
   vs = ui->viBuffers->verticalScrollBar()->value();
   ui->viBuffers->beginUpdate();

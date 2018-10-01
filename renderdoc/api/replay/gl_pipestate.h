@@ -125,6 +125,9 @@ struct VertexInput
   VertexInput() = default;
   VertexInput(const VertexInput &) = default;
 
+  DOCUMENT("The :class:`ResourceId` of the vertex array object that's bound.");
+  ResourceId vertexArrayObject;
+
   DOCUMENT("A list of :class:`GLVertexAttribute` with the vertex attributes.");
   rdcarray<VertexAttribute> attributes;
 

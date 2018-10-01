@@ -689,6 +689,10 @@ void GLReplay::SavePipelineState()
 
   ContextPair &ctx = drv.GetCtx();
 
+  GLuint vao = 0;
+  drv.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&vao);
+  pipe.vertexInput.vertexArrayObject = rm->GetOriginalID(rm->GetID(VertexArrayRes(ctx, vao)));
+
   GLuint ibuffer = 0;
   drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
   pipe.vertexInput.indexBuffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, ibuffer)));
