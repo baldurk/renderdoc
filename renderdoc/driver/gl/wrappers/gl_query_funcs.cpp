@@ -263,7 +263,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
 {
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(SamplerRes(GetCtx(), *ids)))
+  SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)))
       .TypedAs("GLResource");
 
   SERIALISE_CHECK_READ_ERRORS();
