@@ -1612,23 +1612,28 @@ void GLRenderState::ApplyState(WrappedOpenGL *driver)
   // this work if we're on the replay context
   if(driver->GetReplay()->IsReplayContext(ctx.ctx))
   {
-    // apply drawbuffers/readbuffer to default framebuffer
-    GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, driver->GetCurrentDefaultFBO());
-    GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, driver->GetCurrentDefaultFBO());
-    GL.glDrawBuffers(numDBs, DBs);
+    GLuint fbo = driver->GetCurrentDefaultFBO();
 
-    // see above for reasoning for this
-    GL.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+    if(fbo)
+    {
+      // apply drawbuffers/readbuffer to default framebuffer
+      GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, driver->GetCurrentDefaultFBO());
+      GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, driver->GetCurrentDefaultFBO());
+      GL.glDrawBuffers(numDBs, DBs);
+
+      // see above for reasoning for this
+      GL.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+    }
 
     if(ReadFBO.name)
       GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO.name);
-    else
-      GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, driver->GetCurrentDefaultFBO());
+    else if(fbo)
+      GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, fbo);
 
     if(DrawFBO.name)
       GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO.name);
-    else
-      GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, driver->GetCurrentDefaultFBO());
+    else if(fbo)
+      GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbo);
   }
 
   GL.glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
