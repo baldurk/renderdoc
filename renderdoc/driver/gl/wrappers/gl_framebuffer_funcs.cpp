@@ -2186,6 +2186,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
     ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
+    GLenum fmt = GetBaseFormat(internalformat);
+
     texDetails.width = width;
     texDetails.height = height;
     texDetails.depth = 1;
@@ -2195,6 +2197,58 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
     texDetails.mipsValid = 1;
 
     GL.glNamedRenderbufferStorageEXT(renderbuffer.name, internalformat, width, height);
+
+    if(internalformat == eGL_DEPTH_COMPONENT || internalformat == eGL_DEPTH_STENCIL ||
+       internalformat == eGL_STENCIL || internalformat == eGL_STENCIL_INDEX)
+    {
+      // fetch the exact sized depth-stencil formats corresponding to whatever unsized format was
+      // specified.
+      GLint depth = 0;
+      GLint stencil = 0;
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_DEPTH_SIZE, &depth);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_STENCIL_SIZE,
+                                              &stencil);
+
+      if(depth == 16 && stencil == 0)
+        internalformat = eGL_DEPTH_COMPONENT16;
+      else if(depth == 24 && stencil == 0)
+        internalformat = eGL_DEPTH_COMPONENT24;
+      else if(depth == 24 && stencil == 8)
+        internalformat = eGL_DEPTH24_STENCIL8;
+      else if(depth == 32 && stencil == 0)
+        internalformat = eGL_DEPTH_COMPONENT32F;
+      else if(depth == 32 && stencil == 8)
+        internalformat = eGL_DEPTH32F_STENCIL8;
+      else if(depth == 0 && stencil == 8)
+        internalformat = eGL_STENCIL_INDEX8;
+    }
+    else if(internalformat == eGL_RGBA || internalformat == eGL_RGBA_INTEGER ||
+            internalformat == eGL_RGB || internalformat == eGL_RGB_INTEGER ||
+            internalformat == eGL_RG || internalformat == eGL_RG_INTEGER ||
+            internalformat == eGL_RED || internalformat == eGL_RED_INTEGER)
+    {
+      // if the color format is unsized, find the corresponding sized format
+
+      GLint red = 0, green = 0, blue = 0, alpha = 0;
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_RED_SIZE, &red);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_GREEN_SIZE, &green);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_BLUE_SIZE, &blue);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_ALPHA_SIZE, &alpha);
+
+      // we only handle a straight regular format here
+      RDCASSERT(red > 0);
+      RDCASSERT(green == 0 || green == red);
+      RDCASSERT(blue == 0 || green == red);
+      RDCASSERT(alpha == 0 || green == red);
+
+      // to start with, create resource format based on the unsized internalformat
+      ResourceFormat resfmt = MakeResourceFormat(eGL_TEXTURE_2D, internalformat);
+
+      // then set the byte size
+      resfmt.compByteWidth = uint8_t(red / 8);
+
+      internalformat = MakeGLFormat(resfmt);
+    }
 
     // create read-from texture for displaying this render buffer
     GL.glGenTextures(1, &texDetails.renderbufferReadTex);
@@ -2208,8 +2262,6 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
     GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-
-    GLenum fmt = GetBaseFormat(internalformat);
 
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
@@ -2320,6 +2372,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
+    GLenum fmt = GetBaseFormat(internalformat);
+
     texDetails.width = width;
     texDetails.height = height;
     texDetails.depth = 1;
@@ -2331,6 +2385,58 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     GL.glNamedRenderbufferStorageMultisampleEXT(renderbuffer.name, samples, internalformat, width,
                                                 height);
 
+    if(internalformat == eGL_DEPTH_COMPONENT || internalformat == eGL_DEPTH_STENCIL ||
+       internalformat == eGL_STENCIL || internalformat == eGL_STENCIL_INDEX)
+    {
+      // fetch the exact sized depth-stencil formats corresponding to whatever unsized format was
+      // specified.
+      GLint depth = 0;
+      GLint stencil = 0;
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_DEPTH_SIZE, &depth);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_STENCIL_SIZE,
+                                              &stencil);
+
+      if(depth == 16 && stencil == 0)
+        internalformat = eGL_DEPTH_COMPONENT16;
+      else if(depth == 24 && stencil == 0)
+        internalformat = eGL_DEPTH_COMPONENT24;
+      else if(depth == 24 && stencil == 8)
+        internalformat = eGL_DEPTH24_STENCIL8;
+      else if(depth == 32 && stencil == 0)
+        internalformat = eGL_DEPTH_COMPONENT32F;
+      else if(depth == 32 && stencil == 8)
+        internalformat = eGL_DEPTH32F_STENCIL8;
+      else if(depth == 0 && stencil == 8)
+        internalformat = eGL_STENCIL_INDEX8;
+    }
+    else if(internalformat == eGL_RGBA || internalformat == eGL_RGBA_INTEGER ||
+            internalformat == eGL_RGB || internalformat == eGL_RGB_INTEGER ||
+            internalformat == eGL_RG || internalformat == eGL_RG_INTEGER ||
+            internalformat == eGL_RED || internalformat == eGL_RED_INTEGER)
+    {
+      // if the color format is unsized, find the corresponding sized format
+
+      GLint red = 0, green = 0, blue = 0, alpha = 0;
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_RED_SIZE, &red);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_GREEN_SIZE, &green);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_BLUE_SIZE, &blue);
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_ALPHA_SIZE, &alpha);
+
+      // we only handle a straight regular format here
+      RDCASSERT(red > 0);
+      RDCASSERT(green == 0 || green == red);
+      RDCASSERT(blue == 0 || green == red);
+      RDCASSERT(alpha == 0 || green == red);
+
+      // to start with, create resource format based on the unsized internalformat
+      ResourceFormat resfmt = MakeResourceFormat(eGL_TEXTURE_2D, internalformat);
+
+      // then set the byte size
+      resfmt.compByteWidth = uint8_t(red / 8);
+
+      internalformat = MakeGLFormat(resfmt);
+    }
+
     // create read-from texture for displaying this render buffer
     GL.glGenTextures(1, &texDetails.renderbufferReadTex);
     GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex);
@@ -2340,8 +2446,6 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-
-    GLenum fmt = GetBaseFormat(internalformat);
 
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
