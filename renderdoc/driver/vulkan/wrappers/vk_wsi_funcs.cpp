@@ -660,6 +660,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
   }
   RDCASSERT(pPresentInfo->pNext == NULL);
 
+  // TODO support multiple swapchains here
   VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
   RDCASSERT(swaprecord->swapInfo);
 
@@ -678,6 +679,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
     {
+      // we'll do the wait ourselves before rendering the overlay
+      unwrappedInfo.waitSemaphoreCount = 0;
+
       VkRenderPass rp = swapInfo.rp;
       VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
       VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
@@ -752,7 +756,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 
-      SubmitCmds();
+      std::vector<VkPipelineStageFlags> waitStage(unwrappedSems.size(),
+                                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      SubmitCmds(unwrappedSems.data(), waitStage.data(), (uint32_t)unwrappedSems.size());
 
       if(swapQueueIndex != m_QueueFamilyIdx)
       {

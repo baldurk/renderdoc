@@ -234,7 +234,8 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
   return ret;
 }
 
-void WrappedVulkan::SubmitCmds()
+void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
+                               VkPipelineStageFlags *waitStageMask, uint32_t waitSemaphoreCount)
 {
   // nothing to do
   if(m_InternalCmds.pendingcmds.empty())
@@ -247,9 +248,9 @@ void WrappedVulkan::SubmitCmds()
   VkSubmitInfo submitInfo = {
       VK_STRUCTURE_TYPE_SUBMIT_INFO,
       NULL,
-      0,
-      NULL,
-      NULL,    // wait semaphores
+      waitSemaphoreCount,
+      unwrappedWaitSemaphores,
+      waitStageMask,
       (uint32_t)cmds.size(),
       &cmds[0],    // command buffers
       0,
