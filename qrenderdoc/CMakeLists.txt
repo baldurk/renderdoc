@@ -74,13 +74,22 @@ include(ExternalProject)
 # Need bison for swig
 find_package(BISON)
 
+set(SWIG_CONFIGURE_CC ${CMAKE_C_COMPILER})
+set(SWIG_CONFIGURE_CXX ${CMAKE_CXX_COMPILER})
+
+# macOS 10.14+ ships broken compilers, need to disable CC/CXX inheritance
+if(APPLE)
+    set(SWIG_CONFIGURE_CC "")
+    set(SWIG_CONFIGURE_CXX "")
+endif()
+
 # Compile our custom SWIG that will do scoped/strong enum classes
 ExternalProject_Add(custom_swig
     # using an URL to a zip directly so we don't clone the history etc
     URL ${RENDERDOC_SWIG_PACKAGE}
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ./autogen.sh > /dev/null 2>&1
-    COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=-fPIC CXXFLAGS=-fPIC ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
+    COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
     BUILD_COMMAND $(MAKE) > /dev/null 2>&1
     INSTALL_COMMAND $(MAKE) install > /dev/null 2>&1)
 
