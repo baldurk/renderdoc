@@ -317,7 +317,7 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
 }
 
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
-                            uint32_t height)
+                            uint32_t height, uint32_t numLoops)
 {
 // we only have the preview implemented for platforms that have xlib & xcb. It's unlikely
 // a meaningful platform exists with only one, and at the time of writing no other windowing
@@ -418,6 +418,8 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
   xcb_flush(connection);
 
+  uint32_t loopCount = 0;
+
   bool done = false;
   while(!done)
   {
@@ -428,10 +430,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
     {
       switch(event->response_type & 0x7f)
       {
-        case XCB_EXPOSE:
-          renderer->SetFrameEvent(10000000, true);
-          out->Display();
-          break;
+        case XCB_EXPOSE: break;
         case XCB_CLIENT_MESSAGE:
           if((*(xcb_client_message_event_t *)event).data.data32[0] == (*atom_wm_delete_window).atom)
           {
@@ -456,6 +455,11 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
     out->Display();
 
     usleep(100000);
+
+    loopCount++;
+
+    if(numLoops > 0 && loopCount == numLoops)
+      break;
   }
 #else
   std::cerr << "No supporting windowing systems defined at build time (xlib and xcb)" << std::endl;

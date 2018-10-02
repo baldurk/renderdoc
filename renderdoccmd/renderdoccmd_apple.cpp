@@ -41,7 +41,7 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
 }
 
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
-                            uint32_t height)
+                            uint32_t height, uint32_t numLoops)
 {
 }
 
