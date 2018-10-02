@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include <dlfcn.h>
-#include "OpenGL/OpenGL.h"
 #include "hooks/hooks.h"
 #include "cgl_dispatch_table.h"
 #include "gl_driver.h"

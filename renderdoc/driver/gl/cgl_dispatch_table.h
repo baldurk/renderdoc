@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "official/cgl.h"
 #include "gl_common.h"
 
 // cgl functions
