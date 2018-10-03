@@ -113,6 +113,7 @@
     <ClInclude Include="gl_replay.h" />
     <ClInclude Include="gl_resources.h" />
     <ClInclude Include="gl_shader_refl.h" />
+    <ClInclude Include="official\cgl.h" />
     <ClInclude Include="official\egl.h" />
     <ClInclude Include="official\eglext.h" />
     <ClInclude Include="official\eglplatform.h" />

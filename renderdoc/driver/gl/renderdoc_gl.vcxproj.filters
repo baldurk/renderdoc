@@ -123,6 +123,9 @@
     <ClInclude Include="apple_gl_hook_defs.h">
       <Filter>Platform Interfaces\Apple</Filter>
     </ClInclude>
+    <ClInclude Include="official\cgl.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">
