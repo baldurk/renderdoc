@@ -590,7 +590,7 @@ void LiveCapture::updateAPIStatus()
   for(QString api : m_APIs.keys())
   {
     if(m_APIs[api].supported && m_APIs[api].presenting)
-      apiStatus += lit(", <b>%1</b>").arg(api);
+      apiStatus += lit(", <b>%1 (Active)</b>").arg(api);
   }
 
   // then add any problem APIs
