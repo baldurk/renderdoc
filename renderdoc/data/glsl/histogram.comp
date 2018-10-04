@@ -50,7 +50,7 @@ void main()
 	{
 		for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 		{
-			uint bucketIdx = HGRAM_NUM_BUCKETS+1;
+			uint bucketIdx = HGRAM_NUM_BUCKETS+1u;
 
 #if UINT_TEX
 			{
@@ -61,23 +61,23 @@ void main()
 												histogram_minmax.HistogramTextureResolution);
 
 				float divisor = 0.0f;
-				uint sum = 0;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
+				uint sum = 0u;
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -92,7 +92,7 @@ void main()
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*HGRAM_NUM_BUCKETS));
+					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
 				}
 			}
 #elif SINT_TEX
@@ -105,22 +105,22 @@ void main()
 
 				float divisor = 0.0f;
 				int sum = 0;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -135,7 +135,7 @@ void main()
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*HGRAM_NUM_BUCKETS));
+					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
 				}
 			}
 #else
@@ -148,22 +148,22 @@ void main()
 
 				float divisor = 0.0f;
 				float sum = 0.0f;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -178,7 +178,7 @@ void main()
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*HGRAM_NUM_BUCKETS));
+					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
 				}
 			}
 #endif

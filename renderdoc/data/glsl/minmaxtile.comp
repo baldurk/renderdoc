@@ -83,8 +83,8 @@ void main()
 			}
 		}
 
-		dest.tiles[outIdx*2+0] = minval;
-		dest.tiles[outIdx*2+1] = maxval;
+		dest.tiles[outIdx*2u+0u] = minval;
+		dest.tiles[outIdx*2u+1u] = maxval;
 	}
 #elif SINT_TEX
 	{
@@ -115,8 +115,8 @@ void main()
 			}
 		}
 
-		dest.tiles[outIdx*2+0] = minval;
-		dest.tiles[outIdx*2+1] = maxval;
+		dest.tiles[outIdx*2u+0u] = minval;
+		dest.tiles[outIdx*2u+1u] = maxval;
 	}
 #else
 	{
@@ -147,8 +147,8 @@ void main()
 			}
 		}
 
-		dest.tiles[outIdx*2+0] = minval;
-		dest.tiles[outIdx*2+1] = maxval;
+		dest.tiles[outIdx*2u+0u] = minval;
+		dest.tiles[outIdx*2u+1u] = maxval;
 	}
 #endif
 }

@@ -65,7 +65,7 @@ void main()
 #endif
 	
 	// i is the tile we're looking at
-	for(uint i=1; i < blocksX*blocksY*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK; i++)
+	for(uint i=1u; i < blocksX*blocksY*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK; i++)
 	{
 		uint blockIdx = i/(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK);
 		uint tileIdx = i%(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK);
@@ -79,14 +79,14 @@ void main()
 		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
 		{
 #if UINT_TEX
-			minvalU = min(minvalU, src.tiles[i*2 + 0]);
-			maxvalU = max(maxvalU, src.tiles[i*2 + 1]);
+			minvalU = min(minvalU, src.tiles[i*2u + 0u]);
+			maxvalU = max(maxvalU, src.tiles[i*2u + 1u]);
 #elif SINT_TEX
-			minvalI = min(minvalI, src.tiles[i*2 + 0]);
-			maxvalI = max(maxvalI, src.tiles[i*2 + 1]);
+			minvalI = min(minvalI, src.tiles[i*2u + 0u]);
+			maxvalI = max(maxvalI, src.tiles[i*2u + 1u]);
 #else
-			minvalF = min(minvalF, src.tiles[i*2 + 0]);
-			maxvalF = max(maxvalF, src.tiles[i*2 + 1]);
+			minvalF = min(minvalF, src.tiles[i*2u + 0u]);
+			maxvalF = max(maxvalF, src.tiles[i*2u + 1u]);
 #endif
 		}
 	}
