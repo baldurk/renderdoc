@@ -167,6 +167,7 @@ struct GPUBuffer
   // for handling ring allocations
   VkDeviceSize totalsize = 0;
   VkDeviceSize curoffset = 0;
+  VkDeviceSize mapoffset = 0;
 
   uint32_t ringCount = 0;
 

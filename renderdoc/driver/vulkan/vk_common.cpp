@@ -214,6 +214,8 @@ void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
   if(bindoffset)
     *bindoffset = (uint32_t)offset;
 
+  mapoffset = offset;
+
   void *ptr = NULL;
   VkResult vkr = m_pDriver->vkMapMemory(device, mem, offset, size, 0, (void **)&ptr);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -247,7 +249,7 @@ void GPUBuffer::Unmap()
   if(!(createFlags & eGPUBufferReadback) && !(createFlags & eGPUBufferGPULocal))
   {
     VkMappedMemoryRange range = {
-        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, mem, 0, VK_WHOLE_SIZE,
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, mem, mapoffset, VK_WHOLE_SIZE,
     };
 
     VkResult vkr = m_pDriver->vkFlushMappedMemoryRanges(device, 1, &range);
