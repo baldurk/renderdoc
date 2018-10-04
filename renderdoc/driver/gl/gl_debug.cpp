@@ -244,6 +244,9 @@ void GLReplay::InitDebugData()
   {
     glslVersion = glslBaseVer = glslCSVer = 310;
     shaderType = eShaderGLSLES;
+
+    if(GLCoreVersion >= 32)
+      glslVersion = glslBaseVer = glslCSVer = 320;
   }
   else
   {
@@ -251,10 +254,6 @@ void GLReplay::InitDebugData()
     glslCSVer = 420;
     shaderType = eShaderGLSL;
   }
-
-  // TODO In case of GLES some currently unused shaders, which are guarded by HasExt[..] checks,
-  // still contain compile errors (e.g. array2ms.comp, ms2array.comp, quad*, etc.).
-  bool glesShadersAreComplete = !IsGLES;
 
   GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
@@ -300,6 +299,7 @@ void GLReplay::InitDebugData()
   GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
   DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
+  DebugData.quadoverdrawResolveProg = 0;
 
   if(IsGLES)
   {
@@ -327,7 +327,6 @@ void GLReplay::InitDebugData()
                                MessageSource::RuntimeWarning,
                                "GL_ARB_shader_image_load_store/GL_ARB_gpu_shader5 not supported, "
                                "disabling quad overdraw feature.");
-    DebugData.quadoverdrawResolveProg = 0;
   }
 
   GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_checkerboard_frag), glslBaseVer);
@@ -435,67 +434,72 @@ void GLReplay::InitDebugData()
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
 
-    string extensions =
-        "#extension GL_ARB_compute_shader : require\n"
-        "#extension GL_ARB_shader_storage_buffer_object : require\n";
+    string extensions = "#extension GL_ARB_compute_shader : require\n";
 
-    for(int t = 1; glesShadersAreComplete && HasExt[ARB_compute_shader] && t <= RESTYPE_TEXTYPEMAX;
-        t++)
+    if(!IsGLES)
+      extensions += "#extension GL_ARB_shader_storage_buffer_object : require\n";
+
+    if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_storage_buffer_object])
     {
-      // float, uint, sint
-      for(int i = 0; i < 3; i++)
+      for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
       {
-        int idx = t;
-        if(i == 1)
-          idx |= TEXDISPLAY_UINT_TEX;
-        if(i == 2)
-          idx |= TEXDISPLAY_SINT_TEX;
-
+        // float, uint, sint
+        for(int i = 0; i < 3; i++)
         {
-          string defines = extensions;
-          defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-          defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-          defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+          int idx = t;
+          if(i == 1)
+            idx |= TEXDISPLAY_UINT_TEX;
+          if(i == 2)
+            idx |= TEXDISPLAY_SINT_TEX;
 
-          GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
-                             glslCSVer);
+          {
+            string defines = extensions;
+            defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
-        }
+            GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
+                               glslCSVer);
 
-        {
-          string defines = extensions;
-          defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-          defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-          defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
+          }
 
-          GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_histogram_comp),
-                             glslCSVer);
+          {
+            string defines = extensions;
+            defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
-        }
+            GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_histogram_comp),
+                               glslCSVer);
 
-        if(t == 1)
-        {
-          string defines = extensions;
-          defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-          defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-          defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
+          }
 
-          GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_minmaxresult_comp),
-                             glslCSVer);
+          if(t == 1)
+          {
+            string defines = extensions;
+            defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
+            GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_minmaxresult_comp),
+                               glslCSVer);
+
+            DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
+          }
         }
       }
     }
-
-    if(!HasExt[ARB_compute_shader])
+    else
     {
-      RDCWARN("GL_ARB_compute_shader not supported, disabling min/max and histogram features.");
-      m_pDriver->AddDebugMessage(
-          MessageCategory::Portability, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-          "GL_ARB_compute_shader not supported, disabling min/max and histogram features.");
+      RDCWARN(
+          "GL_ARB_compute_shader or ARB_shader_storage_buffer_object not supported, disabling "
+          "min/max and histogram features.");
+      m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
+                                 MessageSource::RuntimeWarning,
+                                 "GL_ARB_compute_shader or ARB_shader_storage_buffer_object not "
+                                 "supported, disabling min/max and histogram features.");
     }
 
     drv.glGenBuffers(1, &DebugData.minmaxTileResult);
@@ -515,7 +519,8 @@ void GLReplay::InitDebugData()
                              eGL_DYNAMIC_READ);
   }
 
-  if(glesShadersAreComplete && HasExt[ARB_compute_shader])
+  if(HasExt[ARB_compute_shader] && HasExt[ARB_texture_multisample] &&
+     HasExt[ARB_texture_storage_multisample])
   {
     GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_ms2array_comp), glslCSVer);
     DebugData.MS2Array = CreateCShaderProgram(cs);
@@ -527,15 +532,18 @@ void GLReplay::InitDebugData()
   {
     DebugData.MS2Array = 0;
     DebugData.Array2MS = 0;
-    RDCWARN("GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
-    m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
-                               MessageSource::RuntimeWarning,
-                               "GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
+    RDCWARN(
+        "GL_ARB_compute_shader, GL_ARB_texture_multisample, or ARB_texture_storage_multisample not "
+        "supported, disabling 2DMS save/load.");
+    m_pDriver->AddDebugMessage(
+        MessageCategory::Portability, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+        "GL_ARB_compute_shader, GL_ARB_texture_multisample, or ARB_texture_storage_multisample not "
+        "supported, disabling 2DMS save/load.");
   }
 
   DebugData.DepthArray2MS = DebugData.DepthMS2Array = 0;
 
-  if(glesShadersAreComplete && HasExt[ARB_texture_multisample])
+  if(HasExt[ARB_texture_multisample])
   {
     GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
@@ -545,12 +553,22 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_deptharr2ms_frag), glslBaseVer);
     DebugData.DepthArray2MS = CreateShaderProgram(vs, fs);
   }
-
-  if(glesShadersAreComplete && HasExt[ARB_compute_shader])
+  else
   {
-    string defines =
-        "#extension GL_ARB_compute_shader : require\n"
-        "#extension GL_ARB_shader_storage_buffer_object : require";
+    DebugData.MS2Array = 0;
+    DebugData.Array2MS = 0;
+    RDCWARN("GL_ARB_texture_multisample not supported, disabling 2DMS depth-stencil save/load.");
+    m_pDriver->AddDebugMessage(
+        MessageCategory::Portability, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+        "GL_ARB_texture_multisample not supported, disabling 2DMS depth-stencil save/load.");
+  }
+
+  if(HasExt[ARB_compute_shader])
+  {
+    string defines = "#extension GL_ARB_compute_shader : require\n";
+
+    if(!IsGLES)
+      defines += "#extension GL_ARB_shader_storage_buffer_object : require";
     GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_mesh_comp), glslCSVer);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }

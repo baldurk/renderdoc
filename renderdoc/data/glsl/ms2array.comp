@@ -26,9 +26,9 @@
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) uniform usampler2DMSArray srcMS;
+layout(binding = 0) uniform PRECISION usampler2DMSArray srcMS;
 // binding = 1 used as stencil read in the depth-stencil copy fragment shaders
-layout(binding = 2) writeonly uniform uimage2DArray dstArray;
+layout(rgba32ui, binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 
 
 #ifdef VULKAN
@@ -59,7 +59,7 @@ uniform ivec4 mscopy;
 
 void main()
 {
-	uvec3 id = gl_GlobalInvocationID;
+	ivec3 id = ivec3(gl_GlobalInvocationID);
 
 	int slice = int(id.z / numMultiSamples);
 	int sampleIdx = int(id.z % numMultiSamples);

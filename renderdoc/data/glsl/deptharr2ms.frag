@@ -24,8 +24,8 @@
  
 //#extension_glcore GL_ARB_sample_shading : require
 
-layout(binding = 0) uniform sampler2DArray srcDepthArray;
-layout(binding = 1) uniform usampler2DArray srcStencilArray;
+layout(binding = 0) uniform PRECISION sampler2DArray srcDepthArray;
+layout(binding = 1) uniform PRECISION usampler2DArray srcStencilArray;
 // binding = 2 used as an image in the colour copy compute shaders
 
 #ifdef VULKAN
