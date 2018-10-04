@@ -213,12 +213,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     DebugData.fixedcolFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
   }
 
-  // this is not supported on GLES shading language 100
-  if(shaderType == eShaderGLSL || glslVer >= 300)
+  // this is not supported on GLES
+  if(shaderType == eShaderGLSL)
   {
     std::string defines = "";
 
-    if(glslVer < 450)
+    if(GLCoreVersion < 45)
     {
       // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
       // so won't show quad overdraw properly
@@ -227,16 +227,20 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
       RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
     }
+    else
+    {
+      glslVer = 450;
+    }
 
     std::vector<std::string> sources;
     GenerateGLSLShader(sources, shaderType, defines, GetEmbeddedResource(glsl_quadwrite_frag),
-                       glslVer);
+                       glslVer, false);
     DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
   }
   else
   {
     if(overlay == DebugOverlay::QuadOverdrawDraw || overlay == DebugOverlay::QuadOverdrawPass)
-      RDCWARN("Quad overdraw shader not supported on GLES with %d shader", glslVer);
+      RDCWARN("Quad overdraw not supported on GLES", glslVer);
   }
 
   // we bind the separable program created for each shader, and copy
@@ -1315,6 +1319,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           CreateOverlayProgram(prog, pipe, DebugData.quadoverdrawFragShader);
           drv.glUseProgram(DebugData.overlayProg);
           drv.glBindProgramPipeline(0);
+
+          GLint loc = drv.glGetUniformLocation(DebugData.overlayProg, "overdrawImage");
+          if(loc != -1)
+            drv.glUniform1ui(loc, 0);
+          else
+            RDCERR("Couldn't get location of overdrawImage");
 
           drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
           SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,

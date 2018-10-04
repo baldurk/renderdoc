@@ -301,7 +301,18 @@ void GLReplay::InitDebugData()
 
   DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
 
-  if(glesShadersAreComplete && HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
+  if(IsGLES)
+  {
+    // quad overdraw not supported on GLES.
+    // 1.
+    //   dFdx doesn't support uints - potentially workaroundable with float casts, but highly
+    //   doubtful GLES compilers will do that properly without exploding.
+    // 2.
+    //   quad overdraw write shader must be linked with user shaders in program, which requires
+    //   matching ESSL version and features required for it aren't exposed as extensions to older
+    //   versions but only in core versions.
+  }
+  else if(HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
   {
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_quadresolve_frag), glslBaseVer);
 
