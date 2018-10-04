@@ -142,7 +142,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
 
       for(FunctionLoadCallback cb : callbacks)
         if(cb)
-          cb(handle);
+          cb(ret);
 
       ret = realdlopen("librenderdoc.so", flag);
       break;
