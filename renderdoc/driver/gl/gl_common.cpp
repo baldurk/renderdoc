@@ -442,6 +442,10 @@ void FetchEnabledExtensions()
       int mn = int(version[12] - '0');
       GLCoreVersion = RDCMAX(GLCoreVersion, mj * 10 + mn);
     }
+    else
+    {
+      IsGLES = false;
+    }
   }
 
   if(GL.glGetIntegerv)
