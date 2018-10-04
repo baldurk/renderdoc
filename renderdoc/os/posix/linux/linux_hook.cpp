@@ -100,12 +100,14 @@ static void CheckLoadedLibraries()
           *hook.orig = dlsym(handle, hook.function.c_str());
       }
 
-      for(FunctionLoadCallback cb : libraryCallbacks[libName])
-        if(cb)
-          cb(handle);
+      std::vector<FunctionLoadCallback> callbacks;
 
       // don't call callbacks again if the library is dlopen'd again
-      libraryCallbacks[libName].clear();
+      libraryCallbacks[libName].swap(callbacks);
+
+      for(FunctionLoadCallback cb : callbacks)
+        if(cb)
+          cb(handle);
     }
   }
 }
@@ -133,12 +135,14 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
           *hook.orig = dlsym(ret, hook.function.c_str());
       }
 
-      for(FunctionLoadCallback cb : libraryCallbacks[libName])
-        if(cb)
-          cb(ret);
+      std::vector<FunctionLoadCallback> callbacks;
 
-      // don't call the callbacks again
-      libraryCallbacks[libName].clear();
+      // don't call callbacks again if the library is dlopen'd again
+      libraryCallbacks[libName].swap(callbacks);
+
+      for(FunctionLoadCallback cb : callbacks)
+        if(cb)
+          cb(handle);
 
       ret = realdlopen("librenderdoc.so", flag);
       break;
