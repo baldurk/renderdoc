@@ -35,11 +35,18 @@ static const char *PatchedMeshOutputEntryPoint = "rdc";
 static const uint32_t MeshOutputDispatchWidth = 128;
 static const uint32_t MeshOutputTBufferArraySize = 16;
 
+// 0 = output
+// 1 = indices
+// 2 = float vbuffers
+// 3 = uint vbuffers
+// 4 = sint vbuffers
+static const uint32_t MeshOutputReservedBindings = 5;
+
 static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRVPatchData &patchData,
                                        const char *entryName, std::vector<uint32_t> instDivisor,
-                                       uint32_t &descSet, const DrawcallDescription *draw,
-                                       uint32_t numVerts, uint32_t numViews,
-                                       std::vector<uint32_t> &modSpirv, uint32_t &bufStride)
+                                       const DrawcallDescription *draw, uint32_t numVerts,
+                                       uint32_t numViews, std::vector<uint32_t> &modSpirv,
+                                       uint32_t &bufStride)
 {
   SPIRVEditor editor(modSpirv);
 
@@ -48,18 +55,19 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   uint32_t numOutputs = (uint32_t)refl.outputSignature.size();
   RDCASSERT(numOutputs > 0);
 
-  descSet = 0;
-
   for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it < end; ++it)
   {
-    // we will use the descriptor set immediately after the last set statically used by the shader.
-    // This means we don't have to worry about if the descriptor set layout declares more sets which
-    // might be invalid and un-bindable, we just trample over the next set that's unused.
-    // This is much easier than trying to add a new bind to an existing descriptor set (which would
-    // cascade into a new descriptor set layout, new pipeline layout, etc etc!). However, this might
-    // push us over the limit on number of descriptor sets.
-    if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationDescriptorSet)
-      descSet = RDCMAX(descSet, it.word(3) + 1);
+    // we will use descriptor set 0 bindings 0..N for our own purposes.
+    //
+    // Since bindings are arbitrary, we just increase all user bindings to make room, and we'll
+    // redeclare the descriptor set layouts and pipeline layout. This is inevitable in the case
+    // where all descriptor sets are already used. In theory we only have to do this with set 0, but
+    // that requires knowing which variables are in set 0 and it's simpler to increase all bindings.
+    if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBinding)
+    {
+      RDCASSERT(it.word(2) < (0xffffffff - MeshOutputReservedBindings));
+      it.word(3) += MeshOutputReservedBindings;
+    }
   }
 
   // tbuffer types, the values are the descriptor bindings
@@ -471,7 +479,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     editor.SetName(tbuffers[tb].variableID, name);
 
     editor.AddDecoration(SPIRVOperation(
-        spv::OpDecorate, {tbuffers[tb].variableID, (uint32_t)spv::DecorationDescriptorSet, descSet}));
+        spv::OpDecorate, {tbuffers[tb].variableID, (uint32_t)spv::DecorationDescriptorSet, 0}));
     editor.AddDecoration(SPIRVOperation(
         spv::OpDecorate, {tbuffers[tb].variableID, (uint32_t)spv::DecorationBinding, (uint32_t)tb}));
   }
@@ -498,8 +506,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     editor.SetName(idxImagePtr, "ibuffer");
 
-    editor.AddDecoration(SPIRVOperation(
-        spv::OpDecorate, {idxImagePtr, (uint32_t)spv::DecorationDescriptorSet, descSet}));
+    editor.AddDecoration(
+        SPIRVOperation(spv::OpDecorate, {idxImagePtr, (uint32_t)spv::DecorationDescriptorSet, 0}));
     editor.AddDecoration(
         SPIRVOperation(spv::OpDecorate, {idxImagePtr, (uint32_t)spv::DecorationBinding, 1}));
   }
@@ -596,7 +604,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     // set binding
     editor.AddDecoration(
-        SPIRVOperation(spv::OpDecorate, {outBufferVarID, spv::DecorationDescriptorSet, descSet}));
+        SPIRVOperation(spv::OpDecorate, {outBufferVarID, spv::DecorationDescriptorSet, 0}));
     editor.AddDecoration(SPIRVOperation(spv::OpDecorate, {outBufferVarID, spv::DecorationBinding, 0}));
   }
 
@@ -1133,19 +1141,14 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
-  // the SPIR-V patching will determine the next descriptor set to use, after all sets statically
-  // used by the shader. This gets around the problem where the shader only uses 0 and 1, but the
-  // layout declares 0-4, and 2,3,4 are invalid at bind time and we are unable to bind our new set
-  // 5. Instead we'll notice that only 0 and 1 are used and just use 2 ourselves (although it was
-  // in
-  // the original set layout, we know it's statically unused by the shader so we can safely steal
-  // it).
-  uint32_t descSet = 0;
-
   // we go through the driver for all these creations since they need to be properly
   // registered in order to be put in the partial replay state
   VkResult vkr = VK_SUCCESS;
   VkDevice dev = m_Device;
+
+  VkDescriptorPool descpool;
+  std::vector<VkDescriptorSetLayout> setLayouts;
+  std::vector<VkDescriptorSet> descSets;
 
   VkPipelineLayout pipeLayout;
 
@@ -1153,6 +1156,224 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   // get pipeline create info
   m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
+
+  // create a duplicate set of descriptor sets, with all bindings shifted, and copy the bindings
+  // into them
+  {
+    std::vector<VkCopyDescriptorSet> descCopies;
+
+    // one for each descriptor type. 1 of each to start with plus enough for our internal resources,
+    // we then increment for each descriptor we need to allocate
+    VkDescriptorPoolSize poolSizes[11] = {
+        {VK_DESCRIPTOR_TYPE_SAMPLER, 1},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 50},
+        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1},
+        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1},
+    };
+
+    const std::vector<ResourceId> &descSetLayoutIds =
+        creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
+
+    std::vector<VkDescriptorSetLayoutBinding> newBindings;
+
+    // need to add our own bindings to the first descriptor set
+    {
+      // output buffer
+      newBindings.push_back({
+          0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      });
+      // index buffer (if needed)
+      newBindings.push_back({
+          1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      });
+      // vertex buffers (float type)
+      newBindings.push_back({
+          2, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      });
+      // vertex buffers (uint32_t type)
+      newBindings.push_back({
+          3, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      });
+      // vertex buffers (int32_t type)
+      newBindings.push_back({
+          4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      });
+    }
+
+    // if there are fewer sets bound than were declared in the pipeline layout, only process the
+    // bound sets (as otherwise we'd fail to copy from them). Assume the application knew what it
+    // was doing and the other sets are statically unused.
+    setLayouts.resize(RDCMIN(state.graphics.descSets.size(), descSetLayoutIds.size()));
+
+    // need at least one set, if the shader isn't using any we'll just make our own
+    if(setLayouts.empty())
+      setLayouts.resize(1);
+
+    for(size_t i = 0; i < setLayouts.size(); i++)
+    {
+      bool hasImmutableSamplers = false;
+
+      // except for the first layout we need to start from scratch
+      if(i > 0)
+        newBindings.clear();
+
+      // if the shader had no descriptor sets at all, i will be invalid, so just skip and add a set
+      // with only our own bindings.
+      if(i < descSetLayoutIds.size())
+      {
+        const DescSetLayout &origLayout = creationInfo.m_DescSetLayout[descSetLayoutIds[i]];
+
+        for(size_t b = 0; b < origLayout.bindings.size(); b++)
+        {
+          const DescSetLayout::Binding &bind = origLayout.bindings[b];
+
+          // skip empty bindings
+          if(bind.descriptorCount == 0)
+            continue;
+
+          // make room in the pool
+          poolSizes[bind.descriptorType].descriptorCount += bind.descriptorCount;
+
+          VkDescriptorSetLayoutBinding newBind;
+          // offset the binding
+          newBind.binding = (uint32_t)b + MeshOutputReservedBindings;
+          newBind.descriptorCount = bind.descriptorCount;
+          newBind.descriptorType = bind.descriptorType;
+
+          // we only need it available for compute, just make all bindings visible otherwise dynamic
+          // buffer offsets could be indexed wrongly. Consider the case where we have binding 0 as a
+          // fragment UBO, and binding 1 as a vertex UBO. Then there are two dynamic offsets, and
+          // the second is the one we want to use with ours. If we only add the compute visibility
+          // bit to the second UBO, then suddenly it's the *first* offset that we must provide.
+          // Instead of trying to remap offsets to match, we simply make every binding compute
+          // visible so the ordering is still the same. Since compute and graphics are disjoint this
+          // is safe.
+          newBind.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+          if(bind.immutableSampler)
+          {
+            hasImmutableSamplers = true;
+            VkSampler *samplers = new VkSampler[bind.descriptorCount];
+            newBind.pImmutableSamplers = samplers;
+            for(uint32_t s = 0; s < bind.descriptorCount; s++)
+              samplers[s] =
+                  GetResourceManager()->GetCurrentHandle<VkSampler>(bind.immutableSampler[s]);
+          }
+          else
+          {
+            newBind.pImmutableSamplers = NULL;
+          }
+
+          newBindings.push_back(newBind);
+        }
+      }
+
+      VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+          NULL,
+          0,
+          (uint32_t)newBindings.size(),
+          newBindings.data(),
+      };
+
+      // create new offseted descriptor layout
+      vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &setLayouts[i]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      if(hasImmutableSamplers)
+      {
+        for(const VkDescriptorSetLayoutBinding &bind : newBindings)
+          delete[] bind.pImmutableSamplers;
+      }
+    }
+
+    VkDescriptorPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    // 1 set for each layout
+    poolCreateInfo.maxSets = (uint32_t)setLayouts.size();
+    poolCreateInfo.poolSizeCount = ARRAY_COUNT(poolSizes);
+    poolCreateInfo.pPoolSizes = poolSizes;
+
+    // create descriptor pool with enough space for our descriptors
+    vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolCreateInfo, NULL, &descpool);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    // allocate all the descriptors
+    VkDescriptorSetAllocateInfo descSetAllocInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        NULL,
+        descpool,
+        (uint32_t)setLayouts.size(),
+        setLayouts.data(),
+    };
+
+    descSets.resize(setLayouts.size());
+    m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, descSets.data());
+
+    // copy the data across from the real descriptors into our adjusted bindings
+    for(size_t i = 0; i < descSetLayoutIds.size(); i++)
+    {
+      const DescSetLayout &origLayout = creationInfo.m_DescSetLayout[descSetLayoutIds[i]];
+
+      if(i >= state.graphics.descSets.size())
+        continue;
+
+      if(state.graphics.descSets[i].descSet == ResourceId())
+        continue;
+
+      VkCopyDescriptorSet copy = {VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
+      copy.srcSet =
+          GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(state.graphics.descSets[i].descSet);
+      copy.dstSet = descSets[i];
+
+      for(size_t b = 0; b < origLayout.bindings.size(); b++)
+      {
+        const DescSetLayout::Binding &bind = origLayout.bindings[b];
+
+        // skip empty bindings
+        if(bind.descriptorCount == 0)
+          continue;
+
+        copy.srcBinding = (uint32_t)b;
+        copy.dstBinding = (uint32_t)b + MeshOutputReservedBindings;
+        copy.descriptorCount = bind.descriptorCount;
+        descCopies.push_back(copy);
+      }
+    }
+
+    m_pDriver->vkUpdateDescriptorSets(dev, 0, NULL, (uint32_t)descCopies.size(), descCopies.data());
+  }
+
+  // create pipeline layout with new descriptor set layouts
+  {
+    std::vector<VkPushConstantRange> push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
+
+    // ensure the push range is visible to the compute shader
+    for(VkPushConstantRange &range : push)
+      range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    VkPipelineLayoutCreateInfo pipeLayoutInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        (uint32_t)setLayouts.size(),
+        setLayouts.data(),
+        (uint32_t)push.size(),
+        push.data(),
+    };
+
+    vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
 
   VkBuffer meshBuffer = VK_NULL_HANDLE, readbackBuffer = VK_NULL_HANDLE;
   VkDeviceMemory meshMem = VK_NULL_HANDLE, readbackMem = VK_NULL_HANDLE;
@@ -1444,7 +1665,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     // we fetch the vertex buffer data up front here since there's a very high chance of either
     // overlap due to interleaved attributes, or no overlap and no wastage due to separate compact
     // attributes.
-    bytebuf origVBs[16];
+    std::vector<bytebuf> origVBs;
+    origVBs.reserve(16);
 
     for(uint32_t vb = 0; vb < vi->vertexBindingDescriptionCount; vb++)
     {
@@ -1465,7 +1687,10 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
       }
 
       if(state.vbuffers[vb].buf != ResourceId())
-        GetBufferData(state.vbuffers[vb].buf, offs, len, origVBs[vb]);
+      {
+        origVBs.push_back(bytebuf());
+        GetBufferData(state.vbuffers[vb].buf, offs, len, origVBs.back());
+      }
     }
 
     for(uint32_t i = 0; i < vi->vertexAttributeDescriptionCount; i++)
@@ -1738,7 +1963,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
       attrInstDivisor[attr] = instDivisor;
 
       descWrites[numWrites].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descWrites[numWrites].dstSet = m_MeshFetchDescSet;
+      descWrites[numWrites].dstSet = descSets[0];
       if(IsSIntFormat(attrDesc.format))
         descWrites[numWrites].dstBinding = 4;
       else if(IsUIntFormat(attrDesc.format) || IsDoubleFormat(attrDesc.format))
@@ -1756,7 +1981,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     if(uniqIdxBufView != VK_NULL_HANDLE)
     {
       descWrites[numWrites].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descWrites[numWrites].dstSet = m_MeshFetchDescSet;
+      descWrites[numWrites].dstSet = descSets[0];
       descWrites[numWrites].dstBinding = 1;
       descWrites[numWrites].dstArrayElement = 0;
       descWrites[numWrites].descriptorCount = 1;
@@ -1769,49 +1994,13 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   }
 
   ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
-                             pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor, descSet,
-                             drawcall, numVerts, numViews, modSpirv, bufStride);
+                             pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor, drawcall,
+                             numVerts, numViews, modSpirv, bufStride);
 
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 
-  {
-    VkDescriptorSetLayout *descSetLayouts;
-
-    // descSet will be the index of our new descriptor set
-    descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
-
-    for(uint32_t i = 0; i < descSet; i++)
-      descSetLayouts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
-          creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts[i]);
-
-    // this layout just says it has one storage buffer
-    descSetLayouts[descSet] = m_MeshFetchDescSetLayout;
-
-    std::vector<VkPushConstantRange> push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
-
-    // ensure the push range is visible to the compute shader
-    for(VkPushConstantRange &range : push)
-      range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    VkPipelineLayoutCreateInfo pipeLayoutInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        NULL,
-        0,
-        descSet + 1,
-        descSetLayouts,
-        (uint32_t)push.size(),
-        push.empty() ? NULL : &push[0],
-    };
-
-    // create pipeline layout with same descriptor set layouts, plus our mesh output set
-    vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    SAFE_DELETE_ARRAY(descSetLayouts);
-
-    // repoint pipeline layout
-    compPipeInfo.layout = pipeLayout;
-  }
+  // repoint pipeline layout
+  compPipeInfo.layout = pipeLayout;
 
   // create vertex shader with modified code
   VkShaderModuleCreateInfo moduleCreateInfo = {
@@ -1852,12 +2041,13 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   // move graphics descriptor sets onto the compute pipe.
   modifiedstate.compute.descSets = modifiedstate.graphics.descSets;
 
-  // push back extra descriptor set to partial replay state
-  // note that we examined the used pipeline layout above and inserted our descriptor set
-  // after any the application used. So there might be more bound, but we want to ensure to
-  // bind to the slot we're using
-  modifiedstate.compute.descSets.resize(descSet + 1);
-  modifiedstate.compute.descSets[descSet].descSet = GetResID(m_MeshFetchDescSet);
+  // replace descriptor set IDs with our temporary sets. The offsets we keep the same. If the
+  // original draw had no sets, we ensure there's room (with no offsets needed)
+  if(modifiedstate.compute.descSets.empty())
+    modifiedstate.compute.descSets.resize(1);
+
+  for(size_t i = 0; i < descSets.size(); i++)
+    modifiedstate.compute.descSets[i].descSet = GetResID(descSets[i]);
 
   {
     // create buffer of sufficient size
@@ -1947,8 +2137,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
     fetchdesc.range = bufInfo.size;
 
     VkWriteDescriptorSet write = {
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, m_MeshFetchDescSet, 0,   0, 1,
-        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,      NULL, &fetchdesc,         NULL};
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, descSets[0], 0,   0, 1,
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,      NULL, &fetchdesc,  NULL};
     m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 
     // do single draw
@@ -2120,6 +2310,12 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   m_PostVSData[eventId].vsout.hasPosOut =
       refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
+
+  // delete descriptors
+  m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
+
+  for(VkDescriptorSetLayout layout : setLayouts)
+    m_pDriver->vkDestroyDescriptorSetLayout(dev, layout, NULL);
 
   // delete pipeline layout
   m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);

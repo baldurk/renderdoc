@@ -1424,25 +1424,6 @@ void VulkanReplay::CreateResources()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
-  WrappedVulkan *driver = m_pDriver;
-
-  CREATE_OBJECT(
-      m_MeshFetchDescSetLayout,
-      {
-          // output buffer
-          {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL},
-          // index buffer (if needed)
-          {1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL},
-          // vertex buffers (float type)
-          {2, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 16, VK_SHADER_STAGE_COMPUTE_BIT, NULL},
-          // vertex buffers (uint32_t type)
-          {3, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 16, VK_SHADER_STAGE_COMPUTE_BIT, NULL},
-          // vertex buffers (int32_t type)
-          {4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 16, VK_SHADER_STAGE_COMPUTE_BIT, NULL},
-      });
-
-  CREATE_OBJECT(m_MeshFetchDescSet, m_General.DescriptorPool, m_MeshFetchDescSetLayout);
-
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
@@ -1474,9 +1455,6 @@ void VulkanReplay::CreateResources()
 void VulkanReplay::DestroyResources()
 {
   ClearPostVSCache();
-
-  if(m_MeshFetchDescSetLayout != VK_NULL_HANDLE)
-    m_pDriver->vkDestroyDescriptorSetLayout(m_pDriver->GetDev(), m_MeshFetchDescSetLayout, NULL);
 
   m_General.Destroy(m_pDriver);
   m_TexRender.Destroy(m_pDriver);

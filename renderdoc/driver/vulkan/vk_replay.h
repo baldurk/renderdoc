@@ -576,9 +576,6 @@ private:
   std::map<uint32_t, VulkanPostVSData> m_PostVSData;
   std::map<uint32_t, uint32_t> m_PostVSAlias;
 
-  VkDescriptorSetLayout m_MeshFetchDescSetLayout = VK_NULL_HANDLE;
-  VkDescriptorSet m_MeshFetchDescSet = VK_NULL_HANDLE;
-
   std::vector<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
