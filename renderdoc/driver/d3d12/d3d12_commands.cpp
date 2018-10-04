@@ -1172,6 +1172,18 @@ ID3D12GraphicsCommandList2 *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
   return it->second;
 }
 
+bool D3D12CommandData::HasNonMarkerEvents(ResourceId cmdBuffer)
+{
+  for(const APIEvent &ev : m_BakedCmdListInfo[cmdBuffer].curEvents)
+  {
+    D3D12Chunk chunk = (D3D12Chunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
+    if(chunk != D3D12Chunk::PushMarker && chunk != D3D12Chunk::PopMarker)
+      return true;
+  }
+
+  return false;
+}
+
 void D3D12CommandData::AddEvent()
 {
   APIEvent apievent;

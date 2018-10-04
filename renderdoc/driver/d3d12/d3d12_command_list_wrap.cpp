@@ -2919,7 +2919,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_EndEvent(SerialiserType &ser)
     }
     else
     {
-      if(!m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.empty())
+      if(m_Cmd->HasNonMarkerEvents(m_Cmd->m_LastCmdListID))
       {
         DrawcallDescription draw;
         draw.name = "API Calls";

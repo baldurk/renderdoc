@@ -3013,6 +3013,21 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
   return false;
 }
 
+bool WrappedVulkan::HasNonMarkerEvents(ResourceId cmdBuffer)
+{
+  for(const APIEvent &ev : m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents)
+  {
+    VulkanChunk chunk = (VulkanChunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
+    if(chunk != VulkanChunk::vkCmdDebugMarkerBeginEXT &&
+       chunk != VulkanChunk::vkCmdDebugMarkerEndEXT &&
+       chunk != VulkanChunk::vkCmdBeginDebugUtilsLabelEXT &&
+       chunk != VulkanChunk::vkCmdEndDebugUtilsLabelEXT)
+      return true;
+  }
+
+  return false;
+}
+
 bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
 {
   // if we have an outside command buffer, assume the range is valid and we're replaying all events

@@ -397,7 +397,7 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
       GLMarkerRegion::End();
     m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1);
 
-    if(IsLoading(m_State) && !m_CurEvents.empty())
+    if(IsLoading(m_State) && HasNonDebugMarkers())
     {
       DrawcallDescription draw;
       draw.name = "API Calls";

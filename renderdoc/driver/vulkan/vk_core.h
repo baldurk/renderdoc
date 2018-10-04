@@ -526,6 +526,8 @@ private:
     uint32_t drawCount;              // similar to above
   };
 
+  bool HasNonMarkerEvents(ResourceId cmdBuffer);
+
   // on replay, the current command buffer for the last chunk we
   // handled.
   ResourceId m_LastCmdBufferID;

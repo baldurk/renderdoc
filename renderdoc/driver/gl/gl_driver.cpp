@@ -2676,6 +2676,20 @@ void WrappedOpenGL::AddResourceInitChunk(GLResource res)
   }
 }
 
+bool WrappedOpenGL::HasNonDebugMarkers()
+{
+  for(const APIEvent &ev : m_CurEvents)
+  {
+    GLChunk chunk = (GLChunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
+    if(chunk != GLChunk::glPushGroupMarkerEXT && chunk != GLChunk::glPopGroupMarkerEXT &&
+       chunk != GLChunk::glPushDebugGroupKHR && chunk != GLChunk::glPopDebugGroupKHR &&
+       chunk != GLChunk::glPushDebugGroup && chunk != GLChunk::glPopDebugGroup)
+      return true;
+  }
+
+  return false;
+}
+
 ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);

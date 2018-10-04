@@ -223,6 +223,18 @@ void WrappedID3D11DeviceContext::GetDevice(ID3D11Device **ppDevice)
   (*ppDevice)->AddRef();
 }
 
+bool WrappedID3D11DeviceContext::HasNonMarkerEvents()
+{
+  for(const APIEvent &ev : m_CurEvents)
+  {
+    D3D11Chunk chunk = (D3D11Chunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
+    if(chunk != D3D11Chunk::PushMarker && chunk != D3D11Chunk::PopMarker)
+      return true;
+  }
+
+  return false;
+}
+
 D3D11ResourceManager *WrappedID3D11DeviceContext::GetResourceManager()
 {
   return m_pDevice->GetResourceManager();

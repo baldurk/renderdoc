@@ -226,6 +226,8 @@ private:
   vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
+  bool HasNonDebugMarkers();
+
   bool m_ReplayMarkers = true;
 
   uint64_t m_CurChunkOffset;

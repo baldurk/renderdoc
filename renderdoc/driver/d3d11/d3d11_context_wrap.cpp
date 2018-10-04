@@ -123,7 +123,7 @@ bool WrappedID3D11DeviceContext::Serialise_PopMarker(SerialiserType &ser)
     D3D11MarkerRegion::End();
     m_pDevice->ReplayPopEvent();
 
-    if(IsLoading(m_State) && !m_CurEvents.empty())
+    if(IsLoading(m_State) && HasNonMarkerEvents())
     {
       DrawcallDescription draw;
       draw.name = "API Calls";

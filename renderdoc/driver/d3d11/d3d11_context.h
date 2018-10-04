@@ -190,6 +190,8 @@ private:
   vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
+  bool HasNonMarkerEvents();
+
   WrappedID3DUserDefinedAnnotation m_UserAnnotation;
   int32_t m_MarkerIndentLevel;
 

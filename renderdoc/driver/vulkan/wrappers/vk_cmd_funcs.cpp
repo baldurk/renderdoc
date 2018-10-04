@@ -2880,7 +2880,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
         ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
-      if(!m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+      if(HasNonMarkerEvents(m_LastCmdBufferID))
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
