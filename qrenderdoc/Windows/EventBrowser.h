@@ -95,6 +95,7 @@ public slots:
   void jumpToBookmark(int idx);
 
 private:
+  bool ShouldHide(const DrawcallDescription &drawcall);
   QPair<uint32_t, uint32_t> AddDrawcalls(RDTreeWidgetItem *parent,
                                          const rdcarray<DrawcallDescription> &draws);
   void SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results);

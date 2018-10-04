@@ -276,6 +276,57 @@ void EventBrowser::OnEventChanged(uint32_t eventId)
   highlightBookmarks();
 }
 
+bool EventBrowser::ShouldHide(const DrawcallDescription &drawcall)
+{
+  if(drawcall.flags & DrawFlags::PushMarker)
+  {
+    if(m_Ctx.Config().EventBrowser_HideEmpty)
+    {
+      if(drawcall.children.isEmpty())
+        return true;
+
+      bool allhidden = true;
+
+      for(const DrawcallDescription &child : drawcall.children)
+      {
+        if(ShouldHide(child))
+          continue;
+
+        allhidden = false;
+        break;
+      }
+
+      if(allhidden)
+        return true;
+    }
+
+    if(m_Ctx.Config().EventBrowser_HideAPICalls)
+    {
+      if(drawcall.children.isEmpty())
+        return false;
+
+      bool onlyapi = true;
+
+      for(const DrawcallDescription &child : drawcall.children)
+      {
+        if(ShouldHide(child))
+          continue;
+
+        if(!(child.flags & DrawFlags::APICalls))
+        {
+          onlyapi = false;
+          break;
+        }
+      }
+
+      if(onlyapi)
+        return true;
+    }
+  }
+
+  return false;
+}
+
 QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
                                                      const rdcarray<DrawcallDescription> &draws)
 {
@@ -284,6 +335,9 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
   for(int32_t i = 0; i < draws.count(); i++)
   {
     const DrawcallDescription &d = draws[i];
+
+    if(ShouldHide(d))
+      continue;
 
     QVariant name = QString(d.name);
 
