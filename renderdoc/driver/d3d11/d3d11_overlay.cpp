@@ -571,9 +571,28 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     if(!events.empty())
     {
       if(overlay == DebugOverlay::ClearBeforePass)
+      {
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+      }
 
       const D3D11RenderState &state = tracker.State();
+
+      if(overlay == DebugOverlay::ClearBeforeDraw)
+      {
+        UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT] = {(UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1,
+                                                       (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1};
+
+        if(m_pImmediateContext->IsFL11_1())
+          m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(
+              RDCMIN(state.OM.UAVStartSlot, (UINT)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT),
+              state.OM.RenderTargets, state.OM.DepthView, state.OM.UAVStartSlot,
+              D3D11_1_UAV_SLOT_COUNT - state.OM.UAVStartSlot, state.OM.UAVs, UAV_keepcounts);
+        else
+          m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(
+              RDCMIN(state.OM.UAVStartSlot, (UINT)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT),
+              state.OM.RenderTargets, state.OM.DepthView, state.OM.UAVStartSlot,
+              D3D11_PS_CS_UAV_REGISTER_COUNT - state.OM.UAVStartSlot, state.OM.UAVs, UAV_keepcounts);
+      }
 
       for(size_t i = 0; i < ARRAY_COUNT(state.OM.RenderTargets); i++)
         if(state.OM.RenderTargets[i])
