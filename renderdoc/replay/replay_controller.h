@@ -40,6 +40,7 @@ public:
   void Shutdown();
   void SetTextureDisplay(const TextureDisplay &o);
   void SetMeshDisplay(const MeshDisplay &o);
+  void SetDimensions(int32_t width, int32_t height);
 
   void ClearThumbnails();
   bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint);
@@ -54,8 +55,8 @@ public:
   rdcpair<PixelValue, PixelValue> GetMinMax();
   rdcarray<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]);
 
-  ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
-  ResourceId GetDebugOverlayTexID() { return m_OverlayResourceId; }
+  ResourceId GetCustomShaderTexID();
+  ResourceId GetDebugOverlayTexID();
   PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                        uint32_t sliceFace, uint32_t mip, uint32_t sample);
   rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventId, uint32_t x, uint32_t y);

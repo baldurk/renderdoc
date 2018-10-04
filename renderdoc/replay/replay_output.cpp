@@ -114,6 +114,15 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
+void ReplayOutput::SetDimensions(int32_t width, int32_t height)
+{
+  if(m_MainOutput.outputID == 0)
+  {
+    m_Width = width;
+    m_Height = height;
+  }
+}
+
 ReplayOutput::~ReplayOutput()
 {
   m_pDevice->DestroyOutputWindow(m_MainOutput.outputID);
@@ -223,6 +232,23 @@ void ReplayOutput::RefreshOverlay()
       m_OverlayResourceId = ResourceId();
     }
   }
+}
+
+ResourceId ReplayOutput::GetCustomShaderTexID()
+{
+  return m_CustomShaderResourceId;
+}
+
+ResourceId ReplayOutput::GetDebugOverlayTexID()
+{
+  if(m_OverlayDirty)
+  {
+    m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
+    RefreshOverlay();
+    m_pDevice->ReplayLog(m_EventID, eReplay_OnlyDraw);
+  }
+
+  return m_OverlayResourceId;
 }
 
 void ReplayOutput::ClearThumbnails()
