@@ -1463,6 +1463,10 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
     QProcess *process = new QProcess;
 
     QStringList sudoParams;
+    // these programs need a -- to indicate the end of their options, before the program
+    if(sudo == lit("kdesudo") || sudo == lit("gksudo"))
+      sudoParams << lit("--");
+
     sudoParams << fullExecutablePath;
     for(const QString &p : params)
       sudoParams << p;
