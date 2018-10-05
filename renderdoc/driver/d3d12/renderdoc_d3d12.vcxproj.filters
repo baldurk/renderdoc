@@ -146,5 +146,8 @@
     <ClCompile Include="d3d12_command_list1_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_msaa_array_conv.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

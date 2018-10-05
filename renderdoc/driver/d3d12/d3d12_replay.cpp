@@ -100,6 +100,8 @@ void D3D12Replay::Shutdown()
 
 void D3D12Replay::CreateResources()
 {
+  m_DebugManager = new D3D12DebugManager(m_pDevice);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
@@ -136,8 +138,6 @@ void D3D12Replay::CreateResources()
       }
     }
 
-    m_DebugManager = new D3D12DebugManager(m_pDevice);
-
     CreateSOBuffers();
 
     m_General.Init(m_pDevice, m_DebugManager);
@@ -146,10 +146,7 @@ void D3D12Replay::CreateResources()
     m_VertexPick.Init(m_pDevice, m_DebugManager);
     m_PixelPick.Init(m_pDevice, m_DebugManager);
     m_Histogram.Init(m_pDevice, m_DebugManager);
-  }
 
-  if(RenderDoc::Inst().IsReplayApp())
-  {
     AMDCounters *counters = NULL;
 
     if(m_Vendor == GPUVendor::AMD)
@@ -2926,6 +2923,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     copyDesc.DepthOrArraySize *= (UINT16)copyDesc.SampleDesc.Count;
     copyDesc.SampleDesc.Count = 1;
     copyDesc.SampleDesc.Quality = 0;
+    copyDesc.MipLevels = 1;
 
     wasms = true;
   }
@@ -3082,7 +3080,74 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   else if(wasms)
   {
     // copy/expand multisampled live texture to array readback texture
-    RDCUNIMPLEMENTED("CopyTex2DMSToArray on D3D12");
+    if(isDepth)
+      copyDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    else
+      copyDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    copyDesc.Format = GetTypelessFormat(copyDesc.Format);
+
+    ID3D12Resource *arrayTexture;
+    hr = m_pDevice->CreateCommittedResource(
+        &defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
+        isDepth ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+        __uuidof(ID3D12Resource), (void **)&arrayTexture);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    list = m_pDevice->GetNewList();
+
+    // put source texture into shader read state
+    const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+
+    std::vector<D3D12_RESOURCE_BARRIER> barriers;
+    barriers.reserve(states.size());
+    for(size_t i = 0; i < states.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      // skip unneeded barriers
+      if(states[i] & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = resource;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateBefore = states[i];
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+      barriers.push_back(b);
+    }
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->Close();
+    list = NULL;
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+
+    // expand multisamples out to array
+    GetDebugManager()->CopyTex2DMSToArray(arrayTexture, srcTexture);
+
+    tmpTexture = srcTexture = arrayTexture;
+
+    list = m_pDevice->GetNewList();
+
+    // real resource back to normal
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    D3D12_RESOURCE_BARRIER b = {};
+    b.Transition.pResource = arrayTexture;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore =
+        isDepth ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_RENDER_TARGET;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->ResourceBarrier(1, &b);
   }
 
   if(list == NULL)

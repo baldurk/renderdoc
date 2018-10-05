@@ -696,7 +696,7 @@ template void D3D12ResourceManager::SerialiseResourceStates(
 
 void D3D12ResourceManager::SetInternalResource(ID3D12DeviceChild *res)
 {
-  if(!RenderDoc::Inst().IsReplayApp())
+  if(!RenderDoc::Inst().IsReplayApp() && res)
   {
     D3D12ResourceRecord *record = GetResourceRecord(GetResID(res));
     if(record)

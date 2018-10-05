@@ -2295,8 +2295,7 @@ void WrappedID3D12Device::CreateInternalResources()
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);
 
-  if(IsReplayMode(m_State))
-    m_Replay.CreateResources();
+  m_Replay.CreateResources();
 
   WrappedID3D12Shader::InternalResources(false);
 }

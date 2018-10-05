@@ -110,6 +110,7 @@
     <ClCompile Include="d3d12_hooks.cpp" />
     <ClCompile Include="d3d12_initstate.cpp" />
     <ClCompile Include="d3d12_manager.cpp" />
+    <ClCompile Include="d3d12_msaa_array_conv.cpp" />
     <ClCompile Include="d3d12_outputwindow.cpp" />
     <ClCompile Include="d3d12_overlay.cpp" />
     <ClCompile Include="d3d12_postvs.cpp" />

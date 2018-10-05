@@ -104,6 +104,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_pDevice = wrapper;
   m_pDevice->InternalRef();
 
+  D3D12ResourceManager *rm = wrapper->GetResourceManager();
+
   HRESULT hr = S_OK;
 
   D3D12_DESCRIPTOR_HEAP_DESC desc;
@@ -112,6 +114,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   desc.NumDescriptors = 1024;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
+  RDCCOMPILE_ASSERT(FIRST_WIN_RTV + 256 < 1024, "Increase size of RTV heap");
+
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&rtvHeap);
 
   if(FAILED(hr))
@@ -119,8 +123,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create RTV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
-  desc.NumDescriptors = 16;
+  rm->SetInternalResource(rtvHeap);
+
+  desc.NumDescriptors = 64;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+
+  RDCCOMPILE_ASSERT(FIRST_WIN_DSV + 32 < 64, "Increase size of DSV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&dsvHeap);
 
@@ -129,8 +137,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create DSV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
+  rm->SetInternalResource(dsvHeap);
+
   desc.NumDescriptors = 4096;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+  RDCCOMPILE_ASSERT(MAX_SRV_SLOT < 4096, "Increase size of CBV/SRV/UAV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&uavClearHeap);
 
@@ -138,6 +150,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create CBV/SRV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
+
+  rm->SetInternalResource(uavClearHeap);
 
   desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -149,6 +163,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create CBV/SRV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
+  rm->SetInternalResource(cbvsrvuavHeap);
+
   desc.NumDescriptors = 16;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
@@ -158,6 +174,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create sampler descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
+
+  rm->SetInternalResource(samplerHeap);
 
   // create fixed samplers, point and linear
   D3D12_CPU_DESCRIPTOR_HANDLE samp;
@@ -207,6 +225,28 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                         __uuidof(ID3D12RootSignature), (void **)&m_CBOnlyRootSig);
 
     SAFE_RELEASE(root);
+
+    rm->SetInternalResource(m_CBOnlyRootSig);
+  }
+
+  {
+    ID3DBlob *root = shaderCache->MakeRootSig({
+        // cbuffer
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+        // normal SRVs (2x, 4x, 8x, 16x, 32x)
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, 5),
+        // stencil SRVs (2x, 4x, 8x, 16x, 32x)
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 11, 5),
+    });
+
+    RDCASSERT(root);
+
+    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                        __uuidof(ID3D12RootSignature), (void **)&m_ArrayMSAARootSig);
+
+    SAFE_RELEASE(root);
+
+    rm->SetInternalResource(m_ArrayMSAARootSig);
   }
 
   {
@@ -218,6 +258,33 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                "gs_5_0", &m_MeshGS);
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                                "ps_5_0", &m_MeshPS);
+  }
+
+  {
+    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
+    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
+    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+
+    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &m_FullscreenVS);
+  }
+
+  {
+    std::string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
+
+    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_IntMS2Array);
+    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_FloatMS2Array);
+    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_DepthMS2Array);
+
+    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_IntArray2MS);
+    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_FloatArray2MS);
+    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_DepthArray2MS);
   }
 
   shaderCache->SetCaching(false);
@@ -248,6 +315,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   m_ReadbackBuffer->SetName(L"m_ReadbackBuffer");
 
+  rm->SetInternalResource(m_ReadbackBuffer);
+
   hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                          __uuidof(ID3D12CommandAllocator), (void **)&m_DebugAlloc);
 
@@ -256,6 +325,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Failed to create readback command allocator, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
+
+  rm->SetInternalResource(m_DebugAlloc);
 
   ID3D12GraphicsCommandList *list = NULL;
 
@@ -270,6 +341,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Failed to create readback command list, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
+
+  rm->SetInternalResource(m_DebugList);
 
   if(m_DebugList)
     m_DebugList->Close();
@@ -287,9 +360,15 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(uavClearHeap);
   SAFE_RELEASE(samplerHeap);
 
+  SAFE_RELEASE(m_CBOnlyRootSig);
+  SAFE_RELEASE(m_ArrayMSAARootSig);
+
   SAFE_RELEASE(m_RingConstantBuffer);
 
   SAFE_RELEASE(m_TexResource);
+
+  SAFE_RELEASE(m_DebugAlloc);
+  SAFE_RELEASE(m_DebugList);
 
   m_pDevice->InternalRelease();
 
@@ -361,7 +440,9 @@ D3D12_GPU_VIRTUAL_ADDRESS D3D12DebugManager::UploadConstants(const void *data, s
 
   ret += m_RingConstantOffset;
 
-  FillBuffer(m_RingConstantBuffer, (size_t)m_RingConstantOffset, data, size);
+  // passing the unwrapped object here is immaterial as all we do is Map/Unmap, but it means we can
+  // call this function while capturing without worrying about serialising the map or deadlocking.
+  FillBuffer(Unwrap(m_RingConstantBuffer), (size_t)m_RingConstantOffset, data, size);
 
   m_RingConstantOffset += size;
   m_RingConstantOffset =
@@ -1200,6 +1281,11 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
     hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                      __uuidof(ID3D12RootSignature), (void **)&RootSig);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create tex display RootSig! HRESULT: %s", ToStr(hr).c_str());
+    }
 
     SAFE_RELEASE(root);
   }

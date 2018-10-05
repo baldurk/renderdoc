@@ -56,8 +56,8 @@ struct Tex2DMSToArrayStateTracker
     // only need to save/restore constant buffer 0
     PS.ConstantBuffers[0] = UNWRAP(WrappedID3D11Buffer, PS.ConstantBuffers[0]);
 
-    // same for the first 8 SRVs
-    for(int i = 0; i < 8; i++)
+    // same for the first 16 SRVs
+    for(int i = 0; i < 16; i++)
       PS.SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, PS.SRVs[i]);
 
     for(int i = 0; i < D3D11_SHADER_MAX_INTERFACES; i++)
@@ -88,7 +88,7 @@ struct Tex2DMSToArrayStateTracker
     context->IASetInputLayout(Layout);
     context->VSSetShader((ID3D11VertexShader *)VS.Shader, VS.Instances, VS.NumInstances);
 
-    context->PSSetShaderResources(0, 8, PS.SRVs);
+    context->PSSetShaderResources(0, 16, PS.SRVs);
     context->PSSetShader((ID3D11PixelShader *)PS.Shader, PS.Instances, PS.NumInstances);
 
     if(m_WrappedContext->IsFL11_1())
@@ -369,7 +369,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   ID3D11ShaderResourceView *srvs[8] = {NULL};
   srvs[0] = srvArray;
 
-  m_pImmediateContext->PSSetShaderResources(0, 8, srvs);
+  m_pImmediateContext->PSSetShaderResources(1, 8, srvs);
 
   // loop over every array slice in MS texture
   for(UINT slice = 0; slice < descMS.ArraySize; slice++)
@@ -428,7 +428,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       return;
     }
 
-    m_pImmediateContext->PSSetShaderResources(1, 1, &srvArray);
+    m_pImmediateContext->PSSetShaderResources(11, 1, &srvArray);
 
     D3D11_DEPTH_STENCIL_DESC dsDesc;
     ID3D11DepthStencilState *dsState = NULL;

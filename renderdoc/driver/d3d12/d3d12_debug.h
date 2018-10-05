@@ -56,6 +56,19 @@ enum CBVUAVSRVSlot
   PICK_RESULT_CLEAR_UAV,
 
   TMP_UAV,
+
+  MSAA_SRV2x,
+  MSAA_SRV4x,
+  MSAA_SRV8x,
+  MSAA_SRV16x,
+  MSAA_SRV32x,
+  STENCIL_MSAA_SRV2x,
+  STENCIL_MSAA_SRV4x,
+  STENCIL_MSAA_SRV8x,
+  STENCIL_MSAA_SRV16x,
+  STENCIL_MSAA_SRV32x,
+
+  MAX_SRV_SLOT,
 };
 
 enum RTVSlot
@@ -64,6 +77,7 @@ enum RTVSlot
   CUSTOM_SHADER_RTV,
   OVERLAY_RTV,
   GET_TEX_RTV,
+  MSAA_RTV,
   FIRST_TMP_RTV,
   LAST_TMP_RTV = FIRST_TMP_RTV + 16,
   FIRST_WIN_RTV,
@@ -79,6 +93,7 @@ enum SamplerSlot
 enum DSVSlot
 {
   OVERLAY_DSV,
+  MSAA_DSV,
   TMP_DSV,
   FIRST_WIN_DSV,
 };
@@ -139,6 +154,9 @@ public:
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);
 
+  void CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS);
+  void CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray, UINT selectedSlice);
+
 private:
   WrappedID3D12Device *m_pDevice = NULL;
 
@@ -167,6 +185,18 @@ private:
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
 
   ID3D12Resource *m_ReadbackBuffer = NULL;
+
+  // Array <-> MSAA copying
+  ID3D12RootSignature *m_ArrayMSAARootSig = NULL;
+  ID3DBlob *m_FullscreenVS = NULL;
+
+  ID3DBlob *m_IntMS2Array = NULL;
+  ID3DBlob *m_FloatMS2Array = NULL;
+  ID3DBlob *m_DepthMS2Array = NULL;
+
+  ID3DBlob *m_IntArray2MS = NULL;
+  ID3DBlob *m_FloatArray2MS = NULL;
+  ID3DBlob *m_DepthArray2MS = NULL;
 
   // Debug lists
   ID3D12GraphicsCommandList2 *m_DebugList = NULL;

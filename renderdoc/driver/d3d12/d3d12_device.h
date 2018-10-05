@@ -46,10 +46,7 @@ struct D3D12InitParams
   D3D_FEATURE_LEVEL MinimumFeatureLevel;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x5;
-
-  // 0x4 -> 0x5 - CPU_DESCRIPTOR_HANDLE serialised inline as D3D12Descriptor in appropriate
-  //              list-recording functions
+  static const uint64_t CurrentVersion = 0x6;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -61,6 +58,7 @@ class WrappedID3D12Resource;
 
 class D3D12TextRenderer;
 class D3D12ShaderCache;
+class D3D12DebugManager;
 
 // give every impression of working but do nothing.
 // Just allow the user to call functions so that they don't
@@ -405,6 +403,7 @@ public:
   static std::string GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
+  D3D12DebugManager *GetDebugManager() { return m_Replay.GetDebugManager(); }
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);

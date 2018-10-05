@@ -172,7 +172,7 @@ float RENDERDOC_DepthCopyMSToArray(float4 pos : SV_Position) : SV_Depth
 	return 0;
 }
 
-Texture2DArray<uint4> sourceArray : register(t0);
+Texture2DArray<uint4> sourceArray : register(t1);
 
 uint4 RENDERDOC_CopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_SampleIndex) : SV_Target0
 {
@@ -181,7 +181,7 @@ uint4 RENDERDOC_CopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_Samp
 	return sourceArray.Load(srcCoord);
 }
 
-Texture2DArray<float4> sourceFloatArray : register(t0);
+Texture2DArray<float4> sourceFloatArray : register(t1);
 
 float4 RENDERDOC_FloatCopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_SampleIndex) : SV_Target0
 {
@@ -190,8 +190,8 @@ float4 RENDERDOC_FloatCopyArrayToMS(float4 pos : SV_Position, uint curSample : S
 	return sourceFloatArray.Load(srcCoord);
 }
 
-Texture2DArray<float2> sourceDepthArray : register(t0);
-Texture2DArray<uint2> sourceStencilArray : register(t1);
+Texture2DArray<float2> sourceDepthArray : register(t1);
+Texture2DArray<uint2> sourceStencilArray : register(t11);
 
 float RENDERDOC_DepthCopyArrayToMS(float4 pos : SV_Position, uint curSample : SV_SampleIndex) : SV_Depth
 {

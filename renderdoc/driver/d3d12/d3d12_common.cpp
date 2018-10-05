@@ -158,7 +158,13 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
-  // see header for explanation of version changes
+  // 0x5 -> 0x6 - Multiply by number of planes in format when serialising initial states -
+  //              i.e. stencil is saved with depth in initial states.
+  if(ver == 0x4)
+    return true;
+
+  // 0x4 -> 0x5 - CPU_DESCRIPTOR_HANDLE serialised inline as D3D12Descriptor in appropriate
+  //              list-recording functions
   if(ver == 0x4)
     return true;
 
