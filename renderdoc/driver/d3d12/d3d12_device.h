@@ -573,21 +573,25 @@ public:
     {
       *ppvDevice = (ID3D12Device *)this;
       this->AddRef();
+      return S_OK;
     }
     else if(riid == __uuidof(ID3D12Device1))
     {
       *ppvDevice = (ID3D12Device1 *)this;
       this->AddRef();
+      return S_OK;
     }
     else if(riid == __uuidof(ID3D12Device2))
     {
       *ppvDevice = (ID3D12Device2 *)this;
       this->AddRef();
+      return S_OK;
     }
     else if(riid == __uuidof(ID3D12Device3))
     {
       *ppvDevice = (ID3D12Device3 *)this;
       this->AddRef();
+      return S_OK;
     }
 
     return E_NOINTERFACE;
