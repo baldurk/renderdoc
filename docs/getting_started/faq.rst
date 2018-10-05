@@ -237,3 +237,12 @@ If you don't want this to happen and you'd prefer OpenGL ES to be ignored during
 .. note::
 
     This toggle only has effect on windows. On other platforms GLES is always natively captured as it is expected to have system-level support rather than being emulated.
+
+When I launch my application through RenderDoc, why can't I access the API validation?
+--------------------------------------------------------------------------------------
+
+API validation layers are controlled by RenderDoc when it's active. This means that enabling the API validation from your application will have no effect, it will be controlled by the ``Enable API Validation`` capture option. For more information see :ref:`capture-options`.
+
+.. note::
+
+    On D3D11 if you know what you are doing you can access the underlying ``ID3D11InfoQueue`` using the separate UUID ``{3FC4E618-3F70-452A-8B8F-A73ACCB58E3D}``. Be aware that accessing this interface is done at your own risk and may break the RenderDoc capture. If you need to use the API validation directly it's recommended that you do so without RenderDoc active.

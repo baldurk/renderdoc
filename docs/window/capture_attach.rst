@@ -56,6 +56,8 @@ A list of processes is fetched once when the dialog is opened, but this can be r
 
   Injecting: Injecting into an already-running process via RenderDoc.
 
+.. _capture-options:
+
 Capture Options
 ---------------
 
