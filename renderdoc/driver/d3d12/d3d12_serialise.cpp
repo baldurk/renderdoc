@@ -572,7 +572,7 @@ void DoSerialise(SerialiserType &ser, D3D12_CACHED_PIPELINE_STATE &el)
   ser.Serialise("CachedBlobSizeInBytes", CachedBlobSizeInBytes);
 
   if(ser.IsReading())
-    el.CachedBlobSizeInBytes = CachedBlobSizeInBytes;
+    el.CachedBlobSizeInBytes = (SIZE_T)CachedBlobSizeInBytes;
 }
 
 template <class SerialiserType>
