@@ -26,6 +26,7 @@
 #include <QMouseEvent>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
+#include <QStandardPaths>
 #include "3rdparty/flowlayout/FlowLayout.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/QRDUtils.h"
@@ -401,9 +402,43 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
     {
       if(admin)
       {
+// linux sometimes can't run GUI apps as root, so we have to run renderdoccmd. Check that it's
+// installed, error if not, then invoke it.
+#if defined(Q_OS_LINUX)
+        QDir binDir = QFileInfo(qApp->applicationFilePath()).absoluteDir();
+
+        QString cmd = lit("renderdoccmd");
+
+        if(binDir.exists(cmd))
+        {
+          // it's next to our exe, run that
+          cmd = binDir.absoluteFilePath(cmd);
+        }
+        else
+        {
+          QString inPath = QStandardPaths::findExecutable(cmd);
+
+          if(inPath.isEmpty())
+          {
+            RDDialog::critical(
+                this, tr("Can't locate renderdoccmd"),
+                tr("On linux we must run renderdoccmd as root to register the layer, because "
+                   "graphical applications like qrenderdoc may fail to launch.\n\n"
+                   "renderdoccmd could not be located either next to this qrenderdoc executable or "
+                   "in PATH."));
+            return;
+          }
+
+          // it's in the path, we can continue
+        }
+
+        RunProcessAsAdmin(cmd, QStringList() << lit("vulkanregister") << lit("--system"), this,
+                          [this]() { ui->vulkanLayerWarn->setVisible(false); });
+#else
         RunProcessAsAdmin(qApp->applicationFilePath(),
                           QStringList() << lit("--install_vulkan_layer") << lit("root"), this,
                           [this]() { ui->vulkanLayerWarn->setVisible(false); });
+#endif
         return;
       }
       else
