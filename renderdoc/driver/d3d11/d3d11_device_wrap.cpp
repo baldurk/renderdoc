@@ -913,8 +913,37 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
   {
     ID3D11UnorderedAccessView *ret;
 
+    D3D11_UNORDERED_ACCESS_VIEW_DESC *pUAVDesc = (D3D11_UNORDERED_ACCESS_VIEW_DESC *)pDesc;
+
+    WrappedID3D11Texture2D1 *tex2d = (WrappedID3D11Texture2D1 *)pResource;
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC backbufferTypedDesc;
+
+    // need to fixup typeless backbuffer fudging, if a descriptor isn't specified then
+    // we need to make one to give the correct type
+    if(!pDesc && WrappedID3D11Texture2D1::IsAlloc(pResource) && tex2d->m_RealDescriptor)
+    {
+      // MSAA UAVs aren't supported so this must be non-MSAA
+      backbufferTypedDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+      backbufferTypedDesc.Format = tex2d->m_RealDescriptor->Format;
+      backbufferTypedDesc.Texture2D.MipSlice = 0;
+      pUAVDesc = &backbufferTypedDesc;
+    }
+
+    // if we have a descriptor but it specifies DXGI_FORMAT_UNKNOWN format, that means use
+    // the texture's format. But as above, we fudge around the typeless backbuffer so we
+    // have to set the correct typed format
+    //
+    // This behaviour is documented only for render targets, but seems to be used & work for
+    // UAVs, so apply it here too.
+    if(pUAVDesc && pUAVDesc->Format == DXGI_FORMAT_UNKNOWN &&
+       WrappedID3D11Texture2D1::IsAlloc(pResource) && tex2d->m_RealDescriptor)
+    {
+      pUAVDesc->Format = tex2d->m_RealDescriptor->Format;
+    }
+
     HRESULT hr = m_pDevice->CreateUnorderedAccessView(
-        GetResourceManager()->UnwrapResource(pResource), pDesc, &ret);
+        GetResourceManager()->UnwrapResource(pResource), pUAVDesc, &ret);
 
     if(FAILED(hr))
     {
