@@ -201,7 +201,7 @@ void StatisticsViewer::AppendShaderStatistics()
   }
 
   m_Report.append(tr("Total calls: %1, non-null shader sets: %2, null shader sets: %3, "
-                     "reundant shader sets: %4\n")
+                     "redundant shader sets: %4\n")
                       .arg(totalShadersPerStage.calls)
                       .arg(totalShadersPerStage.sets)
                       .arg(totalShadersPerStage.nulls)
