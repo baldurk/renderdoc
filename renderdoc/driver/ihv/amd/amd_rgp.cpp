@@ -24,7 +24,8 @@
 
 #include "amd_rgp.h"
 #include "common/common.h"
-#include "official/RGP/DevDriverAPI/DevDriverAPI.h"
+#include "core/plugins.h"
+#include "official/RGP/DevDriverAPI.h"
 
 uint64_t MakeTagFromMarker(const char *marker)
 {
@@ -67,6 +68,42 @@ AMDRGPControl::AMDRGPControl()
   m_RGPContext = NULL;
 
 #if ENABLED(RDOC_WIN32) || ENABLED(RDOC_LINUX)
+
+  // manually load in the DevDriverAPI dll and set up the function table
+  std::string dllName("DevDriverAPI");
+
+#if ENABLED(RDOC_WIN32)
+#if ENABLED(RDOC_X64)
+  dllName += "-x64";
+#endif
+  dllName += ".dll";
+#else
+  dllName = "lib" + dllName;
+  dllName += ".so";
+#endif
+
+  // first try in the plugin location it will be in distributed builds
+  std::string dllPath = LocatePluginFile("amd/rgp", dllName.c_str());
+
+  void *module = Process::LoadModule(dllPath.c_str());
+  if(module == NULL)
+  {
+    module = Process::LoadModule(dllName.c_str());
+  }
+
+  if(module == NULL)
+  {
+    RDCWARN(
+        "AMD DevDriverAPI could not be initialized successfully. "
+        "Are you missing the DLL?");
+    return;
+  }
+
+  typedef DevDriverStatus (*DevDriverGetFuncTableType)(void *);
+
+  DevDriverGetFuncTableType DevDriverGetFuncTable =
+      (DevDriverGetFuncTableType)Process::GetFunctionAddress(module, "DevDriverGetFuncTable");
+
   DevDriverStatus rgpStatus = DevDriverGetFuncTable(m_RGPDispatchTable);
   if(rgpStatus == DEV_DRIVER_STATUS_SUCCESS)
   {
