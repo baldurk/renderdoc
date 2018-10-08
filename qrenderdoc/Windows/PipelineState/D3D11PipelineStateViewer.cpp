@@ -3170,7 +3170,7 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
   bool done = false;
   ShaderDebugTrace *trace = NULL;
 
-  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, thread](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([&trace, &done, thread](IReplayController *r) {
     trace = r->DebugThread(thread.g, thread.t);
 
     if(trace->states.isEmpty())
