@@ -1643,6 +1643,9 @@ QStringList ParseArgsList(const QString &args)
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update)
 {
+  if(finished())
+    return;
+
   RDProgressDialog dialog(labelText, window);
 
   // if we don't have an update function, set the progress display to be 'infinite spinner'
