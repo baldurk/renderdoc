@@ -2311,7 +2311,10 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   m_PostVSData[eventId].vsout.hasPosOut =
       refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
 
-  // delete descriptors
+  // delete descriptors. Technically we don't have to free the descriptor sets, but our tracking on
+  // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
+  m_pDriver->vkFreeDescriptorSets(dev, descpool, (uint32_t)descSets.size(), descSets.data());
+
   m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
 
   for(VkDescriptorSetLayout layout : setLayouts)
