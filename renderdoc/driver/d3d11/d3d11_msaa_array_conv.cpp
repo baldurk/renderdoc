@@ -488,6 +488,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
       SAFE_RELEASE(dsvMS);
 
+      m_pImmediateContext->Flush();
+
       if(singleSliceMode)
         break;
     }
@@ -732,6 +734,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
       SAFE_RELEASE(rtvArray);
       SAFE_RELEASE(dsvArray);
+
+      ctx->Flush();
     }
   }
 
