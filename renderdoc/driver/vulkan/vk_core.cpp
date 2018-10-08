@@ -3059,16 +3059,24 @@ bool WrappedVulkan::HasRerecordCmdBuf(ResourceId cmdid)
   return m_RerecordCmds.find(cmdid) != m_RerecordCmds.end();
 }
 
-bool WrappedVulkan::IsPartialCmdBuf(ResourceId cmdid)
+bool WrappedVulkan::ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary)
 {
   if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     return true;
 
-  for(int p = 0; p < ePartialNum; p++)
-    if(cmdid == m_Partial[p].partialParent)
-      return true;
+  // if forcePrimary is set we're tracking renderpass activity that only happens in the primary
+  // command buffer. So even if a secondary is partial, we still want to check it.
+  if(forcePrimary)
+    return m_Partial[Primary].partialParent == cmdid;
 
-  return false;
+  // otherwise, if a secondary command buffer is partial we want to *ignore* any state setting
+  // happening in the primary buffer as fortunately no state is inherited (so we don't need to
+  // worry about any state before the execute) and any state setting recorded afterwards would
+  // incorrectly override what we have.
+  if(m_Partial[Secondary].partialParent != ResourceId())
+    return cmdid == m_Partial[Secondary].partialParent;
+
+  return cmdid == m_Partial[Primary].partialParent;
 }
 
 VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType)

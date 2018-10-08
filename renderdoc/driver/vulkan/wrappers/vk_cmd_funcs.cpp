@@ -1068,7 +1068,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
             GetResID(RenderPassBegin.framebuffer);
 
         // only if we're partially recording do we update this state
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
           m_Partial[Primary].renderPassActive = true;
 
@@ -1193,7 +1193,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
         // always track this, for WrappedVulkan::IsDrawInRenderPass()
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
           m_RenderState.subpass++;
 
         ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
@@ -1273,7 +1273,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
           m_Partial[Primary].renderPassActive = false;
         }
@@ -1377,7 +1377,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
 
         ResourceId liveid = GetResID(pipeline);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
           {
@@ -1509,7 +1509,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
                                     firstSet, setCount, UnwrapArray(pDescriptorSets, setCount),
                                     dynamicOffsetCount, pDynamicOffsets);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
               (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
@@ -1682,7 +1682,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
             ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
                                    UnwrapArray(pBuffers, bindingCount), pOffsets);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(m_RenderState.vbuffers.size() < firstBinding + bindingCount)
             m_RenderState.vbuffers.resize(firstBinding + bindingCount);
@@ -1771,7 +1771,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
         ObjDisp(commandBuffer)
             ->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           m_RenderState.ibuffer.buf = GetResID(buffer);
           m_RenderState.ibuffer.offs = offset;
@@ -1993,7 +1993,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
             ->CmdPushConstants(Unwrap(commandBuffer), Unwrap(layout), stageFlags, start, length,
                                values);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           RDCASSERT(start + length < (uint32_t)ARRAY_COUNT(m_RenderState.pushconsts));
 
@@ -3114,7 +3114,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
               (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
@@ -3384,7 +3384,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
               (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==

@@ -48,7 +48,7 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(SerialiserType &ser, VkCommandBuf
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(m_RenderState.views.size() < firstViewport + viewportCount)
             m_RenderState.views.resize(firstViewport + viewportCount);
@@ -117,7 +117,7 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuff
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(m_RenderState.scissors.size() < firstScissor + scissorCount)
             m_RenderState.scissors.resize(firstScissor + scissorCount);
@@ -182,7 +182,7 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(SerialiserType &ser, VkCommandBu
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
           m_RenderState.lineWidth = lineWidth;
       }
       else
@@ -241,7 +241,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(SerialiserType &ser, VkCommandBu
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           m_RenderState.bias.depth = depthBias;
           m_RenderState.bias.biasclamp = depthBiasClamp;
@@ -306,7 +306,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
           memcpy(m_RenderState.blendConst, blendConst, sizeof(m_RenderState.blendConst));
       }
       else
@@ -363,7 +363,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(SerialiserType &ser, VkCommand
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           m_RenderState.mindepth = minDepthBounds;
           m_RenderState.maxdepth = maxDepthBounds;
@@ -427,7 +427,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
             m_RenderState.front.compare = compareMask;
@@ -493,7 +493,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
             m_RenderState.front.write = writeMask;
@@ -559,7 +559,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
             m_RenderState.front.ref = reference;

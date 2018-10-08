@@ -628,7 +628,7 @@ private:
 
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdBuf(ResourceId cmdid);
-  bool IsPartialCmdBuf(ResourceId cmdid);
+  bool ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary = false);
   VkCommandBuffer RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType = ePartialNum);
 
   // this info is stored in the record on capture, but we
