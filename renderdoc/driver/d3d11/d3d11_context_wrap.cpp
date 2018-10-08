@@ -6852,7 +6852,8 @@ bool WrappedID3D11DeviceContext::Serialise_SetResourceMinLOD(SerialiserType &ser
   if(IsReplayingAndReading())
   {
     if(pResource)
-      m_pRealContext->SetResourceMinLOD(pResource, MinLOD);
+      m_pRealContext->SetResourceMinLOD(m_pDevice->GetResourceManager()->UnwrapResource(pResource),
+                                        MinLOD);
   }
 
   return true;
