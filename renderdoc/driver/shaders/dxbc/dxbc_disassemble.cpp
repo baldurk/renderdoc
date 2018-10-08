@@ -294,7 +294,7 @@ void DXBCFile::FetchTypeVersion()
   m_Version.Minor = VersionToken::MinorVersion.Get(cur[0]);
 }
 
-void DXBCFile::FetchThreadDim()
+void DXBCFile::FetchComputeProperties()
 {
   if(m_HexDump.empty())
     return;
@@ -320,7 +320,47 @@ void DXBCFile::FetchThreadDim()
       DispatchThreadsDimension[0] = cur[1];
       DispatchThreadsDimension[1] = cur[2];
       DispatchThreadsDimension[2] = cur[3];
-      break;
+    }
+    else if(op == OPCODE_DCL_INPUT)
+    {
+      OperandType type = Operand::Type.Get(cur[1]);
+
+      SigParameter param;
+
+      param.compType = CompType::UInt;
+      param.regIndex = ~0U;
+
+      switch(type)
+      {
+        case TYPE_INPUT_THREAD_ID:
+          param.systemValue = ShaderBuiltin::DispatchThreadIndex;
+          param.compCount = 3;
+          param.regChannelMask = param.channelUsedMask = 0x7;
+          param.semanticIdxName = param.semanticName = "vThreadID";
+          m_InputSig.push_back(param);
+          break;
+        case TYPE_INPUT_THREAD_GROUP_ID:
+          param.systemValue = ShaderBuiltin::GroupIndex;
+          param.compCount = 3;
+          param.regChannelMask = param.channelUsedMask = 0x7;
+          param.semanticIdxName = param.semanticName = "vThreadGroupID";
+          m_InputSig.push_back(param);
+          break;
+        case TYPE_INPUT_THREAD_ID_IN_GROUP:
+          param.systemValue = ShaderBuiltin::GroupThreadIndex;
+          param.compCount = 3;
+          param.regChannelMask = param.channelUsedMask = 0x7;
+          param.semanticIdxName = param.semanticName = "vThreadIDInGroup";
+          m_InputSig.push_back(param);
+          break;
+        case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+          param.systemValue = ShaderBuiltin::GroupFlatIndex;
+          param.compCount = 1;
+          param.regChannelMask = param.channelUsedMask = 0x1;
+          param.semanticIdxName = param.semanticName = "vThreadIDInGroupFlattened";
+          m_InputSig.push_back(param);
+          break;
+      }
     }
 
     if(op == OPCODE_CUSTOMDATA)

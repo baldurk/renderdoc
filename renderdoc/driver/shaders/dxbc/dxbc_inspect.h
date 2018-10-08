@@ -403,7 +403,7 @@ private:
   DXBCFile(const DXBCFile &o);
   DXBCFile &operator=(const DXBCFile &o);
 
-  void FetchThreadDim();
+  void FetchComputeProperties();
   void FetchTypeVersion();
   void DisassembleHexDump();
   void MakeDisassemblyString();
