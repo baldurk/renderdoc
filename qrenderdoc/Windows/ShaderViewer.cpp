@@ -332,12 +332,12 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   // no replacing allowed, stay in find mode
   m_FindReplace->allowUserModeChange(false);
 
-  if(!shader || !bind)
+  if(!m_ShaderDetails || !m_Mapping)
     m_Trace = NULL;
 
-  if(shader)
+  if(m_ShaderDetails)
   {
-    m_Stage = shader->stage;
+    m_Stage = m_ShaderDetails->stage;
 
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdcarray<rdcstr> targets = r->GetDisassemblyTargets();
@@ -403,7 +403,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   QObject::connect(m_DisassemblyView, &ScintillaEdit::buttonReleased, this,
                    &ShaderViewer::disassembly_buttonReleased);
 
-  if(trace)
+  if(m_Trace)
   {
     if(m_Stage == ShaderStage::Vertex)
     {
@@ -421,20 +421,20 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);
   }
 
-  if(shader && !shader->debugInfo.files.isEmpty())
+  if(m_ShaderDetails && !m_ShaderDetails->debugInfo.files.isEmpty())
   {
-    if(trace)
-      setWindowTitle(QFormatStr("Debug %1() - %2").arg(shader->entryPoint).arg(debugContext));
+    if(m_Trace)
+      setWindowTitle(QFormatStr("Debug %1() - %2").arg(m_ShaderDetails->entryPoint).arg(debugContext));
     else
-      setWindowTitle(shader->entryPoint);
+      setWindowTitle(m_ShaderDetails->entryPoint);
 
     // add all the files, skipping any that have empty contents. We push a NULL in that case so the
     // indices still match up with what the debug info expects. Debug info *shouldn't* point us at
     // an empty file, but if it does we'll just bail out when we see NULL
-    m_FileScintillas.reserve(shader->debugInfo.files.count());
+    m_FileScintillas.reserve(m_ShaderDetails->debugInfo.files.count());
 
     QWidget *sel = NULL;
-    for(const ShaderSourceFile &f : shader->debugInfo.files)
+    for(const ShaderSourceFile &f : m_ShaderDetails->debugInfo.files)
     {
       if(f.contents.isEmpty())
       {
@@ -453,10 +453,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       m_FileScintillas.push_back(scintilla);
     }
 
-    if(trace || sel == NULL)
+    if(m_Trace || sel == NULL)
       sel = m_DisassemblyFrame;
 
-    if(shader->debugInfo.files.size() > 2)
+    if(m_ShaderDetails->debugInfo.files.size() > 2)
       addFileList();
 
     ToolWindowManager::raiseToolWindow(sel);
@@ -467,13 +467,13 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   ui->refresh->hide();
   ui->snippets->hide();
 
-  if(trace)
+  if(m_Trace)
   {
     // hide signatures
     ui->inputSig->hide();
     ui->outputSig->hide();
 
-    if(shader->debugInfo.files.isEmpty())
+    if(m_ShaderDetails->debugInfo.files.isEmpty())
     {
       ui->debugToggle->setEnabled(false);
       ui->debugToggle->setText(tr("HLSL Unavailable"));
@@ -667,9 +667,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     for(int i = 0; i < ui->outputSig->header()->count(); i++)
       ui->outputSig->header()->setSectionResizeMode(i, QHeaderView::ResizeToContents);
 
-    if(shader)
+    if(m_ShaderDetails)
     {
-      for(const SigParameter &s : shader->inputSignature)
+      for(const SigParameter &s : m_ShaderDetails->inputSignature)
       {
         QString name = s.varName.isEmpty()
                            ? QString(s.semanticName)
@@ -688,7 +688,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       }
 
       bool multipleStreams = false;
-      for(const SigParameter &s : shader->outputSignature)
+      for(const SigParameter &s : m_ShaderDetails->outputSignature)
       {
         if(s.stream > 0)
         {
@@ -697,7 +697,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         }
       }
 
-      for(const SigParameter &s : shader->outputSignature)
+      for(const SigParameter &s : m_ShaderDetails->outputSignature)
       {
         QString name = s.varName.isEmpty()
                            ? QString(s.semanticName)

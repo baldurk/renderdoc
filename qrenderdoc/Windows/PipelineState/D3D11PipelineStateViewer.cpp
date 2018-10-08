@@ -3135,6 +3135,8 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
     return;
 
   ShaderReflection *shaderDetails = m_Ctx.CurD3D11PipelineState()->computeShader.reflection;
+  const ShaderBindpointMapping &bindMapping =
+      m_Ctx.CurD3D11PipelineState()->computeShader.bindpointMapping;
 
   if(!shaderDetails)
     return;
@@ -3165,41 +3167,47 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
       {(uint32_t)ui->threadX->value(), (uint32_t)ui->threadY->value(), (uint32_t)ui->threadZ->value()},
   };
 
-  m_Ctx.Replay().AsyncInvoke([this, thread](IReplayController *r) {
-    ShaderDebugTrace *trace = r->DebugThread(thread.g, thread.t);
+  bool done = false;
+  ShaderDebugTrace *trace = NULL;
+
+  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, thread](IReplayController *r) {
+    trace = r->DebugThread(thread.g, thread.t);
 
     if(trace->states.isEmpty())
     {
       r->FreeTrace(trace);
-
-      GUIInvoke::call(this, [this]() {
-        RDDialog::critical(
-            this, tr("Error debugging"),
-            tr("Error debugging thread - make sure a valid group and thread is selected"));
-      });
-      return;
+      trace = NULL;
     }
 
-    QString debugContext = lit("Group [%1,%2,%3] Thread [%4,%5,%6]")
-                               .arg(thread.g[0])
-                               .arg(thread.g[1])
-                               .arg(thread.g[2])
-                               .arg(thread.t[0])
-                               .arg(thread.t[1])
-                               .arg(thread.t[2]);
-
-    GUIInvoke::call(this, [this, debugContext, trace]() {
-
-      const ShaderReflection *shaderDetails =
-          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
-      const ShaderBindpointMapping &bindMapping =
-          m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
-
-      // viewer takes ownership of the trace
-      IShaderViewer *s =
-          m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(), trace, debugContext);
-
-      m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
-    });
+    done = true;
   });
+
+  QString debugContext = lit("Group [%1,%2,%3] Thread [%4,%5,%6]")
+                             .arg(thread.g[0])
+                             .arg(thread.g[1])
+                             .arg(thread.g[2])
+                             .arg(thread.t[0])
+                             .arg(thread.t[1])
+                             .arg(thread.t[2]);
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; !done && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Debugging %1").arg(debugContext), [&done]() { return done; });
+
+  if(!trace)
+  {
+    RDDialog::critical(
+        this, tr("Error debugging"),
+        tr("Error debugging thread - make sure a valid group and thread is selected"));
+    return;
+  }
+
+  // viewer takes ownership of the trace
+  IShaderViewer *s =
+      m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(), trace, debugContext);
+
+  m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }

@@ -3532,34 +3532,48 @@ void TextureViewer::on_debugPixelContext_clicked()
   if(m_TexDisplay.flipY)
     y = (int)(mipHeight - 1) - y;
 
-  m_Ctx.Replay().AsyncInvoke([this, x, y](IReplayController *r) {
-    ShaderDebugTrace *trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
+  bool done = false;
+  ShaderDebugTrace *trace = NULL;
+
+  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y](IReplayController *r) {
+    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
 
     if(trace->states.isEmpty())
     {
       r->FreeTrace(trace);
-
-      // if we couldn't debug the pixel on this event, open up a pixel history
-      GUIInvoke::call(this, [this]() { on_pixelHistory_clicked(); });
-      return;
+      trace = NULL;
     }
 
-    GUIInvoke::call(this, [this, x, y, trace]() {
-      QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
+    done = true;
 
-      const ShaderReflection *shaderDetails =
-          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
-      const ShaderBindpointMapping &bindMapping =
-          m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
-      ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
-
-      // viewer takes ownership of the trace
-      IShaderViewer *s =
-          m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
-
-      m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
-    });
   });
+
+  QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; !done && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Debugging %1").arg(debugContext), [&done]() { return done; });
+
+  // if we couldn't debug the pixel on this event, open up a pixel history
+  if(!trace)
+  {
+    on_pixelHistory_clicked();
+    return;
+  }
+
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+  const ShaderBindpointMapping &bindMapping =
+      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
+  ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
+
+  // viewer takes ownership of the trace
+  IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
+
+  m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }
 
 void TextureViewer::on_pixelHistory_clicked()

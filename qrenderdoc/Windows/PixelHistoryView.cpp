@@ -681,34 +681,48 @@ void PixelHistoryView::startDebug(EventTag tag)
 {
   m_Ctx.SetEventID({this}, tag.eventId, tag.eventId);
 
+  bool done = false;
   ShaderDebugTrace *trace = NULL;
 
-  m_Ctx.Replay().BlockInvoke([this, &trace, tag](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, tag](IReplayController *r) {
     trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx,
                           tag.primitive);
+
+    if(trace->states.isEmpty())
+    {
+      r->FreeTrace(trace);
+      trace = NULL;
+    }
+
+    done = true;
   });
 
-  if(trace->states.isEmpty())
+  QString debugContext =
+      QFormatStr("Pixel %1,%2 @ %3").arg(m_Pixel.x()).arg(m_Pixel.y()).arg(tag.eventId);
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; !done && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Debugging %1").arg(debugContext), [&done]() { return done; });
+
+  if(!trace)
   {
     RDDialog::critical(this, tr("Debug Error"), tr("Error debugging pixel."));
-    m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });
     return;
   }
 
-  GUIInvoke::call(this, [this, trace]() {
-    QString debugContext = QFormatStr("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+  const ShaderBindpointMapping &bindMapping =
+      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
+  ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
 
-    const ShaderReflection *shaderDetails =
-        m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
-    const ShaderBindpointMapping &bindMapping =
-        m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
-    ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
+  // viewer takes ownership of the trace
+  IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
 
-    // viewer takes ownership of the trace
-    IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
-
-    m_Ctx.AddDockWindow(s->Widget(), DockReference::MainToolArea, NULL);
-  });
+  m_Ctx.AddDockWindow(s->Widget(), DockReference::MainToolArea, NULL);
 }
 
 void PixelHistoryView::jumpToPrimitive(EventTag tag)
