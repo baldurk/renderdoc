@@ -912,6 +912,211 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
   button->setMenu(menu);
 }
 
+static uint32_t byteSize(const ResourceFormat &fmt)
+{
+  if(fmt.Special())
+  {
+    switch(fmt.type)
+    {
+      case ResourceFormatType::R9G9B9E5:
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1:
+      case ResourceFormatType::R4G4B4A4:
+      case ResourceFormatType::R4G4:
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7:
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::D24S8:
+      case ResourceFormatType::D32S8:
+      case ResourceFormatType::S8:
+      case ResourceFormatType::YUV:
+      case ResourceFormatType::PVRTC: return ~0U;
+      case ResourceFormatType::R10G10B10A2:
+      case ResourceFormatType::R11G11B10: return 4;
+    }
+  }
+
+  return fmt.compByteWidth * fmt.compCount;
+}
+
+static QString padding(uint32_t bytes)
+{
+  if(bytes == 0)
+    return QString();
+
+  QString ret;
+
+  if(bytes > 4)
+  {
+    ret += lit("xint pad[%1];").arg(bytes / 4);
+
+    bytes = bytes % 4;
+  }
+
+  if(bytes == 3)
+    ret += lit("xshort pad; xbyte pad;");
+  else if(bytes == 2)
+    ret += lit("xshort pad;");
+  else if(bytes == 1)
+    ret += lit("xbyte pad;");
+
+  return ret + lit("\n");
+}
+
+QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
+{
+  rdcarray<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
+  rdcarray<VertexInputAttribute> attrs = m_Ctx.CurPipelineState().GetVertexInputs();
+
+  if(slot >= vbs.size())
+    return tr("// Unbound vertex buffer slot %1").arg(slot);
+
+  uint32_t stride = vbs[slot].byteStride;
+
+  // filter attributes to only the ones enabled and using this slot
+  for(size_t i = 0; i < attrs.size();)
+  {
+    if(!attrs[i].used || attrs[i].vertexBuffer != (int)slot)
+    {
+      attrs.erase(i);
+      // continue with same i
+    }
+    else
+    {
+      // move to next i
+      i++;
+    }
+  }
+
+  // we now have all attributes in this buffer. Sort by offset
+  std::sort(attrs.begin(), attrs.end(),
+            [](const VertexInputAttribute &a, const VertexInputAttribute &b) {
+              return a.byteOffset < b.byteOffset;
+            });
+
+  // ensure we don't have any overlap between attributes or with the stride
+  for(size_t i = 0; i < attrs.size(); i++)
+  {
+    uint32_t cursz = byteSize(attrs[i].format);
+    if(cursz == 0)
+      return tr("// Unhandled vertex attribute type '%1'").arg(ToQStr(attrs[i].format.type));
+
+    // for all but the first attribute, ensure no overlaps with previous. We allow identical
+    // elements
+    if(i > 0)
+    {
+      uint32_t prevsz = byteSize(attrs[i - 1].format);
+
+      if((attrs[i - 1].byteOffset != attrs[i].byteOffset || cursz != prevsz) &&
+         attrs[i - 1].byteOffset + prevsz > attrs[i].byteOffset)
+        return tr("// vertex attributes overlapping, no automatic format available");
+    }
+
+    if(i + 1 == attrs.size())
+    {
+      // for the last attribute, ensure the total size doesn't overlap stride
+      if(attrs[i].byteOffset + cursz > stride && stride > 0)
+        return tr("// vertex stride %1 less than total data fetched %1")
+            .arg(stride)
+            .arg(attrs[i].byteOffset + cursz);
+    }
+  }
+
+  QString format;
+
+  uint32_t offset = 0;
+
+  for(size_t i = 0; i < attrs.size(); i++)
+  {
+    // we disallowed overlaps above, but we do allow *duplicates*. So if our offset has already
+    // passed, silently skip this element.
+    if(attrs[i].byteOffset < offset)
+      continue;
+
+    // declare any padding from previous element to this one
+    format += padding(attrs[i].byteOffset - offset);
+
+    const ResourceFormat &fmt = attrs[i].format;
+
+    offset += byteSize(fmt);
+
+    if(fmt.Special())
+    {
+      switch(fmt.type)
+      {
+        case ResourceFormatType::R10G10B10A2:
+          if(fmt.compType == CompType::UInt)
+            format += lit("uintten");
+          if(fmt.compType == CompType::UNorm)
+            format += lit("unormten");
+          break;
+        case ResourceFormatType::R11G11B10: format += lit("floateleven"); break;
+        default: format += tr("// unknown type "); break;
+      }
+    }
+    else
+    {
+      QChar widthchar[] = {
+          QLatin1Char('?'), QLatin1Char('b'), QLatin1Char('h'), QLatin1Char('?'), QLatin1Char('f'),
+      };
+
+      if(fmt.compType == CompType::UNorm)
+      {
+        format += lit("unorm%1").arg(widthchar[fmt.compByteWidth]);
+      }
+      else if(fmt.compType == CompType::SNorm)
+      {
+        format += lit("snorm%1").arg(widthchar[fmt.compByteWidth]);
+      }
+      else
+      {
+        if(fmt.compType == CompType::UInt)
+          format += lit("u");
+
+        if(fmt.compByteWidth == 1)
+        {
+          format += lit("byte");
+        }
+        else if(fmt.compByteWidth == 2)
+        {
+          if(fmt.compType == CompType::Float)
+            format += lit("half");
+          else
+            format += lit("short");
+        }
+        else if(fmt.compByteWidth == 4)
+        {
+          if(fmt.compType == CompType::Float)
+            format += lit("float");
+          else
+            format += lit("int");
+        }
+        else if(fmt.compByteWidth == 8)
+        {
+          format += lit("double");
+        }
+      }
+
+      format += QString::number(fmt.compCount);
+    }
+
+    format += QFormatStr(" %1;\n").arg(QString(attrs[i].name));
+  }
+
+  if(stride > 0)
+    format += padding(stride - offset);
+
+  return format;
+}
+
 bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 {
   if(!shader)

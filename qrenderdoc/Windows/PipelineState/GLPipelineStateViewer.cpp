@@ -36,14 +36,16 @@
 struct GLVBIBTag
 {
   GLVBIBTag() { offset = 0; }
-  GLVBIBTag(ResourceId i, uint64_t offs)
+  GLVBIBTag(ResourceId i, uint64_t offs, QString f = QString())
   {
     id = i;
     offset = offs;
+    format = f;
   }
 
   ResourceId id;
   uint64_t offset;
+  QString format;
 };
 
 Q_DECLARE_METATYPE(GLVBIBTag);
@@ -1293,8 +1295,22 @@ void GLPipelineStateViewer::setState()
                                                      draw ? draw->indexByteWidth : 0, 0, 0,
                                                      (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(
-          state.vertexInput.indexBuffer, draw ? draw->indexOffset * draw->indexByteWidth : 0)));
+      QString iformat;
+      if(draw)
+      {
+        if(draw->indexByteWidth == 1)
+          iformat = lit("ubyte");
+        else if(draw->indexByteWidth == 2)
+          iformat = lit("ushort");
+        else if(draw->indexByteWidth == 4)
+          iformat = lit("uint");
+
+        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+      }
+
+      node->setTag(QVariant::fromValue(GLVBIBTag(state.vertexInput.indexBuffer,
+                                                 draw ? draw->indexOffset * draw->indexByteWidth : 0,
+                                                 iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1315,8 +1331,22 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Element"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(
-          state.vertexInput.indexBuffer, draw ? draw->indexOffset * draw->indexByteWidth : 0)));
+      QString iformat;
+      if(draw)
+      {
+        if(draw->indexByteWidth == 1)
+          iformat = lit("ubyte");
+        else if(draw->indexByteWidth == 2)
+          iformat = lit("ushort");
+        else if(draw->indexByteWidth == 4)
+          iformat = lit("uint");
+
+        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+      }
+
+      node->setTag(QVariant::fromValue(GLVBIBTag(state.vertexInput.indexBuffer,
+                                                 draw ? draw->indexOffset * draw->indexByteWidth : 0,
+                                                 iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -1348,7 +1378,8 @@ void GLPipelineStateViewer::setState()
           new RDTreeWidgetItem({i, v.resourceId, v.byteStride, (qulonglong)offset,
                                 v.instanceDivisor, (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(v.resourceId, v.byteOffset)));
+      node->setTag(QVariant::fromValue(
+          GLVBIBTag(v.resourceId, v.byteOffset, m_Common.GetVBufferFormatString(i))));
 
       if(!filledSlot)
       {
@@ -2185,7 +2216,7 @@ void GLPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *item, i
 
     if(buf.id != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id);
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id, buf.format);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }

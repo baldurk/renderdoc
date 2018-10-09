@@ -38,14 +38,16 @@ Q_DECLARE_METATYPE(SamplerData);
 struct VulkanVBIBTag
 {
   VulkanVBIBTag() { offset = 0; }
-  VulkanVBIBTag(ResourceId i, uint64_t offs)
+  VulkanVBIBTag(ResourceId i, uint64_t offs, QString f = QString())
   {
     id = i;
     offset = offs;
+    format = f;
   }
 
   ResourceId id;
   uint64_t offset;
+  QString format;
 };
 
 Q_DECLARE_METATYPE(VulkanVBIBTag);
@@ -1615,10 +1617,24 @@ void VulkanPipelineStateViewer::setState()
            (qulonglong)state.inputAssembly.indexBuffer.byteOffset,
            draw != NULL ? draw->indexByteWidth : 0, (qulonglong)length, QString()});
 
+      QString iformat;
+      if(draw)
+      {
+        if(draw->indexByteWidth == 1)
+          iformat = lit("ubyte");
+        else if(draw->indexByteWidth == 2)
+          iformat = lit("ushort");
+        else if(draw->indexByteWidth == 4)
+          iformat = lit("uint");
+
+        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+      }
+
       node->setTag(QVariant::fromValue(
           VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
                         state.inputAssembly.indexBuffer.byteOffset +
-                            (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
+                            (draw ? draw->indexOffset * draw->indexByteWidth : 0),
+                        iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1639,9 +1655,24 @@ void VulkanPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Index"), ResourceId(), tr("Index"), lit("-"),
                                                      lit("-"), lit("-"), lit("-"), QString()});
 
+      QString iformat;
+      if(draw)
+      {
+        if(draw->indexByteWidth == 1)
+          iformat = lit("ubyte");
+        else if(draw->indexByteWidth == 2)
+          iformat = lit("ushort");
+        else if(draw->indexByteWidth == 4)
+          iformat = lit("uint");
+
+        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+      }
+
       node->setTag(QVariant::fromValue(
           VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                        draw != NULL ? draw->indexOffset * draw->indexByteWidth : 0)));
+                        state.inputAssembly.indexBuffer.byteOffset +
+                            (draw ? draw->indexOffset * draw->indexByteWidth : 0),
+                        iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -1709,7 +1740,8 @@ void VulkanPipelineStateViewer::setState()
               {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
         node->setTag(QVariant::fromValue(VulkanVBIBTag(
-            vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0)));
+            vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0,
+            m_Common.GetVBufferFormatString(i))));
 
         if(!filledSlot || bind == NULL || vbuff == NULL)
         {
@@ -2280,7 +2312,7 @@ void VulkanPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *ite
 
     if(buf.id != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id);
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id, buf.format);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }

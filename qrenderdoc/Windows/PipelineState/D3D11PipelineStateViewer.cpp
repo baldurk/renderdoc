@@ -37,14 +37,16 @@
 struct D3D11VBIBTag
 {
   D3D11VBIBTag() { offset = 0; }
-  D3D11VBIBTag(ResourceId i, uint64_t offs)
+  D3D11VBIBTag(ResourceId i, uint64_t offs, QString f = QString())
   {
     id = i;
     offset = offs;
+    format = f;
   }
 
   ResourceId id;
   uint64_t offset;
+  QString format;
 };
 
 Q_DECLARE_METATYPE(D3D11VBIBTag);
@@ -1348,10 +1350,24 @@ void D3D11PipelineStateViewer::setState()
           {tr("Index"), state.inputAssembly.indexBuffer.resourceId, draw ? draw->indexByteWidth : 0,
            state.inputAssembly.indexBuffer.byteOffset, (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(
-          D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                       state.inputAssembly.indexBuffer.byteOffset +
-                           (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
+      QString iformat;
+      if(draw)
+      {
+        if(draw->indexByteWidth == 1)
+          iformat = lit("ubyte");
+        else if(draw->indexByteWidth == 2)
+          iformat = lit("ushort");
+        else if(draw->indexByteWidth == 4)
+          iformat = lit("uint");
+
+        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+      }
+
+      node->setTag(
+          QVariant::fromValue(D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                                           state.inputAssembly.indexBuffer.byteOffset +
+                                               (draw ? draw->indexOffset * draw->indexByteWidth : 0),
+                                           iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1372,10 +1388,24 @@ void D3D11PipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(
-          D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                       state.inputAssembly.indexBuffer.byteOffset +
-                           (draw ? draw->indexOffset * draw->indexByteWidth : 0))));
+      QString iformat;
+      if(draw)
+      {
+        if(draw->indexByteWidth == 1)
+          iformat = lit("ubyte");
+        else if(draw->indexByteWidth == 2)
+          iformat = lit("ushort");
+        else if(draw->indexByteWidth == 4)
+          iformat = lit("uint");
+
+        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+      }
+
+      node->setTag(
+          QVariant::fromValue(D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                                           state.inputAssembly.indexBuffer.byteOffset +
+                                               (draw ? draw->indexOffset * draw->indexByteWidth : 0),
+                                           iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -1410,7 +1440,8 @@ void D3D11PipelineStateViewer::setState()
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(D3D11VBIBTag(v.resourceId, v.byteOffset)));
+      node->setTag(QVariant::fromValue(
+          D3D11VBIBTag(v.resourceId, v.byteOffset, m_Common.GetVBufferFormatString(i))));
 
       if(!filledSlot)
       {
@@ -2174,7 +2205,7 @@ void D3D11PipelineStateViewer::on_iaBuffers_itemActivated(RDTreeWidgetItem *item
 
     if(buf.id != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id);
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id, buf.format);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }

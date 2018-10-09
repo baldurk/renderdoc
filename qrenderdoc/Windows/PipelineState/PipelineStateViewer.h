@@ -70,6 +70,8 @@ public:
   void SetupShaderEditButton(QToolButton *button, ResourceId pipelineId, ResourceId shaderId,
                              const ShaderReflection *shaderDetails);
 
+  QString GetVBufferFormatString(uint32_t slot);
+
   void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);
 
