@@ -121,7 +121,9 @@ ID3D11Buffer *D3D11DebugManager::MakeCBuffer(const void *data, size_t size)
 {
   int idx = publicCBufIdx;
 
-  FillCBuffer(PublicCBuffers[idx], data, size);
+  RDCASSERT(size <= PublicCBufferSize, size, PublicCBufferSize);
+
+  FillCBuffer(PublicCBuffers[idx], data, RDCMIN(size, PublicCBufferSize));
 
   publicCBufIdx = (publicCBufIdx + 1) % ARRAY_COUNT(PublicCBuffers);
 
@@ -173,7 +175,7 @@ void D3D11DebugManager::InitCommonResources()
 
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
   {
-    PublicCBuffers[i] = MakeCBuffer(sizeof(float) * 4 * 100);
+    PublicCBuffers[i] = MakeCBuffer(PublicCBufferSize);
     m_pDevice->InternalRef();
     rm->SetInternalResource(PublicCBuffers[i]);
   }

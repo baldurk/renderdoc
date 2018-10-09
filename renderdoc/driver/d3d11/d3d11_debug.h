@@ -165,6 +165,7 @@ private:
   // MakeCBuffer
   int publicCBufIdx = 0;
   ID3D11Buffer *PublicCBuffers[20] = {NULL};
+  static const size_t PublicCBufferSize = sizeof(float) * 1024;
 
   // GetBufferData
   ID3D11Buffer *StageBuffer = NULL;
