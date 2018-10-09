@@ -1296,6 +1296,8 @@ void D3D11PipelineStateViewer::setState()
                                   byteOffs, l.perInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"),
                                   l.instanceDataStepRate, QString()});
 
+        node->setTag(i);
+
         if(usedSlot)
           usedVBuffers[l.inputSlot] = true;
 
@@ -2239,7 +2241,7 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
   {
     RDTreeWidgetItem *item = ui->iaLayouts->topLevelItem(i);
 
-    if((int)IA.layouts[i].inputSlot != slot)
+    if((int)IA.layouts[item->tag().toUInt()].inputSlot != slot)
     {
       item->setBackground(QBrush());
       item->setForeground(QBrush());
@@ -2260,20 +2262,17 @@ void D3D11PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  QModelIndex idx = ui->iaLayouts->indexAt(e->pos());
+  RDTreeWidgetItem *item = ui->iaLayouts->itemAt(e->pos());
 
   vertex_leave(NULL);
 
   const D3D11Pipe::InputAssembly &IA = m_Ctx.CurD3D11PipelineState()->inputAssembly;
 
-  if(idx.isValid())
+  if(item)
   {
-    if(idx.row() >= 0 && idx.row() < IA.layouts.count())
-    {
-      uint32_t buffer = IA.layouts[idx.row()].inputSlot;
+    uint32_t buffer = IA.layouts[item->tag().toUInt()].inputSlot;
 
-      highlightIABind((int)buffer);
-    }
+    highlightIABind((int)buffer);
   }
 }
 

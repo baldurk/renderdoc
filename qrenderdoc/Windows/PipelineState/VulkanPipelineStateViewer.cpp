@@ -1557,6 +1557,8 @@ void VulkanPipelineStateViewer::setState()
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, name, a.location, a.binding, a.format.Name(), a.byteOffset, QString()});
 
+        node->setTag(i);
+
         usedBindings[a.binding] = true;
 
         if(!usedSlot)
@@ -2350,7 +2352,7 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
   {
     RDTreeWidgetItem *item = ui->viAttrs->topLevelItem(i);
 
-    if((int)VI.attributes[i].binding != slot)
+    if((int)VI.attributes[item->tag().toUInt()].binding != slot)
     {
       item->setBackground(QBrush());
       item->setForeground(QBrush());
@@ -2371,20 +2373,17 @@ void VulkanPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  QModelIndex idx = ui->viAttrs->indexAt(e->pos());
+  RDTreeWidgetItem *item = ui->viAttrs->itemAt(e->pos());
 
   vertex_leave(NULL);
 
   const VKPipe::VertexInput &VI = m_Ctx.CurVulkanPipelineState()->vertexInput;
 
-  if(idx.isValid())
+  if(item)
   {
-    if(idx.row() >= 0 && idx.row() < VI.attributes.count())
-    {
-      uint32_t binding = VI.attributes[idx.row()].binding;
+    uint32_t binding = VI.attributes[item->tag().toUInt()].binding;
 
-      highlightIABind((int)binding);
-    }
+    highlightIABind((int)binding);
   }
 }
 

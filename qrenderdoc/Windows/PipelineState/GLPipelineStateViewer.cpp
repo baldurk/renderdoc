@@ -1222,6 +1222,8 @@ void GLPipelineStateViewer::setState()
                                   a.enabled ? QString(a.format.Name()) : genericVal,
                                   a.vertexBufferSlot, a.byteOffset, QString()});
 
+        node->setTag(i);
+
         if(a.enabled)
           usedBindings[a.vertexBufferSlot] = true;
 
@@ -2248,7 +2250,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
   {
     RDTreeWidgetItem *item = ui->viAttrs->topLevelItem(i);
 
-    if((int)VI.attributes[i].vertexBufferSlot != slot)
+    if((int)VI.attributes[item->tag().toUInt()].vertexBufferSlot != slot)
     {
       item->setBackground(QBrush());
       item->setForeground(QBrush());
@@ -2269,20 +2271,17 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  QModelIndex idx = ui->viAttrs->indexAt(e->pos());
+  RDTreeWidgetItem *item = ui->viAttrs->itemAt(e->pos());
 
   vertex_leave(NULL);
 
   const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState()->vertexInput;
 
-  if(idx.isValid())
+  if(item)
   {
-    if(idx.row() >= 0 && idx.row() < VI.attributes.count())
-    {
-      uint32_t buffer = VI.attributes[idx.row()].vertexBufferSlot;
+    uint32_t buffer = VI.attributes[item->tag().toUInt()].vertexBufferSlot;
 
-      highlightIABind((int)buffer);
-    }
+    highlightIABind((int)buffer);
   }
 }
 
