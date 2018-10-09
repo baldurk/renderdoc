@@ -2082,7 +2082,8 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
     {
       if(tex->type == TextureType::Buffer)
       {
-        IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(0, 0, tex->resourceId);
+        IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(
+            0, 0, tex->resourceId, FormatElement::GenerateTextureBufferFormat(*tex));
 
         m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
       }
