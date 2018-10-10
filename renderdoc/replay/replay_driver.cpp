@@ -53,10 +53,16 @@ void DoSerialise(SerialiserType &ser, GetTextureDataParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(GetTextureDataParams);
 
-DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawcallTable,
-                                           rdcarray<DrawcallDescription> &draws,
-                                           DrawcallDescription *parent,
-                                           DrawcallDescription *&previous)
+static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
+{
+  return bool(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::MultiDraw |
+                             DrawFlags::APICalls));
+}
+
+static DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawcallTable,
+                                                  rdcarray<DrawcallDescription> &draws,
+                                                  DrawcallDescription *parent,
+                                                  DrawcallDescription *&previous)
 {
   DrawcallDescription *ret = NULL;
 
@@ -76,8 +82,7 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawca
 
       ret = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
     }
-    else if(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::MultiDraw |
-                           DrawFlags::APICalls))
+    else if(PreviousNextExcludedMarker(draw))
     {
       // don't want to set up previous/next links for markers, but still add them to the table
       // Some markers like Present should have previous/next, but API Calls we also skip
@@ -111,6 +116,53 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawca
   }
 
   return ret;
+}
+
+void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
+                           rdcarray<DrawcallDescription> &draws)
+{
+  DrawcallDescription *previous = NULL;
+  SetupDrawcallPointers(drawcallTable, draws, NULL, previous);
+
+  // markers don't enter the previous/next chain, but we still want pointers for them that point to
+  // the next or previous actual draw (skipping any markers). This means that draw->next->previous
+  // != draw sometimes, but it's more useful than draw->next being NULL in the middle of the list.
+  // This enables searching for a marker string and then being able to navigate from there and
+  // joining the 'real' linked list after one step.
+
+  previous = NULL;
+  std::vector<DrawcallDescription *> markers;
+
+  for(DrawcallDescription *draw : drawcallTable)
+  {
+    if(!draw)
+      continue;
+
+    bool marker = PreviousNextExcludedMarker(draw);
+
+    if(marker)
+    {
+      // point the previous pointer to the last non-marker draw we got. If we haven't hit one yet
+      // because this is near the start, this will just be NULL.
+      draw->previous = previous;
+
+      // because there can be multiple markers consecutively we want to point all of their nexts to
+      // the next draw we encounter. Accumulate this list, though in most cases it will only be 1
+      // long as it's uncommon to have multiple markers one after the other
+      markers.push_back(draw);
+    }
+    else
+    {
+      // the next markers we encounter should point their previous to this.
+      previous = draw;
+
+      // all previous markers point to this one
+      for(DrawcallDescription *m : markers)
+        m->next = draw;
+
+      markers.clear();
+    }
+  }
 }
 
 void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,

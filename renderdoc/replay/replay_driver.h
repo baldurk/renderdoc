@@ -226,10 +226,8 @@ public:
 };
 
 // utility functions useful in any driver implementation
-DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
-                                           rdcarray<DrawcallDescription> &draws,
-                                           DrawcallDescription *parent,
-                                           DrawcallDescription *&previous);
+void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
+                           rdcarray<DrawcallDescription> &draws);
 
 // for hardware/APIs that can't do line rasterization, manually expand any triangle input topology
 // to a linestrip with strip restart indices.

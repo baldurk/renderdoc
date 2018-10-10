@@ -1081,8 +1081,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   if(!IsStructuredExporting(m_State))
   {
-    DrawcallDescription *previous = NULL;
-    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
+    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
   }
 
 #if ENABLED(RDOC_DEVEL)

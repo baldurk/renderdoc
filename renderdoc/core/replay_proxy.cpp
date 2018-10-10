@@ -387,8 +387,7 @@ FrameRecord ReplayProxy::Proxied_GetFrameRecord(ParamSerialiser &paramser, Retur
   if(paramser.IsWriting())
   {
     // re-configure the drawcall pointers, since they will be invalid
-    DrawcallDescription *previous = NULL;
-    SetupDrawcallPointers(m_Drawcalls, ret.drawcallList, NULL, previous);
+    SetupDrawcallPointers(m_Drawcalls, ret.drawcallList);
   }
 
   return ret;

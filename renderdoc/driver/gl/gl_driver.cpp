@@ -4523,8 +4523,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     GetFrameRecord().drawcallList = m_ParentDrawcall.children;
     GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
-    DrawcallDescription *previous = NULL;
-    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
+    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
 
     // it's easier to remove duplicate usages here than check it as we go.
     // this means if textures are bound in multiple places in the same draw

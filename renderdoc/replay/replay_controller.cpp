@@ -496,9 +496,8 @@ void ReplayController::AddFakeMarkers()
   m_FrameRecord.drawcallList = ret;
 
   // re-configure the previous/next pointeres
-  DrawcallDescription *previous = NULL;
   m_Drawcalls.clear();
-  SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList, NULL, previous);
+  SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList);
 }
 
 rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounter> &counters)
@@ -1936,9 +1935,8 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   if(m_FrameRecord.drawcallList.empty())
     return ReplayStatus::APIReplayFailed;
 
-  DrawcallDescription *previous = NULL;
   m_Drawcalls.clear();
-  SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList, NULL, previous);
+  SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList);
 
   return ReplayStatus::Succeeded;
 }
