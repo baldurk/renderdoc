@@ -2246,9 +2246,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
 
     if(!shaderRes.variableType.members.isEmpty())
     {
-      format += lit("{\n") +
-                formatMembers(1, QString(), shaderRes.variableType.members.back().type.members) +
-                lit("}");
+      format += lit("{\n") + formatMembers(1, QString(), shaderRes.variableType.members) + lit("}");
     }
     else
     {
