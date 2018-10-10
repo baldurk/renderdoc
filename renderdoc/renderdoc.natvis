@@ -52,18 +52,18 @@
   <DisplayString Condition="type.basetype == SDBasic::Float">{name} = {data.basic.d}</DisplayString>
   <DisplayString Condition="type.basetype == SDBasic::Boolean">{name} = {data.basic.b}</DisplayString>
   <DisplayString Condition="type.basetype == SDBasic::Character">{name} = {data.basic.c}</DisplayString>
-  <DisplayString Condition="type.basetype == SDBasic::ResourceId">{name} = {data.basic.id}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::Resource">{name} = {data.basic.id}</DisplayString>
   <DisplayString Condition="type.basetype == SDBasic::Array">{name} = {type.name}[]</DisplayString>
   <DisplayString>SDObject: {type.name} {name}</DisplayString>
   <Expand>
    <Item Condition="type.basetype == SDBasic::Array" Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
-   <ArrayItems Condition="type.basetype == SDBasic::Array">
+   <ArrayItems Condition="type.basetype == SDBasic::Array || type.basetype == SDBasic::Struct">
     <Size>data.children.usedCount</Size>
     <ValuePointer>data.children.elems</ValuePointer>
    </ArrayItems>
-   <Item Condition="type.basetype != SDBasic::Array" Name="type">type</Item>
-   <Item Condition="type.basetype != SDBasic::Array" Name="name">name</Item>
-   <Item Condition="type.basetype != SDBasic::Array" Name="data">data</Item>
+   <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="type">type</Item>
+   <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="name">name</Item>
+   <Item Condition="type.basetype != SDBasic::Array &amp;&amp; type.basetype != SDBasic::Struct" Name="data">data</Item>
   </Expand>
  </Type>
  <Type Name="SDChunk">
