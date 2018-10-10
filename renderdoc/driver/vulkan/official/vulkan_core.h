@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 85
+#define VK_HEADER_VERSION 87
 
 
 #define VK_NULL_HANDLE 0
@@ -427,10 +427,12 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT = 1000178000,
     VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT = 1000178001,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT = 1000178002,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR = 1000180000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD = 1000185000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT = 1000190000,
     VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT = 1000190001,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT = 1000190002,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR = 1000196000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_NV = 1000201000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV = 1000202000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV = 1000202001,
@@ -441,6 +443,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV = 1000206000,
     VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV = 1000206001,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR = 1000211000,
+    VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA = 1000214000,
     VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
     VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO_KHR = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
@@ -6044,6 +6047,60 @@ typedef struct VkPhysicalDevice8BitStorageFeaturesKHR {
 
 
 
+#define VK_KHR_shader_atomic_int64 1
+#define VK_KHR_SHADER_ATOMIC_INT64_SPEC_VERSION 1
+#define VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME "VK_KHR_shader_atomic_int64"
+
+typedef struct VkPhysicalDeviceShaderAtomicInt64FeaturesKHR {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           shaderBufferInt64Atomics;
+    VkBool32           shaderSharedInt64Atomics;
+} VkPhysicalDeviceShaderAtomicInt64FeaturesKHR;
+
+
+
+#define VK_KHR_driver_properties 1
+#define VK_MAX_DRIVER_NAME_SIZE_KHR       256
+#define VK_MAX_DRIVER_INFO_SIZE_KHR       256
+#define VK_KHR_DRIVER_PROPERTIES_SPEC_VERSION 1
+#define VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME "VK_KHR_driver_properties"
+
+
+typedef enum VkDriverIdKHR {
+    VK_DRIVER_ID_AMD_PROPRIETARY_KHR = 1,
+    VK_DRIVER_ID_AMD_OPEN_SOURCE_KHR = 2,
+    VK_DRIVER_ID_MESA_RADV_KHR = 3,
+    VK_DRIVER_ID_NVIDIA_PROPRIETARY_KHR = 4,
+    VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS_KHR = 5,
+    VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA_KHR = 6,
+    VK_DRIVER_ID_IMAGINATION_PROPRIETARY_KHR = 7,
+    VK_DRIVER_ID_QUALCOMM_PROPRIETARY_KHR = 8,
+    VK_DRIVER_ID_ARM_PROPRIETARY_KHR = 9,
+    VK_DRIVER_ID_BEGIN_RANGE_KHR = VK_DRIVER_ID_AMD_PROPRIETARY_KHR,
+    VK_DRIVER_ID_END_RANGE_KHR = VK_DRIVER_ID_ARM_PROPRIETARY_KHR,
+    VK_DRIVER_ID_RANGE_SIZE_KHR = (VK_DRIVER_ID_ARM_PROPRIETARY_KHR - VK_DRIVER_ID_AMD_PROPRIETARY_KHR + 1),
+    VK_DRIVER_ID_MAX_ENUM_KHR = 0x7FFFFFFF
+} VkDriverIdKHR;
+
+typedef struct VkConformanceVersionKHR {
+    uint8_t    major;
+    uint8_t    minor;
+    uint8_t    subminor;
+    uint8_t    patch;
+} VkConformanceVersionKHR;
+
+typedef struct VkPhysicalDeviceDriverPropertiesKHR {
+    VkStructureType            sType;
+    void*                      pNext;
+    uint32_t                   driverID;
+    char                       driverName[VK_MAX_DRIVER_NAME_SIZE_KHR];
+    char                       driverInfo[VK_MAX_DRIVER_INFO_SIZE_KHR];
+    VkConformanceVersionKHR    conformanceVersion;
+} VkPhysicalDeviceDriverPropertiesKHR;
+
+
+
 #define VK_KHR_vulkan_memory_model 1
 #define VK_KHR_VULKAN_MEMORY_MODEL_SPEC_VERSION 2
 #define VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME "VK_KHR_vulkan_memory_model"
@@ -8044,13 +8101,13 @@ typedef void (VKAPI_PTR *PFN_vkDestroyAccelerationStructureNVX)(VkDevice device,
 typedef void (VKAPI_PTR *PFN_vkGetAccelerationStructureMemoryRequirementsNVX)(VkDevice device, const VkAccelerationStructureMemoryRequirementsInfoNVX* pInfo, VkMemoryRequirements2KHR* pMemoryRequirements);
 typedef void (VKAPI_PTR *PFN_vkGetAccelerationStructureScratchMemoryRequirementsNVX)(VkDevice device, const VkAccelerationStructureMemoryRequirementsInfoNVX* pInfo, VkMemoryRequirements2KHR* pMemoryRequirements);
 typedef VkResult (VKAPI_PTR *PFN_vkBindAccelerationStructureMemoryNVX)(VkDevice device, uint32_t bindInfoCount, const VkBindAccelerationStructureMemoryInfoNVX* pBindInfos);
-typedef void (VKAPI_PTR *PFN_vkCmdBuildAccelerationStructureNVX)(VkCommandBuffer cmdBuf, VkAccelerationStructureTypeNVX type, uint32_t instanceCount, VkBuffer instanceData, VkDeviceSize instanceOffset, uint32_t geometryCount, const VkGeometryNVX* pGeometries, VkBuildAccelerationStructureFlagsNVX flags, VkBool32 update, VkAccelerationStructureNVX dst, VkAccelerationStructureNVX src, VkBuffer scratch, VkDeviceSize scratchOffset);
-typedef void (VKAPI_PTR *PFN_vkCmdCopyAccelerationStructureNVX)(VkCommandBuffer cmdBuf, VkAccelerationStructureNVX dst, VkAccelerationStructureNVX src, VkCopyAccelerationStructureModeNVX mode);
-typedef void (VKAPI_PTR *PFN_vkCmdTraceRaysNVX)(VkCommandBuffer cmdBuf, VkBuffer raygenShaderBindingTableBuffer, VkDeviceSize raygenShaderBindingOffset, VkBuffer missShaderBindingTableBuffer, VkDeviceSize missShaderBindingOffset, VkDeviceSize missShaderBindingStride, VkBuffer hitShaderBindingTableBuffer, VkDeviceSize hitShaderBindingOffset, VkDeviceSize hitShaderBindingStride, uint32_t width, uint32_t height);
+typedef void (VKAPI_PTR *PFN_vkCmdBuildAccelerationStructureNVX)(VkCommandBuffer commandBuffer, VkAccelerationStructureTypeNVX type, uint32_t instanceCount, VkBuffer instanceData, VkDeviceSize instanceOffset, uint32_t geometryCount, const VkGeometryNVX* pGeometries, VkBuildAccelerationStructureFlagsNVX flags, VkBool32 update, VkAccelerationStructureNVX dst, VkAccelerationStructureNVX src, VkBuffer scratch, VkDeviceSize scratchOffset);
+typedef void (VKAPI_PTR *PFN_vkCmdCopyAccelerationStructureNVX)(VkCommandBuffer commandBuffer, VkAccelerationStructureNVX dst, VkAccelerationStructureNVX src, VkCopyAccelerationStructureModeNVX mode);
+typedef void (VKAPI_PTR *PFN_vkCmdTraceRaysNVX)(VkCommandBuffer commandBuffer, VkBuffer raygenShaderBindingTableBuffer, VkDeviceSize raygenShaderBindingOffset, VkBuffer missShaderBindingTableBuffer, VkDeviceSize missShaderBindingOffset, VkDeviceSize missShaderBindingStride, VkBuffer hitShaderBindingTableBuffer, VkDeviceSize hitShaderBindingOffset, VkDeviceSize hitShaderBindingStride, uint32_t width, uint32_t height);
 typedef VkResult (VKAPI_PTR *PFN_vkCreateRaytracingPipelinesNVX)(VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkRaytracingPipelineCreateInfoNVX* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines);
 typedef VkResult (VKAPI_PTR *PFN_vkGetRaytracingShaderHandlesNVX)(VkDevice device, VkPipeline pipeline, uint32_t firstGroup, uint32_t groupCount, size_t dataSize, void* pData);
 typedef VkResult (VKAPI_PTR *PFN_vkGetAccelerationStructureHandleNVX)(VkDevice device, VkAccelerationStructureNVX accelerationStructure, size_t dataSize, void* pData);
-typedef void (VKAPI_PTR *PFN_vkCmdWriteAccelerationStructurePropertiesNVX)(VkCommandBuffer cmdBuf, VkAccelerationStructureNVX accelerationStructure, VkQueryType queryType, VkQueryPool queryPool, uint32_t query);
+typedef void (VKAPI_PTR *PFN_vkCmdWriteAccelerationStructurePropertiesNVX)(VkCommandBuffer commandBuffer, VkAccelerationStructureNVX accelerationStructure, VkQueryType queryType, VkQueryPool queryPool, uint32_t query);
 typedef VkResult (VKAPI_PTR *PFN_vkCompileDeferredNVX)(VkDevice device, VkPipeline pipeline, uint32_t shader);
 
 #ifndef VK_NO_PROTOTYPES
@@ -8081,7 +8138,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindAccelerationStructureMemoryNVX(
     const VkBindAccelerationStructureMemoryInfoNVX* pBindInfos);
 
 VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructureNVX(
-    VkCommandBuffer                             cmdBuf,
+    VkCommandBuffer                             commandBuffer,
     VkAccelerationStructureTypeNVX              type,
     uint32_t                                    instanceCount,
     VkBuffer                                    instanceData,
@@ -8096,13 +8153,13 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructureNVX(
     VkDeviceSize                                scratchOffset);
 
 VKAPI_ATTR void VKAPI_CALL vkCmdCopyAccelerationStructureNVX(
-    VkCommandBuffer                             cmdBuf,
+    VkCommandBuffer                             commandBuffer,
     VkAccelerationStructureNVX                  dst,
     VkAccelerationStructureNVX                  src,
     VkCopyAccelerationStructureModeNVX          mode);
 
 VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysNVX(
-    VkCommandBuffer                             cmdBuf,
+    VkCommandBuffer                             commandBuffer,
     VkBuffer                                    raygenShaderBindingTableBuffer,
     VkDeviceSize                                raygenShaderBindingOffset,
     VkBuffer                                    missShaderBindingTableBuffer,
@@ -8137,7 +8194,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetAccelerationStructureHandleNVX(
     void*                                       pData);
 
 VKAPI_ATTR void VKAPI_CALL vkCmdWriteAccelerationStructurePropertiesNVX(
-    VkCommandBuffer                             cmdBuf,
+    VkCommandBuffer                             commandBuffer,
     VkAccelerationStructureNVX                  accelerationStructure,
     VkQueryType                                 queryType,
     VkQueryPool                                 queryPool,

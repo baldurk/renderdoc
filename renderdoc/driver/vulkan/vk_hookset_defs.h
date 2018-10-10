@@ -25,6 +25,7 @@
 #pragma once
 
 #include "official/vk_layer.h"
+#include "official/vk_layer_dispatch_table.h"
 
 // extensions made core in 1.1
 #define VK11 VK_MAKE_VERSION(1, 1, 0)

@@ -525,11 +525,39 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkMergeValidationCachesEXT MergeValidationCachesEXT;
     PFN_vkGetValidationCacheDataEXT GetValidationCacheDataEXT;
 
+    // ---- VK_NV_shading_rate_image extension commands
+    PFN_vkCmdBindShadingRateImageNV CmdBindShadingRateImageNV;
+    PFN_vkCmdSetViewportShadingRatePaletteNV CmdSetViewportShadingRatePaletteNV;
+    PFN_vkCmdSetCoarseSampleOrderNV CmdSetCoarseSampleOrderNV;
+
+    // ---- VK_NVX_raytracing extension commands
+    PFN_vkCreateAccelerationStructureNVX CreateAccelerationStructureNVX;
+    PFN_vkDestroyAccelerationStructureNVX DestroyAccelerationStructureNVX;
+    PFN_vkGetAccelerationStructureMemoryRequirementsNVX GetAccelerationStructureMemoryRequirementsNVX;
+    PFN_vkGetAccelerationStructureScratchMemoryRequirementsNVX GetAccelerationStructureScratchMemoryRequirementsNVX;
+    PFN_vkBindAccelerationStructureMemoryNVX BindAccelerationStructureMemoryNVX;
+    PFN_vkCmdBuildAccelerationStructureNVX CmdBuildAccelerationStructureNVX;
+    PFN_vkCmdCopyAccelerationStructureNVX CmdCopyAccelerationStructureNVX;
+    PFN_vkCmdTraceRaysNVX CmdTraceRaysNVX;
+    PFN_vkCreateRaytracingPipelinesNVX CreateRaytracingPipelinesNVX;
+    PFN_vkGetRaytracingShaderHandlesNVX GetRaytracingShaderHandlesNVX;
+    PFN_vkGetAccelerationStructureHandleNVX GetAccelerationStructureHandleNVX;
+    PFN_vkCmdWriteAccelerationStructurePropertiesNVX CmdWriteAccelerationStructurePropertiesNVX;
+    PFN_vkCompileDeferredNVX CompileDeferredNVX;
+
     // ---- VK_EXT_external_memory_host extension commands
     PFN_vkGetMemoryHostPointerPropertiesEXT GetMemoryHostPointerPropertiesEXT;
 
     // ---- VK_AMD_buffer_marker extension commands
     PFN_vkCmdWriteBufferMarkerAMD CmdWriteBufferMarkerAMD;
+
+    // ---- VK_NV_mesh_shader extension commands
+    PFN_vkCmdDrawMeshTasksNV CmdDrawMeshTasksNV;
+    PFN_vkCmdDrawMeshTasksIndirectNV CmdDrawMeshTasksIndirectNV;
+    PFN_vkCmdDrawMeshTasksIndirectCountNV CmdDrawMeshTasksIndirectCountNV;
+
+    // ---- VK_NV_scissor_exclusive extension commands
+    PFN_vkCmdSetExclusiveScissorNV CmdSetExclusiveScissorNV;
 
     // ---- VK_NV_device_diagnostic_checkpoints extension commands
     PFN_vkCmdSetCheckpointNV CmdSetCheckpointNV;
