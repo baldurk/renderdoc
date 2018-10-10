@@ -23,7 +23,97 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
-#include "../vk_debug.h"
+
+VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
+                                                     VkCommandBuffer commandBuffer,
+                                                     VkBuffer dataBuffer, VkDeviceSize dataOffset,
+                                                     uint32_t count, uint32_t stride,
+                                                     VkBuffer counterBuffer,
+                                                     VkDeviceSize counterOffset)
+{
+  if(count == 0)
+    return {};
+
+  VkBufferCreateInfo bufInfo = {
+      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0, 0, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+  };
+
+  VkDeviceSize dataSize = 0;
+
+  switch(type)
+  {
+    case VkIndirectPatchType::NoPatch: return {};
+    case VkIndirectPatchType::DispatchIndirect: dataSize = sizeof(VkDispatchIndirectCommand); break;
+    case VkIndirectPatchType::DrawIndirect:
+    case VkIndirectPatchType::DrawIndirectCount:
+      dataSize = sizeof(VkDrawIndirectCommand) + (count > 0 ? count - 1 : 0) * stride;
+      break;
+    case VkIndirectPatchType::DrawIndexedIndirect:
+    case VkIndirectPatchType::DrawIndexedIndirectCount:
+      dataSize = sizeof(VkDrawIndexedIndirectCommand) + (count > 0 ? count - 1 : 0) * stride;
+      break;
+  }
+
+  bufInfo.size = AlignUp16(dataSize);
+
+  if(counterBuffer != VK_NULL_HANDLE)
+    bufInfo.size += 16;
+
+  VkBuffer paramsbuf = VK_NULL_HANDLE;
+  vkCreateBuffer(m_Device, &bufInfo, NULL, &paramsbuf);
+  MemoryAllocation alloc =
+      AllocateMemoryForResource(paramsbuf, MemoryScope::IndirectReadback, MemoryType::Readback);
+
+  VkResult vkr = ObjDisp(m_Device)->BindBufferMemory(Unwrap(m_Device), Unwrap(paramsbuf),
+                                                     Unwrap(alloc.mem), alloc.offs);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkBufferMemoryBarrier buf = {
+      VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+      NULL,
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+      VK_ACCESS_TRANSFER_READ_BIT,
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
+      Unwrap(dataBuffer),
+      dataOffset,
+      dataSize,
+  };
+
+  ObjDisp(commandBuffer)
+      ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                           VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 1, &buf, 0, NULL);
+
+  VkBufferCopy copy = {dataOffset, 0, dataSize};
+  ObjDisp(commandBuffer)
+      ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(dataBuffer), Unwrap(paramsbuf), 1, &copy);
+
+  if(counterBuffer != VK_NULL_HANDLE)
+  {
+    buf.buffer = Unwrap(counterBuffer);
+    buf.offset = counterOffset;
+    buf.size = 4;
+
+    ObjDisp(commandBuffer)
+        ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 1, &buf, 0, NULL);
+
+    copy.srcOffset = counterOffset;
+    copy.dstOffset = bufInfo.size - 16;
+    copy.size = 4;
+    ObjDisp(commandBuffer)
+        ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(counterBuffer), Unwrap(paramsbuf), 1, &copy);
+  }
+
+  VkIndirectPatchData indirectPatch;
+  indirectPatch.type = type;
+  indirectPatch.alloc = alloc;
+  indirectPatch.count = count;
+  indirectPatch.stride = stride;
+  indirectPatch.buf = paramsbuf;
+
+  return indirectPatch;
+}
 
 bool WrappedVulkan::IsDrawInRenderPass()
 {
@@ -456,20 +546,19 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
     }
     else
     {
+      VkIndirectPatchData indirectPatch = FetchIndirectData(
+          VkIndirectPatchType::DrawIndirect, commandBuffer, buffer, offset, count, stride);
+
       ObjDisp(commandBuffer)
           ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-      bytebuf argbuf;
-      GetDebugManager()->GetBufferData(
-          GetResID(buffer), offset, sizeof(VkDrawIndirectCommand) + (count - 1) * stride, argbuf);
 
       // add on the size we'll need for an indirect buffer in the worst case.
       // Note that we'll only ever be partially replaying one draw at a time, so we only need the
       // worst case.
-      m_IndirectBufferSize =
-          RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndirectCommand) + (count - 1) * stride);
+      m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndirectCommand) +
+                                                              (count > 0 ? count - 1 : 0) * stride);
 
-      string name = "vkCmdDrawIndirect(" + ToStr(count) + ")";
+      string name = "vkCmdDrawIndirect";
 
       if(!IsDrawInRenderPass())
       {
@@ -479,29 +568,38 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                         "buffer without RENDER_PASS_CONTINUE_BIT");
       }
 
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
       // for 'single' draws, don't do complex multi-draw just inline it
       if(count <= 1)
       {
         DrawcallDescription draw;
 
-        if(count == 1)
-        {
-          VkDrawIndirectCommand *args = (VkDrawIndirectCommand *)&argbuf[0];
+        AddEvent();
 
-          if(argbuf.size() >= sizeof(VkDrawIndirectCommand))
-          {
-            name += StringFormat::Fmt(" => <%u, %u>", args->vertexCount, args->instanceCount);
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+        // just copy the metadata
+        fakeChunk->metadata = baseChunk->metadata;
 
-            draw.numIndices = args->vertexCount;
-            draw.numInstances = args->instanceCount;
-            draw.vertexOffset = args->firstVertex;
-            draw.instanceOffset = args->firstInstance;
-          }
-          else
-          {
-            name += " => <?, ?>";
-          }
-        }
+        fakeChunk->AddChild(makeSDObject("drawIndex", 0));
+        fakeChunk->AddChild(makeSDObject("offset", offset));
+
+        SDObject *command = new SDObject("command", "VkDrawIndirectCommand");
+
+        command->type.basetype = SDBasic::Struct;
+        command->type.byteSize = sizeof(VkDrawIndirectCommand);
+
+        // these get filled in at patch time
+        command->AddChild(makeSDUInt32("vertexCount", 0));
+        command->AddChild(makeSDUInt32("instanceCount", 0));
+        command->AddChild(makeSDUInt32("firstVertex", 0));
+        command->AddChild(makeSDUInt32("firstInstance", 0));
+
+        fakeChunk->AddChild(command);
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
 
@@ -511,6 +609,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         AddDrawcall(draw, true);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+        drawNode.indirectPatch = indirectPatch;
 
         drawNode.resourceUsage.push_back(std::make_pair(
             GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
@@ -526,6 +626,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
+      drawNode.indirectPatch = indirectPatch;
+
       drawNode.resourceUsage.push_back(std::make_pair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
@@ -533,34 +635,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
       VkDeviceSize cmdOffs = offset;
 
-      SDChunk *baseChunk = m_StructuredFile->chunks.back();
-
       for(uint32_t i = 0; i < count; i++)
       {
-        VkDrawIndirectCommand params = {};
-        bool valid = false;
-
-        if(cmdOffs + sizeof(VkDrawIndirectCommand) <= argbuf.size())
-        {
-          params = *((VkDrawIndirectCommand *)&argbuf[(size_t)cmdOffs]);
-          valid = true;
-          cmdOffs += stride;
-        }
-
         DrawcallDescription multi;
-        multi.numIndices = params.vertexCount;
-        multi.numInstances = params.instanceCount;
-        multi.vertexOffset = params.firstVertex;
-        multi.instanceOffset = params.firstInstance;
         multi.drawIndex = i;
 
-        multi.name = "vkCmdDrawIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) + ", " +
-                     ToStr(multi.numInstances) + ">)";
+        multi.name = name;
 
         multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multi.name.c_str());
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
         // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
@@ -573,10 +658,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         command->type.basetype = SDBasic::Struct;
         command->type.byteSize = sizeof(VkDrawIndirectCommand);
 
-        command->AddChild(makeSDObject("vertexCount", params.vertexCount));
-        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
-        command->AddChild(makeSDObject("firstVertex", params.firstVertex));
-        command->AddChild(makeSDObject("firstInstance", params.firstInstance));
+        // these get filled in at patch time
+        command->AddChild(makeSDUInt32("vertexCount", 0));
+        command->AddChild(makeSDUInt32("instanceCount", 0));
+        command->AddChild(makeSDUInt32("firstVertex", 0));
+        command->AddChild(makeSDUInt32("firstInstance", 0));
 
         fakeChunk->AddChild(command);
 
@@ -839,21 +925,19 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
     }
     else
     {
+      VkIndirectPatchData indirectPatch = FetchIndirectData(
+          VkIndirectPatchType::DrawIndexedIndirect, commandBuffer, buffer, offset, count, stride);
+
       ObjDisp(commandBuffer)
           ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-      bytebuf argbuf;
-      GetDebugManager()->GetBufferData(GetResID(buffer), offset,
-                                       sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride,
-                                       argbuf);
 
       // add on the size we'll need for an indirect buffer in the worst case.
       // Note that we'll only ever be partially replaying one draw at a time, so we only need the
       // worst case.
-      m_IndirectBufferSize =
-          RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride);
+      m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) +
+                                                              (count > 0 ? count - 1 : 0) * stride);
 
-      string name = "vkCmdDrawIndexedIndirect(" + ToStr(count) + ")";
+      string name = "vkCmdDrawIndexedIndirect";
 
       if(!IsDrawInRenderPass())
       {
@@ -868,26 +952,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       {
         DrawcallDescription draw;
 
-        if(count == 1)
-        {
-          VkDrawIndexedIndirectCommand *args = (VkDrawIndexedIndirectCommand *)&argbuf[0];
-
-          if(argbuf.size() >= sizeof(VkDrawIndexedIndirectCommand))
-          {
-            name += StringFormat::Fmt(" => <%u, %u>", args->indexCount, args->instanceCount);
-
-            draw.numIndices = args->indexCount;
-            draw.numInstances = args->instanceCount;
-            draw.vertexOffset = args->vertexOffset;
-            draw.indexOffset = args->firstIndex;
-            draw.instanceOffset = args->firstInstance;
-          }
-          else
-          {
-            name += " => <?, ?>";
-          }
-        }
-
         AddEvent();
 
         draw.name = name;
@@ -897,6 +961,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         AddDrawcall(draw, true);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+        drawNode.indirectPatch = indirectPatch;
 
         drawNode.resourceUsage.push_back(std::make_pair(
             GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
@@ -912,6 +978,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
+      drawNode.indirectPatch = indirectPatch;
+
       drawNode.resourceUsage.push_back(std::make_pair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
@@ -923,32 +991,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       for(uint32_t i = 0; i < count; i++)
       {
-        VkDrawIndexedIndirectCommand params = {};
-        bool valid = false;
-
-        if(cmdOffs + sizeof(VkDrawIndexedIndirectCommand) <= argbuf.size())
-        {
-          params = *((VkDrawIndexedIndirectCommand *)&argbuf[(size_t)cmdOffs]);
-          valid = true;
-          cmdOffs += stride;
-        }
-
         DrawcallDescription multi;
-        multi.numIndices = params.indexCount;
-        multi.numInstances = params.instanceCount;
-        multi.vertexOffset = params.vertexOffset;
-        multi.indexOffset = params.firstIndex;
-        multi.instanceOffset = params.firstInstance;
         multi.drawIndex = i;
 
-        multi.name = "vkCmdDrawIndexedIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) +
-                     ", " + ToStr(multi.numInstances) + ">)";
+        multi.name = name;
 
         multi.flags |=
             DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multi.name.c_str());
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
         // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
@@ -961,11 +1013,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         command->type.basetype = SDBasic::Struct;
         command->type.byteSize = sizeof(VkDrawIndexedIndirectCommand);
 
-        command->AddChild(makeSDObject("indexCount", params.indexCount));
-        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
-        command->AddChild(makeSDObject("firstIndex", params.firstIndex));
-        command->AddChild(makeSDObject("vertexOffset", params.vertexOffset));
-        command->AddChild(makeSDObject("firstInstance", params.firstInstance));
+        // these get filled in at patch time
+        command->AddChild(makeSDUInt32("indexCount", 0));
+        command->AddChild(makeSDUInt32("instanceCount", 0));
+        command->AddChild(makeSDUInt32("firstIndex", 0));
+        command->AddChild(makeSDInt32("vertexOffset", 0));
+        command->AddChild(makeSDUInt32("firstInstance", 0));
 
         fakeChunk->AddChild(command);
 
@@ -975,6 +1028,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         AddDrawcall(multi, true);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+        cmdOffs += stride;
       }
 
       draw.name = name;
@@ -1127,35 +1182,27 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
     }
     else
     {
+      VkIndirectPatchData indirectPatch =
+          FetchIndirectData(VkIndirectPatchType::DispatchIndirect, commandBuffer, buffer, offset, 1);
+
       ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
 
       {
-        VkDispatchIndirectCommand unknown = {0};
-        bytebuf argbuf;
-        GetDebugManager()->GetBufferData(GetResID(buffer), offset,
-                                         sizeof(VkDispatchIndirectCommand), argbuf);
-        VkDispatchIndirectCommand *args = (VkDispatchIndirectCommand *)&argbuf[0];
-
-        if(argbuf.size() < sizeof(VkDispatchIndirectCommand))
-        {
-          RDCERR("Couldn't fetch arguments buffer for vkCmdDispatchIndirect");
-          args = &unknown;
-        }
-
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name =
-            StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>)", args->x, args->y, args->z);
-        draw.dispatchDimension[0] = args->x;
-        draw.dispatchDimension[1] = args->y;
-        draw.dispatchDimension[2] = args->z;
+        draw.name = "vkCmdDispatchIndirect(<?, ?, ?>)";
+        draw.dispatchDimension[0] = 0;
+        draw.dispatchDimension[1] = 0;
+        draw.dispatchDimension[2] = 0;
 
         draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
 
         AddDrawcall(draw, true);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+        drawNode.indirectPatch = indirectPatch;
 
         drawNode.resourceUsage.push_back(std::make_pair(
             GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));

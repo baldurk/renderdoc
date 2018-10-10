@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "../vk_debug.h"
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice device,
@@ -429,6 +430,77 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
   return true;
 }
 
+bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescription &draw,
+                                      byte *&argptr, byte *argend)
+{
+  bool valid = false;
+
+  if(type == VkIndirectPatchType::DrawIndirect || type == VkIndirectPatchType::DrawIndirectCount)
+  {
+    if(argptr && argptr + sizeof(VkDrawIndirectCommand) <= argend)
+    {
+      VkDrawIndirectCommand *arg = (VkDrawIndirectCommand *)argptr;
+
+      draw.numIndices = arg->vertexCount;
+      draw.numInstances = arg->instanceCount;
+      draw.vertexOffset = arg->firstVertex;
+      draw.instanceOffset = arg->firstInstance;
+
+      valid = true;
+    }
+  }
+  else if(type == VkIndirectPatchType::DrawIndexedIndirect ||
+          type == VkIndirectPatchType::DrawIndexedIndirectCount)
+  {
+    if(argptr && argptr + sizeof(VkDrawIndexedIndirectCommand) <= argend)
+    {
+      VkDrawIndexedIndirectCommand *arg = (VkDrawIndexedIndirectCommand *)argptr;
+
+      draw.numIndices = arg->indexCount;
+      draw.numInstances = arg->instanceCount;
+      draw.vertexOffset = arg->vertexOffset;
+      draw.indexOffset = arg->firstIndex;
+      draw.instanceOffset = arg->firstInstance;
+
+      valid = true;
+    }
+  }
+  else
+  {
+    RDCERR("Unexpected indirect draw type");
+  }
+
+  if(valid && !draw.events.empty())
+  {
+    SDChunk *chunk = m_StructuredFile->chunks[draw.events.back().chunkIndex];
+
+    SDObject *command = chunk->FindChild("command");
+
+    // single draw indirect draws don't have a command child since it can't be added without
+    // breaking serialising the chunk.
+    if(command)
+    {
+      // patch up structured data contents
+      if(SDObject *sub = command->FindChild("vertexCount"))
+        sub->data.basic.u = draw.numIndices;
+      if(SDObject *sub = command->FindChild("indexCount"))
+        sub->data.basic.u = draw.numIndices;
+      if(SDObject *sub = command->FindChild("instanceCount"))
+        sub->data.basic.u = draw.numInstances;
+      if(SDObject *sub = command->FindChild("firstVertex"))
+        sub->data.basic.u = draw.vertexOffset;
+      if(SDObject *sub = command->FindChild("vertexOffset"))
+        sub->data.basic.u = draw.vertexOffset;
+      if(SDObject *sub = command->FindChild("firstIndex"))
+        sub->data.basic.u = draw.indexOffset;
+      if(SDObject *sub = command->FindChild("firstInstance"))
+        sub->data.basic.u = draw.instanceOffset;
+    }
+  }
+
+  return valid;
+}
+
 void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes)
 {
   // assign new drawcall IDs
@@ -448,6 +520,69 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     VulkanDrawcallTreeNode n = cmdBufNodes[i];
     n.draw.eventId += m_RootEventID;
     n.draw.drawcallId += m_RootDrawcallID;
+
+    if(n.indirectPatch.type == VkIndirectPatchType::DispatchIndirect)
+    {
+      VkDispatchIndirectCommand unknown = {0};
+      bytebuf argbuf;
+      GetDebugManager()->GetBufferData(GetResID(n.indirectPatch.buf), 0, 0, argbuf);
+      VkDispatchIndirectCommand *args = (VkDispatchIndirectCommand *)&argbuf[0];
+
+      if(argbuf.size() < sizeof(VkDispatchIndirectCommand))
+      {
+        RDCERR("Couldn't fetch arguments buffer for vkCmdDispatchIndirect");
+        args = &unknown;
+      }
+
+      n.draw.name =
+          StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>)", args->x, args->y, args->z);
+      n.draw.dispatchDimension[0] = args->x;
+      n.draw.dispatchDimension[1] = args->y;
+      n.draw.dispatchDimension[2] = args->z;
+    }
+    else if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirect ||
+            n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirect)
+    {
+      bytebuf argbuf;
+      GetDebugManager()->GetBufferData(GetResID(n.indirectPatch.buf), 0, 0, argbuf);
+
+      byte *ptr = argbuf.begin(), *end = argbuf.end();
+
+      if(n.indirectPatch.count == 1)
+      {
+        bool valid = PatchIndirectDraw(n.indirectPatch.type, n.draw, ptr, end);
+
+        if(valid)
+          n.draw.name =
+              StringFormat::Fmt("%s(%u) => <%u, %u>", n.draw.name.c_str(), n.indirectPatch.count,
+                                n.draw.numIndices, n.draw.numInstances);
+        else
+          n.draw.name =
+              StringFormat::Fmt("%s(%u) => <?, ?>", n.draw.name.c_str(), n.indirectPatch.count);
+      }
+      else
+      {
+        // we should have N draws immediately following this one, check that that's the case
+        RDCASSERT(i + n.indirectPatch.count < cmdBufNodes.size(), i, n.indirectPatch.count,
+                  cmdBufNodes.size());
+
+        for(size_t j = 0; j < (size_t)n.indirectPatch.count && i + j + 1 < cmdBufNodes.size(); j++)
+        {
+          VulkanDrawcallTreeNode &n2 = cmdBufNodes[i + j + 1];
+
+          bool valid = PatchIndirectDraw(n.indirectPatch.type, n2.draw, ptr, end);
+
+          if(valid)
+            n2.draw.name = StringFormat::Fmt("%s[%zu](<%u, %u>)", n2.draw.name.c_str(), j,
+                                             n2.draw.numIndices, n2.draw.numInstances);
+          else
+            n2.draw.name = StringFormat::Fmt("%s[%zu](<?, ?>)", n2.draw.name.c_str(), j);
+
+          if(ptr)
+            ptr += n.indirectPatch.stride;
+        }
+      }
+    }
 
     for(APIEvent &ev : n.draw.events)
     {

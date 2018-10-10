@@ -272,6 +272,7 @@ enum class MemoryScope : uint8_t
 {
   InitialContents,
   First = InitialContents,
+  IndirectReadback,
   Count,
 };
 

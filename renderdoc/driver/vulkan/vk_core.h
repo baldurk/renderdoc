@@ -61,12 +61,33 @@ struct VkInitParams
 
 DECLARE_REFLECTION_STRUCT(VkInitParams);
 
+enum class VkIndirectPatchType
+{
+  NoPatch,
+  DispatchIndirect,
+  DrawIndirect,
+  DrawIndexedIndirect,
+  DrawIndirectCount,
+  DrawIndexedIndirectCount,
+};
+
+struct VkIndirectPatchData
+{
+  VkIndirectPatchType type = VkIndirectPatchType::NoPatch;
+  MemoryAllocation alloc;
+  VkBuffer buf;
+  uint32_t count;
+  uint32_t stride;
+};
+
 struct VulkanDrawcallTreeNode
 {
   VulkanDrawcallTreeNode() {}
   explicit VulkanDrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
   DrawcallDescription draw;
   vector<VulkanDrawcallTreeNode> children;
+
+  VkIndirectPatchData indirectPatch;
 
   vector<pair<ResourceId, EventUsage>> resourceUsage;
 
@@ -700,6 +721,11 @@ private:
   template <class T>
   T *UnwrapInfos(const T *infos, uint32_t count);
 
+  VkIndirectPatchData FetchIndirectData(VkIndirectPatchType type, VkCommandBuffer commandBuffer,
+                                        VkBuffer dataBuffer, VkDeviceSize dataOffset, uint32_t count,
+                                        uint32_t stride = 0, VkBuffer counterBuffer = VK_NULL_HANDLE,
+                                        VkDeviceSize counterOffset = 0);
+
   WriteSerialiser &GetThreadSerialiser();
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
@@ -761,6 +787,8 @@ private:
   void AddRequiredExtensions(bool instance, vector<string> &extensionList,
                              const std::set<string> &supportedExtensions);
 
+  bool PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescription &draw, byte *&argptr,
+                         byte *argend);
   void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes);
 
   list<VulkanDrawcallTreeNode *> m_DrawcallStack;

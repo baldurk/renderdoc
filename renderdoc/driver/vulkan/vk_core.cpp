@@ -1871,6 +1871,8 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     m_InternalCmds.pendingcmds.pop_back();
   }
 
+  FreeAllMemory(MemoryScope::IndirectReadback);
+
   return ReplayStatus::Succeeded;
 }
 
