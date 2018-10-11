@@ -3449,354 +3449,213 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
       }
 
       SDChunk *fakeChunk = new SDChunk("");
-      fakeChunk->metadata.chunkID = (uint32_t)D3D12Chunk::List_IndirectSubCommand;
-      // just copy the metadata
       fakeChunk->metadata = baseChunk->metadata;
-
-      fakeChunk->AddChild(makeSDObject("CommandIndex", i));
-      fakeChunk->AddChild(makeSDObject("ArgumentIndex", a));
-
-      SDObject *argsig = new SDObject("ArgumentSignature", "D3D12_INDIRECT_ARGUMENT_DESC");
-
-      argsig->type.basetype = SDBasic::Struct;
-      argsig->type.byteSize = sizeof(D3D12_INDIRECT_ARGUMENT_DESC);
+      fakeChunk->metadata.chunkID = (uint32_t)D3D12Chunk::List_IndirectSubCommand;
 
       {
-        SDObject *argtype = new SDObject("Type", "D3D12_INDIRECT_ARGUMENT_TYPE");
+        StructuredSerialiser structuriser(fakeChunk, &GetChunkName);
+        structuriser.SetUserData(GetResourceManager());
 
-        argtype->type.basetype = SDBasic::Enum;
-        argtype->type.byteSize = 4;
-        argtype->type.flags = SDTypeFlags::HasCustomString;
+        structuriser.Serialise("CommandIndex", i);
+        structuriser.Serialise("ArgumentIndex", a);
+        structuriser.Serialise("ArgumentSignature", arg);
 
-        argtype->data.basic.u = (uint32_t)arg.Type;
-        argtype->data.str = ToStr(arg.Type);
-
-        argsig->AddChild(argtype);
-      }
-
-      switch(arg.Type)
-      {
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
-          // no extra data in the argument descriptor
-          break;
-        case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
-          argsig->AddChild(makeSDObject("Slot", arg.VertexBuffer.Slot));
-          break;
-        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
-          argsig->AddChild(makeSDObject("RootParameterIndex", arg.Constant.RootParameterIndex));
-          argsig->AddChild(
-              makeSDObject("DestOffsetIn32BitValues", arg.Constant.DestOffsetIn32BitValues));
-          argsig->AddChild(makeSDObject("Num32BitValuesToSet", arg.Constant.Num32BitValuesToSet));
-          break;
-        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
-          argsig->AddChild(
-              makeSDObject("RootParameterIndex", arg.ConstantBufferView.RootParameterIndex));
-          break;
-        case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
-          argsig->AddChild(
-              makeSDObject("RootParameterIndex", arg.ShaderResourceView.RootParameterIndex));
-          break;
-        case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
-          argsig->AddChild(
-              makeSDObject("RootParameterIndex", arg.UnorderedAccessView.RootParameterIndex));
-          break;
-      }
-
-      fakeChunk->AddChild(argsig);
-
-      switch(arg.Type)
-      {
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+        switch(arg.Type)
         {
-          D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
-          data += sizeof(D3D12_DRAW_ARGUMENTS);
-
-          curDraw.drawIndex = a;
-          curDraw.numIndices = args->VertexCountPerInstance;
-          curDraw.numInstances = args->InstanceCount;
-          curDraw.vertexOffset = args->StartVertexLocation;
-          curDraw.instanceOffset = args->StartInstanceLocation;
-          curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
-          curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a,
-                                           curDraw.numIndices, curDraw.numInstances);
-
-          fakeChunk->name = curDraw.name;
-
-          SDObject *command = new SDObject("ArgumentData", "D3D12_DRAW_ARGUMENTS");
-
-          command->type.basetype = SDBasic::Struct;
-          command->type.byteSize = sizeof(D3D12_DRAW_ARGUMENTS);
-
-          command->AddChild(makeSDObject("VertexCountPerInstance", curDraw.numIndices));
-          command->AddChild(makeSDObject("InstanceCount", curDraw.numInstances));
-          command->AddChild(makeSDObject("StartVertexLocation", curDraw.vertexOffset));
-          command->AddChild(makeSDObject("StartInstanceLocation", curDraw.instanceOffset));
-
-          fakeChunk->AddChild(command);
-
-          // if this is the first draw of the indirect, we could have picked up previous
-          // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
-          // assign the draw's EID
-          eid = curDraw.eventId;
-
-          m_Cmd->AddUsage(draws[idx]);
-
-          // advance
-          idx++;
-          eid++;
-
-          break;
-        }
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
-        {
-          D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
-          data += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
-
-          curDraw.drawIndex = a;
-          curDraw.numIndices = args->IndexCountPerInstance;
-          curDraw.numInstances = args->InstanceCount;
-          curDraw.baseVertex = args->BaseVertexLocation;
-          curDraw.vertexOffset = args->StartIndexLocation;
-          curDraw.instanceOffset = args->StartInstanceLocation;
-          curDraw.flags |=
-              DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
-          curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
-                                           curDraw.numIndices, curDraw.numInstances);
-
-          fakeChunk->name = curDraw.name;
-
-          SDObject *command = new SDObject("ArgumentData", "D3D12_DRAW_INDEXED_ARGUMENTS");
-
-          command->type.basetype = SDBasic::Struct;
-          command->type.byteSize = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
-
-          command->AddChild(makeSDObject("IndexCountPerInstance", curDraw.numIndices));
-          command->AddChild(makeSDObject("InstanceCount", curDraw.numInstances));
-          command->AddChild(makeSDObject("BaseVertexLocation", curDraw.baseVertex));
-          command->AddChild(makeSDObject("StartIndexLocation", curDraw.vertexOffset));
-          command->AddChild(makeSDObject("StartInstanceLocation", curDraw.instanceOffset));
-
-          fakeChunk->AddChild(command);
-
-          // if this is the first draw of the indirect, we could have picked up previous
-          // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
-          // assign the draw's EID
-          eid = curDraw.eventId;
-
-          m_Cmd->AddUsage(draws[idx]);
-
-          // advance
-          idx++;
-          eid++;
-
-          break;
-        }
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
-        {
-          D3D12_DISPATCH_ARGUMENTS *args = (D3D12_DISPATCH_ARGUMENTS *)data;
-          data += sizeof(D3D12_DISPATCH_ARGUMENTS);
-
-          curDraw.dispatchDimension[0] = args->ThreadGroupCountX;
-          curDraw.dispatchDimension[1] = args->ThreadGroupCountY;
-          curDraw.dispatchDimension[2] = args->ThreadGroupCountZ;
-          curDraw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
-          curDraw.name = StringFormat::Fmt(
-              "[%u] arg%u: IndirectDispatch(<%u, %u, %u>)", i, a, curDraw.dispatchDimension[0],
-              curDraw.dispatchDimension[1], curDraw.dispatchDimension[2]);
-
-          fakeChunk->name = curDraw.name;
-
-          SDObject *command = new SDObject("ArgumentData", "D3D12_DISPATCH_ARGUMENTS");
-
-          command->type.basetype = SDBasic::Struct;
-          command->type.byteSize = sizeof(D3D12_DISPATCH_ARGUMENTS);
-
-          command->AddChild(makeSDObject("ThreadGroupCountX", curDraw.dispatchDimension[0]));
-          command->AddChild(makeSDObject("ThreadGroupCountY", curDraw.dispatchDimension[1]));
-          command->AddChild(makeSDObject("ThreadGroupCountZ", curDraw.dispatchDimension[2]));
-
-          fakeChunk->AddChild(command);
-
-          // if this is the first draw of the indirect, we could have picked up previous
-          // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
-          // assign the draw's EID
-          eid = curDraw.eventId;
-
-          m_Cmd->AddUsage(draws[idx]);
-
-          // advance
-          idx++;
-          eid++;
-
-          break;
-        }
-        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
-        {
-          size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
-          uint32_t *data32 = (uint32_t *)data;
-          data += argSize;
-
-          fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants()", i, a);
-
-          SDObject *values = new SDObject("Values", "uint32_t");
-
-          values->type.basetype = SDBasic::Array;
-          values->type.byteSize = argSize;
-
-          for(UINT v = 0; v < arg.Constant.Num32BitValuesToSet; v++)
-            values->AddChild(makeSDObject("$el", data32[v]));
-
-          fakeChunk->AddChild(values);
-
-          // advance only the EID, since we're still in the same draw
-          eid++;
-
-          break;
-        }
-        case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
-        {
-          D3D12_VERTEX_BUFFER_VIEW *vb = (D3D12_VERTEX_BUFFER_VIEW *)data;
-          data += sizeof(D3D12_VERTEX_BUFFER_VIEW);
-
-          ResourceId id;
-          uint64_t offs = 0;
-          m_pDevice->GetResIDFromAddr(vb->BufferLocation, id, offs);
-
-          ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
-          if(res)
-            vb->BufferLocation = res->GetGPUVirtualAddress() + offs;
-
-          fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
-
-          SDObject *command = new SDObject("ArgumentData", "D3D12_VERTEX_BUFFER_VIEW");
-
-          command->type.basetype = SDBasic::Struct;
-          command->type.byteSize = sizeof(D3D12_VERTEX_BUFFER_VIEW);
-
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
           {
-            SDObject *buf = new SDObject("BufferLocation", "D3D12BufferLocation");
+            D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
+            data += sizeof(D3D12_DRAW_ARGUMENTS);
 
-            buf->type.basetype = SDBasic::Struct;
-            buf->type.byteSize = sizeof(D3D12BufferLocation);
+            curDraw.drawIndex = a;
+            curDraw.numIndices = args->VertexCountPerInstance;
+            curDraw.numInstances = args->InstanceCount;
+            curDraw.vertexOffset = args->StartVertexLocation;
+            curDraw.instanceOffset = args->StartInstanceLocation;
+            curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+            curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a,
+                                             curDraw.numIndices, curDraw.numInstances);
 
-            buf->AddChild(makeSDObject("Buffer", id));
-            buf->AddChild(makeSDObject("Offset", offs));
+            fakeChunk->name = curDraw.name;
 
-            buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
-            buf->data.children[0]->data.str = ToStr(GetResourceManager()->GetOriginalID(id));
+            structuriser.Serialise("ArgumentData", *args);
 
-            command->AddChild(buf);
+            // if this is the first draw of the indirect, we could have picked up previous
+            // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
+            // assign the draw's EID
+            eid = curDraw.eventId;
+
+            m_Cmd->AddUsage(draws[idx]);
+
+            // advance
+            idx++;
+            eid++;
+
+            break;
           }
-
-          command->AddChild(makeSDObject("SizeInBytes", vb->SizeInBytes));
-          command->AddChild(makeSDObject("StrideInBytes", vb->StrideInBytes));
-
-          fakeChunk->AddChild(command);
-
-          // advance only the EID, since we're still in the same draw
-          eid++;
-
-          break;
-        }
-        case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
-        {
-          D3D12_INDEX_BUFFER_VIEW *ib = (D3D12_INDEX_BUFFER_VIEW *)data;
-          data += sizeof(D3D12_INDEX_BUFFER_VIEW);
-
-          ResourceId id;
-          uint64_t offs = 0;
-          m_pDevice->GetResIDFromAddr(ib->BufferLocation, id, offs);
-
-          ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
-          if(res)
-            ib->BufferLocation = res->GetGPUVirtualAddress() + offs;
-
-          fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
-
-          SDObject *command = new SDObject("ArgumentData", "D3D12_INDEX_BUFFER_VIEW");
-
-          command->type.basetype = SDBasic::Struct;
-          command->type.byteSize = sizeof(D3D12_INDEX_BUFFER_VIEW);
-
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
           {
-            SDObject *buf = new SDObject("BufferLocation", "D3D12BufferLocation");
+            D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
+            data += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 
-            buf->type.basetype = SDBasic::Struct;
-            buf->type.byteSize = sizeof(D3D12BufferLocation);
+            curDraw.drawIndex = a;
+            curDraw.numIndices = args->IndexCountPerInstance;
+            curDraw.numInstances = args->InstanceCount;
+            curDraw.baseVertex = args->BaseVertexLocation;
+            curDraw.vertexOffset = args->StartIndexLocation;
+            curDraw.instanceOffset = args->StartInstanceLocation;
+            curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed |
+                             DrawFlags::Indirect;
+            curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
+                                             curDraw.numIndices, curDraw.numInstances);
 
-            buf->AddChild(makeSDObject("Buffer", id));
-            buf->AddChild(makeSDObject("Offset", offs));
+            fakeChunk->name = curDraw.name;
 
-            buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
-            buf->data.children[0]->data.str = ToStr(GetResourceManager()->GetOriginalID(id));
+            structuriser.Serialise("ArgumentData", *args);
 
-            command->AddChild(buf);
+            // if this is the first draw of the indirect, we could have picked up previous
+            // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
+            // assign the draw's EID
+            eid = curDraw.eventId;
+
+            m_Cmd->AddUsage(draws[idx]);
+
+            // advance
+            idx++;
+            eid++;
+
+            break;
           }
-
-          command->AddChild(makeSDObject("SizeInBytes", ib->SizeInBytes));
-          command->AddChild(makeSDObject("Format", ib->Format));
-
-          fakeChunk->AddChild(command);
-
-          // advance only the EID, since we're still in the same draw
-          eid++;
-
-          break;
-        }
-        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
-        {
-          D3D12_GPU_VIRTUAL_ADDRESS *addr = (D3D12_GPU_VIRTUAL_ADDRESS *)data;
-          data += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
-
-          ResourceId id;
-          uint64_t offs = 0;
-          m_pDevice->GetResIDFromAddr(*addr, id, offs);
-
-          ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-          RDCASSERT(res);
-          if(res)
-            *addr = res->GetGPUVirtualAddress() + offs;
-
-          const char *viewTypeStr = "?";
-
-          if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
-            viewTypeStr = "ConstantBuffer";
-          else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
-            viewTypeStr = "ShaderResource";
-          else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
-            viewTypeStr = "UnorderedAccess";
-
-          fakeChunk->name =
-              StringFormat::Fmt("[%u] arg%u: IndirectSetRoot%sView()", i, a, viewTypeStr);
-
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
           {
-            SDObject *buf = new SDObject("BufferLocation", "D3D12BufferLocation");
+            D3D12_DISPATCH_ARGUMENTS *args = (D3D12_DISPATCH_ARGUMENTS *)data;
+            data += sizeof(D3D12_DISPATCH_ARGUMENTS);
 
-            buf->type.basetype = SDBasic::Struct;
-            buf->type.byteSize = sizeof(D3D12BufferLocation);
+            curDraw.dispatchDimension[0] = args->ThreadGroupCountX;
+            curDraw.dispatchDimension[1] = args->ThreadGroupCountY;
+            curDraw.dispatchDimension[2] = args->ThreadGroupCountZ;
+            curDraw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
+            curDraw.name = StringFormat::Fmt(
+                "[%u] arg%u: IndirectDispatch(<%u, %u, %u>)", i, a, curDraw.dispatchDimension[0],
+                curDraw.dispatchDimension[1], curDraw.dispatchDimension[2]);
 
-            buf->AddChild(makeSDObject("Buffer", id));
-            buf->AddChild(makeSDObject("Offset", offs));
+            fakeChunk->name = curDraw.name;
 
-            buf->data.children[0]->type.flags |= SDTypeFlags::HasCustomString;
-            buf->data.children[0]->data.str = ToStr(GetResourceManager()->GetOriginalID(id));
+            structuriser.Serialise("ArgumentData", *args);
 
-            fakeChunk->AddChild(buf);
+            // if this is the first draw of the indirect, we could have picked up previous
+            // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
+            // assign the draw's EID
+            eid = curDraw.eventId;
+
+            m_Cmd->AddUsage(draws[idx]);
+
+            // advance
+            idx++;
+            eid++;
+
+            break;
           }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+          {
+            size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
+            uint32_t *data32 = (uint32_t *)data;
+            data += argSize;
 
-          // advance only the EID, since we're still in the same draw
-          eid++;
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants()", i, a);
 
-          break;
+            structuriser.Serialise("Values", data32, arg.Constant.Num32BitValuesToSet);
+
+            // advance only the EID, since we're still in the same draw
+            eid++;
+
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+          {
+            D3D12_VERTEX_BUFFER_VIEW *vb = (D3D12_VERTEX_BUFFER_VIEW *)data;
+            data += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+
+            ResourceId id;
+            uint64_t offs = 0;
+            m_pDevice->GetResIDFromAddr(vb->BufferLocation, id, offs);
+
+            ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+            RDCASSERT(res);
+            if(res)
+              vb->BufferLocation = res->GetGPUVirtualAddress() + offs;
+
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
+
+            structuriser.Serialise("ArgumentData", *vb);
+
+            // advance only the EID, since we're still in the same draw
+            eid++;
+
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+          {
+            D3D12_INDEX_BUFFER_VIEW *ib = (D3D12_INDEX_BUFFER_VIEW *)data;
+            data += sizeof(D3D12_INDEX_BUFFER_VIEW);
+
+            ResourceId id;
+            uint64_t offs = 0;
+            m_pDevice->GetResIDFromAddr(ib->BufferLocation, id, offs);
+
+            ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+            RDCASSERT(res);
+            if(res)
+              ib->BufferLocation = res->GetGPUVirtualAddress() + offs;
+
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
+
+            structuriser.Serialise("ArgumentData", *ib);
+
+            // advance only the EID, since we're still in the same draw
+            eid++;
+
+            break;
+          }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+          case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+          case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+          {
+            D3D12_GPU_VIRTUAL_ADDRESS *addr = (D3D12_GPU_VIRTUAL_ADDRESS *)data;
+            data += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+
+            ResourceId id;
+            uint64_t offs = 0;
+            m_pDevice->GetResIDFromAddr(*addr, id, offs);
+
+            ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+            RDCASSERT(res);
+            if(res)
+              *addr = res->GetGPUVirtualAddress() + offs;
+
+            const char *viewTypeStr = "?";
+
+            if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
+              viewTypeStr = "ConstantBuffer";
+            else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
+              viewTypeStr = "ShaderResource";
+            else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+              viewTypeStr = "UnorderedAccess";
+
+            fakeChunk->name =
+                StringFormat::Fmt("[%u] arg%u: IndirectSetRoot%sView()", i, a, viewTypeStr);
+
+            D3D12BufferLocation buf = *addr;
+
+            structuriser.Serialise("ArgumentData", buf);
+
+            // advance only the EID, since we're still in the same draw
+            eid++;
+
+            break;
+          }
+          default: RDCERR("Unexpected argument type! %d", arg.Type); break;
         }
-        default: RDCERR("Unexpected argument type! %d", arg.Type); break;
       }
 
       m_Cmd->m_StructuredFile->chunks.push_back(fakeChunk);

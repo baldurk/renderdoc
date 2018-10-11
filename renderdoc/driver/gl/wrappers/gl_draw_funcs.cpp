@@ -2465,24 +2465,16 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
-        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
-        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "DrawArraysIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(DrawArraysIndirectCommand);
-
-        command->AddChild(makeSDObject("count", params.count));
-        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
-        command->AddChild(makeSDObject("first", params.first));
-        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", i);
+          structuriser.Serialise<uint64_t>("offset", offs);
+          structuriser.Serialise("command", params);
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 
@@ -2691,25 +2683,16 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
-        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
-        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "DrawElementsIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(DrawElementsIndirectCommand);
-
-        command->AddChild(makeSDObject("count", params.count));
-        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
-        command->AddChild(makeSDObject("firstIndex", params.firstIndex));
-        command->AddChild(makeSDObject("baseVertex", params.baseVertex));
-        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", i);
+          structuriser.Serialise<uint64_t>("offset", offs);
+          structuriser.Serialise("command", params);
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 
@@ -2918,24 +2901,16 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
-        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
-        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "DrawArraysIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(DrawArraysIndirectCommand);
-
-        command->AddChild(makeSDObject("count", params.count));
-        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
-        command->AddChild(makeSDObject("first", params.first));
-        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", i);
+          structuriser.Serialise<uint64_t>("offset", offs);
+          structuriser.Serialise("command", params);
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 
@@ -3156,25 +3131,16 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
-        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", (uint32_t)i));
-        fakeChunk->AddChild(makeSDObject("offset", (uint64_t)offs));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "DrawElementsIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(DrawElementsIndirectCommand);
-
-        command->AddChild(makeSDObject("count", params.count));
-        command->AddChild(makeSDObject("instanceCount", params.instanceCount));
-        command->AddChild(makeSDObject("firstIndex", params.firstIndex));
-        command->AddChild(makeSDObject("baseVertex", params.baseVertex));
-        command->AddChild(makeSDObject("baseInstance", params.baseInstance));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", i);
+          structuriser.Serialise<uint64_t>("offset", offs);
+          structuriser.Serialise("command", params);
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 

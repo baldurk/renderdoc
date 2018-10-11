@@ -541,6 +541,10 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Resource_WriteToSubresource:
       ret = m_pDevice->Serialise_WriteToSubresource(ser, NULL, 0, NULL, NULL, 0, 0);
       break;
+    case D3D12Chunk::List_IndirectSubCommand:
+      // this is a fake chunk generated at runtime as part of indirect draws.
+      // Just in case it gets exported and imported, completely ignore it.
+      return true;
 
     default:
     {

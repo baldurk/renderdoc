@@ -579,25 +579,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
-        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", 0));
-        fakeChunk->AddChild(makeSDObject("offset", offset));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "VkDrawIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(VkDrawIndirectCommand);
-
-        // these get filled in at patch time
-        command->AddChild(makeSDUInt32("vertexCount", 0));
-        command->AddChild(makeSDUInt32("instanceCount", 0));
-        command->AddChild(makeSDUInt32("firstVertex", 0));
-        command->AddChild(makeSDUInt32("firstInstance", 0));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", 0U);
+          structuriser.Serialise("offset", offset);
+          structuriser.Serialise("command", VkDrawIndirectCommand());
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 
@@ -633,8 +624,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-      VkDeviceSize cmdOffs = offset;
-
       for(uint32_t i = 0; i < count; i++)
       {
         DrawcallDescription multi;
@@ -646,25 +635,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
-        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", i));
-        fakeChunk->AddChild(makeSDObject("offset", cmdOffs));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "VkDrawIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(VkDrawIndirectCommand);
-
-        // these get filled in at patch time
-        command->AddChild(makeSDUInt32("vertexCount", 0));
-        command->AddChild(makeSDUInt32("instanceCount", 0));
-        command->AddChild(makeSDUInt32("firstVertex", 0));
-        command->AddChild(makeSDUInt32("firstInstance", 0));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", 0U);
+          structuriser.Serialise("offset", offset);
+          structuriser.Serialise("command", VkDrawIndirectCommand());
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 
@@ -947,10 +927,29 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                         "buffer without RENDER_PASS_CONTINUE_BIT");
       }
 
+      SDChunk *baseChunk = m_StructuredFile->chunks.back();
+
       // for 'single' draws, don't do complex multi-draw just inline it
       if(count <= 1)
       {
         DrawcallDescription draw;
+
+        AddEvent();
+
+        // add a fake chunk for this individual indirect draw
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
+
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
+
+          structuriser.Serialise<uint32_t>("drawIndex", 0U);
+          structuriser.Serialise("offset", offset);
+          structuriser.Serialise("command", VkDrawIndexedIndirectCommand());
+        }
+
+        m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
 
@@ -985,10 +984,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-      VkDeviceSize cmdOffs = offset;
-
-      SDChunk *baseChunk = m_StructuredFile->chunks.back();
-
       for(uint32_t i = 0; i < count; i++)
       {
         DrawcallDescription multi;
@@ -1001,26 +996,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
-        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
-        // just copy the metadata
         fakeChunk->metadata = baseChunk->metadata;
+        fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
-        fakeChunk->AddChild(makeSDObject("drawIndex", i));
-        fakeChunk->AddChild(makeSDObject("offset", cmdOffs));
+        {
+          StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-        SDObject *command = new SDObject("command", "VkDrawIndexedIndirectCommand");
-
-        command->type.basetype = SDBasic::Struct;
-        command->type.byteSize = sizeof(VkDrawIndexedIndirectCommand);
-
-        // these get filled in at patch time
-        command->AddChild(makeSDUInt32("indexCount", 0));
-        command->AddChild(makeSDUInt32("instanceCount", 0));
-        command->AddChild(makeSDUInt32("firstIndex", 0));
-        command->AddChild(makeSDInt32("vertexOffset", 0));
-        command->AddChild(makeSDUInt32("firstInstance", 0));
-
-        fakeChunk->AddChild(command);
+          structuriser.Serialise<uint32_t>("drawIndex", 0U);
+          structuriser.Serialise("offset", offset);
+          structuriser.Serialise("command", VkDrawIndexedIndirectCommand());
+        }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
 
@@ -1028,8 +1013,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         AddDrawcall(multi, true);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
-
-        cmdOffs += stride;
       }
 
       draw.name = name;

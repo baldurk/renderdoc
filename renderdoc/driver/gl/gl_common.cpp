@@ -1152,6 +1152,29 @@ void DoSerialise(SerialiserType &ser, GLInitParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(GLInitParams);
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DrawElementsIndirectCommand &el)
+{
+  SERIALISE_MEMBER(count);
+  SERIALISE_MEMBER(instanceCount);
+  SERIALISE_MEMBER(firstIndex);
+  SERIALISE_MEMBER(baseVertex);
+  SERIALISE_MEMBER(baseInstance);
+}
+
+INSTANTIATE_SERIALISE_TYPE(DrawElementsIndirectCommand);
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DrawArraysIndirectCommand &el)
+{
+  SERIALISE_MEMBER(count);
+  SERIALISE_MEMBER(instanceCount);
+  SERIALISE_MEMBER(first);
+  SERIALISE_MEMBER(baseInstance);
+}
+
+INSTANTIATE_SERIALISE_TYPE(DrawArraysIndirectCommand);
+
 size_t BufferIdx(GLenum buf)
 {
   switch(buf)

@@ -785,6 +785,8 @@ struct DrawElementsIndirectCommand
   uint32_t baseInstance;
 };
 
+DECLARE_REFLECTION_STRUCT(DrawElementsIndirectCommand);
+
 struct DrawArraysIndirectCommand
 {
   uint32_t count;
@@ -792,6 +794,8 @@ struct DrawArraysIndirectCommand
   uint32_t first;
   uint32_t baseInstance;
 };
+
+DECLARE_REFLECTION_STRUCT(DrawArraysIndirectCommand);
 
 enum class GLChunk : uint32_t
 {
