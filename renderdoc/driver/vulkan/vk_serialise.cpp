@@ -2533,6 +2533,33 @@ void Deserialise(const VkImageFormatListCreateInfoKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDispatchIndirectCommand &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
+  SERIALISE_MEMBER(z);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrawIndirectCommand &el)
+{
+  SERIALISE_MEMBER(vertexCount);
+  SERIALISE_MEMBER(instanceCount);
+  SERIALISE_MEMBER(firstVertex);
+  SERIALISE_MEMBER(firstInstance);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrawIndexedIndirectCommand &el)
+{
+  SERIALISE_MEMBER(indexCount);
+  SERIALISE_MEMBER(instanceCount);
+  SERIALISE_MEMBER(firstIndex);
+  SERIALISE_MEMBER(vertexOffset);
+  SERIALISE_MEMBER(firstInstance);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDeviceQueueInfo2 &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2);
@@ -3120,6 +3147,9 @@ INSTANTIATE_SERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
 INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkDispatchIndirectCommand);
+INSTANTIATE_SERIALISE_TYPE(VkDrawIndirectCommand);
+INSTANTIATE_SERIALISE_TYPE(VkDrawIndexedIndirectCommand);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);
