@@ -997,6 +997,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
         continue;
 
+      // don't include the validation cache extension
+      if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_VALIDATION_CACHE_EXTENSION_NAME))
+        continue;
+
       // don't include direct-display WSI extensions
       if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME) ||
          !strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME))

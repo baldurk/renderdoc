@@ -255,7 +255,14 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO, VkRenderPassMultiviewCreateInfo) \
                                                                                                      \
   /* VK_KHR_image_format_list */                                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR, VkImageFormatListCreateInfoKHR)
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR, VkImageFormatListCreateInfoKHR)  \
+                                                                                                     \
+  /* VK_EXT_astc_decode_mode */                                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT, VkImageViewASTCDecodeModeEXT)      \
+                                                                                                     \
+  /* VK_EXT_validation_cache */                                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT,                     \
+               VkShaderModuleValidationCacheCreateInfoEXT)
 
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
@@ -2533,6 +2540,27 @@ void Deserialise(const VkImageFormatListCreateInfoKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageViewASTCDecodeModeEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(decodeMode);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkShaderModuleValidationCacheCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  // we skip this, because it's unwrapped and has no ResourceId. The presence of this struct is
+  // enough
+  // SERIALISE_MEMBER(validationCache);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDispatchIndirectCommand &el)
 {
   SERIALISE_MEMBER(x);
@@ -3147,6 +3175,8 @@ INSTANTIATE_SERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
 INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkImageViewASTCDecodeModeEXT);
+INSTANTIATE_SERIALISE_TYPE(VkShaderModuleValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDispatchIndirectCommand);
 INSTANTIATE_SERIALISE_TYPE(VkDrawIndirectCommand);
 INSTANTIATE_SERIALISE_TYPE(VkDrawIndexedIndirectCommand);

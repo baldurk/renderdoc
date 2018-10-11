@@ -1897,4 +1897,19 @@ public:
                                 VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                                 VkBuffer countBuffer, VkDeviceSize countBufferOffset,
                                 uint32_t maxDrawCount, uint32_t stride);
+
+  // VK_EXT_validation_cache
+  VkResult vkCreateValidationCacheEXT(VkDevice device,
+                                      const VkValidationCacheCreateInfoEXT *pCreateInfo,
+                                      const VkAllocationCallbacks *pAllocator,
+                                      VkValidationCacheEXT *pValidationCache);
+
+  void vkDestroyValidationCacheEXT(VkDevice device, VkValidationCacheEXT validationCache,
+                                   const VkAllocationCallbacks *pAllocator);
+
+  VkResult vkMergeValidationCachesEXT(VkDevice device, VkValidationCacheEXT dstCache,
+                                      uint32_t srcCacheCount, const VkValidationCacheEXT *pSrcCaches);
+
+  VkResult vkGetValidationCacheDataEXT(VkDevice device, VkValidationCacheEXT validationCache,
+                                       size_t *pDataSize, void *pData);
 };

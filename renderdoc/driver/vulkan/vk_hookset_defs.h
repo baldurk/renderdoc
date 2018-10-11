@@ -349,7 +349,8 @@
   CheckExt(KHR_sampler_ycbcr_conversion, VK11);   \
   CheckExt(KHR_device_group, VK11);               \
   CheckExt(MVK_moltenvk, VKXX);                   \
-  CheckExt(KHR_draw_indirect_count, VKXX);
+  CheckExt(KHR_draw_indirect_count, VKXX);        \
+  CheckExt(EXT_validation_cache, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -461,6 +462,10 @@
   HookInitExtension(protected_memory, GetDeviceQueue2);                                            \
   HookInitExtension(KHR_draw_indirect_count, CmdDrawIndirectCountKHR);                             \
   HookInitExtension(KHR_draw_indirect_count, CmdDrawIndexedIndirectCountKHR);                      \
+  HookInitExtension(EXT_validation_cache, CreateValidationCacheEXT);                               \
+  HookInitExtension(EXT_validation_cache, DestroyValidationCacheEXT);                              \
+  HookInitExtension(EXT_validation_cache, MergeValidationCachesEXT);                               \
+  HookInitExtension(EXT_validation_cache, GetValidationCacheDataEXT);                              \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -977,6 +982,15 @@
   HookDefine7(void, vkCmdDrawIndexedIndirectCountKHR, VkCommandBuffer, commandBuffer, VkBuffer,      \
               buffer, VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize,                     \
               countBufferOffset, uint32_t, maxDrawCount, uint32_t, stride);                          \
+  HookDefine4(VkResult, vkCreateValidationCacheEXT, VkDevice, device,                                \
+              const VkValidationCacheCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *,    \
+              pAllocator, VkValidationCacheEXT *, pValidationCache);                                 \
+  HookDefine3(void, vkDestroyValidationCacheEXT, VkDevice, device, VkValidationCacheEXT,             \
+              validationCache, const VkAllocationCallbacks *, pAllocator);                           \
+  HookDefine4(VkResult, vkMergeValidationCachesEXT, VkDevice, device, VkValidationCacheEXT,          \
+              dstCache, uint32_t, srcCacheCount, const VkValidationCacheEXT *, pSrcCaches);          \
+  HookDefine4(VkResult, vkGetValidationCacheDataEXT, VkDevice, device, VkValidationCacheEXT,         \
+              validationCache, size_t *, pDataSize, void *, pData);                                  \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

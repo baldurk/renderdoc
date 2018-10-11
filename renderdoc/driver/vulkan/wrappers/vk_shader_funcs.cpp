@@ -218,7 +218,13 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
   {
     VkShaderModule sh = VK_NULL_HANDLE;
 
-    VkResult ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), &CreateInfo, NULL, &sh);
+    VkShaderModuleCreateInfo patched = CreateInfo;
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
+
+    UnwrapNextChain(m_State, "VkShaderModuleCreateInfo", tempMem, (VkBaseInStructure *)&patched);
+
+    VkResult ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), &patched, NULL, &sh);
 
     if(ret != VK_SUCCESS)
     {

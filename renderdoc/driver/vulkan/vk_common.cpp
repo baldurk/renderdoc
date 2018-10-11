@@ -467,6 +467,10 @@ size_t GetNextPatchSize(const void *pNext)
     else if(next->sType == VK_STRUCTURE_TYPE_DEVICE_GROUP_RENDER_PASS_BEGIN_INFO)
       memSize += sizeof(VkDeviceGroupRenderPassBeginInfo);
 
+    // VkShaderModuleCreateInfo
+    if(next->sType == VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT)
+      memSize += sizeof(VkValidationCacheCreateInfoEXT);
+
     next = next->pNext;
   }
 
@@ -785,6 +789,12 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
     {
       CopyNextChainedStruct<VkPipelineVertexInputDivisorStateCreateInfoEXT>(tempMem, nextInput,
                                                                             nextChainTail);
+    }
+    else if(nextInput->sType == VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT)
+    {
+      if(IsCaptureMode(state))
+        CopyNextChainedStruct<VkShaderModuleValidationCacheCreateInfoEXT>(tempMem, nextInput,
+                                                                          nextChainTail);
     }
     else
     {

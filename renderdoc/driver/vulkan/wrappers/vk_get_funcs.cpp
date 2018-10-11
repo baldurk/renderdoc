@@ -644,3 +644,34 @@ void WrappedVulkan::vkGetDeviceGroupPeerMemoryFeatures(VkDevice device, uint32_t
   return ObjDisp(device)->GetDeviceGroupPeerMemoryFeatures(
       Unwrap(device), heapIndex, localDeviceIndex, remoteDeviceIndex, pPeerMemoryFeatures);
 }
+
+VkResult WrappedVulkan::vkCreateValidationCacheEXT(VkDevice device,
+                                                   const VkValidationCacheCreateInfoEXT *pCreateInfo,
+                                                   const VkAllocationCallbacks *pAllocator,
+                                                   VkValidationCacheEXT *pValidationCache)
+{
+  return ObjDisp(device)->CreateValidationCacheEXT(Unwrap(device), pCreateInfo, pAllocator,
+                                                   pValidationCache);
+}
+
+void WrappedVulkan::vkDestroyValidationCacheEXT(VkDevice device, VkValidationCacheEXT validationCache,
+                                                const VkAllocationCallbacks *pAllocator)
+{
+  return ObjDisp(device)->DestroyValidationCacheEXT(Unwrap(device), validationCache, pAllocator);
+}
+
+VkResult WrappedVulkan::vkMergeValidationCachesEXT(VkDevice device, VkValidationCacheEXT dstCache,
+                                                   uint32_t srcCacheCount,
+                                                   const VkValidationCacheEXT *pSrcCaches)
+{
+  return ObjDisp(device)->MergeValidationCachesEXT(Unwrap(device), dstCache, srcCacheCount,
+                                                   pSrcCaches);
+}
+
+VkResult WrappedVulkan::vkGetValidationCacheDataEXT(VkDevice device,
+                                                    VkValidationCacheEXT validationCache,
+                                                    size_t *pDataSize, void *pData)
+{
+  return ObjDisp(device)->GetValidationCacheDataEXT(Unwrap(device), validationCache, pDataSize,
+                                                    pData);
+}
