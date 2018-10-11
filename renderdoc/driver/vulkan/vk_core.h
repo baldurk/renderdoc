@@ -1886,4 +1886,15 @@ public:
   VkResult vkGetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physicalDevice,
                                              const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
                                              VkDisplayPlaneCapabilities2KHR *pCapabilities);
+
+  // VK_KHR_draw_indirect_count
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCountKHR, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer,
+                                VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
+                                uint32_t stride);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCountKHR,
+                                VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+                                VkBuffer countBuffer, VkDeviceSize countBufferOffset,
+                                uint32_t maxDrawCount, uint32_t stride);
 };

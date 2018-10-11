@@ -348,7 +348,8 @@
   CheckExt(EXT_sampler_filter_minmax, VKXX);      \
   CheckExt(KHR_sampler_ycbcr_conversion, VK11);   \
   CheckExt(KHR_device_group, VK11);               \
-  CheckExt(MVK_moltenvk, VKXX);
+  CheckExt(MVK_moltenvk, VKXX);                   \
+  CheckExt(KHR_draw_indirect_count, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -458,6 +459,8 @@
   HookInitExtension(KHR_device_group &&KHR_surface, GetDeviceGroupSurfacePresentModesKHR);         \
   HookInitExtension(KHR_device_group &&KHR_swapchain, AcquireNextImage2KHR);                       \
   HookInitExtension(protected_memory, GetDeviceQueue2);                                            \
+  HookInitExtension(KHR_draw_indirect_count, CmdDrawIndirectCountKHR);                             \
+  HookInitExtension(KHR_draw_indirect_count, CmdDrawIndexedIndirectCountKHR);                      \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -968,6 +971,12 @@
   HookDefine3(VkResult, vkGetDisplayPlaneCapabilities2KHR, VkPhysicalDevice, physicalDevice,         \
               const VkDisplayPlaneInfo2KHR *, pDisplayPlaneInfo, VkDisplayPlaneCapabilities2KHR *,   \
               pCapabilities);                                                                        \
+  HookDefine7(void, vkCmdDrawIndirectCountKHR, VkCommandBuffer, commandBuffer, VkBuffer, buffer,     \
+              VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize, countBufferOffset,          \
+              uint32_t, maxDrawCount, uint32_t, stride);                                             \
+  HookDefine7(void, vkCmdDrawIndexedIndirectCountKHR, VkCommandBuffer, commandBuffer, VkBuffer,      \
+              buffer, VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize,                     \
+              countBufferOffset, uint32_t, maxDrawCount, uint32_t, stride);                          \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

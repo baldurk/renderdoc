@@ -692,6 +692,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME, VK_KHR_DRAW_INDIRECT_COUNT_SPEC_VERSION,
+    },
+    {
         VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, VK_KHR_DRIVER_PROPERTIES_SPEC_VERSION,
     },
     {
@@ -2591,6 +2594,15 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 
     case VulkanChunk::vkGetDeviceQueue2:
       return Serialise_vkGetDeviceQueue2(ser, VK_NULL_HANDLE, NULL, NULL);
+      break;
+
+    case VulkanChunk::vkCmdDrawIndirectCountKHR:
+      return Serialise_vkCmdDrawIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
+                                                 VK_NULL_HANDLE, 0, 0, 0);
+      break;
+    case VulkanChunk::vkCmdDrawIndexedIndirectCountKHR:
+      return Serialise_vkCmdDrawIndexedIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
+                                                        VK_NULL_HANDLE, 0, 0, 0);
       break;
 
     default:

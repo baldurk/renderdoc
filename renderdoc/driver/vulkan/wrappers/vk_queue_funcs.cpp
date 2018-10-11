@@ -541,14 +541,60 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
       n.draw.dispatchDimension[2] = args->z;
     }
     else if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirect ||
-            n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirect)
+            n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirect ||
+            n.indirectPatch.type == VkIndirectPatchType::DrawIndirectCount ||
+            n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount)
     {
+      bool hasCount = (n.indirectPatch.type == VkIndirectPatchType::DrawIndirectCount ||
+                       n.indirectPatch.type == VkIndirectPatchType::DrawIndexedIndirectCount);
       bytebuf argbuf;
       GetDebugManager()->GetBufferData(GetResID(n.indirectPatch.buf), 0, 0, argbuf);
 
       byte *ptr = argbuf.begin(), *end = argbuf.end();
 
-      if(n.indirectPatch.count == 1)
+      uint32_t indirectCount = n.indirectPatch.count;
+      if(hasCount)
+      {
+        if(argbuf.size() >= 16)
+        {
+          uint32_t *count = (uint32_t *)end;
+          count -= 4;
+          indirectCount = *count;
+        }
+        else
+        {
+          RDCERR("Couldn't get indirect draw count");
+        }
+      }
+
+      if(indirectCount > n.indirectPatch.count)
+      {
+        RDCERR("Indirect count higher than maxCount, clamping");
+      }
+      else if(indirectCount < n.indirectPatch.count)
+      {
+        // need to remove any draws we reserved that didn't actually happen, and shift any
+        // subsequent event and draw Ids
+        uint32_t shiftCount = n.indirectPatch.count - indirectCount;
+
+        // i is the pushmarker, so i + 1 is the first of the sub draws.
+        // i + 1 + n.indirectPatch.count is the last of the draws, we don't want to erase the next
+        // one (the popmarker)
+        cmdBufNodes.erase(cmdBufNodes.begin() + i + 1 + indirectCount,
+                          cmdBufNodes.begin() + i + 1 + n.indirectPatch.count);
+        for(size_t j = i + 1 + indirectCount; j < cmdBufNodes.size(); j++)
+        {
+          cmdBufNodes[j].draw.eventId -= shiftCount;
+          cmdBufNodes[j].draw.drawcallId -= shiftCount;
+
+          for(APIEvent &ev : cmdBufNodes[j].draw.events)
+            ev.eventId -= shiftCount;
+        }
+      }
+
+      // indirect count versions always have a multidraw marker regions, but static count of 1 would
+      // be in-lined as a single draw, so we patch in-place
+      if(!hasCount && indirectCount == 1)
       {
         bool valid = PatchIndirectDraw(n.indirectPatch.type, n.draw, ptr, end);
 
@@ -563,10 +609,16 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
       else
       {
         // we should have N draws immediately following this one, check that that's the case
-        RDCASSERT(i + n.indirectPatch.count < cmdBufNodes.size(), i, n.indirectPatch.count,
+        RDCASSERT(i + indirectCount < cmdBufNodes.size(), i, indirectCount, n.indirectPatch.count,
                   cmdBufNodes.size());
 
-        for(size_t j = 0; j < (size_t)n.indirectPatch.count && i + j + 1 < cmdBufNodes.size(); j++)
+        // if there was a count, patch that onto the root drawcall name
+        if(hasCount)
+        {
+          n.draw.name = StringFormat::Fmt("%s(<%u>)", n.draw.name.c_str(), indirectCount);
+        }
+
+        for(size_t j = 0; j < (size_t)indirectCount && i + j + 1 < cmdBufNodes.size(); j++)
         {
           VulkanDrawcallTreeNode &n2 = cmdBufNodes[i + j + 1];
 

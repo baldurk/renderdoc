@@ -463,6 +463,8 @@ enum class VulkanChunk : uint32_t
   vkCmdSetDeviceMask,
   vkCmdDispatchBase,
   vkGetDeviceQueue2,
+  vkCmdDrawIndirectCountKHR,
+  vkCmdDrawIndexedIndirectCountKHR,
   Max,
 };
 

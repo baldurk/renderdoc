@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1116, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1118, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -148,6 +148,8 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdSetDeviceMask);
     STRINGISE_ENUM_CLASS(vkCmdDispatchBase);
     STRINGISE_ENUM_CLASS(vkGetDeviceQueue2);
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndirectCountKHR);
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndexedIndirectCountKHR);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
