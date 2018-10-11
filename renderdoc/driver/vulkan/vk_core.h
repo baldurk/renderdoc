@@ -1926,5 +1926,4 @@ public:
                                 const VkSubpassEndInfoKHR *pSubpassEndInfo);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2KHR, VkCommandBuffer commandBuffer,
                                 const VkSubpassEndInfoKHR *pSubpassEndInfo);
-\
 };
