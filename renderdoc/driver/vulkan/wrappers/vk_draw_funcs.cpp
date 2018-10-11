@@ -571,7 +571,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
       // for 'single' draws, don't do complex multi-draw just inline it
-      if(count <= 1)
+      if(count == 1)
       {
         DrawcallDescription draw;
 
@@ -612,6 +612,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       DrawcallDescription draw;
       draw.name = name;
       draw.flags = DrawFlags::MultiDraw | DrawFlags::PushMarker;
+
+      if(count == 0)
+        draw.name = name + "(0)";
+
       AddEvent();
       AddDrawcall(draw, true);
 
@@ -930,7 +934,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
       // for 'single' draws, don't do complex multi-draw just inline it
-      if(count <= 1)
+      if(count == 1)
       {
         DrawcallDescription draw;
 
@@ -972,6 +976,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       DrawcallDescription draw;
       draw.name = name;
       draw.flags = DrawFlags::MultiDraw | DrawFlags::PushMarker;
+
+      if(count == 0)
+        draw.name = name + "(0)";
+
       AddEvent();
       AddDrawcall(draw, true);
 
@@ -2626,6 +2634,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCountKHR(
       DrawcallDescription draw;
       draw.name = name;
       draw.flags = DrawFlags::MultiDraw | DrawFlags::PushMarker;
+
+      if(maxDrawCount == 0)
+        draw.name = name + "(0)";
+
       AddEvent();
       AddDrawcall(draw, true);
 
@@ -2941,6 +2953,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
       DrawcallDescription draw;
       draw.name = name;
       draw.flags = DrawFlags::MultiDraw | DrawFlags::PushMarker;
+
+      if(maxDrawCount == 0)
+        draw.name = name + "(0)";
+
       AddEvent();
       AddDrawcall(draw, true);
 
