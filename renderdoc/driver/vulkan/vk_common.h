@@ -465,6 +465,10 @@ enum class VulkanChunk : uint32_t
   vkGetDeviceQueue2,
   vkCmdDrawIndirectCountKHR,
   vkCmdDrawIndexedIndirectCountKHR,
+  vkCreateRenderPass2KHR,
+  vkCmdBeginRenderPass2KHR,
+  vkCmdNextSubpass2KHR,
+  vkCmdEndRenderPass2KHR,
   Max,
 };
 
@@ -654,6 +658,13 @@ DECLARE_REFLECTION_STRUCT(VkProtectedSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkImageFormatListCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkImageViewASTCDecodeModeEXT);
 DECLARE_REFLECTION_STRUCT(VkShaderModuleValidationCacheCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkAttachmentDescription2KHR);
+DECLARE_REFLECTION_STRUCT(VkSubpassDescription2KHR);
+DECLARE_REFLECTION_STRUCT(VkSubpassDependency2KHR);
+DECLARE_REFLECTION_STRUCT(VkAttachmentReference2KHR);
+DECLARE_REFLECTION_STRUCT(VkRenderPassCreateInfo2KHR);
+DECLARE_REFLECTION_STRUCT(VkSubpassBeginInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkSubpassEndInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDispatchIndirectCommand);
 DECLARE_REFLECTION_STRUCT(VkDrawIndirectCommand);
 DECLARE_REFLECTION_STRUCT(VkDrawIndexedIndirectCommand);
@@ -733,6 +744,9 @@ DECLARE_DESERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
 DECLARE_DESERIALISE_TYPE(VkProtectedSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkRenderPassCreateInfo2KHR);
+DECLARE_DESERIALISE_TYPE(VkSubpassBeginInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkSubpassEndInfoKHR);
 
 #if defined(VK_KHR_external_memory_win32) || defined(VK_NV_external_memory_win32)
 DECLARE_REFLECTION_STRUCT(VkImportMemoryWin32HandleInfoNV);

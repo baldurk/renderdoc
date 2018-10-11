@@ -351,7 +351,8 @@
   CheckExt(MVK_moltenvk, VKXX);                   \
   CheckExt(KHR_draw_indirect_count, VKXX);        \
   CheckExt(EXT_validation_cache, VKXX);           \
-  CheckExt(KHR_shared_presentable_image, VKXX);
+  CheckExt(KHR_shared_presentable_image, VKXX);   \
+  CheckExt(KHR_create_renderpass2, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -468,6 +469,10 @@
   HookInitExtension(EXT_validation_cache, MergeValidationCachesEXT);                               \
   HookInitExtension(EXT_validation_cache, GetValidationCacheDataEXT);                              \
   HookInitExtension(KHR_shared_presentable_image, GetSwapchainStatusKHR);                          \
+  HookInitExtension(KHR_create_renderpass2, CreateRenderPass2KHR);                                 \
+  HookInitExtension(KHR_create_renderpass2, CmdBeginRenderPass2KHR);                               \
+  HookInitExtension(KHR_create_renderpass2, CmdNextSubpass2KHR);                                   \
+  HookInitExtension(KHR_create_renderpass2, CmdEndRenderPass2KHR);                                 \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -994,6 +999,17 @@
   HookDefine4(VkResult, vkGetValidationCacheDataEXT, VkDevice, device, VkValidationCacheEXT,         \
               validationCache, size_t *, pDataSize, void *, pData);                                  \
   HookDefine2(VkResult, vkGetSwapchainStatusKHR, VkDevice, device, VkSwapchainKHR, swapchain);       \
+  HookDefine4(VkResult, vkCreateRenderPass2KHR, VkDevice, device,                                    \
+              const VkRenderPassCreateInfo2KHR *, pCreateInfo, const VkAllocationCallbacks *,        \
+              pAllocator, VkRenderPass *, pRenderPass);                                              \
+  HookDefine3(void, vkCmdBeginRenderPass2KHR, VkCommandBuffer, commandBuffer,                        \
+              const VkRenderPassBeginInfo *, pRenderPassBegin, const VkSubpassBeginInfoKHR *,        \
+              pSubpassBeginInfo);                                                                    \
+  HookDefine3(void, vkCmdNextSubpass2KHR, VkCommandBuffer, commandBuffer,                            \
+              const VkSubpassBeginInfoKHR *, pSubpassBeginInfo, const VkSubpassEndInfoKHR *,         \
+              pSubpassEndInfo);                                                                      \
+  HookDefine2(void, vkCmdEndRenderPass2KHR, VkCommandBuffer, commandBuffer,                          \
+              const VkSubpassEndInfoKHR *, pSubpassEndInfo);                                         \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

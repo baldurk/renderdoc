@@ -503,9 +503,20 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                                           VulkanCreationInfo &info,
                                           const VkRenderPassCreateInfo *pCreateInfo)
 {
-  attachments.reserve(pCreateInfo->attachmentCount);
+  attachments.resize(pCreateInfo->attachmentCount);
   for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
-    attachments.push_back(pCreateInfo->pAttachments[i]);
+  {
+    Attachment &dst = attachments[i];
+    dst.flags = pCreateInfo->pAttachments[i].flags;
+    dst.format = pCreateInfo->pAttachments[i].format;
+    dst.samples = pCreateInfo->pAttachments[i].samples;
+    dst.loadOp = pCreateInfo->pAttachments[i].loadOp;
+    dst.storeOp = pCreateInfo->pAttachments[i].storeOp;
+    dst.stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp;
+    dst.stencilStoreOp = pCreateInfo->pAttachments[i].stencilStoreOp;
+    dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
+    dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
+  }
 
   // VK_KHR_multiview
   const VkRenderPassMultiviewCreateInfo *multiview =
@@ -555,6 +566,68 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
         if(mask & (1 << i))
           dst.multiviews.push_back(i);
       }
+    }
+  }
+}
+
+void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
+                                          VulkanCreationInfo &info,
+                                          const VkRenderPassCreateInfo2KHR *pCreateInfo)
+{
+  attachments.resize(pCreateInfo->attachmentCount);
+  for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+  {
+    Attachment &dst = attachments[i];
+    dst.flags = pCreateInfo->pAttachments[i].flags;
+    dst.format = pCreateInfo->pAttachments[i].format;
+    dst.samples = pCreateInfo->pAttachments[i].samples;
+    dst.loadOp = pCreateInfo->pAttachments[i].loadOp;
+    dst.storeOp = pCreateInfo->pAttachments[i].storeOp;
+    dst.stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp;
+    dst.stencilStoreOp = pCreateInfo->pAttachments[i].stencilStoreOp;
+    dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
+    dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
+  }
+
+  subpasses.resize(pCreateInfo->subpassCount);
+  for(uint32_t subp = 0; subp < pCreateInfo->subpassCount; subp++)
+  {
+    const VkSubpassDescription2KHR &src = pCreateInfo->pSubpasses[subp];
+    Subpass &dst = subpasses[subp];
+
+    dst.inputAttachments.resize(src.inputAttachmentCount);
+    dst.inputLayouts.resize(src.inputAttachmentCount);
+    for(uint32_t i = 0; i < src.inputAttachmentCount; i++)
+    {
+      dst.inputAttachments[i] = src.pInputAttachments[i].attachment;
+      dst.inputLayouts[i] = src.pInputAttachments[i].layout;
+    }
+
+    dst.colorAttachments.resize(src.colorAttachmentCount);
+    dst.resolveAttachments.resize(src.colorAttachmentCount);
+    dst.colorLayouts.resize(src.colorAttachmentCount);
+    for(uint32_t i = 0; i < src.colorAttachmentCount; i++)
+    {
+      dst.resolveAttachments[i] =
+          src.pResolveAttachments ? src.pResolveAttachments[i].attachment : ~0U;
+      dst.colorAttachments[i] = src.pColorAttachments[i].attachment;
+      dst.colorLayouts[i] = src.pColorAttachments[i].layout;
+    }
+
+    dst.depthstencilAttachment =
+        (src.pDepthStencilAttachment != NULL &&
+                 src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
+             ? (int32_t)src.pDepthStencilAttachment->attachment
+             : -1);
+    dst.depthstencilLayout = (src.pDepthStencilAttachment != NULL &&
+                                      src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
+                                  ? src.pDepthStencilAttachment->layout
+                                  : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    for(uint32_t i = 0; i < 32; i++)
+    {
+      if(src.viewMask & (1 << i))
+        dst.multiviews.push_back(i);
     }
   }
 }

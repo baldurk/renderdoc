@@ -252,8 +252,23 @@ struct VulkanCreationInfo
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkRenderPassCreateInfo *pCreateInfo);
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkRenderPassCreateInfo2KHR *pCreateInfo);
 
-    vector<VkAttachmentDescription> attachments;
+    struct Attachment
+    {
+      VkAttachmentDescriptionFlags flags;
+      VkFormat format;
+      VkSampleCountFlagBits samples;
+      VkAttachmentLoadOp loadOp;
+      VkAttachmentStoreOp storeOp;
+      VkAttachmentLoadOp stencilLoadOp;
+      VkAttachmentStoreOp stencilStoreOp;
+      VkImageLayout initialLayout;
+      VkImageLayout finalLayout;
+    };
+
+    vector<Attachment> attachments;
 
     struct Subpass
     {

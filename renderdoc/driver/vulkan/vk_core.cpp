@@ -700,6 +700,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_BIND_MEMORY_2_EXTENSION_NAME, VK_KHR_BIND_MEMORY_2_SPEC_VERSION,
     },
     {
+        VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME, VK_KHR_CREATE_RENDERPASS_2_SPEC_VERSION,
+    },
+    {
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME, VK_KHR_DEDICATED_ALLOCATION_SPEC_VERSION,
     },
     {
@@ -2669,6 +2672,15 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdDrawIndexedIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
                                                         VK_NULL_HANDLE, 0, 0, 0);
       break;
+
+    case VulkanChunk::vkCreateRenderPass2KHR:
+      return Serialise_vkCreateRenderPass2KHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
+    case VulkanChunk::vkCmdBeginRenderPass2KHR:
+      return Serialise_vkCmdBeginRenderPass2KHR(ser, VK_NULL_HANDLE, NULL, NULL);
+    case VulkanChunk::vkCmdNextSubpass2KHR:
+      return Serialise_vkCmdNextSubpass2KHR(ser, VK_NULL_HANDLE, NULL, NULL);
+    case VulkanChunk::vkCmdEndRenderPass2KHR:
+      return Serialise_vkCmdEndRenderPass2KHR(ser, VK_NULL_HANDLE, NULL);
 
     default:
     {

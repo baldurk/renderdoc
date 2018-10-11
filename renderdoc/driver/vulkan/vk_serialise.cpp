@@ -2561,6 +2561,159 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleValidationCacheCreateInfoEXT
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAttachmentDescription2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkAttachmentDescriptionFlagBits, flags);
+  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(samples);
+  SERIALISE_MEMBER(loadOp);
+  SERIALISE_MEMBER(storeOp);
+  SERIALISE_MEMBER(stencilLoadOp);
+  SERIALISE_MEMBER(stencilStoreOp);
+  SERIALISE_MEMBER(initialLayout);
+  SERIALISE_MEMBER(finalLayout);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAttachmentReference2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(attachment);
+  SERIALISE_MEMBER(layout);
+  SERIALISE_MEMBER(aspectMask);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassDescription2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkSubpassDescriptionFlagBits, flags);
+  SERIALISE_MEMBER(pipelineBindPoint);
+  SERIALISE_MEMBER(viewMask);
+
+  SERIALISE_MEMBER(inputAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pInputAttachments, inputAttachmentCount);
+
+  SERIALISE_MEMBER(colorAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pColorAttachments, colorAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pResolveAttachments, colorAttachmentCount);
+
+  SERIALISE_MEMBER_OPT(pDepthStencilAttachment);
+
+  SERIALISE_MEMBER(preserveAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pPreserveAttachments, preserveAttachmentCount);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassDependency2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcSubpass);
+  SERIALISE_MEMBER(dstSubpass);
+  SERIALISE_MEMBER_TYPED(VkPipelineStageFlagBits, srcStageMask);
+  SERIALISE_MEMBER_TYPED(VkPipelineStageFlagBits, dstStageMask);
+  SERIALISE_MEMBER_TYPED(VkAccessFlagBits, srcAccessMask);
+  SERIALISE_MEMBER_TYPED(VkAccessFlagBits, dstAccessMask);
+  SERIALISE_MEMBER_TYPED(VkDependencyFlagBits, dependencyFlags);
+  SERIALISE_MEMBER(viewOffset);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRenderPassCreateInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_TYPED(VkFlagWithNoBits, flags);
+  SERIALISE_MEMBER(attachmentCount);
+  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+  SERIALISE_MEMBER(subpassCount);
+  SERIALISE_MEMBER_ARRAY(pSubpasses, subpassCount);
+  SERIALISE_MEMBER(dependencyCount);
+  SERIALISE_MEMBER_ARRAY(pDependencies, dependencyCount);
+  SERIALISE_MEMBER(correlatedViewMaskCount);
+  SERIALISE_MEMBER_ARRAY(pCorrelatedViewMasks, correlatedViewMaskCount);
+}
+
+template <>
+void Deserialise(const VkRenderPassCreateInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  for(uint32_t i = 0; i < el.attachmentCount; i++)
+  {
+    DeserialiseNext(el.pAttachments[i].pNext);
+  }
+  delete[] el.pAttachments;
+  for(uint32_t i = 0; i < el.subpassCount; i++)
+  {
+    DeserialiseNext(el.pSubpasses[i].pNext);
+
+    if(el.pSubpasses[i].pDepthStencilAttachment)
+      DeserialiseNext(el.pSubpasses[i].pDepthStencilAttachment->pNext);
+
+    for(uint32_t j = 0; j < el.pSubpasses[i].colorAttachmentCount; j++)
+    {
+      DeserialiseNext(el.pSubpasses[i].pColorAttachments[j].pNext);
+      if(el.pSubpasses[i].pResolveAttachments)
+        DeserialiseNext(el.pSubpasses[i].pResolveAttachments[j].pNext);
+    }
+
+    for(uint32_t j = 0; j < el.pSubpasses[i].inputAttachmentCount; j++)
+      DeserialiseNext(el.pSubpasses[i].pInputAttachments[j].pNext);
+
+    delete el.pSubpasses[i].pDepthStencilAttachment;
+    delete[] el.pSubpasses[i].pInputAttachments;
+    delete[] el.pSubpasses[i].pColorAttachments;
+    delete[] el.pSubpasses[i].pResolveAttachments;
+    delete[] el.pSubpasses[i].pPreserveAttachments;
+  }
+  delete[] el.pSubpasses;
+  for(uint32_t i = 0; i < el.dependencyCount; i++)
+  {
+    DeserialiseNext(el.pDependencies[i].pNext);
+  }
+  delete[] el.pDependencies;
+  delete[] el.pCorrelatedViewMasks;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassBeginInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(contents);
+}
+
+template <>
+void Deserialise(const VkSubpassBeginInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassEndInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBPASS_END_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+}
+
+template <>
+void Deserialise(const VkSubpassEndInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDispatchIndirectCommand &el)
 {
   SERIALISE_MEMBER(x);
@@ -3177,6 +3330,9 @@ INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkImageViewASTCDecodeModeEXT);
 INSTANTIATE_SERIALISE_TYPE(VkShaderModuleValidationCacheCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkRenderPassCreateInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkSubpassBeginInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkSubpassEndInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDispatchIndirectCommand);
 INSTANTIATE_SERIALISE_TYPE(VkDrawIndirectCommand);
 INSTANTIATE_SERIALISE_TYPE(VkDrawIndexedIndirectCommand);

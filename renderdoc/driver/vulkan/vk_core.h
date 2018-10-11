@@ -742,8 +742,6 @@ private:
 
   std::vector<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);
   string MakeRenderPassOpString(bool store);
-  void MakeSubpassLoadRP(VkRenderPassCreateInfo &info, const VkRenderPassCreateInfo *origInfo,
-                         uint32_t s);
 
   bool IsDrawInRenderPass();
 
@@ -1915,4 +1913,18 @@ public:
 
   // VK_KHR_shared_presentable_image
   VkResult vkGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR swapchain);
+
+  // VK_KHR_create_renderpass2
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass2KHR, VkDevice device,
+                                const VkRenderPassCreateInfo2KHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass2KHR, VkCommandBuffer commandBuffer,
+                                const VkRenderPassBeginInfo *pRenderPassBegin,
+                                const VkSubpassBeginInfoKHR *pSubpassBeginInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdNextSubpass2KHR, VkCommandBuffer commandBuffer,
+                                const VkSubpassBeginInfoKHR *pSubpassBeginInfo,
+                                const VkSubpassEndInfoKHR *pSubpassEndInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2KHR, VkCommandBuffer commandBuffer,
+                                const VkSubpassEndInfoKHR *pSubpassEndInfo);
+\
 };
