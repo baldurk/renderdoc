@@ -809,7 +809,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
           ctx->Draw(3, 0);
         }
 
-        m_pImmediateContext->Flush();
+        ctx->Flush();
 
         SAFE_RELEASE(dsvArray);
       }
