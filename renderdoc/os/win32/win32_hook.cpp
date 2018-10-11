@@ -256,6 +256,16 @@ struct CachedHookData
           {
             // previous module is no longer loaded or there's a new file there now, add this as the
             // new location
+            RDCWARN("%s moved from %p to %p, re-initialising orig pointers", it->first.c_str(),
+                    it->second.module, module);
+
+            // we also need to re-initialise the hooks as the orig pointers are now stale
+            for(FunctionHook &hook : it->second.FunctionHooks)
+            {
+              if(hook.orig)
+                *hook.orig = GetProcAddress(module, hook.function.c_str());
+            }
+
             it->second.module = module;
           }
         }
