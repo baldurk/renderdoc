@@ -918,6 +918,7 @@ static uint32_t byteSize(const ResourceFormat &fmt)
   {
     switch(fmt.type)
     {
+      default:
       case ResourceFormatType::R9G9B9E5:
       case ResourceFormatType::R5G6B5:
       case ResourceFormatType::R5G5B5A1:
