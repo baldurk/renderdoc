@@ -73,8 +73,13 @@ public:
   {
     InvalidStream
   };
+  enum StreamDummyType
+  {
+    DummyStream
+  };
 
   StreamReader(StreamInvalidType);
+  StreamReader(StreamDummyType);
   StreamReader(const byte *buffer, uint64_t bufferSize);
   StreamReader(const std::vector<byte> &buffer);
 
@@ -93,6 +98,8 @@ public:
   inline uint64_t GetSize() { return m_InputSize; }
   inline bool AtEnd()
   {
+    if(m_Dummy)
+      return false;
     if(m_Sock)
       return Available() == 0;
     return GetOffset() >= GetSize();
@@ -113,7 +120,7 @@ public:
 
   bool Read(void *data, uint64_t numBytes)
   {
-    if(numBytes == 0)
+    if(numBytes == 0 || m_Dummy)
       return true;
 
     if(!m_BufferBase)
@@ -228,6 +235,10 @@ private:
 
   // flag indicating if an error has been encountered and the stream is now invalid
   bool m_HasError = false;
+
+  // flag indicating this reader is a dummy and doesn't read anything or clear inputs. Used with a
+  // structured serialiser to 'read' pre-existing data.
+  bool m_Dummy = false;
 
   // do we own the file/compressor? are we responsible for
   // cleaning it up?

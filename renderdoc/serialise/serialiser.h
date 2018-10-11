@@ -166,7 +166,7 @@ public:
 
     return StringFormat::Fmt("<No Chunk Lookup: %u>", m_ChunkMetadata.chunkID);
   }
-
+  ChunkLookup GetChunkLookup() { return m_ChunkLookup; }
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -1520,7 +1520,7 @@ public:
   // constructors only available by the derived classes for each serialiser type
 protected:
   Serialiser(StreamWriter *writer, Ownership own);
-  Serialiser(StreamReader *reader, Ownership own);
+  Serialiser(StreamReader *reader, Ownership own, SDObject *rootStructuredObj);
 
 private:
   static const uint64_t ChunkAlignment = 64;
@@ -1632,12 +1632,22 @@ public:
 class ReadSerialiser : public Serialiser<SerialiserMode::Reading>
 {
 public:
-  ReadSerialiser(StreamReader *reader, Ownership own) : Serialiser(reader, own) {}
+  ReadSerialiser(StreamReader *reader, Ownership own) : Serialiser(reader, own, NULL) {}
   template <typename ChunkType>
   ChunkType ReadChunk()
   {
     // parameters are ignored when reading
     return (ChunkType)BeginChunk(0, 0);
+  }
+};
+
+class StructuredSerialiser : public Serialiser<SerialiserMode::Reading>
+{
+public:
+  StructuredSerialiser(SDObject *obj, ChunkLookup lookup)
+      : Serialiser(new StreamReader(StreamReader::DummyStream), Ownership::Stream, obj)
+  {
+    ConfigureStructuredExport(lookup, false);
   }
 };
 #endif

@@ -73,6 +73,18 @@ StreamReader::StreamReader(StreamInvalidType)
   m_HasError = true;
 }
 
+StreamReader::StreamReader(StreamDummyType)
+{
+  m_InputSize = 0;
+
+  m_BufferSize = 0;
+  m_BufferHead = m_BufferBase = NULL;
+
+  m_Ownership = Ownership::Nothing;
+
+  m_Dummy = true;
+}
+
 StreamReader::StreamReader(Network::Socket *sock, Ownership own)
 {
   m_Sock = sock;

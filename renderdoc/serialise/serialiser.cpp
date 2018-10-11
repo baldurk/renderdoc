@@ -40,12 +40,16 @@ int64_t Chunk::m_TotalMem = 0;
 // Read Serialiser functions
 
 template <>
-Serialiser<SerialiserMode::Reading>::Serialiser(StreamReader *reader, Ownership own)
+Serialiser<SerialiserMode::Reading>::Serialiser(StreamReader *reader, Ownership own,
+                                                SDObject *rootStructuredObj)
 {
   m_Read = reader;
   m_Write = NULL;
 
   m_Ownership = own;
+
+  if(rootStructuredObj)
+    m_StructureStack.push_back(rootStructuredObj);
 }
 
 template <>
