@@ -322,6 +322,9 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
     swapinfo.extent = CreateInfo.imageExtent;
     swapinfo.arraySize = CreateInfo.imageArrayLayers;
 
+    swapinfo.shared = (CreateInfo.presentMode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
+                       CreateInfo.presentMode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR);
+
     swapinfo.images.resize(NumImages);
 
     const VkImageCreateInfo imInfo = {
@@ -719,6 +722,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
       };
 
+      if(swapInfo.shared)
+        bbBarrier.oldLayout = VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
+
       bbBarrier.srcAccessMask = VK_ACCESS_ALL_READ_BITS;
       bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
@@ -1041,6 +1047,11 @@ VkResult WrappedVulkan::vkGetDisplayPlaneCapabilities2KHR(
 {
   return ObjDisp(physicalDevice)
       ->GetDisplayPlaneCapabilities2KHR(Unwrap(physicalDevice), pDisplayPlaneInfo, pCapabilities);
+}
+
+VkResult WrappedVulkan::vkGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR swapchain)
+{
+  return ObjDisp(device)->GetSwapchainStatusKHR(Unwrap(device), Unwrap(swapchain));
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,

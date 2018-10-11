@@ -831,7 +831,7 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout)
 
 void ReplacePresentableImageLayout(VkImageLayout &layout)
 {
-  if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+  if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR || layout == VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR)
     layout = VK_IMAGE_LAYOUT_GENERAL;
 }
 

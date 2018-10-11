@@ -860,6 +860,8 @@ struct SwapchainInfo
   VkExtent2D extent;
   int arraySize;
 
+  bool shared;
+
   VkRenderPass rp;
 
   RENDERDOC_WindowHandle wndHandle;

@@ -1912,4 +1912,7 @@ public:
 
   VkResult vkGetValidationCacheDataEXT(VkDevice device, VkValidationCacheEXT validationCache,
                                        size_t *pDataSize, void *pData);
+
+  // VK_KHR_shared_presentable_image
+  VkResult vkGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR swapchain);
 };

@@ -825,6 +825,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, VK_KHR_SHADER_DRAW_PARAMETERS_SPEC_VERSION,
     },
     {
+        VK_KHR_SHARED_PRESENTABLE_IMAGE_EXTENSION_NAME, VK_KHR_SHARED_PRESENTABLE_IMAGE_SPEC_VERSION,
+    },
+    {
         VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME,
         VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_SPEC_VERSION,
     },
@@ -1409,6 +1412,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         Unwrap(backbuffer),
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
     };
+
+    if(swapInfo.shared)
+      bbBarrier.oldLayout = VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
 
     DoPipelineBarrier(cmd, 1, &bbBarrier);
 
