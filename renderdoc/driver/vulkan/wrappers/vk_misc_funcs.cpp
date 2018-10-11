@@ -37,7 +37,7 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
   // structs
   using SubpassInfo = typename std::remove_reference<decltype(info.pSubpasses[0])>::type;
   using AttachmentInfo =
-      std::remove_cv<typename std::remove_reference<decltype(info.pAttachments[0])>::type>::type;
+      typename std::remove_cv<typename std::remove_reference<decltype(info.pAttachments[0])>::type>::type;
 
   SubpassInfo *sub = info.pSubpasses;
   AttachmentInfo *att = (AttachmentInfo *)info.pAttachments;
