@@ -171,7 +171,7 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
     {
       int err = WSAGetLastError();
 
-      if(err == WSAEWOULDBLOCK)
+      if(err == WSAEWOULDBLOCK || err == WSAETIMEDOUT)
       {
         RDCWARN("Timeout in send");
         Shutdown();
@@ -292,7 +292,7 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
     {
       int err = WSAGetLastError();
 
-      if(err == WSAEWOULDBLOCK)
+      if(err == WSAEWOULDBLOCK || err == WSAETIMEDOUT)
       {
         RDCWARN("Timeout in recv");
         Shutdown();
