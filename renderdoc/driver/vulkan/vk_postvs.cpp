@@ -1299,6 +1299,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
     VkDescriptorPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     // 1 set for each layout
+    poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     poolCreateInfo.maxSets = (uint32_t)setLayouts.size();
     poolCreateInfo.poolSizeCount = ARRAY_COUNT(poolSizes);
     poolCreateInfo.pPoolSizes = poolSizes;
