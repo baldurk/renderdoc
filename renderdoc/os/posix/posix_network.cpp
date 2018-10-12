@@ -55,6 +55,7 @@ static std::string errno_string(int err)
     case EADDRINUSE: return "EADDRINUSE: Address already in use.";
     case ECONNRESET: return "ECONNRESET: A connection was forcibly closed by a peer.";
     case EINPROGRESS: return "EINPROGRESS: Operation now in progress.";
+    case EPIPE: return "EPIPE: Broken pipe.";
     case EINTR:
       return "EINTR: The function was interrupted by a signal that was caught, before any data was "
              "available.";
