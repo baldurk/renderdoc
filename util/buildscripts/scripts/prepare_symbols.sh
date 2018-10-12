@@ -62,9 +62,14 @@ if [[ "$SYMSTORE" == "" ]]; then
 	exit 0;
 fi
 
-SYMSTORE=$(readlink -f "${SYMSTORE}")
+TMPSTORE="${REPO_ROOT}"/symstore
 
-echo "Storing symbols for $GITTAG in symbol store $SYMSTORE"
+if which cygpath >/dev/null 2>&1; then
+	TMPSTORE=$(cygpath -w "${TMPSTORE}")
+	SYMSTORE=$(cygpath -w "${SYMSTORE}")
+fi
+
+echo "Storing symbols for $GITTAG in symbol store $SYMSTORE temporarily in $TMPSTORE"
 
 mkdir -p "${SYMSTORE}"
 
@@ -72,27 +77,27 @@ mkdir -p "${SYMSTORE}"
 # Process Win32 and x64 separately since they'll overwrite each other otherwise.
 for ARCH in Win32 x64; do
 
-	rm -rf /tmp/symstore
+	rm -rf "${TMPSTORE}"
 
 	# Add to local symbol store (which is rsync'd to public symbol server)
 	for PDB in "${REPO_ROOT}"/$ARCH/Release/*.pdb; do
-		mkdir -p /tmp/symstore
-		cp $PDB /tmp/symstore/
+		mkdir -p "${TMPSTORE}"
+		cp $PDB "${TMPSTORE}"
 
 		EXE=${PDB%.pdb}.exe
 		DLL=${PDB%.pdb}.dll
 		if [ -f "$EXE" ]; then
-			cp $EXE /tmp/symstore/
+			cp $EXE "${TMPSTORE}"
 		fi
 		if [ -f "$DLL" ]; then
-			cp $DLL /tmp/symstore/
+			cp $DLL "${TMPSTORE}"
 		fi
 	done
 
-	if [ -d /tmp/symstore ]; then
-		MSYS2_ARG_CONV_EXCL="*" "${BUILD_ROOT}"/support/symstore.exe add /s "${SYMSTORE}" /compress /r /f /tmp/symstore /t RenderDoc /v $GITTAG
+	if [ -d "${TMPSTORE}" ]; then
+		MSYS2_ARG_CONV_EXCL="*" "${BUILD_ROOT}"/support/symstore.exe add /s "${SYMSTORE}" /compress /r /f "${TMPSTORE}" /t RenderDoc /v $GITTAG
 	fi
 
 done
 
-rm -rf /tmp/symstore
+rm -rf "${TMPSTORE}"
