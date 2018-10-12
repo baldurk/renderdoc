@@ -382,6 +382,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
             m_DrawcallCallback->PostRedraw(eventId, commandBuffer);
           }
         }
+
+        // account for the fake indirect subcommand
+        if(count > 0)
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
       else
       {
@@ -614,7 +618,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       draw.flags = DrawFlags::MultiDraw | DrawFlags::PushMarker;
 
       if(count == 0)
+      {
+        draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
         draw.name = name + "(0)";
+      }
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -626,7 +633,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       drawNode.resourceUsage.push_back(std::make_pair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+      if(count > 0)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
       for(uint32_t i = 0; i < count; i++)
       {
@@ -658,9 +666,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
 
-      draw.name = name;
-      draw.flags = DrawFlags::PopMarker;
-      AddDrawcall(draw, false);
+      if(count > 0)
+      {
+        draw.name = name;
+        draw.flags = DrawFlags::PopMarker;
+        AddDrawcall(draw, false);
+      }
     }
   }
 
@@ -741,6 +752,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
             m_DrawcallCallback->PostRedraw(eventId, commandBuffer);
           }
         }
+
+        // account for the fake indirect subcommand
+        if(count > 0)
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
       else
       {
@@ -978,7 +993,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       draw.flags = DrawFlags::MultiDraw | DrawFlags::PushMarker;
 
       if(count == 0)
+      {
         draw.name = name + "(0)";
+        draw.flags =
+            DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
+      }
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -990,7 +1009,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       drawNode.resourceUsage.push_back(std::make_pair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+      if(count > 0)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
       for(uint32_t i = 0; i < count; i++)
       {
@@ -1023,9 +1043,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
 
-      draw.name = name;
-      draw.flags = DrawFlags::PopMarker;
-      AddDrawcall(draw, false);
+      if(count > 0)
+      {
+        draw.name = name;
+        draw.flags = DrawFlags::PopMarker;
+        AddDrawcall(draw, false);
+      }
     }
   }
 
