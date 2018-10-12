@@ -39,7 +39,10 @@ enum ReplayProxyPacket
   // peacefully with remote server packet numbers
   eReplayProxy_First = 0x1000,
 
-  eReplayProxy_ReplayLog = eReplayProxy_First,
+  eReplayProxy_RemoteExecutionKeepAlive = eReplayProxy_First,
+  eReplayProxy_RemoteExecutionFinished,
+
+  eReplayProxy_ReplayLog,
 
   eReplayProxy_CacheBufferData,
   eReplayProxy_CacheTextureData,
@@ -137,6 +140,8 @@ public:
   {
     RDCEraseEl(m_APIProps);
 
+    InitRemoteExecutionThread();
+
     if(m_Replay)
       InitPreviewWindow();
   }
@@ -145,6 +150,13 @@ public:
 
   void InitPreviewWindow();
   void ShutdownPreviewWindow();
+  void RefreshPreviewWindow();
+
+  void InitRemoteExecutionThread();
+  void ShutdownRemoteExecutionThread();
+  void BeginRemoteExecution();
+  void EndRemoteExecution();
+  void RemoteExecutionThreadEntry();
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
   void Shutdown() { delete this; }
@@ -417,8 +429,6 @@ public:
     return ResourceId();
   }
 
-  void RefreshPreviewWindow();
-
   bool Tick(int type);
 
   const D3D11Pipe::State *GetD3D11PipelineState() { return &m_D3D11PipelineState; }
@@ -650,6 +660,24 @@ private:
   WindowingData m_PreviewWindowingData = {WindowingSystem::Unknown};
 
   uint32_t m_EventID = 0;
+
+  enum RemoteExecutionState
+  {
+    RemoteExecution_Inactive = 0,
+    RemoteExecution_ThreadIdle = 1,
+    RemoteExecution_ThreadActive = 2,
+  };
+
+  volatile int32_t m_RemoteExecutionKill = 0;
+  volatile int32_t m_RemoteExecutionState = RemoteExecution_Inactive;
+
+  bool IsThreadIdle()
+  {
+    return Atomic::CmpExch32(&m_RemoteExecutionState, RemoteExecution_ThreadIdle,
+                             RemoteExecution_ThreadIdle) == RemoteExecution_ThreadIdle;
+  }
+
+  Threading::ThreadHandle m_RemoteExecutionThread = 0;
 
   bool m_IsErrored = false;
 
