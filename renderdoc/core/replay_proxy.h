@@ -96,6 +96,8 @@ enum ReplayProxyPacket
   eReplayProxy_GetTargetShaderEncodings,
 };
 
+DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
+
 #define IMPLEMENT_FUNCTION_PROXIED(rettype, name, ...)                                  \
   rettype name(__VA_ARGS__);                                                            \
   template <typename ParamSerialiser, typename ReturnSerialiser>                        \
@@ -547,6 +549,8 @@ private:
 
   const DrawcallDescription *FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
                                       uint32_t eventId);
+
+  bool CheckError(ReplayProxyPacket receivedPacket, ReplayProxyPacket expectedPacket);
 
   struct TextureCacheEntry
   {
