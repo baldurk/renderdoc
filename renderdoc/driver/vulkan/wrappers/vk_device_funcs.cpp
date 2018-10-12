@@ -1071,7 +1071,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_AMD_gpa_interface");
     }
 
-    // enable VK_AMD_gpa_interface if it's available, for detecting/controlling moltenvk.
+    // enable VK_MVK_moltenvk if it's available, for detecting/controlling moltenvk.
     // Currently this is used opaquely (extension present or not) rather than using anything the
     // extension provides.
     if(supportedExtensions.find("VK_MVK_moltenvk") != supportedExtensions.end())
