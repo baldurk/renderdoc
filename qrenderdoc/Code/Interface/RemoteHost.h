@@ -48,8 +48,10 @@ public:
   DOCUMENT(
       "Ping the host to check current status - if the server is running, connection status, etc.");
   void CheckStatus();
-  DOCUMENT("Runs the command specified in :data:`runCommand`.");
-  void Launch();
+  DOCUMENT(
+      "Runs the command specified in :data:`runCommand`. Returns :class:`ReplayStatus` which "
+      "indicates success or the type of failure.");
+  ReplayStatus Launch();
 
   DOCUMENT("``True`` if a remote server is currently running on this host.");
   bool serverRunning : 1;

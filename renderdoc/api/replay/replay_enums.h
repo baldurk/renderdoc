@@ -3078,6 +3078,22 @@ a remote server.
 
   The API failed to replay the capture, with some runtime error that couldn't be determined until
   the replay began.
+
+.. data:: AndroidGrantPermissionsFailed
+
+  Failed to grant runtime permissions when installing Android remote server.
+
+.. data:: AndroidABINotFound
+
+  Couldn't determine supported ABIs when installing Android remote server.
+
+.. data:: AndroidAPKFolderNotFound
+
+  Couldn't find the build-android folder which contains the Android remote server APK.
+
+.. data:: AndroidAPKInstallFailed
+
+  Failed to install Android remote server.
 )");
 enum class ReplayStatus : uint32_t
 {
@@ -3101,6 +3117,10 @@ enum class ReplayStatus : uint32_t
   APIDataCorrupted,
   APIReplayFailed,
   JDWPFailure,
+  AndroidGrantPermissionsFailed,
+  AndroidABINotFound,
+  AndroidAPKFolderNotFound,
+  AndroidAPKInstallFailed
 };
 
 DECLARE_REFLECTION_ENUM(ReplayStatus);

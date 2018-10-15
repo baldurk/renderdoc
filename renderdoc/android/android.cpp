@@ -323,14 +323,16 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   return ret;
 }
 
-bool InstallRenderDocServer(const std::string &deviceID)
+ReplayStatus InstallRenderDocServer(const std::string &deviceID)
 {
+  ReplayStatus status = ReplayStatus::Succeeded;
+
   std::vector<ABI> abis = GetSupportedABIs(deviceID);
 
   if(abis.empty())
   {
     RDCERR("Couldn't determine supported ABIs for %s", deviceID.c_str());
-    return false;
+    return ReplayStatus::AndroidABINotFound;
   }
 
   // Check known paths for RenderDoc server
@@ -387,7 +389,7 @@ bool InstallRenderDocServer(const std::string &deviceID)
         "APK folder missing! RenderDoc for Android will not work without it. "
         "Build your Android ABI in build-android in the root to have it "
         "automatically found and installed.");
-    return false;
+    return ReplayStatus::AndroidAPKFolderNotFound;
   }
 
   for(ABI abi : abis)
@@ -409,7 +411,15 @@ bool InstallRenderDocServer(const std::string &deviceID)
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
 
-    adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+    Process::ProcessResult adbCheck = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+
+    if(!adbCheck.strStderror.empty())
+    {
+      status = ReplayStatus::AndroidGrantPermissionsFailed;
+      RDCLOG("Failed to install APK. stderr: %s", adbCheck.strStderror.c_str());
+      RDCLOG("Retrying...");
+      adbExecCommand(deviceID, "install -r \"" + apk + "\"");
+    }
   }
 
   // Ensure installation succeeded. We should have as many lines as abis we installed
@@ -419,7 +429,7 @@ bool InstallRenderDocServer(const std::string &deviceID)
   if(adbCheck.strStdout.empty())
   {
     RDCERR("Couldn't find any installed APKs. stderr: %s", adbCheck.strStderror.c_str());
-    return false;
+    return ReplayStatus::AndroidAPKInstallFailed;
   }
 
   size_t lines = adbCheck.strStdout.find('\n') == std::string::npos ? 1 : 2;
@@ -427,7 +437,7 @@ bool InstallRenderDocServer(const std::string &deviceID)
   if(lines != abis.size())
     RDCWARN("Installation of some apks failed!");
 
-  return true;
+  return status;
 }
 
 bool RemoveRenderDocAndroidServer(const string &deviceID)
@@ -601,15 +611,16 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsAndroidSupported(const ch
   return Android::IsSupported(deviceID);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
+extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
 {
+  ReplayStatus status = ReplayStatus::Succeeded;
   int index = 0;
   std::string deviceID;
 
   Android::ExtractDeviceIDAndIndex(device, index, deviceID);
 
   if(!Android::IsSupported(deviceID))
-    return;
+    return ReplayStatus::UnknownError;
 
   std::string packagesOutput = trim(
       Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
@@ -623,10 +634,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID))
   {
     // If server is not detected or has been removed due to incompatibility, install it
-    if(!Android::InstallRenderDocServer(deviceID))
+    status = Android::InstallRenderDocServer(deviceID);
+    if(status != ReplayStatus::Succeeded && status != ReplayStatus::AndroidGrantPermissionsFailed)
     {
       RDCERR("Failed to install RenderDoc server app");
-      return;
+      return status;
     }
   }
 
@@ -635,7 +647,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
     Android::adbExecCommand(deviceID, "shell am force-stop " + GetRenderDocPackageForABI(abi));
 
   if(abis.empty())
-    return;
+    return ReplayStatus::AndroidABINotFound;
 
   Android::adbForwardPorts(index, deviceID, 0, 0, false);
   Android::ResetCaptureSettings(deviceID);
@@ -643,4 +655,5 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   // launch the first ABI, as the default 'most compatible' package
   Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis[0]) +
                                         "/.Loader -e renderdoccmd remoteserver");
+  return status;
 }
