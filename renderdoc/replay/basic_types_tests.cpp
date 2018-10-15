@@ -473,6 +473,99 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(valueConstructor == 1);
     CHECK(copyConstructor == 3);
   };
+
+  SECTION("Inserting from array into itself")
+  {
+    constructor = 0;
+    valueConstructor = 0;
+    copyConstructor = 0;
+    destructor = 0;
+
+    rdcarray<ConstructorCounter> test;
+
+    // ensure no re-allocations due to size
+    test.reserve(100);
+
+    test.resize(5);
+    test[0].value = 10;
+    test[1].value = 20;
+    test[2].value = 30;
+    test[3].value = 40;
+    test[4].value = 50;
+
+    CHECK(constructor == 5);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 0);
+    CHECK(destructor == 0);
+
+    CHECK(test.capacity() == 100);
+    CHECK(test.size() == 5);
+
+    ConstructorCounter tmp;
+    tmp.value = 999;
+
+    // 5 constructed objects in the array, and tmp
+    CHECK(constructor == 6);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 0);
+    CHECK(destructor == 0);
+
+    // this should shift everything up, and copy-construct the element into place
+    test.insert(0, tmp);
+
+    CHECK(test.capacity() == 100);
+    CHECK(test.size() == 6);
+
+    // 5 copies and 5 destructs to shift the array contents up, then another copy for inserting tmp
+    CHECK(constructor == 6);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 5 + 1);
+    CHECK(destructor == 5);
+
+    CHECK(test[0].value == 999);
+    CHECK(test[1].value == 10);
+
+    // this should copy the value, then do an insert
+    test.insert(0, test[0]);
+
+    CHECK(test.capacity() == 100);
+    CHECK(test.size() == 7);
+
+    // on top of the above, another 6 copies & destructs to shift the array contents, 1 copy for
+    // inserting test[0], and a copy&destruct of the temporary copy
+    CHECK(constructor == 6);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == (5 + 1) + 6 + 1 + 1);
+    CHECK(destructor == (5) + 6 + 1);
+
+    CHECK(test[0].value == 999);
+    CHECK(test[1].value == 999);
+    CHECK(test[2].value == 10);
+
+    // this should detect the overlapped range, and duplicate the whole object
+    test.insert(0, test.data(), 3);
+
+    // ensure the correct size and allocated space
+    CHECK(test.capacity() == 100);
+    CHECK(test.size() == 10);
+
+    CHECK(test[0].value == 999);
+    CHECK(test[1].value == 999);
+    CHECK(test[2].value == 10);
+    CHECK(test[3].value == 999);
+    CHECK(test[4].value == 999);
+    CHECK(test[5].value == 10);
+
+    // on top of the above:
+    // - 7 copies and destructs for the duplication (copies into the new storage, destructs from the
+    // old storage)
+    // - 7 copies and destructs for shifting the array contents
+    // - 3 copies for the inserted items
+    CHECK(constructor == 6);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == (5 + 1 + 6 + 1 + 1) + 7 + 7 + 3);
+    CHECK(destructor == (5 + 6 + 1) + 7 + 7);
+  };
 };
 
 #define CHECK_NULL_TERM(str) CHECK(str.c_str()[str.size()] == '\0');

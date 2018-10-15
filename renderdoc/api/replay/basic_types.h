@@ -381,6 +381,20 @@ public:
 
   void insert(size_t offs, const T *el, size_t count)
   {
+    if(el + count >= begin() && end() >= el)
+    {
+      // we're inserting from ourselves, so if we did this blindly we'd potentially change the
+      // contents of the inserted range while doing the insertion.
+      // To fix that, we store our original data in a temp and copy into ourselves again. Then we
+      // insert from the range (which now points to the copy) and let it be destroyed.
+      // This could be more efficient as an append and then a rotate, but this is simpler for now.
+      rdcarray<T> copy;
+      copy.swap(*this);
+      this->reserve(copy.capacity());
+      *this = copy;
+      return insert(offs, el, count);
+    }
+
     const size_t oldSize = size();
 
     // invalid size
@@ -487,7 +501,18 @@ public:
     insert(offs, in.begin(), in.size());
   }
   inline void insert(size_t offs, const rdcarray<T> &in) { insert(offs, in.data(), in.size()); }
-  inline void insert(size_t offs, const T &in) { insert(offs, &in, 1); }
+  inline void insert(size_t offs, const T &in)
+  {
+    if(&in < begin() || &in > end())
+    {
+      insert(offs, &in, 1);
+    }
+    else
+    {
+      T copy(in);
+      insert(offs, &copy, 1);
+    }
+  }
   // helpful shortcut for 'append at end', basically a multi-element push_back
   inline void append(const T *el, size_t count) { insert(size(), el, count); }
   void erase(size_t offs, size_t count = 1)
