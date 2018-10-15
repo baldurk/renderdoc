@@ -205,6 +205,14 @@ typedef struct VkLayerInstanceDispatchTable_ {
 
     // ---- VK_EXT_sample_locations extension commands
     PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT GetPhysicalDeviceMultisamplePropertiesEXT;
+
+    // ---- VK_EXT_calibrated_timestamps extension commands
+    PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT GetPhysicalDeviceCalibrateableTimeDomainsEXT;
+
+    // ---- VK_FUCHSIA_imagepipe_surface extension commands
+#ifdef VK_USE_PLATFORM_FUCHSIA
+    PFN_vkCreateImagePipeSurfaceFUCHSIA CreateImagePipeSurfaceFUCHSIA;
+#endif // VK_USE_PLATFORM_FUCHSIA
 } VkLayerInstanceDispatchTable;
 
 // Device function pointer dispatch table
@@ -453,6 +461,14 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEndEXT;
     PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsertEXT;
 
+    // ---- VK_EXT_transform_feedback extension commands
+    PFN_vkCmdBindTransformFeedbackBuffersEXT CmdBindTransformFeedbackBuffersEXT;
+    PFN_vkCmdBeginTransformFeedbackEXT CmdBeginTransformFeedbackEXT;
+    PFN_vkCmdEndTransformFeedbackEXT CmdEndTransformFeedbackEXT;
+    PFN_vkCmdBeginQueryIndexedEXT CmdBeginQueryIndexedEXT;
+    PFN_vkCmdEndQueryIndexedEXT CmdEndQueryIndexedEXT;
+    PFN_vkCmdDrawIndirectByteCountEXT CmdDrawIndirectByteCountEXT;
+
     // ---- VK_AMD_draw_indirect_count extension commands
     PFN_vkCmdDrawIndirectCountAMD CmdDrawIndirectCountAMD;
     PFN_vkCmdDrawIndexedIndirectCountAMD CmdDrawIndexedIndirectCountAMD;
@@ -519,6 +535,9 @@ typedef struct VkLayerDispatchTable_ {
     // ---- VK_EXT_sample_locations extension commands
     PFN_vkCmdSetSampleLocationsEXT CmdSetSampleLocationsEXT;
 
+    // ---- VK_EXT_image_drm_format_modifier extension commands
+    PFN_vkGetImageDrmFormatModifierPropertiesEXT GetImageDrmFormatModifierPropertiesEXT;
+
     // ---- VK_EXT_validation_cache extension commands
     PFN_vkCreateValidationCacheEXT CreateValidationCacheEXT;
     PFN_vkDestroyValidationCacheEXT DestroyValidationCacheEXT;
@@ -550,6 +569,9 @@ typedef struct VkLayerDispatchTable_ {
 
     // ---- VK_AMD_buffer_marker extension commands
     PFN_vkCmdWriteBufferMarkerAMD CmdWriteBufferMarkerAMD;
+
+    // ---- VK_EXT_calibrated_timestamps extension commands
+    PFN_vkGetCalibratedTimestampsEXT GetCalibratedTimestampsEXT;
 
     // ---- VK_NV_mesh_shader extension commands
     PFN_vkCmdDrawMeshTasksNV CmdDrawMeshTasksNV;
