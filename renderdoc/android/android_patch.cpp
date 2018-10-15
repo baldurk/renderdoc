@@ -451,8 +451,20 @@ bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
     elapsed += 1000;
   }
 
-  RDCERR("Failed to pull APK");
+  RDCLOG("Failed to pull APK");
   return false;
+}
+
+void CopyAPK(const string &deviceID, const string &pkgPath, const string &copyPath)
+{
+  RDCLOG("Copying APK to %s", copyPath.c_str());
+  adbExecCommand(deviceID, "shell cp " + pkgPath + " " + copyPath);
+}
+
+void RemoveAPK(const string &deviceID, const string &path)
+{
+  RDCLOG("Removing APK from %s", path.c_str());
+  adbExecCommand(deviceID, "shell rm -f " + path);
 }
 
 bool HasRootAccess(const std::string &deviceID)
@@ -572,7 +584,17 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
 
   // Try the following steps, bailing if anything fails
   if(!Android::PullAPK(deviceID, pkgPath, origAPK))
-    return AndroidFlags::ManifestPatchFailure;
+  {
+    // Copy the APK to public storage, then try to pull again
+    std::string copyPath = "/sdcard/" + package + ".copy.apk";
+    Android::CopyAPK(deviceID, pkgPath, copyPath);
+    bool success = Android::PullAPK(deviceID, copyPath, origAPK);
+    Android::RemoveAPK(deviceID, copyPath);
+    if(!success)
+    {
+      return AndroidFlags::ManifestPatchFailure;
+    }
+  }
 
   progress(0.4f);
 

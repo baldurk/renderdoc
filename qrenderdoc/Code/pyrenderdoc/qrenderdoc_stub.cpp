@@ -171,6 +171,7 @@ void RemoteHost::CheckStatus()
 {
 }
 
-void RemoteHost::Launch()
+ReplayStatus RemoteHost::Launch()
 {
+  return ReplayStatus::Succeeded;
 }

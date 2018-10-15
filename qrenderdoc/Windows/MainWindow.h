@@ -248,4 +248,6 @@ private:
   bool SaveLayout(int layout);
 
   void FillRemotesMenu(QMenu *menu, bool includeLocalhost);
+
+  void showLaunchError(ReplayStatus status);
 };

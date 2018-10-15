@@ -1843,7 +1843,11 @@ void MainWindow::switchContext()
           statusProgress->setMaximum(0);
         });
 
-        host->Launch();
+        ReplayStatus launchStatus = host->Launch();
+        if(launchStatus != ReplayStatus::Succeeded)
+        {
+          showLaunchError(launchStatus);
+        }
 
         // check if it's running now
         host->CheckStatus();
@@ -2799,4 +2803,33 @@ bool MainWindow::LoadLayout(int layout)
   qInfo() << "Couldn't load layout from " << path << " " << f.errorString();
 
   return false;
+}
+
+void MainWindow::showLaunchError(ReplayStatus status)
+{
+  QString title;
+  QString message;
+  switch(status)
+  {
+    case ReplayStatus::AndroidGrantPermissionsFailed:
+      title = tr("Permission is required");
+      message = tr("Enable RenderDocCmd to access storage on your device.");
+      break;
+    case ReplayStatus::AndroidABINotFound:
+      title = tr("Failed to install RenderDoc server");
+      message = tr("Couldn't determine supported ABIs.");
+      break;
+    case ReplayStatus::AndroidAPKFolderNotFound:
+      title = tr("Failed to install RenderDoc server");
+      message = tr("APK folder missing.");
+      break;
+    case ReplayStatus::AndroidAPKInstallFailed:
+      title = tr("Failed to install RenderDoc server");
+      message = tr("Couldn't find any installed APKs.");
+    default:
+      title = tr("Failed to install RenderDoc server");
+      message = tr("Unknown error.");
+      break;
+  }
+  GUIInvoke::call(this, [this, title, message]() { RDDialog::warning(this, title, message); });
 }
