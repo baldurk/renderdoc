@@ -188,8 +188,11 @@ void Init()
 
 void Shutdown()
 {
-  for(size_t i = 0; i < m_TLSList->size(); i++)
-    delete m_TLSList->at(i);
+  if(m_TLSList)
+  {
+    for(size_t i = 0; i < m_TLSList->size(); i++)
+      delete m_TLSList->at(i);
+  }
 
   delete m_TLSList;
   delete m_TLSListLock;
