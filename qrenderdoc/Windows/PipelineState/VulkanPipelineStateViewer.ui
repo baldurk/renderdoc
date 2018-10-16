@@ -626,7 +626,7 @@
            <item>
             <widget class="CollapseGroupBox" name="vsResGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -678,7 +678,7 @@
            <item>
             <widget class="CollapseGroupBox" name="vsUBOGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -912,7 +912,7 @@
            <item>
             <widget class="CollapseGroupBox" name="tcsResGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -964,7 +964,7 @@
            <item>
             <widget class="CollapseGroupBox" name="tcsUBOGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -1198,7 +1198,7 @@
            <item>
             <widget class="CollapseGroupBox" name="tesResGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -1250,7 +1250,7 @@
            <item>
             <widget class="CollapseGroupBox" name="tesUBOGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -1484,7 +1484,7 @@
            <item>
             <widget class="CollapseGroupBox" name="gsResGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -1536,7 +1536,7 @@
            <item>
             <widget class="CollapseGroupBox" name="gsUBOGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -2530,7 +2530,7 @@
            <item>
             <widget class="CollapseGroupBox" name="fsResGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -2582,7 +2582,7 @@
            <item>
             <widget class="CollapseGroupBox" name="fsUBOGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -3349,7 +3349,7 @@
            <item>
             <widget class="CollapseGroupBox" name="csResGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
@@ -3401,7 +3401,7 @@
            <item>
             <widget class="CollapseGroupBox" name="csUBOGroup">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>1</verstretch>
               </sizepolicy>
