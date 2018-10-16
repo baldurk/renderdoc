@@ -303,11 +303,12 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->gsStreamOut->setHeader(header);
 
-    ui->gsStreamOut->setColumns({tr("Slot"), tr("Buffer"), tr("Offset"), tr("Byte Length"),
-                                 tr("Written Count Buffer"), tr("Written Count Offset"), tr("Go")});
-    header->setColumnStretchHints({-1, -1, -1, -1, -1, -1, 1});
+    ui->gsStreamOut->setColumns({tr("Slot"), tr("Buffer"), tr("Byte Offset"), tr("Byte Length"),
+                                 tr("Count Buffer"), tr("Count Byte Offset"), tr("Go")});
+    header->setColumnStretchHints({1, 4, 2, 3, 4, 2, -1});
     header->setMinimumSectionSize(40);
 
+    ui->gsStreamOut->setHoverIconColumn(6, action, action_hover);
     ui->gsStreamOut->setClearSelectionOnFocusLoss(true);
     ui->gsStreamOut->setInstantTooltips(true);
   }
@@ -1568,6 +1569,8 @@ void D3D12PipelineStateViewer::setState()
       if(!usedSlot)
         setInactiveRow(node);
 
+      streamoutSet = true;
+
       ui->gsStreamOut->addTopLevelItem(node);
     }
   }
@@ -1766,10 +1769,22 @@ void D3D12PipelineStateViewer::setState()
   }
   else
   {
-    ui->pipeFlow->setStagesEnabled({true, true, state.hullShader.resourceId != ResourceId(),
-                                    state.domainShader.resourceId != ResourceId(),
-                                    state.geometryShader.resourceId != ResourceId(), true,
-                                    state.pixelShader.resourceId != ResourceId(), true, false});
+    bool streamOutActive = !state.streamOut.outputs.isEmpty();
+
+    if(state.geometryShader.resourceId == ResourceId() && streamOutActive)
+    {
+      ui->pipeFlow->setStageName(4, lit("SO"), tr("Stream Out"));
+    }
+    else
+    {
+      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
+    }
+
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.hullShader.resourceId != ResourceId(),
+         state.domainShader.resourceId != ResourceId(),
+         state.geometryShader.resourceId != ResourceId() || streamOutActive, true,
+         state.pixelShader.resourceId != ResourceId(), true, false});
   }
 }
 

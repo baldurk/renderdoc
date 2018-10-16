@@ -264,6 +264,20 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->gsStreamOut->setHeader(header);
+
+    ui->gsStreamOut->setColumns(
+        {tr("Slot"), tr("Buffer"), tr("Byte Length"), tr("Byte Offset"), tr("Go")});
+    header->setColumnStretchHints({1, 4, 3, 2, -1});
+    header->setMinimumSectionSize(40);
+
+    ui->gsStreamOut->setHoverIconColumn(4, action, action_hover);
+    ui->gsStreamOut->setClearSelectionOnFocusLoss(true);
+    ui->gsStreamOut->setInstantTooltips(true);
+  }
+
+  {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->viewports->setHeader(header);
 
     ui->viewports->setColumns(
@@ -1562,6 +1576,8 @@ void D3D11PipelineStateViewer::setState()
       if(!usedSlot)
         setInactiveRow(node);
 
+      streamoutSet = true;
+
       ui->gsStreamOut->addTopLevelItem(node);
     }
   }
@@ -1859,10 +1875,22 @@ void D3D11PipelineStateViewer::setState()
   }
   else
   {
-    ui->pipeFlow->setStagesEnabled({true, true, state.hullShader.resourceId != ResourceId(),
-                                    state.domainShader.resourceId != ResourceId(),
-                                    state.geometryShader.resourceId != ResourceId(), true,
-                                    state.pixelShader.resourceId != ResourceId(), true, false});
+    bool streamOutActive = !state.streamOut.outputs.isEmpty();
+
+    if(state.geometryShader.resourceId == ResourceId() && streamOutActive)
+    {
+      ui->pipeFlow->setStageName(4, lit("SO"), tr("Stream Out"));
+    }
+    else
+    {
+      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
+    }
+
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.hullShader.resourceId != ResourceId(),
+         state.domainShader.resourceId != ResourceId(),
+         state.geometryShader.resourceId != ResourceId() || streamOutActive, true,
+         state.pixelShader.resourceId != ResourceId(), true, false});
   }
 }
 
