@@ -36,14 +36,15 @@ static BOOL add_hooks()
   wchar_t curFile[512];
   GetModuleFileNameW(NULL, curFile, 512);
 
-  wstring f = strlower(wstring(curFile));
+  wstring f = basename(strlower(wstring(curFile)));
 
   // bail immediately if we're in a system process. We don't want to hook, log, anything -
   // this instance is being used for a shell extension.
-  if(f.find(L"dllhost.exe") != wstring::npos || f.find(L"explorer.exe") != wstring::npos)
+  if(f == L"dllhost.exe" || f == L"explorer.exe")
   {
 #ifndef _RELEASE
-    OutputDebugStringA("Hosting " STRINGIZE(RDOC_DLL_FILE) ".dll in shell process\n");
+    OutputDebugStringA(
+        "Detecting shell process! Disabling hooking in dllhost.exe or explorer.exe\n");
 #endif
     return TRUE;
   }
