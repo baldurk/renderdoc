@@ -2183,7 +2183,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
       if(dxbc->m_DebugInfo)
       {
-        const ASMOperation &op = dxbc->GetInstruction((size_t)s.nextInstruction);
+        size_t inst = RDCMIN((size_t)s.nextInstruction, dxbc->GetNumInstructions() - 1);
+        const ASMOperation &op = dxbc->GetInstruction(inst);
         dxbc->m_DebugInfo->GetLocals(s.nextInstruction, op.offset, s.locals);
       }
 
