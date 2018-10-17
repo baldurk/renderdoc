@@ -434,10 +434,14 @@ void GLReplay::InitDebugData()
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
 
-    string extensions = "#extension GL_ARB_compute_shader : require\n";
+    string extensions;
 
     if(!IsGLES)
-      extensions += "#extension GL_ARB_shader_storage_buffer_object : require\n";
+    {
+      extensions =
+          "#extension GL_ARB_compute_shader : require\n"
+          "#extension GL_ARB_shader_storage_buffer_object : require";
+    }
 
     if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_storage_buffer_object])
     {
@@ -565,10 +569,14 @@ void GLReplay::InitDebugData()
 
   if(HasExt[ARB_compute_shader])
   {
-    string defines = "#extension GL_ARB_compute_shader : require\n";
+    string defines;
 
     if(!IsGLES)
-      defines += "#extension GL_ARB_shader_storage_buffer_object : require";
+    {
+      defines =
+          "#extension GL_ARB_compute_shader : require\n"
+          "#extension GL_ARB_shader_storage_buffer_object : require";
+    }
     GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_mesh_comp), glslCSVer);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
