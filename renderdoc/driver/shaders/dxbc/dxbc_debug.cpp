@@ -1954,15 +1954,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       context->Unmap(copyBuf, 0);
 
-      float logval = logf(srcOpers[0].value.f.x) / logf(2.0f);
-      float rcpval = 1.0f / (srcOpers[0].value.f.x);
-      float rsqval = 1.0f / sqrtf(srcOpers[0].value.f.x);
-      float expval = powf(2.0f, srcOpers[0].value.f.x);
-      float sinval = sinf(srcOpers[1].value.f.x);
-      float cosval = cosf(srcOpers[1].value.f.x);
-
-      logval += rcpval + rsqval + expval + sinval + cosval;
-
       SAFE_RELEASE(constBuf);
       SAFE_RELEASE(uavBuf);
       SAFE_RELEASE(copyBuf);
