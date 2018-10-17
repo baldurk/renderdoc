@@ -523,26 +523,30 @@ void GLReplay::InitDebugData()
                              eGL_DYNAMIC_READ);
   }
 
-  if(HasExt[ARB_compute_shader] && HasExt[ARB_texture_multisample] &&
-     HasExt[ARB_texture_storage_multisample])
+  if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_image_load_store])
   {
     GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_ms2array_comp), glslCSVer);
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
-    GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_array2ms_comp), glslCSVer);
-    DebugData.Array2MS = CreateCShaderProgram(cs);
+    // GLES doesn't have multisampled image load/store even with any extension
+    DebugData.Array2MS = 0;
+    if(!IsGLES)
+    {
+      GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_array2ms_comp), glslCSVer);
+      DebugData.Array2MS = CreateCShaderProgram(cs);
+    }
   }
   else
   {
     DebugData.MS2Array = 0;
     DebugData.Array2MS = 0;
     RDCWARN(
-        "GL_ARB_compute_shader, GL_ARB_texture_multisample, or ARB_texture_storage_multisample not "
-        "supported, disabling 2DMS save/load.");
-    m_pDriver->AddDebugMessage(
-        MessageCategory::Portability, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-        "GL_ARB_compute_shader, GL_ARB_texture_multisample, or ARB_texture_storage_multisample not "
-        "supported, disabling 2DMS save/load.");
+        "GL_ARB_compute_shader or ARB_shader_image_load_store not supported, disabling 2DMS "
+        "save/load.");
+    m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
+                               MessageSource::RuntimeWarning,
+                               "GL_ARB_compute_shader or ARB_shader_image_load_store not "
+                               "supported, disabling 2DMS save/load.");
   }
 
   DebugData.DepthArray2MS = DebugData.DepthMS2Array = 0;
