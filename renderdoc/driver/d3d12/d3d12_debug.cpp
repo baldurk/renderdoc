@@ -1367,6 +1367,16 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
       RDCERR("Couldn't create m_TexDisplayF32Pipe! HRESULT: %s", ToStr(hr).c_str());
     }
 
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+    hr = device->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                             (void **)&F16Pipe);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create m_TexDisplayF16Pipe! HRESULT: %s", ToStr(hr).c_str());
+    }
+
     SAFE_RELEASE(TexDisplayPS);
   }
 
@@ -1378,6 +1388,7 @@ void D3D12Replay::TextureRendering::Release()
   SAFE_RELEASE(BlendPipe);
   SAFE_RELEASE(SRGBPipe);
   SAFE_RELEASE(LinearPipe);
+  SAFE_RELEASE(F16Pipe);
   SAFE_RELEASE(F32Pipe);
   SAFE_RELEASE(RootSig);
   SAFE_RELEASE(VS);

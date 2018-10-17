@@ -43,8 +43,9 @@ enum TexDisplayFlags
 {
   eTexDisplay_None = 0,
   eTexDisplay_LinearRender = 0x1,
-  eTexDisplay_F32Render = 0x2,
-  eTexDisplay_BlendAlpha = 0x4,
+  eTexDisplay_F16Render = 0x2,
+  eTexDisplay_F32Render = 0x4,
+  eTexDisplay_BlendAlpha = 0x8,
 };
 
 class D3D12Replay : public IReplayDriver
@@ -334,6 +335,7 @@ private:
     ID3D12RootSignature *RootSig = NULL;
     ID3D12PipelineState *SRGBPipe = NULL;
     ID3D12PipelineState *LinearPipe = NULL;
+    ID3D12PipelineState *F16Pipe = NULL;
     ID3D12PipelineState *F32Pipe = NULL;
     ID3D12PipelineState *BlendPipe = NULL;
   } m_TexRender;

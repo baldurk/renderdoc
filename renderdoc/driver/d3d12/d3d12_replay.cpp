@@ -2935,11 +2935,20 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
   if(params.remap != RemapTexture::NoRemap)
   {
-    RDCASSERT(params.remap == RemapTexture::RGBA8);
+    if(params.remap == RemapTexture::RGBA8)
+    {
+      copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                                                      : DXGI_FORMAT_R8G8B8A8_UNORM;
+    }
+    else if(params.remap == RemapTexture::RGBA16)
+    {
+      copyDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    }
+    else if(params.remap == RemapTexture::RGBA32)
+    {
+      copyDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    }
 
-    // force readback texture to RGBA8 unorm
-    copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                                                    : DXGI_FORMAT_R8G8B8A8_UNORM;
     // force to 1 array slice, 1 mip
     copyDesc.DepthOrArraySize = 1;
     copyDesc.MipLevels = 1;
@@ -2960,6 +2969,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     TexDisplayFlags flags =
         IsSRGBFormat(copyDesc.Format) ? eTexDisplay_None : eTexDisplay_LinearRender;
+
+    if(copyDesc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT)
+      flags = eTexDisplay_F16Render;
+    else if(copyDesc.Format == DXGI_FORMAT_R32G32B32A32_FLOAT)
+      flags = eTexDisplay_F32Render;
 
     m_pDevice->CreateRenderTargetView(remapTexture, NULL,
                                       GetDebugManager()->GetCPUHandle(GET_TEX_RTV));

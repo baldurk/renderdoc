@@ -617,6 +617,8 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     {
       if(flags & eTexDisplay_F32Render)
         list->SetPipelineState(m_TexRender.F32Pipe);
+      else if(flags & eTexDisplay_F16Render)
+        list->SetPipelineState(m_TexRender.F16Pipe);
       else if(flags & eTexDisplay_LinearRender)
         list->SetPipelineState(m_TexRender.LinearPipe);
       else

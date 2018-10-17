@@ -1775,10 +1775,20 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == RemapTexture::RGBA8);
+      if(params.remap == RemapTexture::RGBA8)
+      {
+        desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                                                : DXGI_FORMAT_R8G8B8A8_UNORM;
+      }
+      else if(params.remap == RemapTexture::RGBA16)
+      {
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      }
+      else if(params.remap == RemapTexture::RGBA32)
+      {
+        desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      }
 
-      desc.Format =
-          IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
       desc.ArraySize = 1;
     }
 
@@ -1798,8 +1808,6 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == RemapTexture::RGBA8);
-
       subresource = mip;
 
       desc.CPUAccessFlags = 0;
@@ -1911,11 +1919,21 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == RemapTexture::RGBA8);
+      if(params.remap == RemapTexture::RGBA8)
+      {
+        desc.Format = (IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor)
+                          ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                          : DXGI_FORMAT_R8G8B8A8_UNORM;
+      }
+      else if(params.remap == RemapTexture::RGBA16)
+      {
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      }
+      else if(params.remap == RemapTexture::RGBA32)
+      {
+        desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      }
 
-      desc.Format = (IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor)
-                        ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                        : DXGI_FORMAT_R8G8B8A8_UNORM;
       desc.ArraySize = 1;
     }
 
@@ -1935,8 +1953,6 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == RemapTexture::RGBA8);
-
       subresource = mip;
 
       desc.CPUAccessFlags = 0;
@@ -2063,10 +2079,19 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == RemapTexture::RGBA8);
-
-      desc.Format =
-          IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+      if(params.remap == RemapTexture::RGBA8)
+      {
+        desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                                                : DXGI_FORMAT_R8G8B8A8_UNORM;
+      }
+      else if(params.remap == RemapTexture::RGBA16)
+      {
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      }
+      else if(params.remap == RemapTexture::RGBA32)
+      {
+        desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      }
     }
 
     subresource = mip;
@@ -2085,8 +2110,6 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == RemapTexture::RGBA8);
-
       subresource = mip;
 
       desc.CPUAccessFlags = 0;
