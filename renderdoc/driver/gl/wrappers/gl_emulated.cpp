@@ -2053,6 +2053,13 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glClearBufferSubData);
   }
 
+  // really silly case, we just forward to non-float version
+  if(!IsGLES && !HasExt[ARB_ES2_compatibility])
+  {
+    RDCLOG("Emulating ARB_ES2_compatibility");
+    EMULATE_FUNC(glClearDepthf);
+  }
+
   // we manually implement these queries
   if(!HasExt[ARB_internalformat_query2])
   {
