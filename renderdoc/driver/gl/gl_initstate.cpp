@@ -323,6 +323,13 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 
     for(GLuint i = 0; i < 16; i++)
     {
+      GLuint buffer = GetBoundVertexBuffer(i);
+
+      data.VertexBuffers[i].Buffer = BufferRes(ctx, buffer);
+    }
+
+    for(GLuint i = 0; i < 16; i++)
+    {
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED,
                              (GLint *)&data.VertexAttribs[i].enabled);
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&data.VertexAttribs[i].type);
@@ -337,10 +344,6 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
         data.VertexAttribs[i].integer = 0;
 
       GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&data.VertexAttribs[i].size);
-
-      GLuint buffer = GetBoundVertexBuffer(i);
-
-      data.VertexBuffers[i].Buffer = BufferRes(ctx, buffer);
 
       if(HasExt[ARB_vertex_attrib_binding])
       {
@@ -358,6 +361,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
                                (GLint *)&data.VertexBuffers[i].Stride);
         GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_DIVISOR,
                                (GLint *)&data.VertexBuffers[i].Divisor);
+        data.VertexAttribs[i].vbslot = i;
         data.VertexBuffers[i].Offset = 0;
 
         void *ptr = NULL;
@@ -365,6 +369,16 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 
         data.VertexAttribs[i].offset = (uint32_t)(uintptr_t)ptr;
       }
+
+      // if no buffer is bound, replace any non-zero offset with a marker value. This makes captures
+      // more deterministic and ensures that if we ever try to use the invalid offset/pointer then
+      // we crash with a known value.
+      if(data.VertexBuffers[data.VertexAttribs[i].vbslot].Buffer.name == 0 &&
+         data.VertexAttribs[i].offset > 0)
+        data.VertexAttribs[i].offset = 0xDEADBEEF;
+
+      if(data.VertexBuffers[i].Buffer.name == 0 && data.VertexBuffers[i].Offset > 0)
+        data.VertexBuffers[i].Offset = 0xDEADBEEF;
     }
 
     GLuint buffer = 0;
