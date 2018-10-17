@@ -2193,6 +2193,21 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glVertexArrayVertexAttribOffsetEXT);
     EMULATE_FUNC(glVertexArrayVertexBindingDivisorEXT);
   }
+
+  // some functions we use from ARB that have no EXT equivalent, need to emulate them as well
+  if(!HasExt[ARB_direct_state_access])
+  {
+    RDCLOG("Emulating ARB_direct_state_access");
+    EMULATE_FUNC(glTransformFeedbackBufferBase)
+    EMULATE_FUNC(glTransformFeedbackBufferRange)
+    EMULATE_FUNC(glClearNamedFramebufferiv)
+    EMULATE_FUNC(glClearNamedFramebufferuiv)
+    EMULATE_FUNC(glClearNamedFramebufferfv)
+    EMULATE_FUNC(glClearNamedFramebufferfi)
+    EMULATE_FUNC(glBlitNamedFramebuffer)
+    EMULATE_FUNC(glVertexArrayElementBuffer);
+    EMULATE_FUNC(glVertexArrayVertexBuffers)
+  }
 }
 
 void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
