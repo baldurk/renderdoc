@@ -817,13 +817,17 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
 
     if(indexType != eGL_NONE && first == -1)
     {
+      bytebuf readbackIndices;
+
       // First time we know we are using client-memory along with indices.
       // Iterate over the indices to find the range of client memory to copy.
       if(idxbuf != 0)
       {
         // If we were using a real index buffer, read it back to check its range.
-        mmIndices =
-            GL.glMapBufferRange(eGL_ELEMENT_ARRAY_BUFFER, (size_t)indices, idxlen, eGL_MAP_READ_BIT);
+        readbackIndices.resize(idxlen);
+        GL.glGetBufferSubData(eGL_ELEMENT_ARRAY_BUFFER, (GLintptr)indices, idxlen,
+                              readbackIndices.data());
+        mmIndices = readbackIndices.data();
       }
 
       size_t min = ~0u, max = 0;
@@ -856,9 +860,6 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
 
       first = (GLint)min;
       count = (GLint)(max - min + 1);
-
-      if(idxbuf != 0)
-        GL.glUnmapBuffer(eGL_ELEMENT_ARRAY_BUFFER);
     }
 
     // App initially used client memory, so copy it into the temporary buffer.
