@@ -2477,13 +2477,13 @@ bool ReplayProxy::CheckError(ReplayProxyPacket receivedPacket, ReplayProxyPacket
 {
   if(m_Writer.IsErrored() || m_Reader.IsErrored() || m_IsErrored)
   {
-    RDCLOG("Error during processing of %s", ToStr(expectedPacket).c_str());
+    RDCERR("Error during processing of %s", ToStr(expectedPacket).c_str());
     return true;
   }
 
   if(receivedPacket != expectedPacket)
   {
-    RDCLOG("Expected %s, received %s", ToStr(expectedPacket).c_str(), ToStr(receivedPacket).c_str());
+    RDCERR("Expected %s, received %s", ToStr(expectedPacket).c_str(), ToStr(receivedPacket).c_str());
     m_IsErrored = true;
     return true;
   }
@@ -2502,7 +2502,7 @@ bool ReplayProxy::Tick(int type)
   const ReplayProxyPacket expectedPacket = (ReplayProxyPacket)type;
   ReplayProxyPacket packet = (ReplayProxyPacket)type;
 
-  RDCLOG("Received %s", ToStr(packet).c_str());
+  RDCDEBUG("Received %s", ToStr(packet).c_str());
 
   switch(packet)
   {
@@ -2591,7 +2591,7 @@ bool ReplayProxy::Tick(int type)
     default: RDCERR("Unexpected command %u", type); return false;
   }
 
-  RDCLOG("Processed %s", ToStr(packet).c_str());
+  RDCDEBUG("Processed %s", ToStr(packet).c_str());
 
   RefreshPreviewWindow();
 
