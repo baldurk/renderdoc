@@ -203,8 +203,8 @@ void PythonContext::GlobalInit()
   // for the exception signal
   qRegisterMetaType<QList<QString>>("QList<QString>");
 
-  PyImport_AppendInittab("_renderdoc", &PyInit_renderdoc);
-  PyImport_AppendInittab("_qrenderdoc", &PyInit_qrenderdoc);
+  PyImport_AppendInittab("renderdoc", &PyInit_renderdoc);
+  PyImport_AppendInittab("qrenderdoc", &PyInit_qrenderdoc);
 
 #if defined(STATIC_QRENDERDOC)
   // add the location where our libs will be for statically-linked python installs
@@ -241,8 +241,8 @@ void PythonContext::GlobalInit()
 
   PyObject *main_module = PyImport_AddModule("__main__");
 
-  PyModule_AddObject(main_module, "renderdoc", PyImport_ImportModule("_renderdoc"));
-  PyModule_AddObject(main_module, "qrenderdoc", PyImport_ImportModule("_qrenderdoc"));
+  PyModule_AddObject(main_module, "renderdoc", PyImport_ImportModule("renderdoc"));
+  PyModule_AddObject(main_module, "qrenderdoc", PyImport_ImportModule("qrenderdoc"));
 
   main_dict = PyModule_GetDict(main_module);
 
