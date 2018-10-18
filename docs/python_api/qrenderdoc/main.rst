@@ -19,6 +19,14 @@ Replay Manager
   :members:
   :undoc-members:
 
+RGP Interop Control
+-------------------
+
+.. autoclass:: qrenderdoc.RGPInterop
+  :members:
+  :undoc-members:
+
+
 CaptureViewer Interface
 ------------------------
 

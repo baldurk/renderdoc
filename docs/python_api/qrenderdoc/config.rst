@@ -14,6 +14,10 @@ Config
   :members:
   :undoc-members:
 
+.. autoclass:: qrenderdoc.ShaderToolOutput
+  :members:
+  :undoc-members:
+
 .. autoclass:: qrenderdoc.BugReport
   :members:
   :undoc-members:
