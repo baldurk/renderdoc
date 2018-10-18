@@ -129,7 +129,8 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
   device = dev;
   createFlags = flags;
 
-  align = (VkDeviceSize)driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment;
+  align = std::max<VkDeviceSize>(driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment,
+                                 driver->GetDeviceProps().limits.nonCoherentAtomSize);
 
   sz = size;
   // offset must be aligned, so ensure we have at least ringSize
