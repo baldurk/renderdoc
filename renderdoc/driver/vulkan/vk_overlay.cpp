@@ -288,6 +288,8 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   alias.spirv = &spv[0];
   size_t spirvLength = spv.size();
 
+  int patched = 0;
+
   size_t it = 5;
   while(it < spirvLength)
   {
@@ -296,13 +298,13 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 
     if(opcode == spv::OpConstant)
     {
-      if(alias.data[it + 3] == 1.1f)
+      if(alias.data[it + 3] >= 1.0f && alias.data[it + 3] <= 1.5f)
         alias.data[it + 3] = col[0];
-      else if(alias.data[it + 3] == 2.2f)
+      else if(alias.data[it + 3] >= 2.0f && alias.data[it + 3] <= 2.5f)
         alias.data[it + 3] = col[1];
-      else if(alias.data[it + 3] == 3.3f)
+      else if(alias.data[it + 3] >= 3.0f && alias.data[it + 3] <= 3.5f)
         alias.data[it + 3] = col[2];
-      else if(alias.data[it + 3] == 4.4f)
+      else if(alias.data[it + 3] >= 4.0f && alias.data[it + 3] <= 4.5f)
         alias.data[it + 3] = col[3];
       else
         RDCERR("Unexpected constant value");
@@ -310,6 +312,9 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 
     it += WordCount;
   }
+
+  if(patched != 4)
+    RDCERR("Didn't patch all constants");
 
   VkShaderModuleCreateInfo modinfo = {
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
