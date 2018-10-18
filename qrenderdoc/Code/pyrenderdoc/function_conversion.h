@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <frameobject.h>
+
 // this is defined elsewhere for managing the opaque global_handle object
 extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle);
 extern "C" void HandleException(PyObject *global_handle);
@@ -46,7 +48,9 @@ struct ExceptionHandling
 inline void HandleCallbackFailure(PyObject *global_handle, ExceptionHandling &exHandle)
 {
   // if there's no global handle assume we are not running in the usual environment, so there are no
-  // external-to-python threads
+  // external-to-python threads.
+  // Specifically this is when we're imported as a module directly into python with none of our
+  // harness, so this is running as pure glue code.
   if(!global_handle)
   {
     exHandle.failFlag = true;
@@ -205,9 +209,20 @@ funcType ConvertFunc(const char *funcname, PyObject *func, ExceptionHandling &ex
   // async call
   PyObject *global_internal_handle = NULL;
 
-  PyObject *globals = PyEval_GetGlobals();
-  if(globals)
-    global_internal_handle = PyDict_GetItemString(globals, "_renderdoc_internal");
+  // walk the frames until we find one with _renderdoc_internal. If we call a function in another
+  // module the globals may not have the entry, but the root level is expected to.
+  {
+    _frame *frame = PyEval_GetFrame();
+
+    while(frame)
+    {
+      global_internal_handle = PyDict_GetItemString(frame->f_globals, "_renderdoc_internal");
+
+      if(global_internal_handle)
+        break;
+      frame = frame->f_back;
+    }
+  }
 
   return [global_internal_handle, funcname, func, &exHandle](auto... param) {
     ScopedFuncCall gil(global_internal_handle);
