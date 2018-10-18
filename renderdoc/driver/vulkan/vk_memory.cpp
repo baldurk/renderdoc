@@ -316,6 +316,16 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     // do the actual allocation
     VkResult vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &info, NULL, &chunk.mem);
+
+    if(vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+    {
+      RDCDEBUG("Allocation failed. Creating new allocation of 0x%llx bytes", ret.size);
+      info.allocationSize = ret.size;
+      chunk.size = info.allocationSize;
+      vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &info, NULL, &chunk.mem);
+      allocSize = 0;
+    }
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     GetResourceManager()->WrapResource(Unwrap(d), chunk.mem);
