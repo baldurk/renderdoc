@@ -48,5 +48,5 @@ cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -G "MSYS Makefiles" ..
 
 ### Note:
 
-With GLES programs on Android, the built-in hooking method doesn't always work. If you have trouble with crashes or problems capturing GLES programs, try enabling building with [interceptor-lib](renderdoc/3rdparty/interceptor-lib/README.md). **WARNING**: Building this requires a hefty dependency.
+With GLES programs on Android, the built-in hooking method doesn't always work. If you have trouble with crashes or problems capturing GLES programs, try enabling building with [interceptor-lib](../../renderdoc/3rdparty/interceptor-lib/README.md). **WARNING**: Building this requires a hefty dependency.
 
