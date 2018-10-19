@@ -109,7 +109,7 @@ CaptureContext::~CaptureContext()
 {
   RENDERDOC_UnregisterMemoryRegion(this);
   delete m_Icon;
-  m_Renderer.CloseThread();
+  m_Replay.CloseThread();
   delete m_MainWindow;
 }
 
@@ -241,12 +241,12 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
   m_PostloadProgress = 0.0f;
 
   // this function call will block until the capture is either loaded, or there's some failure
-  m_Renderer.OpenCapture(captureFile, [this](float p) { m_LoadProgress = p; });
+  m_Replay.OpenCapture(captureFile, [this](float p) { m_LoadProgress = p; });
 
   // if the renderer isn't running, we hit a failure case so display an error message
-  if(!m_Renderer.IsRunning())
+  if(!m_Replay.IsRunning())
   {
-    QString errmsg = ToQStr(m_Renderer.GetCreateStatus());
+    QString errmsg = ToQStr(m_Replay.GetCreateStatus());
 
     QString messageText = tr("%1\nFailed to open capture for replay: %2.\n\n"
                              "Check diagnostic log in Help menu for more details.")
@@ -271,7 +271,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
   m_FirstDrawcall = m_LastDrawcall = NULL;
 
   // fetch initial data like drawcalls, textures and buffers
-  m_Renderer.BlockInvoke([this](IReplayController *r) {
+  m_Replay.BlockInvoke([this](IReplayController *r) {
     if(Config().EventBrowser_AddFake)
       r->AddFakeMarkers();
 
@@ -465,7 +465,7 @@ void CaptureContext::RecompressCapture()
   if(IsCaptureLocal())
   {
     // for local files we already have a handle. We'll reuse it, then re-open
-    cap = Replay().GetCaptureFile();
+    cap = m_Replay.GetCaptureFile();
   }
   else
   {
@@ -539,7 +539,7 @@ void CaptureContext::RecompressCapture()
     m_CaptureTemporary = false;
 
     // open the saved capture file. This will let us remove the old file too
-    Replay().ReopenCaptureFile(m_CaptureFile);
+    m_Replay.ReopenCaptureFile(m_CaptureFile);
 
     m_CaptureMods = CaptureModifications::All;
 
@@ -568,7 +568,7 @@ bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
       }
       else
       {
-        ICaptureFile *capFile = Replay().GetCaptureFile();
+        ICaptureFile *capFile = m_Replay.GetCaptureFile();
 
         if(capFile)
         {
@@ -618,7 +618,7 @@ bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
   m_CaptureLocal = true;
   m_CaptureTemporary = false;
 
-  Replay().ReopenCaptureFile(captureFile);
+  m_Replay.ReopenCaptureFile(captureFile);
   SaveChanges();
 
   return true;
@@ -638,7 +638,7 @@ void CaptureContext::CloseCapture()
 
   m_CaptureFile = QString();
 
-  m_Renderer.CloseThread();
+  m_Replay.CloseThread();
 
   memset(&m_APIProps, 0, sizeof(m_APIProps));
   memset(&m_FrameInfo, 0, sizeof(m_FrameInfo));
@@ -752,7 +752,7 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
   // if we don't need buffers, we can export directly from our existing capture file
   if(!fmt.requiresBuffers)
   {
-    file = Replay().GetCaptureFile();
+    file = m_Replay.GetCaptureFile();
     sdfile = m_StructuredFile;
   }
 
@@ -821,7 +821,7 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   uint32_t prevEventID = m_EventID;
   m_EventID = eventId;
 
-  m_Renderer.BlockInvoke([this, eventId, force](IReplayController *r) {
+  m_Replay.BlockInvoke([this, eventId, force](IReplayController *r) {
     r->SetFrameEvent(eventId, force);
     m_CurD3D11PipelineState = r->GetD3D11PipelineState();
     m_CurD3D12PipelineState = r->GetD3D12PipelineState();

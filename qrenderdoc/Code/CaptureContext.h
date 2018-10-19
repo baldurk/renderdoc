@@ -98,7 +98,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
-  ReplayManager &Replay() override { return m_Renderer; }
+  IReplayManager &Replay() override { return m_Replay; }
   bool IsCaptureLoaded() override { return m_CaptureLoaded; }
   bool IsCaptureLocal() override { return m_CaptureLocal; }
   bool IsCaptureTemporary() override { return m_CaptureTemporary; }
@@ -227,7 +227,7 @@ public:
   const PipeState &CurPipelineState() override { return *m_CurPipelineState; }
   PersistantConfig &Config() override { return m_Config; }
 private:
-  ReplayManager m_Renderer;
+  ReplayManager m_Replay;
 
   const D3D11Pipe::State *m_CurD3D11PipelineState;
   const D3D12Pipe::State *m_CurD3D12PipelineState;
