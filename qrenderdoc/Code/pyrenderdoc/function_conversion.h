@@ -117,6 +117,31 @@ inline void get_return(const char *funcname, PyObject *result, PyObject *global_
   Py_XDECREF(result);
 }
 
+struct PyObjectRefCounter
+{
+  PyObjectRefCounter(PyObject *o) : obj(o) { Py_INCREF(obj); }
+  PyObjectRefCounter(const PyObjectRefCounter &o)
+  {
+    obj = o.obj;
+    Py_INCREF(obj);
+  }
+  ~PyObjectRefCounter()
+  {
+// in non-release, check that we're currently executing if we're about to delete the object.
+#if !defined(RELEASE)
+    if(obj->ob_refcnt == 1 && PyGILState_Check() == 0)
+    {
+      RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__,
+                           "Deleting PyObjectRefCounter without python executing on this thread");
+      // return and leak the object rather than crashing
+      return;
+    }
+#endif
+    Py_DECREF(obj);
+  }
+  PyObject *obj;
+};
+
 template <typename rettype, typename... paramTypes>
 struct varfunc
 {
@@ -224,10 +249,13 @@ funcType ConvertFunc(const char *funcname, PyObject *func, ExceptionHandling &ex
     }
   }
 
-  return [global_internal_handle, funcname, func, &exHandle](auto... param) {
+  // create a copy that will keep the function object alive as long as the lambda is
+  PyObjectRefCounter funcptr(func);
+
+  return [global_internal_handle, funcname, funcptr, &exHandle](auto... param) {
     ScopedFuncCall gil(global_internal_handle);
 
     varfunc<typename funcType::result_type, decltype(param)...> f(funcname, param...);
-    return f.call(funcname, func, global_internal_handle, exHandle);
+    return f.call(funcname, funcptr.obj, global_internal_handle, exHandle);
   };
 }
