@@ -714,6 +714,9 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
     if(menuitem->maxIconWidth)
       ret.setWidth(ret.width() + Constants::MenuBarMargin + menuitem->maxIconWidth);
 
+    if(menuitem->menuItemType == QStyleOptionMenuItem::SubMenu)
+      ret.setWidth(ret.width() + Constants::MenuSubmenuWidth);
+
     ret = ret.expandedTo(QSize(Constants::MenuBarMinimumWidth, 0));
 
     return ret;
