@@ -1,7 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>glsl.xml</file>
-        <file>hlsl.xml</file>
         <file>logo.svg</file>
         <file>topologies/topo_linelist.svg</file>
         <file>topologies/topo_linelist_adj.svg</file>

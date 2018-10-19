@@ -1772,12 +1772,4 @@
       <Filter>Resources\Files</Filter>
     </Image>
   </ItemGroup>
-  <ItemGroup>
-    <Xml Include="Resources\glsl.xml">
-      <Filter>Resources\Files</Filter>
-    </Xml>
-    <Xml Include="Resources\hlsl.xml">
-      <Filter>Resources\Files</Filter>
-    </Xml>
-  </ItemGroup>
 </Project>
