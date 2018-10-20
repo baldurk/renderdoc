@@ -428,6 +428,10 @@ endif()
 add_subdirectory(driver/ihv/amd)
 list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_amd>)
 
+# pull in the intel folder for GL perf queries
+add_subdirectory(driver/ihv/intel)
+list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_intel>)
+
 add_library(rdoc OBJECT ${sources})
 target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})

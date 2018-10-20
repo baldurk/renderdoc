@@ -25,6 +25,7 @@
 
 #include "gl_replay.h"
 #include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/intel/intel_gl_counters.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
@@ -59,6 +60,7 @@ GLReplay::GLReplay()
 void GLReplay::Shutdown()
 {
   SAFE_DELETE(m_pAMDCounters);
+  SAFE_DELETE(m_pIntelCounters);
 
   DeleteDebugData();
 
@@ -221,26 +223,44 @@ void GLReplay::SetReplayData(GLWindowingData data)
 
   InitDebugData();
 
-  AMDCounters *counters = NULL;
+  AMDCounters *countersAMD = NULL;
+  IntelGlCounters *countersIntel = NULL;
+
+  RDCLOG("Intel=%i AMD=%i", m_Vendor == GPUVendor::Intel, m_Vendor == GPUVendor::AMD);
 
   if(m_Vendor == GPUVendor::AMD)
   {
     RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-    counters = new AMDCounters();
+    countersAMD = new AMDCounters();
+  }
+  else if(m_Vendor == GPUVendor::Intel)
+  {
+    RDCLOG("Intel GPU detected - trying to initialise Intel GL counters");
+    countersIntel = new IntelGlCounters();
   }
   else
   {
     RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
   }
 
-  if(counters && counters->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
+  if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
   {
-    m_pAMDCounters = counters;
+    m_pAMDCounters = countersAMD;
   }
   else
   {
-    delete counters;
+    delete countersAMD;
     m_pAMDCounters = NULL;
+  }
+
+  if(countersIntel && countersIntel->Init())
+  {
+    m_pIntelCounters = countersIntel;
+  }
+  else
+  {
+    delete countersIntel;
+    m_pIntelCounters = NULL;
   }
 }
 

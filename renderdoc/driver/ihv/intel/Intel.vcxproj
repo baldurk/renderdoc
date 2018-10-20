@@ -95,9 +95,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="intel_counters.cpp" />
+    <ClCompile Include="intel_gl_counters.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="intel_counters.h" />
+    <ClInclude Include="intel_gl_counters.h" />
     <ClInclude Include="official\DriverStorePath.h" />
     <ClInclude Include="official\metrics_discovery_api.h" />
   </ItemGroup>

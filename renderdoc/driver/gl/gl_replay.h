@@ -34,6 +34,7 @@ using std::map;
 using std::pair;
 
 class AMDCounters;
+class IntelGlCounters;
 class WrappedOpenGL;
 struct GLCounterContext;
 
@@ -432,4 +433,12 @@ private:
                      const DrawcallDescription &drawnode);
 
   vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
+
+  // Intel counter instance
+  IntelGlCounters *m_pIntelCounters = NULL;
+
+  void FillTimersIntel(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs,
+                       const DrawcallDescription &drawnode);
+
+  vector<CounterResult> FetchCountersIntel(const vector<GPUCounter> &counters);
 };

@@ -177,6 +177,22 @@ void GLDispatchTable::PopulateWithCallback(PlatformGetProcAddr lookupFunc)
   }
 
   ForEachSupported(HookFunc);
+  GL.glBeginPerfQueryINTEL = (PFNGLBEGINPERFQUERYINTELPROC)lookupFunc("glBeginPerfQueryINTEL");
+  GL.glCreatePerfQueryINTEL = (PFNGLCREATEPERFQUERYINTELPROC)lookupFunc("glCreatePerfQueryINTEL");
+  GL.glDeletePerfQueryINTEL = (PFNGLDELETEPERFQUERYINTELPROC)lookupFunc("glDeletePerfQueryINTEL");
+  GL.glEndPerfQueryINTEL = (PFNGLENDPERFQUERYINTELPROC)lookupFunc("glEndPerfQueryINTEL");
+  GL.glGetFirstPerfQueryIdINTEL =
+      (PFNGLGETFIRSTPERFQUERYIDINTELPROC)lookupFunc("glGetFirstPerfQueryIdINTEL");
+  GL.glGetNextPerfQueryIdINTEL =
+      (PFNGLGETNEXTPERFQUERYIDINTELPROC)lookupFunc("glGetNextPerfQueryIdINTEL");
+  GL.glGetPerfCounterInfoINTEL =
+      (PFNGLGETPERFCOUNTERINFOINTELPROC)lookupFunc("glGetPerfCounterInfoINTEL");
+  GL.glGetPerfQueryDataINTEL =
+      (PFNGLGETPERFQUERYDATAINTELPROC)lookupFunc("glGetPerfQueryDataINTEL");
+  GL.glGetPerfQueryIdByNameINTEL =
+      (PFNGLGETPERFQUERYIDBYNAMEINTELPROC)lookupFunc("glGetPerfQueryIdByNameINTEL");
+  GL.glGetPerfQueryInfoINTEL =
+      (PFNGLGETPERFQUERYINFOINTELPROC)lookupFunc("glGetPerfQueryInfoINTEL");
 }
 
 static void GLHooked(void *handle)
