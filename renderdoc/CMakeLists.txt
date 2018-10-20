@@ -430,6 +430,12 @@ endif()
 add_subdirectory(driver/ihv/amd)
 list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_amd>)
 
+# pull in the intel folder for GL perf queries
+if(ENABLE_GL OR ENABLE_GLES)
+    add_subdirectory(driver/ihv/intel)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_intel>)
+endif()
+
 add_library(rdoc OBJECT ${sources})
 target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})
@@ -491,4 +497,3 @@ install (TARGETS renderdoc DESTINATION lib${LIB_SUFFIX}/${LIB_SUBFOLDER})
 
 # Copy in application API header to include
 install (FILES api/app/renderdoc_app.h DESTINATION include RENAME renderdoc.h)
-

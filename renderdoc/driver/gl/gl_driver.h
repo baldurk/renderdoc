@@ -2359,6 +2359,26 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glAcquireKeyedMutexWin32EXT, GLuint memory, GLuint64 key,
                                 GLuint timeout);
   IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glReleaseKeyedMutexWin32EXT, GLuint memory, GLuint64 key);
+
+  // INTEL_performance_query
+  IMPLEMENT_FUNCTION_SERIALISED(void, glBeginPerfQueryINTEL, GLuint queryHandle);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glCreatePerfQueryINTEL, GLuint queryId, GLuint *queryHandle);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glDeletePerfQueryINTEL, GLuint queryHandle);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glEndPerfQueryINTEL, GLuint queryHandle);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetFirstPerfQueryIdINTEL, GLuint *queryId);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetNextPerfQueryIdINTEL, GLuint queryId, GLuint *nextQueryId);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetPerfCounterInfoINTEL, GLuint queryId, GLuint counterId,
+                                GLuint counterNameLength, GLchar *counterName,
+                                GLuint counterDescLength, GLchar *counterDesc, GLuint *counterOffset,
+                                GLuint *counterDataSize, GLuint *counterTypeEnum,
+                                GLuint *counterDataTypeEnum, GLuint64 *rawCounterMaxValue);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetPerfQueryDataINTEL, GLuint queryHandle, GLuint flags,
+                                GLsizei dataSize, GLvoid *data, GLuint *bytesWritten);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetPerfQueryIdByNameINTEL, GLchar *queryName,
+                                GLuint *queryId);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glGetPerfQueryInfoINTEL, GLuint queryId,
+                                GLuint queryNameLength, GLchar *queryName, GLuint *dataSize,
+                                GLuint *noCounters, GLuint *noInstances, GLuint *capsMask);
 };
 
 class ScopedDebugContext
