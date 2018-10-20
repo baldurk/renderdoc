@@ -4368,6 +4368,16 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glDeleteSemaphoresEXT:
     case GLChunk::glIsSemaphoreEXT:
     case GLChunk::glGetSemaphoreParameterui64vEXT:
+    case GLChunk::glBeginPerfQueryINTEL:
+    case GLChunk::glCreatePerfQueryINTEL:
+    case GLChunk::glDeletePerfQueryINTEL:
+    case GLChunk::glEndPerfQueryINTEL:
+    case GLChunk::glGetFirstPerfQueryIdINTEL:
+    case GLChunk::glGetNextPerfQueryIdINTEL:
+    case GLChunk::glGetPerfCounterInfoINTEL:
+    case GLChunk::glGetPerfQueryDataINTEL:
+    case GLChunk::glGetPerfQueryIdByNameINTEL:
+    case GLChunk::glGetPerfQueryInfoINTEL:
 
     case GLChunk::Max:
       RDCERR("Unexpected chunk %s, or missing case for processing! Skipping...",

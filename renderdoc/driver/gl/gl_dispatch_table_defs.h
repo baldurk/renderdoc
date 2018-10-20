@@ -1271,6 +1271,16 @@
   FUNC(glGetQueryBufferObjectiv, glGetQueryBufferObjectiv); \
   FUNC(glGetQueryBufferObjectui64v, glGetQueryBufferObjectui64v); \
   FUNC(glGetQueryBufferObjectuiv, glGetQueryBufferObjectuiv); \
+  FUNC(glBeginPerfQueryINTEL, glBeginPerfQueryINTEL); \
+  FUNC(glCreatePerfQueryINTEL, glCreatePerfQueryINTEL); \
+  FUNC(glDeletePerfQueryINTEL, glDeletePerfQueryINTEL); \
+  FUNC(glEndPerfQueryINTEL, glEndPerfQueryINTEL); \
+  FUNC(glGetFirstPerfQueryIdINTEL, glGetFirstPerfQueryIdINTEL); \
+  FUNC(glGetNextPerfQueryIdINTEL, glGetNextPerfQueryIdINTEL); \
+  FUNC(glGetPerfCounterInfoINTEL, glGetPerfCounterInfoINTEL); \
+  FUNC(glGetPerfQueryDataINTEL, glGetPerfQueryDataINTEL); \
+  FUNC(glGetPerfQueryIdByNameINTEL, glGetPerfQueryIdByNameINTEL); \
+  FUNC(glGetPerfQueryInfoINTEL, glGetPerfQueryInfoINTEL); \
   FUNC(wglDXSetResourceShareHandleNV, wglDXSetResourceShareHandleNV); \
   FUNC(wglDXOpenDeviceNV, wglDXOpenDeviceNV); \
   FUNC(wglDXCloseDeviceNV, wglDXCloseDeviceNV); \
@@ -2520,6 +2530,16 @@
   FuncWrapper4(void, glGetQueryBufferObjectiv, GLuint, id, GLuint, buffer, GLenum, pname, GLintptr, offset); \
   FuncWrapper4(void, glGetQueryBufferObjectui64v, GLuint, id, GLuint, buffer, GLenum, pname, GLintptr, offset); \
   FuncWrapper4(void, glGetQueryBufferObjectuiv, GLuint, id, GLuint, buffer, GLenum, pname, GLintptr, offset); \
+  FuncWrapper1(void, glBeginPerfQueryINTEL, GLuint, queryHandle); \
+  FuncWrapper2(void, glCreatePerfQueryINTEL, GLuint, queryId, GLuint *, queryHandle); \
+  FuncWrapper1(void, glDeletePerfQueryINTEL, GLuint, queryHandle); \
+  FuncWrapper1(void, glEndPerfQueryINTEL, GLuint, queryHandle); \
+  FuncWrapper1(void, glGetFirstPerfQueryIdINTEL, GLuint *, queryId); \
+  FuncWrapper2(void, glGetNextPerfQueryIdINTEL, GLuint, queryId, GLuint *, nextQueryId); \
+  FuncWrapper11(void, glGetPerfCounterInfoINTEL, GLuint, queryId, GLuint, counterId, GLuint, counterNameLength, GLchar *, counterName, GLuint, counterDescLength, GLchar *, counterDesc, GLuint *, counterOffset, GLuint *, counterDataSize, GLuint *, counterTypeEnum, GLuint *, counterDataTypeEnum, GLuint64 *, rawCounterMaxValue); \
+  FuncWrapper5(void, glGetPerfQueryDataINTEL, GLuint, queryHandle, GLuint, flags, GLsizei, dataSize, void *, data, GLuint *, bytesWritten); \
+  FuncWrapper2(void, glGetPerfQueryIdByNameINTEL, GLchar *, queryName, GLuint *, queryId); \
+  FuncWrapper7(void, glGetPerfQueryInfoINTEL, GLuint, queryId, GLuint, queryNameLength, GLchar *, queryName, GLuint *, dataSize, GLuint *, noCounters, GLuint *, noInstances, GLuint *, capsMask); \
   FuncWrapper2(BOOL, wglDXSetResourceShareHandleNV, void *, dxObject, HANDLE, shareHandle); \
   FuncWrapper1(HANDLE, wglDXOpenDeviceNV, void *, dxDevice); \
   FuncWrapper1(BOOL, wglDXCloseDeviceNV, HANDLE, hDevice); \
@@ -2560,7 +2580,6 @@
   FUNC(glBeginFragmentShaderATI); \
   FUNC(glBeginOcclusionQueryNV); \
   FUNC(glBeginPerfMonitorAMD); \
-  FUNC(glBeginPerfQueryINTEL); \
   FUNC(glBegin); \
   FUNC(glBeginTransformFeedbackNV); \
   FUNC(glBeginVertexShaderEXT); \
@@ -2760,7 +2779,6 @@
   FUNC(glCoverStrokePathInstancedNV); \
   FUNC(glCoverStrokePathNV); \
   FUNC(glCreateCommandListsNV); \
-  FUNC(glCreatePerfQueryINTEL); \
   FUNC(glCreateProgramObjectARB); \
   FUNC(glCreateShaderObjectARB); \
   FUNC(glCreateShaderProgramEXT); \
@@ -2786,7 +2804,6 @@
   FUNC(glDeleteOcclusionQueriesNV); \
   FUNC(glDeletePathsNV); \
   FUNC(glDeletePerfMonitorsAMD); \
-  FUNC(glDeletePerfQueryINTEL); \
   FUNC(glDeleteProgramsARB); \
   FUNC(glDeleteProgramsNV); \
   FUNC(glDeleteQueryResourceTagNV); \
@@ -2857,7 +2874,6 @@
   FUNC(glEndList); \
   FUNC(glEndOcclusionQueryNV); \
   FUNC(glEndPerfMonitorAMD); \
-  FUNC(glEndPerfQueryINTEL); \
   FUNC(glEnd); \
   FUNC(glEndTilingQCOM); \
   FUNC(glEndTransformFeedbackNV); \
@@ -3022,7 +3038,6 @@
   FUNC(glGetFenceivNV); \
   FUNC(glGetFinalCombinerInputParameterfvNV); \
   FUNC(glGetFinalCombinerInputParameterivNV); \
-  FUNC(glGetFirstPerfQueryIdINTEL); \
   FUNC(glGetFixedvOES); \
   FUNC(glGetFogFuncSGIS); \
   FUNC(glGetFragDataIndexEXT); \
@@ -3098,7 +3113,6 @@
   FUNC(glGetnColorTable); \
   FUNC(glGetnConvolutionFilterARB); \
   FUNC(glGetnConvolutionFilter); \
-  FUNC(glGetNextPerfQueryIdINTEL); \
   FUNC(glGetnHistogramARB); \
   FUNC(glGetnHistogram); \
   FUNC(glGetnMapdvARB); \
@@ -3144,16 +3158,12 @@
   FUNC(glGetPathSpacingNV); \
   FUNC(glGetPathTexGenfvNV); \
   FUNC(glGetPathTexGenivNV); \
-  FUNC(glGetPerfCounterInfoINTEL); \
   FUNC(glGetPerfMonitorCounterDataAMD); \
   FUNC(glGetPerfMonitorCounterInfoAMD); \
   FUNC(glGetPerfMonitorCountersAMD); \
   FUNC(glGetPerfMonitorCounterStringAMD); \
   FUNC(glGetPerfMonitorGroupsAMD); \
   FUNC(glGetPerfMonitorGroupStringAMD); \
-  FUNC(glGetPerfQueryDataINTEL); \
-  FUNC(glGetPerfQueryIdByNameINTEL); \
-  FUNC(glGetPerfQueryInfoINTEL); \
   FUNC(glGetPixelMapfv); \
   FUNC(glGetPixelMapuiv); \
   FUNC(glGetPixelMapusv); \
@@ -4483,7 +4493,6 @@
   UnsupportedWrapper0(void, glBeginFragmentShaderATI); \
   UnsupportedWrapper1(void, glBeginOcclusionQueryNV, GLuint, id); \
   UnsupportedWrapper1(void, glBeginPerfMonitorAMD, GLuint, monitor); \
-  UnsupportedWrapper1(void, glBeginPerfQueryINTEL, GLuint, queryHandle); \
   UnsupportedWrapper1(void, glBegin, GLenum, mode); \
   UnsupportedWrapper1(void, glBeginTransformFeedbackNV, GLenum, primitiveMode); \
   UnsupportedWrapper0(void, glBeginVertexShaderEXT); \
@@ -4683,7 +4692,6 @@
   UnsupportedWrapper7(void, glCoverStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
   UnsupportedWrapper2(void, glCoverStrokePathNV, GLuint, path, GLenum, coverMode); \
   UnsupportedWrapper2(void, glCreateCommandListsNV, GLsizei, n, GLuint *, lists); \
-  UnsupportedWrapper2(void, glCreatePerfQueryINTEL, GLuint, queryId, GLuint *, queryHandle); \
   UnsupportedWrapper0(GLhandleARB, glCreateProgramObjectARB); \
   UnsupportedWrapper1(GLhandleARB, glCreateShaderObjectARB, GLenum, shaderType); \
   UnsupportedWrapper2(GLuint, glCreateShaderProgramEXT, GLenum, type, const GLchar *, string); \
@@ -4709,7 +4717,6 @@
   UnsupportedWrapper2(void, glDeleteOcclusionQueriesNV, GLsizei, n, const GLuint *, ids); \
   UnsupportedWrapper2(void, glDeletePathsNV, GLuint, path, GLsizei, range); \
   UnsupportedWrapper2(void, glDeletePerfMonitorsAMD, GLsizei, n, GLuint *, monitors); \
-  UnsupportedWrapper1(void, glDeletePerfQueryINTEL, GLuint, queryHandle); \
   UnsupportedWrapper2(void, glDeleteProgramsARB, GLsizei, n, const GLuint *, programs); \
   UnsupportedWrapper2(void, glDeleteProgramsNV, GLsizei, n, const GLuint *, programs); \
   UnsupportedWrapper2(void, glDeleteQueryResourceTagNV, GLsizei, n, const GLint *, tagIds); \
@@ -4780,7 +4787,6 @@
   UnsupportedWrapper0(void, glEndList); \
   UnsupportedWrapper0(void, glEndOcclusionQueryNV); \
   UnsupportedWrapper1(void, glEndPerfMonitorAMD, GLuint, monitor); \
-  UnsupportedWrapper1(void, glEndPerfQueryINTEL, GLuint, queryHandle); \
   UnsupportedWrapper0(void, glEnd); \
   UnsupportedWrapper1(void, glEndTilingQCOM, GLbitfield, preserveMask); \
   UnsupportedWrapper0(void, glEndTransformFeedbackNV); \
@@ -4945,7 +4951,6 @@
   UnsupportedWrapper3(void, glGetFenceivNV, GLuint, fence, GLenum, pname, GLint *, params); \
   UnsupportedWrapper3(void, glGetFinalCombinerInputParameterfvNV, GLenum, variable, GLenum, pname, GLfloat *, params); \
   UnsupportedWrapper3(void, glGetFinalCombinerInputParameterivNV, GLenum, variable, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper1(void, glGetFirstPerfQueryIdINTEL, GLuint *, queryId); \
   UnsupportedWrapper2(void, glGetFixedvOES, GLenum, pname, GLfixed *, params); \
   UnsupportedWrapper1(void, glGetFogFuncSGIS, GLfloat *, points); \
   UnsupportedWrapper2(GLint, glGetFragDataIndexEXT, GLuint, program, const GLchar *, name); \
@@ -5021,7 +5026,6 @@
   UnsupportedWrapper5(void, glGetnColorTable, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, table); \
   UnsupportedWrapper5(void, glGetnConvolutionFilterARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, image); \
   UnsupportedWrapper5(void, glGetnConvolutionFilter, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, image); \
-  UnsupportedWrapper2(void, glGetNextPerfQueryIdINTEL, GLuint, queryId, GLuint *, nextQueryId); \
   UnsupportedWrapper6(void, glGetnHistogramARB, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
   UnsupportedWrapper6(void, glGetnHistogram, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
   UnsupportedWrapper4(void, glGetnMapdvARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLdouble *, v); \
@@ -5067,16 +5071,12 @@
   UnsupportedWrapper9(void, glGetPathSpacingNV, GLenum, pathListMode, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLfloat, advanceScale, GLfloat, kerningScale, GLenum, transformType, GLfloat *, returnedSpacing); \
   UnsupportedWrapper3(void, glGetPathTexGenfvNV, GLenum, texCoordSet, GLenum, pname, GLfloat *, value); \
   UnsupportedWrapper3(void, glGetPathTexGenivNV, GLenum, texCoordSet, GLenum, pname, GLint *, value); \
-  UnsupportedWrapper11(void, glGetPerfCounterInfoINTEL, GLuint, queryId, GLuint, counterId, GLuint, counterNameLength, GLchar *, counterName, GLuint, counterDescLength, GLchar *, counterDesc, GLuint *, counterOffset, GLuint *, counterDataSize, GLuint *, counterTypeEnum, GLuint *, counterDataTypeEnum, GLuint64 *, rawCounterMaxValue); \
   UnsupportedWrapper5(void, glGetPerfMonitorCounterDataAMD, GLuint, monitor, GLenum, pname, GLsizei, dataSize, GLuint *, data, GLint *, bytesWritten); \
   UnsupportedWrapper4(void, glGetPerfMonitorCounterInfoAMD, GLuint, group, GLuint, counter, GLenum, pname, void *, data); \
   UnsupportedWrapper5(void, glGetPerfMonitorCountersAMD, GLuint, group, GLint *, numCounters, GLint *, maxActiveCounters, GLsizei, counterSize, GLuint *, counters); \
   UnsupportedWrapper5(void, glGetPerfMonitorCounterStringAMD, GLuint, group, GLuint, counter, GLsizei, bufSize, GLsizei *, length, GLchar *, counterString); \
   UnsupportedWrapper3(void, glGetPerfMonitorGroupsAMD, GLint *, numGroups, GLsizei, groupsSize, GLuint *, groups); \
   UnsupportedWrapper4(void, glGetPerfMonitorGroupStringAMD, GLuint, group, GLsizei, bufSize, GLsizei *, length, GLchar *, groupString); \
-  UnsupportedWrapper5(void, glGetPerfQueryDataINTEL, GLuint, queryHandle, GLuint, flags, GLsizei, dataSize, void *, data, GLuint *, bytesWritten); \
-  UnsupportedWrapper2(void, glGetPerfQueryIdByNameINTEL, GLchar *, queryName, GLuint *, queryId); \
-  UnsupportedWrapper7(void, glGetPerfQueryInfoINTEL, GLuint, queryId, GLuint, queryNameLength, GLchar *, queryName, GLuint *, dataSize, GLuint *, noCounters, GLuint *, noInstances, GLuint *, capsMask); \
   UnsupportedWrapper2(void, glGetPixelMapfv, GLenum, map, GLfloat *, values); \
   UnsupportedWrapper2(void, glGetPixelMapuiv, GLenum, map, GLuint *, values); \
   UnsupportedWrapper2(void, glGetPixelMapusv, GLenum, map, GLushort *, values); \

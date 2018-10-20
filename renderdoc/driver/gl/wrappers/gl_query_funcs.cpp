@@ -573,6 +573,67 @@ void WrappedOpenGL::glDeleteQueries(GLsizei n, const GLuint *ids)
   GL.glDeleteQueries(n, ids);
 }
 
+void WrappedOpenGL::glBeginPerfQueryINTEL(GLuint queryHandle)
+{
+  GL.glBeginPerfQueryINTEL(queryHandle);
+}
+
+void WrappedOpenGL::glCreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
+{
+  GL.glCreatePerfQueryINTEL(queryId, queryHandle);
+}
+
+void WrappedOpenGL::glDeletePerfQueryINTEL(GLuint queryHandle)
+{
+  GL.glDeletePerfQueryINTEL(queryHandle);
+}
+
+void WrappedOpenGL::glEndPerfQueryINTEL(GLuint queryHandle)
+{
+  GL.glEndPerfQueryINTEL(queryHandle);
+}
+
+void WrappedOpenGL::glGetFirstPerfQueryIdINTEL(GLuint *queryId)
+{
+  GL.glGetFirstPerfQueryIdINTEL(queryId);
+}
+
+void WrappedOpenGL::glGetNextPerfQueryIdINTEL(GLuint queryId, GLuint *nextQueryId)
+{
+  GL.glGetNextPerfQueryIdINTEL(queryId, nextQueryId);
+}
+
+void WrappedOpenGL::glGetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
+                                              GLuint counterNameLength, GLchar *counterName,
+                                              GLuint counterDescLength, GLchar *counterDesc,
+                                              GLuint *counterOffset, GLuint *counterDataSize,
+                                              GLuint *counterTypeEnum, GLuint *counterDataTypeEnum,
+                                              GLuint64 *rawCounterMaxValue)
+{
+  GL.glGetPerfCounterInfoINTEL(queryId, counterId, counterNameLength, counterName,
+                               counterDescLength, counterDesc, counterOffset, counterDataSize,
+                               counterTypeEnum, counterDataTypeEnum, rawCounterMaxValue);
+}
+
+void WrappedOpenGL::glGetPerfQueryDataINTEL(GLuint queryHandle, GLuint flags, GLsizei dataSize,
+                                            GLvoid *data, GLuint *bytesWritten)
+{
+  GL.glGetPerfQueryDataINTEL(queryHandle, flags, dataSize, data, bytesWritten);
+}
+
+void WrappedOpenGL::glGetPerfQueryIdByNameINTEL(GLchar *queryName, GLuint *queryId)
+{
+  GL.glGetPerfQueryIdByNameINTEL(queryName, queryId);
+}
+
+void WrappedOpenGL::glGetPerfQueryInfoINTEL(GLuint queryId, GLuint queryNameLength,
+                                            GLchar *queryName, GLuint *dataSize, GLuint *noCounters,
+                                            GLuint *noInstances, GLuint *capsMask)
+{
+  GL.glGetPerfQueryInfoINTEL(queryId, queryNameLength, queryName, dataSize, noCounters, noInstances,
+                             capsMask);
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, glFenceSync, GLsync real, GLenum condition, GLbitfield flags);
 INSTANTIATE_FUNCTION_SERIALISED(void, glClientWaitSync, GLsync sync_, GLbitfield flags,
                                 GLuint64 timeout);

@@ -689,6 +689,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 30, EXT_texture_swizzle)                      \
   EXT_TO_CHECK(99, 99, KHR_blend_equation_advanced_coherent)     \
   EXT_TO_CHECK(99, 99, EXT_texture_sRGB_decode)                  \
+  EXT_TO_CHECK(99, 99, INTEL_performance_query)                  \
   /* OpenGL ES extensions */                                     \
   EXT_TO_CHECK(99, 32, EXT_color_buffer_float)                   \
   EXT_TO_CHECK(99, 32, EXT_primitive_bounding_box)               \
@@ -2083,6 +2084,17 @@ enum class GLChunk : uint32_t
   glBufferStorageEXT,
 
   CoherentMapWrite,
+
+  glBeginPerfQueryINTEL,
+  glCreatePerfQueryINTEL,
+  glDeletePerfQueryINTEL,
+  glEndPerfQueryINTEL,
+  glGetFirstPerfQueryIdINTEL,
+  glGetNextPerfQueryIdINTEL,
+  glGetPerfCounterInfoINTEL,
+  glGetPerfQueryDataINTEL,
+  glGetPerfQueryIdByNameINTEL,
+  glGetPerfQueryInfoINTEL,
 
   Max,
 };
