@@ -273,7 +273,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
 
     m_pDriver->ReplayLog(ctx.eventStart, d.eventId, eReplay_OnlyDraw);
 
-    for(auto q : indices<GPUCounter>())
+    for(uint32_t q = 0; q < uint32_t(GPUCounter::Count); q++)
       if(queries->obj[q])
         m_pDriver->glEndQuery(glCounters[q]);
 
