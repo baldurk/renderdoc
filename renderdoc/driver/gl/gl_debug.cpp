@@ -440,7 +440,7 @@ void GLReplay::InitDebugData()
     {
       extensions =
           "#extension GL_ARB_compute_shader : require\n"
-          "#extension GL_ARB_shader_storage_buffer_object : require";
+          "#extension GL_ARB_shader_storage_buffer_object : require\n";
     }
 
     if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_storage_buffer_object])
