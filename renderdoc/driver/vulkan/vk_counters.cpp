@@ -451,7 +451,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
 
   vector<GPUCounter> vkCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkCounters),
-               [](const GPUCounter &c) { return !IsAMDCounter(c); });
+               [](const GPUCounter &c) { return IsGenericCounter(c); });
 
   vector<CounterResult> ret;
 

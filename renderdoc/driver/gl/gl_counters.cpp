@@ -382,7 +382,7 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<GPUCounter> &allCount
 
   vector<GPUCounter> counters;
   std::copy_if(allCounters.begin(), allCounters.end(), std::back_inserter(counters),
-               [](const GPUCounter &c) { return !IsAMDCounter(c); });
+               [](const GPUCounter &c) { return IsGenericCounter(c); });
 
   if(m_pAMDCounters)
   {

@@ -576,9 +576,7 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
 
   vector<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
-               [](const GPUCounter &c) {
-                 return !IsAMDCounter(c) && !IsNvidiaCounter(c) && !IsIntelCounter(c);
-               });
+               [](const GPUCounter &c) { return IsGenericCounter(c); });
 
   if(m_pAMDCounters)
   {
