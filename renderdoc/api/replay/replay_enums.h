@@ -2875,6 +2875,17 @@ enum class GPUCounter : uint32_t
 ITERABLE_OPERATORS(GPUCounter);
 DECLARE_REFLECTION_ENUM(GPUCounter);
 
+DOCUMENT(R"(Check whether or not this is a Generic counter.
+
+:param GPUCounter c: The counter.
+:return: ``True`` if it is a generic counter, ``False`` if it's not.
+:rtype: ``bool``
+)");
+inline constexpr bool IsGenericCounter(GPUCounter c)
+{
+  return c < GPUCounter::Count;
+}
+
 DOCUMENT(R"(Check whether or not this is an AMD private counter.
 
 :param GPUCounter c: The counter.
