@@ -206,7 +206,6 @@ struct GLCounterContext
 };
 
 GLenum glCounters[] = {
-    eGL_NONE,                                      // Undefined!!
     eGL_TIME_ELAPSED,                              // GPUCounter::EventGPUDuration
     eGL_VERTICES_SUBMITTED_ARB,                    // GPUCounter::InputVerticesRead
     eGL_PRIMITIVES_SUBMITTED_ARB,                  // GPUCounter::IAPrimitives
