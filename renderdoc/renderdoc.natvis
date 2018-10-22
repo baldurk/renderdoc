@@ -29,10 +29,6 @@
   <Expand>
    <Item Name="first" ExcludeView="simple">first</Item>
    <Item Name="second" ExcludeView="simple">second</Item>
-   <ArrayItems>
-    <Size>usedCount</Size>
-    <ValuePointer>elems</ValuePointer>
-   </ArrayItems>
   </Expand>
  </Type>
  <Type Name="SDType">
