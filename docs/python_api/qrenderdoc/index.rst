@@ -5,9 +5,11 @@ qrenderdoc API Reference
   :hidden:
 	
   main
+  extensions
   windows
   config
 
 * :doc:`main`
+* :doc:`extensions`
 * :doc:`windows`
 * :doc:`config`
