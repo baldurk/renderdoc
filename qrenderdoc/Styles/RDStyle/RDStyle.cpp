@@ -543,6 +543,8 @@ QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const
   {
     QRect ret = opt->rect;
 
+    if(element == QStyle::SE_ItemViewItemCheckIndicator)
+      ret.setLeft(ret.left() + 4);
     ret.setWidth(Constants::CheckWidth);
 
     int extra = ret.height() - Constants::CheckHeight;
