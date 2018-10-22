@@ -305,7 +305,28 @@ class EGLPlatform : public GLPlatform
     if(ret)
       return ret;
 
-    return Process::GetFunctionAddress(GetEGLHandle(), funcname);
+    ret = Process::GetFunctionAddress(GetEGLHandle(), funcname);
+    if(ret)
+      return ret;
+
+#if ENABLED(RDOC_WIN32)
+#define LIBSUFFIX ".dll"
+#else
+#define LIBSUFFIX ".so"
+#endif
+    const char *libs[] = {
+        "libGLESv3" LIBSUFFIX, "libGLESv2" LIBSUFFIX ".2", "libGLESv2" LIBSUFFIX,
+        "libGLESv1_CM" LIBSUFFIX,
+    };
+
+    for(size_t i = 0; i < ARRAY_COUNT(libs); i++)
+    {
+      ret = Process::GetFunctionAddress(Process::LoadModule(libs[i]), funcname);
+      if(ret)
+        return ret;
+    }
+
+    return NULL;
   }
   void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
   {
