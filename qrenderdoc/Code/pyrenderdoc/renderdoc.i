@@ -332,6 +332,15 @@ PyObject *PassObjectToPython(const char *type, void *obj)
   return SWIG_InternalNewPointerObj(obj, t, 0);
 }
 
+PyObject *PassNewObjectToPython(const char *type, void *obj)
+{
+  swig_type_info *t = SWIG_TypeQuery(type);
+  if(t == NULL)
+    return NULL;
+
+  return SWIG_InternalNewPointerObj(obj, t, SWIG_POINTER_OWN);
+}
+
 %}
 
 ///////////////////////////////////////////////////////////////////////////////////////////

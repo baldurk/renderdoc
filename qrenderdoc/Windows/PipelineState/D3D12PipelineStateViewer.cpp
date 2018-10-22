@@ -24,6 +24,7 @@
 
 #include "D3D12PipelineStateViewer.h"
 #include <float.h>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QXmlStreamWriter>
@@ -210,6 +211,15 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   for(RDTreeWidget *cbuffer : cbuffers)
     QObject::connect(cbuffer, &RDTreeWidget::itemActivated, this,
                      &D3D12PipelineStateViewer::cbuffer_itemActivated);
+
+  {
+    QMenu *extensionsMenu = new QMenu(this);
+
+    QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
+      extensionsMenu->clear();
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::PipelineStateViewer, ui->extensions, {});
+    });
+  }
 
   addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
   addGridLines(ui->blendStateGridLayout, palette().color(QPalette::WindowText));

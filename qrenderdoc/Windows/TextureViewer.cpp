@@ -540,6 +540,15 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
                      &TextureViewer::channelsWidget_mouseClicked);
   }
 
+  {
+    QMenu *extensionsMenu = new QMenu(this);
+
+    QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
+      extensionsMenu->clear();
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::TextureViewer, ui->extensions, {});
+    });
+  }
+
   QWidget *renderContainer = ui->renderContainer;
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
@@ -1885,7 +1894,8 @@ void TextureViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t 
   menu.addAction(item);
 }
 
-void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventUsage> &usage)
+void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
+                                            const rdcarray<EventUsage> &usage)
 {
   QMenu contextMenu(this);
 
@@ -1920,6 +1930,12 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventU
     contextMenu.addSeparator();
     contextMenu.addAction(&openLockedTab);
     contextMenu.addAction(&openResourceInspector);
+
+    contextMenu.addSeparator();
+    m_Ctx.Extensions().MenuDisplaying(input ? ContextMenu::TextureViewer_InputThumbnail
+                                            : ContextMenu::TextureViewer_OutputThumbnail,
+                                      &contextMenu, {{"resourceId", id}});
+
     contextMenu.addSeparator();
     contextMenu.addAction(&usageTitle);
 
@@ -1943,6 +1959,11 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventU
   }
   else
   {
+    contextMenu.addSeparator();
+    m_Ctx.Extensions().MenuDisplaying(input ? ContextMenu::TextureViewer_InputThumbnail
+                                            : ContextMenu::TextureViewer_OutputThumbnail,
+                                      &contextMenu, {});
+
     RDDialog::show(&contextMenu, QCursor::pos());
   }
 }
@@ -2154,16 +2175,19 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
 
     rdcarray<EventUsage> empty;
 
+    bool input = follow.Type == FollowType::ReadOnly;
+
     if(id == ResourceId())
     {
-      OpenResourceContextMenu(id, empty);
+      OpenResourceContextMenu(id, input, empty);
     }
     else
     {
-      m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
+      m_Ctx.Replay().AsyncInvoke([this, id, input](IReplayController *r) {
         rdcarray<EventUsage> usage = r->GetUsage(id);
 
-        GUIInvoke::call(this, [this, id, usage]() { OpenResourceContextMenu(id, usage); });
+        GUIInvoke::call(this,
+                        [this, id, input, usage]() { OpenResourceContextMenu(id, input, usage); });
       });
     }
   }

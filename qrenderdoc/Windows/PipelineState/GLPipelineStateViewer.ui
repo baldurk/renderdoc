@@ -53,7 +53,7 @@
       <item>
        <widget class="QLabel" name="controlsLabel">
         <property name="text">
-         <string>Display Controls</string>
+         <string>Controls</string>
         </property>
         <property name="margin">
          <number>4</number>
@@ -127,6 +127,23 @@
         </property>
         <property name="checkable">
          <bool>false</bool>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonTextBesideIcon</enum>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="extensions">
+        <property name="text">
+         <string>Extensions</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/plugin.png</normaloff>:/plugin.png</iconset>
         </property>
         <property name="toolButtonStyle">
          <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -671,8 +688,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>552</height>
+            <width>116</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">
@@ -1125,8 +1142,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>552</height>
+            <width>116</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_15">
@@ -1579,8 +1596,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>552</height>
+            <width>116</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -2033,8 +2050,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>552</height>
+            <width>117</width>
+            <height>544</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -3465,8 +3482,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>552</height>
+            <width>116</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -3794,8 +3811,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>601</height>
+            <width>488</width>
+            <height>311</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -4426,8 +4443,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>883</width>
-            <height>552</height>
+            <width>116</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -4731,14 +4748,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLabel</class>
-   <extends>QLabel</extends>
-   <header>Widgets/Extended/RDLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
   </customwidget>
   <customwidget>
    <class>PipelineFlowChart</class>

@@ -227,7 +227,7 @@
   <widget class="QFrame" name="overlayToolbar">
    <property name="geometry">
     <rect>
-     <x>490</x>
+     <x>530</x>
      <y>40</y>
      <width>129</width>
      <height>32</height>
@@ -418,7 +418,7 @@
     <rect>
      <x>330</x>
      <y>40</y>
-     <width>149</width>
+     <width>181</width>
      <height>32</height>
     </rect>
    </property>
@@ -533,6 +533,17 @@
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/link.png</normaloff>:/link.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="extensions">
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/plugin.png</normaloff>:/plugin.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>

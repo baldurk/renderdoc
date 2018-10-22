@@ -53,7 +53,7 @@
       <item>
        <widget class="QLabel" name="controlsLabel">
         <property name="text">
-         <string>Display Controls</string>
+         <string>Controls</string>
         </property>
         <property name="margin">
          <number>4</number>
@@ -127,6 +127,23 @@
         </property>
         <property name="checkable">
          <bool>false</bool>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonTextBesideIcon</enum>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="extensions">
+        <property name="text">
+         <string>Extensions</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/plugin.png</normaloff>:/plugin.png</iconset>
         </property>
         <property name="toolButtonStyle">
          <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -549,9 +566,9 @@
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
-            </property> 
+            </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -945,7 +962,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1237,6 +1254,12 @@
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
             </spacer>
            </item>
           </layout>
@@ -1333,7 +1356,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1625,6 +1648,12 @@
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
             </spacer>
            </item>
           </layout>
@@ -1721,7 +1750,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2064,6 +2093,12 @@
              </property>
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
              </property>
             </spacer>
            </item>
@@ -2708,7 +2743,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2999,6 +3034,12 @@
              </property>
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
              </property>
             </spacer>
            </item>
@@ -3764,7 +3805,7 @@
                  <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
                </property>
                <property name="popupMode">
-                 <enum>QToolButton::MenuButtonPopup</enum>
+                <enum>QToolButton::MenuButtonPopup</enum>
                </property>
                <property name="toolButtonStyle">
                 <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -4131,6 +4172,12 @@
              </property>
              <property name="sizeType">
               <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
              </property>
             </spacer>
            </item>

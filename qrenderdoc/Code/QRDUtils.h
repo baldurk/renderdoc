@@ -315,6 +315,17 @@ public:
   void detach() { setProcessState(QProcess::NotRunning); }
 };
 
+class RegisteredMenuItem : public QObject
+{
+private:
+  Q_OBJECT
+public:
+  ContextMenu context;
+  PanelMenu panel;
+  rdcarray<rdcstr> submenus;
+  IExtensionManager::ExtensionCallback callback;
+};
+
 class QFileFilterModel : public QSortFilterProxyModel
 {
   Q_OBJECT

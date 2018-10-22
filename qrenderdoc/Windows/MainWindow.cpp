@@ -389,6 +389,13 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     if(a->menu())
       actions.append(a->menu()->actions());
   }
+
+  // hide the dummy extension markers. They shouldn't be visible, they're just there so the code can
+  // easily find where to insert new extension menu items.
+  ui->extension_dummy_File->setVisible(false);
+  ui->extension_dummy_Window->setVisible(false);
+  ui->extension_dummy_Tools->setVisible(false);
+  ui->extension_dummy_Help->setVisible(false);
 }
 
 MainWindow::~MainWindow()
@@ -1322,6 +1329,42 @@ void MainWindow::ShowLiveCapture(LiveCapture *live)
 void MainWindow::LiveCaptureClosed(LiveCapture *live)
 {
   m_LiveCaptures.removeOne(live);
+}
+
+QMenu *MainWindow::GetBaseMenu(WindowMenu base, rdcstr name)
+{
+  switch(base)
+  {
+    case WindowMenu::File: return ui->menu_File;
+    case WindowMenu::Window: return ui->menu_Window;
+    case WindowMenu::Tools: return ui->menu_Tools;
+    case WindowMenu::Help: return ui->menu_Help;
+    case WindowMenu::NewMenu: break;
+    default: return NULL;
+  }
+
+  // new menu. See if we have one for name already. If not, create a new one and add it to the menu
+  // bar.
+  for(QAction *m : ui->menuBar->actions())
+  {
+    // if it has an object name it's a built-in, ignore it.
+    if(!m->objectName().isEmpty())
+      continue;
+
+    if(m->text() == name)
+      return m->menu();
+  }
+
+  // no existing menu, add a new one
+  QMenu *menu = new QMenu(name, this);
+  menu->setIcon(Icons::plugin());
+  ui->menuBar->insertMenu(ui->menu_Help->menuAction(), menu);
+  return menu;
+}
+
+QList<QAction *> MainWindow::GetMenuActions()
+{
+  return ui->menuBar->actions();
 }
 
 ToolWindowManager *MainWindow::mainToolManager()

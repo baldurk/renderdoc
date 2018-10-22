@@ -72,6 +72,17 @@ public:
   bool IsExtensionLoaded(rdcstr name) override;
   bool LoadExtension(rdcstr name) override;
 
+  void RegisterWindowMenu(WindowMenu base, const rdcarray<rdcstr> &submenus,
+                          ExtensionCallback callback) override;
+  void RegisterPanelMenu(PanelMenu base, const rdcarray<rdcstr> &submenus,
+                         ExtensionCallback callback) override;
+  void RegisterContextMenu(ContextMenu base, const rdcarray<rdcstr> &submenus,
+                           ExtensionCallback callback) override;
+  void MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
+                      const ExtensionCallbackData &data) override;
+  void MenuDisplaying(PanelMenu panelMenu, QWidget *extensionButton,
+                      const ExtensionCallbackData &data) override;
+
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
 
@@ -277,6 +288,10 @@ private:
   void LoadCaptureThreaded(const QString &captureFile, const QString &origFilename, bool temporary,
                            bool local);
 
+  void AddSortedMenuItem(QMenu *menu, bool rootMenu, const rdcarray<rdcstr> &items,
+                         std::function<void()> callback);
+  void CleanMenu(QAction *action);
+
   uint32_t m_SelectedEventID = 0;
   uint32_t m_EventID = 0;
 
@@ -340,6 +355,8 @@ private:
 
   QList<QObject *> m_PendingExtensionObjects;
   QMap<rdcstr, QList<QObject *>> m_ExtensionObjects;
+
+  QList<QPointer<RegisteredMenuItem>> m_RegisteredMenuItems;
 
   // Windows
   MainWindow *m_MainWindow = NULL;

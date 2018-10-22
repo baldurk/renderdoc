@@ -24,6 +24,7 @@
 
 #include "VulkanPipelineStateViewer.h"
 #include <float.h>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QXmlStreamWriter>
@@ -162,6 +163,15 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   for(RDTreeWidget *ubo : ubos)
     QObject::connect(ubo, &RDTreeWidget::itemActivated, this,
                      &VulkanPipelineStateViewer::ubo_itemActivated);
+
+  {
+    QMenu *extensionsMenu = new QMenu(this);
+
+    QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
+      extensionsMenu->clear();
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::PipelineStateViewer, ui->extensions, {});
+    });
+  }
 
   addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
   addGridLines(ui->MSAAGridLayout, palette().color(QPalette::WindowText));

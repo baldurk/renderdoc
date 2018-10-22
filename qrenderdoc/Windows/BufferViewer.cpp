@@ -1132,6 +1132,15 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   QObject::connect(ui->matrixType, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
                    [this](int) { camGuess_changed(0.0); });
 
+  {
+    QMenu *extensionsMenu = new QMenu(this);
+
+    QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
+      extensionsMenu->clear();
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::MeshPreview, ui->extensions, {});
+    });
+  }
+
   Reset();
 
   m_Ctx.AddCaptureViewer(this);
@@ -1328,6 +1337,30 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
   menu->addAction(m_ExportBytes);
 
   menu->popup(m_CurView->viewport()->mapToGlobal(pos));
+
+  ContextMenu contextMenu = ContextMenu::MeshPreview_VSInVertex;
+
+  if(stage == MeshDataStage::VSOut)
+    contextMenu = ContextMenu::MeshPreview_VSOutVertex;
+  else if(stage == MeshDataStage::GSOut)
+    contextMenu = ContextMenu::MeshPreview_GSOutVertex;
+
+  QModelIndex idx = m_CurView->selectionModel()->currentIndex();
+
+  ExtensionCallbackData callbackdata = {make_pyarg("stage", (uint32_t)stage)};
+
+  if(idx.isValid())
+  {
+    uint32_t vertid =
+        m_CurView->model()->data(m_CurView->model()->index(idx.row(), 0), Qt::DisplayRole).toUInt();
+    uint32_t index =
+        m_CurView->model()->data(m_CurView->model()->index(idx.row(), 1), Qt::DisplayRole).toUInt();
+
+    callbackdata.push_back(make_pyarg("vertex", vertid));
+    callbackdata.push_back(make_pyarg("index", index));
+  }
+
+  m_Ctx.Extensions().MenuDisplaying(contextMenu, menu, callbackdata);
 }
 
 BufferViewer::~BufferViewer()

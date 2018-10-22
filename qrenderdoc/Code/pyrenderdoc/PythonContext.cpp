@@ -74,6 +74,7 @@ bool CheckQtInterface();
 // defined in SWIG-generated renderdoc_python.cpp
 extern "C" PyObject *PyInit_renderdoc(void);
 extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
+extern "C" PyObject *PassNewObjectToPython(const char *type, void *obj);
 // this one is in qrenderdoc_python.cpp
 extern "C" PyObject *PyInit_qrenderdoc(void);
 extern "C" PyObject *WrapBareQWidget(QWidget *);
@@ -640,6 +641,70 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
   Py_DecRef(syspath);
 
   return ext != NULL;
+}
+
+void PythonContext::ConvertPyArgs(const ExtensionCallbackData &data,
+                                  rdcarray<rdcpair<rdcstr, PyObject *>> &args)
+{
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  args.resize(data.size());
+  for(size_t i = 0; i < data.size(); i++)
+  {
+    rdcpair<rdcstr, PyObject *> &a = args[i];
+    a.first = data[i].first;
+
+    // convert QVariant to python object
+    const QVariant &in = data[i].second;
+    PyObject *&out = a.second;
+
+    // coverity[mixed_enums]
+    QMetaType::Type type = (QMetaType::Type)in.type();
+    switch(type)
+    {
+      case QMetaType::Bool: out = PyBool_FromLong(in.toBool()); break;
+      case QMetaType::Short:
+      case QMetaType::Long:
+      case QMetaType::Int: out = PyLong_FromLong(in.toInt()); break;
+      case QMetaType::UShort:
+      case QMetaType::ULong:
+      case QMetaType::UInt: out = PyLong_FromUnsignedLong(in.toUInt()); break;
+      case QMetaType::LongLong: out = PyLong_FromLongLong(in.toLongLong()); break;
+      case QMetaType::ULongLong: out = PyLong_FromUnsignedLongLong(in.toULongLong()); break;
+      case QMetaType::Float: out = PyFloat_FromDouble(in.toFloat()); break;
+      case QMetaType::Double: out = PyFloat_FromDouble(in.toDouble()); break;
+      case QMetaType::QString: out = PyUnicode_FromString(in.toString().toUtf8().data()); break;
+      default: break;
+    }
+
+    if(!out)
+    {
+      // try various other types
+      if(in.userType() == qMetaTypeId<ResourceId>())
+        out = PassNewObjectToPython("ResourceId *", new ResourceId(in.value<ResourceId>()));
+    }
+
+    if(!out)
+    {
+      qCritical() << "Couldn't convert" << in << "to python object";
+      out = Py_None;
+      Py_XINCREF(out);
+    }
+  }
+
+  PyGILState_Release(gil);
+}
+
+void PythonContext::FreePyArgs(rdcarray<rdcpair<rdcstr, PyObject *>> &args)
+{
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  for(rdcpair<rdcstr, PyObject *> &a : args)
+  {
+    Py_XDECREF(a.second);
+  }
+
+  PyGILState_Release(gil);
 }
 
 QString PythonContext::versionString()

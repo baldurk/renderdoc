@@ -56,6 +56,8 @@
     <addaction name="action_Create_RGP_Profile"/>
     <addaction name="action_Open_RGP_Profile"/>
     <addaction name="separator"/>
+    <addaction name="extension_dummy_Tools"/>
+    <addaction name="separator"/>
     <addaction name="action_Settings"/>
     <addaction name="action_Manage_Extensions"/>
     <addaction name="action_Manage_Remote_Servers"/>
@@ -103,6 +105,8 @@
     <addaction name="action_Save_Capture_Inplace"/>
     <addaction name="action_Save_Capture_As"/>
     <addaction name="action_Close_Capture"/>
+    <addaction name="separator"/>
+    <addaction name="extension_dummy_File"/>
     <addaction name="separator"/>
     <addaction name="menu_Import_From"/>
     <addaction name="menu_Export_As"/>
@@ -159,6 +163,8 @@
     <addaction name="action_Counter_Viewer"/>
     <addaction name="action_Resource_Inspector"/>
     <addaction name="action_Comments"/>
+    <addaction name="separator"/>
+    <addaction name="extension_dummy_Window"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -177,6 +183,8 @@
     <addaction name="separator"/>
     <addaction name="action_Send_Error_Report"/>
     <addaction name="menu_Reported_Bugs"/>
+    <addaction name="separator"/>
+    <addaction name="extension_dummy_Help"/>
     <addaction name="separator"/>
     <addaction name="action_Check_for_Updates"/>
     <addaction name="separator"/>
@@ -465,6 +473,26 @@
   <action name="action_Open_RGP_Profile">
    <property name="text">
     <string>Open RGP Profile</string>
+   </property>
+  </action>
+  <action name="extension_dummy_Tools">
+   <property name="text">
+    <string notr="true">__extensions__</string>
+   </property>
+  </action>
+  <action name="extension_dummy_Help">
+   <property name="text">
+    <string notr="true">__extensions__</string>
+   </property>
+  </action>
+  <action name="extension_dummy_Window">
+   <property name="text">
+    <string notr="true">__extensions__</string>
+   </property>
+  </action>
+  <action name="extension_dummy_File">
+   <property name="text">
+    <string notr="true">__extensions__</string>
    </property>
   </action>
   <action name="action_Manage_Extensions">

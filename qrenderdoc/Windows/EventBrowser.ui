@@ -192,6 +192,17 @@
       </widget>
      </item>
      <item>
+      <widget class="QToolButton" name="extensions">
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/plugin.png</normaloff>:/plugin.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>

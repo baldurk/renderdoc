@@ -24,6 +24,7 @@
 
 #include "GLPipelineStateViewer.h"
 #include <float.h>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QXmlStreamWriter>
@@ -167,6 +168,15 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
   for(RDTreeWidget *res : readwrites)
     QObject::connect(res, &RDTreeWidget::itemActivated, this,
                      &GLPipelineStateViewer::resource_itemActivated);
+
+  {
+    QMenu *extensionsMenu = new QMenu(this);
+
+    QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
+      extensionsMenu->clear();
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::PipelineStateViewer, ui->extensions, {});
+    });
+  }
 
   addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
   addGridLines(ui->MSAAGridLayout, palette().color(QPalette::WindowText));

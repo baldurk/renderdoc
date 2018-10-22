@@ -29,6 +29,7 @@
 
 // this is pre-declared as an opaque type as we only support converting to QWidget* via PySide
 class QWidget;
+class QMenu;
 
 // we only support QVariant as an 'internal' interface, it's not exposed to python. However we need
 // to use it in constructors/operators so conditionally compile it rather than split small structs
@@ -63,6 +64,13 @@ class QWidget;
 #include "Analytics.h"
 #include "PersistantConfig.h"
 #include "RemoteHost.h"
+
+#ifdef RENDERDOC_QT_COMPAT
+
+typedef rdcarray<rdcpair<rdcstr, QVariant> > ExtensionCallbackData;
+#define make_pyarg make_rdcpair<rdcstr, QVariant>
+
+#endif
 
 struct ICaptureContext;
 
@@ -1022,6 +1030,111 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IRGPInterop);
 
+DOCUMENT(R"(Specifies the base menu to add a menu item into.
+
+.. data:: File
+
+  The menu item will be in a section between Open/Save/Close captures and Import/Export.
+
+.. data:: Window
+
+  The menu item will be in a new section at the end of the menu.
+
+.. data:: Tools
+
+  The menu item will be added to a new section above Settings.
+
+.. data:: NewMenu
+
+  The menu item will be a root menu, placed between Tools and Help.
+
+.. data:: Help
+
+  The menu item will be added after the error reporting item.
+)");
+enum class WindowMenu
+{
+  Unknown,
+  File,
+  Window,
+  Tools,
+  NewMenu,
+  Help,
+};
+
+DOCUMENT(R"(Specifies the panel to add a menu item into.
+
+.. data:: EventBrowser
+
+  The :class:`EventBrowser`.
+
+.. data:: PipelineStateViewer
+
+  The :class:`PipelineStateViewer`.
+
+.. data:: MeshPreview
+
+  The mesh previewing :class:`BufferViewer`.
+
+.. data:: TextureViewer
+
+  The :class:`TextureViewer`.
+)");
+enum class PanelMenu
+{
+  Unknown,
+  EventBrowser,
+  PipelineStateViewer,
+  MeshPreview,
+  TextureViewer,
+};
+
+DOCUMENT(R"(Specifies the panel to add a menu item into.
+
+.. data:: EventBrowser_Event
+
+  Adds the item to the context menu for events in the :class:`EventBrowser`.
+
+.. data:: MeshPreview_Vertex
+
+  Adds the item to the context menu for all vertices in the mesh previewing :class:`BufferViewer`.
+
+.. data:: MeshPreview_VSInVertex
+
+  Adds the item to the context menu for vertex inputs in the mesh previewing :class:`BufferViewer`.
+
+.. data:: MeshPreview_VSOutVertex
+
+  Adds the item to the context menu for VS output in the mesh previewing :class:`BufferViewer`.
+
+.. data:: MeshPreview_GSOutVertex
+
+  Adds the item to the context menu for GS/Tess output in the mesh previewing :class:`BufferViewer`.
+
+.. data:: TextureViewer_Thumbnail
+
+  Adds the item to the context menu for all thumbnails in the :class:`TextureViewer`.
+
+.. data:: TextureViewer_InputThumbnail
+
+  Adds the item to the context menu for input thumbnails in the :class:`TextureViewer`.
+
+.. data:: TextureViewer_OutputThumbnail
+
+  Adds the item to the context menu for output thumbnails in the :class:`TextureViewer`.
+)");
+enum class ContextMenu
+{
+  Unknown,
+  EventBrowser_Event,
+  MeshPreview_Vertex,
+  MeshPreview_VSInVertex,
+  MeshPreview_VSOutVertex,
+  MeshPreview_GSOutVertex,
+  TextureViewer_Thumbnail,
+  TextureViewer_InputThumbnail,
+  TextureViewer_OutputThumbnail,
+};
 
 DOCUMENT("The metadata for an extension.");
 struct ExtensionMetadata
@@ -1081,10 +1194,12 @@ struct ExtensionMetadata
 
 DECLARE_REFLECTION_STRUCT(ExtensionMetadata);
 
+typedef struct _object PyObject;
+
 DOCUMENT(R"(A manager for listing available and active extensions, as well as the interface for
 extensions to register hooks and additional functionality.
 
-.. function:: ExtensionCallback(context)
+.. function:: ExtensionCallback(context, data)
 
   Not a member function - the signature for any ``ExtensionCallback`` callbacks.
 
@@ -1092,10 +1207,13 @@ extensions to register hooks and additional functionality.
   was registered.
 
   :param CaptureContext context: The current capture context.
+  :param dict data: Additional data for the call, as a dictionary with string keys.
+    Context-dependent based on what generated the callback
 )");
 struct IExtensionManager
 {
-  typedef std::function<void(ICaptureContext *ctx)> ExtensionCallback;
+  typedef std::function<void(ICaptureContext *ctx, const rdcarray<rdcpair<rdcstr, PyObject *> > &data)>
+      ExtensionCallback;
 
   DOCUMENT(R"(Retrieve a list of installed extensions.
 
@@ -1117,6 +1235,65 @@ struct IExtensionManager
 :param str name: The qualified name of the extension, e.g. ``foo.bar``
 )");
   virtual bool LoadExtension(rdcstr name) = 0;
+
+  DOCUMENT(R"(Register a new menu item in the main window's menus for an extension.
+
+.. note:
+  The intermediate submenu items will be created as needed, there's no need to register each item
+  in the hierarchy. Registering a menu item and then registering a child is undefined, and the item
+  with a child may not receive callbacks at the correct times.
+
+:param WindowMenu base: The base menu to add the item to.
+:param list submenus: A list of strings containing the submenus to add before the item. The last
+  string will be the name of the menu item itself. Must contain at least one entry, or two entries
+  if ``base`` is :data:`WindowMenu.NewMenu`.
+:param callback: The function to callback when the menu item is selected.
+:type method: :func:`ExtensionCallback`
+)");
+  virtual void RegisterWindowMenu(WindowMenu base, const rdcarray<rdcstr> &submenus,
+                                  ExtensionCallback callback) = 0;
+
+  DOCUMENT(R"(Register a menu item in a panel for an extension.
+
+.. note:
+  The intermediate submenu items will be created as needed, there's no need to register each item
+  in the hierarchy. Registering a menu item and then registering a child is undefined, and the item
+  with a child may not receive callbacks at the correct times.
+
+:param PanelMenu base: The panel to add the item to.
+:param list submenus: A list of strings containing the submenus to add before the item. The last
+  string will be the name of the menu item itself. Must contain at least one entry.
+:param callback: The function to callback when the menu item is selected.
+:type method: :func:`ExtensionCallback`
+)");
+  virtual void RegisterPanelMenu(PanelMenu base, const rdcarray<rdcstr> &submenus,
+                                 ExtensionCallback callback) = 0;
+
+  DOCUMENT(R"(Register a context menu item in a panel for an extension.
+
+.. note:
+  The intermediate submenu items will be created as needed, there's no need to register each item
+  in the hierarchy. Registering a menu item and then registering a child is undefined, and the item
+  with a child may not receive callbacks at the correct times.
+
+:param ContextMenu base: The panel to add the item to.
+:param list submenus: A list of strings containing the submenus to add before the item. The last
+  string will be the name of the menu item itself. Must contain at least one entry.
+:param callback: The function to callback when the menu item is selected.
+:type method: :func:`ExtensionCallback`
+)");
+  virtual void RegisterContextMenu(ContextMenu base, const rdcarray<rdcstr> &submenus,
+                                   ExtensionCallback callback) = 0;
+
+#if !defined(SWIG) && !defined(SWIG_GENERATED)
+  // not exposed to SWIG, only used internally. For when a menu is displayed dynamically in a panel,
+  // this function is called to add any relevant menu items. Doing this almost immediate-mode GUI
+  // style avoids complex retained state that has to be refreshed each time a panel is created.
+  virtual void MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
+                              const ExtensionCallbackData &data) = 0;
+  virtual void MenuDisplaying(PanelMenu panelMenu, QWidget *extensionButton,
+                              const ExtensionCallbackData &data) = 0;
+#endif
 
 protected:
   DOCUMENT("");
@@ -1616,7 +1793,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`EventBrowser`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: EventBrowser
+:rtype: ~qrenderdoc.EventBrowser
 )");
   virtual IEventBrowser *GetEventBrowser() = 0;
 
@@ -1630,7 +1807,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`TextureViewer`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: TextureViewer
+:rtype: ~qrenderdoc.TextureViewer
 )");
   virtual ITextureViewer *GetTextureViewer() = 0;
 
@@ -1644,7 +1821,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`PipelineStateViewer`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: PipelineStateViewer
+:rtype: ~qrenderdoc.PipelineStateViewer
 )");
   virtual IPipelineStateViewer *GetPipelineViewer() = 0;
 

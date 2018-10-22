@@ -53,7 +53,7 @@
       <item>
        <widget class="QLabel" name="controlsLabel">
         <property name="text">
-         <string>Display Controls</string>
+         <string>Controls</string>
         </property>
         <property name="margin">
          <number>4</number>
@@ -137,6 +137,23 @@
        </widget>
       </item>
       <item>
+       <widget class="QToolButton" name="extensions">
+        <property name="text">
+         <string>Extensions</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/plugin.png</normaloff>:/plugin.png</iconset>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonTextBesideIcon</enum>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -202,8 +219,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>576</height>
+            <width>454</width>
+            <height>245</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -646,7 +663,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -708,8 +725,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>527</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -1036,7 +1053,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1095,8 +1112,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>527</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1423,7 +1440,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1482,8 +1499,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>527</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -1810,7 +1827,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1869,8 +1886,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>527</height>
+            <width>101</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -2868,7 +2885,7 @@
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="popupMode">
-              <enum>QToolButton::MenuButtonPopup</enum>
+             <enum>QToolButton::MenuButtonPopup</enum>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2927,8 +2944,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>527</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -3204,8 +3221,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1000</width>
-            <height>576</height>
+            <width>829</width>
+            <height>311</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_9">
@@ -4475,14 +4492,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLabel</class>
-   <extends>QLabel</extends>
-   <header>Widgets/Extended/RDLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
   </customwidget>
   <customwidget>
    <class>PipelineFlowChart</class>
