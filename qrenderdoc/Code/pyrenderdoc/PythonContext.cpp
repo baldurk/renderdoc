@@ -65,6 +65,7 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include <QTimer>
 #include "Code/QRDUtils.h"
 #include "PythonContext.h"
+#include "version.h"
 
 // exported by generated files, used to check interface compliance
 bool CheckCoreInterface();
@@ -125,6 +126,7 @@ static PyMethodDef OutputRedirector_methods[] = {
     {NULL}};
 
 PyObject *PythonContext::main_dict = NULL;
+QMap<rdcstr, PyObject *> PythonContext::extensions;
 
 void FetchException(QString &typeStr, QString &valueStr, int &finalLine, QList<QString> &frames)
 {
@@ -463,6 +465,170 @@ void PythonContext::GlobalShutdown()
   PyGILState_Ensure();
 
   Py_Finalize();
+}
+
+void PythonContext::ProcessExtensionWork(std::function<void()> callback)
+{
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  callback();
+
+  PyGILState_Release(gil);
+}
+
+bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
+{
+  PyObject *sysobj = PyDict_GetItemString(main_dict, "sys");
+
+  PyObject *syspath = PyObject_GetAttrString(sysobj, "path");
+
+  QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  QDir dir(configPath);
+
+  dir.cd(lit("extensions"));
+
+  rdcstr path = dir.absolutePath();
+
+  PyObject *str = PyUnicode_FromString(path.c_str());
+
+  PyList_Append(syspath, str);
+
+  Py_DecRef(str);
+
+  PyObject *ext = NULL;
+
+  if(extensions[extension] == NULL)
+  {
+    qInfo() << "First load of " << QString(extension);
+    ext = PyImport_ImportModule(extension.c_str());
+  }
+  else
+  {
+    qInfo() << "Reloading " << QString(extension);
+
+    // if the extension is a package, we need to manually reload any loaded submodules
+    PyObject *sysmodules = PyObject_GetAttrString(sysobj, "modules");
+
+    PyObject *keys = PyDict_Keys(sysmodules);
+
+    QString search = extension + lit(".");
+
+    bool reloadSuccess = true;
+
+    if(keys)
+    {
+      Py_ssize_t len = PyList_Size(keys);
+      for(Py_ssize_t i = 0; i < len; i++)
+      {
+        PyObject *key = PyList_GetItem(keys, i);
+        PyObject *value = PyDict_GetItem(sysmodules, key);
+
+        QString keystr = ToQStr(key);
+
+        if(keystr.contains(search))
+        {
+          qInfo() << "Reloading submodule " << keystr;
+          PyObject *mod = PyImport_ReloadModule(value);
+
+          if(mod == NULL)
+          {
+            qCritical() << "Failed to reload " << keystr;
+            reloadSuccess = false;
+            break;
+          }
+
+          // we don't need the reference, we just wanted to reload it
+          Py_DECREF(mod);
+
+          value = PyDict_GetItem(sysmodules, key);
+
+          if(value != mod)
+            qCritical() << "sys.modules[" << keystr << "]"
+                        << " after reload doesn't match reloaded object";
+        }
+      }
+
+      Py_DECREF(keys);
+    }
+
+    if(reloadSuccess)
+      ext = PyImport_ReloadModule(extensions[extension]);
+  }
+
+  // if import succeeded, store this extension module in our map. If import failed, we might have
+  // failed a reimport in which case the original module is still there and valid, so don't
+  // overwrite the value.
+  if(ext)
+    extensions[extension] = ext;
+
+  QString typeStr;
+  QString valueStr;
+  int finalLine = -1;
+  QList<QString> frames;
+
+  if(ext)
+  {
+    // if import succeeded, call register()
+    PyObject *register_func = PyObject_GetAttrString(ext, "register");
+
+    if(register_func)
+    {
+      QByteArray baseTypeName = TypeName<ICaptureContext>();
+      baseTypeName += " *";
+      PyObject *pyctx = PassObjectToPython(baseTypeName.data(), &ctx);
+
+      PyObject *retval = NULL;
+      if(pyctx)
+      {
+        retval = PyObject_CallFunction(register_func, "sO", MAJOR_MINOR_VERSION_STRING, pyctx);
+      }
+      else
+      {
+        qCritical() << "Internal error passing pyrenderdoc to extension register()";
+      }
+
+      Py_XDECREF(pyctx);
+
+      if(retval == NULL)
+        ext = NULL;
+
+      Py_XDECREF(retval);
+    }
+    else
+    {
+      ext = NULL;
+    }
+  }
+  else
+  {
+    ext = NULL;
+  }
+
+  if(!ext)
+  {
+    FetchException(typeStr, valueStr, finalLine, frames);
+
+    qCritical(
+        tr("Error importing extension module. %1: %2").arg(typeStr).arg(valueStr).toUtf8().data());
+
+    if(!frames.isEmpty())
+    {
+      qCritical() << "Traceback (most recent call last):";
+      for(const QString &f : frames)
+      {
+        QStringList lines = f.split(QLatin1Char('\n'));
+        for(const QString &line : lines)
+          qCritical(line.toUtf8().data());
+      }
+    }
+  }
+
+  Py_ssize_t len = PyList_Size(syspath);
+  PyList_SetSlice(syspath, len - 1, len, NULL);
+
+  Py_DecRef(syspath);
+
+  return ext != NULL;
 }
 
 QString PythonContext::versionString()
@@ -851,6 +1017,22 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
     if(context)
     {
       context->addText(redirector->isStdError ? true : false, QString::fromUtf8(text));
+    }
+    else
+    {
+      // if context is still NULL we're running in the extension context
+      rdcstr message = text;
+
+      _frame *frame = PyEval_GetFrame();
+
+      while(message.back() == '\n' || message.back() == '\r')
+        message.erase(message.size() - 1);
+
+      QString filename = ToQStr(frame->f_code->co_filename);
+
+      if(!message.empty())
+        RENDERDOC_LogMessage(redirector->isStdError ? LogType::Error : LogType::Comment, "EXTN",
+                             filename.toUtf8().data(), PyFrame_GetLineNumber(frame), message.c_str());
     }
   }
 

@@ -55,6 +55,9 @@ public:
   static void GlobalInit();
   static void GlobalShutdown();
 
+  static void ProcessExtensionWork(std::function<void()> callback);
+  static bool LoadExtension(ICaptureContext &ctx, const rdcstr &extension);
+
   bool CheckInterfaces();
 
   QString versionString();
@@ -111,6 +114,9 @@ private:
   // this is the dict for __main__ after importing our modules, which is copied for each actual
   // python context
   static PyObject *main_dict;
+
+  // the list of extension objects, to be able to reload them
+  static QMap<rdcstr, PyObject *> extensions;
 
   static bool initialised();
 
