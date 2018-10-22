@@ -506,6 +506,17 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
   {
     qInfo() << "Reloading " << QString(extension);
 
+    // call unregister() if it exists
+    PyObject *unregister_func = PyObject_GetAttrString(extensions[extension], "unregister");
+
+    if(unregister_func)
+    {
+      PyObject *retval = PyObject_CallFunction(unregister_func, "");
+
+      // discard the return value, regardless of error we don't abort the reload
+      Py_XDECREF(retval);
+    }
+
     // if the extension is a package, we need to manually reload any loaded submodules
     PyObject *sysmodules = PyObject_GetAttrString(sysobj, "modules");
 

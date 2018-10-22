@@ -52,7 +52,7 @@ class TimelineBar;
 class PythonShell;
 class ResourceInspector;
 
-class CaptureContext : public ICaptureContext
+class CaptureContext : public ICaptureContext, IExtensionManager
 {
   Q_DECLARE_TR_FUNCTIONS(CaptureContext);
 
@@ -64,6 +64,13 @@ public:
   bool isRunning();
 
   rdcstr TempCaptureFilename(const rdcstr &appname) override;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // IExtensionManager
+
+  rdcarray<ExtensionMetadata> GetInstalledExtensions() override;
+  bool IsExtensionLoaded(rdcstr name) override;
+  bool LoadExtension(rdcstr name) override;
 
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
@@ -99,6 +106,7 @@ public:
   // Accessors
 
   IReplayManager &Replay() override { return m_Replay; }
+  IExtensionManager &Extensions() override { return *this; }
   bool IsCaptureLoaded() override { return m_CaptureLoaded; }
   bool IsCaptureLocal() override { return m_CaptureLocal; }
   bool IsCaptureTemporary() override { return m_CaptureTemporary; }
@@ -329,6 +337,9 @@ private:
 #endif
 
   QIcon *m_Icon = NULL;
+
+  QList<QObject *> m_PendingExtensionObjects;
+  QMap<rdcstr, QList<QObject *>> m_ExtensionObjects;
 
   // Windows
   MainWindow *m_MainWindow = NULL;

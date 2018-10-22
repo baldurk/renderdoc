@@ -354,6 +354,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING(public, QVariantList, rdcarray<BugReport>, CrashReport_ReportedBugs)      \
                                                                                            \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, AlwaysLoad_Extensions)            \
+                                                                                           \
   CONFIG_SETTING(private, QVariantMap, rdcstrpairs, ConfigSettings)                        \
                                                                                            \
   CONFIG_SETTING(private, QVariantList, rdcarray<RemoteHost>, RemoteHostList)
@@ -690,6 +692,12 @@ For more information about some of these settings that are user-facing see
 .. data:: CrashReport_ReportedBugs
 
   A list of :class:`BugReport` detailing previously submitted bugs that we're watching for updates.
+
+.. data:: AlwaysLoad_Extensions
+
+  A list of strings with extension packages to always load on startup, without needing manual
+  enabling.
+
 
 )");
 class PersistantConfig

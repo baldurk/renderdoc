@@ -613,6 +613,7 @@
     <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_OrderedListEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RemoteManager.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_ExtensionManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterSelection.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PipelineStateViewer.cpp" />
@@ -726,6 +727,7 @@
     <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp" />
     <ClCompile Include="Windows\Dialogs\PerformanceCounterSelection.cpp" />
     <ClCompile Include="Windows\Dialogs\RemoteManager.cpp" />
+    <ClCompile Include="Windows\Dialogs\ExtensionManager.cpp" />
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp" />
@@ -934,6 +936,7 @@
     <ClInclude Include="$(IntDir)generated\ui_MainWindow.h" />
     <ClInclude Include="$(IntDir)generated\ui_EnvironmentEditor.h" />
     <ClInclude Include="$(IntDir)generated\ui_RemoteManager.h" />
+    <ClInclude Include="$(IntDir)generated\ui_ExtensionManager.h" />
     <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterSelection.h" />
     <ClInclude Include="$(IntDir)generated\ui_PipelineStateViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_ResourcePreview.h" />
@@ -1209,6 +1212,12 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\ExtensionManager.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\include" -I"$(ProjectDir)3rdparty\qt\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\include\QtGui" -I"$(ProjectDir)3rdparty\qt\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\SettingsDialog.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\include" -I"$(ProjectDir)3rdparty\qt\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\include\QtGui" -I"$(ProjectDir)3rdparty\qt\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -1451,6 +1460,12 @@
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\RemoteManager.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\ExtensionManager.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
       <Message>UIC %(Filename).ui</Message>

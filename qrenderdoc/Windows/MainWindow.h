@@ -131,6 +131,7 @@ private slots:
   void on_action_Open_RGP_Profile_triggered();
   void on_action_Create_RGP_Profile_triggered();
   void on_action_Attach_to_Running_Instance_triggered();
+  void on_action_Manage_Extensions_triggered();
   void on_action_Manage_Remote_Servers_triggered();
   void on_action_Settings_triggered();
   void on_action_View_Documentation_triggered();

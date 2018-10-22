@@ -42,6 +42,7 @@
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/CrashDialog.h"
+#include "Windows/Dialogs/ExtensionManager.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
@@ -2430,6 +2431,12 @@ void MainWindow::on_action_Create_RGP_Profile_triggered()
 void MainWindow::on_action_Attach_to_Running_Instance_triggered()
 {
   on_action_Manage_Remote_Servers_triggered();
+}
+
+void MainWindow::on_action_Manage_Extensions_triggered()
+{
+  ExtensionManager manager(m_Ctx);
+  RDDialog::show(&manager);
 }
 
 void MainWindow::on_action_Manage_Remote_Servers_triggered()

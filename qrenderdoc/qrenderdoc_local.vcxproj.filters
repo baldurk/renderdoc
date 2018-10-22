@@ -711,6 +711,12 @@
     <ClCompile Include="Code\Interface\ShaderProcessingTool.cpp">
       <Filter>Code\Interface</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ExtensionManager.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\ExtensionManager.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1060,6 +1066,9 @@
     </ClInclude>
     <ClInclude Include="Code\RGPInterop.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ExtensionManager.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1435,6 +1444,12 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\CollapseGroupBox.h">
       <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\ExtensionManager.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\ExtensionManager.h">
+      <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

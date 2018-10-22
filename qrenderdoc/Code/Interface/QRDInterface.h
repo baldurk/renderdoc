@@ -1022,6 +1022,110 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IRGPInterop);
 
+
+DOCUMENT("The metadata for an extension.");
+struct ExtensionMetadata
+{
+  DOCUMENT("");
+  bool operator==(const ExtensionMetadata &o) const
+  {
+    return ExtensionAPI == o.ExtensionAPI && FilePath == o.FilePath && Package == o.Package &&
+           Name == o.Name && Version == o.Version && Author == o.Author && URL == o.URL &&
+           Description == o.Description;
+  }
+  bool operator<(const ExtensionMetadata &o) const
+  {
+    if(!(ExtensionAPI == o.ExtensionAPI))
+      return ExtensionAPI < o.ExtensionAPI;
+    if(!(FilePath == o.FilePath))
+      return FilePath < o.FilePath;
+    if(!(Package == o.Package))
+      return Package < o.Package;
+    if(!(Name == o.Name))
+      return Name < o.Name;
+    if(!(Version == o.Version))
+      return Version < o.Version;
+    if(!(Author == o.Author))
+      return Author < o.Author;
+    if(!(URL == o.URL))
+      return URL < o.URL;
+    if(!(Description == o.Description))
+      return Description < o.Description;
+    return false;
+  }
+
+  DOCUMENT("The version of the extension API that this extension is written against");
+  int ExtensionAPI;
+
+  DOCUMENT("The location of this package on disk");
+  rdcstr FilePath;
+
+  DOCUMENT("The python package for this extension, e.g. foo.bar");
+  rdcstr Package;
+
+  DOCUMENT("The short friendly name for the extension");
+  rdcstr Name;
+
+  DOCUMENT("The version of the extension");
+  rdcstr Version;
+
+  DOCUMENT("The author of the extension, optionally with an email contact");
+  rdcstr Author;
+
+  DOCUMENT("The URL for where the extension is fetched from");
+  rdcstr URL;
+
+  DOCUMENT("A longer description of what the extension does");
+  rdcstr Description;
+};
+
+DECLARE_REFLECTION_STRUCT(ExtensionMetadata);
+
+DOCUMENT(R"(A manager for listing available and active extensions, as well as the interface for
+extensions to register hooks and additional functionality.
+
+.. function:: ExtensionCallback(context)
+
+  Not a member function - the signature for any ``ExtensionCallback`` callbacks.
+
+  Callback for extensions to register entry points with, used in many situations depending on how it
+  was registered.
+
+  :param CaptureContext context: The current capture context.
+)");
+struct IExtensionManager
+{
+  typedef std::function<void(ICaptureContext *ctx)> ExtensionCallback;
+
+  DOCUMENT(R"(Retrieve a list of installed extensions.
+
+:return: The list of installed extensions.
+:rtype: ``list`` of :class:`ExtensionMetadata`.
+)");
+  virtual rdcarray<ExtensionMetadata> GetInstalledExtensions() = 0;
+
+  DOCUMENT(R"(Check if an installed extension is enabled.
+
+:param str name: The qualified name of the extension, e.g. ``foo.bar``
+:return: If the extension is enabled or not.
+:rtype: bool
+)");
+  virtual bool IsExtensionLoaded(rdcstr name) = 0;
+
+  DOCUMENT(R"(Enable an extension by name. If the extension is already enabled, this will reload it.
+
+:param str name: The qualified name of the extension, e.g. ``foo.bar``
+)");
+  virtual bool LoadExtension(rdcstr name) = 0;
+
+protected:
+  DOCUMENT("");
+  IExtensionManager() = default;
+  ~IExtensionManager() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IExtensionManager);
+
 DOCUMENT("The capture context that the python script is running in.")
 struct ICaptureContext
 {
@@ -1923,6 +2027,13 @@ capture's API.
 :rtype: PersistantConfig
 )");
   virtual PersistantConfig &Config() = 0;
+
+  DOCUMENT(R"(Retrieve the manager for extensions.
+
+:return: The current extension manager.
+:rtype: ExtensionManager
+)");
+  virtual IExtensionManager &Extensions() = 0;
 
 protected:
   ICaptureContext() = default;

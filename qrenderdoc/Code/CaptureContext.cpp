@@ -25,6 +25,7 @@
 #include "CaptureContext.h"
 #include <QApplication>
 #include <QDir>
+#include <QDirIterator>
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QLabel>
@@ -32,7 +33,9 @@
 #include <QMessageBox>
 #include <QMetaObject>
 #include <QProgressDialog>
+#include <QRegularExpression>
 #include <QTimer>
+#include "Code/pyrenderdoc/PythonContext.h"
 #include "Windows/APIInspector.h"
 #include "Windows/BufferViewer.h"
 #include "Windows/CommentView.h"
@@ -54,6 +57,7 @@
 #include "Windows/TimelineBar.h"
 #include "QRDUtils.h"
 #include "RGPInterop.h"
+#include "version.h"
 
 #include "pipestate.inl"
 
@@ -103,6 +107,24 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
         m_MainWindow->takeCaptureOwnership();
     }
   }
+
+  {
+    QDir dir(configFilePath("extensions"));
+
+    if(!dir.exists())
+      dir.mkpath(dir.absolutePath());
+  }
+
+  rdcarray<ExtensionMetadata> exts = CaptureContext::GetInstalledExtensions();
+
+  for(const ExtensionMetadata &e : exts)
+  {
+    if(cfg.AlwaysLoad_Extensions.contains(e.Package))
+    {
+      qInfo() << "Automatically loading extension" << QString(e.Package);
+      LoadExtension(e.Package);
+    }
+  }
 }
 
 CaptureContext::~CaptureContext()
@@ -139,6 +161,197 @@ rdcstr CaptureContext::TempCaptureFilename(const rdcstr &appname)
           .arg(QDateTime::currentDateTimeUtc().toString(lit("yyyy.MM.dd_HH.mm.ss"))));
 }
 
+rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
+{
+  QString extensionFolder = configFilePath("extensions");
+
+  rdcarray<ExtensionMetadata> ret;
+
+  QDirIterator it(extensionFolder, QDirIterator::Subdirectories);
+
+  extensionFolder = extensionFolder.toLower();
+
+  while(it.hasNext())
+  {
+    QFileInfo fileinfo(it.next());
+
+    if(fileinfo.fileName().toLower() == lit("extension.json"))
+    {
+      QFile f(fileinfo.absoluteFilePath());
+
+      QString package = fileinfo.absolutePath()
+                            .toLower()
+                            .replace(extensionFolder, QString())
+                            .replace(QLatin1Char('/'), QLatin1Char('.'));
+
+      while(package[0] == QLatin1Char('.'))
+        package.remove(0, 1);
+
+      while(package[package.size() - 1] == QLatin1Char('.'))
+        package.remove(package.size() - 1, 1);
+
+      if(f.exists() && f.open(QIODevice::ReadOnly | QIODevice::Text))
+      {
+        QVariantMap json = JSONToVariant(QString::fromUtf8(f.readAll()));
+
+        if(json.empty())
+        {
+          qCritical() << fileinfo.absoluteFilePath() << "is corrupt, cannot parse json";
+          continue;
+        }
+
+        ExtensionMetadata ext;
+
+        ext.Package = package;
+        ext.FilePath = fileinfo.absolutePath();
+
+        if(json.contains(lit("name")))
+        {
+          ext.Name = json[lit("name")].toString();
+        }
+        else
+        {
+          qCritical() << "Extension" << package << "is corrupt, no name entry";
+          continue;
+        }
+
+        ext.ExtensionAPI = 1;
+        if(json.contains(lit("extension_api")))
+        {
+          ext.ExtensionAPI = json[lit("extension_api")].toInt();
+        }
+        else
+        {
+          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no api version entry";
+          continue;
+        }
+
+        if(json.contains(lit("version")))
+        {
+          ext.Version = json[lit("version")].toString();
+        }
+        else
+        {
+          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no version entry";
+          continue;
+        }
+
+        if(json.contains(lit("description")))
+        {
+          ext.Description = json[lit("description")].toString();
+        }
+        else
+        {
+          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no description entry";
+          continue;
+        }
+
+        if(json.contains(lit("author")))
+        {
+          ext.Author = json[lit("author")].toString();
+        }
+        else
+        {
+          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no author entry";
+          continue;
+        }
+
+        if(json.contains(lit("url")))
+        {
+          ext.URL = json[lit("url")].toString();
+        }
+        else
+        {
+          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no URL entry";
+          continue;
+        }
+
+        if(json.contains(lit("minimum_renderdoc")))
+        {
+          QString minVer = json[lit("minimum_renderdoc")].toString();
+
+          QRegularExpression re(lit("([0-9]*).([0-9]*)"));
+          QRegularExpressionMatch match = re.match(minVer);
+
+          bool ok = false, badversion = false;
+
+          if(match.hasMatch())
+          {
+            int major = match.captured(1).toInt(&ok);
+
+            if(ok)
+            {
+              int minor = match.captured(2).toInt(&ok);
+
+              // if it needs a higher major version, we can't load it
+              if(major > RENDERDOC_VERSION_MAJOR)
+                badversion = true;
+
+              // if major versions are the same and it needs a higher minor, we can't load it either
+              if(major == RENDERDOC_VERSION_MAJOR && minor > RENDERDOC_VERSION_MINOR)
+                badversion = true;
+            }
+          }
+
+          if(!ok)
+          {
+            qCritical() << "Extension" << QString(ext.Name)
+                        << "is corrupt, minimum_renderdoc doesn't match a MAJOR.MINOR version";
+            continue;
+          }
+
+          if(badversion)
+          {
+            qInfo() << "Extension" << QString(ext.Name) << "declares minimum_renderdoc" << minVer
+                    << "so skipping";
+            continue;
+          }
+        }
+
+        ret.push_back(ext);
+      }
+    }
+  }
+
+  return ret;
+}
+
+bool CaptureContext::IsExtensionLoaded(rdcstr name)
+{
+  return m_ExtensionObjects.contains(name);
+}
+
+bool CaptureContext::LoadExtension(rdcstr name)
+{
+  bool ret = false;
+
+  PythonContext::ProcessExtensionWork([this, &ret, name]() {
+    for(QObject *o : m_ExtensionObjects[name])
+      delete o;
+
+    m_ExtensionObjects[name].clear();
+
+    ret = PythonContext::LoadExtension(*this, name);
+
+    if(ret)
+    {
+      m_ExtensionObjects[name].swap(m_PendingExtensionObjects);
+    }
+    else
+    {
+      m_ExtensionObjects.remove(name);
+
+      for(QObject *o : m_PendingExtensionObjects)
+        delete o;
+
+      m_PendingExtensionObjects.clear();
+    }
+  });
+
+  m_MainWindow->CleanMenus();
+
+  return ret;
+}
 void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename,
                                  bool temporary, bool local)
 {

@@ -52,6 +52,7 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return m_Ctx.TempCaptureFilename(appname);
   }
+  virtual IExtensionManager &Extensions() override { return m_Ctx.Extensions(); }
   virtual IReplayManager &Replay() override { return m_Ctx.Replay(); }
   virtual bool IsCaptureLoaded() override { return m_Ctx.IsCaptureLoaded(); }
   virtual bool IsCaptureLocal() override { return m_Ctx.IsCaptureLocal(); }
