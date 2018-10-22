@@ -1772,4 +1772,7 @@
       <Filter>Resources\Files</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="python36.natvis" />
+  </ItemGroup>
 </Project>

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="PyDictKeyEntry">
+    <DisplayString>{*me_key} = {*me_value}</DisplayString>
+
+    <Expand>
+      <ExpandedItem>me_value</ExpandedItem>
+    </Expand>
+  </Type>
+  
+  <Type Name="_object">
+    <!-- TODO: Set, Slice, DateTime (and sub types), Complex, Range, OrderedDict,
+         Exception, Traceback, Frame, Generator, Iterator, Method, InstanceMethod -->
+  
+    <!-- None -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!_PyNone_Type">
+      None
+    </DisplayString>
+
+    <!-- Bools -->
+    <DisplayString Condition="(python36.dll!_longobject *)this == &amp;python36.dll!_Py_TrueStruct">True</DisplayString>
+    <DisplayString Condition="(python36.dll!_longobject *)this == &amp;python36.dll!_Py_FalseStruct">False</DisplayString>
+
+    <!-- Modules -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyModule_Type">
+      Python module {*((python36.dll!PyModuleObject *)this)->md_name}
+    </DisplayString>
+
+    <!-- Functions -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyFunction_Type">
+      Python function {*((python36.dll!PyFunctionObject *)this)->func_name}
+    </DisplayString>
+
+    <!-- C Function -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyCFunction_Type">
+      C Function {((python36.dll!PyCFunctionObject *)this)->m_ml->ml_name,s}
+    </DisplayString>
+
+    <!-- Bytes -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyBytes_Type">
+      Python bytes object {((python36.dll!PyBytesObject *)this)->ob_base.ob_size} bytes
+    </DisplayString>
+
+    <!-- Dictionaries -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyDict_Type">
+      Python dict, {((python36.dll!PyDictObject *)this)->ma_used} items
+    </DisplayString>
+
+    <!-- Lists -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyList_Type">
+      Python list, {((python36.dll!PyListObject *)this)->ob_base.ob_size} items
+    </DisplayString>
+
+    <!-- Tuples -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyTuple_Type">
+      Python tuple, {((python36.dll!PyTupleObject *)this)->ob_base.ob_size} items
+    </DisplayString>
+
+    <!-- Floats -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyFloat_Type">
+      {((python36.dll!PyFloatObject *)this)->ob_fval}
+    </DisplayString>
+
+    <!-- Longs -->
+
+    <!-- 30 bit digits -->
+    
+    <!-- up to 30 bits -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit) == 4 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 1">
+      {((python36.dll!PyLongObject *)this)->ob_digit[0]}
+    </DisplayString>
+    <!-- up to 60 bits -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit[0]) == 4 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 2">
+      {
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[0])) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[1])&lt;&lt;30)
+      }
+    </DisplayString>
+    <!-- up to 64 bits (check for overflow) -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit[0]) == 4 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 3 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_digit[2] &lt;= 0xf">
+      {
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[0])) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[1])&lt;&lt;30) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[2])&lt;&lt;60)
+      }
+    </DisplayString>
+
+    <!-- 15 bit digits -->
+
+    <!-- up to 15 bits -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit) == 2 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 1">
+      {((python36.dll!PyLongObject *)this)->ob_digit[0]}
+    </DisplayString>
+    <!-- up to 30 bits -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit[0]) == 2 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 2">
+      {
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[0])) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[1])&lt;&lt;15)
+      }
+    </DisplayString>
+    <!-- up to 45 bits -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit[0]) == 2 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 3">
+      {
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[0])) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[1])&lt;&lt;15) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[2])&lt;&lt;30)
+      }
+    </DisplayString>
+    <!-- up to 60 bits -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit[0]) == 2 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 4">
+      {
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[0])) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[1])&lt;&lt;15) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[2])&lt;&lt;30) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[3])&lt;&lt;45)
+      }
+    </DisplayString>
+    <!-- up to 64 bits (check for overflow) -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type &amp;&amp;
+                              sizeof(((python36.dll!PyLongObject *)this)->ob_digit[0]) == 4 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_base.ob_size == 5 &amp;&amp;
+                              ((python36.dll!PyLongObject *)this)->ob_digit[4] &lt;= 0xf">
+      {
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[0])) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[1])&lt;&lt;15) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[2])&lt;&lt;30) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[3])&lt;&lt;45) +
+      (uint64_t(((python36.dll!PyLongObject *)this)->ob_digit[4])&lt;&lt;60)
+      }
+    </DisplayString>
+    
+    <!-- overflow -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type">
+      Python Big Integer
+    </DisplayString>
+
+    <!-- End Longs -->
+
+    <!-- Strings -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type &amp;&amp;
+                              ((python36.dll!PyASCIIObject *)this)->state.ascii &amp;&amp;
+                              ((python36.dll!PyASCIIObject *)this)->state.compact">
+      <!-- Compact ASCII -->
+      {(char *)(((python36.dll!PyASCIIObject *)this) + 1),s}
+    </DisplayString>
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type">
+      Non compact ASCII string
+    </DisplayString>
+
+    <!-- End Strings -->
+
+    <!-- Type Objects -->
+    <DisplayString Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyType_Type">
+      Type Object
+    </DisplayString>
+
+    <!-- Unknown Type -->
+    <DisplayString>
+      Unknown {ob_type->tp_name,s} object
+    </DisplayString>
+
+    <!-- Strings -->
+    <StringView Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type &amp;&amp;
+                           ((python36.dll!PyASCIIObject *)this)->state.ascii &amp;&amp;
+                           ((python36.dll!PyASCIIObject *)this)->state.compact">
+      <!-- Compact ASCII -->
+      (char *)(((python36.dll!PyASCIIObject *)this) + 1),s
+    </StringView>
+
+    <!-- End Strings -->
+
+    <Expand>
+      <!-- Common properties -->
+      <Item Name="Reference Count">ob_refcnt</Item>
+      <Item Name="Type">ob_type</Item>
+
+      <!-- Modules -->
+      <Item Name="Module Name" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyModule_Type">
+        ((python36.dll!PyModuleObject *)this)->md_name
+      </Item>
+      <Item Name="Module Dictionary" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyModule_Type">
+        ((python36.dll!PyModuleObject *)this)->md_dict
+      </Item>
+      <Item Name="Module Properties" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyModule_Type">
+        (python36.dll!PyModuleObject *)this
+      </Item>
+
+      <!-- Functions -->
+      <Item Name="Function Name" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyFunction_Type">
+        ((python36.dll!PyFunctionObject *)this)->func_name
+      </Item>
+      <Item Name="Function Properties" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyFunction_Type">
+        (python36.dll!PyFunctionObject *)this
+      </Item>
+
+      <!-- C Function -->
+      <Item Name="Function Properties" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyCFunction_Type">
+        (python36.dll!PyCFunctionObject *)this
+      </Item>
+
+      <!-- Dictionaries -->
+      <Item Name="Dict Properties" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyDict_Type">
+        (python36.dll!PyDictObject *)this
+      </Item>
+      <Item Name="[Length]" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyDict_Type">
+        ((python36.dll!PyDictObject *)this)->ma_used
+      </Item>
+      <ArrayItems Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyDict_Type">
+        <!-- combined table-->
+        <Size>((python36.dll!PyDictObject *)this)->ma_used</Size>
+        <ValuePointer Condition="((python36.dll!PyDictObject *)this)->ma_keys->dk_size &lt;= 0xff">
+          (python36.dll!PyDictKeyEntry *)(((python36.dll!PyDictObject *)this)->ma_keys->dk_indices.as_1 + (((python36.dll!PyDictObject *)this)->ma_keys->dk_size * 1))
+        </ValuePointer>
+        <ValuePointer Condition="((python36.dll!PyDictObject *)this)->ma_keys->dk_size &lt;= 0xffff">
+          (python36.dll!PyDictKeyEntry *)(((python36.dll!PyDictObject *)this)->ma_keys->dk_indices.as_1 + (((python36.dll!PyDictObject *)this)->ma_keys->dk_size * 2))
+        </ValuePointer>
+        <ValuePointer Condition="((python36.dll!PyDictObject *)this)->ma_keys->dk_size &lt;= 0xffffffff">
+          (python36.dll!PyDictKeyEntry *)(((python36.dll!PyDictObject *)this)->ma_keys->dk_indices.as_1 + (((python36.dll!PyDictObject *)this)->ma_keys->dk_size * 4))
+        </ValuePointer>
+        <ValuePointer Condition="((python36.dll!PyDictObject *)this)->ma_keys->dk_size &gt; 0xffffffff">
+          (python36.dll!PyDictKeyEntry *)(((python36.dll!PyDictObject *)this)->ma_keys->dk_indices.as_1 + (((python36.dll!PyDictObject *)this)->ma_keys->dk_size * 8))
+        </ValuePointer>
+      </ArrayItems>
+      <ArrayItems Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyDict_Type &amp;&amp;
+                             ((python36.dll!PyDictObject *)this)->ma_values">
+        <!-- separate value -->
+        <Size>((python36.dll!PyDictObject *)this)->ma_used</Size>
+        <ValuePointer>((python36.dll!PyDictObject *)this)->ma_values</ValuePointer>
+      </ArrayItems>
+
+      <!-- End Dictionaries -->
+
+      <!-- Lists -->
+      <Item Name="[Length]" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyList_Type">
+        ((python36.dll!PyListObject *)this)->ob_base.ob_size
+      </Item>
+      <ArrayItems Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyList_Type">
+        <Size>((python36.dll!PyListObject *)this)->ob_base.ob_size</Size>
+        <ValuePointer>
+          ((python36.dll!PyListObject *)this)->ob_item
+        </ValuePointer>
+      </ArrayItems>
+
+      <!-- Tuple -->
+      <Item Name="[Length]" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyTuple_Type">
+        ((python36.dll!PyTupleObject *)this)->ob_base.ob_size
+      </Item>
+      <ArrayItems Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyTuple_Type">
+        <Size>((python36.dll!PyTupleObject *)this)->ob_base.ob_size</Size>
+        <ValuePointer>
+          ((python36.dll!PyTupleObject *)this)->ob_item
+        </ValuePointer>
+      </ArrayItems>
+
+      <!-- Longs -->
+      <Item Name="Number of Digit Sections" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type">
+        ((python36.dll!PyLongObject *)this)->ob_base.ob_size
+      </Item>
+      <ArrayItems Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyLong_Type">
+        <Size>((python36.dll!PyLongObject *)this)->ob_base.ob_size</Size>
+        <ValuePointer>
+          ((python36.dll!PyLongObject *)this)->ob_digit
+        </ValuePointer>
+      </ArrayItems>
+
+      <!-- Bytes -->
+      <Item Name="Bytes Data" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyBytes_Type">
+        (char *)((python36.dll!PyBytesObject *)this)->ob_sval
+      </Item>
+
+      <!-- Strings -->
+      <!-- General state (shared among all string representations) -->
+      <Item Name="String State" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type">
+        ((python36.dll!PyASCIIObject *)this)->state
+      </Item>
+      
+      <!-- Compact ASCII strings -->
+      <Item Name="ASCII String Object" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type &amp;&amp;
+                                                  ((python36.dll!PyASCIIObject *)this)->state.ascii &amp;&amp;
+                                                  ((python36.dll!PyASCIIObject *)this)->state.compact">
+        (python36.dll!PyASCIIObject *)this
+      </Item>
+      <Item Name="ASCII Data" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type &amp;&amp;
+                                         ((python36.dll!PyASCIIObject *)this)->state.ascii &amp;&amp;
+                                         ((python36.dll!PyASCIIObject *)this)->state.compact">
+        (char *)(((python36.dll!PyASCIIObject *)this) + 1)
+      </Item>
+
+      <!-- Compact Unicode strings -->
+      <Item Name="Compact Unicode String Object" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type &amp;&amp;
+                                                            ((python36.dll!PyASCIIObject *)this)->state.ascii == 0 &amp;&amp;
+                                                            ((python36.dll!PyASCIIObject *)this)->state.compact">
+        (python36.dll!PyCompactUnicodeObject *)this
+      </Item>
+
+      <!-- Non-compact Unicode strings -->
+      <Item Name="Unicode String Object" Condition="(python36.dll!_typeobject *)ob_type == &amp;python36.dll!PyUnicode_Type &amp;&amp;
+                                                    ((python36.dll!PyASCIIObject *)this)->state.ascii == 0 &amp;&amp;
+                                                    ((python36.dll!PyASCIIObject *)this)->state.compact == 0">
+        (python36.dll!PyUnicodeObject *)this
+      </Item>
+
+      <!-- End Strings -->
+    </Expand>
+  </Type>
+</AutoVisualizer>

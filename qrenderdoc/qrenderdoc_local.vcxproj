@@ -1865,6 +1865,9 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\zoom%402x.png" />
     <Image Include="Resources\zoom.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="python36.natvis" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>
