@@ -71,6 +71,7 @@
   RESOURCE_DEF(page_white_edit, "page_white_edit.png")                  \
   RESOURCE_DEF(page_white_link, "page_white_link.png")                  \
   RESOURCE_DEF(page_white_stack, "page_white_stack.png")                \
+  RESOURCE_DEF(plugin, "plugin.png")                                    \
   RESOURCE_DEF(plugin_add, "plugin_add.png")                            \
   RESOURCE_DEF(save, "save.png")                                        \
   RESOURCE_DEF(tick, "tick.png")                                        \
