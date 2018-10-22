@@ -71,6 +71,27 @@ struct TypeConversion
   }
 };
 
+// specialisations for Python object that just increments the refcount. Only useful if we're doing
+// something quite special and manually converting outside from some type we don't want to expose to
+// python (this is used for QVariant conversion in python callback arguments).
+template <>
+struct TypeConversion<PyObject *, false>
+{
+  static int ConvertFromPy(PyObject *in, PyObject *&out)
+  {
+    out = in;
+    Py_XINCREF(out);
+
+    return 0;
+  }
+
+  static PyObject *ConvertToPy(PyObject *in)
+  {
+    Py_XINCREF(in);
+    return in;
+  }
+};
+
 // specialisations for pointer types (opaque handles to be moved not copied)
 template <typename Opaque>
 struct TypeConversion<Opaque *, false>

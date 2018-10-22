@@ -57,6 +57,9 @@ public:
 
   static void ProcessExtensionWork(std::function<void()> callback);
   static bool LoadExtension(ICaptureContext &ctx, const rdcstr &extension);
+  static void ConvertPyArgs(const ExtensionCallbackData &data,
+                            rdcarray<rdcpair<rdcstr, PyObject *>> &args);
+  static void FreePyArgs(rdcarray<rdcpair<rdcstr, PyObject *>> &args);
 
   bool CheckInterfaces();
 
