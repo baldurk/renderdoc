@@ -72,10 +72,10 @@ ExtensionManager::ExtensionManager(ICaptureContext &ctx)
   {
     for(const ExtensionMetadata &e : m_Extensions)
     {
-      RDTreeWidgetItem *item = new RDTreeWidgetItem({e.Package, e.Name, QString()});
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({e.package, e.name, QString()});
 
       item->setCheckState(
-          2, m_Ctx.Extensions().IsExtensionLoaded(e.Package) ? Qt::Checked : Qt::Unchecked);
+          2, m_Ctx.Extensions().IsExtensionLoaded(e.package) ? Qt::Checked : Qt::Unchecked);
 
       ui->extensions->addTopLevelItem(item);
     }
@@ -100,10 +100,10 @@ void ExtensionManager::on_reload_clicked()
   if(idx >= 0 && idx < m_Extensions.count())
   {
     const ExtensionMetadata &e = m_Extensions[idx];
-    if(!e.Name.isEmpty())
+    if(!e.name.isEmpty())
     {
       // if the load succeeds, set us as checked. Otherwise, unchecked
-      if(m_Ctx.Extensions().LoadExtension(e.Package))
+      if(m_Ctx.Extensions().LoadExtension(e.package))
       {
         item->setCheckState(2, Qt::Checked);
       }
@@ -113,7 +113,7 @@ void ExtensionManager::on_reload_clicked()
         RDDialog::critical(this, tr("Failed to load extension"),
                            tr("Failed to load extension '%1'.\n"
                               "Check the diagnostic log for python errors")
-                               .arg(e.Name));
+                               .arg(e.name));
       }
 
       update_currentItem(item);
@@ -138,9 +138,9 @@ void ExtensionManager::on_openLocation_clicked()
   if(idx >= 0 && idx < m_Extensions.count())
   {
     const ExtensionMetadata &e = m_Extensions[idx];
-    if(!e.Name.isEmpty())
+    if(!e.name.isEmpty())
     {
-      QDesktopServices::openUrl(QFileInfo(e.FilePath).absoluteFilePath());
+      QDesktopServices::openUrl(QFileInfo(e.filePath).absoluteFilePath());
     }
   }
 }
@@ -156,11 +156,11 @@ void ExtensionManager::on_alwaysLoad_toggled(bool checked)
   if(idx >= 0 && idx < m_Extensions.count())
   {
     const ExtensionMetadata &e = m_Extensions[idx];
-    if(!e.Name.isEmpty())
+    if(!e.name.isEmpty())
     {
-      m_Ctx.Config().AlwaysLoad_Extensions.removeOne(e.Package);
+      m_Ctx.Config().AlwaysLoad_Extensions.removeOne(e.package);
       if(checked)
-        m_Ctx.Config().AlwaysLoad_Extensions.push_back(e.Package);
+        m_Ctx.Config().AlwaysLoad_Extensions.push_back(e.package);
 
       m_Ctx.Config().Save();
     }
@@ -213,29 +213,29 @@ void ExtensionManager::update_currentItem(RDTreeWidgetItem *item)
   if(idx >= 0 && idx < m_Extensions.count())
   {
     const ExtensionMetadata &e = m_Extensions[idx];
-    if(!e.Name.isEmpty())
+    if(!e.name.isEmpty())
     {
       QRegularExpression authRE(lit("^(.*) <(.*)>$"));
 
-      ui->name->setText(e.Name);
-      ui->version->setText(e.Version);
-      ui->URL->setText(QFormatStr("<a href=\"%1\">%1</a>").arg(e.URL));
-      ui->description->setText(e.Description);
+      ui->name->setText(e.name);
+      ui->version->setText(e.version);
+      ui->URL->setText(QFormatStr("<a href=\"%1\">%1</a>").arg(e.extensionURL));
+      ui->description->setText(e.description);
 
-      QRegularExpressionMatch match = authRE.match(QString(e.Author).trimmed());
+      QRegularExpressionMatch match = authRE.match(QString(e.author).trimmed());
 
       if(match.hasMatch() && match.captured(2).contains(QLatin1Char('@')))
         ui->author->setText(
             QFormatStr("<a href=\"mailto:%2\">%1</a>").arg(match.captured(1)).arg(match.captured(2)));
       else
-        ui->author->setText(e.Author);
+        ui->author->setText(e.author);
 
       bool loaded = item->checkState(2) == Qt::Checked;
       ui->reload->setEnabled(true);
       ui->reload->setText(loaded ? tr("Reload") : tr("Load"));
       ui->alwaysLoad->setEnabled(loaded);
 
-      ui->alwaysLoad->setChecked(m_Ctx.Config().AlwaysLoad_Extensions.contains(e.Package));
+      ui->alwaysLoad->setChecked(m_Ctx.Config().AlwaysLoad_Extensions.contains(e.package));
     }
   }
 }

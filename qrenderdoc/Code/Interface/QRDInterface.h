@@ -1142,54 +1142,54 @@ struct ExtensionMetadata
   DOCUMENT("");
   bool operator==(const ExtensionMetadata &o) const
   {
-    return ExtensionAPI == o.ExtensionAPI && FilePath == o.FilePath && Package == o.Package &&
-           Name == o.Name && Version == o.Version && Author == o.Author && URL == o.URL &&
-           Description == o.Description;
+    return extensionAPI == o.extensionAPI && filePath == o.filePath && package == o.package &&
+           name == o.name && version == o.version && author == o.author &&
+           extensionURL == o.extensionURL && description == o.description;
   }
   bool operator<(const ExtensionMetadata &o) const
   {
-    if(!(ExtensionAPI == o.ExtensionAPI))
-      return ExtensionAPI < o.ExtensionAPI;
-    if(!(FilePath == o.FilePath))
-      return FilePath < o.FilePath;
-    if(!(Package == o.Package))
-      return Package < o.Package;
-    if(!(Name == o.Name))
-      return Name < o.Name;
-    if(!(Version == o.Version))
-      return Version < o.Version;
-    if(!(Author == o.Author))
-      return Author < o.Author;
-    if(!(URL == o.URL))
-      return URL < o.URL;
-    if(!(Description == o.Description))
-      return Description < o.Description;
+    if(!(extensionAPI == o.extensionAPI))
+      return extensionAPI < o.extensionAPI;
+    if(!(filePath == o.filePath))
+      return filePath < o.filePath;
+    if(!(package == o.package))
+      return package < o.package;
+    if(!(name == o.name))
+      return name < o.name;
+    if(!(version == o.version))
+      return version < o.version;
+    if(!(author == o.author))
+      return author < o.author;
+    if(!(extensionURL == o.extensionURL))
+      return extensionURL < o.extensionURL;
+    if(!(description == o.description))
+      return description < o.description;
     return false;
   }
 
   DOCUMENT("The version of the extension API that this extension is written against");
-  int ExtensionAPI;
+  int extensionAPI;
 
   DOCUMENT("The location of this package on disk");
-  rdcstr FilePath;
+  rdcstr filePath;
 
   DOCUMENT("The python package for this extension, e.g. foo.bar");
-  rdcstr Package;
+  rdcstr package;
 
   DOCUMENT("The short friendly name for the extension");
-  rdcstr Name;
+  rdcstr name;
 
   DOCUMENT("The version of the extension");
-  rdcstr Version;
+  rdcstr version;
 
   DOCUMENT("The author of the extension, optionally with an email contact");
-  rdcstr Author;
+  rdcstr author;
 
   DOCUMENT("The URL for where the extension is fetched from");
-  rdcstr URL;
+  rdcstr extensionURL;
 
   DOCUMENT("A longer description of what the extension does");
-  rdcstr Description;
+  rdcstr description;
 };
 
 DECLARE_REFLECTION_STRUCT(ExtensionMetadata);

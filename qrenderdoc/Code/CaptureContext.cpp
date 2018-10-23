@@ -120,10 +120,10 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   for(const ExtensionMetadata &e : exts)
   {
-    if(cfg.AlwaysLoad_Extensions.contains(e.Package))
+    if(cfg.AlwaysLoad_Extensions.contains(e.package))
     {
-      qInfo() << "Automatically loading extension" << QString(e.Package);
-      LoadExtension(e.Package);
+      qInfo() << "Automatically loading extension" << QString(e.package);
+      LoadExtension(e.package);
     }
   }
 }
@@ -203,12 +203,12 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
 
         ExtensionMetadata ext;
 
-        ext.Package = package;
-        ext.FilePath = fileinfo.absolutePath();
+        ext.package = package;
+        ext.filePath = fileinfo.absolutePath();
 
         if(json.contains(lit("name")))
         {
-          ext.Name = json[lit("name")].toString();
+          ext.name = json[lit("name")].toString();
         }
         else
         {
@@ -216,54 +216,54 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
           continue;
         }
 
-        ext.ExtensionAPI = 1;
+        ext.extensionAPI = 1;
         if(json.contains(lit("extension_api")))
         {
-          ext.ExtensionAPI = json[lit("extension_api")].toInt();
+          ext.extensionAPI = json[lit("extension_api")].toInt();
         }
         else
         {
-          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no api version entry";
+          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no api version entry";
           continue;
         }
 
         if(json.contains(lit("version")))
         {
-          ext.Version = json[lit("version")].toString();
+          ext.version = json[lit("version")].toString();
         }
         else
         {
-          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no version entry";
+          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no version entry";
           continue;
         }
 
         if(json.contains(lit("description")))
         {
-          ext.Description = json[lit("description")].toString();
+          ext.description = json[lit("description")].toString();
         }
         else
         {
-          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no description entry";
+          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no description entry";
           continue;
         }
 
         if(json.contains(lit("author")))
         {
-          ext.Author = json[lit("author")].toString();
+          ext.author = json[lit("author")].toString();
         }
         else
         {
-          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no author entry";
+          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no author entry";
           continue;
         }
 
         if(json.contains(lit("url")))
         {
-          ext.URL = json[lit("url")].toString();
+          ext.extensionURL = json[lit("url")].toString();
         }
         else
         {
-          qCritical() << "Extension" << QString(ext.Name) << "is corrupt, no URL entry";
+          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no URL entry";
           continue;
         }
 
@@ -296,14 +296,14 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
 
           if(!ok)
           {
-            qCritical() << "Extension" << QString(ext.Name)
+            qCritical() << "Extension" << QString(ext.name)
                         << "is corrupt, minimum_renderdoc doesn't match a MAJOR.MINOR version";
             continue;
           }
 
           if(badversion)
           {
-            qInfo() << "Extension" << QString(ext.Name) << "declares minimum_renderdoc" << minVer
+            qInfo() << "Extension" << QString(ext.name) << "declares minimum_renderdoc" << minVer
                     << "so skipping";
             continue;
           }
