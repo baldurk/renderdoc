@@ -24,7 +24,7 @@ environment:
     secure: ndq7n9R6NhCV8mENhPAH4VTFNUeROGK/uFlqfUVwxAc=
 
 init:
-  - if "%PLATFORM%" EQU "x86" ( if "%CONFIGURATION%"=="Development" (echo "Skipping x86 Development" && appveyor exit ) )
+  - if "%PLATFORM%" EQU "x86" ( if "%CONFIGURATION%"=="Release" (echo "Skipping x86 Release" && appveyor exit ) )
 
 install:
 - ps: $env:PATH = 'C:\MinGW\bin;C:\MinGW\mingw32\bin;C:\MinGW\msys\1.0\bin;' + $env:PATH
