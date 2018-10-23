@@ -80,7 +80,7 @@ public:
                            ExtensionCallback callback) override;
   void MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
                       const ExtensionCallbackData &data) override;
-  void MenuDisplaying(PanelMenu panelMenu, QWidget *extensionButton,
+  void MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *extensionButton,
                       const ExtensionCallbackData &data) override;
 
   //////////////////////////////////////////////////////////////////////////////

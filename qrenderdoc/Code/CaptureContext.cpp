@@ -470,16 +470,14 @@ void CaptureContext::MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
   }
 }
 
-void CaptureContext::MenuDisplaying(PanelMenu panelMenu, QWidget *extensionButton,
+void CaptureContext::MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *extensionButton,
                                     const ExtensionCallbackData &data)
 {
-  QMenu contextMenu(m_MainWindow);
-
   for(RegisteredMenuItem *item : m_RegisteredMenuItems)
   {
     if(item->panel == panelMenu)
     {
-      AddSortedMenuItem(&contextMenu, false, item->submenus, [this, item, data]() {
+      AddSortedMenuItem(menu, false, item->submenus, [this, item, data]() {
         rdcarray<rdcpair<rdcstr, PyObject *>> args;
 
         PythonContext::ConvertPyArgs(data, args);
@@ -491,16 +489,14 @@ void CaptureContext::MenuDisplaying(PanelMenu panelMenu, QWidget *extensionButto
     }
   }
 
-  QAction emptyAction(tr("No extension commands configured"), m_MainWindow);
+  QAction *emptyAction = new QAction(tr("No extension commands configured"), menu);
 
-  if(contextMenu.isEmpty())
+  if(menu->isEmpty())
   {
-    contextMenu.addAction(&emptyAction);
-    QObject::connect(&emptyAction, &QAction::triggered,
+    menu->addAction(emptyAction);
+    QObject::connect(emptyAction, &QAction::triggered,
                      [this]() { m_MainWindow->showExtensionManager(); });
   }
-
-  RDDialog::show(&contextMenu, extensionButton->mapToGlobal(extensionButton->rect().bottomLeft()));
 }
 
 void CaptureContext::AddSortedMenuItem(QMenu *menu, bool rootMenu, const rdcarray<rdcstr> &items,

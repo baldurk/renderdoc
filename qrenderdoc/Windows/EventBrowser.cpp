@@ -192,9 +192,12 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   {
     QMenu *extensionsMenu = new QMenu(this);
 
+    ui->extensions->setMenu(extensionsMenu);
+    ui->extensions->setPopupMode(QToolButton::InstantPopup);
+
     QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
       extensionsMenu->clear();
-      m_Ctx.Extensions().MenuDisplaying(PanelMenu::EventBrowser, ui->extensions, {});
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::EventBrowser, extensionsMenu, ui->extensions, {});
     });
   }
 

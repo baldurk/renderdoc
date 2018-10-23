@@ -1135,9 +1135,12 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   {
     QMenu *extensionsMenu = new QMenu(this);
 
+    ui->extensions->setMenu(extensionsMenu);
+    ui->extensions->setPopupMode(QToolButton::InstantPopup);
+
     QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
       extensionsMenu->clear();
-      m_Ctx.Extensions().MenuDisplaying(PanelMenu::MeshPreview, ui->extensions, {});
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::MeshPreview, extensionsMenu, ui->extensions, {});
     });
   }
 

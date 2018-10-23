@@ -215,9 +215,13 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   {
     QMenu *extensionsMenu = new QMenu(this);
 
+    ui->extensions->setMenu(extensionsMenu);
+    ui->extensions->setPopupMode(QToolButton::InstantPopup);
+
     QObject::connect(extensionsMenu, &QMenu::aboutToShow, [this, extensionsMenu]() {
       extensionsMenu->clear();
-      m_Ctx.Extensions().MenuDisplaying(PanelMenu::PipelineStateViewer, ui->extensions, {});
+      m_Ctx.Extensions().MenuDisplaying(PanelMenu::PipelineStateViewer, extensionsMenu,
+                                        ui->extensions, {});
     });
   }
 

@@ -1291,7 +1291,7 @@ struct IExtensionManager
   // style avoids complex retained state that has to be refreshed each time a panel is created.
   virtual void MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
                               const ExtensionCallbackData &data) = 0;
-  virtual void MenuDisplaying(PanelMenu panelMenu, QWidget *extensionButton,
+  virtual void MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *extensionButton,
                               const ExtensionCallbackData &data) = 0;
 #endif
 
