@@ -1344,7 +1344,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
           GLint loc = drv.glGetUniformLocation(DebugData.overlayProg, "overdrawImage");
           if(loc != -1)
-            drv.glUniform1ui(loc, 0);
+            drv.glUniform1i(loc, 0);
           else
             RDCERR("Couldn't get location of overdrawImage");
 
