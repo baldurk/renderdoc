@@ -1811,7 +1811,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
     for(uint32_t vb = 0; vb < vi->vertexBindingDescriptionCount; vb++)
     {
-      VkDeviceSize offs = state.vbuffers[vb].offs;
+      uint32_t binding = vi->pVertexBindingDescriptions[vb].binding;
+      VkDeviceSize offs = state.vbuffers[binding].offs;
       uint64_t len = 0;
 
       if(vi->pVertexBindingDescriptions[vb].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
@@ -1827,10 +1828,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
         offs += drawcall->vertexOffset * vi->pVertexBindingDescriptions[vb].stride;
       }
 
-      if(state.vbuffers[vb].buf != ResourceId())
+      if(state.vbuffers[binding].buf != ResourceId())
       {
         origVBs.push_back(bytebuf());
-        GetBufferData(state.vbuffers[vb].buf, offs, len, origVBs.back());
+        GetBufferData(state.vbuffers[binding].buf, offs, len, origVBs.back());
       }
     }
 
