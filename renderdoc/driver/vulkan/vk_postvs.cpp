@@ -659,6 +659,40 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   for(SPIRVIterator end = editor.EndEntries(); it < end; ++it)
     editor.Remove(it);
 
+  // Strip away any execution modes from the original shaders
+  for(it = editor.BeginEntries(); it < editor.BeginDebug(); ++it)
+  {
+    if(it.opcode() == spv::OpExecutionMode)
+    {
+      SPIRVId modeEntryID = SPIRVId(it.word(1));
+
+      // We only need to be cautious about what we are stripping for the entry
+      // that we are actually translating, the rest aren't used anyways.
+      if(modeEntryID == entryID)
+      {
+        // Lets check to make sure we don't blindly strip away execution modes that
+        // might actually have an impact on the behaviour of the shader.
+        spv::ExecutionMode execMode = spv::ExecutionMode(it.word(2));
+        switch(execMode)
+        {
+          case spv::ExecutionModeXfb: break;
+          default: RDCERR("Unexpected execution mode");
+        }
+      }
+
+      editor.PreModify(it);
+
+      SPIRVOperation op(it);
+
+      // invalid to have a nop here, but it will be stripped out later
+      op.nopRemove(1);
+      op[0] = SPV_NOP;
+
+      editor.PostModify(it);
+    }
+  }
+
+  // Add our compute shader execution mode
   editor.AddOperation(
       it, SPIRVOperation(spv::OpExecutionMode, {wrapperEntry, spv::ExecutionModeLocalSize,
                                                 MeshOutputDispatchWidth, 1, 1}));
