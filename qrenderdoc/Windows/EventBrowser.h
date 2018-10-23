@@ -68,7 +68,7 @@ private slots:
   // automatic slots
   void on_find_clicked();
   void on_gotoEID_clicked();
-  void on_timeDraws_clicked();
+  void on_countersRefresh_clicked();
   void on_bookmark_clicked();
   void on_HideFindJump();
   void on_jumpToEID_returnPressed();
@@ -95,10 +95,11 @@ public slots:
   void jumpToBookmark(int idx);
 
 private:
+  void SetColumns(bool initialSetup);
   bool ShouldHide(const DrawcallDescription &drawcall);
   QPair<uint32_t, uint32_t> AddDrawcalls(RDTreeWidgetItem *parent,
                                          const rdcarray<DrawcallDescription> &draws);
-  void SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results);
+  void SetDrawcallCounters(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results);
 
   void ExpandNode(RDTreeWidgetItem *node);
 
@@ -126,12 +127,20 @@ private:
                         const DrawcallDescription &drawcall);
   void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
                       const DrawcallDescription &drawcall);
+  GPUCounter ColumnToGPUCounter(int column);
+  CounterDescription DescribeCounter(GPUCounter counter);
+
+  int m_DurationColumn;
 
   QPalette m_redPalette;
 
   TimeUnit m_TimeUnit = TimeUnit::Count;
 
-  rdcarray<CounterResult> m_Times;
+  QVector<CounterDescription> m_CounterDescriptions;
+  QMap<GPUCounter, int> m_CounterToColumn;
+  std::vector<GPUCounter> m_SelectedCounters;
+
+  rdcarray<CounterResult> m_Counters;
 
   QTimer *m_FindHighlight;
 

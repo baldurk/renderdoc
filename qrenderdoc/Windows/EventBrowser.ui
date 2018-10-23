@@ -130,9 +130,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="timeDraws">
+      <widget class="QToolButton" name="countersRefresh">
        <property name="toolTip">
-        <string>Time durations for the drawcalls</string>
+        <string>Refresh counter values</string>
        </property>
        <property name="text">
         <string/>

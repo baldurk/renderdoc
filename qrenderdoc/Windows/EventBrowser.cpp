@@ -60,9 +60,26 @@ enum
   COL_NAME,
   COL_EID,
   COL_DRAW,
-  COL_DURATION,
   COL_COUNT,
 };
+
+GPUCounter EventBrowser::ColumnToGPUCounter(int column)
+{
+  int offset = column - COL_COUNT;
+
+  if(offset < 0 || offset >= m_CounterDescriptions.size())
+    return (GPUCounter)0;
+
+  return m_CounterDescriptions[offset].counter;
+}
+
+CounterDescription EventBrowser::DescribeCounter(GPUCounter counter)
+{
+  int offset = m_CounterToColumn[counter] - COL_COUNT;
+  Q_ASSERT(offset >= 0 && offset < m_CounterDescriptions.size());
+
+  return m_CounterDescriptions[offset];
+}
 
 static bool textEditControl(QWidget *sender)
 {
@@ -90,20 +107,12 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->find->setFont(Formatter::PreferredFont());
   ui->events->setFont(Formatter::PreferredFont());
 
-  ui->events->setColumns(
-      {tr("Name"), lit("EID"), lit("Draw #"), lit("Duration - replaced in UpdateDurationColumn")});
-
   ui->events->setHeader(new RDHeaderView(Qt::Horizontal, this));
   ui->events->header()->setStretchLastSection(true);
   ui->events->header()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
   // we set up the name column as column 0 so that it gets the tree controls.
-  ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Interactive);
-  ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
-  ui->events->header()->setSectionResizeMode(COL_DRAW, QHeaderView::Interactive);
-  ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
-
-  ui->events->setColumnAlignment(COL_DURATION, Qt::AlignRight | Qt::AlignCenter);
+  ui->events->header()->setSectionResizeMode(QHeaderView::Interactive);
 
   ui->events->header()->setMinimumSectionSize(40);
 
@@ -114,18 +123,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setItemVerticalMargin(4);
   ui->events->setIgnoreIconSize(true);
 
-  // set up default section layout. This will be overridden in restoreState()
-  ui->events->header()->resizeSection(COL_EID, 80);
-  ui->events->header()->resizeSection(COL_DRAW, 60);
-  ui->events->header()->resizeSection(COL_NAME, 200);
-  ui->events->header()->resizeSection(COL_DURATION, 80);
-
-  ui->events->header()->hideSection(COL_DRAW);
-  ui->events->header()->hideSection(COL_DURATION);
-
-  ui->events->header()->moveSection(COL_NAME, 2);
-
-  UpdateDurationColumn();
+  SetColumns(true);
 
   m_FindHighlight = new QTimer(this);
   m_FindHighlight->setInterval(400);
@@ -236,34 +234,86 @@ EventBrowser::~EventBrowser()
   delete ui;
 }
 
+bool compareCounterDescriptions(const CounterDescription &d1, const CounterDescription &d2)
+{
+  return d1.name < d2.name;
+}
+
+void EventBrowser::SetColumns(bool initialSetup)
+{
+  QStringList columnNames = {tr("Name"), lit("EID"), lit("Draw #")};
+  m_CounterToColumn.clear();
+  for(const auto &desc : m_CounterDescriptions)
+  {
+    m_CounterToColumn[desc.counter] = columnNames.size();
+    columnNames.push_back(desc.name);
+  }
+  ui->events->setColumns(columnNames);
+
+  // set up default section layout. This will be overridden in restoreState()
+  ui->events->header()->resizeSection(COL_EID, 80);
+  ui->events->header()->resizeSection(COL_DRAW, 60);
+  ui->events->header()->resizeSection(COL_NAME, 200);
+
+  for(int col = COL_COUNT; col < columnNames.size(); col++)
+  {
+    ui->events->header()->hideSection(col);
+    ui->events->setColumnAlignment(col, Qt::AlignRight | Qt::AlignCenter);
+  }
+
+  if(initialSetup)
+    ui->events->header()->moveSection(COL_NAME, 2);
+}
+
 void EventBrowser::OnCaptureLoaded()
 {
-  RDTreeWidgetItem *frame = new RDTreeWidgetItem(
-      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString()});
+  // Query all counters and build up the columns.
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *controller) {
+    m_CounterDescriptions.clear();
+    for(const auto &counter : controller->EnumerateCounters())
+      m_CounterDescriptions.push_back(controller->DescribeCounter(counter));
 
-  RDTreeWidgetItem *framestart =
-      new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit("0"), QString()});
-  framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
+    qStableSort(m_CounterDescriptions.begin(), m_CounterDescriptions.end(),
+                compareCounterDescriptions);
 
-  frame->addChild(framestart);
+    GUIInvoke::call(this, [this]() {
+      SetColumns(false);
+      UpdateDurationColumn();
 
-  QPair<uint32_t, uint32_t> lastEIDDraw = AddDrawcalls(frame, m_Ctx.CurDrawcalls());
-  frame->setTag(QVariant::fromValue(EventItemTag(0, lastEIDDraw.first)));
+      // Once all columns have been setup, populate the rows.
+      QVariantList frameValues;
+      frameValues.push_back(QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber));
+      for(int c = COL_EID; c < ui->events->header()->count(); c++)
+        frameValues.push_back(QString());
+      RDTreeWidgetItem *frame = new RDTreeWidgetItem(frameValues);
 
-  ui->events->addTopLevelItem(frame);
+      frameValues.replace(COL_NAME, tr("Frame Start"));
+      frameValues.replace(COL_EID, lit("0"));
+      frameValues.replace(COL_DRAW, lit("0"));
+      RDTreeWidgetItem *framestart = new RDTreeWidgetItem(frameValues);
+      framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
 
-  ui->events->expandItem(frame);
+      frame->addChild(framestart);
 
-  clearBookmarks();
-  repopulateBookmarks();
+      QPair<uint32_t, uint32_t> lastEIDDraw = AddDrawcalls(frame, m_Ctx.CurDrawcalls());
+      frame->setTag(QVariant::fromValue(EventItemTag(0, lastEIDDraw.first)));
 
-  ui->find->setEnabled(true);
-  ui->gotoEID->setEnabled(true);
-  ui->timeDraws->setEnabled(true);
-  ui->bookmark->setEnabled(true);
-  ui->exportDraws->setEnabled(true);
-  ui->stepPrev->setEnabled(true);
-  ui->stepNext->setEnabled(true);
+      ui->events->addTopLevelItem(frame);
+
+      ui->events->expandItem(frame);
+
+      clearBookmarks();
+      repopulateBookmarks();
+
+      ui->find->setEnabled(true);
+      ui->gotoEID->setEnabled(true);
+      ui->countersRefresh->setEnabled(true);
+      ui->bookmark->setEnabled(true);
+      ui->exportDraws->setEnabled(true);
+      ui->stepPrev->setEnabled(true);
+      ui->stepNext->setEnabled(true);
+    });
+  });
 }
 
 void EventBrowser::OnCaptureClosed()
@@ -274,7 +324,7 @@ void EventBrowser::OnCaptureClosed()
 
   ui->find->setEnabled(false);
   ui->gotoEID->setEnabled(false);
-  ui->timeDraws->setEnabled(false);
+  ui->countersRefresh->setEnabled(false);
   ui->bookmark->setEnabled(false);
   ui->exportDraws->setEnabled(false);
   ui->stepPrev->setEnabled(false);
@@ -405,7 +455,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
   return qMakePair(lastEID, lastDraw);
 }
 
-void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results)
+void EventBrowser::SetDrawcallCounters(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results)
 {
   if(node == NULL)
     return;
@@ -423,7 +473,41 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<Count
     for(const CounterResult &r : results)
     {
       if(r.eventId == eid)
-        duration = r.value.d;
+      {
+        if(r.counter == GPUCounter::EventGPUDuration)
+        {
+          duration = r.value.d;
+        }
+        else
+        {
+          CounterDescription counterDesc = DescribeCounter(r.counter);
+          int column = m_CounterToColumn[r.counter];
+
+          switch(counterDesc.resultType)
+          {
+            case CompType::UNorm:
+            case CompType::UInt:
+            case CompType::UScaled:
+              if(counterDesc.resultByteWidth == 4)
+                node->setText(column, Formatter::Format(r.value.u32));
+              else
+                node->setText(column, Formatter::Format(r.value.u64));
+              break;
+            case CompType::SNorm:
+            case CompType::SInt:
+            case CompType::SScaled:
+            case CompType::Depth:
+              if(counterDesc.resultByteWidth == 4)
+                node->setText(column, Formatter::Format((int32_t)r.value.u32));
+              else
+                node->setText(column, Formatter::Format((int64_t)r.value.u64));
+              break;
+            case CompType::Float: node->setText(column, Formatter::Format(r.value.f)); break;
+            case CompType::Double: node->setText(column, Formatter::Format(r.value.d)); break;
+            default: break;
+          }
+        }
+      }
     }
 
     double secs = duration;
@@ -435,7 +519,8 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<Count
     else if(m_TimeUnit == TimeUnit::Nanoseconds)
       secs *= 1000000000.0;
 
-    node->setText(COL_DURATION, duration < 0.0f ? QString() : Formatter::Format(secs));
+    node->setText(m_CounterToColumn[GPUCounter::EventGPUDuration],
+                  duration < 0.0f ? QString() : Formatter::Format(secs));
     EventItemTag tag = node->tag().value<EventItemTag>();
     tag.duration = duration;
     node->setTag(QVariant::fromValue(tag));
@@ -445,7 +530,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<Count
 
   for(int i = 0; i < node->childCount(); i++)
   {
-    SetDrawcallTimes(node->child(i), results);
+    SetDrawcallCounters(node->child(i), results);
 
     double nd = node->child(i)->tag().value<EventItemTag>().duration;
 
@@ -462,7 +547,8 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<Count
   else if(m_TimeUnit == TimeUnit::Nanoseconds)
     secs *= 1000000000.0;
 
-  node->setText(COL_DURATION, duration < 0.0f ? QString() : Formatter::Format(secs));
+  node->setText(m_CounterToColumn[GPUCounter::EventGPUDuration],
+                duration < 0.0f ? QString() : Formatter::Format(secs));
   EventItemTag tag = node->tag().value<EventItemTag>();
   tag.duration = duration;
   node->setTag(QVariant::fromValue(tag));
@@ -490,18 +576,16 @@ void EventBrowser::on_bookmark_clicked()
     toggleBookmark(n->tag().value<EventItemTag>().lastEID);
 }
 
-void EventBrowser::on_timeDraws_clicked()
+void EventBrowser::on_countersRefresh_clicked()
 {
   ANALYTIC_SET(UIFeatures.DrawcallTimes, true);
 
-  ui->events->header()->showSection(COL_DURATION);
-
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
 
-    m_Times = r->FetchCounters({GPUCounter::EventGPUDuration});
+    m_Counters = r->FetchCounters(m_SelectedCounters);
 
     GUIInvoke::call(this, [this]() {
-      SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
+      SetDrawcallCounters(ui->events->topLevelItem(0), m_Counters);
       ui->events->update();
     });
   });
@@ -688,16 +772,17 @@ void EventBrowser::on_exportDraws_clicked()
 
         QString line = QFormatStr(" EID  | %1 | Draw #").arg(lit("Event"), -maxNameLength);
 
-        if(!m_Times.empty())
+        if(!m_Counters.empty())
         {
-          line += QFormatStr(" | %1").arg(ui->events->headerText(COL_DURATION));
+          line += QFormatStr(" | %1").arg(
+              ui->events->headerText(m_CounterToColumn[GPUCounter::EventGPUDuration]));
         }
 
         stream << line << "\n";
 
         line = QFormatStr("--------%1-----------").arg(QString(), maxNameLength, QLatin1Char('-'));
 
-        if(!m_Times.empty())
+        if(!m_Counters.empty())
         {
           int maxDurationLength = 0;
           maxDurationLength = qMax(maxDurationLength, Formatter::Format(1.0).length());
@@ -732,13 +817,34 @@ void EventBrowser::on_exportDraws_clicked()
 void EventBrowser::on_colSelect_clicked()
 {
   QDialog dialog;
+  QLineEdit search;
+  QToolButton clearButton;
   RDListWidget list;
   QDialogButtonBox buttons;
 
   dialog.setWindowTitle(tr("Select Event Browser Columns"));
   dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  for(int visIdx = 0; visIdx < COL_COUNT; visIdx++)
+  QObject::connect(&search, &QLineEdit::textChanged, [&list](const QString &text) {
+    for(int row = 0; row < list.count(); row++)
+    {
+      QListWidgetItem *item = list.item(row);
+
+      item->setHidden(!item->text().contains(text, Qt::CaseInsensitive));
+    }
+  });
+  clearButton.setText(lit("X"));
+  QObject::connect(&clearButton, &QAbstractButton::clicked, [&list](bool checked) {
+    // Skipping the name/eid/draw columns.
+    for(int row = COL_COUNT; row < list.count(); row++)
+    {
+      QListWidgetItem *item = list.item(row);
+
+      item->setCheckState(Qt::Unchecked);
+    }
+  });
+
+  for(int visIdx = 0; visIdx < ui->events->header()->count(); visIdx++)
   {
     int logIdx = ui->events->header()->logicalIndex(visIdx);
 
@@ -768,6 +874,10 @@ void EventBrowser::on_colSelect_clicked()
 
   QVBoxLayout *layout = new QVBoxLayout(&dialog);
   layout->addWidget(new QLabel(tr("Select the columns to enable."), &dialog));
+  QHBoxLayout *tlayout = new QHBoxLayout();
+  tlayout->addWidget(&search);
+  tlayout->addWidget(&clearButton);
+  layout->addLayout(tlayout);
   layout->addWidget(&list);
   layout->addWidget(&buttons);
 
@@ -775,9 +885,14 @@ void EventBrowser::on_colSelect_clicked()
 
   if(res)
   {
-    for(int i = 0; i < COL_COUNT; i++)
+    m_SelectedCounters.clear();
+    for(int i = 0; i < ui->events->header()->count(); i++)
     {
       int logicalIdx = list.item(i)->data(Qt::UserRole).toInt();
+
+      GPUCounter counter = ColumnToGPUCounter(logicalIdx);
+      if(counter != (GPUCounter)0 && list.item(i)->checkState() == Qt::Checked)
+        m_SelectedCounters.push_back(counter);
 
       if(list.item(i)->checkState() == Qt::Unchecked)
         ui->events->header()->hideSection(logicalIdx);
@@ -815,9 +930,9 @@ double EventBrowser::GetDrawTime(const DrawcallDescription &drawcall)
     return total;
   }
 
-  for(const CounterResult &r : m_Times)
+  for(const CounterResult &r : m_Counters)
   {
-    if(r.eventId == drawcall.eventId)
+    if(r.eventId == drawcall.eventId && r.counter == GPUCounter::EventGPUDuration)
       return r.value.d;
   }
 
@@ -852,7 +967,7 @@ void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int in
                      .arg(nameString, -maxNameLength)
                      .arg(drawcall.drawcallId, -6);
 
-  if(!m_Times.empty())
+  if(!m_Counters.empty())
   {
     double f = GetDrawTime(drawcall);
 
@@ -976,7 +1091,7 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
     }
     else if(event->key() == Qt::Key_T)
     {
-      on_timeDraws_clicked();
+      on_countersRefresh_clicked();
       event->accept();
     }
   }
@@ -1382,8 +1497,9 @@ void EventBrowser::UpdateDurationColumn()
 
   m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
 
-  ui->events->setHeaderText(COL_DURATION, tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit)));
+  ui->events->setHeaderText(m_CounterToColumn[GPUCounter::EventGPUDuration],
+                            tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit)));
 
-  if(!m_Times.empty())
-    SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
+  if(!m_Counters.empty())
+    SetDrawcallCounters(ui->events->topLevelItem(0), m_Counters);
 }
