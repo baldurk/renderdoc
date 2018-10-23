@@ -164,6 +164,12 @@
                   <File Id='virtualcontextEXE' Name='VirtualContext.exe' DiskId='1' Source='dist/Release64/plugins/amd/isa/VirtualContext.exe' />
                 </Component>
               </Directory>
+              
+              <Directory Id='plugins_amd_rgp' Name='rgp'>
+                <Component Id='rgp_plugin' Guid='6F6ED705-A22F-4CE7-BC12-86332BC5263D'>
+                  <File Id='amdrgpDLL' Name='DevDriverAPI-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/rgp/DevDriverAPI-x64.dll' KeyPath='yes' />
+                </Component>
+              </Directory>
 
               <Directory Id='plugins_amd_counters' Name='counters'>
                 <Component Id='gpa_plugin' Win64="yes" Guid='F248EE26-5919-4F9B-8727-6C2CEFA0DC2C'>
@@ -340,6 +346,7 @@
         <ComponentRef Id='LICENSE' />
 
         <ComponentRef Id='gcn_plugin' />
+        <ComponentRef Id='rgp_plugin' />
         <ComponentRef Id='gpa_plugin' />
         <ComponentRef Id='android_plugin' />
         <ComponentRef Id='spirv_plugin' />
