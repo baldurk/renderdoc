@@ -61,6 +61,7 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QThread>
 #include <QTimer>
 #include "Code/QRDUtils.h"
@@ -624,8 +625,8 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
   {
     FetchException(typeStr, valueStr, finalLine, frames);
 
-    qCritical(
-        tr("Error importing extension module. %1: %2").arg(typeStr).arg(valueStr).toUtf8().data());
+    qCritical("Error importing extension module. %s: %s", typeStr.toUtf8().data(),
+              valueStr.toUtf8().data());
 
     if(!frames.isEmpty())
     {
@@ -634,7 +635,7 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
       {
         QStringList lines = f.split(QLatin1Char('\n'));
         for(const QString &line : lines)
-          qCritical(line.toUtf8().data());
+          qCritical("%s", line.toUtf8().data());
       }
     }
   }
