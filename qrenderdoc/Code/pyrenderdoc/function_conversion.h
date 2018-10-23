@@ -28,6 +28,7 @@
 
 // this is defined elsewhere for managing the opaque global_handle object
 extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle);
+extern "C" PyObject *GetCurrentGlobalHandle();
 extern "C" void HandleException(PyObject *global_handle);
 extern "C" bool IsThreadBlocking(PyObject *global_handle);
 extern "C" void SetThreadBlocking(PyObject *global_handle, bool block);
@@ -248,6 +249,9 @@ funcType ConvertFunc(const char *funcname, PyObject *func, ExceptionHandling &ex
       frame = frame->f_back;
     }
   }
+
+  if(!global_internal_handle)
+    global_internal_handle = GetCurrentGlobalHandle();
 
   // create a copy that will keep the function object alive as long as the lambda is
   PyObjectRefCounter funcptr(func);

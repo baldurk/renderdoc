@@ -46,6 +46,11 @@ extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
   return NULL;
 }
 
+extern "C" PyObject *GetCurrentGlobalHandle()
+{
+  return NULL;
+}
+
 extern "C" void HandleException(PyObject *global_handle)
 {
 }

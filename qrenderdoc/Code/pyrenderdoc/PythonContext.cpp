@@ -129,6 +129,8 @@ static PyMethodDef OutputRedirector_methods[] = {
 PyObject *PythonContext::main_dict = NULL;
 QMap<rdcstr, PyObject *> PythonContext::extensions;
 
+static PyObject *current_global_handle = NULL;
+
 void FetchException(QString &typeStr, QString &valueStr, int &finalLine, QList<QString> &frames)
 {
   PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
@@ -498,6 +500,8 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
 
   PyObject *ext = NULL;
 
+  current_global_handle = PyObject_GetAttrString(sysobj, "stdout");
+
   if(extensions[extension] == NULL)
   {
     qInfo() << "First load of " << QString(extension);
@@ -639,6 +643,8 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
   PyList_SetSlice(syspath, len - 1, len, NULL);
 
   Py_DecRef(syspath);
+
+  current_global_handle = NULL;
 
   return ext != NULL;
 }
@@ -1157,6 +1163,11 @@ extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
   return NULL;
 }
 
+extern "C" PyObject *GetCurrentGlobalHandle()
+{
+  return current_global_handle;
+}
+
 extern "C" void HandleException(PyObject *global_handle)
 {
   QString typeStr;
@@ -1168,7 +1179,36 @@ extern "C" void HandleException(PyObject *global_handle)
 
   OutputRedirector *redirector = (OutputRedirector *)global_handle;
   if(redirector && redirector->context)
+  {
     emit redirector->context->exception(typeStr, valueStr, finalLine, frames);
+  }
+  else if(redirector && !redirector->context)
+  {
+    // if still NULL we're running in the extension context
+    std::string exString;
+
+    if(!frames.isEmpty())
+    {
+      exString += "Traceback (most recent call last):\n";
+      for(const QString &f : frames)
+        exString += "  " + f.toUtf8().toStdString() + "\n";
+    }
+
+    exString += typeStr.toUtf8().toStdString() + ": " + valueStr.toUtf8().toStdString() + "\n";
+
+    _frame *frame = PyEval_GetFrame();
+
+    QString filename = lit("unknown");
+    int linenum = 0;
+
+    if(frame)
+    {
+      filename = ToQStr(frame->f_code->co_filename);
+      linenum = PyFrame_GetLineNumber(frame);
+    }
+
+    RENDERDOC_LogMessage(LogType::Error, "EXTN", filename.toUtf8().data(), linenum, exString.c_str());
+  }
 }
 
 extern "C" bool IsThreadBlocking(PyObject *global_handle)
