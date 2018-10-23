@@ -451,6 +451,7 @@ void CaptureContext::MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
     case ContextMenu::TextureViewer_OutputThumbnail:
       contextMenuAlt = ContextMenu::TextureViewer_Thumbnail;
       break;
+    default: break;
   }
 
   for(RegisteredMenuItem *item : m_RegisteredMenuItems)
