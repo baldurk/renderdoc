@@ -308,6 +308,8 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
         alias.data[it + 3] = col[3];
       else
         RDCERR("Unexpected constant value");
+
+      patched++;
     }
 
     it += WordCount;
