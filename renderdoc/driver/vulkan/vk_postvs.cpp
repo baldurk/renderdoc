@@ -1335,6 +1335,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // into them
   {
     std::vector<VkCopyDescriptorSet> descCopies;
+    std::vector<VkWriteDescriptorSet> descWrites;
 
     // one for each descriptor type. 1 of each to start with plus enough for our internal resources,
     // we then increment for each descriptor we need to allocate
@@ -1505,27 +1506,108 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
       if(state.graphics.descSets[i].descSet == ResourceId())
         continue;
 
-      VkCopyDescriptorSet copy = {VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
-      copy.srcSet =
-          GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(state.graphics.descSets[i].descSet);
-      copy.dstSet = descSets[i];
+      WrappedVulkan::DescriptorSetInfo &setInfo =
+          m_pDriver->m_DescriptorSetState[state.graphics.descSets[i].descSet];
 
-      for(size_t b = 0; b < origLayout.bindings.size(); b++)
+      if(setInfo.push)
       {
-        const DescSetLayout::Binding &bind = origLayout.bindings[b];
+        // push descriptors don't have a source to copy from, we need to add writes
+        VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        write.dstSet = descSets[i];
 
-        // skip empty bindings
-        if(bind.descriptorCount == 0)
-          continue;
+        for(size_t b = 0; b < origLayout.bindings.size(); b++)
+        {
+          const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
-        copy.srcBinding = (uint32_t)b;
-        copy.dstBinding = (uint32_t)b + MeshOutputReservedBindings;
-        copy.descriptorCount = bind.descriptorCount;
-        descCopies.push_back(copy);
+          // skip empty bindings
+          if(bind.descriptorCount == 0)
+            continue;
+
+          DescriptorSetSlot *slot = setInfo.currentBindings[b];
+
+          write.dstBinding = (uint32_t)b + MeshOutputReservedBindings;
+          write.dstArrayElement = 0;
+          write.descriptorCount = bind.descriptorCount;
+          write.descriptorType = bind.descriptorType;
+
+          switch(write.descriptorType)
+          {
+            case VK_DESCRIPTOR_TYPE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+            {
+              VkDescriptorImageInfo *out = new VkDescriptorImageInfo[write.descriptorCount];
+              for(uint32_t w = 0; w < write.descriptorCount; w++)
+                out[w] = slot[w].imageInfo;
+              write.pImageInfo = out;
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            {
+              VkBufferView *out = new VkBufferView[write.descriptorCount];
+              for(uint32_t w = 0; w < write.descriptorCount; w++)
+                out[w] = slot[w].texelBufferView;
+              write.pTexelBufferView = out;
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+            {
+              VkDescriptorBufferInfo *out = new VkDescriptorBufferInfo[write.descriptorCount];
+              for(uint32_t w = 0; w < write.descriptorCount; w++)
+                out[w] = slot[w].bufferInfo;
+              write.pBufferInfo = out;
+              break;
+            }
+            default: RDCERR("Unexpected descriptor type %d", write.descriptorType);
+          }
+
+          descWrites.push_back(write);
+
+          // don't leak the arrays and cause double deletes, NULL them after each time
+          write.pImageInfo = NULL;
+          write.pBufferInfo = NULL;
+          write.pTexelBufferView = NULL;
+        }
+      }
+      else
+      {
+        VkCopyDescriptorSet copy = {VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
+        copy.srcSet = GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(
+            state.graphics.descSets[i].descSet);
+        copy.dstSet = descSets[i];
+
+        for(size_t b = 0; b < origLayout.bindings.size(); b++)
+        {
+          const DescSetLayout::Binding &bind = origLayout.bindings[b];
+
+          // skip empty bindings
+          if(bind.descriptorCount == 0)
+            continue;
+
+          copy.srcBinding = (uint32_t)b;
+          copy.dstBinding = (uint32_t)b + MeshOutputReservedBindings;
+          copy.descriptorCount = bind.descriptorCount;
+          descCopies.push_back(copy);
+        }
       }
     }
 
-    m_pDriver->vkUpdateDescriptorSets(dev, 0, NULL, (uint32_t)descCopies.size(), descCopies.data());
+    m_pDriver->vkUpdateDescriptorSets(dev, (uint32_t)descWrites.size(), descWrites.data(),
+                                      (uint32_t)descCopies.size(), descCopies.data());
+
+    // delete allocated arrays for descriptor writes
+    for(const VkWriteDescriptorSet &write : descWrites)
+    {
+      delete[] write.pBufferInfo;
+      delete[] write.pImageInfo;
+      delete[] write.pTexelBufferView;
+    }
   }
 
   // create pipeline layout with new descriptor set layouts

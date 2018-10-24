@@ -661,9 +661,11 @@ private:
   // need it on replay too
   struct DescriptorSetInfo
   {
+    DescriptorSetInfo(bool p = false) : push(p) {}
     ~DescriptorSetInfo() { clear(); }
     ResourceId layout;
     vector<DescriptorSetSlot *> currentBindings;
+    bool push;
 
     void clear()
     {

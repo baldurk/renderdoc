@@ -610,7 +610,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID); i++)
     {
       m_DescriptorSetState[m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[i]] =
-          DescriptorSetInfo();
+          DescriptorSetInfo(true);
     }
 
     m_BakedCmdBufferInfo[m_LastCmdBufferID].level = m_BakedCmdBufferInfo[BakedCommandBuffer].level =
