@@ -3154,7 +3154,8 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
         SCOPED_SERIALISE_CHUNK(gl_CurChunk);
         Serialise_glVertexArrayVertexAttribOffsetEXT(
             ser, varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0,
-            index, size, type, normalized, stride, (GLintptr)pointer);
+            index, size, type, normalized, stride,
+            bufrecord ? (GLintptr)pointer : GLintptr(0xDEADBEEF));
 
         r->AddChunk(scope.Get());
       }
@@ -3280,9 +3281,9 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
       {
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-        Serialise_glVertexArrayVertexAttribIOffsetEXT(ser, varecord ? varecord->Resource.name : 0,
-                                                      bufrecord ? bufrecord->Resource.name : 0,
-                                                      index, size, type, stride, (GLintptr)pointer);
+        Serialise_glVertexArrayVertexAttribIOffsetEXT(
+            ser, varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0,
+            index, size, type, stride, bufrecord ? (GLintptr)pointer : GLintptr(0xDEADBEEF));
 
         r->AddChunk(scope.Get());
       }
@@ -3408,9 +3409,9 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
       {
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-        Serialise_glVertexArrayVertexAttribLOffsetEXT(ser, varecord ? varecord->Resource.name : 0,
-                                                      bufrecord ? bufrecord->Resource.name : 0,
-                                                      index, size, type, stride, (GLintptr)pointer);
+        Serialise_glVertexArrayVertexAttribLOffsetEXT(
+            ser, varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0,
+            index, size, type, stride, bufrecord ? (GLintptr)pointer : GLintptr(0xDEADBEEF));
 
         r->AddChunk(scope.Get());
       }
