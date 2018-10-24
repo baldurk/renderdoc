@@ -243,6 +243,7 @@ HEADERS += Code/CaptureContext.h \
     Code/Interface/QRDInterface.h \
     Code/Interface/Analytics.h \
     Code/Interface/PersistantConfig.h \
+    Code/Interface/Extensions.h \
     Code/Interface/RemoteHost.h \
     Styles/StyleData.h \
     Styles/RDStyle/RDStyle.h \

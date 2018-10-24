@@ -76,6 +76,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %include "Code/Interface/QRDInterface.h"
 %include "Code/Interface/PersistantConfig.h"
 %include "Code/Interface/RemoteHost.h"
+%include "Code/Interface/Extensions.h"
 
 DOCUMENT("");
 
@@ -84,6 +85,7 @@ TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ShaderProcessingTool)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, rdcstrpair)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BugReport)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, ExtensionMetadata)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, DialogButton)
 TEMPLATE_ARRAY_INSTANTIATE_PTR(rdcarray, ICaptureViewer)
 
 // unignore the function from above

@@ -907,6 +907,7 @@
     <ClInclude Include="Code\Interface\PersistantConfig.h" />
     <ClInclude Include="Code\Interface\QRDInterface.h" />
     <ClInclude Include="Code\Interface\RemoteHost.h" />
+    <ClInclude Include="Code\Interface\Extensions.h" />
     <ClInclude Include="Code\precompiled.h" />
     <ClInclude Include="Code\pyrenderdoc\container_handling.h" />
     <ClInclude Include="Code\pyrenderdoc\interface_check.h" />

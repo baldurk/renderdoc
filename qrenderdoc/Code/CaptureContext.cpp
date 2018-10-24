@@ -500,6 +500,40 @@ void CaptureContext::MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *e
   }
 }
 
+void CaptureContext::MessageDialog(const rdcstr &text, const rdcstr &title)
+{
+  RDDialog::information(m_MainWindow, title, text);
+}
+
+void CaptureContext::ErrorDialog(const rdcstr &text, const rdcstr &title)
+{
+  RDDialog::critical(m_MainWindow, title, text);
+}
+
+DialogButton CaptureContext::QuestionDialog(const rdcstr &text, const rdcarray<DialogButton> &options,
+                                            const rdcstr &title)
+{
+  QMessageBox::StandardButtons buttons;
+  for(DialogButton b : options)
+    buttons |= (QMessageBox::StandardButton)b;
+  return (DialogButton)RDDialog::question(m_MainWindow, title, text, buttons);
+}
+
+rdcstr CaptureContext::OpenFileName(const rdcstr &caption, const rdcstr &dir, const rdcstr &filter)
+{
+  return RDDialog::getOpenFileName(m_MainWindow, caption, dir, filter);
+}
+
+rdcstr CaptureContext::OpenDirectoryName(const rdcstr &caption, const rdcstr &dir)
+{
+  return RDDialog::getExistingDirectory(m_MainWindow, caption, dir);
+}
+
+rdcstr CaptureContext::SaveFileName(const rdcstr &caption, const rdcstr &dir, const rdcstr &filter)
+{
+  return RDDialog::getSaveFileName(m_MainWindow, caption, dir, filter);
+}
+
 void CaptureContext::AddSortedMenuItem(QMenu *menu, bool rootMenu, const rdcarray<rdcstr> &items,
                                        std::function<void()> callback)
 {

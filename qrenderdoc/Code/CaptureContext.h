@@ -78,10 +78,25 @@ public:
                          ExtensionCallback callback) override;
   void RegisterContextMenu(ContextMenu base, const rdcarray<rdcstr> &submenus,
                            ExtensionCallback callback) override;
+
   void MenuDisplaying(ContextMenu contextMenu, QMenu *menu,
                       const ExtensionCallbackData &data) override;
   void MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *extensionButton,
                       const ExtensionCallbackData &data) override;
+
+  void MessageDialog(const rdcstr &text, const rdcstr &title = "Python Extension Message") override;
+  void ErrorDialog(const rdcstr &text, const rdcstr &title = "Python Extension Error") override;
+  DialogButton QuestionDialog(const rdcstr &text, const rdcarray<DialogButton> &options,
+                              const rdcstr &title = "Python Extension Prompt") override;
+
+  rdcstr OpenFileName(const rdcstr &caption = "Open a file", const rdcstr &dir = rdcstr(),
+                      const rdcstr &filter = rdcstr()) override;
+
+  rdcstr OpenDirectoryName(const rdcstr &caption = "Open a directory",
+                           const rdcstr &dir = rdcstr()) override;
+
+  rdcstr SaveFileName(const rdcstr &caption = "Save a file", const rdcstr &dir = rdcstr(),
+                      const rdcstr &filter = rdcstr()) override;
 
   //////////////////////////////////////////////////////////////////////////////
   // Control functions

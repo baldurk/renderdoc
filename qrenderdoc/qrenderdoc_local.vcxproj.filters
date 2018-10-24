@@ -1070,6 +1070,9 @@
     <ClInclude Include="$(IntDir)generated\ui_ExtensionManager.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="Code\Interface\Extensions.h">
+      <Filter>Code\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Code\pyrenderdoc\pyconversion.h">
