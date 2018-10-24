@@ -53,11 +53,29 @@ if(ANDROID)
     if(NOT DEFINED ENV{JAVA_HOME})
         message(FATAL_ERROR "JAVA_HOME environment variable must be defined for Android build")
     endif()
+    message(STATUS "Using JAVA_HOME = $ENV{JAVA_HOME}")
+
     if(NOT DEFINED ENV{ANDROID_SDK})
         message(FATAL_ERROR "ANDROID_SDK environment variable must be defined for Android build")
     endif()
+    message(STATUS "Using ANDROID_SDK = $ENV{ANDROID_SDK}")
+
     if(NOT DEFINED ENV{ANDROID_NDK})
         message(FATAL_ERROR "ANDROID_NDK environment variable must be defined for Android build")
+    endif()
+    message(STATUS "Using ANDROID_NDK = $ENV{ANDROID_NDK}")
+
+    #############################
+    # We need to check that 'java' in PATH is new enough. Temporarily unset the JAVA_HOME env,
+    # then invoke FindJava.cmake which will search just the PATH, then re-set it.
+    set(SAVE_JAVA_HOME $ENV{JAVA_HOME})
+
+    set(ENV{JAVA_HOME} "")
+    find_package(Java)
+    set(ENV{JAVA_HOME} ${SAVE_JAVA_HOME})
+
+    if(${Java_VERSION} VERSION_LESS 1.8)
+        message(FATAL_ERROR "Building Android requires the 'java' program in your PATH to be at least Java 8 (1.8)")
     endif()
 
     if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND CMAKE_BUILD_TYPE STREQUAL "Release")
