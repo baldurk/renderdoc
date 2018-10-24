@@ -5,6 +5,7 @@ import io
 import sys
 import re
 import argparse
+from collections import OrderedDict
 
 parser = argparse.ArgumentParser(description='Generate macros for handling GL dispatch table.')
 parser.add_argument('-m', '--maxparam', type=int, default=17,
@@ -179,7 +180,9 @@ print("\n\n\n")
 
 print('#define ForEachUnsupported(FUNC) \\')
 
-for typedef in typedefs.values():
+for key in OrderedDict(sorted(typedefs.items())):
+	typedef = typedefs[key]
+
 	# Don't print for functions we support, or wgl/etc functions
 	if typedef['used'] or typedef['function'][0:2] != 'gl':
 		continue
@@ -191,7 +194,9 @@ print("\n\n\n")
 # For all typedefs not in the hooks, define them as unsupported
 print('#define DefineUnsupportedHooks() \\')
 
-for typedef in typedefs.values():
+for key in OrderedDict(sorted(typedefs.items())):
+	typedef = typedefs[key]
+
 	# Don't print for functions we support, or wgl/etc functions
 	if typedef['used'] or typedef['function'][0:2] != 'gl':
 		continue
