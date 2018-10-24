@@ -458,6 +458,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       queues.push_back(i);
     bufInfo.pQueueFamilyIndices = queues.data();
 
+    // spec requires that CONCURRENT must specify more than one queue family. If there is only one
+    // queue family, we can safely use exclusive.
+    if(bufInfo.queueFamilyIndexCount == 1)
+      bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
     // since this happens during capture, we don't want to start serialising extra buffer creates,
     // so we manually create & then just wrap.
     VkBuffer srcBuf, dstBuf;
