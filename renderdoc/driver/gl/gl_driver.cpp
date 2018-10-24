@@ -479,6 +479,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OVR_multiview");
   m_GLESExtensions.push_back("GL_OVR_multiview2");
   m_GLESExtensions.push_back("GL_OVR_multiview_multisampled_render_to_texture");
+  m_GLESExtensions.push_back("GL_QCOM_texture_foveated");
 
   // advertise EGL extensions in the gl ext string, just in case anyone is checking it for
   // this way.
@@ -3347,6 +3348,9 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glFramebufferTextureMultisampleMultiviewOVR:
       return Serialise_glFramebufferTextureMultisampleMultiviewOVR(ser, eGL_NONE, eGL_NONE, 0, 0, 0,
                                                                    0, 0);
+    case GLChunk::glTextureFoveationParametersQCOM:
+      return Serialise_glTextureFoveationParametersQCOM(ser, eGL_NONE, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f,
+                                                        0.0f);
     case GLChunk::glFramebufferParameteri:
     case GLChunk::glNamedFramebufferParameteri:
     case GLChunk::glNamedFramebufferParameteriEXT:
