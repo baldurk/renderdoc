@@ -666,6 +666,9 @@ struct GLDispatchTable
   // OVR_multiview_multisampled_render_to_texture
   PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR;
 
+  // QCOM_texture_foveated
+  PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC glTextureFoveationParametersQCOM;
+
   // ARB_parallel_shader_compile
   PFNGLMAXSHADERCOMPILERTHREADSKHRPROC glMaxShaderCompilerThreadsKHR; // aliases glMaxShaderCompilerThreadsARB
 

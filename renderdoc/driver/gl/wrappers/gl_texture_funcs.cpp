@@ -6318,6 +6318,71 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
   }
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glTextureFoveationParametersQCOM(SerialiserType &ser,
+                                                               GLuint textureHandle, GLuint layer,
+                                                               GLuint focalPoint, GLfloat focalX,
+                                                               GLfloat focalY, GLfloat gainX,
+                                                               GLfloat gainY, GLfloat foveaArea)
+{
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(layer);
+  SERIALISE_ELEMENT(focalPoint);
+  SERIALISE_ELEMENT(focalX);
+  SERIALISE_ELEMENT(focalY);
+  SERIALISE_ELEMENT(gainX);
+  SERIALISE_ELEMENT(gainY);
+  SERIALISE_ELEMENT(foveaArea);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    GL.glTextureFoveationParametersQCOM(texture.name, layer, focalPoint, focalX, focalY, gainX,
+                                        gainY, foveaArea);
+
+    AddResourceInitChunk(texture);
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glTextureFoveationParametersQCOM(GLuint texture, GLuint layer, GLuint focalPoint,
+                                                     GLfloat focalX, GLfloat focalY, GLfloat gainX,
+                                                     GLfloat gainY, GLfloat foveaArea)
+{
+  SERIALISE_TIME_CALL(GL.glTextureFoveationParametersQCOM(texture, layer, focalPoint, focalX,
+                                                          focalY, gainX, gainY, foveaArea));
+
+  if(IsCaptureMode(m_State))
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+    RDCASSERT(record);
+
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glTextureFoveationParametersQCOM(ser, record->Resource.name, layer, focalPoint,
+                                               focalX, focalY, gainX, gainY, foveaArea);
+
+    if(IsActiveCapturing(m_State))
+    {
+      GetContextRecord()->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+    }
+    else
+    {
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 64)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
+    }
+  }
+}
+
 #pragma endregion
 
 INSTANTIATE_FUNCTION_SERIALISED(void, glGenTextures, GLsizei n, GLuint *textures);
@@ -6425,3 +6490,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glTextureBufferRangeEXT, GLuint texture, G
                                 GLsizeiptr size);
 INSTANTIATE_FUNCTION_SERIALISED(void, glTextureBufferEXT, GLuint texture, GLenum target,
                                 GLenum internalformat, GLuint buffer);
+INSTANTIATE_FUNCTION_SERIALISED(void, glTextureFoveationParametersQCOM, GLuint texture,
+                                GLuint layer, GLuint focalPoint, GLfloat focalX, GLfloat focalY,
+                                GLfloat gainX, GLfloat gainY, GLfloat foveaArea);

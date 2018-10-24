@@ -1006,6 +1006,7 @@
   FUNC(glStringMarkerGREMEDY, glStringMarkerGREMEDY); \
   FUNC(glFramebufferTextureMultiviewOVR, glFramebufferTextureMultiviewOVR); \
   FUNC(glFramebufferTextureMultisampleMultiviewOVR, glFramebufferTextureMultisampleMultiviewOVR); \
+  FUNC(glTextureFoveationParametersQCOM, glTextureFoveationParametersQCOM); \
   FUNC(glMaxShaderCompilerThreadsKHR, glMaxShaderCompilerThreadsKHR); \
   FUNC(glMaxShaderCompilerThreadsKHR, glMaxShaderCompilerThreadsARB); \
   FUNC(glSpecializeShader, glSpecializeShader); \
@@ -2253,6 +2254,7 @@
   FuncWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
   FuncWrapper6(void, glFramebufferTextureMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
   FuncWrapper7(void, glFramebufferTextureMultisampleMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLsizei, samples, GLint, baseViewIndex, GLsizei, numViews); \
+  FuncWrapper8(void, glTextureFoveationParametersQCOM, GLuint, texture, GLuint, layer, GLuint, focalPoint, GLfloat, focalX, GLfloat, focalY, GLfloat, gainX, GLfloat, gainY, GLfloat, foveaArea); \
   FuncWrapper1(void, glMaxShaderCompilerThreadsKHR, GLuint, count); \
   AliasWrapper1(void, glMaxShaderCompilerThreadsARB, glMaxShaderCompilerThreadsKHR, GLuint, count); \
   FuncWrapper5(void, glSpecializeShader, GLuint, shader, const GLchar *, pEntryPoint, GLuint, numSpecializationConstants, const GLuint *, pConstantIndex, const GLuint *, pConstantValue); \
@@ -2529,3851 +2531,3849 @@
 
 
 #define ForEachUnsupported(FUNC) \
-  FUNC(glPrimitiveBoundingBoxARB); \
-  FUNC(glGetTextureHandleARB); \
-  FUNC(glGetTextureSamplerHandleARB); \
-  FUNC(glMakeTextureHandleResidentARB); \
-  FUNC(glMakeTextureHandleNonResidentARB); \
-  FUNC(glGetImageHandleARB); \
-  FUNC(glMakeImageHandleResidentARB); \
-  FUNC(glMakeImageHandleNonResidentARB); \
-  FUNC(glUniformHandleui64ARB); \
-  FUNC(glUniformHandleui64vARB); \
-  FUNC(glProgramUniformHandleui64ARB); \
-  FUNC(glProgramUniformHandleui64vARB); \
-  FUNC(glIsTextureHandleResidentARB); \
-  FUNC(glIsImageHandleResidentARB); \
-  FUNC(glVertexAttribL1ui64ARB); \
-  FUNC(glVertexAttribL1ui64vARB); \
-  FUNC(glGetVertexAttribLui64vARB); \
-  FUNC(glCreateSyncFromCLeventARB); \
-  FUNC(glFramebufferTextureFaceARB); \
-  FUNC(glUniform1i64ARB); \
-  FUNC(glUniform2i64ARB); \
-  FUNC(glUniform3i64ARB); \
-  FUNC(glUniform4i64ARB); \
-  FUNC(glUniform1i64vARB); \
-  FUNC(glUniform2i64vARB); \
-  FUNC(glUniform3i64vARB); \
-  FUNC(glUniform4i64vARB); \
-  FUNC(glUniform1ui64ARB); \
-  FUNC(glUniform2ui64ARB); \
-  FUNC(glUniform3ui64ARB); \
-  FUNC(glUniform4ui64ARB); \
-  FUNC(glUniform1ui64vARB); \
-  FUNC(glUniform2ui64vARB); \
-  FUNC(glUniform3ui64vARB); \
-  FUNC(glUniform4ui64vARB); \
-  FUNC(glGetUniformi64vARB); \
-  FUNC(glGetUniformui64vARB); \
-  FUNC(glGetnUniformi64vARB); \
-  FUNC(glGetnUniformui64vARB); \
-  FUNC(glProgramUniform1i64ARB); \
-  FUNC(glProgramUniform2i64ARB); \
-  FUNC(glProgramUniform3i64ARB); \
-  FUNC(glProgramUniform4i64ARB); \
-  FUNC(glProgramUniform1i64vARB); \
-  FUNC(glProgramUniform2i64vARB); \
-  FUNC(glProgramUniform3i64vARB); \
-  FUNC(glProgramUniform4i64vARB); \
-  FUNC(glProgramUniform1ui64ARB); \
-  FUNC(glProgramUniform2ui64ARB); \
-  FUNC(glProgramUniform3ui64ARB); \
-  FUNC(glProgramUniform4ui64ARB); \
-  FUNC(glProgramUniform1ui64vARB); \
-  FUNC(glProgramUniform2ui64vARB); \
-  FUNC(glProgramUniform3ui64vARB); \
-  FUNC(glProgramUniform4ui64vARB); \
-  FUNC(glFramebufferSampleLocationsfvARB); \
-  FUNC(glNamedFramebufferSampleLocationsfvARB); \
-  FUNC(glEvaluateDepthValuesARB); \
-  FUNC(glBufferPageCommitmentARB); \
-  FUNC(glNamedBufferPageCommitmentEXT); \
-  FUNC(glNamedBufferPageCommitmentARB); \
-  FUNC(glTexPageCommitmentARB); \
-  FUNC(glGetPerfMonitorGroupsAMD); \
-  FUNC(glGetPerfMonitorCountersAMD); \
-  FUNC(glGetPerfMonitorGroupStringAMD); \
-  FUNC(glGetPerfMonitorCounterStringAMD); \
-  FUNC(glGetPerfMonitorCounterInfoAMD); \
-  FUNC(glGenPerfMonitorsAMD); \
-  FUNC(glDeletePerfMonitorsAMD); \
-  FUNC(glSelectPerfMonitorCountersAMD); \
-  FUNC(glBeginPerfMonitorAMD); \
-  FUNC(glEndPerfMonitorAMD); \
-  FUNC(glGetPerfMonitorCounterDataAMD); \
-  FUNC(glEGLImageTargetTexStorageEXT); \
-  FUNC(glEGLImageTargetTextureStorageEXT); \
-  FUNC(glMatrixLoadfEXT); \
-  FUNC(glMatrixLoaddEXT); \
-  FUNC(glMatrixMultfEXT); \
-  FUNC(glMatrixMultdEXT); \
-  FUNC(glMatrixLoadIdentityEXT); \
-  FUNC(glMatrixRotatefEXT); \
-  FUNC(glMatrixRotatedEXT); \
-  FUNC(glMatrixScalefEXT); \
-  FUNC(glMatrixScaledEXT); \
-  FUNC(glMatrixTranslatefEXT); \
-  FUNC(glMatrixTranslatedEXT); \
-  FUNC(glMatrixFrustumEXT); \
-  FUNC(glMatrixOrthoEXT); \
-  FUNC(glMatrixPopEXT); \
-  FUNC(glMatrixPushEXT); \
-  FUNC(glClientAttribDefaultEXT); \
-  FUNC(glPushClientAttribDefaultEXT); \
-  FUNC(glMultiTexCoordPointerEXT); \
-  FUNC(glMultiTexEnvfEXT); \
-  FUNC(glMultiTexEnvfvEXT); \
-  FUNC(glMultiTexEnviEXT); \
-  FUNC(glMultiTexEnvivEXT); \
-  FUNC(glMultiTexGendEXT); \
-  FUNC(glMultiTexGendvEXT); \
-  FUNC(glMultiTexGenfEXT); \
-  FUNC(glMultiTexGenfvEXT); \
-  FUNC(glMultiTexGeniEXT); \
-  FUNC(glMultiTexGenivEXT); \
-  FUNC(glGetMultiTexEnvfvEXT); \
-  FUNC(glGetMultiTexEnvivEXT); \
-  FUNC(glGetMultiTexGendvEXT); \
-  FUNC(glGetMultiTexGenfvEXT); \
-  FUNC(glGetMultiTexGenivEXT); \
-  FUNC(glEnableClientStateIndexedEXT); \
-  FUNC(glDisableClientStateIndexedEXT); \
-  FUNC(glMatrixLoadTransposefEXT); \
-  FUNC(glMatrixLoadTransposedEXT); \
-  FUNC(glMatrixMultTransposefEXT); \
-  FUNC(glMatrixMultTransposedEXT); \
-  FUNC(glNamedProgramLocalParameters4fvEXT); \
-  FUNC(glNamedProgramLocalParameterI4iEXT); \
-  FUNC(glNamedProgramLocalParameterI4ivEXT); \
-  FUNC(glNamedProgramLocalParametersI4ivEXT); \
-  FUNC(glNamedProgramLocalParameterI4uiEXT); \
-  FUNC(glNamedProgramLocalParameterI4uivEXT); \
-  FUNC(glNamedProgramLocalParametersI4uivEXT); \
-  FUNC(glGetNamedProgramLocalParameterIivEXT); \
-  FUNC(glGetNamedProgramLocalParameterIuivEXT); \
-  FUNC(glEnableClientStateiEXT); \
-  FUNC(glDisableClientStateiEXT); \
-  FUNC(glNamedProgramStringEXT); \
-  FUNC(glNamedProgramLocalParameter4dEXT); \
-  FUNC(glNamedProgramLocalParameter4dvEXT); \
-  FUNC(glNamedProgramLocalParameter4fEXT); \
-  FUNC(glNamedProgramLocalParameter4fvEXT); \
-  FUNC(glGetNamedProgramLocalParameterdvEXT); \
-  FUNC(glGetNamedProgramLocalParameterfvEXT); \
-  FUNC(glGetNamedProgramStringEXT); \
-  FUNC(glNamedRenderbufferStorageMultisampleCoverageEXT); \
-  FUNC(glNamedFramebufferTextureFaceEXT); \
-  FUNC(glTextureRenderbufferEXT); \
-  FUNC(glMultiTexRenderbufferEXT); \
-  FUNC(glVertexArrayVertexOffsetEXT); \
-  FUNC(glVertexArrayColorOffsetEXT); \
-  FUNC(glVertexArrayEdgeFlagOffsetEXT); \
-  FUNC(glVertexArrayIndexOffsetEXT); \
-  FUNC(glVertexArrayNormalOffsetEXT); \
-  FUNC(glVertexArrayTexCoordOffsetEXT); \
-  FUNC(glVertexArrayMultiTexCoordOffsetEXT); \
-  FUNC(glVertexArrayFogCoordOffsetEXT); \
-  FUNC(glVertexArraySecondaryColorOffsetEXT); \
-  FUNC(glEnableVertexArrayEXT); \
-  FUNC(glDisableVertexArrayEXT); \
-  FUNC(glTexturePageCommitmentEXT); \
-  FUNC(glUseShaderProgramEXT); \
-  FUNC(glActiveProgramEXT); \
-  FUNC(glCreateShaderProgramEXT); \
-  FUNC(glFramebufferFetchBarrierEXT); \
-  FUNC(glWindowRectanglesEXT); \
-  FUNC(glApplyFramebufferAttachmentCMAAINTEL); \
-  FUNC(glBeginPerfQueryINTEL); \
-  FUNC(glCreatePerfQueryINTEL); \
-  FUNC(glDeletePerfQueryINTEL); \
-  FUNC(glEndPerfQueryINTEL); \
-  FUNC(glGetFirstPerfQueryIdINTEL); \
-  FUNC(glGetNextPerfQueryIdINTEL); \
-  FUNC(glGetPerfCounterInfoINTEL); \
-  FUNC(glGetPerfQueryDataINTEL); \
-  FUNC(glGetPerfQueryIdByNameINTEL); \
-  FUNC(glGetPerfQueryInfoINTEL); \
-  FUNC(glMultiDrawArraysIndirectBindlessNV); \
-  FUNC(glMultiDrawElementsIndirectBindlessNV); \
-  FUNC(glMultiDrawArraysIndirectBindlessCountNV); \
-  FUNC(glMultiDrawElementsIndirectBindlessCountNV); \
-  FUNC(glGetTextureHandleNV); \
-  FUNC(glGetTextureSamplerHandleNV); \
-  FUNC(glMakeTextureHandleResidentNV); \
-  FUNC(glMakeTextureHandleNonResidentNV); \
-  FUNC(glGetImageHandleNV); \
-  FUNC(glMakeImageHandleResidentNV); \
-  FUNC(glMakeImageHandleNonResidentNV); \
-  FUNC(glUniformHandleui64NV); \
-  FUNC(glUniformHandleui64vNV); \
-  FUNC(glProgramUniformHandleui64NV); \
-  FUNC(glProgramUniformHandleui64vNV); \
-  FUNC(glIsTextureHandleResidentNV); \
-  FUNC(glIsImageHandleResidentNV); \
-  FUNC(glBlendParameteriNV); \
-  FUNC(glBlendBarrierNV); \
-  FUNC(glViewportPositionWScaleNV); \
-  FUNC(glCreateStatesNV); \
-  FUNC(glDeleteStatesNV); \
-  FUNC(glIsStateNV); \
-  FUNC(glStateCaptureNV); \
-  FUNC(glGetCommandHeaderNV); \
-  FUNC(glGetStageIndexNV); \
-  FUNC(glDrawCommandsNV); \
-  FUNC(glDrawCommandsAddressNV); \
-  FUNC(glDrawCommandsStatesNV); \
-  FUNC(glDrawCommandsStatesAddressNV); \
-  FUNC(glCreateCommandListsNV); \
-  FUNC(glDeleteCommandListsNV); \
-  FUNC(glIsCommandListNV); \
-  FUNC(glListDrawCommandsStatesClientNV); \
-  FUNC(glCommandListSegmentsNV); \
-  FUNC(glCompileCommandListNV); \
-  FUNC(glCallCommandListNV); \
-  FUNC(glBeginConditionalRenderNV); \
-  FUNC(glEndConditionalRenderNV); \
-  FUNC(glSubpixelPrecisionBiasNV); \
-  FUNC(glConservativeRasterParameterfNV); \
-  FUNC(glConservativeRasterParameteriNV); \
-  FUNC(glDrawVkImageNV); \
-  FUNC(glGetVkProcAddrNV); \
-  FUNC(glWaitVkSemaphoreNV); \
-  FUNC(glSignalVkSemaphoreNV); \
-  FUNC(glSignalVkFenceNV); \
-  FUNC(glFragmentCoverageColorNV); \
-  FUNC(glCoverageModulationTableNV); \
-  FUNC(glGetCoverageModulationTableNV); \
-  FUNC(glCoverageModulationNV); \
-  FUNC(glRenderbufferStorageMultisampleCoverageNV); \
-  FUNC(glUniform1i64NV); \
-  FUNC(glUniform2i64NV); \
-  FUNC(glUniform3i64NV); \
-  FUNC(glUniform4i64NV); \
-  FUNC(glUniform1i64vNV); \
-  FUNC(glUniform2i64vNV); \
-  FUNC(glUniform3i64vNV); \
-  FUNC(glUniform4i64vNV); \
-  FUNC(glUniform1ui64NV); \
-  FUNC(glUniform2ui64NV); \
-  FUNC(glUniform3ui64NV); \
-  FUNC(glUniform4ui64NV); \
-  FUNC(glUniform1ui64vNV); \
-  FUNC(glUniform2ui64vNV); \
-  FUNC(glUniform3ui64vNV); \
-  FUNC(glUniform4ui64vNV); \
-  FUNC(glGetUniformi64vNV); \
-  FUNC(glProgramUniform1i64NV); \
-  FUNC(glProgramUniform2i64NV); \
-  FUNC(glProgramUniform3i64NV); \
-  FUNC(glProgramUniform4i64NV); \
-  FUNC(glProgramUniform1i64vNV); \
-  FUNC(glProgramUniform2i64vNV); \
-  FUNC(glProgramUniform3i64vNV); \
-  FUNC(glProgramUniform4i64vNV); \
-  FUNC(glProgramUniform1ui64NV); \
-  FUNC(glProgramUniform2ui64NV); \
-  FUNC(glProgramUniform3ui64NV); \
-  FUNC(glProgramUniform4ui64NV); \
-  FUNC(glProgramUniform1ui64vNV); \
-  FUNC(glProgramUniform2ui64vNV); \
-  FUNC(glProgramUniform3ui64vNV); \
-  FUNC(glProgramUniform4ui64vNV); \
-  FUNC(glGetInternalformatSampleivNV); \
-  FUNC(glGenPathsNV); \
-  FUNC(glDeletePathsNV); \
-  FUNC(glIsPathNV); \
-  FUNC(glPathCommandsNV); \
-  FUNC(glPathCoordsNV); \
-  FUNC(glPathSubCommandsNV); \
-  FUNC(glPathSubCoordsNV); \
-  FUNC(glPathStringNV); \
-  FUNC(glPathGlyphsNV); \
-  FUNC(glPathGlyphRangeNV); \
-  FUNC(glWeightPathsNV); \
-  FUNC(glCopyPathNV); \
-  FUNC(glInterpolatePathsNV); \
-  FUNC(glTransformPathNV); \
-  FUNC(glPathParameterivNV); \
-  FUNC(glPathParameteriNV); \
-  FUNC(glPathParameterfvNV); \
-  FUNC(glPathParameterfNV); \
-  FUNC(glPathDashArrayNV); \
-  FUNC(glPathStencilFuncNV); \
-  FUNC(glPathStencilDepthOffsetNV); \
-  FUNC(glStencilFillPathNV); \
-  FUNC(glStencilStrokePathNV); \
-  FUNC(glStencilFillPathInstancedNV); \
-  FUNC(glStencilStrokePathInstancedNV); \
-  FUNC(glPathCoverDepthFuncNV); \
-  FUNC(glCoverFillPathNV); \
-  FUNC(glCoverStrokePathNV); \
-  FUNC(glCoverFillPathInstancedNV); \
-  FUNC(glCoverStrokePathInstancedNV); \
-  FUNC(glGetPathParameterivNV); \
-  FUNC(glGetPathParameterfvNV); \
-  FUNC(glGetPathCommandsNV); \
-  FUNC(glGetPathCoordsNV); \
-  FUNC(glGetPathDashArrayNV); \
-  FUNC(glGetPathMetricsNV); \
-  FUNC(glGetPathMetricRangeNV); \
-  FUNC(glGetPathSpacingNV); \
-  FUNC(glIsPointInFillPathNV); \
-  FUNC(glIsPointInStrokePathNV); \
-  FUNC(glGetPathLengthNV); \
-  FUNC(glPointAlongPathNV); \
-  FUNC(glMatrixLoad3x2fNV); \
-  FUNC(glMatrixLoad3x3fNV); \
-  FUNC(glMatrixLoadTranspose3x3fNV); \
-  FUNC(glMatrixMult3x2fNV); \
-  FUNC(glMatrixMult3x3fNV); \
-  FUNC(glMatrixMultTranspose3x3fNV); \
-  FUNC(glStencilThenCoverFillPathNV); \
-  FUNC(glStencilThenCoverStrokePathNV); \
-  FUNC(glStencilThenCoverFillPathInstancedNV); \
-  FUNC(glStencilThenCoverStrokePathInstancedNV); \
-  FUNC(glPathGlyphIndexRangeNV); \
-  FUNC(glPathGlyphIndexArrayNV); \
-  FUNC(glPathMemoryGlyphIndexArrayNV); \
-  FUNC(glProgramPathFragmentInputGenNV); \
-  FUNC(glGetProgramResourcefvNV); \
-  FUNC(glFramebufferSampleLocationsfvNV); \
-  FUNC(glNamedFramebufferSampleLocationsfvNV); \
-  FUNC(glResolveDepthValuesNV); \
-  FUNC(glMakeBufferResidentNV); \
-  FUNC(glMakeBufferNonResidentNV); \
-  FUNC(glIsBufferResidentNV); \
-  FUNC(glMakeNamedBufferResidentNV); \
-  FUNC(glMakeNamedBufferNonResidentNV); \
-  FUNC(glIsNamedBufferResidentNV); \
-  FUNC(glGetBufferParameterui64vNV); \
-  FUNC(glGetNamedBufferParameterui64vNV); \
-  FUNC(glGetIntegerui64vNV); \
-  FUNC(glUniformui64NV); \
-  FUNC(glUniformui64vNV); \
-  FUNC(glGetUniformui64vNV); \
-  FUNC(glProgramUniformui64NV); \
-  FUNC(glProgramUniformui64vNV); \
-  FUNC(glTextureBarrierNV); \
-  FUNC(glVertexAttribL1i64NV); \
-  FUNC(glVertexAttribL2i64NV); \
-  FUNC(glVertexAttribL3i64NV); \
-  FUNC(glVertexAttribL4i64NV); \
-  FUNC(glVertexAttribL1i64vNV); \
-  FUNC(glVertexAttribL2i64vNV); \
-  FUNC(glVertexAttribL3i64vNV); \
-  FUNC(glVertexAttribL4i64vNV); \
-  FUNC(glVertexAttribL1ui64NV); \
-  FUNC(glVertexAttribL2ui64NV); \
-  FUNC(glVertexAttribL3ui64NV); \
-  FUNC(glVertexAttribL4ui64NV); \
-  FUNC(glVertexAttribL1ui64vNV); \
-  FUNC(glVertexAttribL2ui64vNV); \
-  FUNC(glVertexAttribL3ui64vNV); \
-  FUNC(glVertexAttribL4ui64vNV); \
-  FUNC(glGetVertexAttribLi64vNV); \
-  FUNC(glGetVertexAttribLui64vNV); \
-  FUNC(glVertexAttribLFormatNV); \
-  FUNC(glBufferAddressRangeNV); \
-  FUNC(glVertexFormatNV); \
-  FUNC(glNormalFormatNV); \
-  FUNC(glColorFormatNV); \
-  FUNC(glIndexFormatNV); \
-  FUNC(glTexCoordFormatNV); \
-  FUNC(glEdgeFlagFormatNV); \
-  FUNC(glSecondaryColorFormatNV); \
-  FUNC(glFogCoordFormatNV); \
-  FUNC(glVertexAttribFormatNV); \
-  FUNC(glVertexAttribIFormatNV); \
-  FUNC(glGetIntegerui64i_vNV); \
-  FUNC(glViewportSwizzleNV); \
-  FUNC(glClientActiveTexture); \
-  FUNC(glMultiTexCoord1d); \
-  FUNC(glMultiTexCoord1dv); \
-  FUNC(glMultiTexCoord1f); \
-  FUNC(glMultiTexCoord1fv); \
-  FUNC(glMultiTexCoord1i); \
-  FUNC(glMultiTexCoord1iv); \
-  FUNC(glMultiTexCoord1s); \
-  FUNC(glMultiTexCoord1sv); \
-  FUNC(glMultiTexCoord2d); \
-  FUNC(glMultiTexCoord2dv); \
-  FUNC(glMultiTexCoord2f); \
-  FUNC(glMultiTexCoord2fv); \
-  FUNC(glMultiTexCoord2i); \
-  FUNC(glMultiTexCoord2iv); \
-  FUNC(glMultiTexCoord2s); \
-  FUNC(glMultiTexCoord2sv); \
-  FUNC(glMultiTexCoord3d); \
-  FUNC(glMultiTexCoord3dv); \
-  FUNC(glMultiTexCoord3f); \
-  FUNC(glMultiTexCoord3fv); \
-  FUNC(glMultiTexCoord3i); \
-  FUNC(glMultiTexCoord3iv); \
-  FUNC(glMultiTexCoord3s); \
-  FUNC(glMultiTexCoord3sv); \
-  FUNC(glMultiTexCoord4d); \
-  FUNC(glMultiTexCoord4dv); \
-  FUNC(glMultiTexCoord4f); \
-  FUNC(glMultiTexCoord4fv); \
-  FUNC(glMultiTexCoord4i); \
-  FUNC(glMultiTexCoord4iv); \
-  FUNC(glMultiTexCoord4s); \
-  FUNC(glMultiTexCoord4sv); \
-  FUNC(glLoadTransposeMatrixf); \
-  FUNC(glLoadTransposeMatrixd); \
-  FUNC(glMultTransposeMatrixf); \
-  FUNC(glMultTransposeMatrixd); \
-  FUNC(glFogCoordf); \
-  FUNC(glFogCoordfv); \
-  FUNC(glFogCoordd); \
-  FUNC(glFogCoorddv); \
-  FUNC(glFogCoordPointer); \
-  FUNC(glSecondaryColor3b); \
-  FUNC(glSecondaryColor3bv); \
-  FUNC(glSecondaryColor3d); \
-  FUNC(glSecondaryColor3dv); \
-  FUNC(glSecondaryColor3f); \
-  FUNC(glSecondaryColor3fv); \
-  FUNC(glSecondaryColor3i); \
-  FUNC(glSecondaryColor3iv); \
-  FUNC(glSecondaryColor3s); \
-  FUNC(glSecondaryColor3sv); \
-  FUNC(glSecondaryColor3ub); \
-  FUNC(glSecondaryColor3ubv); \
-  FUNC(glSecondaryColor3ui); \
-  FUNC(glSecondaryColor3uiv); \
-  FUNC(glSecondaryColor3us); \
-  FUNC(glSecondaryColor3usv); \
-  FUNC(glSecondaryColorPointer); \
-  FUNC(glWindowPos2d); \
-  FUNC(glWindowPos2dv); \
-  FUNC(glWindowPos2f); \
-  FUNC(glWindowPos2fv); \
-  FUNC(glWindowPos2i); \
-  FUNC(glWindowPos2iv); \
-  FUNC(glWindowPos2s); \
-  FUNC(glWindowPos2sv); \
-  FUNC(glWindowPos3d); \
-  FUNC(glWindowPos3dv); \
-  FUNC(glWindowPos3f); \
-  FUNC(glWindowPos3fv); \
-  FUNC(glWindowPos3i); \
-  FUNC(glWindowPos3iv); \
-  FUNC(glWindowPos3s); \
-  FUNC(glWindowPos3sv); \
-  FUNC(glVertexP2ui); \
-  FUNC(glVertexP2uiv); \
-  FUNC(glVertexP3ui); \
-  FUNC(glVertexP3uiv); \
-  FUNC(glVertexP4ui); \
-  FUNC(glVertexP4uiv); \
-  FUNC(glTexCoordP1ui); \
-  FUNC(glTexCoordP1uiv); \
-  FUNC(glTexCoordP2ui); \
-  FUNC(glTexCoordP2uiv); \
-  FUNC(glTexCoordP3ui); \
-  FUNC(glTexCoordP3uiv); \
-  FUNC(glTexCoordP4ui); \
-  FUNC(glTexCoordP4uiv); \
-  FUNC(glMultiTexCoordP1ui); \
-  FUNC(glMultiTexCoordP1uiv); \
-  FUNC(glMultiTexCoordP2ui); \
-  FUNC(glMultiTexCoordP2uiv); \
-  FUNC(glMultiTexCoordP3ui); \
-  FUNC(glMultiTexCoordP3uiv); \
-  FUNC(glMultiTexCoordP4ui); \
-  FUNC(glMultiTexCoordP4uiv); \
-  FUNC(glNormalP3ui); \
-  FUNC(glNormalP3uiv); \
-  FUNC(glColorP3ui); \
-  FUNC(glColorP3uiv); \
-  FUNC(glColorP4ui); \
-  FUNC(glColorP4uiv); \
-  FUNC(glSecondaryColorP3ui); \
-  FUNC(glSecondaryColorP3uiv); \
-  FUNC(glGetnMapdv); \
-  FUNC(glGetnMapfv); \
-  FUNC(glGetnMapiv); \
-  FUNC(glGetnPixelMapfv); \
-  FUNC(glGetnPixelMapuiv); \
-  FUNC(glGetnPixelMapusv); \
-  FUNC(glGetnPolygonStipple); \
-  FUNC(glGetnColorTable); \
-  FUNC(glGetnConvolutionFilter); \
-  FUNC(glGetnSeparableFilter); \
-  FUNC(glGetnHistogram); \
-  FUNC(glGetnMinmax); \
-  FUNC(glProgramStringARB); \
-  FUNC(glBindProgramARB); \
-  FUNC(glDeleteProgramsARB); \
-  FUNC(glGenProgramsARB); \
-  FUNC(glProgramEnvParameter4dARB); \
-  FUNC(glProgramEnvParameter4dvARB); \
-  FUNC(glProgramEnvParameter4fARB); \
-  FUNC(glProgramEnvParameter4fvARB); \
-  FUNC(glProgramLocalParameter4dARB); \
-  FUNC(glProgramLocalParameter4dvARB); \
-  FUNC(glProgramLocalParameter4fARB); \
-  FUNC(glProgramLocalParameter4fvARB); \
-  FUNC(glGetProgramEnvParameterdvARB); \
-  FUNC(glGetProgramEnvParameterfvARB); \
-  FUNC(glGetProgramLocalParameterdvARB); \
-  FUNC(glGetProgramLocalParameterfvARB); \
-  FUNC(glGetProgramivARB); \
-  FUNC(glGetProgramStringARB); \
-  FUNC(glIsProgramARB); \
-  FUNC(glColorTable); \
-  FUNC(glColorTableParameterfv); \
-  FUNC(glColorTableParameteriv); \
-  FUNC(glCopyColorTable); \
-  FUNC(glGetColorTable); \
-  FUNC(glGetColorTableParameterfv); \
-  FUNC(glGetColorTableParameteriv); \
-  FUNC(glColorSubTable); \
-  FUNC(glCopyColorSubTable); \
-  FUNC(glConvolutionFilter1D); \
-  FUNC(glConvolutionFilter2D); \
-  FUNC(glConvolutionParameterf); \
-  FUNC(glConvolutionParameterfv); \
-  FUNC(glConvolutionParameteri); \
-  FUNC(glConvolutionParameteriv); \
-  FUNC(glCopyConvolutionFilter1D); \
-  FUNC(glCopyConvolutionFilter2D); \
-  FUNC(glGetConvolutionFilter); \
-  FUNC(glGetConvolutionParameterfv); \
-  FUNC(glGetConvolutionParameteriv); \
-  FUNC(glGetSeparableFilter); \
-  FUNC(glSeparableFilter2D); \
-  FUNC(glGetHistogram); \
-  FUNC(glGetHistogramParameterfv); \
+  FUNC(glWindowPos4dMESA); \
   FUNC(glGetHistogramParameteriv); \
-  FUNC(glGetMinmax); \
-  FUNC(glGetMinmaxParameterfv); \
-  FUNC(glGetMinmaxParameteriv); \
-  FUNC(glHistogram); \
-  FUNC(glMinmax); \
-  FUNC(glResetHistogram); \
-  FUNC(glResetMinmax); \
-  FUNC(glCurrentPaletteMatrixARB); \
-  FUNC(glMatrixIndexubvARB); \
-  FUNC(glMatrixIndexusvARB); \
-  FUNC(glMatrixIndexuivARB); \
-  FUNC(glMatrixIndexPointerARB); \
-  FUNC(glClientActiveTextureARB); \
-  FUNC(glMultiTexCoord1dARB); \
-  FUNC(glMultiTexCoord1dvARB); \
-  FUNC(glMultiTexCoord1fARB); \
-  FUNC(glMultiTexCoord1fvARB); \
-  FUNC(glMultiTexCoord1iARB); \
-  FUNC(glMultiTexCoord1ivARB); \
-  FUNC(glMultiTexCoord1sARB); \
-  FUNC(glMultiTexCoord1svARB); \
-  FUNC(glMultiTexCoord2dARB); \
-  FUNC(glMultiTexCoord2dvARB); \
-  FUNC(glMultiTexCoord2fARB); \
-  FUNC(glMultiTexCoord2fvARB); \
-  FUNC(glMultiTexCoord2iARB); \
-  FUNC(glMultiTexCoord2ivARB); \
-  FUNC(glMultiTexCoord2sARB); \
-  FUNC(glMultiTexCoord2svARB); \
-  FUNC(glMultiTexCoord3dARB); \
-  FUNC(glMultiTexCoord3dvARB); \
-  FUNC(glMultiTexCoord3fARB); \
-  FUNC(glMultiTexCoord3fvARB); \
-  FUNC(glMultiTexCoord3iARB); \
-  FUNC(glMultiTexCoord3ivARB); \
-  FUNC(glMultiTexCoord3sARB); \
-  FUNC(glMultiTexCoord3svARB); \
-  FUNC(glMultiTexCoord4dARB); \
-  FUNC(glMultiTexCoord4dvARB); \
-  FUNC(glMultiTexCoord4fARB); \
-  FUNC(glMultiTexCoord4fvARB); \
-  FUNC(glMultiTexCoord4iARB); \
-  FUNC(glMultiTexCoord4ivARB); \
-  FUNC(glMultiTexCoord4sARB); \
-  FUNC(glMultiTexCoord4svARB); \
-  FUNC(glGetnMapdvARB); \
-  FUNC(glGetnMapfvARB); \
-  FUNC(glGetnMapivARB); \
-  FUNC(glGetnPixelMapfvARB); \
-  FUNC(glGetnPixelMapuivARB); \
-  FUNC(glGetnPixelMapusvARB); \
-  FUNC(glGetnPolygonStippleARB); \
-  FUNC(glGetnColorTableARB); \
-  FUNC(glGetnConvolutionFilterARB); \
-  FUNC(glGetnSeparableFilterARB); \
-  FUNC(glGetnHistogramARB); \
-  FUNC(glGetnMinmaxARB); \
-  FUNC(glDeleteObjectARB); \
-  FUNC(glGetHandleARB); \
-  FUNC(glDetachObjectARB); \
-  FUNC(glCreateShaderObjectARB); \
-  FUNC(glShaderSourceARB); \
-  FUNC(glCompileShaderARB); \
-  FUNC(glCreateProgramObjectARB); \
-  FUNC(glAttachObjectARB); \
-  FUNC(glLinkProgramARB); \
-  FUNC(glUseProgramObjectARB); \
-  FUNC(glValidateProgramARB); \
-  FUNC(glGetObjectParameterfvARB); \
-  FUNC(glGetObjectParameterivARB); \
-  FUNC(glGetInfoLogARB); \
-  FUNC(glGetAttachedObjectsARB); \
-  FUNC(glGetUniformLocationARB); \
-  FUNC(glGetActiveUniformARB); \
-  FUNC(glGetUniformfvARB); \
-  FUNC(glGetUniformivARB); \
-  FUNC(glGetShaderSourceARB); \
-  FUNC(glLoadTransposeMatrixfARB); \
-  FUNC(glLoadTransposeMatrixdARB); \
-  FUNC(glMultTransposeMatrixfARB); \
-  FUNC(glMultTransposeMatrixdARB); \
-  FUNC(glWeightbvARB); \
-  FUNC(glWeightsvARB); \
-  FUNC(glWeightivARB); \
-  FUNC(glWeightfvARB); \
-  FUNC(glWeightdvARB); \
-  FUNC(glWeightubvARB); \
-  FUNC(glWeightusvARB); \
-  FUNC(glWeightuivARB); \
-  FUNC(glWeightPointerARB); \
-  FUNC(glVertexBlendARB); \
-  FUNC(glVertexAttrib4NubARB); \
-  FUNC(glGetVertexAttribdvARB); \
-  FUNC(glGetVertexAttribfvARB); \
-  FUNC(glGetVertexAttribivARB); \
-  FUNC(glGetVertexAttribPointervARB); \
-  FUNC(glBindAttribLocationARB); \
-  FUNC(glGetActiveAttribARB); \
-  FUNC(glGetAttribLocationARB); \
-  FUNC(glWindowPos2dARB); \
-  FUNC(glWindowPos2dvARB); \
-  FUNC(glWindowPos2fARB); \
-  FUNC(glWindowPos2fvARB); \
-  FUNC(glWindowPos2iARB); \
-  FUNC(glWindowPos2ivARB); \
-  FUNC(glWindowPos2sARB); \
-  FUNC(glWindowPos2svARB); \
-  FUNC(glWindowPos3dARB); \
-  FUNC(glWindowPos3dvARB); \
-  FUNC(glWindowPos3fARB); \
-  FUNC(glWindowPos3fvARB); \
-  FUNC(glWindowPos3iARB); \
-  FUNC(glWindowPos3ivARB); \
-  FUNC(glWindowPos3sARB); \
-  FUNC(glWindowPos3svARB); \
-  FUNC(glMultiTexCoord1bOES); \
-  FUNC(glMultiTexCoord1bvOES); \
-  FUNC(glMultiTexCoord2bOES); \
-  FUNC(glMultiTexCoord2bvOES); \
-  FUNC(glMultiTexCoord3bOES); \
-  FUNC(glMultiTexCoord3bvOES); \
-  FUNC(glMultiTexCoord4bOES); \
-  FUNC(glMultiTexCoord4bvOES); \
-  FUNC(glTexCoord1bOES); \
-  FUNC(glTexCoord1bvOES); \
-  FUNC(glTexCoord2bOES); \
-  FUNC(glTexCoord2bvOES); \
-  FUNC(glTexCoord3bOES); \
-  FUNC(glTexCoord3bvOES); \
-  FUNC(glTexCoord4bOES); \
-  FUNC(glTexCoord4bvOES); \
-  FUNC(glVertex2bOES); \
-  FUNC(glVertex2bvOES); \
-  FUNC(glVertex3bOES); \
-  FUNC(glVertex3bvOES); \
-  FUNC(glVertex4bOES); \
-  FUNC(glVertex4bvOES); \
-  FUNC(glAlphaFuncxOES); \
-  FUNC(glClearColorxOES); \
-  FUNC(glClearDepthxOES); \
-  FUNC(glClipPlanexOES); \
-  FUNC(glColor4xOES); \
-  FUNC(glDepthRangexOES); \
-  FUNC(glFogxOES); \
-  FUNC(glFogxvOES); \
-  FUNC(glFrustumxOES); \
-  FUNC(glGetClipPlanexOES); \
-  FUNC(glGetFixedvOES); \
-  FUNC(glGetTexEnvxvOES); \
-  FUNC(glGetTexParameterxvOES); \
-  FUNC(glLightModelxOES); \
-  FUNC(glLightModelxvOES); \
-  FUNC(glLightxOES); \
-  FUNC(glLightxvOES); \
-  FUNC(glLineWidthxOES); \
-  FUNC(glLoadMatrixxOES); \
-  FUNC(glMaterialxOES); \
-  FUNC(glMaterialxvOES); \
-  FUNC(glMultMatrixxOES); \
-  FUNC(glMultiTexCoord4xOES); \
-  FUNC(glNormal3xOES); \
-  FUNC(glOrthoxOES); \
-  FUNC(glPointParameterxvOES); \
-  FUNC(glPointSizexOES); \
-  FUNC(glPolygonOffsetxOES); \
-  FUNC(glRotatexOES); \
-  FUNC(glScalexOES); \
-  FUNC(glTexEnvxOES); \
-  FUNC(glTexEnvxvOES); \
-  FUNC(glTexParameterxOES); \
-  FUNC(glTexParameterxvOES); \
-  FUNC(glTranslatexOES); \
-  FUNC(glAccumxOES); \
-  FUNC(glBitmapxOES); \
-  FUNC(glBlendColorxOES); \
-  FUNC(glClearAccumxOES); \
-  FUNC(glColor3xOES); \
-  FUNC(glColor3xvOES); \
-  FUNC(glColor4xvOES); \
-  FUNC(glConvolutionParameterxOES); \
-  FUNC(glConvolutionParameterxvOES); \
-  FUNC(glEvalCoord1xOES); \
-  FUNC(glEvalCoord1xvOES); \
-  FUNC(glEvalCoord2xOES); \
-  FUNC(glEvalCoord2xvOES); \
-  FUNC(glFeedbackBufferxOES); \
-  FUNC(glGetConvolutionParameterxvOES); \
-  FUNC(glGetHistogramParameterxvOES); \
-  FUNC(glGetLightxOES); \
-  FUNC(glGetMapxvOES); \
-  FUNC(glGetMaterialxOES); \
-  FUNC(glGetPixelMapxv); \
-  FUNC(glGetTexGenxvOES); \
-  FUNC(glGetTexLevelParameterxvOES); \
-  FUNC(glIndexxOES); \
-  FUNC(glIndexxvOES); \
-  FUNC(glLoadTransposeMatrixxOES); \
-  FUNC(glMap1xOES); \
-  FUNC(glMap2xOES); \
-  FUNC(glMapGrid1xOES); \
-  FUNC(glMapGrid2xOES); \
-  FUNC(glMultTransposeMatrixxOES); \
-  FUNC(glMultiTexCoord1xOES); \
-  FUNC(glMultiTexCoord1xvOES); \
-  FUNC(glMultiTexCoord2xOES); \
-  FUNC(glMultiTexCoord2xvOES); \
-  FUNC(glMultiTexCoord3xOES); \
-  FUNC(glMultiTexCoord3xvOES); \
-  FUNC(glMultiTexCoord4xvOES); \
-  FUNC(glNormal3xvOES); \
-  FUNC(glPassThroughxOES); \
-  FUNC(glPixelMapx); \
-  FUNC(glPixelStorex); \
-  FUNC(glPixelTransferxOES); \
-  FUNC(glPixelZoomxOES); \
-  FUNC(glPrioritizeTexturesxOES); \
-  FUNC(glRasterPos2xOES); \
-  FUNC(glRasterPos2xvOES); \
-  FUNC(glRasterPos3xOES); \
-  FUNC(glRasterPos3xvOES); \
-  FUNC(glRasterPos4xOES); \
-  FUNC(glRasterPos4xvOES); \
-  FUNC(glRectxOES); \
-  FUNC(glRectxvOES); \
-  FUNC(glTexCoord1xOES); \
-  FUNC(glTexCoord1xvOES); \
-  FUNC(glTexCoord2xOES); \
-  FUNC(glTexCoord2xvOES); \
-  FUNC(glTexCoord3xOES); \
-  FUNC(glTexCoord3xvOES); \
-  FUNC(glTexCoord4xOES); \
-  FUNC(glTexCoord4xvOES); \
-  FUNC(glTexGenxOES); \
-  FUNC(glTexGenxvOES); \
-  FUNC(glVertex2xOES); \
-  FUNC(glVertex2xvOES); \
-  FUNC(glVertex3xOES); \
-  FUNC(glVertex3xvOES); \
-  FUNC(glVertex4xOES); \
-  FUNC(glVertex4xvOES); \
-  FUNC(glQueryMatrixxOES); \
-  FUNC(glClearDepthfOES); \
-  FUNC(glClipPlanefOES); \
-  FUNC(glDepthRangefOES); \
-  FUNC(glFrustumfOES); \
-  FUNC(glGetClipPlanefOES); \
-  FUNC(glOrthofOES); \
-  FUNC(glTbufferMask3DFX); \
-  FUNC(glDebugMessageEnableAMD); \
-  FUNC(glDebugMessageInsertAMD); \
-  FUNC(glDebugMessageCallbackAMD); \
-  FUNC(glGetDebugMessageLogAMD); \
-  FUNC(glBlendFuncIndexedAMD); \
-  FUNC(glBlendFuncSeparateIndexedAMD); \
-  FUNC(glBlendEquationIndexedAMD); \
-  FUNC(glBlendEquationSeparateIndexedAMD); \
-  FUNC(glFramebufferSamplePositionsfvAMD); \
-  FUNC(glNamedFramebufferSamplePositionsfvAMD); \
-  FUNC(glGetFramebufferParameterfvAMD); \
-  FUNC(glGetNamedFramebufferParameterfvAMD); \
-  FUNC(glVertexAttribParameteriAMD); \
-  FUNC(glMultiDrawArraysIndirectAMD); \
-  FUNC(glMultiDrawElementsIndirectAMD); \
-  FUNC(glGenNamesAMD); \
-  FUNC(glDeleteNamesAMD); \
-  FUNC(glIsNameAMD); \
-  FUNC(glQueryObjectParameteruiAMD); \
-  FUNC(glSetMultisamplefvAMD); \
-  FUNC(glTexStorageSparseAMD); \
-  FUNC(glTextureStorageSparseAMD); \
-  FUNC(glStencilOpValueAMD); \
-  FUNC(glTessellationFactorAMD); \
-  FUNC(glTessellationModeAMD); \
-  FUNC(glElementPointerAPPLE); \
-  FUNC(glDrawElementArrayAPPLE); \
-  FUNC(glDrawRangeElementArrayAPPLE); \
-  FUNC(glMultiDrawElementArrayAPPLE); \
-  FUNC(glMultiDrawRangeElementArrayAPPLE); \
-  FUNC(glGenFencesAPPLE); \
-  FUNC(glDeleteFencesAPPLE); \
-  FUNC(glSetFenceAPPLE); \
-  FUNC(glIsFenceAPPLE); \
-  FUNC(glTestFenceAPPLE); \
-  FUNC(glFinishFenceAPPLE); \
-  FUNC(glTestObjectAPPLE); \
-  FUNC(glFinishObjectAPPLE); \
-  FUNC(glBufferParameteriAPPLE); \
-  FUNC(glFlushMappedBufferRangeAPPLE); \
-  FUNC(glObjectPurgeableAPPLE); \
-  FUNC(glObjectUnpurgeableAPPLE); \
-  FUNC(glGetObjectParameterivAPPLE); \
-  FUNC(glTextureRangeAPPLE); \
-  FUNC(glGetTexParameterPointervAPPLE); \
-  FUNC(glBindVertexArrayAPPLE); \
-  FUNC(glDeleteVertexArraysAPPLE); \
-  FUNC(glGenVertexArraysAPPLE); \
-  FUNC(glIsVertexArrayAPPLE); \
-  FUNC(glVertexArrayRangeAPPLE); \
-  FUNC(glFlushVertexArrayRangeAPPLE); \
-  FUNC(glVertexArrayParameteriAPPLE); \
-  FUNC(glEnableVertexAttribAPPLE); \
-  FUNC(glDisableVertexAttribAPPLE); \
-  FUNC(glIsVertexAttribEnabledAPPLE); \
-  FUNC(glMapVertexAttrib1dAPPLE); \
-  FUNC(glMapVertexAttrib1fAPPLE); \
-  FUNC(glMapVertexAttrib2dAPPLE); \
-  FUNC(glMapVertexAttrib2fAPPLE); \
-  FUNC(glDrawBuffersATI); \
-  FUNC(glElementPointerATI); \
-  FUNC(glDrawElementArrayATI); \
-  FUNC(glDrawRangeElementArrayATI); \
-  FUNC(glTexBumpParameterivATI); \
-  FUNC(glTexBumpParameterfvATI); \
-  FUNC(glGetTexBumpParameterivATI); \
-  FUNC(glGetTexBumpParameterfvATI); \
-  FUNC(glGenFragmentShadersATI); \
-  FUNC(glBindFragmentShaderATI); \
-  FUNC(glDeleteFragmentShaderATI); \
-  FUNC(glBeginFragmentShaderATI); \
-  FUNC(glEndFragmentShaderATI); \
-  FUNC(glPassTexCoordATI); \
-  FUNC(glSampleMapATI); \
-  FUNC(glColorFragmentOp1ATI); \
-  FUNC(glColorFragmentOp2ATI); \
-  FUNC(glColorFragmentOp3ATI); \
-  FUNC(glAlphaFragmentOp1ATI); \
-  FUNC(glAlphaFragmentOp2ATI); \
-  FUNC(glAlphaFragmentOp3ATI); \
-  FUNC(glSetFragmentShaderConstantATI); \
-  FUNC(glMapObjectBufferATI); \
-  FUNC(glUnmapObjectBufferATI); \
-  FUNC(glPNTrianglesiATI); \
-  FUNC(glPNTrianglesfATI); \
-  FUNC(glStencilOpSeparateATI); \
-  FUNC(glStencilFuncSeparateATI); \
-  FUNC(glNewObjectBufferATI); \
-  FUNC(glIsObjectBufferATI); \
-  FUNC(glUpdateObjectBufferATI); \
-  FUNC(glGetObjectBufferfvATI); \
-  FUNC(glGetObjectBufferivATI); \
-  FUNC(glFreeObjectBufferATI); \
-  FUNC(glArrayObjectATI); \
-  FUNC(glGetArrayObjectfvATI); \
-  FUNC(glGetArrayObjectivATI); \
-  FUNC(glVariantArrayObjectATI); \
-  FUNC(glGetVariantArrayObjectfvATI); \
-  FUNC(glGetVariantArrayObjectivATI); \
-  FUNC(glVertexAttribArrayObjectATI); \
-  FUNC(glGetVertexAttribArrayObjectfvATI); \
-  FUNC(glGetVertexAttribArrayObjectivATI); \
-  FUNC(glVertexStream1sATI); \
-  FUNC(glVertexStream1svATI); \
-  FUNC(glVertexStream1iATI); \
-  FUNC(glVertexStream1ivATI); \
-  FUNC(glVertexStream1fATI); \
-  FUNC(glVertexStream1fvATI); \
-  FUNC(glVertexStream1dATI); \
-  FUNC(glVertexStream1dvATI); \
-  FUNC(glVertexStream2sATI); \
-  FUNC(glVertexStream2svATI); \
-  FUNC(glVertexStream2iATI); \
-  FUNC(glVertexStream2ivATI); \
-  FUNC(glVertexStream2fATI); \
-  FUNC(glVertexStream2fvATI); \
-  FUNC(glVertexStream2dATI); \
-  FUNC(glVertexStream2dvATI); \
   FUNC(glVertexStream3sATI); \
+  FUNC(glGetProgramivNV); \
+  FUNC(glPathCommandsNV); \
+  FUNC(glUniformHandleui64NV); \
+  FUNC(glMultiTexCoord1hNV); \
+  FUNC(glMapVertexAttrib2fAPPLE); \
+  FUNC(glStartInstrumentsSGIX); \
+  FUNC(glMultiTexCoord1dvARB); \
+  FUNC(glVDPAUGetSurfaceivNV); \
+  FUNC(glSetInvariantEXT); \
+  FUNC(glOrthofOES); \
+  FUNC(glFrustumxOES); \
+  FUNC(glUniform3i64NV); \
+  FUNC(glExtGetBuffersQCOM); \
+  FUNC(glBinormal3bEXT); \
+  FUNC(glGlobalAlphaFactorusSUN); \
+  FUNC(glVertexStream2dATI); \
+  FUNC(glGetClipPlanexOES); \
+  FUNC(glTexGenf); \
+  FUNC(glDeleteCommandListsNV); \
+  FUNC(glResetHistogram); \
+  FUNC(glBufferAddressRangeNV); \
+  FUNC(glReplacementCodeuiTexCoord2fVertex3fSUN); \
+  FUNC(glNormal3b); \
+  FUNC(glWindowPos2d); \
+  FUNC(glTexCoord2bvOES); \
+  FUNC(glPolygonStipple); \
+  FUNC(glUniformBufferEXT); \
+  FUNC(glLightxvOES); \
+  FUNC(glWindowPos3dvARB); \
+  FUNC(glMultiTexCoord1xvOES); \
+  FUNC(glGetFragmentMaterialivSGIX); \
+  FUNC(glTexCoordP4ui); \
+  FUNC(glUniform2ui64NV); \
+  FUNC(glProgramParameter4fvNV); \
+  FUNC(glMultiDrawElementsIndirectEXT); \
+  FUNC(glMultiTexCoord1iv); \
+  FUNC(glStencilFuncSeparateATI); \
+  FUNC(glMap1f); \
+  FUNC(glGetHistogramParameterxvOES); \
+  FUNC(glActiveProgramEXT); \
+  FUNC(glVertexWeighthvNV); \
+  FUNC(glMultMatrixf); \
+  FUNC(glTexCoordP3uiv); \
+  FUNC(glDrawTransformFeedbackEXT); \
+  FUNC(glPixelTransformParameterivEXT); \
+  FUNC(glColor4hNV); \
+  FUNC(glCoverageModulationTableNV); \
+  FUNC(glPixelMapfv); \
+  FUNC(glBlendFuncIndexedAMD); \
+  FUNC(glDrawTextureNV); \
+  FUNC(glMultTransposeMatrixfARB); \
+  FUNC(glFramebufferSamplePositionsfvAMD); \
+  FUNC(glReplacementCodeuiColor4ubVertex3fvSUN); \
+  FUNC(glGetImageTransformParameterivHP); \
+  FUNC(glGenProgramsNV); \
+  FUNC(glMultiTexCoord2xOES); \
+  FUNC(glTexEnvxOES); \
+  FUNC(glTexGend); \
+  FUNC(glGetnPixelMapusvARB); \
+  FUNC(glVideoCaptureStreamParameterfvNV); \
+  FUNC(glLoadMatrixd); \
+  FUNC(glVertexArrayEdgeFlagOffsetEXT); \
+  FUNC(glNamedProgramLocalParameter4dEXT); \
+  FUNC(glMinmax); \
+  FUNC(glGetFirstPerfQueryIdINTEL); \
+  FUNC(glVertex4iv); \
+  FUNC(glTranslatexOES); \
+  FUNC(glTexImage3DMultisampleCoverageNV); \
+  FUNC(glTexCoord1iv); \
+  FUNC(glColor3s); \
+  FUNC(glMatrixMultTransposedEXT); \
+  FUNC(glQueryObjectParameteruiAMD); \
+  FUNC(glIsNamedBufferResidentNV); \
+  FUNC(glGetnMapivARB); \
+  FUNC(glGenVertexShadersEXT); \
+  FUNC(glMultiTexCoord3hvNV); \
+  FUNC(glPointParameteriNV); \
+  FUNC(glMaterialf); \
+  FUNC(glWeightPointerARB); \
+  FUNC(glColor4us); \
+  FUNC(glColorTableParameterfvSGI); \
+  FUNC(glWindowPos4ivMESA); \
+  FUNC(glMultiTexCoord1fv); \
+  FUNC(glLighti); \
+  FUNC(glBindLightParameterEXT); \
+  FUNC(glGetFramebufferParameterfvAMD); \
+  FUNC(glFinishAsyncSGIX); \
+  FUNC(glConvolutionParameterf); \
+  FUNC(glClearTexImageEXT); \
+  FUNC(glTexSubImage1DEXT); \
+  FUNC(glAreTexturesResident); \
+  FUNC(glTexEnvf); \
+  FUNC(glSecondaryColor3uiEXT); \
+  FUNC(glIsPointInFillPathNV); \
+  FUNC(glTexCoord2fColor4fNormal3fVertex3fvSUN); \
+  FUNC(glMatrixOrthoEXT); \
+  FUNC(glGetProgramLocalParameterIivNV); \
+  FUNC(glCopyBufferSubDataNV); \
+  FUNC(glGetnColorTable); \
+  FUNC(glMapGrid2xOES); \
+  FUNC(glTexCoordP1uiv); \
+  FUNC(glGetPathCoordsNV); \
+  FUNC(glVertexWeighthNV); \
+  FUNC(glDeleteVertexArraysAPPLE); \
+  FUNC(glColor4ui); \
+  FUNC(glTexCoord4fColor4fNormal3fVertex4fSUN); \
+  FUNC(glClipControlEXT); \
+  FUNC(glGetVertexAttribLui64vARB); \
+  FUNC(glVertexPointer); \
+  FUNC(glMakeBufferResidentNV); \
+  FUNC(glGetMaterialfv); \
+  FUNC(glColor3ui); \
+  FUNC(glVertexAttrib4fvNV); \
+  FUNC(glUniformui64NV); \
+  FUNC(glWeightivARB); \
+  FUNC(glProgramUniform1ui64vARB); \
+  FUNC(glProgramSubroutineParametersuivNV); \
+  FUNC(glStencilThenCoverFillPathInstancedNV); \
+  FUNC(glGetConvolutionParameterivEXT); \
+  FUNC(glVertexAttribL3i64vNV); \
+  FUNC(glWindowPos4svMESA); \
+  FUNC(glBlendParameteriNV); \
+  FUNC(glColor3fVertex3fSUN); \
+  FUNC(glCallList); \
+  FUNC(glMakeTextureHandleResidentARB); \
+  FUNC(glGetnPixelMapuiv); \
+  FUNC(glTessellationModeAMD); \
+  FUNC(glColorSubTableEXT); \
+  FUNC(glMakeTextureHandleResidentNV); \
+  FUNC(glMapVertexAttrib1fAPPLE); \
+  FUNC(glReadnPixelsKHR); \
+  FUNC(glBitmap); \
+  FUNC(glVertexAttrib1fvNV); \
+  FUNC(glGetHistogramParameterivEXT); \
+  FUNC(glGetNamedFramebufferParameterfvAMD); \
+  FUNC(glTexCoordPointervINTEL); \
+  FUNC(glColor3ubv); \
+  FUNC(glMatrixMultTranspose3x3fNV); \
+  FUNC(glUniform1ui64vNV); \
+  FUNC(glGetTexGendv); \
+  FUNC(glRenderMode); \
+  FUNC(glVertexStream4fvATI); \
+  FUNC(glGetTextureSamplerHandleNV); \
+  FUNC(glDepthRangexOES); \
+  FUNC(glSecondaryColor3hvNV); \
+  FUNC(glPollInstrumentsSGIX); \
+  FUNC(glWindowPos4sMESA); \
+  FUNC(glMatrixIndexubvARB); \
+  FUNC(glInitNames); \
+  FUNC(glVertexAttribL2ui64NV); \
+  FUNC(glEvalPoint2); \
+  FUNC(glIsFenceAPPLE); \
+  FUNC(glVertexAttrib2svNV); \
+  FUNC(glGetnConvolutionFilter); \
+  FUNC(glVertexAttrib2hNV); \
+  FUNC(glDrawCommandsStatesAddressNV); \
+  FUNC(glProgramUniform2i64ARB); \
+  FUNC(glDepthBoundsdNV); \
+  FUNC(glTexCoord3f); \
+  FUNC(glSpriteParameterivSGIX); \
+  FUNC(glVertexAttrib4ubvNV); \
+  FUNC(glGetCommandHeaderNV); \
+  FUNC(glMultiTexCoord1fARB); \
+  FUNC(glVertexAttrib1fNV); \
+  FUNC(glBindTextureEXT); \
+  FUNC(glTexCoord2iv); \
+  FUNC(glFramebufferTextureFaceEXT); \
+  FUNC(glMatrixMult3x3fNV); \
+  FUNC(glGetSeparableFilterEXT); \
+  FUNC(glDeletePerfQueryINTEL); \
+  FUNC(glPointAlongPathNV); \
+  FUNC(glLightxOES); \
+  FUNC(glMultiTexCoord4fARB); \
+  FUNC(glTexCoordPointerListIBM); \
+  FUNC(glTexCoord2fVertex3fSUN); \
+  FUNC(glRectxOES); \
+  FUNC(glLoadTransposeMatrixd); \
+  FUNC(glGetNamedProgramLocalParameterIuivEXT); \
+  FUNC(glVertexStream3fATI); \
+  FUNC(glMatrixFrustumEXT); \
+  FUNC(glProgramParameter4dvNV); \
+  FUNC(glVertex3f); \
+  FUNC(glUniform1ui64NV); \
+  FUNC(glVertexAttrib4hvNV); \
+  FUNC(glTextureRangeAPPLE); \
+  FUNC(glTexCoord3hNV); \
+  FUNC(glStateCaptureNV); \
+  FUNC(glPointParameterfvSGIS); \
+  FUNC(glReplacementCodePointerSUN); \
+  FUNC(glDeleteOcclusionQueriesNV); \
+  FUNC(glVertexP3ui); \
+  FUNC(glGetPerfMonitorCounterInfoAMD); \
+  FUNC(glGetMapControlPointsNV); \
+  FUNC(glRasterPos4sv); \
+  FUNC(glRasterPos3d); \
+  FUNC(glTexCoord4hvNV); \
+  FUNC(glNormal3dv); \
+  FUNC(glMultiTexCoord3hNV); \
+  FUNC(glResetHistogramEXT); \
+  FUNC(glSecondaryColor3uivEXT); \
+  FUNC(glGetVideoi64vNV); \
+  FUNC(glFogCoordhNV); \
+  FUNC(glGetDriverControlStringQCOM); \
+  FUNC(glVertexArrayParameteriAPPLE); \
+  FUNC(glSecondaryColor3usv); \
+  FUNC(glGetPerfQueryDataINTEL); \
+  FUNC(glProgramLocalParameterI4uivNV); \
+  FUNC(glReplacementCodeuiColor3fVertex3fvSUN); \
+  FUNC(glEvalCoord2xOES); \
+  FUNC(glSampleMaskEXT); \
+  FUNC(glWindowPos3fv); \
+  FUNC(glPathGlyphsNV); \
+  FUNC(glMultiTexRenderbufferEXT); \
+  FUNC(glMultiTexCoord3f); \
+  FUNC(glLGPUInterlockNVX); \
+  FUNC(glTexCoord3hvNV); \
+  FUNC(glVertexAttribL1ui64NV); \
+  FUNC(glBlendColorxOES); \
+  FUNC(glConvolutionParameterxvOES); \
+  FUNC(glFenceSyncAPPLE); \
+  FUNC(glEvalCoord2dv); \
+  FUNC(glEdgeFlag); \
+  FUNC(glGetColorTableEXT); \
+  FUNC(glListParameterfvSGIX); \
+  FUNC(glGetVaryingLocationNV); \
+  FUNC(glVertexArrayColorOffsetEXT); \
+  FUNC(glProgramEnvParameterI4uivNV); \
+  FUNC(glTexCoordP4uiv); \
   FUNC(glVertexStream3svATI); \
   FUNC(glVertexStream3iATI); \
-  FUNC(glVertexStream3ivATI); \
-  FUNC(glVertexStream3fATI); \
-  FUNC(glVertexStream3fvATI); \
-  FUNC(glVertexStream3dATI); \
-  FUNC(glVertexStream3dvATI); \
-  FUNC(glVertexStream4sATI); \
-  FUNC(glVertexStream4svATI); \
-  FUNC(glVertexStream4iATI); \
-  FUNC(glVertexStream4ivATI); \
-  FUNC(glVertexStream4fATI); \
-  FUNC(glVertexStream4fvATI); \
-  FUNC(glVertexStream4dATI); \
-  FUNC(glVertexStream4dvATI); \
-  FUNC(glNormalStream3bATI); \
-  FUNC(glNormalStream3bvATI); \
-  FUNC(glNormalStream3sATI); \
-  FUNC(glNormalStream3svATI); \
-  FUNC(glNormalStream3iATI); \
-  FUNC(glNormalStream3ivATI); \
-  FUNC(glNormalStream3fATI); \
-  FUNC(glNormalStream3fvATI); \
-  FUNC(glNormalStream3dATI); \
-  FUNC(glNormalStream3dvATI); \
-  FUNC(glClientActiveVertexStreamATI); \
-  FUNC(glVertexBlendEnviATI); \
-  FUNC(glVertexBlendEnvfATI); \
-  FUNC(glUniformBufferEXT); \
-  FUNC(glGetUniformBufferSizeEXT); \
-  FUNC(glGetUniformOffsetEXT); \
-  FUNC(glBlendFuncSeparateEXT); \
-  FUNC(glColorSubTableEXT); \
-  FUNC(glCopyColorSubTableEXT); \
-  FUNC(glLockArraysEXT); \
-  FUNC(glUnlockArraysEXT); \
-  FUNC(glConvolutionFilter1DEXT); \
-  FUNC(glConvolutionFilter2DEXT); \
-  FUNC(glConvolutionParameterfEXT); \
-  FUNC(glConvolutionParameterfvEXT); \
-  FUNC(glConvolutionParameteriEXT); \
-  FUNC(glConvolutionParameterivEXT); \
-  FUNC(glCopyConvolutionFilter1DEXT); \
-  FUNC(glCopyConvolutionFilter2DEXT); \
-  FUNC(glGetConvolutionFilterEXT); \
-  FUNC(glGetConvolutionParameterfvEXT); \
-  FUNC(glGetConvolutionParameterivEXT); \
-  FUNC(glGetSeparableFilterEXT); \
-  FUNC(glSeparableFilter2DEXT); \
-  FUNC(glTangent3bEXT); \
-  FUNC(glTangent3bvEXT); \
-  FUNC(glTangent3dEXT); \
-  FUNC(glTangent3dvEXT); \
-  FUNC(glTangent3fEXT); \
-  FUNC(glTangent3fvEXT); \
-  FUNC(glTangent3iEXT); \
-  FUNC(glTangent3ivEXT); \
-  FUNC(glTangent3sEXT); \
-  FUNC(glTangent3svEXT); \
-  FUNC(glBinormal3bEXT); \
-  FUNC(glBinormal3bvEXT); \
-  FUNC(glBinormal3dEXT); \
-  FUNC(glBinormal3dvEXT); \
-  FUNC(glBinormal3fEXT); \
-  FUNC(glBinormal3fvEXT); \
-  FUNC(glBinormal3iEXT); \
-  FUNC(glBinormal3ivEXT); \
-  FUNC(glBinormal3sEXT); \
-  FUNC(glBinormal3svEXT); \
-  FUNC(glTangentPointerEXT); \
-  FUNC(glBinormalPointerEXT); \
-  FUNC(glCopyTexImage1DEXT); \
-  FUNC(glCopyTexImage2DEXT); \
-  FUNC(glCopyTexSubImage1DEXT); \
-  FUNC(glCopyTexSubImage2DEXT); \
-  FUNC(glCopyTexSubImage3DEXT); \
-  FUNC(glCullParameterdvEXT); \
-  FUNC(glCullParameterfvEXT); \
-  FUNC(glBufferStorageExternalEXT); \
-  FUNC(glNamedBufferStorageExternalEXT); \
-  FUNC(glFogCoordfEXT); \
-  FUNC(glFogCoordfvEXT); \
-  FUNC(glFogCoorddEXT); \
-  FUNC(glFogCoorddvEXT); \
-  FUNC(glFogCoordPointerEXT); \
-  FUNC(glProgramEnvParameters4fvEXT); \
-  FUNC(glProgramLocalParameters4fvEXT); \
-  FUNC(glGetHistogramEXT); \
-  FUNC(glGetHistogramParameterfvEXT); \
-  FUNC(glGetHistogramParameterivEXT); \
-  FUNC(glGetMinmaxEXT); \
-  FUNC(glGetMinmaxParameterfvEXT); \
-  FUNC(glGetMinmaxParameterivEXT); \
-  FUNC(glHistogramEXT); \
-  FUNC(glMinmaxEXT); \
-  FUNC(glResetHistogramEXT); \
-  FUNC(glResetMinmaxEXT); \
-  FUNC(glIndexFuncEXT); \
-  FUNC(glIndexMaterialEXT); \
-  FUNC(glApplyTextureEXT); \
-  FUNC(glTextureLightEXT); \
-  FUNC(glTextureMaterialEXT); \
-  FUNC(glMultiDrawElementsEXT); \
-  FUNC(glSampleMaskEXT); \
-  FUNC(glSamplePatternEXT); \
-  FUNC(glColorTableEXT); \
-  FUNC(glGetColorTableEXT); \
-  FUNC(glGetColorTableParameterivEXT); \
-  FUNC(glGetColorTableParameterfvEXT); \
-  FUNC(glPixelTransformParameteriEXT); \
-  FUNC(glPixelTransformParameterfEXT); \
-  FUNC(glPixelTransformParameterivEXT); \
-  FUNC(glPixelTransformParameterfvEXT); \
-  FUNC(glGetPixelTransformParameterivEXT); \
-  FUNC(glGetPixelTransformParameterfvEXT); \
-  FUNC(glPolygonOffsetEXT); \
-  FUNC(glSecondaryColor3bEXT); \
-  FUNC(glSecondaryColor3bvEXT); \
-  FUNC(glSecondaryColor3dEXT); \
-  FUNC(glSecondaryColor3dvEXT); \
-  FUNC(glSecondaryColor3fEXT); \
-  FUNC(glSecondaryColor3fvEXT); \
-  FUNC(glSecondaryColor3iEXT); \
-  FUNC(glSecondaryColor3ivEXT); \
-  FUNC(glSecondaryColor3sEXT); \
-  FUNC(glSecondaryColor3svEXT); \
-  FUNC(glSecondaryColor3ubEXT); \
-  FUNC(glSecondaryColor3ubvEXT); \
-  FUNC(glSecondaryColor3uiEXT); \
-  FUNC(glSecondaryColor3uivEXT); \
-  FUNC(glSecondaryColor3usEXT); \
-  FUNC(glSecondaryColor3usvEXT); \
-  FUNC(glSecondaryColorPointerEXT); \
-  FUNC(glStencilClearTagEXT); \
-  FUNC(glActiveStencilFaceEXT); \
-  FUNC(glTexSubImage1DEXT); \
-  FUNC(glTexSubImage2DEXT); \
-  FUNC(glTexSubImage3DEXT); \
-  FUNC(glClearColorIiEXT); \
-  FUNC(glClearColorIuiEXT); \
-  FUNC(glAreTexturesResidentEXT); \
-  FUNC(glBindTextureEXT); \
-  FUNC(glDeleteTexturesEXT); \
-  FUNC(glGenTexturesEXT); \
-  FUNC(glIsTextureEXT); \
-  FUNC(glPrioritizeTexturesEXT); \
-  FUNC(glTextureNormalEXT); \
-  FUNC(glBindBufferOffsetEXT); \
-  FUNC(glArrayElementEXT); \
-  FUNC(glColorPointerEXT); \
-  FUNC(glDrawArraysEXT); \
-  FUNC(glEdgeFlagPointerEXT); \
-  FUNC(glGetPointervEXT); \
-  FUNC(glIndexPointerEXT); \
-  FUNC(glNormalPointerEXT); \
-  FUNC(glTexCoordPointerEXT); \
-  FUNC(glVertexPointerEXT); \
-  FUNC(glBeginVertexShaderEXT); \
-  FUNC(glEndVertexShaderEXT); \
-  FUNC(glBindVertexShaderEXT); \
-  FUNC(glGenVertexShadersEXT); \
-  FUNC(glDeleteVertexShaderEXT); \
-  FUNC(glShaderOp1EXT); \
-  FUNC(glShaderOp2EXT); \
-  FUNC(glShaderOp3EXT); \
-  FUNC(glSwizzleEXT); \
-  FUNC(glWriteMaskEXT); \
-  FUNC(glInsertComponentEXT); \
-  FUNC(glExtractComponentEXT); \
-  FUNC(glGenSymbolsEXT); \
-  FUNC(glSetInvariantEXT); \
-  FUNC(glSetLocalConstantEXT); \
-  FUNC(glVariantbvEXT); \
-  FUNC(glVariantsvEXT); \
-  FUNC(glVariantivEXT); \
-  FUNC(glVariantfvEXT); \
-  FUNC(glVariantdvEXT); \
-  FUNC(glVariantubvEXT); \
-  FUNC(glVariantusvEXT); \
-  FUNC(glVariantuivEXT); \
-  FUNC(glVariantPointerEXT); \
-  FUNC(glEnableVariantClientStateEXT); \
-  FUNC(glDisableVariantClientStateEXT); \
-  FUNC(glBindLightParameterEXT); \
-  FUNC(glBindMaterialParameterEXT); \
-  FUNC(glBindTexGenParameterEXT); \
-  FUNC(glBindTextureUnitParameterEXT); \
-  FUNC(glBindParameterEXT); \
-  FUNC(glIsVariantEnabledEXT); \
-  FUNC(glGetVariantBooleanvEXT); \
-  FUNC(glGetVariantIntegervEXT); \
-  FUNC(glGetVariantFloatvEXT); \
-  FUNC(glGetVariantPointervEXT); \
-  FUNC(glGetInvariantBooleanvEXT); \
-  FUNC(glGetInvariantIntegervEXT); \
-  FUNC(glGetInvariantFloatvEXT); \
-  FUNC(glGetLocalConstantBooleanvEXT); \
-  FUNC(glGetLocalConstantIntegervEXT); \
-  FUNC(glGetLocalConstantFloatvEXT); \
-  FUNC(glVertexWeightfEXT); \
-  FUNC(glVertexWeightfvEXT); \
-  FUNC(glVertexWeightPointerEXT); \
-  FUNC(glImportSyncEXT); \
-  FUNC(glImageTransformParameteriHP); \
-  FUNC(glImageTransformParameterfHP); \
-  FUNC(glImageTransformParameterivHP); \
-  FUNC(glImageTransformParameterfvHP); \
-  FUNC(glGetImageTransformParameterivHP); \
-  FUNC(glGetImageTransformParameterfvHP); \
-  FUNC(glMultiModeDrawArraysIBM); \
-  FUNC(glMultiModeDrawElementsIBM); \
-  FUNC(glFlushStaticDataIBM); \
-  FUNC(glColorPointerListIBM); \
-  FUNC(glSecondaryColorPointerListIBM); \
-  FUNC(glEdgeFlagPointerListIBM); \
-  FUNC(glFogCoordPointerListIBM); \
-  FUNC(glIndexPointerListIBM); \
-  FUNC(glNormalPointerListIBM); \
-  FUNC(glTexCoordPointerListIBM); \
-  FUNC(glVertexPointerListIBM); \
-  FUNC(glBlendFuncSeparateINGR); \
-  FUNC(glSyncTextureINTEL); \
-  FUNC(glUnmapTexture2DINTEL); \
-  FUNC(glMapTexture2DINTEL); \
-  FUNC(glVertexPointervINTEL); \
-  FUNC(glNormalPointervINTEL); \
-  FUNC(glColorPointervINTEL); \
-  FUNC(glTexCoordPointervINTEL); \
-  FUNC(glResizeBuffersMESA); \
-  FUNC(glWindowPos2dMESA); \
-  FUNC(glWindowPos2dvMESA); \
-  FUNC(glWindowPos2fMESA); \
-  FUNC(glWindowPos2fvMESA); \
-  FUNC(glWindowPos2iMESA); \
-  FUNC(glWindowPos2ivMESA); \
-  FUNC(glWindowPos2sMESA); \
-  FUNC(glWindowPos2svMESA); \
-  FUNC(glWindowPos3dMESA); \
-  FUNC(glWindowPos3dvMESA); \
-  FUNC(glWindowPos3fMESA); \
-  FUNC(glWindowPos3fvMESA); \
-  FUNC(glWindowPos3iMESA); \
-  FUNC(glWindowPos3ivMESA); \
-  FUNC(glWindowPos3sMESA); \
-  FUNC(glWindowPos3svMESA); \
-  FUNC(glWindowPos4dMESA); \
-  FUNC(glWindowPos4dvMESA); \
-  FUNC(glWindowPos4fMESA); \
-  FUNC(glWindowPos4fvMESA); \
-  FUNC(glWindowPos4iMESA); \
-  FUNC(glWindowPos4ivMESA); \
-  FUNC(glWindowPos4sMESA); \
-  FUNC(glWindowPos4svMESA); \
-  FUNC(glBeginConditionalRenderNVX); \
-  FUNC(glEndConditionalRenderNVX); \
-  FUNC(glLGPUNamedBufferSubDataNVX); \
-  FUNC(glLGPUCopyImageSubDataNVX); \
-  FUNC(glLGPUInterlockNVX); \
-  FUNC(glAlphaToCoverageDitherControlNV); \
-  FUNC(glCopyImageSubDataNV); \
-  FUNC(glDepthRangedNV); \
-  FUNC(glClearDepthdNV); \
-  FUNC(glDepthBoundsdNV); \
-  FUNC(glDrawTextureNV); \
-  FUNC(glMapControlPointsNV); \
-  FUNC(glMapParameterivNV); \
-  FUNC(glMapParameterfvNV); \
-  FUNC(glGetMapControlPointsNV); \
-  FUNC(glGetMapParameterivNV); \
-  FUNC(glGetMapParameterfvNV); \
-  FUNC(glGetMapAttribParameterivNV); \
-  FUNC(glGetMapAttribParameterfvNV); \
-  FUNC(glEvalMapsNV); \
-  FUNC(glGetMultisamplefvNV); \
-  FUNC(glSampleMaskIndexedNV); \
-  FUNC(glTexRenderbufferNV); \
-  FUNC(glDeleteFencesNV); \
-  FUNC(glGenFencesNV); \
-  FUNC(glIsFenceNV); \
-  FUNC(glTestFenceNV); \
-  FUNC(glGetFenceivNV); \
-  FUNC(glFinishFenceNV); \
-  FUNC(glSetFenceNV); \
-  FUNC(glProgramNamedParameter4fNV); \
-  FUNC(glProgramNamedParameter4fvNV); \
-  FUNC(glProgramNamedParameter4dNV); \
-  FUNC(glProgramNamedParameter4dvNV); \
-  FUNC(glGetProgramNamedParameterfvNV); \
-  FUNC(glGetProgramNamedParameterdvNV); \
-  FUNC(glProgramVertexLimitNV); \
-  FUNC(glFramebufferTextureFaceEXT); \
-  FUNC(glRenderGpuMaskNV); \
-  FUNC(glMulticastBufferSubDataNV); \
-  FUNC(glMulticastCopyBufferSubDataNV); \
-  FUNC(glMulticastCopyImageSubDataNV); \
   FUNC(glMulticastBlitFramebufferNV); \
-  FUNC(glMulticastFramebufferSampleLocationsfvNV); \
-  FUNC(glMulticastBarrierNV); \
-  FUNC(glMulticastWaitSyncNV); \
-  FUNC(glMulticastGetQueryObjectivNV); \
-  FUNC(glMulticastGetQueryObjectuivNV); \
-  FUNC(glMulticastGetQueryObjecti64vNV); \
-  FUNC(glMulticastGetQueryObjectui64vNV); \
-  FUNC(glProgramLocalParameterI4iNV); \
-  FUNC(glProgramLocalParameterI4ivNV); \
-  FUNC(glProgramLocalParametersI4ivNV); \
-  FUNC(glProgramLocalParameterI4uiNV); \
-  FUNC(glProgramLocalParameterI4uivNV); \
-  FUNC(glProgramLocalParametersI4uivNV); \
-  FUNC(glProgramEnvParameterI4iNV); \
-  FUNC(glProgramEnvParameterI4ivNV); \
-  FUNC(glProgramEnvParametersI4ivNV); \
-  FUNC(glProgramEnvParameterI4uiNV); \
-  FUNC(glProgramEnvParameterI4uivNV); \
-  FUNC(glProgramEnvParametersI4uivNV); \
-  FUNC(glGetProgramLocalParameterIivNV); \
-  FUNC(glGetProgramLocalParameterIuivNV); \
-  FUNC(glGetProgramEnvParameterIivNV); \
-  FUNC(glGetProgramEnvParameterIuivNV); \
-  FUNC(glProgramSubroutineParametersuivNV); \
-  FUNC(glGetProgramSubroutineParameteruivNV); \
-  FUNC(glVertex2hNV); \
-  FUNC(glVertex2hvNV); \
-  FUNC(glVertex3hNV); \
-  FUNC(glVertex3hvNV); \
-  FUNC(glVertex4hNV); \
-  FUNC(glVertex4hvNV); \
-  FUNC(glNormal3hNV); \
-  FUNC(glNormal3hvNV); \
-  FUNC(glColor3hNV); \
-  FUNC(glColor3hvNV); \
-  FUNC(glColor4hNV); \
-  FUNC(glColor4hvNV); \
-  FUNC(glTexCoord1hNV); \
-  FUNC(glTexCoord1hvNV); \
-  FUNC(glTexCoord2hNV); \
-  FUNC(glTexCoord2hvNV); \
-  FUNC(glTexCoord3hNV); \
-  FUNC(glTexCoord3hvNV); \
-  FUNC(glTexCoord4hNV); \
-  FUNC(glTexCoord4hvNV); \
-  FUNC(glMultiTexCoord1hNV); \
-  FUNC(glMultiTexCoord1hvNV); \
-  FUNC(glMultiTexCoord2hNV); \
-  FUNC(glMultiTexCoord2hvNV); \
-  FUNC(glMultiTexCoord3hNV); \
-  FUNC(glMultiTexCoord3hvNV); \
-  FUNC(glMultiTexCoord4hNV); \
-  FUNC(glMultiTexCoord4hvNV); \
-  FUNC(glFogCoordhNV); \
-  FUNC(glFogCoordhvNV); \
-  FUNC(glSecondaryColor3hNV); \
-  FUNC(glSecondaryColor3hvNV); \
-  FUNC(glVertexWeighthNV); \
-  FUNC(glVertexWeighthvNV); \
-  FUNC(glVertexAttrib1hNV); \
-  FUNC(glVertexAttrib1hvNV); \
-  FUNC(glVertexAttrib2hNV); \
-  FUNC(glVertexAttrib2hvNV); \
-  FUNC(glVertexAttrib3hNV); \
-  FUNC(glVertexAttrib3hvNV); \
-  FUNC(glVertexAttrib4hNV); \
-  FUNC(glVertexAttrib4hvNV); \
-  FUNC(glVertexAttribs1hvNV); \
-  FUNC(glVertexAttribs2hvNV); \
-  FUNC(glVertexAttribs3hvNV); \
-  FUNC(glVertexAttribs4hvNV); \
-  FUNC(glGenOcclusionQueriesNV); \
-  FUNC(glDeleteOcclusionQueriesNV); \
-  FUNC(glIsOcclusionQueryNV); \
-  FUNC(glBeginOcclusionQueryNV); \
-  FUNC(glEndOcclusionQueryNV); \
-  FUNC(glGetOcclusionQueryivNV); \
-  FUNC(glGetOcclusionQueryuivNV); \
-  FUNC(glProgramBufferParametersfvNV); \
-  FUNC(glProgramBufferParametersIivNV); \
-  FUNC(glProgramBufferParametersIuivNV); \
-  FUNC(glPathColorGenNV); \
-  FUNC(glPathTexGenNV); \
-  FUNC(glPathFogGenNV); \
-  FUNC(glGetPathColorGenivNV); \
-  FUNC(glGetPathColorGenfvNV); \
-  FUNC(glGetPathTexGenivNV); \
-  FUNC(glGetPathTexGenfvNV); \
-  FUNC(glPixelDataRangeNV); \
-  FUNC(glFlushPixelDataRangeNV); \
-  FUNC(glPointParameteriNV); \
-  FUNC(glPointParameterivNV); \
-  FUNC(glPresentFrameKeyedNV); \
-  FUNC(glPresentFrameDualFillNV); \
-  FUNC(glGetVideoivNV); \
-  FUNC(glGetVideouivNV); \
-  FUNC(glGetVideoi64vNV); \
-  FUNC(glGetVideoui64vNV); \
-  FUNC(glPrimitiveRestartNV); \
-  FUNC(glPrimitiveRestartIndexNV); \
-  FUNC(glQueryResourceNV); \
-  FUNC(glGenQueryResourceTagNV); \
-  FUNC(glDeleteQueryResourceTagNV); \
-  FUNC(glQueryResourceTagNV); \
-  FUNC(glCombinerParameterfvNV); \
-  FUNC(glCombinerParameterfNV); \
-  FUNC(glCombinerParameterivNV); \
-  FUNC(glCombinerParameteriNV); \
-  FUNC(glCombinerInputNV); \
-  FUNC(glCombinerOutputNV); \
-  FUNC(glFinalCombinerInputNV); \
-  FUNC(glGetCombinerInputParameterfvNV); \
-  FUNC(glGetCombinerInputParameterivNV); \
-  FUNC(glGetCombinerOutputParameterfvNV); \
-  FUNC(glGetCombinerOutputParameterivNV); \
-  FUNC(glGetFinalCombinerInputParameterfvNV); \
-  FUNC(glGetFinalCombinerInputParameterivNV); \
-  FUNC(glCombinerStageParameterfvNV); \
-  FUNC(glGetCombinerStageParameterfvNV); \
-  FUNC(glTexImage2DMultisampleCoverageNV); \
-  FUNC(glTexImage3DMultisampleCoverageNV); \
-  FUNC(glTextureImage2DMultisampleNV); \
-  FUNC(glTextureImage3DMultisampleNV); \
-  FUNC(glTextureImage2DMultisampleCoverageNV); \
-  FUNC(glTextureImage3DMultisampleCoverageNV); \
-  FUNC(glBeginTransformFeedbackNV); \
-  FUNC(glEndTransformFeedbackNV); \
-  FUNC(glTransformFeedbackAttribsNV); \
-  FUNC(glBindBufferRangeNV); \
-  FUNC(glBindBufferOffsetNV); \
-  FUNC(glBindBufferBaseNV); \
-  FUNC(glTransformFeedbackVaryingsNV); \
-  FUNC(glActiveVaryingNV); \
-  FUNC(glGetVaryingLocationNV); \
-  FUNC(glGetActiveVaryingNV); \
-  FUNC(glGetTransformFeedbackVaryingNV); \
-  FUNC(glTransformFeedbackStreamAttribsNV); \
-  FUNC(glBindTransformFeedbackNV); \
-  FUNC(glDeleteTransformFeedbacksNV); \
-  FUNC(glGenTransformFeedbacksNV); \
-  FUNC(glIsTransformFeedbackNV); \
-  FUNC(glPauseTransformFeedbackNV); \
-  FUNC(glResumeTransformFeedbackNV); \
-  FUNC(glDrawTransformFeedbackNV); \
-  FUNC(glVDPAUInitNV); \
-  FUNC(glVDPAUFiniNV); \
-  FUNC(glVDPAURegisterVideoSurfaceNV); \
-  FUNC(glVDPAURegisterOutputSurfaceNV); \
-  FUNC(glVDPAUIsSurfaceNV); \
-  FUNC(glVDPAUUnregisterSurfaceNV); \
-  FUNC(glVDPAUGetSurfaceivNV); \
-  FUNC(glVDPAUSurfaceAccessNV); \
-  FUNC(glVDPAUMapSurfacesNV); \
-  FUNC(glVDPAUUnmapSurfacesNV); \
-  FUNC(glFlushVertexArrayRangeNV); \
-  FUNC(glVertexArrayRangeNV); \
-  FUNC(glAreProgramsResidentNV); \
-  FUNC(glBindProgramNV); \
-  FUNC(glDeleteProgramsNV); \
-  FUNC(glExecuteProgramNV); \
-  FUNC(glGenProgramsNV); \
-  FUNC(glGetProgramParameterdvNV); \
-  FUNC(glGetProgramParameterfvNV); \
-  FUNC(glGetProgramivNV); \
-  FUNC(glGetProgramStringNV); \
-  FUNC(glGetTrackMatrixivNV); \
-  FUNC(glGetVertexAttribdvNV); \
-  FUNC(glGetVertexAttribfvNV); \
-  FUNC(glGetVertexAttribivNV); \
-  FUNC(glGetVertexAttribPointervNV); \
-  FUNC(glIsProgramNV); \
-  FUNC(glLoadProgramNV); \
-  FUNC(glProgramParameter4dNV); \
-  FUNC(glProgramParameter4dvNV); \
-  FUNC(glProgramParameter4fNV); \
-  FUNC(glProgramParameter4fvNV); \
-  FUNC(glProgramParameters4dvNV); \
-  FUNC(glProgramParameters4fvNV); \
-  FUNC(glRequestResidentProgramsNV); \
-  FUNC(glTrackMatrixNV); \
-  FUNC(glVertexAttribPointerNV); \
-  FUNC(glVertexAttrib1dNV); \
-  FUNC(glVertexAttrib1dvNV); \
-  FUNC(glVertexAttrib1fNV); \
-  FUNC(glVertexAttrib1fvNV); \
-  FUNC(glVertexAttrib1sNV); \
-  FUNC(glVertexAttrib1svNV); \
-  FUNC(glVertexAttrib2dNV); \
-  FUNC(glVertexAttrib2dvNV); \
-  FUNC(glVertexAttrib2fNV); \
-  FUNC(glVertexAttrib2fvNV); \
-  FUNC(glVertexAttrib2sNV); \
-  FUNC(glVertexAttrib2svNV); \
-  FUNC(glVertexAttrib3dNV); \
-  FUNC(glVertexAttrib3dvNV); \
-  FUNC(glVertexAttrib3fNV); \
-  FUNC(glVertexAttrib3fvNV); \
-  FUNC(glVertexAttrib3sNV); \
-  FUNC(glVertexAttrib3svNV); \
-  FUNC(glVertexAttrib4dNV); \
-  FUNC(glVertexAttrib4dvNV); \
-  FUNC(glVertexAttrib4fNV); \
-  FUNC(glVertexAttrib4fvNV); \
-  FUNC(glVertexAttrib4sNV); \
-  FUNC(glVertexAttrib4svNV); \
-  FUNC(glVertexAttrib4ubNV); \
-  FUNC(glVertexAttrib4ubvNV); \
-  FUNC(glVertexAttribs1dvNV); \
-  FUNC(glVertexAttribs1fvNV); \
-  FUNC(glVertexAttribs1svNV); \
-  FUNC(glVertexAttribs2dvNV); \
-  FUNC(glVertexAttribs2fvNV); \
-  FUNC(glVertexAttribs2svNV); \
-  FUNC(glVertexAttribs3dvNV); \
-  FUNC(glVertexAttribs3fvNV); \
-  FUNC(glVertexAttribs3svNV); \
-  FUNC(glVertexAttribs4dvNV); \
-  FUNC(glVertexAttribs4fvNV); \
-  FUNC(glVertexAttribs4svNV); \
-  FUNC(glVertexAttribs4ubvNV); \
-  FUNC(glBeginVideoCaptureNV); \
-  FUNC(glBindVideoCaptureStreamBufferNV); \
-  FUNC(glBindVideoCaptureStreamTextureNV); \
-  FUNC(glEndVideoCaptureNV); \
-  FUNC(glGetVideoCaptureivNV); \
-  FUNC(glGetVideoCaptureStreamivNV); \
-  FUNC(glGetVideoCaptureStreamfvNV); \
-  FUNC(glGetVideoCaptureStreamdvNV); \
-  FUNC(glVideoCaptureNV); \
-  FUNC(glVideoCaptureStreamParameterivNV); \
-  FUNC(glVideoCaptureStreamParameterfvNV); \
-  FUNC(glVideoCaptureStreamParameterdvNV); \
-  FUNC(glHintPGI); \
-  FUNC(glDetailTexFuncSGIS); \
-  FUNC(glGetDetailTexFuncSGIS); \
-  FUNC(glFogFuncSGIS); \
-  FUNC(glGetFogFuncSGIS); \
-  FUNC(glSampleMaskSGIS); \
-  FUNC(glSamplePatternSGIS); \
-  FUNC(glPixelTexGenParameteriSGIS); \
-  FUNC(glPixelTexGenParameterivSGIS); \
-  FUNC(glPixelTexGenParameterfSGIS); \
-  FUNC(glPixelTexGenParameterfvSGIS); \
-  FUNC(glGetPixelTexGenParameterivSGIS); \
-  FUNC(glGetPixelTexGenParameterfvSGIS); \
-  FUNC(glPointParameterfSGIS); \
-  FUNC(glPointParameterfvSGIS); \
-  FUNC(glSharpenTexFuncSGIS); \
-  FUNC(glGetSharpenTexFuncSGIS); \
-  FUNC(glTexImage4DSGIS); \
-  FUNC(glTexSubImage4DSGIS); \
-  FUNC(glTextureColorMaskSGIS); \
-  FUNC(glGetTexFilterFuncSGIS); \
-  FUNC(glTexFilterFuncSGIS); \
-  FUNC(glAsyncMarkerSGIX); \
-  FUNC(glFinishAsyncSGIX); \
-  FUNC(glPollAsyncSGIX); \
-  FUNC(glGenAsyncMarkersSGIX); \
-  FUNC(glDeleteAsyncMarkersSGIX); \
-  FUNC(glIsAsyncMarkerSGIX); \
-  FUNC(glFlushRasterSGIX); \
-  FUNC(glFragmentColorMaterialSGIX); \
-  FUNC(glFragmentLightfSGIX); \
-  FUNC(glFragmentLightfvSGIX); \
-  FUNC(glFragmentLightiSGIX); \
-  FUNC(glFragmentLightivSGIX); \
-  FUNC(glFragmentLightModelfSGIX); \
-  FUNC(glFragmentLightModelfvSGIX); \
-  FUNC(glFragmentLightModeliSGIX); \
-  FUNC(glFragmentLightModelivSGIX); \
-  FUNC(glFragmentMaterialfSGIX); \
-  FUNC(glFragmentMaterialfvSGIX); \
-  FUNC(glFragmentMaterialiSGIX); \
-  FUNC(glFragmentMaterialivSGIX); \
-  FUNC(glGetFragmentLightfvSGIX); \
-  FUNC(glGetFragmentLightivSGIX); \
-  FUNC(glGetFragmentMaterialfvSGIX); \
-  FUNC(glGetFragmentMaterialivSGIX); \
-  FUNC(glLightEnviSGIX); \
-  FUNC(glFrameZoomSGIX); \
-  FUNC(glIglooInterfaceSGIX); \
-  FUNC(glGetInstrumentsSGIX); \
-  FUNC(glInstrumentsBufferSGIX); \
-  FUNC(glPollInstrumentsSGIX); \
-  FUNC(glReadInstrumentsSGIX); \
-  FUNC(glStartInstrumentsSGIX); \
-  FUNC(glStopInstrumentsSGIX); \
-  FUNC(glGetListParameterfvSGIX); \
-  FUNC(glGetListParameterivSGIX); \
-  FUNC(glListParameterfSGIX); \
-  FUNC(glListParameterfvSGIX); \
-  FUNC(glListParameteriSGIX); \
-  FUNC(glListParameterivSGIX); \
-  FUNC(glPixelTexGenSGIX); \
-  FUNC(glDeformationMap3dSGIX); \
-  FUNC(glDeformationMap3fSGIX); \
-  FUNC(glDeformSGIX); \
-  FUNC(glLoadIdentityDeformationMapSGIX); \
-  FUNC(glReferencePlaneSGIX); \
-  FUNC(glSpriteParameterfSGIX); \
-  FUNC(glSpriteParameterfvSGIX); \
-  FUNC(glSpriteParameteriSGIX); \
-  FUNC(glSpriteParameterivSGIX); \
-  FUNC(glTagSampleBufferSGIX); \
-  FUNC(glColorTableSGI); \
-  FUNC(glColorTableParameterfvSGI); \
-  FUNC(glColorTableParameterivSGI); \
-  FUNC(glCopyColorTableSGI); \
-  FUNC(glGetColorTableSGI); \
-  FUNC(glGetColorTableParameterfvSGI); \
-  FUNC(glGetColorTableParameterivSGI); \
-  FUNC(glFinishTextureSUNX); \
-  FUNC(glGlobalAlphaFactorbSUN); \
-  FUNC(glGlobalAlphaFactorsSUN); \
-  FUNC(glGlobalAlphaFactoriSUN); \
-  FUNC(glGlobalAlphaFactorfSUN); \
-  FUNC(glGlobalAlphaFactordSUN); \
-  FUNC(glGlobalAlphaFactorubSUN); \
-  FUNC(glGlobalAlphaFactorusSUN); \
-  FUNC(glGlobalAlphaFactoruiSUN); \
-  FUNC(glDrawMeshArraysSUN); \
-  FUNC(glReplacementCodeuiSUN); \
-  FUNC(glReplacementCodeusSUN); \
-  FUNC(glReplacementCodeubSUN); \
-  FUNC(glReplacementCodeuivSUN); \
-  FUNC(glReplacementCodeusvSUN); \
-  FUNC(glReplacementCodeubvSUN); \
-  FUNC(glReplacementCodePointerSUN); \
-  FUNC(glColor4ubVertex2fSUN); \
-  FUNC(glColor4ubVertex2fvSUN); \
-  FUNC(glColor4ubVertex3fSUN); \
-  FUNC(glColor4ubVertex3fvSUN); \
-  FUNC(glColor3fVertex3fSUN); \
-  FUNC(glColor3fVertex3fvSUN); \
-  FUNC(glNormal3fVertex3fSUN); \
-  FUNC(glNormal3fVertex3fvSUN); \
-  FUNC(glColor4fNormal3fVertex3fSUN); \
-  FUNC(glColor4fNormal3fVertex3fvSUN); \
-  FUNC(glTexCoord2fVertex3fSUN); \
-  FUNC(glTexCoord2fVertex3fvSUN); \
-  FUNC(glTexCoord4fVertex4fSUN); \
-  FUNC(glTexCoord4fVertex4fvSUN); \
-  FUNC(glTexCoord2fColor4ubVertex3fSUN); \
-  FUNC(glTexCoord2fColor4ubVertex3fvSUN); \
-  FUNC(glTexCoord2fColor3fVertex3fSUN); \
-  FUNC(glTexCoord2fColor3fVertex3fvSUN); \
-  FUNC(glTexCoord2fNormal3fVertex3fSUN); \
-  FUNC(glTexCoord2fNormal3fVertex3fvSUN); \
-  FUNC(glTexCoord2fColor4fNormal3fVertex3fSUN); \
-  FUNC(glTexCoord2fColor4fNormal3fVertex3fvSUN); \
-  FUNC(glTexCoord4fColor4fNormal3fVertex4fSUN); \
-  FUNC(glTexCoord4fColor4fNormal3fVertex4fvSUN); \
-  FUNC(glReplacementCodeuiVertex3fSUN); \
-  FUNC(glReplacementCodeuiVertex3fvSUN); \
-  FUNC(glReplacementCodeuiColor4ubVertex3fSUN); \
-  FUNC(glReplacementCodeuiColor4ubVertex3fvSUN); \
-  FUNC(glReplacementCodeuiColor3fVertex3fSUN); \
-  FUNC(glReplacementCodeuiColor3fVertex3fvSUN); \
-  FUNC(glReplacementCodeuiNormal3fVertex3fSUN); \
-  FUNC(glReplacementCodeuiNormal3fVertex3fvSUN); \
-  FUNC(glReplacementCodeuiColor4fNormal3fVertex3fSUN); \
-  FUNC(glReplacementCodeuiColor4fNormal3fVertex3fvSUN); \
-  FUNC(glReplacementCodeuiTexCoord2fVertex3fSUN); \
-  FUNC(glReplacementCodeuiTexCoord2fVertex3fvSUN); \
-  FUNC(glReplacementCodeuiTexCoord2fNormal3fVertex3fSUN); \
-  FUNC(glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN); \
-  FUNC(glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN); \
-  FUNC(glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN); \
-  FUNC(glGetGraphicsResetStatusKHR); \
-  FUNC(glReadnPixelsKHR); \
-  FUNC(glGetnUniformfvKHR); \
-  FUNC(glGetnUniformivKHR); \
-  FUNC(glGetnUniformuivKHR); \
-  FUNC(glEGLImageTargetTexture2DOES); \
-  FUNC(glEGLImageTargetRenderbufferStorageOES); \
-  FUNC(glGetProgramBinaryOES); \
-  FUNC(glProgramBinaryOES); \
-  FUNC(glBlitFramebufferANGLE); \
-  FUNC(glRenderbufferStorageMultisampleANGLE); \
-  FUNC(glDrawArraysInstancedANGLE); \
-  FUNC(glDrawElementsInstancedANGLE); \
-  FUNC(glVertexAttribDivisorANGLE); \
-  FUNC(glGetTranslatedShaderSourceANGLE); \
-  FUNC(glCopyTextureLevelsAPPLE); \
-  FUNC(glRenderbufferStorageMultisampleAPPLE); \
-  FUNC(glResolveMultisampleFramebufferAPPLE); \
-  FUNC(glFenceSyncAPPLE); \
-  FUNC(glIsSyncAPPLE); \
-  FUNC(glDeleteSyncAPPLE); \
-  FUNC(glClientWaitSyncAPPLE); \
-  FUNC(glWaitSyncAPPLE); \
-  FUNC(glGetInteger64vAPPLE); \
-  FUNC(glGetSyncivAPPLE); \
-  FUNC(glBindFragDataLocationIndexedEXT); \
-  FUNC(glGetProgramResourceLocationIndexEXT); \
-  FUNC(glGetFragDataIndexEXT); \
-  FUNC(glBufferStorageEXT); \
-  FUNC(glClearTexImageEXT); \
-  FUNC(glClearTexSubImageEXT); \
-  FUNC(glClipControlEXT); \
-  FUNC(glDrawTransformFeedbackEXT); \
-  FUNC(glDrawTransformFeedbackInstancedEXT); \
-  FUNC(glVertexAttribDivisorEXT); \
-  FUNC(glMapBufferRangeEXT); \
-  FUNC(glFlushMappedBufferRangeEXT); \
-  FUNC(glMultiDrawArraysIndirectEXT); \
-  FUNC(glMultiDrawElementsIndirectEXT); \
-  FUNC(glReadBufferIndexedEXT); \
-  FUNC(glDrawBuffersIndexedEXT); \
-  FUNC(glGetIntegeri_vEXT); \
-  FUNC(glFramebufferPixelLocalStorageSizeEXT); \
-  FUNC(glGetFramebufferPixelLocalStorageSizeEXT); \
-  FUNC(glClearPixelLocalStorageuiEXT); \
-  FUNC(glTexPageCommitmentEXT); \
-  FUNC(glGetTextureHandleIMG); \
-  FUNC(glGetTextureSamplerHandleIMG); \
-  FUNC(glUniformHandleui64IMG); \
-  FUNC(glUniformHandleui64vIMG); \
-  FUNC(glProgramUniformHandleui64IMG); \
-  FUNC(glProgramUniformHandleui64vIMG); \
-  FUNC(glFramebufferTexture2DDownsampleIMG); \
-  FUNC(glFramebufferTextureLayerDownsampleIMG); \
-  FUNC(glRenderbufferStorageMultisampleIMG); \
-  FUNC(glFramebufferTexture2DMultisampleIMG); \
-  FUNC(glCopyBufferSubDataNV); \
-  FUNC(glCoverageMaskNV); \
-  FUNC(glCoverageOperationNV); \
-  FUNC(glDrawBuffersNV); \
-  FUNC(glDrawArraysInstancedNV); \
-  FUNC(glDrawElementsInstancedNV); \
-  FUNC(glBlitFramebufferNV); \
-  FUNC(glRenderbufferStorageMultisampleNV); \
-  FUNC(glVertexAttribDivisorNV); \
-  FUNC(glUniformMatrix2x3fvNV); \
-  FUNC(glUniformMatrix3x2fvNV); \
-  FUNC(glUniformMatrix2x4fvNV); \
-  FUNC(glUniformMatrix4x2fvNV); \
-  FUNC(glUniformMatrix3x4fvNV); \
-  FUNC(glUniformMatrix4x3fvNV); \
-  FUNC(glPolygonModeNV); \
-  FUNC(glReadBufferNV); \
-  FUNC(glAlphaFuncQCOM); \
-  FUNC(glGetDriverControlsQCOM); \
-  FUNC(glGetDriverControlStringQCOM); \
-  FUNC(glEnableDriverControlQCOM); \
-  FUNC(glDisableDriverControlQCOM); \
-  FUNC(glExtGetTexturesQCOM); \
-  FUNC(glExtGetBuffersQCOM); \
-  FUNC(glExtGetRenderbuffersQCOM); \
-  FUNC(glExtGetFramebuffersQCOM); \
-  FUNC(glExtGetTexLevelParameterivQCOM); \
-  FUNC(glExtTexObjectStateOverrideiQCOM); \
-  FUNC(glExtGetTexSubImageQCOM); \
-  FUNC(glExtGetBufferPointervQCOM); \
-  FUNC(glExtGetShadersQCOM); \
-  FUNC(glExtGetProgramsQCOM); \
-  FUNC(glExtIsProgramBinaryQCOM); \
-  FUNC(glExtGetProgramBinarySourceQCOM); \
-  FUNC(glFramebufferFoveationConfigQCOM); \
-  FUNC(glFramebufferFoveationParametersQCOM); \
-  FUNC(glFramebufferFetchBarrierQCOM); \
-  FUNC(glTextureFoveationParametersQCOM); \
-  FUNC(glStartTilingQCOM); \
-  FUNC(glEndTilingQCOM); \
-  FUNC(glIsList); \
-  FUNC(glDeleteLists); \
-  FUNC(glGenLists); \
-  FUNC(glNewList); \
-  FUNC(glEndList); \
-  FUNC(glCallList); \
-  FUNC(glCallLists); \
-  FUNC(glListBase); \
-  FUNC(glPrioritizeTextures); \
-  FUNC(glAreTexturesResident); \
-  FUNC(glMap1d); \
-  FUNC(glMap1f); \
-  FUNC(glMap2d); \
-  FUNC(glMap2f); \
-  FUNC(glGetMapdv); \
-  FUNC(glGetMapfv); \
-  FUNC(glGetMapiv); \
-  FUNC(glEvalCoord1d); \
-  FUNC(glEvalCoord1f); \
-  FUNC(glEvalCoord1dv); \
-  FUNC(glEvalCoord1fv); \
-  FUNC(glEvalCoord2d); \
-  FUNC(glEvalCoord2f); \
-  FUNC(glEvalCoord2dv); \
-  FUNC(glEvalCoord2fv); \
-  FUNC(glMapGrid1d); \
-  FUNC(glMapGrid1f); \
-  FUNC(glMapGrid2d); \
-  FUNC(glMapGrid2f); \
-  FUNC(glEvalPoint1); \
-  FUNC(glEvalPoint2); \
-  FUNC(glEvalMesh1); \
-  FUNC(glEvalMesh2); \
-  FUNC(glFogf); \
-  FUNC(glFogi); \
-  FUNC(glFogfv); \
-  FUNC(glFogiv); \
-  FUNC(glFeedbackBuffer); \
-  FUNC(glPassThrough); \
-  FUNC(glSelectBuffer); \
-  FUNC(glInitNames); \
-  FUNC(glLoadName); \
-  FUNC(glPushName); \
-  FUNC(glPopName); \
-  FUNC(glBegin); \
-  FUNC(glEnd); \
-  FUNC(glVertex2d); \
-  FUNC(glVertex2f); \
-  FUNC(glVertex2i); \
-  FUNC(glVertex2s); \
-  FUNC(glVertex3d); \
-  FUNC(glVertex3f); \
-  FUNC(glVertex3i); \
-  FUNC(glVertex3s); \
-  FUNC(glVertex4d); \
-  FUNC(glVertex4f); \
-  FUNC(glVertex4i); \
-  FUNC(glVertex4s); \
-  FUNC(glVertex2dv); \
-  FUNC(glVertex2fv); \
-  FUNC(glVertex2iv); \
-  FUNC(glVertex2sv); \
-  FUNC(glVertex3dv); \
-  FUNC(glVertex3fv); \
-  FUNC(glVertex3iv); \
-  FUNC(glVertex3sv); \
-  FUNC(glVertex4dv); \
-  FUNC(glVertex4fv); \
-  FUNC(glVertex4iv); \
-  FUNC(glVertex4sv); \
-  FUNC(glNormal3b); \
-  FUNC(glNormal3d); \
-  FUNC(glNormal3f); \
-  FUNC(glNormal3i); \
-  FUNC(glNormal3s); \
-  FUNC(glNormal3bv); \
-  FUNC(glNormal3dv); \
-  FUNC(glNormal3fv); \
-  FUNC(glNormal3iv); \
-  FUNC(glNormal3sv); \
-  FUNC(glIndexd); \
-  FUNC(glIndexf); \
-  FUNC(glIndexi); \
-  FUNC(glIndexs); \
-  FUNC(glIndexub); \
-  FUNC(glIndexdv); \
-  FUNC(glIndexfv); \
-  FUNC(glIndexiv); \
-  FUNC(glIndexsv); \
-  FUNC(glIndexubv); \
-  FUNC(glColor3b); \
-  FUNC(glColor3d); \
-  FUNC(glColor3f); \
-  FUNC(glColor3i); \
-  FUNC(glColor3s); \
-  FUNC(glColor3ub); \
-  FUNC(glColor3ui); \
-  FUNC(glColor3us); \
-  FUNC(glColor4b); \
-  FUNC(glColor4d); \
-  FUNC(glColor4f); \
-  FUNC(glColor4i); \
-  FUNC(glColor4s); \
-  FUNC(glColor4ub); \
-  FUNC(glColor4ui); \
-  FUNC(glColor4us); \
-  FUNC(glColor3bv); \
-  FUNC(glColor3dv); \
-  FUNC(glColor3fv); \
-  FUNC(glColor3iv); \
-  FUNC(glColor3sv); \
-  FUNC(glColor3ubv); \
-  FUNC(glColor3uiv); \
-  FUNC(glColor3usv); \
-  FUNC(glColor4bv); \
-  FUNC(glColor4dv); \
-  FUNC(glColor4fv); \
-  FUNC(glColor4iv); \
-  FUNC(glColor4sv); \
-  FUNC(glColor4ubv); \
-  FUNC(glColor4uiv); \
-  FUNC(glColor4usv); \
-  FUNC(glTexCoord1d); \
-  FUNC(glTexCoord1f); \
-  FUNC(glTexCoord1i); \
-  FUNC(glTexCoord1s); \
-  FUNC(glTexCoord2d); \
-  FUNC(glTexCoord2f); \
-  FUNC(glTexCoord2i); \
-  FUNC(glTexCoord2s); \
-  FUNC(glTexCoord3d); \
-  FUNC(glTexCoord3f); \
-  FUNC(glTexCoord3i); \
-  FUNC(glTexCoord3s); \
-  FUNC(glTexCoord4d); \
-  FUNC(glTexCoord4f); \
-  FUNC(glTexCoord4i); \
-  FUNC(glTexCoord4s); \
-  FUNC(glTexCoord1dv); \
-  FUNC(glTexCoord1fv); \
-  FUNC(glTexCoord1iv); \
-  FUNC(glTexCoord1sv); \
-  FUNC(glTexCoord2dv); \
-  FUNC(glTexCoord2fv); \
-  FUNC(glTexCoord2iv); \
-  FUNC(glTexCoord2sv); \
-  FUNC(glTexCoord3dv); \
-  FUNC(glTexCoord3fv); \
-  FUNC(glTexCoord3iv); \
-  FUNC(glTexCoord3sv); \
-  FUNC(glTexCoord4dv); \
-  FUNC(glTexCoord4fv); \
-  FUNC(glTexCoord4iv); \
-  FUNC(glTexCoord4sv); \
-  FUNC(glRasterPos2d); \
-  FUNC(glRasterPos2f); \
-  FUNC(glRasterPos2i); \
-  FUNC(glRasterPos2s); \
-  FUNC(glRasterPos3d); \
-  FUNC(glRasterPos3f); \
-  FUNC(glRasterPos3i); \
-  FUNC(glRasterPos3s); \
-  FUNC(glRasterPos4d); \
-  FUNC(glRasterPos4f); \
-  FUNC(glRasterPos4i); \
-  FUNC(glRasterPos4s); \
-  FUNC(glRasterPos2dv); \
-  FUNC(glRasterPos2fv); \
-  FUNC(glRasterPos2iv); \
-  FUNC(glRasterPos2sv); \
-  FUNC(glRasterPos3dv); \
-  FUNC(glRasterPos3fv); \
-  FUNC(glRasterPos3iv); \
-  FUNC(glRasterPos3sv); \
-  FUNC(glRasterPos4dv); \
-  FUNC(glRasterPos4fv); \
-  FUNC(glRasterPos4iv); \
-  FUNC(glRasterPos4sv); \
-  FUNC(glRectd); \
-  FUNC(glRectf); \
-  FUNC(glRecti); \
-  FUNC(glRects); \
-  FUNC(glRectdv); \
-  FUNC(glRectfv); \
-  FUNC(glRectiv); \
-  FUNC(glRectsv); \
-  FUNC(glPixelZoom); \
-  FUNC(glPixelTransferf); \
-  FUNC(glPixelTransferi); \
-  FUNC(glPixelMapfv); \
-  FUNC(glPixelMapuiv); \
-  FUNC(glPixelMapusv); \
-  FUNC(glGetPixelMapfv); \
-  FUNC(glGetPixelMapuiv); \
-  FUNC(glGetPixelMapusv); \
-  FUNC(glBitmap); \
-  FUNC(glDrawPixels); \
-  FUNC(glCopyPixels); \
-  FUNC(glShadeModel); \
-  FUNC(glLightf); \
-  FUNC(glLighti); \
-  FUNC(glLightfv); \
-  FUNC(glLightiv); \
-  FUNC(glGetLightfv); \
-  FUNC(glGetLightiv); \
-  FUNC(glLightModelf); \
-  FUNC(glLightModeli); \
-  FUNC(glLightModelfv); \
-  FUNC(glLightModeliv); \
-  FUNC(glMaterialf); \
-  FUNC(glMateriali); \
-  FUNC(glMaterialfv); \
-  FUNC(glMaterialiv); \
-  FUNC(glGetMaterialfv); \
-  FUNC(glGetMaterialiv); \
-  FUNC(glColorMaterial); \
-  FUNC(glClearIndex); \
-  FUNC(glIndexMask); \
-  FUNC(glAlphaFunc); \
-  FUNC(glLineStipple); \
-  FUNC(glPolygonStipple); \
-  FUNC(glGetPolygonStipple); \
-  FUNC(glEdgeFlag); \
-  FUNC(glEdgeFlagv); \
-  FUNC(glClipPlane); \
-  FUNC(glGetClipPlane); \
-  FUNC(glEnableClientState); \
-  FUNC(glDisableClientState); \
-  FUNC(glPushAttrib); \
-  FUNC(glPopAttrib); \
-  FUNC(glPushClientAttrib); \
-  FUNC(glPopClientAttrib); \
-  FUNC(glRenderMode); \
-  FUNC(glTexGend); \
-  FUNC(glTexGenf); \
-  FUNC(glTexGeni); \
-  FUNC(glTexGendv); \
-  FUNC(glTexGenfv); \
-  FUNC(glTexGeniv); \
-  FUNC(glGetTexGendv); \
-  FUNC(glGetTexGenfv); \
-  FUNC(glGetTexGeniv); \
-  FUNC(glTexEnvf); \
-  FUNC(glTexEnvi); \
-  FUNC(glTexEnvfv); \
-  FUNC(glTexEnviv); \
-  FUNC(glGetTexEnvfv); \
-  FUNC(glGetTexEnviv); \
-  FUNC(glMatrixMode); \
-  FUNC(glOrtho); \
-  FUNC(glFrustum); \
-  FUNC(glPushMatrix); \
-  FUNC(glPopMatrix); \
   FUNC(glLoadIdentity); \
-  FUNC(glLoadMatrixd); \
-  FUNC(glLoadMatrixf); \
-  FUNC(glMultMatrixd); \
-  FUNC(glMultMatrixf); \
-  FUNC(glRotated); \
-  FUNC(glRotatef); \
-  FUNC(glScaled); \
-  FUNC(glScalef); \
-  FUNC(glTranslated); \
-  FUNC(glTranslatef); \
-  FUNC(glClearAccum); \
-  FUNC(glAccum); \
-  FUNC(glVertexPointer); \
-  FUNC(glNormalPointer); \
-  FUNC(glColorPointer); \
-  FUNC(glIndexPointer); \
-  FUNC(glTexCoordPointer); \
   FUNC(glEdgeFlagPointer); \
+  FUNC(glGetPerfMonitorCounterDataAMD); \
+  FUNC(glUniform2i64ARB); \
+  FUNC(glEnableClientStateIndexedEXT); \
+  FUNC(glProgramUniform2ui64NV); \
+  FUNC(glVertexAttribs4hvNV); \
+  FUNC(glColorP3uiv); \
+  FUNC(glFinishFenceNV); \
+  FUNC(glTexParameterxvOES); \
+  FUNC(glMultiTexGendvEXT); \
+  FUNC(glTexCoord2sv); \
+  FUNC(glSeparableFilter2DEXT); \
+  FUNC(glGetNamedProgramStringEXT); \
+  FUNC(glMatrixLoadTransposefEXT); \
+  FUNC(glEvalCoord2f); \
+  FUNC(glSeparableFilter2D); \
+  FUNC(glListBase); \
+  FUNC(glGenSymbolsEXT); \
+  FUNC(glNormalStream3fATI); \
+  FUNC(glProgramUniform3i64NV); \
+  FUNC(glBindFragDataLocationIndexedEXT); \
+  FUNC(glPushClientAttribDefaultEXT); \
+  FUNC(glGetLocalConstantIntegervEXT); \
+  FUNC(glReplacementCodeuivSUN); \
+  FUNC(glFeedbackBufferxOES); \
+  FUNC(glColor4sv); \
+  FUNC(glGetArrayObjectfvATI); \
+  FUNC(glVertexAttribs1fvNV); \
+  FUNC(glGetActiveAttribARB); \
+  FUNC(glIsImageHandleResidentNV); \
+  FUNC(glGenProgramsARB); \
+  FUNC(glGetConvolutionParameterfv); \
+  FUNC(glGetVariantArrayObjectivATI); \
+  FUNC(glVariantdvEXT); \
+  FUNC(glSampleMapATI); \
+  FUNC(glProgramUniform3ui64vARB); \
+  FUNC(glWindowPos2fvARB); \
+  FUNC(glVertexBlendEnviATI); \
+  FUNC(glMatrixMultfEXT); \
+  FUNC(glUniform3ui64NV); \
+  FUNC(glGetPolygonStipple); \
+  FUNC(glGetPathMetricRangeNV); \
+  FUNC(glSecondaryColorP3uiv); \
+  FUNC(glGetFragmentLightivSGIX); \
+  FUNC(glWindowPos3iMESA); \
+  FUNC(glNamedFramebufferTextureFaceEXT); \
+  FUNC(glVertexAttrib4sNV); \
+  FUNC(glGetProgramStringARB); \
+  FUNC(glMulticastGetQueryObjectui64vNV); \
+  FUNC(glProgramUniform2i64vNV); \
+  FUNC(glMultiTexCoord4sARB); \
+  FUNC(glImportSyncEXT); \
+  FUNC(glReplacementCodeuiNormal3fVertex3fSUN); \
+  FUNC(glVertexArrayRangeAPPLE); \
+  FUNC(glMultiTexCoord3dARB); \
+  FUNC(glCompileShaderARB); \
+  FUNC(glPathParameterfvNV); \
+  FUNC(glGenPathsNV); \
+  FUNC(glGetProgramResourcefvNV); \
+  FUNC(glPixelDataRangeNV); \
+  FUNC(glOrthoxOES); \
+  FUNC(glConvolutionParameteri); \
+  FUNC(glNamedBufferPageCommitmentEXT); \
+  FUNC(glVertexAttrib1sNV); \
+  FUNC(glDeleteFencesNV); \
+  FUNC(glTransformFeedbackAttribsNV); \
+  FUNC(glUniform4ui64vNV); \
+  FUNC(glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN); \
+  FUNC(glPixelZoomxOES); \
+  FUNC(glApplyTextureEXT); \
+  FUNC(glVertexArrayMultiTexCoordOffsetEXT); \
+  FUNC(glNamedProgramLocalParameters4fvEXT); \
+  FUNC(glGetLocalConstantFloatvEXT); \
+  FUNC(glBlitFramebufferANGLE); \
+  FUNC(glVertexAttrib4ubNV); \
+  FUNC(glImageTransformParameterivHP); \
+  FUNC(glReadInstrumentsSGIX); \
+  FUNC(glMatrixPopEXT); \
+  FUNC(glGetHistogram); \
+  FUNC(glMultiDrawArraysIndirectEXT); \
+  FUNC(glGetMultiTexGenivEXT); \
+  FUNC(glProgramUniform3i64ARB); \
+  FUNC(glVertex3xvOES); \
+  FUNC(glProgramLocalParameter4fARB); \
+  FUNC(glGetnConvolutionFilterARB); \
+  FUNC(glMultiTexGenfvEXT); \
+  FUNC(glColor4xOES); \
+  FUNC(glMulticastBarrierNV); \
+  FUNC(glPNTrianglesiATI); \
+  FUNC(glVDPAUFiniNV); \
+  FUNC(glVertex3dv); \
+  FUNC(glDrawCommandsStatesNV); \
+  FUNC(glGetUniformBufferSizeEXT); \
+  FUNC(glCopyTexSubImage3DEXT); \
+  FUNC(glMultiTexCoord2fARB); \
+  FUNC(glMultiTexCoord1fvARB); \
+  FUNC(glVertexAttrib3svNV); \
+  FUNC(glSecondaryColor3dEXT); \
+  FUNC(glColor4i); \
+  FUNC(glEndFragmentShaderATI); \
+  FUNC(glAlphaToCoverageDitherControlNV); \
+  FUNC(glStencilStrokePathInstancedNV); \
+  FUNC(glInterpolatePathsNV); \
+  FUNC(glGetPathLengthNV); \
+  FUNC(glColor3xvOES); \
+  FUNC(glMultiTexCoord3d); \
+  FUNC(glVertex2hNV); \
+  FUNC(glBindTexGenParameterEXT); \
+  FUNC(glTextureImage2DMultisampleNV); \
+  FUNC(glGetDriverControlsQCOM); \
+  FUNC(glGenNamesAMD); \
+  FUNC(glHintPGI); \
+  FUNC(glVertex4d); \
+  FUNC(glMulticastFramebufferSampleLocationsfvNV); \
+  FUNC(glGetnHistogramARB); \
+  FUNC(glDrawArraysEXT); \
+  FUNC(glSelectBuffer); \
+  FUNC(glHistogramEXT); \
+  FUNC(glNamedProgramLocalParameterI4iEXT); \
+  FUNC(glDisableVariantClientStateEXT); \
+  FUNC(glStencilOpValueAMD); \
+  FUNC(glPNTrianglesfATI); \
+  FUNC(glNamedProgramLocalParameterI4uiEXT); \
+  FUNC(glVDPAUUnmapSurfacesNV); \
+  FUNC(glFragmentLightiSGIX); \
+  FUNC(glFragmentMaterialfSGIX); \
+  FUNC(glTexSubImage3DEXT); \
+  FUNC(glGetObjectBufferivATI); \
+  FUNC(glTexCoord4d); \
+  FUNC(glGetnMapdvARB); \
+  FUNC(glIndexPointerEXT); \
+  FUNC(glGetUniformi64vARB); \
+  FUNC(glFramebufferFetchBarrierEXT); \
+  FUNC(glCopyColorSubTableEXT); \
+  FUNC(glGetNamedProgramLocalParameterIivEXT); \
+  FUNC(glVertexStream1svATI); \
+  FUNC(glSecondaryColor3bv); \
+  FUNC(glMultiTexCoord2sARB); \
+  FUNC(glWindowPos3sARB); \
+  FUNC(glVertexAttribPointerNV); \
+  FUNC(glMulticastGetQueryObjecti64vNV); \
+  FUNC(glDetailTexFuncSGIS); \
+  FUNC(glNewObjectBufferATI); \
+  FUNC(glObjectUnpurgeableAPPLE); \
+  FUNC(glReplacementCodeuiTexCoord2fVertex3fvSUN); \
+  FUNC(glGetMapxvOES); \
+  FUNC(glListParameteriSGIX); \
+  FUNC(glGetnMinmaxARB); \
+  FUNC(glGetTextureHandleNV); \
+  FUNC(glBegin); \
+  FUNC(glVertexStream2dvATI); \
+  FUNC(glPixelZoom); \
+  FUNC(glCoverageOperationNV); \
+  FUNC(glRectsv); \
+  FUNC(glGlobalAlphaFactorsSUN); \
+  FUNC(glWeightbvARB); \
+  FUNC(glWriteMaskEXT); \
+  FUNC(glGetUniformivARB); \
+  FUNC(glTexSubImage4DSGIS); \
+  FUNC(glWindowPos3fARB); \
+  FUNC(glGlobalAlphaFactordSUN); \
+  FUNC(glDeleteNamesAMD); \
+  FUNC(glSecondaryColor3b); \
+  FUNC(glRenderbufferStorageMultisampleNV); \
+  FUNC(glProgramUniform1ui64NV); \
+  FUNC(glVertexAttribL1ui64ARB); \
+  FUNC(glArrayObjectATI); \
+  FUNC(glBeginVideoCaptureNV); \
+  FUNC(glElementPointerAPPLE); \
+  FUNC(glVertexAttribL4ui64vNV); \
+  FUNC(glGetVertexAttribPointervARB); \
+  FUNC(glMultiTexCoord3iv); \
+  FUNC(glGetMapAttribParameterivNV); \
+  FUNC(glDepthRangedNV); \
+  FUNC(glVertexStream4iATI); \
+  FUNC(glMultiTexCoordP1ui); \
+  FUNC(glTexCoord2xvOES); \
+  FUNC(glRotatexOES); \
+  FUNC(glWindowPos2iv); \
+  FUNC(glVertex2xOES); \
+  FUNC(glFramebufferTextureFaceARB); \
+  FUNC(glProgramNamedParameter4fvNV); \
+  FUNC(glGetListParameterfvSGIX); \
+  FUNC(glClientActiveTextureARB); \
+  FUNC(glProgramNamedParameter4fNV); \
+  FUNC(glNormal3fv); \
+  FUNC(glClearDepthxOES); \
+  FUNC(glNormalStream3svATI); \
+  FUNC(glGetnMapdv); \
+  FUNC(glProgramEnvParameterI4ivNV); \
+  FUNC(glDeleteProgramsARB); \
+  FUNC(glColor3ub); \
+  FUNC(glIndexf); \
+  FUNC(glBindVideoCaptureStreamTextureNV); \
+  FUNC(glSignalVkFenceNV); \
+  FUNC(glMap2d); \
+  FUNC(glLightModelxOES); \
+  FUNC(glFinishObjectAPPLE); \
+  FUNC(glUniform4i64vARB); \
+  FUNC(glBeginTransformFeedbackNV); \
+  FUNC(glIndexiv); \
+  FUNC(glGetTexParameterxvOES); \
+  FUNC(glMultiTexCoordPointerEXT); \
+  FUNC(glClipPlanefOES); \
+  FUNC(glBindProgramARB); \
+  FUNC(glTexCoord1xvOES); \
+  FUNC(glGetProgramParameterfvNV); \
+  FUNC(glTexEnviv); \
+  FUNC(glVertexPointerEXT); \
+  FUNC(glWindowPos2iARB); \
+  FUNC(glAlphaFunc); \
+  FUNC(glEndOcclusionQueryNV); \
+  FUNC(glEndConditionalRenderNV); \
+  FUNC(glGetnPixelMapusv); \
+  FUNC(glVideoCaptureNV); \
+  FUNC(glIsAsyncMarkerSGIX); \
+  FUNC(glEvalCoord1f); \
+  FUNC(glMapBufferRangeEXT); \
+  FUNC(glLoadMatrixf); \
+  FUNC(glVertexWeightfEXT); \
+  FUNC(glCoverStrokePathNV); \
+  FUNC(glGetVertexAttribivNV); \
+  FUNC(glUniformHandleui64vNV); \
+  FUNC(glUniform2i64vARB); \
+  FUNC(glGetInternalformatSampleivNV); \
+  FUNC(glRasterPos4dv); \
+  FUNC(glGetnSeparableFilter); \
+  FUNC(glWeightfvARB); \
+  FUNC(glGetFixedvOES); \
+  FUNC(glDeletePerfMonitorsAMD); \
+  FUNC(glShaderOp2EXT); \
+  FUNC(glLoadTransposeMatrixfARB); \
+  FUNC(glFragmentLightModelivSGIX); \
+  FUNC(glMultTransposeMatrixdARB); \
+  FUNC(glWindowPos3iv); \
+  FUNC(glSharpenTexFuncSGIS); \
+  FUNC(glRotated); \
+  FUNC(glProgramUniformHandleui64IMG); \
+  FUNC(glVertexAttrib2hvNV); \
+  FUNC(glFogCoordhvNV); \
+  FUNC(glIsCommandListNV); \
+  FUNC(glPixelTexGenParameterivSGIS); \
+  FUNC(glMap1xOES); \
+  FUNC(glTexImage4DSGIS); \
+  FUNC(glMatrixTranslatefEXT); \
+  FUNC(glNormalP3uiv); \
+  FUNC(glCoverageModulationNV); \
+  FUNC(glIsTransformFeedbackNV); \
+  FUNC(glWindowPos3fvARB); \
+  FUNC(glFragmentColorMaterialSGIX); \
+  FUNC(glVertexAttrib3dNV); \
+  FUNC(glMaterialiv); \
+  FUNC(glMatrixMode); \
+  FUNC(glRectiv); \
+  FUNC(glFogCoordfEXT); \
+  FUNC(glGetPathDashArrayNV); \
+  FUNC(glBindBufferOffsetNV); \
+  FUNC(glLightfv); \
+  FUNC(glVertex4bOES); \
+  FUNC(glPixelTransferf); \
+  FUNC(glVertexAttribParameteriAMD); \
+  FUNC(glWindowPos2sMESA); \
+  FUNC(glGetVariantFloatvEXT); \
+  FUNC(glUseShaderProgramEXT); \
+  FUNC(glVertexArrayFogCoordOffsetEXT); \
+  FUNC(glVertexAttrib4dNV); \
+  FUNC(glColor4s); \
+  FUNC(glGetnPixelMapfv); \
+  FUNC(glDisableVertexArrayEXT); \
+  FUNC(glProgramUniform1ui64vNV); \
+  FUNC(glFogxOES); \
+  FUNC(glGetColorTableSGI); \
+  FUNC(glGetTranslatedShaderSourceANGLE); \
+  FUNC(glVertexAttribArrayObjectATI); \
+  FUNC(glMatrixIndexusvARB); \
+  FUNC(glEnableVariantClientStateEXT); \
+  FUNC(glGlobalAlphaFactoruiSUN); \
+  FUNC(glImageTransformParameteriHP); \
+  FUNC(glSecondaryColor3ubEXT); \
+  FUNC(glLoadName); \
+  FUNC(glGetSyncivAPPLE); \
+  FUNC(glListParameterfSGIX); \
+  FUNC(glBeginConditionalRenderNVX); \
+  FUNC(glMultiTexCoord4iARB); \
+  FUNC(glVertex4hvNV); \
+  FUNC(glProgramUniform1i64vARB); \
+  FUNC(glBufferStorageEXT); \
+  FUNC(glUniform2i64vNV); \
+  FUNC(glGetPathTexGenivNV); \
+  FUNC(glNamedFramebufferSampleLocationsfvARB); \
+  FUNC(glAlphaFragmentOp1ATI); \
+  FUNC(glVertexArrayRangeNV); \
+  FUNC(glGetnUniformui64vARB); \
+  FUNC(glNamedRenderbufferStorageMultisampleCoverageEXT); \
+  FUNC(glColor3b); \
+  FUNC(glVertexArraySecondaryColorOffsetEXT); \
+  FUNC(glVertex3bvOES); \
+  FUNC(glMultiTexCoord2hvNV); \
+  FUNC(glVertex4f); \
+  FUNC(glVertexAttrib4svNV); \
+  FUNC(glGetHistogramParameterfvEXT); \
+  FUNC(glTexCoord3iv); \
+  FUNC(glColor3iv); \
+  FUNC(glRasterPos4xOES); \
+  FUNC(glTangentPointerEXT); \
+  FUNC(glCombinerParameterivNV); \
+  FUNC(glTexCoord4xvOES); \
+  FUNC(glDeformationMap3dSGIX); \
+  FUNC(glGetVideoCaptureStreamdvNV); \
+  FUNC(glDrawVkImageNV); \
+  FUNC(glUnlockArraysEXT); \
+  FUNC(glShaderSourceARB); \
+  FUNC(glPathColorGenNV); \
+  FUNC(glVDPAUInitNV); \
+  FUNC(glTexCoord4dv); \
+  FUNC(glCopyColorTable); \
+  FUNC(glColorSubTable); \
+  FUNC(glElementPointerATI); \
+  FUNC(glMultiTexCoord2svARB); \
+  FUNC(glVertexStream2iATI); \
+  FUNC(glCreateStatesNV); \
+  FUNC(glBinormal3fvEXT); \
+  FUNC(glGetTrackMatrixivNV); \
+  FUNC(glColor4fv); \
+  FUNC(glTexturePageCommitmentEXT); \
+  FUNC(glViewportSwizzleNV); \
+  FUNC(glMatrixMult3x2fNV); \
+  FUNC(glBinormal3fEXT); \
+  FUNC(glVertexStream3dATI); \
+  FUNC(glGetVertexAttribdvNV); \
+  FUNC(glMultiTexCoord4xOES); \
+  FUNC(glGetFogFuncSGIS); \
+  FUNC(glMultiTexGeniEXT); \
+  FUNC(glWindowRectanglesEXT); \
+  FUNC(glBindBufferBaseNV); \
+  FUNC(glPresentFrameDualFillNV); \
+  FUNC(glGetBufferParameterui64vNV); \
+  FUNC(glBindBufferRangeNV); \
+  FUNC(glVariantuivEXT); \
+  FUNC(glDrawElementArrayAPPLE); \
+  FUNC(glGetVertexAttribdvARB); \
+  FUNC(glVertexAttrib3fvNV); \
+  FUNC(glIndexPointerListIBM); \
+  FUNC(glProgramNamedParameter4dNV); \
+  FUNC(glSecondaryColor3ubv); \
+  FUNC(glBeginPerfQueryINTEL); \
+  FUNC(glGetVideoCaptureivNV); \
+  FUNC(glProgramUniformHandleui64vARB); \
+  FUNC(glMatrixIndexuivARB); \
+  FUNC(glUnmapObjectBufferATI); \
+  FUNC(glRasterPos2fv); \
+  FUNC(glEvalMapsNV); \
+  FUNC(glColor4usv); \
+  FUNC(glVertexStream4dvATI); \
+  FUNC(glGetProgramEnvParameterfvARB); \
+  FUNC(glVertexAttribs4fvNV); \
+  FUNC(glDeletePathsNV); \
+  FUNC(glExecuteProgramNV); \
+  FUNC(glTexCoord4iv); \
+  FUNC(glTexCoord2bOES); \
+  FUNC(glDeleteFragmentShaderATI); \
+  FUNC(glTexCoord2fColor4ubVertex3fvSUN); \
+  FUNC(glVariantbvEXT); \
+  FUNC(glRenderbufferStorageMultisampleAPPLE); \
+  FUNC(glRasterPos2xvOES); \
+  FUNC(glWindowPos2dvARB); \
+  FUNC(glPolygonOffsetEXT); \
+  FUNC(glCopyColorSubTable); \
+  FUNC(glVertexAttribs1dvNV); \
+  FUNC(glSecondaryColor3ubvEXT); \
+  FUNC(glTexCoord2xOES); \
+  FUNC(glVertexWeightfvEXT); \
+  FUNC(glPollAsyncSGIX); \
+  FUNC(glProgramEnvParameterI4uiNV); \
+  FUNC(glLightModelf); \
+  FUNC(glWindowPos2dv); \
+  FUNC(glGetUniformLocationARB); \
+  FUNC(glSecondaryColor3s); \
+  FUNC(glMultiTexCoord1bvOES); \
+  FUNC(glColor3fVertex3fvSUN); \
+  FUNC(glVertexArrayTexCoordOffsetEXT); \
+  FUNC(glArrayElementEXT); \
+  FUNC(glVDPAURegisterOutputSurfaceNV); \
+  FUNC(glMultiTexCoordP2ui); \
+  FUNC(glGlobalAlphaFactorbSUN); \
+  FUNC(glGetProgramEnvParameterIuivNV); \
+  FUNC(glColorP3ui); \
+  FUNC(glMultiTexCoord4dv); \
+  FUNC(glVertexAttribL3i64NV); \
+  FUNC(glGetOcclusionQueryivNV); \
+  FUNC(glGetProgramSubroutineParameteruivNV); \
+  FUNC(glDeleteTexturesEXT); \
+  FUNC(glAlphaFuncxOES); \
+  FUNC(glGetPathParameterivNV); \
+  FUNC(glMultMatrixxOES); \
+  FUNC(glSetFenceNV); \
   FUNC(glArrayElement); \
+  FUNC(glClearDepthfOES); \
+  FUNC(glLoadProgramNV); \
+  FUNC(glVertexWeightPointerEXT); \
+  FUNC(glMultTransposeMatrixxOES); \
+  FUNC(glGetStageIndexNV); \
+  FUNC(glVertex2hvNV); \
+  FUNC(glGetProgramLocalParameterdvARB); \
+  FUNC(glIsNameAMD); \
+  FUNC(glProgramUniform3ui64NV); \
+  FUNC(glEvalCoord2fv); \
+  FUNC(glCoverStrokePathInstancedNV); \
+  FUNC(glWeightPathsNV); \
+  FUNC(glGetCombinerStageParameterfvNV); \
+  FUNC(glGetTexEnvfv); \
+  FUNC(glTexCoord3bOES); \
+  FUNC(glSecondaryColor3fvEXT); \
+  FUNC(glMatrixMultdEXT); \
+  FUNC(glVertex3s); \
+  FUNC(glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN); \
+  FUNC(glTexGendv); \
+  FUNC(glDrawMeshArraysSUN); \
+  FUNC(glGetNamedProgramLocalParameterdvEXT); \
+  FUNC(glProgramEnvParameter4fvARB); \
+  FUNC(glPathGlyphIndexArrayNV); \
+  FUNC(glProgramUniformHandleui64vNV); \
+  FUNC(glGetColorTableParameterfvSGI); \
+  FUNC(glMulticastGetQueryObjectivNV); \
+  FUNC(glWindowPos2svARB); \
+  FUNC(glConvolutionFilter1DEXT); \
+  FUNC(glVertexP4ui); \
+  FUNC(glIndexd); \
+  FUNC(glMaterialxOES); \
+  FUNC(glWeightusvARB); \
+  FUNC(glNormalPointerListIBM); \
+  FUNC(glVertex4xOES); \
+  FUNC(glGetConvolutionParameteriv); \
+  FUNC(glGlobalAlphaFactoriSUN); \
+  FUNC(glGetPathSpacingNV); \
+  FUNC(glVertexAttribL1ui64vNV); \
+  FUNC(glPathParameterivNV); \
+  FUNC(glProgramUniform1i64vNV); \
+  FUNC(glGetFragDataIndexEXT); \
+  FUNC(glGenQueryResourceTagNV); \
+  FUNC(glIglooInterfaceSGIX); \
+  FUNC(glVertex3d); \
+  FUNC(glValidateProgramARB); \
+  FUNC(glBindProgramNV); \
+  FUNC(glIndexxvOES); \
+  FUNC(glMatrixLoad3x3fNV); \
+  FUNC(glRasterPos3xvOES); \
+  FUNC(glGetIntegerui64vNV); \
+  FUNC(glEvalCoord1dv); \
+  FUNC(glSwizzleEXT); \
+  FUNC(glCompileCommandListNV); \
+  FUNC(glTexCoord3sv); \
+  FUNC(glWindowPos2i); \
+  FUNC(glTexRenderbufferNV); \
+  FUNC(glTexSubImage2DEXT); \
+  FUNC(glVertexAttrib3fNV); \
+  FUNC(glColor4iv); \
+  FUNC(glMatrixLoaddEXT); \
+  FUNC(glWindowPos3fvMESA); \
+  FUNC(glDrawRangeElementArrayATI); \
+  FUNC(glResolveMultisampleFramebufferAPPLE); \
+  FUNC(glPrimitiveRestartNV); \
+  FUNC(glWaitVkSemaphoreNV); \
+  FUNC(glMultiTexCoord3fv); \
+  FUNC(glVertexAttribL2i64vNV); \
+  FUNC(glTexCoord1hvNV); \
+  FUNC(glVertexAttrib2dvNV); \
+  FUNC(glVertexStream2fATI); \
+  FUNC(glProgramUniform2ui64ARB); \
+  FUNC(glMapGrid2f); \
+  FUNC(glVertexArrayVertexOffsetEXT); \
+  FUNC(glMultiTexCoord3bvOES); \
+  FUNC(glDisableClientState); \
+  FUNC(glFogxvOES); \
+  FUNC(glNamedProgramStringEXT); \
+  FUNC(glFeedbackBuffer); \
+  FUNC(glProgramUniform1i64NV); \
+  FUNC(glVertexAttrib3hvNV); \
+  FUNC(glVertexAttribs1svNV); \
+  FUNC(glMultiDrawElementArrayAPPLE); \
+  FUNC(glVertexAttrib4dvNV); \
+  FUNC(glUniform1ui64vARB); \
+  FUNC(glVertex4dv); \
+  FUNC(glCallCommandListNV); \
+  FUNC(glLightModelxvOES); \
+  FUNC(glGetMapdv); \
+  FUNC(glCopyColorTableSGI); \
+  FUNC(glIsProgramNV); \
+  FUNC(glGenTransformFeedbacksNV); \
+  FUNC(glBlendFuncSeparateIndexedAMD); \
+  FUNC(glGetProgramResourceLocationIndexEXT); \
+  FUNC(glSecondaryColorPointerEXT); \
+  FUNC(glTexEnvxvOES); \
+  FUNC(glPathFogGenNV); \
+  FUNC(glNormalP3ui); \
+  FUNC(glNormal3hvNV); \
+  FUNC(glTexGenxvOES); \
+  FUNC(glIsSyncAPPLE); \
+  FUNC(glPixelMapusv); \
+  FUNC(glTexEnvfv); \
+  FUNC(glSecondaryColor3hNV); \
+  FUNC(glTexBumpParameterivATI); \
+  FUNC(glTextureStorageSparseAMD); \
+  FUNC(glMultiTexCoord2xvOES); \
+  FUNC(glConvolutionFilter2D); \
+  FUNC(glVertexStream3dvATI); \
+  FUNC(glGetVkProcAddrNV); \
+  FUNC(glBindFragmentShaderATI); \
+  FUNC(glVertex3hvNV); \
+  FUNC(glPushAttrib); \
+  FUNC(glSecondaryColor3usvEXT); \
+  FUNC(glGetPathTexGenfvNV); \
+  FUNC(glProgramUniform3i64vARB); \
+  FUNC(glPopAttrib); \
+  FUNC(glTexCoord3fv); \
+  FUNC(glVDPAUIsSurfaceNV); \
+  FUNC(glNormal3fVertex3fSUN); \
+  FUNC(glVertexArrayIndexOffsetEXT); \
+  FUNC(glTangent3fvEXT); \
+  FUNC(glProgramBufferParametersIuivNV); \
+  FUNC(glTexCoord2s); \
+  FUNC(glSamplePatternSGIS); \
+  FUNC(glMatrixLoadTransposedEXT); \
+  FUNC(glUnmapTexture2DINTEL); \
+  FUNC(glGetCombinerInputParameterfvNV); \
+  FUNC(glResumeTransformFeedbackNV); \
+  FUNC(glGetInvariantFloatvEXT); \
+  FUNC(glTexCoord4i); \
+  FUNC(glMultiTexCoord2dARB); \
+  FUNC(glSignalVkSemaphoreNV); \
+  FUNC(glSecondaryColor3us); \
+  FUNC(glExtGetShadersQCOM); \
+  FUNC(glGetPathColorGenfvNV); \
+  FUNC(glGetnUniformuivKHR); \
+  FUNC(glRasterPos3s); \
+  FUNC(glRasterPos2i); \
+  FUNC(glSecondaryColor3usEXT); \
+  FUNC(glRasterPos4xvOES); \
+  FUNC(glTranslatef); \
+  FUNC(glWeightsvARB); \
+  FUNC(glReplacementCodeuiTexCoord2fNormal3fVertex3fSUN); \
+  FUNC(glReplacementCodeusvSUN); \
+  FUNC(glSecondaryColor3fEXT); \
+  FUNC(glRenderbufferStorageMultisampleANGLE); \
+  FUNC(glMulticastBufferSubDataNV); \
+  FUNC(glEGLImageTargetTextureStorageEXT); \
+  FUNC(glColor4d); \
+  FUNC(glGenFencesAPPLE); \
+  FUNC(glVertexStream1fvATI); \
+  FUNC(glMultiModeDrawArraysIBM); \
+  FUNC(glRectf); \
+  FUNC(glSpriteParameteriSGIX); \
   FUNC(glInterleavedArrays); \
+  FUNC(glPixelTransferi); \
+  FUNC(glBindParameterEXT); \
+  FUNC(glConvolutionParameterivEXT); \
+  FUNC(glGetMapParameterfvNV); \
+  FUNC(glBindAttribLocationARB); \
+  FUNC(glCoverageMaskNV); \
+  FUNC(glMakeImageHandleNonResidentNV); \
+  FUNC(glCreateSyncFromCLeventARB); \
+  FUNC(glReplacementCodeubvSUN); \
+  FUNC(glWindowPos2ivMESA); \
+  FUNC(glLightiv); \
+  FUNC(glTexCoord2fColor4ubVertex3fSUN); \
+  FUNC(glNormal3sv); \
+  FUNC(glUseProgramObjectARB); \
+  FUNC(glCreateProgramObjectARB); \
+  FUNC(glColor3us); \
+  FUNC(glGetMultisamplefvNV); \
+  FUNC(glExtGetFramebuffersQCOM); \
+  FUNC(glMultiTexCoord3fvARB); \
+  FUNC(glGetVideoivNV); \
+  FUNC(glTexCoord2fColor3fVertex3fSUN); \
+  FUNC(glTangent3bEXT); \
+  FUNC(glGetPerfCounterInfoINTEL); \
+  FUNC(glDrawArraysInstancedNV); \
+  FUNC(glMultiTexCoord4f); \
+  FUNC(glTexCoordP1ui); \
+  FUNC(glRasterPos2sv); \
+  FUNC(glGetHistogramEXT); \
+  FUNC(glCopyPathNV); \
+  FUNC(glColor3sv); \
+  FUNC(glEdgeFlagv); \
+  FUNC(glSecondaryColor3f); \
+  FUNC(glGetInvariantBooleanvEXT); \
+  FUNC(glSecondaryColor3bvEXT); \
+  FUNC(glTexCoord1dv); \
+  FUNC(glGetnHistogram); \
+  FUNC(glColor3i); \
+  FUNC(glMultiTexCoord4hNV); \
+  FUNC(glVertexP4uiv); \
+  FUNC(glVertexBlendARB); \
+  FUNC(glVertexStream1dvATI); \
+  FUNC(glColorFragmentOp1ATI); \
+  FUNC(glBeginFragmentShaderATI); \
+  FUNC(glMaterialxvOES); \
+  FUNC(glExtIsProgramBinaryQCOM); \
+  FUNC(glAccumxOES); \
+  FUNC(glVertex4hNV); \
+  FUNC(glDisableVertexAttribAPPLE); \
+  FUNC(glGetColorTableParameteriv); \
+  FUNC(glMapGrid2d); \
+  FUNC(glEnableClientStateiEXT); \
+  FUNC(glFramebufferPixelLocalStorageSizeEXT); \
+  FUNC(glProgramNamedParameter4dvNV); \
+  FUNC(glGetObjectBufferfvATI); \
+  FUNC(glTexCoord3xOES); \
+  FUNC(glDebugMessageEnableAMD); \
+  FUNC(glBitmapxOES); \
+  FUNC(glTessellationFactorAMD); \
+  FUNC(glVertexAttribs3svNV); \
+  FUNC(glGetMapParameterivNV); \
+  FUNC(glWindowPos3svMESA); \
+  FUNC(glTexCoord2fv); \
+  FUNC(glMakeImageHandleNonResidentARB); \
+  FUNC(glWaitSyncAPPLE); \
+  FUNC(glRasterPos4fv); \
+  FUNC(glPrimitiveBoundingBoxARB); \
+  FUNC(glMultiTexCoord4d); \
+  FUNC(glGetMultiTexEnvfvEXT); \
+  FUNC(glReplacementCodeuiColor4ubVertex3fSUN); \
+  FUNC(glSyncTextureINTEL); \
+  FUNC(glNormalStream3iATI); \
+  FUNC(glCopyConvolutionFilter1D); \
+  FUNC(glTexCoord2fColor3fVertex3fvSUN); \
+  FUNC(glEnableVertexArrayEXT); \
+  FUNC(glMultiTexCoord3sARB); \
+  FUNC(glGetImageHandleARB); \
+  FUNC(glWindowPos3ivARB); \
+  FUNC(glMultiTexCoord1svARB); \
+  FUNC(glProgramParameters4dvNV); \
+  FUNC(glColorFormatNV); \
+  FUNC(glSubpixelPrecisionBiasNV); \
+  FUNC(glDeleteObjectARB); \
+  FUNC(glEvalCoord1xOES); \
+  FUNC(glBeginConditionalRenderNV); \
+  FUNC(glUniform1ui64ARB); \
+  FUNC(glVertexAttribL3ui64NV); \
+  FUNC(glProgramParameter4dNV); \
+  FUNC(glWindowPos2dARB); \
+  FUNC(glTransformPathNV); \
+  FUNC(glSecondaryColor3bEXT); \
+  FUNC(glMultiTexCoord1s); \
+  FUNC(glWindowPos2dvMESA); \
+  FUNC(glFramebufferSampleLocationsfvARB); \
+  FUNC(glWindowPos2ivARB); \
+  FUNC(glMultiTexGendEXT); \
+  FUNC(glVertexAttrib1dvNV); \
+  FUNC(glReadBufferIndexedEXT); \
+  FUNC(glGetTextureHandleARB); \
+  FUNC(glGetnUniformivKHR); \
+  FUNC(glProgramUniformui64NV); \
+  FUNC(glColorFragmentOp3ATI); \
+  FUNC(glVertex2xvOES); \
+  FUNC(glTextureNormalEXT); \
+  FUNC(glGetnMapiv); \
+  FUNC(glTexCoord1d); \
+  FUNC(glColor3fv); \
+  FUNC(glReplacementCodeuiVertex3fvSUN); \
+  FUNC(glTransformFeedbackStreamAttribsNV); \
+  FUNC(glUniformHandleui64vIMG); \
+  FUNC(glGetActiveUniformARB); \
+  FUNC(glGetObjectParameterivARB); \
+  FUNC(glVertexAttribL1i64vNV); \
+  FUNC(glVertexAttribDivisorEXT); \
+  FUNC(glLGPUNamedBufferSubDataNVX); \
+  FUNC(glDrawBuffersNV); \
+  FUNC(glPixelTexGenParameteriSGIS); \
+  FUNC(glVertexP3uiv); \
+  FUNC(glGetLocalConstantBooleanvEXT); \
+  FUNC(glGetInteger64vAPPLE); \
+  FUNC(glBindMaterialParameterEXT); \
+  FUNC(glVertexAttribs1hvNV); \
+  FUNC(glMatrixMultTransposefEXT); \
+  FUNC(glIsPointInStrokePathNV); \
+  FUNC(glVertexAttribL1ui64vARB); \
+  FUNC(glTexCoordP3ui); \
+  FUNC(glMakeNamedBufferNonResidentNV); \
+  FUNC(glRectdv); \
+  FUNC(glBindTransformFeedbackNV); \
+  FUNC(glTestFenceNV); \
+  FUNC(glMultiDrawArraysIndirectAMD); \
+  FUNC(glUniform1i64vNV); \
+  FUNC(glGetProgramStringNV); \
+  FUNC(glGetPathColorGenivNV); \
+  FUNC(glCombinerOutputNV); \
+  FUNC(glVertexAttribLFormatNV); \
+  FUNC(glUniform1i64NV); \
+  FUNC(glPathStringNV); \
+  FUNC(glSecondaryColor3uiv); \
+  FUNC(glMultiTexCoord2dv); \
+  FUNC(glColor4hvNV); \
+  FUNC(glGetVertexAttribArrayObjectfvATI); \
+  FUNC(glEndVideoCaptureNV); \
+  FUNC(glIsTextureHandleResidentNV); \
+  FUNC(glVertexStream4svATI); \
+  FUNC(glGetPerfMonitorCountersAMD); \
+  FUNC(glTrackMatrixNV); \
+  FUNC(glTexCoord3bvOES); \
+  FUNC(glBeginOcclusionQueryNV); \
+  FUNC(glFogCoordd); \
+  FUNC(glProgramEnvParameter4fARB); \
+  FUNC(glImageTransformParameterfHP); \
+  FUNC(glMultiDrawElementsIndirectAMD); \
+  FUNC(glMultiDrawElementsIndirectBindlessCountNV); \
+  FUNC(glEvalCoord2d); \
+  FUNC(glRasterPos3sv); \
+  FUNC(glColor3xOES); \
+  FUNC(glColor3hNV); \
+  FUNC(glVertexArrayNormalOffsetEXT); \
+  FUNC(glUniform3i64vNV); \
+  FUNC(glTexCoord2f); \
+  FUNC(glColor4ubVertex3fSUN); \
+  FUNC(glGetMapiv); \
+  FUNC(glVertexAttrib4hNV); \
+  FUNC(glUniformMatrix2x3fvNV); \
+  FUNC(glIndexFuncEXT); \
+  FUNC(glGetVideoui64vNV); \
+  FUNC(glMultiTexCoord1d); \
+  FUNC(glGetColorTable); \
+  FUNC(glMultiTexCoord4bOES); \
+  FUNC(glFragmentLightfvSGIX); \
+  FUNC(glIsTextureHandleResidentARB); \
+  FUNC(glGetPixelTexGenParameterfvSGIS); \
+  FUNC(glIsVertexAttribEnabledAPPLE); \
+  FUNC(glEndVertexShaderEXT); \
+  FUNC(glConvolutionFilter1D); \
+  FUNC(glStartTilingQCOM); \
+  FUNC(glColor3uiv); \
+  FUNC(glPushName); \
+  FUNC(glNormal3d); \
+  FUNC(glIndexMaterialEXT); \
+  FUNC(glGetConvolutionFilterEXT); \
+  FUNC(glFrustum); \
+  FUNC(glConservativeRasterParameterfNV); \
+  FUNC(glVertex3fv); \
+  FUNC(glBufferStorageExternalEXT); \
+  FUNC(glResetMinmax); \
+  FUNC(glVertexAttribs2dvNV); \
+  FUNC(glVertex3iv); \
+  FUNC(glLoadMatrixxOES); \
+  FUNC(glExtGetProgramBinarySourceQCOM); \
+  FUNC(glColor3bv); \
+  FUNC(glGetnPolygonStipple); \
+  FUNC(glCopyTexSubImage2DEXT); \
+  FUNC(glProgramBinaryOES); \
+  FUNC(glTexCoord2fNormal3fVertex3fvSUN); \
+  FUNC(glMultiTexCoord2fv); \
+  FUNC(glGetTexBumpParameterivATI); \
+  FUNC(glViewportPositionWScaleNV); \
+  FUNC(glStencilStrokePathNV); \
+  FUNC(glColor4uiv); \
+  FUNC(glWindowPos3svARB); \
+  FUNC(glColorMaterial); \
+  FUNC(glColorTableParameteriv); \
+  FUNC(glPathStencilFuncNV); \
+  FUNC(glPathCoverDepthFuncNV); \
+  FUNC(glGetnUniformfvKHR); \
+  FUNC(glMakeImageHandleResidentNV); \
+  FUNC(glMultiTexCoord1hvNV); \
+  FUNC(glMultiTexCoord2iARB); \
+  FUNC(glFrameZoomSGIX); \
+  FUNC(glProgramLocalParameterI4iNV); \
+  FUNC(glClearColorIuiEXT); \
+  FUNC(glGetMinmaxParameteriv); \
+  FUNC(glMultiTexCoord4fvARB); \
+  FUNC(glLineStipple); \
+  FUNC(glStencilThenCoverStrokePathInstancedNV); \
+  FUNC(glNormalStream3bvATI); \
+  FUNC(glActiveStencilFaceEXT); \
+  FUNC(glColor3usv); \
+  FUNC(glNormalFormatNV); \
+  FUNC(glGetMultiTexGenfvEXT); \
+  FUNC(glVertexAttribs2svNV); \
+  FUNC(glGetConvolutionParameterxvOES); \
+  FUNC(glNormalStream3bATI); \
+  FUNC(glWindowPos3iARB); \
+  FUNC(glNamedProgramLocalParameter4fvEXT); \
+  FUNC(glGetUniformOffsetEXT); \
+  FUNC(glSecondaryColor3iv); \
+  FUNC(glExtGetTexturesQCOM); \
+  FUNC(glColorFragmentOp2ATI); \
+  FUNC(glGenFencesNV); \
+  FUNC(glNormalPointervINTEL); \
+  FUNC(glGetPixelMapxv); \
+  FUNC(glEndPerfMonitorAMD); \
+  FUNC(glVertexAttribDivisorNV); \
+  FUNC(glBindTextureUnitParameterEXT); \
+  FUNC(glClipPlanexOES); \
+  FUNC(glUniform2i64NV); \
+  FUNC(glFramebufferFoveationConfigQCOM); \
+  FUNC(glTangent3fEXT); \
+  FUNC(glPathParameterfNV); \
+  FUNC(glEvalCoord1xvOES); \
+  FUNC(glProgramUniform4ui64ARB); \
+  FUNC(glVertexAttribL4i64vNV); \
+  FUNC(glGetObjectParameterfvARB); \
+  FUNC(glUniform4i64ARB); \
+  FUNC(glNormal3bv); \
+  FUNC(glMapTexture2DINTEL); \
+  FUNC(glIndexsv); \
+  FUNC(glTexCoord2i); \
+  FUNC(glTranslated); \
+  FUNC(glGetProgramNamedParameterdvNV); \
+  FUNC(glLinkProgramARB); \
+  FUNC(glUniform2ui64vARB); \
+  FUNC(glIsPathNV); \
+  FUNC(glSecondaryColor3ub); \
+  FUNC(glAttachObjectARB); \
+  FUNC(glSetMultisamplefvAMD); \
+  FUNC(glReplacementCodeuiColor3fVertex3fSUN); \
+  FUNC(glIsProgramARB); \
+  FUNC(glTangent3bvEXT); \
+  FUNC(glDeleteLists); \
+  FUNC(glFreeObjectBufferATI); \
+  FUNC(glNamedProgramLocalParameter4fEXT); \
+  FUNC(glTbufferMask3DFX); \
+  FUNC(glWindowPos3dv); \
+  FUNC(glGetLightiv); \
+  FUNC(glWindowPos2iMESA); \
+  FUNC(glMultiTexCoord1sARB); \
+  FUNC(glPathStencilDepthOffsetNV); \
+  FUNC(glPixelMapuiv); \
+  FUNC(glIndexubv); \
+  FUNC(glProgramEnvParametersI4uivNV); \
+  FUNC(glMultiTexCoord4sv); \
+  FUNC(glPresentFrameKeyedNV); \
+  FUNC(glIsTextureEXT); \
+  FUNC(glRectd); \
+  FUNC(glLineWidthxOES); \
+  FUNC(glDeleteFencesAPPLE); \
+  FUNC(glPassTexCoordATI); \
+  FUNC(glMulticastCopyBufferSubDataNV); \
+  FUNC(glFlushVertexArrayRangeNV); \
+  FUNC(glPrioritizeTexturesxOES); \
+  FUNC(glColor4b); \
+  FUNC(glMapVertexAttrib1dAPPLE); \
+  FUNC(glVariantsvEXT); \
+  FUNC(glMultiTexCoord2bvOES); \
+  FUNC(glEndTilingQCOM); \
+  FUNC(glMapControlPointsNV); \
+  FUNC(glVertexAttribIFormatNV); \
+  FUNC(glTexCoord3d); \
+  FUNC(glTexCoord3dv); \
+  FUNC(glFinishTextureSUNX); \
+  FUNC(glGenVertexArraysAPPLE); \
+  FUNC(glTangent3ivEXT); \
+  FUNC(glRects); \
+  FUNC(glTangent3dvEXT); \
+  FUNC(glFragmentLightModelfSGIX); \
+  FUNC(glSecondaryColorPointerListIBM); \
+  FUNC(glVDPAURegisterVideoSurfaceNV); \
+  FUNC(glTexCoord1sv); \
+  FUNC(glMapObjectBufferATI); \
+  FUNC(glPointParameterxvOES); \
+  FUNC(glMatrixLoadfEXT); \
+  FUNC(glQueryResourceNV); \
+  FUNC(glVertexStream3fvATI); \
+  FUNC(glVertex4i); \
+  FUNC(glLoadTransposeMatrixf); \
+  FUNC(glCombinerStageParameterfvNV); \
+  FUNC(glRasterPos3dv); \
+  FUNC(glUpdateObjectBufferATI); \
+  FUNC(glMulticastGetQueryObjectuivNV); \
+  FUNC(glWindowPos2sv); \
+  FUNC(glProgramUniformHandleui64vIMG); \
+  FUNC(glSetFragmentShaderConstantATI); \
+  FUNC(glCommandListSegmentsNV); \
+  FUNC(glCreateCommandListsNV); \
+  FUNC(glWindowPos2svMESA); \
+  FUNC(glRotatef); \
+  FUNC(glGetPointervEXT); \
+  FUNC(glMapParameterivNV); \
+  FUNC(glProgramEnvParameter4dvARB); \
+  FUNC(glVertexStream2sATI); \
+  FUNC(glVertexAttrib1dNV); \
+  FUNC(glUniform4ui64NV); \
+  FUNC(glConvolutionFilter2DEXT); \
+  FUNC(glGenAsyncMarkersSGIX); \
+  FUNC(glCullParameterfvEXT); \
+  FUNC(glClearAccumxOES); \
+  FUNC(glExtGetBufferPointervQCOM); \
+  FUNC(glVariantivEXT); \
+  FUNC(glGetUniformui64vARB); \
+  FUNC(glGetFragmentMaterialfvSGIX); \
+  FUNC(glAlphaFragmentOp2ATI); \
+  FUNC(glGetPathCommandsNV); \
+  FUNC(glFogFuncSGIS); \
+  FUNC(glBeginPerfMonitorAMD); \
+  FUNC(glGetConvolutionParameterfvEXT); \
+  FUNC(glEGLImageTargetTexture2DOES); \
+  FUNC(glGetPathMetricsNV); \
+  FUNC(glDrawBuffersIndexedEXT); \
+  FUNC(glTexEnvi); \
+  FUNC(glRectfv); \
+  FUNC(glBinormalPointerEXT); \
+  FUNC(glFramebufferTextureLayerDownsampleIMG); \
+  FUNC(glReplacementCodeuiColor4fNormal3fVertex3fvSUN); \
+  FUNC(glFogCoordfv); \
+  FUNC(glLightEnviSGIX); \
+  FUNC(glCopyPixels); \
+  FUNC(glGetFragmentLightfvSGIX); \
+  FUNC(glVertexAttribL4ui64NV); \
+  FUNC(glGetMinmaxParameterivEXT); \
+  FUNC(glColorTableParameterfv); \
+  FUNC(glVertexStream2ivATI); \
+  FUNC(glGetInvariantIntegervEXT); \
+  FUNC(glVertex2dv); \
+  FUNC(glGetTexGenfv); \
+  FUNC(glFogCoordPointerEXT); \
+  FUNC(glColor4ubVertex2fvSUN); \
+  FUNC(glIndexxOES); \
+  FUNC(glUniformMatrix4x2fvNV); \
+  FUNC(glMatrixTranslatedEXT); \
+  FUNC(glMatrixIndexPointerARB); \
+  FUNC(glGlobalAlphaFactorubSUN); \
+  FUNC(glTexCoord4s); \
+  FUNC(glFogCoordFormatNV); \
+  FUNC(glUniform4i64vNV); \
+  FUNC(glNormalStream3sATI); \
+  FUNC(glTagSampleBufferSGIX); \
+  FUNC(glUniformMatrix4x3fvNV); \
+  FUNC(glRenderbufferStorageMultisampleCoverageNV); \
+  FUNC(glGetCombinerInputParameterivNV); \
+  FUNC(glMatrixScalefEXT); \
+  FUNC(glGetTextureSamplerHandleARB); \
+  FUNC(glProgramUniform4ui64vARB); \
+  FUNC(glBindVideoCaptureStreamBufferNV); \
+  FUNC(glGetMultiTexEnvivEXT); \
+  FUNC(glProgramUniform4ui64NV); \
+  FUNC(glVertexAttribs4ubvNV); \
+  FUNC(glWindowPos4fMESA); \
+  FUNC(glNamedProgramLocalParameterI4uivEXT); \
+  FUNC(glGetHandleARB); \
+  FUNC(glFragmentLightModelfvSGIX); \
+  FUNC(glGetVertexAttribivARB); \
+  FUNC(glTexCoordFormatNV); \
+  FUNC(glRenderbufferStorageMultisampleIMG); \
+  FUNC(glGetAttribLocationARB); \
+  FUNC(glAlphaFuncQCOM); \
+  FUNC(glWindowPos2sARB); \
+  FUNC(glGetInstrumentsSGIX); \
+  FUNC(glTangent3iEXT); \
+  FUNC(glVertexAttrib2fvNV); \
+  FUNC(glDebugMessageInsertAMD); \
+  FUNC(glMultiTexCoordP1uiv); \
+  FUNC(glPixelTexGenParameterfSGIS); \
+  FUNC(glEvalCoord1d); \
+  FUNC(glCreateShaderProgramEXT); \
+  FUNC(glMultiTexCoord2i); \
+  FUNC(glConvolutionParameteriv); \
+  FUNC(glTexCoord1f); \
+  FUNC(glLoadIdentityDeformationMapSGIX); \
+  FUNC(glTexCoord4hNV); \
+  FUNC(glGetnUniformi64vARB); \
+  FUNC(glEvalMesh2); \
+  FUNC(glEGLImageTargetRenderbufferStorageOES); \
+  FUNC(glGetMaterialxOES); \
+  FUNC(glMultiTexCoord4xvOES); \
+  FUNC(glVertexAttrib1hvNV); \
+  FUNC(glGetnPixelMapuivARB); \
+  FUNC(glWindowPos3sMESA); \
+  FUNC(glGetActiveVaryingNV); \
+  FUNC(glWindowPos4dvMESA); \
+  FUNC(glRasterPos2dv); \
+  FUNC(glUniform2ui64vNV); \
+  FUNC(glNormalStream3dvATI); \
+  FUNC(glBindVertexArrayAPPLE); \
+  FUNC(glMultiTexCoord3bOES); \
+  FUNC(glVertexAttrib1hNV); \
+  FUNC(glReplacementCodeuiNormal3fVertex3fvSUN); \
+  FUNC(glGetImageHandleNV); \
+  FUNC(glColor4f); \
+  FUNC(glVertexStream3ivATI); \
+  FUNC(glVertexStream2svATI); \
+  FUNC(glGetMaterialiv); \
+  FUNC(glProgramLocalParameters4fvEXT); \
+  FUNC(glTestFenceAPPLE); \
+  FUNC(glReplacementCodeusSUN); \
+  FUNC(glGenTexturesEXT); \
+  FUNC(glMultiTexCoord4dARB); \
+  FUNC(glMultiTexCoord4ivARB); \
+  FUNC(glGetSeparableFilter); \
+  FUNC(glVertexAttrib2fNV); \
+  FUNC(glGetnMapfvARB); \
+  FUNC(glWeightuivARB); \
+  FUNC(glMultiTexCoord2iv); \
+  FUNC(glColorPointervINTEL); \
+  FUNC(glIsVariantEnabledEXT); \
+  FUNC(glFrustumfOES); \
+  FUNC(glAreTexturesResidentEXT); \
+  FUNC(glGetTexGeniv); \
+  FUNC(glScaled); \
+  FUNC(glProgramUniform3ui64ARB); \
+  FUNC(glStencilFillPathInstancedNV); \
+  FUNC(glGetVariantPointervEXT); \
+  FUNC(glBindBufferOffsetEXT); \
+  FUNC(glProgramLocalParameterI4uiNV); \
+  FUNC(glQueryMatrixxOES); \
+  FUNC(glRasterPos4f); \
+  FUNC(glPixelTransferxOES); \
+  FUNC(glPointParameterfSGIS); \
+  FUNC(glTexCoord3s); \
+  FUNC(glMultiTexCoord3svARB); \
+  FUNC(glNamedProgramLocalParametersI4ivEXT); \
+  FUNC(glTexCoord1fv); \
+  FUNC(glMultiTexCoord2hNV); \
+  FUNC(glWindowPos3i); \
+  FUNC(glColorPointerEXT); \
+  FUNC(glTexCoord3i); \
+  FUNC(glColorTableParameterivSGI); \
+  FUNC(glNormal3hNV); \
+  FUNC(glProgramUniform2i64NV); \
+  FUNC(glMultiTexCoord1dARB); \
+  FUNC(glAccum); \
+  FUNC(glRectxvOES); \
+  FUNC(glGetnSeparableFilterARB); \
+  FUNC(glClearDepthdNV); \
+  FUNC(glFlushRasterSGIX); \
+  FUNC(glRasterPos4s); \
+  FUNC(glTexCoord4xOES); \
+  FUNC(glDeleteAsyncMarkersSGIX); \
+  FUNC(glResolveDepthValuesNV); \
+  FUNC(glVertexAttribL2ui64vNV); \
+  FUNC(glReferencePlaneSGIX); \
+  FUNC(glFogCoorddv); \
+  FUNC(glSamplePatternEXT); \
+  FUNC(glNewList); \
+  FUNC(glGetTexParameterPointervAPPLE); \
+  FUNC(glUniform3i64vARB); \
+  FUNC(glVertexStream1sATI); \
+  FUNC(glGetInfoLogARB); \
+  FUNC(glMultiTexGenfEXT); \
+  FUNC(glMultiDrawElementsEXT); \
+  FUNC(glFogi); \
+  FUNC(glObjectPurgeableAPPLE); \
+  FUNC(glGetVariantIntegervEXT); \
+  FUNC(glVertexStream4sATI); \
+  FUNC(glDrawBuffersATI); \
+  FUNC(glCurrentPaletteMatrixARB); \
+  FUNC(glPathGlyphIndexRangeNV); \
+  FUNC(glMultiTexCoord4fv); \
+  FUNC(glDeleteStatesNV); \
+  FUNC(glBinormal3sEXT); \
+  FUNC(glMultiTexCoordP3ui); \
+  FUNC(glGetUniformui64vNV); \
+  FUNC(glLoadTransposeMatrixdARB); \
+  FUNC(glDeformationMap3fSGIX); \
+  FUNC(glEndPerfQueryINTEL); \
+  FUNC(glWindowPos2fvMESA); \
+  FUNC(glSetLocalConstantEXT); \
+  FUNC(glMultiTexCoord4svARB); \
+  FUNC(glVertexP2ui); \
+  FUNC(glVertex2fv); \
+  FUNC(glVertexPointervINTEL); \
+  FUNC(glSampleMaskSGIS); \
+  FUNC(glCopyConvolutionFilter1DEXT); \
+  FUNC(glRasterPos2iv); \
+  FUNC(glMinmaxEXT); \
+  FUNC(glGetPixelMapfv); \
+  FUNC(glEndList); \
+  FUNC(glAreProgramsResidentNV); \
+  FUNC(glExtGetTexLevelParameterivQCOM); \
+  FUNC(glProgramUniform1i64ARB); \
+  FUNC(glBlendEquationIndexedAMD); \
+  FUNC(glMakeTextureHandleNonResidentNV); \
+  FUNC(glVDPAUUnregisterSurfaceNV); \
+  FUNC(glUniform4ui64ARB); \
+  FUNC(glFogCoorddvEXT); \
+  FUNC(glFlushVertexArrayRangeAPPLE); \
+  FUNC(glIndexub); \
+  FUNC(glVertexAttribL4i64NV); \
+  FUNC(glPopName); \
+  FUNC(glVertex3xOES); \
+  FUNC(glMultiTexCoord2dvARB); \
+  FUNC(glWindowPos4fvMESA); \
+  FUNC(glGetVariantArrayObjectfvATI); \
+  FUNC(glPixelTransformParameteriEXT); \
+  FUNC(glTextureLightEXT); \
+  FUNC(glEnd); \
+  FUNC(glFogCoordPointerListIBM); \
+  FUNC(glVertexPointerListIBM); \
+  FUNC(glGetProgramLocalParameterIuivNV); \
+  FUNC(glWindowPos3sv); \
+  FUNC(glClientWaitSyncAPPLE); \
+  FUNC(glProgramUniform4i64ARB); \
+  FUNC(glGetMinmaxEXT); \
+  FUNC(glColor4bv); \
+  FUNC(glGetTexFilterFuncSGIS); \
+  FUNC(glGetPixelMapusv); \
+  FUNC(glGenOcclusionQueriesNV); \
+  FUNC(glMultiTexCoord3iARB); \
+  FUNC(glClearPixelLocalStorageuiEXT); \
+  FUNC(glTexCoord4f); \
+  FUNC(glVertex2f); \
+  FUNC(glMultiTexCoord1ivARB); \
+  FUNC(glProgramLocalParameter4fvARB); \
+  FUNC(glVertexAttribs2hvNV); \
+  FUNC(glEvalCoord1fv); \
+  FUNC(glUniformMatrix3x2fvNV); \
+  FUNC(glRasterPos2d); \
+  FUNC(glEvalCoord2xvOES); \
+  FUNC(glReplacementCodeuiColor4fNormal3fVertex3fSUN); \
+  FUNC(glGetPerfMonitorGroupStringAMD); \
+  FUNC(glRequestResidentProgramsNV); \
+  FUNC(glMultiTexCoord1f); \
+  FUNC(glBinormal3ivEXT); \
+  FUNC(glTexCoord1hNV); \
+  FUNC(glMultiModeDrawElementsIBM); \
+  FUNC(glColorP4uiv); \
+  FUNC(glBinormal3dvEXT); \
+  FUNC(glMap2f); \
+  FUNC(glWindowPos3dARB); \
+  FUNC(glGetTexGenxvOES); \
+  FUNC(glNamedBufferStorageExternalEXT); \
+  FUNC(glFogCoordf); \
+  FUNC(glGetDetailTexFuncSGIS); \
+  FUNC(glGetProgramNamedParameterfvNV); \
+  FUNC(glPixelMapx); \
+  FUNC(glColor3hvNV); \
+  FUNC(glVertexAttribL2i64NV); \
+  FUNC(glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN); \
+  FUNC(glCombinerInputNV); \
+  FUNC(glMatrixPushEXT); \
+  FUNC(glGetVertexAttribfvARB); \
+  FUNC(glFramebufferSampleLocationsfvNV); \
+  FUNC(glMultiTexCoord3s); \
+  FUNC(glTexCoordP2uiv); \
+  FUNC(glShadeModel); \
+  FUNC(glWindowPos3fMESA); \
+  FUNC(glStencilClearTagEXT); \
+  FUNC(glPassThrough); \
+  FUNC(glProgramUniformui64vNV); \
+  FUNC(glUniformHandleui64IMG); \
+  FUNC(glVertexAttrib3hNV); \
+  FUNC(glMultiTexEnvfvEXT); \
+  FUNC(glClearIndex); \
+  FUNC(glMultiTexCoord3xOES); \
+  FUNC(glPopMatrix); \
+  FUNC(glBinormal3bvEXT); \
+  FUNC(glNormal3f); \
+  FUNC(glVertexStream1dATI); \
+  FUNC(glPathSubCoordsNV); \
+  FUNC(glIndexi); \
+  FUNC(glResizeBuffersMESA); \
+  FUNC(glFragmentMaterialiSGIX); \
+  FUNC(glActiveVaryingNV); \
+  FUNC(glRasterPos3fv); \
+  FUNC(glIndexPointer); \
+  FUNC(glDisableClientStateIndexedEXT); \
+  FUNC(glGenLists); \
+  FUNC(glGetFinalCombinerInputParameterfvNV); \
+  FUNC(glGetImageTransformParameterfvHP); \
+  FUNC(glMultiTexCoord2bOES); \
+  FUNC(glMatrixRotatefEXT); \
+  FUNC(glConservativeRasterParameteriNV); \
+  FUNC(glMultiTexCoord4dvARB); \
+  FUNC(glWindowPos2s); \
+  FUNC(glLockArraysEXT); \
+  FUNC(glClearColorIiEXT); \
+  FUNC(glProgramLocalParameterI4ivNV); \
+  FUNC(glWindowPos2dMESA); \
+  FUNC(glMapGrid1d); \
+  FUNC(glCullParameterdvEXT); \
+  FUNC(glNamedProgramLocalParametersI4uivEXT); \
+  FUNC(glIsOcclusionQueryNV); \
+  FUNC(glFogCoordfvEXT); \
+  FUNC(glTexCoord3xvOES); \
+  FUNC(glTexGeni); \
+  FUNC(glTexGenfv); \
+  FUNC(glIsList); \
+  FUNC(glRenderGpuMaskNV); \
+  FUNC(glCreateShaderObjectARB); \
+  FUNC(glDeformSGIX); \
+  FUNC(glTexCoord4fv); \
+  FUNC(glRecti); \
+  FUNC(glGetVertexAttribfvNV); \
+  FUNC(glTextureImage3DMultisampleCoverageNV); \
+  FUNC(glEnableClientState); \
+  FUNC(glListDrawCommandsStatesClientNV); \
+  FUNC(glColor4xvOES); \
+  FUNC(glGetnPolygonStippleARB); \
+  FUNC(glPointSizexOES); \
+  FUNC(glUniformHandleui64vARB); \
+  FUNC(glVertexAttribs3dvNV); \
+  FUNC(glExtTexObjectStateOverrideiQCOM); \
+  FUNC(glCopyTexImage1DEXT); \
+  FUNC(glGetTexBumpParameterfvATI); \
+  FUNC(glGetNamedProgramLocalParameterfvEXT); \
+  FUNC(glSecondaryColor3i); \
+  FUNC(glVertexP2uiv); \
+  FUNC(glIndexs); \
+  FUNC(glMultiDrawArraysIndirectBindlessNV); \
+  FUNC(glGetPerfQueryInfoINTEL); \
+  FUNC(glTextureColorMaskSGIS); \
+  FUNC(glMatrixLoadTranspose3x3fNV); \
+  FUNC(glFragmentMaterialivSGIX); \
+  FUNC(glPathDashArrayNV); \
+  FUNC(glMulticastCopyImageSubDataNV); \
+  FUNC(glGetPathParameterfvNV); \
+  FUNC(glVariantArrayObjectATI); \
+  FUNC(glNormal3s); \
+  FUNC(glMultiDrawRangeElementArrayAPPLE); \
+  FUNC(glNormalStream3fvATI); \
+  FUNC(glUniform4i64NV); \
+  FUNC(glVariantPointerEXT); \
+  FUNC(glGetProgramLocalParameterfvARB); \
+  FUNC(glGetVertexAttribArrayObjectivATI); \
+  FUNC(glMultiTexCoord2ivARB); \
+  FUNC(glWeightubvARB); \
+  FUNC(glPrimitiveRestartIndexNV); \
+  FUNC(glGetOcclusionQueryuivNV); \
+  FUNC(glVertexStream4ivATI); \
+  FUNC(glProgramPathFragmentInputGenNV); \
+  FUNC(glClientActiveTexture); \
+  FUNC(glConvolutionParameterfv); \
+  FUNC(glFragmentLightModeliSGIX); \
+  FUNC(glFramebufferTexture2DDownsampleIMG); \
+  FUNC(glSecondaryColor3ivEXT); \
+  FUNC(glVDPAUMapSurfacesNV); \
+  FUNC(glLightf); \
+  FUNC(glMultiTexGenivEXT); \
+  FUNC(glMateriali); \
+  FUNC(glTangent3dEXT); \
+  FUNC(glTexCoord2dv); \
+  FUNC(glGetGraphicsResetStatusKHR); \
+  FUNC(glIndexFormatNV); \
+  FUNC(glProgramEnvParametersI4ivNV); \
+  FUNC(glVertex3bOES); \
+  FUNC(glGetProgramParameterdvNV); \
+  FUNC(glTexCoord4sv); \
+  FUNC(glGlobalAlphaFactorfSUN); \
+  FUNC(glVDPAUSurfaceAccessNV); \
+  FUNC(glGetShaderSourceARB); \
+  FUNC(glNormalPointer); \
+  FUNC(glTexCoord2fNormal3fVertex3fSUN); \
+  FUNC(glMultiTexCoordP4uiv); \
+  FUNC(glColorPointerListIBM); \
+  FUNC(glBufferPageCommitmentARB); \
+  FUNC(glWindowPos3s); \
+  FUNC(glVertexAttrib3sNV); \
+  FUNC(glVertexAttribs4dvNV); \
+  FUNC(glLoadTransposeMatrixxOES); \
+  FUNC(glSecondaryColor3svEXT); \
+  FUNC(glMultiTexEnvivEXT); \
+  FUNC(glTextureImage3DMultisampleNV); \
+  FUNC(glTexCoordPointer); \
+  FUNC(glEnableDriverControlQCOM); \
+  FUNC(glTexCoord2hNV); \
+  FUNC(glDetachObjectARB); \
+  FUNC(glStencilThenCoverStrokePathNV); \
+  FUNC(glGetColorTableParameterivEXT); \
+  FUNC(glTexCoord1bvOES); \
+  FUNC(glBeginVertexShaderEXT); \
+  FUNC(glDebugMessageCallbackAMD); \
+  FUNC(glMakeNamedBufferResidentNV); \
+  FUNC(glVertexAttribs3fvNV); \
+  FUNC(glTexCoord2fColor4fNormal3fVertex3fSUN); \
+  FUNC(glRasterPos2xOES); \
+  FUNC(glTexPageCommitmentEXT); \
+  FUNC(glWindowPos3dvMESA); \
+  FUNC(glVertexAttribs3hvNV); \
+  FUNC(glGetVideoCaptureStreamfvNV); \
+  FUNC(glEdgeFlagFormatNV); \
+  FUNC(glGetNamedBufferParameterui64vNV); \
+  FUNC(glProgramUniform4ui64vNV); \
+  FUNC(glGetAttachedObjectsARB); \
+  FUNC(glPolygonOffsetxOES); \
+  FUNC(glGetnMapfv); \
+  FUNC(glExtGetTexSubImageQCOM); \
+  FUNC(glWindowPos2fARB); \
+  FUNC(glFogCoordPointer); \
+  FUNC(glGetLightxOES); \
+  FUNC(glShaderOp3EXT); \
+  FUNC(glGetVariantBooleanvEXT); \
+  FUNC(glFramebufferTexture2DMultisampleIMG); \
+  FUNC(glTexPageCommitmentARB); \
+  FUNC(glVertex2i); \
+  FUNC(glFogCoorddEXT); \
+  FUNC(glGetTexEnviv); \
+  FUNC(glProgramBufferParametersIivNV); \
+  FUNC(glPathParameteriNV); \
+  FUNC(glFramebufferFetchBarrierQCOM); \
+  FUNC(glRasterPos3f); \
+  FUNC(glGetFenceivNV); \
+  FUNC(glMultiTexCoord4hvNV); \
+  FUNC(glFlushStaticDataIBM); \
+  FUNC(glGetVertexAttribLui64vNV); \
+  FUNC(glTexCoord1s); \
+  FUNC(glColor4ubVertex2fSUN); \
+  FUNC(glVertex3i); \
+  FUNC(glSecondaryColor3sEXT); \
+  FUNC(glProgramParameter4fNV); \
+  FUNC(glMultiTexEnviEXT); \
+  FUNC(glMultiTexCoordP2uiv); \
+  FUNC(glHistogram); \
+  FUNC(glClientActiveVertexStreamATI); \
+  FUNC(glPushClientAttrib); \
+  FUNC(glVertex2bvOES); \
+  FUNC(glGetUniformi64vNV); \
+  FUNC(glLightModeliv); \
+  FUNC(glUniform1i64vARB); \
+  FUNC(glMapParameterfvNV); \
+  FUNC(glGetMinmax); \
+  FUNC(glTransformFeedbackVaryingsNV); \
+  FUNC(glTexCoord2hvNV); \
+  FUNC(glBinormal3iEXT); \
+  FUNC(glGetPerfMonitorCounterStringAMD); \
+  FUNC(glMultiTexCoord1bOES); \
+  FUNC(glMultiTexCoord2f); \
+  FUNC(glSelectPerfMonitorCountersAMD); \
+  FUNC(glCopyImageSubDataNV); \
+  FUNC(glBinormal3dEXT); \
+  FUNC(glGetTextureSamplerHandleIMG); \
+  FUNC(glMultiTexCoord1dv); \
+  FUNC(glVertexAttribDivisorANGLE); \
+  FUNC(glGetCombinerOutputParameterivNV); \
+  FUNC(glRasterPos2f); \
+  FUNC(glMultiTexCoord3dv); \
+  FUNC(glColor3d); \
+  FUNC(glSecondaryColorFormatNV); \
+  FUNC(glStencilOpSeparateATI); \
+  FUNC(glVertex2s); \
+  FUNC(glCreatePerfQueryINTEL); \
+  FUNC(glLGPUCopyImageSubDataNVX); \
+  FUNC(glDrawTransformFeedbackInstancedEXT); \
+  FUNC(glVariantfvEXT); \
+  FUNC(glPixelTransformParameterfEXT); \
+  FUNC(glRasterPos3xOES); \
+  FUNC(glConvolutionParameteriEXT); \
+  FUNC(glIsObjectBufferATI); \
+  FUNC(glVertexAttrib2sNV); \
+  FUNC(glGetTextureHandleIMG); \
+  FUNC(glMakeTextureHandleNonResidentARB); \
+  FUNC(glLightModelfv); \
+  FUNC(glWindowPos3f); \
+  FUNC(glCombinerParameterfvNV); \
+  FUNC(glPathGlyphRangeNV); \
+  FUNC(glGetMapfv); \
+  FUNC(glColorP4ui); \
+  FUNC(glIsBufferResidentNV); \
+  FUNC(glGetDebugMessageLogAMD); \
+  FUNC(glGetConvolutionFilter); \
+  FUNC(glMultiTexCoord3ivARB); \
+  FUNC(glProgramUniform4i64vNV); \
+  FUNC(glVertexStream1fATI); \
+  FUNC(glPixelTransformParameterfvEXT); \
+  FUNC(glMultTransposeMatrixf); \
+  FUNC(glNamedProgramLocalParameterI4ivEXT); \
+  FUNC(glVertexBlendEnvfATI); \
+  FUNC(glUniform2ui64ARB); \
+  FUNC(glMultiTexCoord4i); \
+  FUNC(glMaterialfv); \
+  FUNC(glUniform3ui64vARB); \
+  FUNC(glNormal3fVertex3fvSUN); \
+  FUNC(glRasterPos2s); \
+  FUNC(glResetMinmaxEXT); \
+  FUNC(glPassThroughxOES); \
+  FUNC(glGetProgramivARB); \
+  FUNC(glUniform3ui64vNV); \
+  FUNC(glSecondaryColor3dv); \
+  FUNC(glVertex4xvOES); \
+  FUNC(glBindVertexShaderEXT); \
+  FUNC(glCoverFillPathNV); \
+  FUNC(glFogfv); \
+  FUNC(glIsStateNV); \
+  FUNC(glBlendEquationSeparateIndexedAMD); \
+  FUNC(glReadBufferNV); \
+  FUNC(glGetPerfQueryIdByNameINTEL); \
+  FUNC(glWeightdvARB); \
+  FUNC(glReplacementCodeuiVertex3fSUN); \
+  FUNC(glPopClientAttrib); \
+  FUNC(glMapVertexAttrib2dAPPLE); \
+  FUNC(glProgramUniform2ui64vNV); \
+  FUNC(glColor4ub); \
+  FUNC(glUniformHandleui64ARB); \
+  FUNC(glMatrixScaledEXT); \
+  FUNC(glSecondaryColor3iEXT); \
+  FUNC(glTexCoord2d); \
+  FUNC(glRasterPos4iv); \
+  FUNC(glVertexAttribFormatNV); \
+  FUNC(glGetColorTableParameterfvEXT); \
+  FUNC(glTexBumpParameterfvATI); \
+  FUNC(glAsyncMarkerSGIX); \
+  FUNC(glGetTexEnvxvOES); \
+  FUNC(glSecondaryColorP3ui); \
+  FUNC(glMultiTexCoordP4ui); \
+  FUNC(glQueryResourceTagNV); \
+  FUNC(glVertex3sv); \
+  FUNC(glOrtho); \
+  FUNC(glFogiv); \
+  FUNC(glEndConditionalRenderNVX); \
+  FUNC(glImageTransformParameterfvHP); \
+  FUNC(glColor4ubv); \
+  FUNC(glWindowPos3ivMESA); \
+  FUNC(glNormal3xOES); \
+  FUNC(glGetIntegerui64i_vNV); \
+  FUNC(glVertexStream4fATI); \
+  FUNC(glIsImageHandleResidentARB); \
+  FUNC(glFlushMappedBufferRangeEXT); \
+  FUNC(glColor4dv); \
+  FUNC(glMapGrid1f); \
+  FUNC(glCopyTexImage2DEXT); \
+  FUNC(glStopInstrumentsSGIX); \
+  FUNC(glMultiTexCoord3sv); \
+  FUNC(glMap1d); \
+  FUNC(glMatrixLoad3x2fNV); \
+  FUNC(glCopyConvolutionFilter2DEXT); \
+  FUNC(glProgramEnvParameterI4iNV); \
+  FUNC(glColorTable); \
+  FUNC(glApplyFramebufferAttachmentCMAAINTEL); \
+  FUNC(glSetFenceAPPLE); \
+  FUNC(glPrioritizeTextures); \
+  FUNC(glGetHistogramParameterfv); \
+  FUNC(glIndexfv); \
+  FUNC(glUniform3i64ARB); \
+  FUNC(glVertex4s); \
+  FUNC(glMultiTexCoord2sv); \
+  FUNC(glEvaluateDepthValuesARB); \
+  FUNC(glUniformui64vNV); \
+  FUNC(glScalexOES); \
+  FUNC(glVertexAttrib2dNV); \
+  FUNC(glVariantusvEXT); \
+  FUNC(glUniform1i64ARB); \
+  FUNC(glConvolutionParameterfEXT); \
+  FUNC(glWindowPos2fMESA); \
+  FUNC(glMultiTexCoordP3uiv); \
+  FUNC(glMultiDrawElementsIndirectBindlessNV); \
+  FUNC(glMultiTexCoord1xOES); \
+  FUNC(glWindowPos4iMESA); \
+  FUNC(glTexCoord4bOES); \
+  FUNC(glFragmentCoverageColorNV); \
+  FUNC(glSecondaryColorPointer); \
+  FUNC(glGetNextPerfQueryIdINTEL); \
+  FUNC(glDrawCommandsNV); \
+  FUNC(glVideoCaptureStreamParameterivNV); \
+  FUNC(glPixelStorex); \
+  FUNC(glVertex3hNV); \
+  FUNC(glMultiTexCoord1sv); \
+  FUNC(glClipPlane); \
+  FUNC(glGetFramebufferPixelLocalStorageSizeEXT); \
+  FUNC(glGetClipPlanefOES); \
+  FUNC(glProgramLocalParametersI4uivNV); \
+  FUNC(glProgramEnvParameters4fvEXT); \
+  FUNC(glPathCoordsNV); \
+  FUNC(glNormal3iv); \
+  FUNC(glGetMinmaxParameterfvEXT); \
+  FUNC(glMap2xOES); \
+  FUNC(glIndexMask); \
+  FUNC(glTexCoord4fColor4fNormal3fVertex4fvSUN); \
+  FUNC(glGetPerfMonitorGroupsAMD); \
+  FUNC(glFlushMappedBufferRangeAPPLE); \
+  FUNC(glEdgeFlagPointerListIBM); \
+  FUNC(glFramebufferFoveationParametersQCOM); \
+  FUNC(glInstrumentsBufferSGIX); \
+  FUNC(glDisableClientStateiEXT); \
+  FUNC(glBinormal3svEXT); \
+  FUNC(glFragmentMaterialfvSGIX); \
+  FUNC(glCombinerParameterfNV); \
+  FUNC(glFragmentLightivSGIX); \
+  FUNC(glProgramLocalParameter4dvARB); \
+  FUNC(glBlitFramebufferNV); \
+  FUNC(glGetnPixelMapfvARB); \
+  FUNC(glVertexFormatNV); \
+  FUNC(glMultiTexCoord2d); \
+  FUNC(glPauseTransformFeedbackNV); \
+  FUNC(glVertex4sv); \
+  FUNC(glGenFragmentShadersATI); \
+  FUNC(glPrioritizeTexturesEXT); \
+  FUNC(glGetProgramEnvParameterdvARB); \
+  FUNC(glColorPointer); \
+  FUNC(glVertexAttribL3ui64vNV); \
+  FUNC(glTexCoord2fVertex3fvSUN); \
+  FUNC(glProgramVertexLimitNV); \
+  FUNC(glGetCoverageModulationTableNV); \
+  FUNC(glMultiTexCoord3i); \
+  FUNC(glGetSharpenTexFuncSGIS); \
+  FUNC(glUniformMatrix3x4fvNV); \
+  FUNC(glEGLImageTargetTexStorageEXT); \
+  FUNC(glClearColorxOES); \
+  FUNC(glGetMapAttribParameterfvNV); \
+  FUNC(glCoverFillPathInstancedNV); \
+  FUNC(glEvalMesh1); \
+  FUNC(glVertexAttribs2fvNV); \
+  FUNC(glFlushPixelDataRangeNV); \
+  FUNC(glProgramEnvParameter4dARB); \
+  FUNC(glDrawPixels); \
+  FUNC(glClearTexSubImageEXT); \
+  FUNC(glVariantubvEXT); \
+  FUNC(glMultiTexCoord1i); \
+  FUNC(glProgramLocalParameter4dARB); \
+  FUNC(glDeleteProgramsNV); \
+  FUNC(glWindowPos2f); \
+  FUNC(glIsFenceNV); \
+  FUNC(glDrawTransformFeedbackNV); \
+  FUNC(glUniform4ui64vARB); \
+  FUNC(glGetPixelTransformParameterfvEXT); \
+  FUNC(glMatrixLoadIdentityEXT); \
+  FUNC(glTexCoordP2ui); \
+  FUNC(glColor4ubVertex3fvSUN); \
+  FUNC(glProgramUniform2i64vARB); \
+  FUNC(glMultiTexCoord3dvARB); \
+  FUNC(glMakeBufferNonResidentNV); \
+  FUNC(glProgramUniform3i64vNV); \
+  FUNC(glColor3dv); \
+  FUNC(glTexParameterxOES); \
+  FUNC(glGetObjectParameterivAPPLE); \
+  FUNC(glCallLists); \
+  FUNC(glVertexStream1iATI); \
+  FUNC(glProgramUniformHandleui64ARB); \
+  FUNC(glColorTableSGI); \
+  FUNC(glDrawElementsInstancedANGLE); \
+  FUNC(glGetnColorTableARB); \
+  FUNC(glUniform3ui64ARB); \
+  FUNC(glBlendBarrierNV); \
+  FUNC(glProgramUniform4i64vARB); \
+  FUNC(glEvalPoint1); \
+  FUNC(glVertex2d); \
+  FUNC(glTexCoordPointerEXT); \
+  FUNC(glNamedProgramLocalParameter4dvEXT); \
+  FUNC(glSecondaryColor3d); \
+  FUNC(glVertexAttrib1svNV); \
+  FUNC(glTexCoord4fVertex4fvSUN); \
+  FUNC(glProgramStringARB); \
+  FUNC(glRasterPos4d); \
+  FUNC(glTextureMaterialEXT); \
+  FUNC(glVertexAttribs4svNV); \
+  FUNC(glShaderOp1EXT); \
+  FUNC(glDepthRangefOES); \
+  FUNC(glInsertComponentEXT); \
+  FUNC(glBlendFuncSeparateEXT); \
+  FUNC(glGetCombinerOutputParameterfvNV); \
+  FUNC(glGetLightfv); \
+  FUNC(glTangent3sEXT); \
+  FUNC(glNamedFramebufferSamplePositionsfvAMD); \
+  FUNC(glVertexAttrib3dvNV); \
+  FUNC(glDrawElementArrayATI); \
+  FUNC(glGenPerfMonitorsAMD); \
+  FUNC(glMakeImageHandleResidentARB); \
+  FUNC(glColor4fNormal3fVertex3fvSUN); \
+  FUNC(glSecondaryColor3dvEXT); \
+  FUNC(glTexFilterFuncSGIS); \
+  FUNC(glExtGetRenderbuffersQCOM); \
+  FUNC(glMultMatrixd); \
+  FUNC(glClientAttribDefaultEXT); \
+  FUNC(glConvolutionParameterxOES); \
+  FUNC(glVertex4bvOES); \
+  FUNC(glMultiDrawArraysIndirectBindlessCountNV); \
+  FUNC(glSpriteParameterfvSGIX); \
+  FUNC(glStencilThenCoverFillPathNV); \
+  FUNC(glMultiTexCoord4bvOES); \
+  FUNC(glMapGrid1xOES); \
+  FUNC(glMultiTexCoord2fvARB); \
+  FUNC(glRasterPos4i); \
+  FUNC(glUniformMatrix2x4fvNV); \
+  FUNC(glClearAccum); \
+  FUNC(glPixelTexGenSGIX); \
+  FUNC(glGetVideoCaptureStreamivNV); \
+  FUNC(glRasterPos3iv); \
+  FUNC(glGetTexLevelParameterxvOES); \
+  FUNC(glNormalStream3ivATI); \
+  FUNC(glCombinerParameteriNV); \
+  FUNC(glProgramParameters4fvNV); \
+  FUNC(glLightModeli); \
+  FUNC(glGetClipPlane); \
+  FUNC(glNormal3xvOES); \
+  FUNC(glGetTransformFeedbackVaryingNV); \
+  FUNC(glTexCoord4fVertex4fSUN); \
+  FUNC(glMultiTexCoord2s); \
+  FUNC(glProgramUniform3ui64vNV); \
+  FUNC(glGetColorTableParameterfv); \
+  FUNC(glGetPixelMapuiv); \
+  FUNC(glGetPixelTexGenParameterivSGIS); \
+  FUNC(glSecondaryColor3fv); \
+  FUNC(glTexCoord1xOES); \
+  FUNC(glGetnMinmax); \
+  FUNC(glGetIntegeri_vEXT); \
+  FUNC(glProgramUniform4i64NV); \
+  FUNC(glGetProgramEnvParameterIivNV); \
+  FUNC(glBufferParameteriAPPLE); \
+  FUNC(glExtGetProgramsQCOM); \
+  FUNC(glCopyTexSubImage1DEXT); \
+  FUNC(glDeleteTransformFeedbacksNV); \
+  FUNC(glNormalPointerEXT); \
+  FUNC(glVertex2sv); \
+  FUNC(glTexGeniv); \
+  FUNC(glVertexStream4dATI); \
+  FUNC(glVertex2iv); \
+  FUNC(glWindowPos3dMESA); \
+  FUNC(glProgramUniform1ui64ARB); \
+  FUNC(glAlphaFragmentOp3ATI); \
+  FUNC(glBlendFuncSeparateINGR); \
+  FUNC(glNamedBufferPageCommitmentARB); \
+  FUNC(glVertex4fv); \
+  FUNC(glPathSubCommandsNV); \
+  FUNC(glMultiTexCoord3xvOES); \
+  FUNC(glSpriteParameterfSGIX); \
+  FUNC(glGetUniformfvARB); \
+  FUNC(glVertexAttribL1i64NV); \
+  FUNC(glTexGenxOES); \
+  FUNC(glMultiTexCoord1iARB); \
+  FUNC(glIsVertexArrayAPPLE); \
+  FUNC(glTextureImage2DMultisampleCoverageNV); \
+  FUNC(glFragmentLightfSGIX); \
+  FUNC(glMultiTexCoord4iv); \
+  FUNC(glMultTransposeMatrixd); \
+  FUNC(glSecondaryColor3ui); \
+  FUNC(glColor3f); \
+  FUNC(glGetProgramBinaryOES); \
+  FUNC(glEndTransformFeedbackNV); \
+  FUNC(glDrawCommandsAddressNV); \
+  FUNC(glTextureRenderbufferEXT); \
+  FUNC(glVertexStream1ivATI); \
+  FUNC(glProgramUniformHandleui64NV); \
+  FUNC(glDeleteVertexShaderEXT); \
+  FUNC(glExtractComponentEXT); \
+  FUNC(glPointParameterivNV); \
+  FUNC(glRasterPos3i); \
+  FUNC(glPixelTexGenParameterfvSGIS); \
+  FUNC(glGetVertexAttribLi64vNV); \
+  FUNC(glScalef); \
+  FUNC(glPathTexGenNV); \
+  FUNC(glProgramLocalParametersI4ivNV); \
+  FUNC(glProgramUniform2ui64vARB); \
+  FUNC(glGetArrayObjectivATI); \
+  FUNC(glFinishFenceAPPLE); \
+  FUNC(glVertexAttrib4NubARB); \
+  FUNC(glGetMinmaxParameterfv); \
+  FUNC(glTexImage2DMultisampleCoverageNV); \
+  FUNC(glDisableDriverControlQCOM); \
+  FUNC(glVideoCaptureStreamParameterdvNV); \
+  FUNC(glDeleteSyncAPPLE); \
+  FUNC(glColorTableEXT); \
+  FUNC(glProgramBufferParametersfvNV); \
+  FUNC(glGetPixelTransformParameterivEXT); \
+  FUNC(glTangent3svEXT); \
+  FUNC(glPathMemoryGlyphIndexArrayNV); \
+  FUNC(glEdgeFlagPointerEXT); \
+  FUNC(glVertex2bOES); \
+  FUNC(glSecondaryColor3sv); \
+  FUNC(glGetListParameterivSGIX); \
+  FUNC(glEnableVertexAttribAPPLE); \
+  FUNC(glTexCoord1i); \
+  FUNC(glMultiTexEnvfEXT); \
+  FUNC(glCopyConvolutionFilter2D); \
+  FUNC(glFogf); \
+  FUNC(glGetColorTableParameterivSGI); \
+  FUNC(glPushMatrix); \
+  FUNC(glVertexStream2fvATI); \
+  FUNC(glVertexAttrib4fNV); \
+  FUNC(glDeleteQueryResourceTagNV); \
+  FUNC(glTexCoord1bOES); \
+  FUNC(glStencilFillPathNV); \
+  FUNC(glMatrixRotatedEXT); \
+  FUNC(glListParameterivSGIX); \
+  FUNC(glMultiTexCoord4s); \
+  FUNC(glTexStorageSparseAMD); \
+  FUNC(glNormal3i); \
+  FUNC(glTexCoord4bvOES); \
+  FUNC(glGetVertexAttribPointervNV); \
+  FUNC(glReplacementCodeuiSUN); \
+  FUNC(glSampleMaskIndexedNV); \
+  FUNC(glIndexdv); \
+  FUNC(glReplacementCodeubSUN); \
+  FUNC(glMultiTexCoord3fARB); \
+  FUNC(glMulticastWaitSyncNV); \
+  FUNC(glTestObjectAPPLE); \
+  FUNC(glGetMultiTexGendvEXT); \
+  FUNC(glFinalCombinerInputNV); \
+  FUNC(glPolygonModeNV); \
+  FUNC(glDrawRangeElementArrayAPPLE); \
+  FUNC(glWindowPos3d); \
+  FUNC(glGetFinalCombinerInputParameterivNV); \
+  FUNC(glColor4fNormal3fVertex3fSUN); \
+  FUNC(glNamedFramebufferSampleLocationsfvNV); \
+  FUNC(glDrawElementsInstancedNV); \
+  FUNC(glTextureBarrierNV); \
+  FUNC(glGetVideouivNV); \
+  FUNC(glCopyTextureLevelsAPPLE); \
+  FUNC(glConvolutionParameterfvEXT); \
+  FUNC(glWindowPos2fv); \
+  FUNC(glNormalStream3dATI); \
+  FUNC(glDrawArraysInstancedANGLE); \
 
 
 
 
 #define DefineUnsupportedHooks() \
-  UnsupportedWrapper8(void, glPrimitiveBoundingBoxARB, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
-  UnsupportedWrapper1(GLuint64, glGetTextureHandleARB, GLuint, texture); \
-  UnsupportedWrapper2(GLuint64, glGetTextureSamplerHandleARB, GLuint, texture, GLuint, sampler); \
-  UnsupportedWrapper1(void, glMakeTextureHandleResidentARB, GLuint64, handle); \
-  UnsupportedWrapper1(void, glMakeTextureHandleNonResidentARB, GLuint64, handle); \
-  UnsupportedWrapper5(GLuint64, glGetImageHandleARB, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, format); \
-  UnsupportedWrapper2(void, glMakeImageHandleResidentARB, GLuint64, handle, GLenum, access); \
-  UnsupportedWrapper1(void, glMakeImageHandleNonResidentARB, GLuint64, handle); \
-  UnsupportedWrapper2(void, glUniformHandleui64ARB, GLint, location, GLuint64, value); \
-  UnsupportedWrapper3(void, glUniformHandleui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glProgramUniformHandleui64ARB, GLuint, program, GLint, location, GLuint64, value); \
-  UnsupportedWrapper4(void, glProgramUniformHandleui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
-  UnsupportedWrapper1(GLboolean, glIsTextureHandleResidentARB, GLuint64, handle); \
-  UnsupportedWrapper1(GLboolean, glIsImageHandleResidentARB, GLuint64, handle); \
-  UnsupportedWrapper2(void, glVertexAttribL1ui64ARB, GLuint, index, GLuint64EXT, x); \
-  UnsupportedWrapper2(void, glVertexAttribL1ui64vARB, GLuint, index, const GLuint64EXT *, v); \
-  UnsupportedWrapper3(void, glGetVertexAttribLui64vARB, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
-  UnsupportedWrapper3(GLsync, glCreateSyncFromCLeventARB, struct _cl_context *, context, struct _cl_event *, event, GLbitfield, flags); \
-  UnsupportedWrapper5(void, glFramebufferTextureFaceARB, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
-  UnsupportedWrapper2(void, glUniform1i64ARB, GLint, location, GLint64, x); \
-  UnsupportedWrapper3(void, glUniform2i64ARB, GLint, location, GLint64, x, GLint64, y); \
-  UnsupportedWrapper4(void, glUniform3i64ARB, GLint, location, GLint64, x, GLint64, y, GLint64, z); \
-  UnsupportedWrapper5(void, glUniform4i64ARB, GLint, location, GLint64, x, GLint64, y, GLint64, z, GLint64, w); \
-  UnsupportedWrapper3(void, glUniform1i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper3(void, glUniform2i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper3(void, glUniform3i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper3(void, glUniform4i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper2(void, glUniform1ui64ARB, GLint, location, GLuint64, x); \
-  UnsupportedWrapper3(void, glUniform2ui64ARB, GLint, location, GLuint64, x, GLuint64, y); \
-  UnsupportedWrapper4(void, glUniform3ui64ARB, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z); \
-  UnsupportedWrapper5(void, glUniform4ui64ARB, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z, GLuint64, w); \
-  UnsupportedWrapper3(void, glUniform1ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glUniform2ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glUniform3ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glUniform4ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glGetUniformi64vARB, GLuint, program, GLint, location, GLint64 *, params); \
-  UnsupportedWrapper3(void, glGetUniformui64vARB, GLuint, program, GLint, location, GLuint64 *, params); \
-  UnsupportedWrapper4(void, glGetnUniformi64vARB, GLuint, program, GLint, location, GLsizei, bufSize, GLint64 *, params); \
-  UnsupportedWrapper4(void, glGetnUniformui64vARB, GLuint, program, GLint, location, GLsizei, bufSize, GLuint64 *, params); \
-  UnsupportedWrapper3(void, glProgramUniform1i64ARB, GLuint, program, GLint, location, GLint64, x); \
-  UnsupportedWrapper4(void, glProgramUniform2i64ARB, GLuint, program, GLint, location, GLint64, x, GLint64, y); \
-  UnsupportedWrapper5(void, glProgramUniform3i64ARB, GLuint, program, GLint, location, GLint64, x, GLint64, y, GLint64, z); \
-  UnsupportedWrapper6(void, glProgramUniform4i64ARB, GLuint, program, GLint, location, GLint64, x, GLint64, y, GLint64, z, GLint64, w); \
-  UnsupportedWrapper4(void, glProgramUniform1i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper4(void, glProgramUniform2i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper4(void, glProgramUniform3i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper4(void, glProgramUniform4i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
-  UnsupportedWrapper3(void, glProgramUniform1ui64ARB, GLuint, program, GLint, location, GLuint64, x); \
-  UnsupportedWrapper4(void, glProgramUniform2ui64ARB, GLuint, program, GLint, location, GLuint64, x, GLuint64, y); \
-  UnsupportedWrapper5(void, glProgramUniform3ui64ARB, GLuint, program, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z); \
-  UnsupportedWrapper6(void, glProgramUniform4ui64ARB, GLuint, program, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z, GLuint64, w); \
-  UnsupportedWrapper4(void, glProgramUniform1ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper4(void, glProgramUniform2ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper4(void, glProgramUniform3ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper4(void, glProgramUniform4ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper4(void, glFramebufferSampleLocationsfvARB, GLenum, target, GLuint, start, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glNamedFramebufferSampleLocationsfvARB, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper0(void, glEvaluateDepthValuesARB); \
-  UnsupportedWrapper4(void, glBufferPageCommitmentARB, GLenum, target, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
-  UnsupportedWrapper4(void, glNamedBufferPageCommitmentEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
-  UnsupportedWrapper4(void, glNamedBufferPageCommitmentARB, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
-  UnsupportedWrapper9(void, glTexPageCommitmentARB, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
-  UnsupportedWrapper3(void, glGetPerfMonitorGroupsAMD, GLint *, numGroups, GLsizei, groupsSize, GLuint *, groups); \
-  UnsupportedWrapper5(void, glGetPerfMonitorCountersAMD, GLuint, group, GLint *, numCounters, GLint *, maxActiveCounters, GLsizei, counterSize, GLuint *, counters); \
-  UnsupportedWrapper4(void, glGetPerfMonitorGroupStringAMD, GLuint, group, GLsizei, bufSize, GLsizei *, length, GLchar *, groupString); \
-  UnsupportedWrapper5(void, glGetPerfMonitorCounterStringAMD, GLuint, group, GLuint, counter, GLsizei, bufSize, GLsizei *, length, GLchar *, counterString); \
-  UnsupportedWrapper4(void, glGetPerfMonitorCounterInfoAMD, GLuint, group, GLuint, counter, GLenum, pname, void *, data); \
-  UnsupportedWrapper2(void, glGenPerfMonitorsAMD, GLsizei, n, GLuint *, monitors); \
-  UnsupportedWrapper2(void, glDeletePerfMonitorsAMD, GLsizei, n, GLuint *, monitors); \
-  UnsupportedWrapper5(void, glSelectPerfMonitorCountersAMD, GLuint, monitor, GLboolean, enable, GLuint, group, GLint, numCounters, GLuint *, counterList); \
-  UnsupportedWrapper1(void, glBeginPerfMonitorAMD, GLuint, monitor); \
-  UnsupportedWrapper1(void, glEndPerfMonitorAMD, GLuint, monitor); \
-  UnsupportedWrapper5(void, glGetPerfMonitorCounterDataAMD, GLuint, monitor, GLenum, pname, GLsizei, dataSize, GLuint *, data, GLint *, bytesWritten); \
-  UnsupportedWrapper3(void, glEGLImageTargetTexStorageEXT, GLenum, target, GLeglImageOES, image, const GLint*, attrib_list); \
-  UnsupportedWrapper3(void, glEGLImageTargetTextureStorageEXT, GLuint, texture, GLeglImageOES, image, const GLint*, attrib_list); \
-  UnsupportedWrapper2(void, glMatrixLoadfEXT, GLenum, mode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixLoaddEXT, GLenum, mode, const GLdouble *, m); \
-  UnsupportedWrapper2(void, glMatrixMultfEXT, GLenum, mode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixMultdEXT, GLenum, mode, const GLdouble *, m); \
-  UnsupportedWrapper1(void, glMatrixLoadIdentityEXT, GLenum, mode); \
-  UnsupportedWrapper5(void, glMatrixRotatefEXT, GLenum, mode, GLfloat, angle, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper5(void, glMatrixRotatedEXT, GLenum, mode, GLdouble, angle, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper4(void, glMatrixScalefEXT, GLenum, mode, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper4(void, glMatrixScaledEXT, GLenum, mode, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper4(void, glMatrixTranslatefEXT, GLenum, mode, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper4(void, glMatrixTranslatedEXT, GLenum, mode, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper7(void, glMatrixFrustumEXT, GLenum, mode, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
-  UnsupportedWrapper7(void, glMatrixOrthoEXT, GLenum, mode, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
-  UnsupportedWrapper1(void, glMatrixPopEXT, GLenum, mode); \
-  UnsupportedWrapper1(void, glMatrixPushEXT, GLenum, mode); \
-  UnsupportedWrapper1(void, glClientAttribDefaultEXT, GLbitfield, mask); \
-  UnsupportedWrapper1(void, glPushClientAttribDefaultEXT, GLbitfield, mask); \
-  UnsupportedWrapper5(void, glMultiTexCoordPointerEXT, GLenum, texunit, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper4(void, glMultiTexEnvfEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper4(void, glMultiTexEnvfvEXT, GLenum, texunit, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper4(void, glMultiTexEnviEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLint, param); \
-  UnsupportedWrapper4(void, glMultiTexEnvivEXT, GLenum, texunit, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper4(void, glMultiTexGendEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLdouble, param); \
-  UnsupportedWrapper4(void, glMultiTexGendvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, const GLdouble *, params); \
-  UnsupportedWrapper4(void, glMultiTexGenfEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper4(void, glMultiTexGenfvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper4(void, glMultiTexGeniEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLint, param); \
-  UnsupportedWrapper4(void, glMultiTexGenivEXT, GLenum, texunit, GLenum, coord, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper4(void, glGetMultiTexEnvfvEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetMultiTexEnvivEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glGetMultiTexGendvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper4(void, glGetMultiTexGenfvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetMultiTexGenivEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper2(void, glEnableClientStateIndexedEXT, GLenum, array, GLuint, index); \
-  UnsupportedWrapper2(void, glDisableClientStateIndexedEXT, GLenum, array, GLuint, index); \
-  UnsupportedWrapper2(void, glMatrixLoadTransposefEXT, GLenum, mode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixLoadTransposedEXT, GLenum, mode, const GLdouble *, m); \
-  UnsupportedWrapper2(void, glMatrixMultTransposefEXT, GLenum, mode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixMultTransposedEXT, GLenum, mode, const GLdouble *, m); \
-  UnsupportedWrapper5(void, glNamedProgramLocalParameters4fvEXT, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
-  UnsupportedWrapper7(void, glNamedProgramLocalParameterI4iEXT, GLuint, program, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper4(void, glNamedProgramLocalParameterI4ivEXT, GLuint, program, GLenum, target, GLuint, index, const GLint *, params); \
-  UnsupportedWrapper5(void, glNamedProgramLocalParametersI4ivEXT, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLint *, params); \
-  UnsupportedWrapper7(void, glNamedProgramLocalParameterI4uiEXT, GLuint, program, GLenum, target, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
-  UnsupportedWrapper4(void, glNamedProgramLocalParameterI4uivEXT, GLuint, program, GLenum, target, GLuint, index, const GLuint *, params); \
-  UnsupportedWrapper5(void, glNamedProgramLocalParametersI4uivEXT, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLuint *, params); \
-  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterIivEXT, GLuint, program, GLenum, target, GLuint, index, GLint *, params); \
-  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterIuivEXT, GLuint, program, GLenum, target, GLuint, index, GLuint *, params); \
-  UnsupportedWrapper2(void, glEnableClientStateiEXT, GLenum, array, GLuint, index); \
-  UnsupportedWrapper2(void, glDisableClientStateiEXT, GLenum, array, GLuint, index); \
-  UnsupportedWrapper5(void, glNamedProgramStringEXT, GLuint, program, GLenum, target, GLenum, format, GLsizei, len, const void *, string); \
-  UnsupportedWrapper7(void, glNamedProgramLocalParameter4dEXT, GLuint, program, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper4(void, glNamedProgramLocalParameter4dvEXT, GLuint, program, GLenum, target, GLuint, index, const GLdouble *, params); \
-  UnsupportedWrapper7(void, glNamedProgramLocalParameter4fEXT, GLuint, program, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper4(void, glNamedProgramLocalParameter4fvEXT, GLuint, program, GLenum, target, GLuint, index, const GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterdvEXT, GLuint, program, GLenum, target, GLuint, index, GLdouble *, params); \
-  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterfvEXT, GLuint, program, GLenum, target, GLuint, index, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetNamedProgramStringEXT, GLuint, program, GLenum, target, GLenum, pname, void *, string); \
-  UnsupportedWrapper6(void, glNamedRenderbufferStorageMultisampleCoverageEXT, GLuint, renderbuffer, GLsizei, coverageSamples, GLsizei, colorSamples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper5(void, glNamedFramebufferTextureFaceEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
-  UnsupportedWrapper3(void, glTextureRenderbufferEXT, GLuint, texture, GLenum, target, GLuint, renderbuffer); \
-  UnsupportedWrapper3(void, glMultiTexRenderbufferEXT, GLenum, texunit, GLenum, target, GLuint, renderbuffer); \
-  UnsupportedWrapper6(void, glVertexArrayVertexOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper6(void, glVertexArrayColorOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper4(void, glVertexArrayEdgeFlagOffsetEXT, GLuint, vaobj, GLuint, buffer, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper5(void, glVertexArrayIndexOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper5(void, glVertexArrayNormalOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper6(void, glVertexArrayTexCoordOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper7(void, glVertexArrayMultiTexCoordOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, texunit, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper5(void, glVertexArrayFogCoordOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper6(void, glVertexArraySecondaryColorOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
-  UnsupportedWrapper2(void, glEnableVertexArrayEXT, GLuint, vaobj, GLenum, array); \
-  UnsupportedWrapper2(void, glDisableVertexArrayEXT, GLuint, vaobj, GLenum, array); \
-  UnsupportedWrapper9(void, glTexturePageCommitmentEXT, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
-  UnsupportedWrapper2(void, glUseShaderProgramEXT, GLenum, type, GLuint, program); \
-  UnsupportedWrapper1(void, glActiveProgramEXT, GLuint, program); \
-  UnsupportedWrapper2(GLuint, glCreateShaderProgramEXT, GLenum, type, const GLchar *, string); \
-  UnsupportedWrapper0(void, glFramebufferFetchBarrierEXT); \
-  UnsupportedWrapper3(void, glWindowRectanglesEXT, GLenum, mode, GLsizei, count, const GLint *, box); \
-  UnsupportedWrapper0(void, glApplyFramebufferAttachmentCMAAINTEL); \
-  UnsupportedWrapper1(void, glBeginPerfQueryINTEL, GLuint, queryHandle); \
-  UnsupportedWrapper2(void, glCreatePerfQueryINTEL, GLuint, queryId, GLuint *, queryHandle); \
-  UnsupportedWrapper1(void, glDeletePerfQueryINTEL, GLuint, queryHandle); \
-  UnsupportedWrapper1(void, glEndPerfQueryINTEL, GLuint, queryHandle); \
-  UnsupportedWrapper1(void, glGetFirstPerfQueryIdINTEL, GLuint *, queryId); \
-  UnsupportedWrapper2(void, glGetNextPerfQueryIdINTEL, GLuint, queryId, GLuint *, nextQueryId); \
-  UnsupportedWrapper11(void, glGetPerfCounterInfoINTEL, GLuint, queryId, GLuint, counterId, GLuint, counterNameLength, GLchar *, counterName, GLuint, counterDescLength, GLchar *, counterDesc, GLuint *, counterOffset, GLuint *, counterDataSize, GLuint *, counterTypeEnum, GLuint *, counterDataTypeEnum, GLuint64 *, rawCounterMaxValue); \
-  UnsupportedWrapper5(void, glGetPerfQueryDataINTEL, GLuint, queryHandle, GLuint, flags, GLsizei, dataSize, void *, data, GLuint *, bytesWritten); \
-  UnsupportedWrapper2(void, glGetPerfQueryIdByNameINTEL, GLchar *, queryName, GLuint *, queryId); \
-  UnsupportedWrapper7(void, glGetPerfQueryInfoINTEL, GLuint, queryId, GLuint, queryNameLength, GLchar *, queryName, GLuint *, dataSize, GLuint *, noCounters, GLuint *, noInstances, GLuint *, capsMask); \
-  UnsupportedWrapper5(void, glMultiDrawArraysIndirectBindlessNV, GLenum, mode, const void *, indirect, GLsizei, drawCount, GLsizei, stride, GLint, vertexBufferCount); \
-  UnsupportedWrapper6(void, glMultiDrawElementsIndirectBindlessNV, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawCount, GLsizei, stride, GLint, vertexBufferCount); \
-  UnsupportedWrapper6(void, glMultiDrawArraysIndirectBindlessCountNV, GLenum, mode, const void *, indirect, GLsizei, drawCount, GLsizei, maxDrawCount, GLsizei, stride, GLint, vertexBufferCount); \
-  UnsupportedWrapper7(void, glMultiDrawElementsIndirectBindlessCountNV, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawCount, GLsizei, maxDrawCount, GLsizei, stride, GLint, vertexBufferCount); \
-  UnsupportedWrapper1(GLuint64, glGetTextureHandleNV, GLuint, texture); \
-  UnsupportedWrapper2(GLuint64, glGetTextureSamplerHandleNV, GLuint, texture, GLuint, sampler); \
-  UnsupportedWrapper1(void, glMakeTextureHandleResidentNV, GLuint64, handle); \
-  UnsupportedWrapper1(void, glMakeTextureHandleNonResidentNV, GLuint64, handle); \
-  UnsupportedWrapper5(GLuint64, glGetImageHandleNV, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, format); \
-  UnsupportedWrapper2(void, glMakeImageHandleResidentNV, GLuint64, handle, GLenum, access); \
-  UnsupportedWrapper1(void, glMakeImageHandleNonResidentNV, GLuint64, handle); \
-  UnsupportedWrapper2(void, glUniformHandleui64NV, GLint, location, GLuint64, value); \
-  UnsupportedWrapper3(void, glUniformHandleui64vNV, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glProgramUniformHandleui64NV, GLuint, program, GLint, location, GLuint64, value); \
-  UnsupportedWrapper4(void, glProgramUniformHandleui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
-  UnsupportedWrapper1(GLboolean, glIsTextureHandleResidentNV, GLuint64, handle); \
-  UnsupportedWrapper1(GLboolean, glIsImageHandleResidentNV, GLuint64, handle); \
-  UnsupportedWrapper2(void, glBlendParameteriNV, GLenum, pname, GLint, value); \
-  UnsupportedWrapper0(void, glBlendBarrierNV); \
-  UnsupportedWrapper3(void, glViewportPositionWScaleNV, GLuint, index, GLfloat, xcoeff, GLfloat, ycoeff); \
-  UnsupportedWrapper2(void, glCreateStatesNV, GLsizei, n, GLuint *, states); \
-  UnsupportedWrapper2(void, glDeleteStatesNV, GLsizei, n, const GLuint *, states); \
-  UnsupportedWrapper1(GLboolean, glIsStateNV, GLuint, state); \
-  UnsupportedWrapper2(void, glStateCaptureNV, GLuint, state, GLenum, mode); \
-  UnsupportedWrapper2(GLuint, glGetCommandHeaderNV, GLenum, tokenID, GLuint, size); \
-  UnsupportedWrapper1(GLushort, glGetStageIndexNV, GLenum, shadertype); \
-  UnsupportedWrapper5(void, glDrawCommandsNV, GLenum, primitiveMode, GLuint, buffer, const GLintptr *, indirects, const GLsizei *, sizes, GLuint, count); \
-  UnsupportedWrapper4(void, glDrawCommandsAddressNV, GLenum, primitiveMode, const GLuint64 *, indirects, const GLsizei *, sizes, GLuint, count); \
-  UnsupportedWrapper6(void, glDrawCommandsStatesNV, GLuint, buffer, const GLintptr *, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
-  UnsupportedWrapper5(void, glDrawCommandsStatesAddressNV, const GLuint64 *, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
-  UnsupportedWrapper2(void, glCreateCommandListsNV, GLsizei, n, GLuint *, lists); \
-  UnsupportedWrapper2(void, glDeleteCommandListsNV, GLsizei, n, const GLuint *, lists); \
-  UnsupportedWrapper1(GLboolean, glIsCommandListNV, GLuint, list); \
-  UnsupportedWrapper7(void, glListDrawCommandsStatesClientNV, GLuint, list, GLuint, segment, const void **, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
-  UnsupportedWrapper2(void, glCommandListSegmentsNV, GLuint, list, GLuint, segments); \
-  UnsupportedWrapper1(void, glCompileCommandListNV, GLuint, list); \
-  UnsupportedWrapper1(void, glCallCommandListNV, GLuint, list); \
-  UnsupportedWrapper2(void, glBeginConditionalRenderNV, GLuint, id, GLenum, mode); \
-  UnsupportedWrapper0(void, glEndConditionalRenderNV); \
-  UnsupportedWrapper2(void, glSubpixelPrecisionBiasNV, GLuint, xbits, GLuint, ybits); \
-  UnsupportedWrapper2(void, glConservativeRasterParameterfNV, GLenum, pname, GLfloat, value); \
-  UnsupportedWrapper2(void, glConservativeRasterParameteriNV, GLenum, pname, GLint, param); \
-  UnsupportedWrapper11(void, glDrawVkImageNV, GLuint64, vkImage, GLuint, sampler, GLfloat, x0, GLfloat, y0, GLfloat, x1, GLfloat, y1, GLfloat, z, GLfloat, s0, GLfloat, t0, GLfloat, s1, GLfloat, t1); \
-  UnsupportedWrapper1(GLVULKANPROCNV, glGetVkProcAddrNV, const GLchar *, name); \
-  UnsupportedWrapper1(void, glWaitVkSemaphoreNV, GLuint64, vkSemaphore); \
-  UnsupportedWrapper1(void, glSignalVkSemaphoreNV, GLuint64, vkSemaphore); \
-  UnsupportedWrapper1(void, glSignalVkFenceNV, GLuint64, vkFence); \
-  UnsupportedWrapper1(void, glFragmentCoverageColorNV, GLuint, color); \
-  UnsupportedWrapper2(void, glCoverageModulationTableNV, GLsizei, n, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glGetCoverageModulationTableNV, GLsizei, bufsize, GLfloat *, v); \
-  UnsupportedWrapper1(void, glCoverageModulationNV, GLenum, components); \
-  UnsupportedWrapper6(void, glRenderbufferStorageMultisampleCoverageNV, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper2(void, glUniform1i64NV, GLint, location, GLint64EXT, x); \
-  UnsupportedWrapper3(void, glUniform2i64NV, GLint, location, GLint64EXT, x, GLint64EXT, y); \
-  UnsupportedWrapper4(void, glUniform3i64NV, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z); \
-  UnsupportedWrapper5(void, glUniform4i64NV, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z, GLint64EXT, w); \
-  UnsupportedWrapper3(void, glUniform1i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper3(void, glUniform2i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper3(void, glUniform3i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper3(void, glUniform4i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper2(void, glUniform1ui64NV, GLint, location, GLuint64EXT, x); \
-  UnsupportedWrapper3(void, glUniform2ui64NV, GLint, location, GLuint64EXT, x, GLuint64EXT, y); \
-  UnsupportedWrapper4(void, glUniform3ui64NV, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z); \
-  UnsupportedWrapper5(void, glUniform4ui64NV, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z, GLuint64EXT, w); \
-  UnsupportedWrapper3(void, glUniform1ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper3(void, glUniform2ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper3(void, glUniform3ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper3(void, glUniform4ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper3(void, glGetUniformi64vNV, GLuint, program, GLint, location, GLint64EXT *, params); \
-  UnsupportedWrapper3(void, glProgramUniform1i64NV, GLuint, program, GLint, location, GLint64EXT, x); \
-  UnsupportedWrapper4(void, glProgramUniform2i64NV, GLuint, program, GLint, location, GLint64EXT, x, GLint64EXT, y); \
-  UnsupportedWrapper5(void, glProgramUniform3i64NV, GLuint, program, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z); \
-  UnsupportedWrapper6(void, glProgramUniform4i64NV, GLuint, program, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z, GLint64EXT, w); \
-  UnsupportedWrapper4(void, glProgramUniform1i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper4(void, glProgramUniform2i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper4(void, glProgramUniform3i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper4(void, glProgramUniform4i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
-  UnsupportedWrapper3(void, glProgramUniform1ui64NV, GLuint, program, GLint, location, GLuint64EXT, x); \
-  UnsupportedWrapper4(void, glProgramUniform2ui64NV, GLuint, program, GLint, location, GLuint64EXT, x, GLuint64EXT, y); \
-  UnsupportedWrapper5(void, glProgramUniform3ui64NV, GLuint, program, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z); \
-  UnsupportedWrapper6(void, glProgramUniform4ui64NV, GLuint, program, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z, GLuint64EXT, w); \
-  UnsupportedWrapper4(void, glProgramUniform1ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper4(void, glProgramUniform2ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper4(void, glProgramUniform3ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper4(void, glProgramUniform4ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper6(void, glGetInternalformatSampleivNV, GLenum, target, GLenum, internalformat, GLsizei, samples, GLenum, pname, GLsizei, bufSize, GLint *, params); \
-  UnsupportedWrapper1(GLuint, glGenPathsNV, GLsizei, range); \
-  UnsupportedWrapper2(void, glDeletePathsNV, GLuint, path, GLsizei, range); \
-  UnsupportedWrapper1(GLboolean, glIsPathNV, GLuint, path); \
-  UnsupportedWrapper6(void, glPathCommandsNV, GLuint, path, GLsizei, numCommands, const GLubyte *, commands, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
-  UnsupportedWrapper4(void, glPathCoordsNV, GLuint, path, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
-  UnsupportedWrapper8(void, glPathSubCommandsNV, GLuint, path, GLsizei, commandStart, GLsizei, commandsToDelete, GLsizei, numCommands, const GLubyte *, commands, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
-  UnsupportedWrapper5(void, glPathSubCoordsNV, GLuint, path, GLsizei, coordStart, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
-  UnsupportedWrapper4(void, glPathStringNV, GLuint, path, GLenum, format, GLsizei, length, const void *, pathString); \
-  UnsupportedWrapper10(void, glPathGlyphsNV, GLuint, firstPathName, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLsizei, numGlyphs, GLenum, type, const void *, charcodes, GLenum, handleMissingGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
-  UnsupportedWrapper9(void, glPathGlyphRangeNV, GLuint, firstPathName, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLuint, firstGlyph, GLsizei, numGlyphs, GLenum, handleMissingGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
-  UnsupportedWrapper4(void, glWeightPathsNV, GLuint, resultPath, GLsizei, numPaths, const GLuint *, paths, const GLfloat *, weights); \
-  UnsupportedWrapper2(void, glCopyPathNV, GLuint, resultPath, GLuint, srcPath); \
-  UnsupportedWrapper4(void, glInterpolatePathsNV, GLuint, resultPath, GLuint, pathA, GLuint, pathB, GLfloat, weight); \
-  UnsupportedWrapper4(void, glTransformPathNV, GLuint, resultPath, GLuint, srcPath, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper3(void, glPathParameterivNV, GLuint, path, GLenum, pname, const GLint *, value); \
-  UnsupportedWrapper3(void, glPathParameteriNV, GLuint, path, GLenum, pname, GLint, value); \
-  UnsupportedWrapper3(void, glPathParameterfvNV, GLuint, path, GLenum, pname, const GLfloat *, value); \
-  UnsupportedWrapper3(void, glPathParameterfNV, GLuint, path, GLenum, pname, GLfloat, value); \
-  UnsupportedWrapper3(void, glPathDashArrayNV, GLuint, path, GLsizei, dashCount, const GLfloat *, dashArray); \
-  UnsupportedWrapper3(void, glPathStencilFuncNV, GLenum, func, GLint, ref, GLuint, mask); \
-  UnsupportedWrapper2(void, glPathStencilDepthOffsetNV, GLfloat, factor, GLfloat, units); \
-  UnsupportedWrapper3(void, glStencilFillPathNV, GLuint, path, GLenum, fillMode, GLuint, mask); \
-  UnsupportedWrapper3(void, glStencilStrokePathNV, GLuint, path, GLint, reference, GLuint, mask); \
-  UnsupportedWrapper8(void, glStencilFillPathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, fillMode, GLuint, mask, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper8(void, glStencilStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLint, reference, GLuint, mask, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper1(void, glPathCoverDepthFuncNV, GLenum, func); \
-  UnsupportedWrapper2(void, glCoverFillPathNV, GLuint, path, GLenum, coverMode); \
-  UnsupportedWrapper2(void, glCoverStrokePathNV, GLuint, path, GLenum, coverMode); \
-  UnsupportedWrapper7(void, glCoverFillPathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper7(void, glCoverStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper3(void, glGetPathParameterivNV, GLuint, path, GLenum, pname, GLint *, value); \
-  UnsupportedWrapper3(void, glGetPathParameterfvNV, GLuint, path, GLenum, pname, GLfloat *, value); \
-  UnsupportedWrapper2(void, glGetPathCommandsNV, GLuint, path, GLubyte *, commands); \
-  UnsupportedWrapper2(void, glGetPathCoordsNV, GLuint, path, GLfloat *, coords); \
-  UnsupportedWrapper2(void, glGetPathDashArrayNV, GLuint, path, GLfloat *, dashArray); \
-  UnsupportedWrapper7(void, glGetPathMetricsNV, GLbitfield, metricQueryMask, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLsizei, stride, GLfloat *, metrics); \
-  UnsupportedWrapper5(void, glGetPathMetricRangeNV, GLbitfield, metricQueryMask, GLuint, firstPathName, GLsizei, numPaths, GLsizei, stride, GLfloat *, metrics); \
-  UnsupportedWrapper9(void, glGetPathSpacingNV, GLenum, pathListMode, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLfloat, advanceScale, GLfloat, kerningScale, GLenum, transformType, GLfloat *, returnedSpacing); \
-  UnsupportedWrapper4(GLboolean, glIsPointInFillPathNV, GLuint, path, GLuint, mask, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper3(GLboolean, glIsPointInStrokePathNV, GLuint, path, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper3(GLfloat, glGetPathLengthNV, GLuint, path, GLsizei, startSegment, GLsizei, numSegments); \
-  UnsupportedWrapper8(GLboolean, glPointAlongPathNV, GLuint, path, GLsizei, startSegment, GLsizei, numSegments, GLfloat, distance, GLfloat *, x, GLfloat *, y, GLfloat *, tangentX, GLfloat *, tangentY); \
-  UnsupportedWrapper2(void, glMatrixLoad3x2fNV, GLenum, matrixMode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixLoad3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixLoadTranspose3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixMult3x2fNV, GLenum, matrixMode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixMult3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
-  UnsupportedWrapper2(void, glMatrixMultTranspose3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
-  UnsupportedWrapper4(void, glStencilThenCoverFillPathNV, GLuint, path, GLenum, fillMode, GLuint, mask, GLenum, coverMode); \
-  UnsupportedWrapper4(void, glStencilThenCoverStrokePathNV, GLuint, path, GLint, reference, GLuint, mask, GLenum, coverMode); \
-  UnsupportedWrapper9(void, glStencilThenCoverFillPathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, fillMode, GLuint, mask, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper9(void, glStencilThenCoverStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLint, reference, GLuint, mask, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
-  UnsupportedWrapper6(GLenum, glPathGlyphIndexRangeNV, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLuint, pathParameterTemplate, GLfloat, emScale, GLuint *, baseAndCount); \
-  UnsupportedWrapper8(GLenum, glPathGlyphIndexArrayNV, GLuint, firstPathName, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLuint, firstGlyphIndex, GLsizei, numGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
-  UnsupportedWrapper9(GLenum, glPathMemoryGlyphIndexArrayNV, GLuint, firstPathName, GLenum, fontTarget, GLsizeiptr, fontSize, const void *, fontData, GLsizei, faceIndex, GLuint, firstGlyphIndex, GLsizei, numGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
-  UnsupportedWrapper5(void, glProgramPathFragmentInputGenNV, GLuint, program, GLint, location, GLenum, genMode, GLint, components, const GLfloat *, coeffs); \
-  UnsupportedWrapper8(void, glGetProgramResourcefvNV, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, propCount, const GLenum *, props, GLsizei, bufSize, GLsizei *, length, GLfloat *, params); \
-  UnsupportedWrapper4(void, glFramebufferSampleLocationsfvNV, GLenum, target, GLuint, start, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glNamedFramebufferSampleLocationsfvNV, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper0(void, glResolveDepthValuesNV); \
-  UnsupportedWrapper2(void, glMakeBufferResidentNV, GLenum, target, GLenum, access); \
-  UnsupportedWrapper1(void, glMakeBufferNonResidentNV, GLenum, target); \
-  UnsupportedWrapper1(GLboolean, glIsBufferResidentNV, GLenum, target); \
-  UnsupportedWrapper2(void, glMakeNamedBufferResidentNV, GLuint, buffer, GLenum, access); \
-  UnsupportedWrapper1(void, glMakeNamedBufferNonResidentNV, GLuint, buffer); \
-  UnsupportedWrapper1(GLboolean, glIsNamedBufferResidentNV, GLuint, buffer); \
-  UnsupportedWrapper3(void, glGetBufferParameterui64vNV, GLenum, target, GLenum, pname, GLuint64EXT *, params); \
-  UnsupportedWrapper3(void, glGetNamedBufferParameterui64vNV, GLuint, buffer, GLenum, pname, GLuint64EXT *, params); \
-  UnsupportedWrapper2(void, glGetIntegerui64vNV, GLenum, value, GLuint64EXT *, result); \
-  UnsupportedWrapper2(void, glUniformui64NV, GLint, location, GLuint64EXT, value); \
-  UnsupportedWrapper3(void, glUniformui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper3(void, glGetUniformui64vNV, GLuint, program, GLint, location, GLuint64EXT *, params); \
-  UnsupportedWrapper3(void, glProgramUniformui64NV, GLuint, program, GLint, location, GLuint64EXT, value); \
-  UnsupportedWrapper4(void, glProgramUniformui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
-  UnsupportedWrapper0(void, glTextureBarrierNV); \
-  UnsupportedWrapper2(void, glVertexAttribL1i64NV, GLuint, index, GLint64EXT, x); \
-  UnsupportedWrapper3(void, glVertexAttribL2i64NV, GLuint, index, GLint64EXT, x, GLint64EXT, y); \
-  UnsupportedWrapper4(void, glVertexAttribL3i64NV, GLuint, index, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z); \
-  UnsupportedWrapper5(void, glVertexAttribL4i64NV, GLuint, index, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z, GLint64EXT, w); \
-  UnsupportedWrapper2(void, glVertexAttribL1i64vNV, GLuint, index, const GLint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL2i64vNV, GLuint, index, const GLint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL3i64vNV, GLuint, index, const GLint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL4i64vNV, GLuint, index, const GLint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL1ui64NV, GLuint, index, GLuint64EXT, x); \
-  UnsupportedWrapper3(void, glVertexAttribL2ui64NV, GLuint, index, GLuint64EXT, x, GLuint64EXT, y); \
-  UnsupportedWrapper4(void, glVertexAttribL3ui64NV, GLuint, index, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z); \
-  UnsupportedWrapper5(void, glVertexAttribL4ui64NV, GLuint, index, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z, GLuint64EXT, w); \
-  UnsupportedWrapper2(void, glVertexAttribL1ui64vNV, GLuint, index, const GLuint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL2ui64vNV, GLuint, index, const GLuint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL3ui64vNV, GLuint, index, const GLuint64EXT *, v); \
-  UnsupportedWrapper2(void, glVertexAttribL4ui64vNV, GLuint, index, const GLuint64EXT *, v); \
-  UnsupportedWrapper3(void, glGetVertexAttribLi64vNV, GLuint, index, GLenum, pname, GLint64EXT *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribLui64vNV, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
-  UnsupportedWrapper4(void, glVertexAttribLFormatNV, GLuint, index, GLint, size, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper4(void, glBufferAddressRangeNV, GLenum, pname, GLuint, index, GLuint64EXT, address, GLsizeiptr, length); \
-  UnsupportedWrapper3(void, glVertexFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper2(void, glNormalFormatNV, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper3(void, glColorFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper2(void, glIndexFormatNV, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper3(void, glTexCoordFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper1(void, glEdgeFlagFormatNV, GLsizei, stride); \
-  UnsupportedWrapper3(void, glSecondaryColorFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper2(void, glFogCoordFormatNV, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper5(void, glVertexAttribFormatNV, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride); \
-  UnsupportedWrapper4(void, glVertexAttribIFormatNV, GLuint, index, GLint, size, GLenum, type, GLsizei, stride); \
-  UnsupportedWrapper3(void, glGetIntegerui64i_vNV, GLenum, value, GLuint, index, GLuint64EXT *, result); \
-  UnsupportedWrapper5(void, glViewportSwizzleNV, GLuint, index, GLenum, swizzlex, GLenum, swizzley, GLenum, swizzlez, GLenum, swizzlew); \
-  UnsupportedWrapper1(void, glClientActiveTexture, GLenum, texture); \
-  UnsupportedWrapper2(void, glMultiTexCoord1d, GLenum, target, GLdouble, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1dv, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1f, GLenum, target, GLfloat, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1fv, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1i, GLenum, target, GLint, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1iv, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1s, GLenum, target, GLshort, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1sv, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2d, GLenum, target, GLdouble, s, GLdouble, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2dv, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2f, GLenum, target, GLfloat, s, GLfloat, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2fv, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2i, GLenum, target, GLint, s, GLint, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2iv, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2s, GLenum, target, GLshort, s, GLshort, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2sv, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3d, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3dv, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3f, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3fv, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3i, GLenum, target, GLint, s, GLint, t, GLint, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3iv, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3s, GLenum, target, GLshort, s, GLshort, t, GLshort, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3sv, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4d, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r, GLdouble, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4dv, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4f, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4fv, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4i, GLenum, target, GLint, s, GLint, t, GLint, r, GLint, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4iv, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4s, GLenum, target, GLshort, s, GLshort, t, GLshort, r, GLshort, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4sv, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper1(void, glLoadTransposeMatrixf, const GLfloat *, m); \
-  UnsupportedWrapper1(void, glLoadTransposeMatrixd, const GLdouble *, m); \
-  UnsupportedWrapper1(void, glMultTransposeMatrixf, const GLfloat *, m); \
-  UnsupportedWrapper1(void, glMultTransposeMatrixd, const GLdouble *, m); \
-  UnsupportedWrapper1(void, glFogCoordf, GLfloat, coord); \
-  UnsupportedWrapper1(void, glFogCoordfv, const GLfloat *, coord); \
-  UnsupportedWrapper1(void, glFogCoordd, GLdouble, coord); \
-  UnsupportedWrapper1(void, glFogCoorddv, const GLdouble *, coord); \
-  UnsupportedWrapper3(void, glFogCoordPointer, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper3(void, glSecondaryColor3b, GLbyte, red, GLbyte, green, GLbyte, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3bv, const GLbyte *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3d, GLdouble, red, GLdouble, green, GLdouble, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3dv, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3f, GLfloat, red, GLfloat, green, GLfloat, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3fv, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3i, GLint, red, GLint, green, GLint, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3iv, const GLint *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3s, GLshort, red, GLshort, green, GLshort, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3sv, const GLshort *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3ub, GLubyte, red, GLubyte, green, GLubyte, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3ubv, const GLubyte *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3ui, GLuint, red, GLuint, green, GLuint, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3uiv, const GLuint *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3us, GLushort, red, GLushort, green, GLushort, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3usv, const GLushort *, v); \
-  UnsupportedWrapper4(void, glSecondaryColorPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper2(void, glWindowPos2d, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper1(void, glWindowPos2dv, const GLdouble *, v); \
-  UnsupportedWrapper2(void, glWindowPos2f, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper1(void, glWindowPos2fv, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glWindowPos2i, GLint, x, GLint, y); \
-  UnsupportedWrapper1(void, glWindowPos2iv, const GLint *, v); \
-  UnsupportedWrapper2(void, glWindowPos2s, GLshort, x, GLshort, y); \
-  UnsupportedWrapper1(void, glWindowPos2sv, const GLshort *, v); \
-  UnsupportedWrapper3(void, glWindowPos3d, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper1(void, glWindowPos3dv, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glWindowPos3f, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper1(void, glWindowPos3fv, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glWindowPos3i, GLint, x, GLint, y, GLint, z); \
-  UnsupportedWrapper1(void, glWindowPos3iv, const GLint *, v); \
-  UnsupportedWrapper3(void, glWindowPos3s, GLshort, x, GLshort, y, GLshort, z); \
-  UnsupportedWrapper1(void, glWindowPos3sv, const GLshort *, v); \
-  UnsupportedWrapper2(void, glVertexP2ui, GLenum, type, GLuint, value); \
-  UnsupportedWrapper2(void, glVertexP2uiv, GLenum, type, const GLuint *, value); \
-  UnsupportedWrapper2(void, glVertexP3ui, GLenum, type, GLuint, value); \
-  UnsupportedWrapper2(void, glVertexP3uiv, GLenum, type, const GLuint *, value); \
-  UnsupportedWrapper2(void, glVertexP4ui, GLenum, type, GLuint, value); \
-  UnsupportedWrapper2(void, glVertexP4uiv, GLenum, type, const GLuint *, value); \
-  UnsupportedWrapper2(void, glTexCoordP1ui, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper2(void, glTexCoordP1uiv, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper2(void, glTexCoordP2ui, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper2(void, glTexCoordP2uiv, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper2(void, glTexCoordP3ui, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper2(void, glTexCoordP3uiv, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper2(void, glTexCoordP4ui, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper2(void, glTexCoordP4uiv, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP1ui, GLenum, texture, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP1uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP2ui, GLenum, texture, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP2uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP3ui, GLenum, texture, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP3uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP4ui, GLenum, texture, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoordP4uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper2(void, glNormalP3ui, GLenum, type, GLuint, coords); \
-  UnsupportedWrapper2(void, glNormalP3uiv, GLenum, type, const GLuint *, coords); \
-  UnsupportedWrapper2(void, glColorP3ui, GLenum, type, GLuint, color); \
-  UnsupportedWrapper2(void, glColorP3uiv, GLenum, type, const GLuint *, color); \
-  UnsupportedWrapper2(void, glColorP4ui, GLenum, type, GLuint, color); \
-  UnsupportedWrapper2(void, glColorP4uiv, GLenum, type, const GLuint *, color); \
-  UnsupportedWrapper2(void, glSecondaryColorP3ui, GLenum, type, GLuint, color); \
-  UnsupportedWrapper2(void, glSecondaryColorP3uiv, GLenum, type, const GLuint *, color); \
-  UnsupportedWrapper4(void, glGetnMapdv, GLenum, target, GLenum, query, GLsizei, bufSize, GLdouble *, v); \
-  UnsupportedWrapper4(void, glGetnMapfv, GLenum, target, GLenum, query, GLsizei, bufSize, GLfloat *, v); \
-  UnsupportedWrapper4(void, glGetnMapiv, GLenum, target, GLenum, query, GLsizei, bufSize, GLint *, v); \
-  UnsupportedWrapper3(void, glGetnPixelMapfv, GLenum, map, GLsizei, bufSize, GLfloat *, values); \
-  UnsupportedWrapper3(void, glGetnPixelMapuiv, GLenum, map, GLsizei, bufSize, GLuint *, values); \
-  UnsupportedWrapper3(void, glGetnPixelMapusv, GLenum, map, GLsizei, bufSize, GLushort *, values); \
-  UnsupportedWrapper2(void, glGetnPolygonStipple, GLsizei, bufSize, GLubyte *, pattern); \
-  UnsupportedWrapper5(void, glGetnColorTable, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, table); \
-  UnsupportedWrapper5(void, glGetnConvolutionFilter, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, image); \
-  UnsupportedWrapper8(void, glGetnSeparableFilter, GLenum, target, GLenum, format, GLenum, type, GLsizei, rowBufSize, void *, row, GLsizei, columnBufSize, void *, column, void *, span); \
-  UnsupportedWrapper6(void, glGetnHistogram, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
-  UnsupportedWrapper6(void, glGetnMinmax, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
-  UnsupportedWrapper4(void, glProgramStringARB, GLenum, target, GLenum, format, GLsizei, len, const void *, string); \
-  UnsupportedWrapper2(void, glBindProgramARB, GLenum, target, GLuint, program); \
-  UnsupportedWrapper2(void, glDeleteProgramsARB, GLsizei, n, const GLuint *, programs); \
-  UnsupportedWrapper2(void, glGenProgramsARB, GLsizei, n, GLuint *, programs); \
-  UnsupportedWrapper6(void, glProgramEnvParameter4dARB, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper3(void, glProgramEnvParameter4dvARB, GLenum, target, GLuint, index, const GLdouble *, params); \
-  UnsupportedWrapper6(void, glProgramEnvParameter4fARB, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper3(void, glProgramEnvParameter4fvARB, GLenum, target, GLuint, index, const GLfloat *, params); \
-  UnsupportedWrapper6(void, glProgramLocalParameter4dARB, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper3(void, glProgramLocalParameter4dvARB, GLenum, target, GLuint, index, const GLdouble *, params); \
-  UnsupportedWrapper6(void, glProgramLocalParameter4fARB, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper3(void, glProgramLocalParameter4fvARB, GLenum, target, GLuint, index, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetProgramEnvParameterdvARB, GLenum, target, GLuint, index, GLdouble *, params); \
-  UnsupportedWrapper3(void, glGetProgramEnvParameterfvARB, GLenum, target, GLuint, index, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetProgramLocalParameterdvARB, GLenum, target, GLuint, index, GLdouble *, params); \
-  UnsupportedWrapper3(void, glGetProgramLocalParameterfvARB, GLenum, target, GLuint, index, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetProgramivARB, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetProgramStringARB, GLenum, target, GLenum, pname, void *, string); \
-  UnsupportedWrapper1(GLboolean, glIsProgramARB, GLuint, program); \
-  UnsupportedWrapper6(void, glColorTable, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
-  UnsupportedWrapper3(void, glColorTableParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glColorTableParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper5(void, glCopyColorTable, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper4(void, glGetColorTable, GLenum, target, GLenum, format, GLenum, type, void *, table); \
-  UnsupportedWrapper3(void, glGetColorTableParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetColorTableParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper6(void, glColorSubTable, GLenum, target, GLsizei, start, GLsizei, count, GLenum, format, GLenum, type, const void *, data); \
-  UnsupportedWrapper5(void, glCopyColorSubTable, GLenum, target, GLsizei, start, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper6(void, glConvolutionFilter1D, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, image); \
-  UnsupportedWrapper7(void, glConvolutionFilter2D, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, image); \
-  UnsupportedWrapper3(void, glConvolutionParameterf, GLenum, target, GLenum, pname, GLfloat, params); \
-  UnsupportedWrapper3(void, glConvolutionParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glConvolutionParameteri, GLenum, target, GLenum, pname, GLint, params); \
-  UnsupportedWrapper3(void, glConvolutionParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper5(void, glCopyConvolutionFilter1D, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper6(void, glCopyConvolutionFilter2D, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper4(void, glGetConvolutionFilter, GLenum, target, GLenum, format, GLenum, type, void *, image); \
-  UnsupportedWrapper3(void, glGetConvolutionParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetConvolutionParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper6(void, glGetSeparableFilter, GLenum, target, GLenum, format, GLenum, type, void *, row, void *, column, void *, span); \
-  UnsupportedWrapper8(void, glSeparableFilter2D, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, row, const void *, column); \
-  UnsupportedWrapper5(void, glGetHistogram, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
-  UnsupportedWrapper3(void, glGetHistogramParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper4(void, glWindowPos4dMESA, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
   UnsupportedWrapper3(void, glGetHistogramParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper5(void, glGetMinmax, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
-  UnsupportedWrapper3(void, glGetMinmaxParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetMinmaxParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glHistogram, GLenum, target, GLsizei, width, GLenum, internalformat, GLboolean, sink); \
-  UnsupportedWrapper3(void, glMinmax, GLenum, target, GLenum, internalformat, GLboolean, sink); \
-  UnsupportedWrapper1(void, glResetHistogram, GLenum, target); \
-  UnsupportedWrapper1(void, glResetMinmax, GLenum, target); \
-  UnsupportedWrapper1(void, glCurrentPaletteMatrixARB, GLint, index); \
-  UnsupportedWrapper2(void, glMatrixIndexubvARB, GLint, size, const GLubyte *, indices); \
-  UnsupportedWrapper2(void, glMatrixIndexusvARB, GLint, size, const GLushort *, indices); \
-  UnsupportedWrapper2(void, glMatrixIndexuivARB, GLint, size, const GLuint *, indices); \
-  UnsupportedWrapper4(void, glMatrixIndexPointerARB, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper1(void, glClientActiveTextureARB, GLenum, texture); \
-  UnsupportedWrapper2(void, glMultiTexCoord1dARB, GLenum, target, GLdouble, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1dvARB, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1fARB, GLenum, target, GLfloat, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1fvARB, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1iARB, GLenum, target, GLint, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1ivARB, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1sARB, GLenum, target, GLshort, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1svARB, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2dARB, GLenum, target, GLdouble, s, GLdouble, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2dvARB, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2fARB, GLenum, target, GLfloat, s, GLfloat, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2fvARB, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2iARB, GLenum, target, GLint, s, GLint, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2ivARB, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2sARB, GLenum, target, GLshort, s, GLshort, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2svARB, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3dARB, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3dvARB, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3fARB, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3fvARB, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3iARB, GLenum, target, GLint, s, GLint, t, GLint, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3ivARB, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3sARB, GLenum, target, GLshort, s, GLshort, t, GLshort, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3svARB, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4dARB, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r, GLdouble, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4dvARB, GLenum, target, const GLdouble *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4fARB, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4fvARB, GLenum, target, const GLfloat *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4iARB, GLenum, target, GLint, s, GLint, t, GLint, r, GLint, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4ivARB, GLenum, target, const GLint *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4sARB, GLenum, target, GLshort, s, GLshort, t, GLshort, r, GLshort, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4svARB, GLenum, target, const GLshort *, v); \
-  UnsupportedWrapper4(void, glGetnMapdvARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLdouble *, v); \
-  UnsupportedWrapper4(void, glGetnMapfvARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLfloat *, v); \
-  UnsupportedWrapper4(void, glGetnMapivARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLint *, v); \
-  UnsupportedWrapper3(void, glGetnPixelMapfvARB, GLenum, map, GLsizei, bufSize, GLfloat *, values); \
-  UnsupportedWrapper3(void, glGetnPixelMapuivARB, GLenum, map, GLsizei, bufSize, GLuint *, values); \
-  UnsupportedWrapper3(void, glGetnPixelMapusvARB, GLenum, map, GLsizei, bufSize, GLushort *, values); \
-  UnsupportedWrapper2(void, glGetnPolygonStippleARB, GLsizei, bufSize, GLubyte *, pattern); \
-  UnsupportedWrapper5(void, glGetnColorTableARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, table); \
-  UnsupportedWrapper5(void, glGetnConvolutionFilterARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, image); \
-  UnsupportedWrapper8(void, glGetnSeparableFilterARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, rowBufSize, void *, row, GLsizei, columnBufSize, void *, column, void *, span); \
-  UnsupportedWrapper6(void, glGetnHistogramARB, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
-  UnsupportedWrapper6(void, glGetnMinmaxARB, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
-  UnsupportedWrapper1(void, glDeleteObjectARB, GLhandleARB, obj); \
-  UnsupportedWrapper1(GLhandleARB, glGetHandleARB, GLenum, pname); \
-  UnsupportedWrapper2(void, glDetachObjectARB, GLhandleARB, containerObj, GLhandleARB, attachedObj); \
-  UnsupportedWrapper1(GLhandleARB, glCreateShaderObjectARB, GLenum, shaderType); \
-  UnsupportedWrapper4(void, glShaderSourceARB, GLhandleARB, shaderObj, GLsizei, count, const GLcharARB **, string, const GLint *, length); \
-  UnsupportedWrapper1(void, glCompileShaderARB, GLhandleARB, shaderObj); \
-  UnsupportedWrapper0(GLhandleARB, glCreateProgramObjectARB); \
-  UnsupportedWrapper2(void, glAttachObjectARB, GLhandleARB, containerObj, GLhandleARB, obj); \
-  UnsupportedWrapper1(void, glLinkProgramARB, GLhandleARB, programObj); \
-  UnsupportedWrapper1(void, glUseProgramObjectARB, GLhandleARB, programObj); \
-  UnsupportedWrapper1(void, glValidateProgramARB, GLhandleARB, programObj); \
-  UnsupportedWrapper3(void, glGetObjectParameterfvARB, GLhandleARB, obj, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetObjectParameterivARB, GLhandleARB, obj, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glGetInfoLogARB, GLhandleARB, obj, GLsizei, maxLength, GLsizei *, length, GLcharARB *, infoLog); \
-  UnsupportedWrapper4(void, glGetAttachedObjectsARB, GLhandleARB, containerObj, GLsizei, maxCount, GLsizei *, count, GLhandleARB *, obj); \
-  UnsupportedWrapper2(GLint, glGetUniformLocationARB, GLhandleARB, programObj, const GLcharARB *, name); \
-  UnsupportedWrapper7(void, glGetActiveUniformARB, GLhandleARB, programObj, GLuint, index, GLsizei, maxLength, GLsizei *, length, GLint *, size, GLenum *, type, GLcharARB *, name); \
-  UnsupportedWrapper3(void, glGetUniformfvARB, GLhandleARB, programObj, GLint, location, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetUniformivARB, GLhandleARB, programObj, GLint, location, GLint *, params); \
-  UnsupportedWrapper4(void, glGetShaderSourceARB, GLhandleARB, obj, GLsizei, maxLength, GLsizei *, length, GLcharARB *, source); \
-  UnsupportedWrapper1(void, glLoadTransposeMatrixfARB, const GLfloat *, m); \
-  UnsupportedWrapper1(void, glLoadTransposeMatrixdARB, const GLdouble *, m); \
-  UnsupportedWrapper1(void, glMultTransposeMatrixfARB, const GLfloat *, m); \
-  UnsupportedWrapper1(void, glMultTransposeMatrixdARB, const GLdouble *, m); \
-  UnsupportedWrapper2(void, glWeightbvARB, GLint, size, const GLbyte *, weights); \
-  UnsupportedWrapper2(void, glWeightsvARB, GLint, size, const GLshort *, weights); \
-  UnsupportedWrapper2(void, glWeightivARB, GLint, size, const GLint *, weights); \
-  UnsupportedWrapper2(void, glWeightfvARB, GLint, size, const GLfloat *, weights); \
-  UnsupportedWrapper2(void, glWeightdvARB, GLint, size, const GLdouble *, weights); \
-  UnsupportedWrapper2(void, glWeightubvARB, GLint, size, const GLubyte *, weights); \
-  UnsupportedWrapper2(void, glWeightusvARB, GLint, size, const GLushort *, weights); \
-  UnsupportedWrapper2(void, glWeightuivARB, GLint, size, const GLuint *, weights); \
-  UnsupportedWrapper4(void, glWeightPointerARB, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper1(void, glVertexBlendARB, GLint, count); \
-  UnsupportedWrapper5(void, glVertexAttrib4NubARB, GLuint, index, GLubyte, x, GLubyte, y, GLubyte, z, GLubyte, w); \
-  UnsupportedWrapper3(void, glGetVertexAttribdvARB, GLuint, index, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribfvARB, GLuint, index, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribivARB, GLuint, index, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribPointervARB, GLuint, index, GLenum, pname, void **, pointer); \
-  UnsupportedWrapper3(void, glBindAttribLocationARB, GLhandleARB, programObj, GLuint, index, const GLcharARB *, name); \
-  UnsupportedWrapper7(void, glGetActiveAttribARB, GLhandleARB, programObj, GLuint, index, GLsizei, maxLength, GLsizei *, length, GLint *, size, GLenum *, type, GLcharARB *, name); \
-  UnsupportedWrapper2(GLint, glGetAttribLocationARB, GLhandleARB, programObj, const GLcharARB *, name); \
-  UnsupportedWrapper2(void, glWindowPos2dARB, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper1(void, glWindowPos2dvARB, const GLdouble *, v); \
-  UnsupportedWrapper2(void, glWindowPos2fARB, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper1(void, glWindowPos2fvARB, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glWindowPos2iARB, GLint, x, GLint, y); \
-  UnsupportedWrapper1(void, glWindowPos2ivARB, const GLint *, v); \
-  UnsupportedWrapper2(void, glWindowPos2sARB, GLshort, x, GLshort, y); \
-  UnsupportedWrapper1(void, glWindowPos2svARB, const GLshort *, v); \
-  UnsupportedWrapper3(void, glWindowPos3dARB, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper1(void, glWindowPos3dvARB, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glWindowPos3fARB, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper1(void, glWindowPos3fvARB, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glWindowPos3iARB, GLint, x, GLint, y, GLint, z); \
-  UnsupportedWrapper1(void, glWindowPos3ivARB, const GLint *, v); \
-  UnsupportedWrapper3(void, glWindowPos3sARB, GLshort, x, GLshort, y, GLshort, z); \
-  UnsupportedWrapper1(void, glWindowPos3svARB, const GLshort *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1bOES, GLenum, texture, GLbyte, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1bvOES, GLenum, texture, const GLbyte *, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoord2bOES, GLenum, texture, GLbyte, s, GLbyte, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2bvOES, GLenum, texture, const GLbyte *, coords); \
-  UnsupportedWrapper4(void, glMultiTexCoord3bOES, GLenum, texture, GLbyte, s, GLbyte, t, GLbyte, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3bvOES, GLenum, texture, const GLbyte *, coords); \
-  UnsupportedWrapper5(void, glMultiTexCoord4bOES, GLenum, texture, GLbyte, s, GLbyte, t, GLbyte, r, GLbyte, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4bvOES, GLenum, texture, const GLbyte *, coords); \
-  UnsupportedWrapper1(void, glTexCoord1bOES, GLbyte, s); \
-  UnsupportedWrapper1(void, glTexCoord1bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper2(void, glTexCoord2bOES, GLbyte, s, GLbyte, t); \
-  UnsupportedWrapper1(void, glTexCoord2bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper3(void, glTexCoord3bOES, GLbyte, s, GLbyte, t, GLbyte, r); \
-  UnsupportedWrapper1(void, glTexCoord3bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper4(void, glTexCoord4bOES, GLbyte, s, GLbyte, t, GLbyte, r, GLbyte, q); \
-  UnsupportedWrapper1(void, glTexCoord4bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper2(void, glVertex2bOES, GLbyte, x, GLbyte, y); \
-  UnsupportedWrapper1(void, glVertex2bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper3(void, glVertex3bOES, GLbyte, x, GLbyte, y, GLbyte, z); \
-  UnsupportedWrapper1(void, glVertex3bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper4(void, glVertex4bOES, GLbyte, x, GLbyte, y, GLbyte, z, GLbyte, w); \
-  UnsupportedWrapper1(void, glVertex4bvOES, const GLbyte *, coords); \
-  UnsupportedWrapper2(void, glAlphaFuncxOES, GLenum, func, GLfixed, ref); \
-  UnsupportedWrapper4(void, glClearColorxOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
-  UnsupportedWrapper1(void, glClearDepthxOES, GLfixed, depth); \
-  UnsupportedWrapper2(void, glClipPlanexOES, GLenum, plane, const GLfixed *, equation); \
-  UnsupportedWrapper4(void, glColor4xOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
-  UnsupportedWrapper2(void, glDepthRangexOES, GLfixed, n, GLfixed, f); \
-  UnsupportedWrapper2(void, glFogxOES, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper2(void, glFogxvOES, GLenum, pname, const GLfixed *, param); \
-  UnsupportedWrapper6(void, glFrustumxOES, GLfixed, l, GLfixed, r, GLfixed, b, GLfixed, t, GLfixed, n, GLfixed, f); \
-  UnsupportedWrapper2(void, glGetClipPlanexOES, GLenum, plane, GLfixed *, equation); \
-  UnsupportedWrapper2(void, glGetFixedvOES, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper3(void, glGetTexEnvxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper3(void, glGetTexParameterxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper2(void, glLightModelxOES, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper2(void, glLightModelxvOES, GLenum, pname, const GLfixed *, param); \
-  UnsupportedWrapper3(void, glLightxOES, GLenum, light, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glLightxvOES, GLenum, light, GLenum, pname, const GLfixed *, params); \
-  UnsupportedWrapper1(void, glLineWidthxOES, GLfixed, width); \
-  UnsupportedWrapper1(void, glLoadMatrixxOES, const GLfixed *, m); \
-  UnsupportedWrapper3(void, glMaterialxOES, GLenum, face, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glMaterialxvOES, GLenum, face, GLenum, pname, const GLfixed *, param); \
-  UnsupportedWrapper1(void, glMultMatrixxOES, const GLfixed *, m); \
-  UnsupportedWrapper5(void, glMultiTexCoord4xOES, GLenum, texture, GLfixed, s, GLfixed, t, GLfixed, r, GLfixed, q); \
-  UnsupportedWrapper3(void, glNormal3xOES, GLfixed, nx, GLfixed, ny, GLfixed, nz); \
-  UnsupportedWrapper6(void, glOrthoxOES, GLfixed, l, GLfixed, r, GLfixed, b, GLfixed, t, GLfixed, n, GLfixed, f); \
-  UnsupportedWrapper2(void, glPointParameterxvOES, GLenum, pname, const GLfixed *, params); \
-  UnsupportedWrapper1(void, glPointSizexOES, GLfixed, size); \
-  UnsupportedWrapper2(void, glPolygonOffsetxOES, GLfixed, factor, GLfixed, units); \
-  UnsupportedWrapper4(void, glRotatexOES, GLfixed, angle, GLfixed, x, GLfixed, y, GLfixed, z); \
-  UnsupportedWrapper3(void, glScalexOES, GLfixed, x, GLfixed, y, GLfixed, z); \
-  UnsupportedWrapper3(void, glTexEnvxOES, GLenum, target, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glTexEnvxvOES, GLenum, target, GLenum, pname, const GLfixed *, params); \
-  UnsupportedWrapper3(void, glTexParameterxOES, GLenum, target, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glTexParameterxvOES, GLenum, target, GLenum, pname, const GLfixed *, params); \
-  UnsupportedWrapper3(void, glTranslatexOES, GLfixed, x, GLfixed, y, GLfixed, z); \
-  UnsupportedWrapper2(void, glAccumxOES, GLenum, op, GLfixed, value); \
-  UnsupportedWrapper7(void, glBitmapxOES, GLsizei, width, GLsizei, height, GLfixed, xorig, GLfixed, yorig, GLfixed, xmove, GLfixed, ymove, const GLubyte *, bitmap); \
-  UnsupportedWrapper4(void, glBlendColorxOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
-  UnsupportedWrapper4(void, glClearAccumxOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
-  UnsupportedWrapper3(void, glColor3xOES, GLfixed, red, GLfixed, green, GLfixed, blue); \
-  UnsupportedWrapper1(void, glColor3xvOES, const GLfixed *, components); \
-  UnsupportedWrapper1(void, glColor4xvOES, const GLfixed *, components); \
-  UnsupportedWrapper3(void, glConvolutionParameterxOES, GLenum, target, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glConvolutionParameterxvOES, GLenum, target, GLenum, pname, const GLfixed *, params); \
-  UnsupportedWrapper1(void, glEvalCoord1xOES, GLfixed, u); \
-  UnsupportedWrapper1(void, glEvalCoord1xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper2(void, glEvalCoord2xOES, GLfixed, u, GLfixed, v); \
-  UnsupportedWrapper1(void, glEvalCoord2xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper3(void, glFeedbackBufferxOES, GLsizei, n, GLenum, type, const GLfixed *, buffer); \
-  UnsupportedWrapper3(void, glGetConvolutionParameterxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper3(void, glGetHistogramParameterxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper3(void, glGetLightxOES, GLenum, light, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper3(void, glGetMapxvOES, GLenum, target, GLenum, query, GLfixed *, v); \
-  UnsupportedWrapper3(void, glGetMaterialxOES, GLenum, face, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glGetPixelMapxv, GLenum, map, GLint, size, GLfixed *, values); \
-  UnsupportedWrapper3(void, glGetTexGenxvOES, GLenum, coord, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper4(void, glGetTexLevelParameterxvOES, GLenum, target, GLint, level, GLenum, pname, GLfixed *, params); \
-  UnsupportedWrapper1(void, glIndexxOES, GLfixed, component); \
-  UnsupportedWrapper1(void, glIndexxvOES, const GLfixed *, component); \
-  UnsupportedWrapper1(void, glLoadTransposeMatrixxOES, const GLfixed *, m); \
-  UnsupportedWrapper6(void, glMap1xOES, GLenum, target, GLfixed, u1, GLfixed, u2, GLint, stride, GLint, order, GLfixed, points); \
-  UnsupportedWrapper10(void, glMap2xOES, GLenum, target, GLfixed, u1, GLfixed, u2, GLint, ustride, GLint, uorder, GLfixed, v1, GLfixed, v2, GLint, vstride, GLint, vorder, GLfixed, points); \
-  UnsupportedWrapper3(void, glMapGrid1xOES, GLint, n, GLfixed, u1, GLfixed, u2); \
-  UnsupportedWrapper5(void, glMapGrid2xOES, GLint, n, GLfixed, u1, GLfixed, u2, GLfixed, v1, GLfixed, v2); \
-  UnsupportedWrapper1(void, glMultTransposeMatrixxOES, const GLfixed *, m); \
-  UnsupportedWrapper2(void, glMultiTexCoord1xOES, GLenum, texture, GLfixed, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1xvOES, GLenum, texture, const GLfixed *, coords); \
-  UnsupportedWrapper3(void, glMultiTexCoord2xOES, GLenum, texture, GLfixed, s, GLfixed, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2xvOES, GLenum, texture, const GLfixed *, coords); \
-  UnsupportedWrapper4(void, glMultiTexCoord3xOES, GLenum, texture, GLfixed, s, GLfixed, t, GLfixed, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3xvOES, GLenum, texture, const GLfixed *, coords); \
-  UnsupportedWrapper2(void, glMultiTexCoord4xvOES, GLenum, texture, const GLfixed *, coords); \
-  UnsupportedWrapper1(void, glNormal3xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper1(void, glPassThroughxOES, GLfixed, token); \
-  UnsupportedWrapper3(void, glPixelMapx, GLenum, map, GLint, size, const GLfixed *, values); \
-  UnsupportedWrapper2(void, glPixelStorex, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper2(void, glPixelTransferxOES, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper2(void, glPixelZoomxOES, GLfixed, xfactor, GLfixed, yfactor); \
-  UnsupportedWrapper3(void, glPrioritizeTexturesxOES, GLsizei, n, const GLuint *, textures, const GLfixed *, priorities); \
-  UnsupportedWrapper2(void, glRasterPos2xOES, GLfixed, x, GLfixed, y); \
-  UnsupportedWrapper1(void, glRasterPos2xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper3(void, glRasterPos3xOES, GLfixed, x, GLfixed, y, GLfixed, z); \
-  UnsupportedWrapper1(void, glRasterPos3xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper4(void, glRasterPos4xOES, GLfixed, x, GLfixed, y, GLfixed, z, GLfixed, w); \
-  UnsupportedWrapper1(void, glRasterPos4xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper4(void, glRectxOES, GLfixed, x1, GLfixed, y1, GLfixed, x2, GLfixed, y2); \
-  UnsupportedWrapper2(void, glRectxvOES, const GLfixed *, v1, const GLfixed *, v2); \
-  UnsupportedWrapper1(void, glTexCoord1xOES, GLfixed, s); \
-  UnsupportedWrapper1(void, glTexCoord1xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper2(void, glTexCoord2xOES, GLfixed, s, GLfixed, t); \
-  UnsupportedWrapper1(void, glTexCoord2xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper3(void, glTexCoord3xOES, GLfixed, s, GLfixed, t, GLfixed, r); \
-  UnsupportedWrapper1(void, glTexCoord3xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper4(void, glTexCoord4xOES, GLfixed, s, GLfixed, t, GLfixed, r, GLfixed, q); \
-  UnsupportedWrapper1(void, glTexCoord4xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper3(void, glTexGenxOES, GLenum, coord, GLenum, pname, GLfixed, param); \
-  UnsupportedWrapper3(void, glTexGenxvOES, GLenum, coord, GLenum, pname, const GLfixed *, params); \
-  UnsupportedWrapper1(void, glVertex2xOES, GLfixed, x); \
-  UnsupportedWrapper1(void, glVertex2xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper2(void, glVertex3xOES, GLfixed, x, GLfixed, y); \
-  UnsupportedWrapper1(void, glVertex3xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper3(void, glVertex4xOES, GLfixed, x, GLfixed, y, GLfixed, z); \
-  UnsupportedWrapper1(void, glVertex4xvOES, const GLfixed *, coords); \
-  UnsupportedWrapper2(GLbitfield, glQueryMatrixxOES, GLfixed *, mantissa, GLint *, exponent); \
-  UnsupportedWrapper1(void, glClearDepthfOES, GLclampf, depth); \
-  UnsupportedWrapper2(void, glClipPlanefOES, GLenum, plane, const GLfloat *, equation); \
-  UnsupportedWrapper2(void, glDepthRangefOES, GLclampf, n, GLclampf, f); \
-  UnsupportedWrapper6(void, glFrustumfOES, GLfloat, l, GLfloat, r, GLfloat, b, GLfloat, t, GLfloat, n, GLfloat, f); \
-  UnsupportedWrapper2(void, glGetClipPlanefOES, GLenum, plane, GLfloat *, equation); \
-  UnsupportedWrapper6(void, glOrthofOES, GLfloat, l, GLfloat, r, GLfloat, b, GLfloat, t, GLfloat, n, GLfloat, f); \
-  UnsupportedWrapper1(void, glTbufferMask3DFX, GLuint, mask); \
-  UnsupportedWrapper5(void, glDebugMessageEnableAMD, GLenum, category, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
-  UnsupportedWrapper5(void, glDebugMessageInsertAMD, GLenum, category, GLenum, severity, GLuint, id, GLsizei, length, const GLchar *, buf); \
-  UnsupportedWrapper2(void, glDebugMessageCallbackAMD, GLDEBUGPROCAMD, callback, void *, userParam); \
-  UnsupportedWrapper7(GLuint, glGetDebugMessageLogAMD, GLuint, count, GLsizei, bufsize, GLenum *, categories, GLuint *, severities, GLuint *, ids, GLsizei *, lengths, GLchar *, message); \
-  UnsupportedWrapper3(void, glBlendFuncIndexedAMD, GLuint, buf, GLenum, src, GLenum, dst); \
-  UnsupportedWrapper5(void, glBlendFuncSeparateIndexedAMD, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
-  UnsupportedWrapper2(void, glBlendEquationIndexedAMD, GLuint, buf, GLenum, mode); \
-  UnsupportedWrapper3(void, glBlendEquationSeparateIndexedAMD, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
-  UnsupportedWrapper4(void, glFramebufferSamplePositionsfvAMD, GLenum, target, GLuint, numsamples, GLuint, pixelindex, const GLfloat *, values); \
-  UnsupportedWrapper4(void, glNamedFramebufferSamplePositionsfvAMD, GLuint, framebuffer, GLuint, numsamples, GLuint, pixelindex, const GLfloat *, values); \
-  UnsupportedWrapper6(void, glGetFramebufferParameterfvAMD, GLenum, target, GLenum, pname, GLuint, numsamples, GLuint, pixelindex, GLsizei, size, GLfloat *, values); \
-  UnsupportedWrapper6(void, glGetNamedFramebufferParameterfvAMD, GLuint, framebuffer, GLenum, pname, GLuint, numsamples, GLuint, pixelindex, GLsizei, size, GLfloat *, values); \
-  UnsupportedWrapper3(void, glVertexAttribParameteriAMD, GLuint, index, GLenum, pname, GLint, param); \
-  UnsupportedWrapper4(void, glMultiDrawArraysIndirectAMD, GLenum, mode, const void *, indirect, GLsizei, primcount, GLsizei, stride); \
-  UnsupportedWrapper5(void, glMultiDrawElementsIndirectAMD, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, primcount, GLsizei, stride); \
-  UnsupportedWrapper3(void, glGenNamesAMD, GLenum, identifier, GLuint, num, GLuint *, names); \
-  UnsupportedWrapper3(void, glDeleteNamesAMD, GLenum, identifier, GLuint, num, const GLuint *, names); \
-  UnsupportedWrapper2(GLboolean, glIsNameAMD, GLenum, identifier, GLuint, name); \
-  UnsupportedWrapper4(void, glQueryObjectParameteruiAMD, GLenum, target, GLuint, id, GLenum, pname, GLuint, param); \
-  UnsupportedWrapper3(void, glSetMultisamplefvAMD, GLenum, pname, GLuint, index, const GLfloat *, val); \
-  UnsupportedWrapper7(void, glTexStorageSparseAMD, GLenum, target, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, layers, GLbitfield, flags); \
-  UnsupportedWrapper8(void, glTextureStorageSparseAMD, GLuint, texture, GLenum, target, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, layers, GLbitfield, flags); \
-  UnsupportedWrapper2(void, glStencilOpValueAMD, GLenum, face, GLuint, value); \
-  UnsupportedWrapper1(void, glTessellationFactorAMD, GLfloat, factor); \
-  UnsupportedWrapper1(void, glTessellationModeAMD, GLenum, mode); \
-  UnsupportedWrapper2(void, glElementPointerAPPLE, GLenum, type, const void *, pointer); \
-  UnsupportedWrapper3(void, glDrawElementArrayAPPLE, GLenum, mode, GLint, first, GLsizei, count); \
-  UnsupportedWrapper5(void, glDrawRangeElementArrayAPPLE, GLenum, mode, GLuint, start, GLuint, end, GLint, first, GLsizei, count); \
-  UnsupportedWrapper4(void, glMultiDrawElementArrayAPPLE, GLenum, mode, const GLint *, first, const GLsizei *, count, GLsizei, primcount); \
-  UnsupportedWrapper6(void, glMultiDrawRangeElementArrayAPPLE, GLenum, mode, GLuint, start, GLuint, end, const GLint *, first, const GLsizei *, count, GLsizei, primcount); \
-  UnsupportedWrapper2(void, glGenFencesAPPLE, GLsizei, n, GLuint *, fences); \
-  UnsupportedWrapper2(void, glDeleteFencesAPPLE, GLsizei, n, const GLuint *, fences); \
-  UnsupportedWrapper1(void, glSetFenceAPPLE, GLuint, fence); \
-  UnsupportedWrapper1(GLboolean, glIsFenceAPPLE, GLuint, fence); \
-  UnsupportedWrapper1(GLboolean, glTestFenceAPPLE, GLuint, fence); \
-  UnsupportedWrapper1(void, glFinishFenceAPPLE, GLuint, fence); \
-  UnsupportedWrapper2(GLboolean, glTestObjectAPPLE, GLenum, object, GLuint, name); \
-  UnsupportedWrapper2(void, glFinishObjectAPPLE, GLenum, object, GLint, name); \
-  UnsupportedWrapper3(void, glBufferParameteriAPPLE, GLenum, target, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glFlushMappedBufferRangeAPPLE, GLenum, target, GLintptr, offset, GLsizeiptr, size); \
-  UnsupportedWrapper3(GLenum, glObjectPurgeableAPPLE, GLenum, objectType, GLuint, name, GLenum, option); \
-  UnsupportedWrapper3(GLenum, glObjectUnpurgeableAPPLE, GLenum, objectType, GLuint, name, GLenum, option); \
-  UnsupportedWrapper4(void, glGetObjectParameterivAPPLE, GLenum, objectType, GLuint, name, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glTextureRangeAPPLE, GLenum, target, GLsizei, length, const void *, pointer); \
-  UnsupportedWrapper3(void, glGetTexParameterPointervAPPLE, GLenum, target, GLenum, pname, void **, params); \
-  UnsupportedWrapper1(void, glBindVertexArrayAPPLE, GLuint, array); \
-  UnsupportedWrapper2(void, glDeleteVertexArraysAPPLE, GLsizei, n, const GLuint *, arrays); \
-  UnsupportedWrapper2(void, glGenVertexArraysAPPLE, GLsizei, n, GLuint *, arrays); \
-  UnsupportedWrapper1(GLboolean, glIsVertexArrayAPPLE, GLuint, array); \
-  UnsupportedWrapper2(void, glVertexArrayRangeAPPLE, GLsizei, length, void *, pointer); \
-  UnsupportedWrapper2(void, glFlushVertexArrayRangeAPPLE, GLsizei, length, void *, pointer); \
-  UnsupportedWrapper2(void, glVertexArrayParameteriAPPLE, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glEnableVertexAttribAPPLE, GLuint, index, GLenum, pname); \
-  UnsupportedWrapper2(void, glDisableVertexAttribAPPLE, GLuint, index, GLenum, pname); \
-  UnsupportedWrapper2(GLboolean, glIsVertexAttribEnabledAPPLE, GLuint, index, GLenum, pname); \
-  UnsupportedWrapper7(void, glMapVertexAttrib1dAPPLE, GLuint, index, GLuint, size, GLdouble, u1, GLdouble, u2, GLint, stride, GLint, order, const GLdouble *, points); \
-  UnsupportedWrapper7(void, glMapVertexAttrib1fAPPLE, GLuint, index, GLuint, size, GLfloat, u1, GLfloat, u2, GLint, stride, GLint, order, const GLfloat *, points); \
-  UnsupportedWrapper11(void, glMapVertexAttrib2dAPPLE, GLuint, index, GLuint, size, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, const GLdouble *, points); \
-  UnsupportedWrapper11(void, glMapVertexAttrib2fAPPLE, GLuint, index, GLuint, size, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, const GLfloat *, points); \
-  UnsupportedWrapper2(void, glDrawBuffersATI, GLsizei, n, const GLenum *, bufs); \
-  UnsupportedWrapper2(void, glElementPointerATI, GLenum, type, const void *, pointer); \
-  UnsupportedWrapper2(void, glDrawElementArrayATI, GLenum, mode, GLsizei, count); \
-  UnsupportedWrapper4(void, glDrawRangeElementArrayATI, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count); \
-  UnsupportedWrapper2(void, glTexBumpParameterivATI, GLenum, pname, const GLint *, param); \
-  UnsupportedWrapper2(void, glTexBumpParameterfvATI, GLenum, pname, const GLfloat *, param); \
-  UnsupportedWrapper2(void, glGetTexBumpParameterivATI, GLenum, pname, GLint *, param); \
-  UnsupportedWrapper2(void, glGetTexBumpParameterfvATI, GLenum, pname, GLfloat *, param); \
-  UnsupportedWrapper1(GLuint, glGenFragmentShadersATI, GLuint, range); \
-  UnsupportedWrapper1(void, glBindFragmentShaderATI, GLuint, id); \
-  UnsupportedWrapper1(void, glDeleteFragmentShaderATI, GLuint, id); \
-  UnsupportedWrapper0(void, glBeginFragmentShaderATI); \
-  UnsupportedWrapper0(void, glEndFragmentShaderATI); \
-  UnsupportedWrapper3(void, glPassTexCoordATI, GLuint, dst, GLuint, coord, GLenum, swizzle); \
-  UnsupportedWrapper3(void, glSampleMapATI, GLuint, dst, GLuint, interp, GLenum, swizzle); \
-  UnsupportedWrapper7(void, glColorFragmentOp1ATI, GLenum, op, GLuint, dst, GLuint, dstMask, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod); \
-  UnsupportedWrapper10(void, glColorFragmentOp2ATI, GLenum, op, GLuint, dst, GLuint, dstMask, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod); \
-  UnsupportedWrapper13(void, glColorFragmentOp3ATI, GLenum, op, GLuint, dst, GLuint, dstMask, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod, GLuint, arg3, GLuint, arg3Rep, GLuint, arg3Mod); \
-  UnsupportedWrapper6(void, glAlphaFragmentOp1ATI, GLenum, op, GLuint, dst, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod); \
-  UnsupportedWrapper9(void, glAlphaFragmentOp2ATI, GLenum, op, GLuint, dst, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod); \
-  UnsupportedWrapper12(void, glAlphaFragmentOp3ATI, GLenum, op, GLuint, dst, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod, GLuint, arg3, GLuint, arg3Rep, GLuint, arg3Mod); \
-  UnsupportedWrapper2(void, glSetFragmentShaderConstantATI, GLuint, dst, const GLfloat *, value); \
-  UnsupportedWrapper1(void *, glMapObjectBufferATI, GLuint, buffer); \
-  UnsupportedWrapper1(void, glUnmapObjectBufferATI, GLuint, buffer); \
-  UnsupportedWrapper2(void, glPNTrianglesiATI, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glPNTrianglesfATI, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper4(void, glStencilOpSeparateATI, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
-  UnsupportedWrapper4(void, glStencilFuncSeparateATI, GLenum, frontfunc, GLenum, backfunc, GLint, ref, GLuint, mask); \
-  UnsupportedWrapper3(GLuint, glNewObjectBufferATI, GLsizei, size, const void *, pointer, GLenum, usage); \
-  UnsupportedWrapper1(GLboolean, glIsObjectBufferATI, GLuint, buffer); \
-  UnsupportedWrapper5(void, glUpdateObjectBufferATI, GLuint, buffer, GLuint, offset, GLsizei, size, const void *, pointer, GLenum, preserve); \
-  UnsupportedWrapper3(void, glGetObjectBufferfvATI, GLuint, buffer, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetObjectBufferivATI, GLuint, buffer, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper1(void, glFreeObjectBufferATI, GLuint, buffer); \
-  UnsupportedWrapper6(void, glArrayObjectATI, GLenum, array, GLint, size, GLenum, type, GLsizei, stride, GLuint, buffer, GLuint, offset); \
-  UnsupportedWrapper3(void, glGetArrayObjectfvATI, GLenum, array, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetArrayObjectivATI, GLenum, array, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper5(void, glVariantArrayObjectATI, GLuint, id, GLenum, type, GLsizei, stride, GLuint, buffer, GLuint, offset); \
-  UnsupportedWrapper3(void, glGetVariantArrayObjectfvATI, GLuint, id, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetVariantArrayObjectivATI, GLuint, id, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper7(void, glVertexAttribArrayObjectATI, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, GLuint, buffer, GLuint, offset); \
-  UnsupportedWrapper3(void, glGetVertexAttribArrayObjectfvATI, GLuint, index, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribArrayObjectivATI, GLuint, index, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper2(void, glVertexStream1sATI, GLenum, stream, GLshort, x); \
-  UnsupportedWrapper2(void, glVertexStream1svATI, GLenum, stream, const GLshort *, coords); \
-  UnsupportedWrapper2(void, glVertexStream1iATI, GLenum, stream, GLint, x); \
-  UnsupportedWrapper2(void, glVertexStream1ivATI, GLenum, stream, const GLint *, coords); \
-  UnsupportedWrapper2(void, glVertexStream1fATI, GLenum, stream, GLfloat, x); \
-  UnsupportedWrapper2(void, glVertexStream1fvATI, GLenum, stream, const GLfloat *, coords); \
-  UnsupportedWrapper2(void, glVertexStream1dATI, GLenum, stream, GLdouble, x); \
-  UnsupportedWrapper2(void, glVertexStream1dvATI, GLenum, stream, const GLdouble *, coords); \
-  UnsupportedWrapper3(void, glVertexStream2sATI, GLenum, stream, GLshort, x, GLshort, y); \
-  UnsupportedWrapper2(void, glVertexStream2svATI, GLenum, stream, const GLshort *, coords); \
-  UnsupportedWrapper3(void, glVertexStream2iATI, GLenum, stream, GLint, x, GLint, y); \
-  UnsupportedWrapper2(void, glVertexStream2ivATI, GLenum, stream, const GLint *, coords); \
-  UnsupportedWrapper3(void, glVertexStream2fATI, GLenum, stream, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper2(void, glVertexStream2fvATI, GLenum, stream, const GLfloat *, coords); \
-  UnsupportedWrapper3(void, glVertexStream2dATI, GLenum, stream, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper2(void, glVertexStream2dvATI, GLenum, stream, const GLdouble *, coords); \
   UnsupportedWrapper4(void, glVertexStream3sATI, GLenum, stream, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper3(void, glGetProgramivNV, GLuint, id, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper6(void, glPathCommandsNV, GLuint, path, GLsizei, numCommands, const GLubyte *, commands, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
+  UnsupportedWrapper2(void, glUniformHandleui64NV, GLint, location, GLuint64, value); \
+  UnsupportedWrapper2(void, glMultiTexCoord1hNV, GLenum, target, GLhalfNV, s); \
+  UnsupportedWrapper11(void, glMapVertexAttrib2fAPPLE, GLuint, index, GLuint, size, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, const GLfloat *, points); \
+  UnsupportedWrapper0(void, glStartInstrumentsSGIX); \
+  UnsupportedWrapper2(void, glMultiTexCoord1dvARB, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper5(void, glVDPAUGetSurfaceivNV, GLvdpauSurfaceNV, surface, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
+  UnsupportedWrapper3(void, glSetInvariantEXT, GLuint, id, GLenum, type, const void *, addr); \
+  UnsupportedWrapper6(void, glOrthofOES, GLfloat, l, GLfloat, r, GLfloat, b, GLfloat, t, GLfloat, n, GLfloat, f); \
+  UnsupportedWrapper6(void, glFrustumxOES, GLfixed, l, GLfixed, r, GLfixed, b, GLfixed, t, GLfixed, n, GLfixed, f); \
+  UnsupportedWrapper4(void, glUniform3i64NV, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z); \
+  UnsupportedWrapper3(void, glExtGetBuffersQCOM, GLuint *, buffers, GLint, maxBuffers, GLint *, numBuffers); \
+  UnsupportedWrapper3(void, glBinormal3bEXT, GLbyte, bx, GLbyte, by, GLbyte, bz); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactorusSUN, GLushort, factor); \
+  UnsupportedWrapper3(void, glVertexStream2dATI, GLenum, stream, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper2(void, glGetClipPlanexOES, GLenum, plane, GLfixed *, equation); \
+  UnsupportedWrapper3(void, glTexGenf, GLenum, coord, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper2(void, glDeleteCommandListsNV, GLsizei, n, const GLuint *, lists); \
+  UnsupportedWrapper1(void, glResetHistogram, GLenum, target); \
+  UnsupportedWrapper4(void, glBufferAddressRangeNV, GLenum, pname, GLuint, index, GLuint64EXT, address, GLsizeiptr, length); \
+  UnsupportedWrapper6(void, glReplacementCodeuiTexCoord2fVertex3fSUN, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper3(void, glNormal3b, GLbyte, nx, GLbyte, ny, GLbyte, nz); \
+  UnsupportedWrapper2(void, glWindowPos2d, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper1(void, glTexCoord2bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper1(void, glPolygonStipple, const GLubyte *, mask); \
+  UnsupportedWrapper3(void, glUniformBufferEXT, GLuint, program, GLint, location, GLuint, buffer); \
+  UnsupportedWrapper3(void, glLightxvOES, GLenum, light, GLenum, pname, const GLfixed *, params); \
+  UnsupportedWrapper1(void, glWindowPos3dvARB, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glMultiTexCoord1xvOES, GLenum, texture, const GLfixed *, coords); \
+  UnsupportedWrapper3(void, glGetFragmentMaterialivSGIX, GLenum, face, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glTexCoordP4ui, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper3(void, glUniform2ui64NV, GLint, location, GLuint64EXT, x, GLuint64EXT, y); \
+  UnsupportedWrapper3(void, glProgramParameter4fvNV, GLenum, target, GLuint, index, const GLfloat *, v); \
+  UnsupportedWrapper5(void, glMultiDrawElementsIndirectEXT, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
+  UnsupportedWrapper2(void, glMultiTexCoord1iv, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper4(void, glStencilFuncSeparateATI, GLenum, frontfunc, GLenum, backfunc, GLint, ref, GLuint, mask); \
+  UnsupportedWrapper6(void, glMap1f, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, stride, GLint, order, const GLfloat *, points); \
+  UnsupportedWrapper3(void, glGetHistogramParameterxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper1(void, glActiveProgramEXT, GLuint, program); \
+  UnsupportedWrapper1(void, glVertexWeighthvNV, const GLhalfNV *, weight); \
+  UnsupportedWrapper1(void, glMultMatrixf, const GLfloat *, m); \
+  UnsupportedWrapper2(void, glTexCoordP3uiv, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper2(void, glDrawTransformFeedbackEXT, GLenum, mode, GLuint, id); \
+  UnsupportedWrapper3(void, glPixelTransformParameterivEXT, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper4(void, glColor4hNV, GLhalfNV, red, GLhalfNV, green, GLhalfNV, blue, GLhalfNV, alpha); \
+  UnsupportedWrapper2(void, glCoverageModulationTableNV, GLsizei, n, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glPixelMapfv, GLenum, map, GLsizei, mapsize, const GLfloat *, values); \
+  UnsupportedWrapper3(void, glBlendFuncIndexedAMD, GLuint, buf, GLenum, src, GLenum, dst); \
+  UnsupportedWrapper11(void, glDrawTextureNV, GLuint, texture, GLuint, sampler, GLfloat, x0, GLfloat, y0, GLfloat, x1, GLfloat, y1, GLfloat, z, GLfloat, s0, GLfloat, t0, GLfloat, s1, GLfloat, t1); \
+  UnsupportedWrapper1(void, glMultTransposeMatrixfARB, const GLfloat *, m); \
+  UnsupportedWrapper4(void, glFramebufferSamplePositionsfvAMD, GLenum, target, GLuint, numsamples, GLuint, pixelindex, const GLfloat *, values); \
+  UnsupportedWrapper3(void, glReplacementCodeuiColor4ubVertex3fvSUN, const GLuint *, rc, const GLubyte *, c, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetImageTransformParameterivHP, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glGenProgramsNV, GLsizei, n, GLuint *, programs); \
+  UnsupportedWrapper3(void, glMultiTexCoord2xOES, GLenum, texture, GLfixed, s, GLfixed, t); \
+  UnsupportedWrapper3(void, glTexEnvxOES, GLenum, target, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper3(void, glTexGend, GLenum, coord, GLenum, pname, GLdouble, param); \
+  UnsupportedWrapper3(void, glGetnPixelMapusvARB, GLenum, map, GLsizei, bufSize, GLushort *, values); \
+  UnsupportedWrapper4(void, glVideoCaptureStreamParameterfvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glLoadMatrixd, const GLdouble *, m); \
+  UnsupportedWrapper4(void, glVertexArrayEdgeFlagOffsetEXT, GLuint, vaobj, GLuint, buffer, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper7(void, glNamedProgramLocalParameter4dEXT, GLuint, program, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper3(void, glMinmax, GLenum, target, GLenum, internalformat, GLboolean, sink); \
+  UnsupportedWrapper1(void, glGetFirstPerfQueryIdINTEL, GLuint *, queryId); \
+  UnsupportedWrapper1(void, glVertex4iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glTranslatexOES, GLfixed, x, GLfixed, y, GLfixed, z); \
+  UnsupportedWrapper8(void, glTexImage3DMultisampleCoverageNV, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations); \
+  UnsupportedWrapper1(void, glTexCoord1iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glColor3s, GLshort, red, GLshort, green, GLshort, blue); \
+  UnsupportedWrapper2(void, glMatrixMultTransposedEXT, GLenum, mode, const GLdouble *, m); \
+  UnsupportedWrapper4(void, glQueryObjectParameteruiAMD, GLenum, target, GLuint, id, GLenum, pname, GLuint, param); \
+  UnsupportedWrapper1(GLboolean, glIsNamedBufferResidentNV, GLuint, buffer); \
+  UnsupportedWrapper4(void, glGetnMapivARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLint *, v); \
+  UnsupportedWrapper1(GLuint, glGenVertexShadersEXT, GLuint, range); \
+  UnsupportedWrapper2(void, glMultiTexCoord3hvNV, GLenum, target, const GLhalfNV *, v); \
+  UnsupportedWrapper2(void, glPointParameteriNV, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glMaterialf, GLenum, face, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper4(void, glWeightPointerARB, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper4(void, glColor4us, GLushort, red, GLushort, green, GLushort, blue, GLushort, alpha); \
+  UnsupportedWrapper3(void, glColorTableParameterfvSGI, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glWindowPos4ivMESA, const GLint *, v); \
+  UnsupportedWrapper2(void, glMultiTexCoord1fv, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glLighti, GLenum, light, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(GLuint, glBindLightParameterEXT, GLenum, light, GLenum, value); \
+  UnsupportedWrapper6(void, glGetFramebufferParameterfvAMD, GLenum, target, GLenum, pname, GLuint, numsamples, GLuint, pixelindex, GLsizei, size, GLfloat *, values); \
+  UnsupportedWrapper1(GLint, glFinishAsyncSGIX, GLuint *, markerp); \
+  UnsupportedWrapper3(void, glConvolutionParameterf, GLenum, target, GLenum, pname, GLfloat, params); \
+  UnsupportedWrapper5(void, glClearTexImageEXT, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
+  UnsupportedWrapper7(void, glTexSubImage1DEXT, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLenum, type, const void *, pixels); \
+  UnsupportedWrapper3(GLboolean, glAreTexturesResident, GLsizei, n, const GLuint *, textures, GLboolean *, residences); \
+  UnsupportedWrapper3(void, glTexEnvf, GLenum, target, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glSecondaryColor3uiEXT, GLuint, red, GLuint, green, GLuint, blue); \
+  UnsupportedWrapper4(GLboolean, glIsPointInFillPathNV, GLuint, path, GLuint, mask, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper4(void, glTexCoord2fColor4fNormal3fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper7(void, glMatrixOrthoEXT, GLenum, mode, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
+  UnsupportedWrapper3(void, glGetProgramLocalParameterIivNV, GLenum, target, GLuint, index, GLint *, params); \
+  UnsupportedWrapper5(void, glCopyBufferSubDataNV, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
+  UnsupportedWrapper5(void, glGetnColorTable, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, table); \
+  UnsupportedWrapper5(void, glMapGrid2xOES, GLint, n, GLfixed, u1, GLfixed, u2, GLfixed, v1, GLfixed, v2); \
+  UnsupportedWrapper2(void, glTexCoordP1uiv, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper2(void, glGetPathCoordsNV, GLuint, path, GLfloat *, coords); \
+  UnsupportedWrapper1(void, glVertexWeighthNV, GLhalfNV, weight); \
+  UnsupportedWrapper2(void, glDeleteVertexArraysAPPLE, GLsizei, n, const GLuint *, arrays); \
+  UnsupportedWrapper4(void, glColor4ui, GLuint, red, GLuint, green, GLuint, blue, GLuint, alpha); \
+  UnsupportedWrapper15(void, glTexCoord4fColor4fNormal3fVertex4fSUN, GLfloat, s, GLfloat, t, GLfloat, p, GLfloat, q, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper2(void, glClipControlEXT, GLenum, origin, GLenum, depth); \
+  UnsupportedWrapper3(void, glGetVertexAttribLui64vARB, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
+  UnsupportedWrapper4(void, glVertexPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glMakeBufferResidentNV, GLenum, target, GLenum, access); \
+  UnsupportedWrapper3(void, glGetMaterialfv, GLenum, face, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glColor3ui, GLuint, red, GLuint, green, GLuint, blue); \
+  UnsupportedWrapper2(void, glVertexAttrib4fvNV, GLuint, index, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glUniformui64NV, GLint, location, GLuint64EXT, value); \
+  UnsupportedWrapper2(void, glWeightivARB, GLint, size, const GLint *, weights); \
+  UnsupportedWrapper4(void, glProgramUniform1ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper3(void, glProgramSubroutineParametersuivNV, GLenum, target, GLsizei, count, const GLuint *, params); \
+  UnsupportedWrapper9(void, glStencilThenCoverFillPathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, fillMode, GLuint, mask, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper3(void, glGetConvolutionParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glVertexAttribL3i64vNV, GLuint, index, const GLint64EXT *, v); \
+  UnsupportedWrapper1(void, glWindowPos4svMESA, const GLshort *, v); \
+  UnsupportedWrapper2(void, glBlendParameteriNV, GLenum, pname, GLint, value); \
+  UnsupportedWrapper6(void, glColor3fVertex3fSUN, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(void, glCallList, GLuint, list); \
+  UnsupportedWrapper1(void, glMakeTextureHandleResidentARB, GLuint64, handle); \
+  UnsupportedWrapper3(void, glGetnPixelMapuiv, GLenum, map, GLsizei, bufSize, GLuint *, values); \
+  UnsupportedWrapper1(void, glTessellationModeAMD, GLenum, mode); \
+  UnsupportedWrapper6(void, glColorSubTableEXT, GLenum, target, GLsizei, start, GLsizei, count, GLenum, format, GLenum, type, const void *, data); \
+  UnsupportedWrapper1(void, glMakeTextureHandleResidentNV, GLuint64, handle); \
+  UnsupportedWrapper7(void, glMapVertexAttrib1fAPPLE, GLuint, index, GLuint, size, GLfloat, u1, GLfloat, u2, GLint, stride, GLint, order, const GLfloat *, points); \
+  UnsupportedWrapper8(void, glReadnPixelsKHR, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
+  UnsupportedWrapper7(void, glBitmap, GLsizei, width, GLsizei, height, GLfloat, xorig, GLfloat, yorig, GLfloat, xmove, GLfloat, ymove, const GLubyte *, bitmap); \
+  UnsupportedWrapper2(void, glVertexAttrib1fvNV, GLuint, index, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetHistogramParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper6(void, glGetNamedFramebufferParameterfvAMD, GLuint, framebuffer, GLenum, pname, GLuint, numsamples, GLuint, pixelindex, GLsizei, size, GLfloat *, values); \
+  UnsupportedWrapper3(void, glTexCoordPointervINTEL, GLint, size, GLenum, type, const void **, pointer); \
+  UnsupportedWrapper1(void, glColor3ubv, const GLubyte *, v); \
+  UnsupportedWrapper2(void, glMatrixMultTranspose3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
+  UnsupportedWrapper3(void, glUniform1ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper3(void, glGetTexGendv, GLenum, coord, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper1(GLint, glRenderMode, GLenum, mode); \
+  UnsupportedWrapper2(void, glVertexStream4fvATI, GLenum, stream, const GLfloat *, coords); \
+  UnsupportedWrapper2(GLuint64, glGetTextureSamplerHandleNV, GLuint, texture, GLuint, sampler); \
+  UnsupportedWrapper2(void, glDepthRangexOES, GLfixed, n, GLfixed, f); \
+  UnsupportedWrapper1(void, glSecondaryColor3hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper1(GLint, glPollInstrumentsSGIX, GLint *, marker_p); \
+  UnsupportedWrapper4(void, glWindowPos4sMESA, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+  UnsupportedWrapper2(void, glMatrixIndexubvARB, GLint, size, const GLubyte *, indices); \
+  UnsupportedWrapper0(void, glInitNames); \
+  UnsupportedWrapper3(void, glVertexAttribL2ui64NV, GLuint, index, GLuint64EXT, x, GLuint64EXT, y); \
+  UnsupportedWrapper2(void, glEvalPoint2, GLint, i, GLint, j); \
+  UnsupportedWrapper1(GLboolean, glIsFenceAPPLE, GLuint, fence); \
+  UnsupportedWrapper2(void, glVertexAttrib2svNV, GLuint, index, const GLshort *, v); \
+  UnsupportedWrapper5(void, glGetnConvolutionFilter, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, image); \
+  UnsupportedWrapper3(void, glVertexAttrib2hNV, GLuint, index, GLhalfNV, x, GLhalfNV, y); \
+  UnsupportedWrapper5(void, glDrawCommandsStatesAddressNV, const GLuint64 *, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
+  UnsupportedWrapper4(void, glProgramUniform2i64ARB, GLuint, program, GLint, location, GLint64, x, GLint64, y); \
+  UnsupportedWrapper2(void, glDepthBoundsdNV, GLdouble, zmin, GLdouble, zmax); \
+  UnsupportedWrapper3(void, glTexCoord3f, GLfloat, s, GLfloat, t, GLfloat, r); \
+  UnsupportedWrapper2(void, glSpriteParameterivSGIX, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper2(void, glVertexAttrib4ubvNV, GLuint, index, const GLubyte *, v); \
+  UnsupportedWrapper2(GLuint, glGetCommandHeaderNV, GLenum, tokenID, GLuint, size); \
+  UnsupportedWrapper2(void, glMultiTexCoord1fARB, GLenum, target, GLfloat, s); \
+  UnsupportedWrapper2(void, glVertexAttrib1fNV, GLuint, index, GLfloat, x); \
+  UnsupportedWrapper2(void, glBindTextureEXT, GLenum, target, GLuint, texture); \
+  UnsupportedWrapper1(void, glTexCoord2iv, const GLint *, v); \
+  UnsupportedWrapper5(void, glFramebufferTextureFaceEXT, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
+  UnsupportedWrapper2(void, glMatrixMult3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
+  UnsupportedWrapper6(void, glGetSeparableFilterEXT, GLenum, target, GLenum, format, GLenum, type, void *, row, void *, column, void *, span); \
+  UnsupportedWrapper1(void, glDeletePerfQueryINTEL, GLuint, queryHandle); \
+  UnsupportedWrapper8(GLboolean, glPointAlongPathNV, GLuint, path, GLsizei, startSegment, GLsizei, numSegments, GLfloat, distance, GLfloat *, x, GLfloat *, y, GLfloat *, tangentX, GLfloat *, tangentY); \
+  UnsupportedWrapper3(void, glLightxOES, GLenum, light, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper5(void, glMultiTexCoord4fARB, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, q); \
+  UnsupportedWrapper5(void, glTexCoordPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper5(void, glTexCoord2fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper4(void, glRectxOES, GLfixed, x1, GLfixed, y1, GLfixed, x2, GLfixed, y2); \
+  UnsupportedWrapper1(void, glLoadTransposeMatrixd, const GLdouble *, m); \
+  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterIuivEXT, GLuint, program, GLenum, target, GLuint, index, GLuint *, params); \
+  UnsupportedWrapper4(void, glVertexStream3fATI, GLenum, stream, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper7(void, glMatrixFrustumEXT, GLenum, mode, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
+  UnsupportedWrapper3(void, glProgramParameter4dvNV, GLenum, target, GLuint, index, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glVertex3f, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glUniform1ui64NV, GLint, location, GLuint64EXT, x); \
+  UnsupportedWrapper2(void, glVertexAttrib4hvNV, GLuint, index, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glTextureRangeAPPLE, GLenum, target, GLsizei, length, const void *, pointer); \
+  UnsupportedWrapper3(void, glTexCoord3hNV, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r); \
+  UnsupportedWrapper2(void, glStateCaptureNV, GLuint, state, GLenum, mode); \
+  UnsupportedWrapper2(void, glPointParameterfvSGIS, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glReplacementCodePointerSUN, GLenum, type, GLsizei, stride, const void **, pointer); \
+  UnsupportedWrapper2(void, glDeleteOcclusionQueriesNV, GLsizei, n, const GLuint *, ids); \
+  UnsupportedWrapper2(void, glVertexP3ui, GLenum, type, GLuint, value); \
+  UnsupportedWrapper4(void, glGetPerfMonitorCounterInfoAMD, GLuint, group, GLuint, counter, GLenum, pname, void *, data); \
+  UnsupportedWrapper7(void, glGetMapControlPointsNV, GLenum, target, GLuint, index, GLenum, type, GLsizei, ustride, GLsizei, vstride, GLboolean, packed, void *, points); \
+  UnsupportedWrapper1(void, glRasterPos4sv, const GLshort *, v); \
+  UnsupportedWrapper3(void, glRasterPos3d, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper1(void, glTexCoord4hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper1(void, glNormal3dv, const GLdouble *, v); \
+  UnsupportedWrapper4(void, glMultiTexCoord3hNV, GLenum, target, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r); \
+  UnsupportedWrapper1(void, glResetHistogramEXT, GLenum, target); \
+  UnsupportedWrapper1(void, glSecondaryColor3uivEXT, const GLuint *, v); \
+  UnsupportedWrapper3(void, glGetVideoi64vNV, GLuint, video_slot, GLenum, pname, GLint64EXT *, params); \
+  UnsupportedWrapper1(void, glFogCoordhNV, GLhalfNV, fog); \
+  UnsupportedWrapper4(void, glGetDriverControlStringQCOM, GLuint, driverControl, GLsizei, bufSize, GLsizei *, length, GLchar *, driverControlString); \
+  UnsupportedWrapper2(void, glVertexArrayParameteriAPPLE, GLenum, pname, GLint, param); \
+  UnsupportedWrapper1(void, glSecondaryColor3usv, const GLushort *, v); \
+  UnsupportedWrapper5(void, glGetPerfQueryDataINTEL, GLuint, queryHandle, GLuint, flags, GLsizei, dataSize, void *, data, GLuint *, bytesWritten); \
+  UnsupportedWrapper3(void, glProgramLocalParameterI4uivNV, GLenum, target, GLuint, index, const GLuint *, params); \
+  UnsupportedWrapper3(void, glReplacementCodeuiColor3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, c, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glEvalCoord2xOES, GLfixed, u, GLfixed, v); \
+  UnsupportedWrapper2(void, glSampleMaskEXT, GLclampf, value, GLboolean, invert); \
+  UnsupportedWrapper1(void, glWindowPos3fv, const GLfloat *, v); \
+  UnsupportedWrapper10(void, glPathGlyphsNV, GLuint, firstPathName, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLsizei, numGlyphs, GLenum, type, const void *, charcodes, GLenum, handleMissingGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
+  UnsupportedWrapper3(void, glMultiTexRenderbufferEXT, GLenum, texunit, GLenum, target, GLuint, renderbuffer); \
+  UnsupportedWrapper4(void, glMultiTexCoord3f, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r); \
+  UnsupportedWrapper0(void, glLGPUInterlockNVX); \
+  UnsupportedWrapper1(void, glTexCoord3hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper2(void, glVertexAttribL1ui64NV, GLuint, index, GLuint64EXT, x); \
+  UnsupportedWrapper4(void, glBlendColorxOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
+  UnsupportedWrapper3(void, glConvolutionParameterxvOES, GLenum, target, GLenum, pname, const GLfixed *, params); \
+  UnsupportedWrapper2(GLsync, glFenceSyncAPPLE, GLenum, condition, GLbitfield, flags); \
+  UnsupportedWrapper1(void, glEvalCoord2dv, const GLdouble *, u); \
+  UnsupportedWrapper1(void, glEdgeFlag, GLboolean, flag); \
+  UnsupportedWrapper4(void, glGetColorTableEXT, GLenum, target, GLenum, format, GLenum, type, void *, data); \
+  UnsupportedWrapper3(void, glListParameterfvSGIX, GLuint, list, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper2(GLint, glGetVaryingLocationNV, GLuint, program, const GLchar *, name); \
+  UnsupportedWrapper6(void, glVertexArrayColorOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper3(void, glProgramEnvParameterI4uivNV, GLenum, target, GLuint, index, const GLuint *, params); \
+  UnsupportedWrapper2(void, glTexCoordP4uiv, GLenum, type, const GLuint *, coords); \
   UnsupportedWrapper2(void, glVertexStream3svATI, GLenum, stream, const GLshort *, coords); \
   UnsupportedWrapper4(void, glVertexStream3iATI, GLenum, stream, GLint, x, GLint, y, GLint, z); \
-  UnsupportedWrapper2(void, glVertexStream3ivATI, GLenum, stream, const GLint *, coords); \
-  UnsupportedWrapper4(void, glVertexStream3fATI, GLenum, stream, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glVertexStream3fvATI, GLenum, stream, const GLfloat *, coords); \
-  UnsupportedWrapper4(void, glVertexStream3dATI, GLenum, stream, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper2(void, glVertexStream3dvATI, GLenum, stream, const GLdouble *, coords); \
-  UnsupportedWrapper5(void, glVertexStream4sATI, GLenum, stream, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
-  UnsupportedWrapper2(void, glVertexStream4svATI, GLenum, stream, const GLshort *, coords); \
-  UnsupportedWrapper5(void, glVertexStream4iATI, GLenum, stream, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper2(void, glVertexStream4ivATI, GLenum, stream, const GLint *, coords); \
-  UnsupportedWrapper5(void, glVertexStream4fATI, GLenum, stream, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper2(void, glVertexStream4fvATI, GLenum, stream, const GLfloat *, coords); \
-  UnsupportedWrapper5(void, glVertexStream4dATI, GLenum, stream, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper2(void, glVertexStream4dvATI, GLenum, stream, const GLdouble *, coords); \
-  UnsupportedWrapper4(void, glNormalStream3bATI, GLenum, stream, GLbyte, nx, GLbyte, ny, GLbyte, nz); \
-  UnsupportedWrapper2(void, glNormalStream3bvATI, GLenum, stream, const GLbyte *, coords); \
-  UnsupportedWrapper4(void, glNormalStream3sATI, GLenum, stream, GLshort, nx, GLshort, ny, GLshort, nz); \
-  UnsupportedWrapper2(void, glNormalStream3svATI, GLenum, stream, const GLshort *, coords); \
-  UnsupportedWrapper4(void, glNormalStream3iATI, GLenum, stream, GLint, nx, GLint, ny, GLint, nz); \
-  UnsupportedWrapper2(void, glNormalStream3ivATI, GLenum, stream, const GLint *, coords); \
-  UnsupportedWrapper4(void, glNormalStream3fATI, GLenum, stream, GLfloat, nx, GLfloat, ny, GLfloat, nz); \
-  UnsupportedWrapper2(void, glNormalStream3fvATI, GLenum, stream, const GLfloat *, coords); \
-  UnsupportedWrapper4(void, glNormalStream3dATI, GLenum, stream, GLdouble, nx, GLdouble, ny, GLdouble, nz); \
-  UnsupportedWrapper2(void, glNormalStream3dvATI, GLenum, stream, const GLdouble *, coords); \
-  UnsupportedWrapper1(void, glClientActiveVertexStreamATI, GLenum, stream); \
-  UnsupportedWrapper2(void, glVertexBlendEnviATI, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glVertexBlendEnvfATI, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glUniformBufferEXT, GLuint, program, GLint, location, GLuint, buffer); \
-  UnsupportedWrapper2(GLint, glGetUniformBufferSizeEXT, GLuint, program, GLint, location); \
-  UnsupportedWrapper2(GLintptr, glGetUniformOffsetEXT, GLuint, program, GLint, location); \
-  UnsupportedWrapper4(void, glBlendFuncSeparateEXT, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
-  UnsupportedWrapper6(void, glColorSubTableEXT, GLenum, target, GLsizei, start, GLsizei, count, GLenum, format, GLenum, type, const void *, data); \
-  UnsupportedWrapper5(void, glCopyColorSubTableEXT, GLenum, target, GLsizei, start, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper2(void, glLockArraysEXT, GLint, first, GLsizei, count); \
-  UnsupportedWrapper0(void, glUnlockArraysEXT); \
-  UnsupportedWrapper6(void, glConvolutionFilter1DEXT, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, image); \
-  UnsupportedWrapper7(void, glConvolutionFilter2DEXT, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, image); \
-  UnsupportedWrapper3(void, glConvolutionParameterfEXT, GLenum, target, GLenum, pname, GLfloat, params); \
-  UnsupportedWrapper3(void, glConvolutionParameterfvEXT, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glConvolutionParameteriEXT, GLenum, target, GLenum, pname, GLint, params); \
-  UnsupportedWrapper3(void, glConvolutionParameterivEXT, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper5(void, glCopyConvolutionFilter1DEXT, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper6(void, glCopyConvolutionFilter2DEXT, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper4(void, glGetConvolutionFilterEXT, GLenum, target, GLenum, format, GLenum, type, void *, image); \
-  UnsupportedWrapper3(void, glGetConvolutionParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetConvolutionParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper6(void, glGetSeparableFilterEXT, GLenum, target, GLenum, format, GLenum, type, void *, row, void *, column, void *, span); \
-  UnsupportedWrapper8(void, glSeparableFilter2DEXT, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, row, const void *, column); \
-  UnsupportedWrapper3(void, glTangent3bEXT, GLbyte, tx, GLbyte, ty, GLbyte, tz); \
-  UnsupportedWrapper1(void, glTangent3bvEXT, const GLbyte *, v); \
-  UnsupportedWrapper3(void, glTangent3dEXT, GLdouble, tx, GLdouble, ty, GLdouble, tz); \
-  UnsupportedWrapper1(void, glTangent3dvEXT, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glTangent3fEXT, GLfloat, tx, GLfloat, ty, GLfloat, tz); \
-  UnsupportedWrapper1(void, glTangent3fvEXT, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glTangent3iEXT, GLint, tx, GLint, ty, GLint, tz); \
-  UnsupportedWrapper1(void, glTangent3ivEXT, const GLint *, v); \
-  UnsupportedWrapper3(void, glTangent3sEXT, GLshort, tx, GLshort, ty, GLshort, tz); \
-  UnsupportedWrapper1(void, glTangent3svEXT, const GLshort *, v); \
-  UnsupportedWrapper3(void, glBinormal3bEXT, GLbyte, bx, GLbyte, by, GLbyte, bz); \
-  UnsupportedWrapper1(void, glBinormal3bvEXT, const GLbyte *, v); \
-  UnsupportedWrapper3(void, glBinormal3dEXT, GLdouble, bx, GLdouble, by, GLdouble, bz); \
-  UnsupportedWrapper1(void, glBinormal3dvEXT, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glBinormal3fEXT, GLfloat, bx, GLfloat, by, GLfloat, bz); \
-  UnsupportedWrapper1(void, glBinormal3fvEXT, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glBinormal3iEXT, GLint, bx, GLint, by, GLint, bz); \
-  UnsupportedWrapper1(void, glBinormal3ivEXT, const GLint *, v); \
-  UnsupportedWrapper3(void, glBinormal3sEXT, GLshort, bx, GLshort, by, GLshort, bz); \
-  UnsupportedWrapper1(void, glBinormal3svEXT, const GLshort *, v); \
-  UnsupportedWrapper3(void, glTangentPointerEXT, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper3(void, glBinormalPointerEXT, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper7(void, glCopyTexImage1DEXT, GLenum, target, GLint, level, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLint, border); \
-  UnsupportedWrapper8(void, glCopyTexImage2DEXT, GLenum, target, GLint, level, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLint, border); \
-  UnsupportedWrapper6(void, glCopyTexSubImage1DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper8(void, glCopyTexSubImage2DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper9(void, glCopyTexSubImage3DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper2(void, glCullParameterdvEXT, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper2(void, glCullParameterfvEXT, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper5(void, glBufferStorageExternalEXT, GLenum, target, GLintptr, offset, GLsizeiptr, size, GLeglClientBufferEXT, clientBuffer, GLbitfield, flags); \
-  UnsupportedWrapper5(void, glNamedBufferStorageExternalEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLeglClientBufferEXT, clientBuffer, GLbitfield, flags); \
-  UnsupportedWrapper1(void, glFogCoordfEXT, GLfloat, coord); \
-  UnsupportedWrapper1(void, glFogCoordfvEXT, const GLfloat *, coord); \
-  UnsupportedWrapper1(void, glFogCoorddEXT, GLdouble, coord); \
-  UnsupportedWrapper1(void, glFogCoorddvEXT, const GLdouble *, coord); \
-  UnsupportedWrapper3(void, glFogCoordPointerEXT, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper4(void, glProgramEnvParameters4fvEXT, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
-  UnsupportedWrapper4(void, glProgramLocalParameters4fvEXT, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
-  UnsupportedWrapper5(void, glGetHistogramEXT, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
-  UnsupportedWrapper3(void, glGetHistogramParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetHistogramParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper5(void, glGetMinmaxEXT, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
-  UnsupportedWrapper3(void, glGetMinmaxParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetMinmaxParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glHistogramEXT, GLenum, target, GLsizei, width, GLenum, internalformat, GLboolean, sink); \
-  UnsupportedWrapper3(void, glMinmaxEXT, GLenum, target, GLenum, internalformat, GLboolean, sink); \
-  UnsupportedWrapper1(void, glResetHistogramEXT, GLenum, target); \
-  UnsupportedWrapper1(void, glResetMinmaxEXT, GLenum, target); \
-  UnsupportedWrapper2(void, glIndexFuncEXT, GLenum, func, GLclampf, ref); \
-  UnsupportedWrapper2(void, glIndexMaterialEXT, GLenum, face, GLenum, mode); \
-  UnsupportedWrapper1(void, glApplyTextureEXT, GLenum, mode); \
-  UnsupportedWrapper1(void, glTextureLightEXT, GLenum, pname); \
-  UnsupportedWrapper2(void, glTextureMaterialEXT, GLenum, face, GLenum, mode); \
-  UnsupportedWrapper5(void, glMultiDrawElementsEXT, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount); \
-  UnsupportedWrapper2(void, glSampleMaskEXT, GLclampf, value, GLboolean, invert); \
-  UnsupportedWrapper1(void, glSamplePatternEXT, GLenum, pattern); \
-  UnsupportedWrapper6(void, glColorTableEXT, GLenum, target, GLenum, internalFormat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
-  UnsupportedWrapper4(void, glGetColorTableEXT, GLenum, target, GLenum, format, GLenum, type, void *, data); \
-  UnsupportedWrapper3(void, glGetColorTableParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetColorTableParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glPixelTransformParameteriEXT, GLenum, target, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glPixelTransformParameterfEXT, GLenum, target, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glPixelTransformParameterivEXT, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glPixelTransformParameterfvEXT, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetPixelTransformParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetPixelTransformParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper2(void, glPolygonOffsetEXT, GLfloat, factor, GLfloat, bias); \
-  UnsupportedWrapper3(void, glSecondaryColor3bEXT, GLbyte, red, GLbyte, green, GLbyte, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3bvEXT, const GLbyte *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3dEXT, GLdouble, red, GLdouble, green, GLdouble, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3dvEXT, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3fEXT, GLfloat, red, GLfloat, green, GLfloat, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3fvEXT, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3iEXT, GLint, red, GLint, green, GLint, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3ivEXT, const GLint *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3sEXT, GLshort, red, GLshort, green, GLshort, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3svEXT, const GLshort *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3ubEXT, GLubyte, red, GLubyte, green, GLubyte, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3ubvEXT, const GLubyte *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3uiEXT, GLuint, red, GLuint, green, GLuint, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3uivEXT, const GLuint *, v); \
-  UnsupportedWrapper3(void, glSecondaryColor3usEXT, GLushort, red, GLushort, green, GLushort, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3usvEXT, const GLushort *, v); \
-  UnsupportedWrapper4(void, glSecondaryColorPointerEXT, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper2(void, glStencilClearTagEXT, GLsizei, stencilTagBits, GLuint, stencilClearTag); \
-  UnsupportedWrapper1(void, glActiveStencilFaceEXT, GLenum, face); \
-  UnsupportedWrapper7(void, glTexSubImage1DEXT, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLenum, type, const void *, pixels); \
-  UnsupportedWrapper9(void, glTexSubImage2DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
-  UnsupportedWrapper11(void, glTexSubImage3DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
-  UnsupportedWrapper4(void, glClearColorIiEXT, GLint, red, GLint, green, GLint, blue, GLint, alpha); \
-  UnsupportedWrapper4(void, glClearColorIuiEXT, GLuint, red, GLuint, green, GLuint, blue, GLuint, alpha); \
-  UnsupportedWrapper3(GLboolean, glAreTexturesResidentEXT, GLsizei, n, const GLuint *, textures, GLboolean *, residences); \
-  UnsupportedWrapper2(void, glBindTextureEXT, GLenum, target, GLuint, texture); \
-  UnsupportedWrapper2(void, glDeleteTexturesEXT, GLsizei, n, const GLuint *, textures); \
-  UnsupportedWrapper2(void, glGenTexturesEXT, GLsizei, n, GLuint *, textures); \
-  UnsupportedWrapper1(GLboolean, glIsTextureEXT, GLuint, texture); \
-  UnsupportedWrapper3(void, glPrioritizeTexturesEXT, GLsizei, n, const GLuint *, textures, const GLclampf *, priorities); \
-  UnsupportedWrapper1(void, glTextureNormalEXT, GLenum, mode); \
-  UnsupportedWrapper4(void, glBindBufferOffsetEXT, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset); \
-  UnsupportedWrapper1(void, glArrayElementEXT, GLint, i); \
-  UnsupportedWrapper5(void, glColorPointerEXT, GLint, size, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
-  UnsupportedWrapper3(void, glDrawArraysEXT, GLenum, mode, GLint, first, GLsizei, count); \
-  UnsupportedWrapper3(void, glEdgeFlagPointerEXT, GLsizei, stride, GLsizei, count, const GLboolean *, pointer); \
-  UnsupportedWrapper2(void, glGetPointervEXT, GLenum, pname, void **, params); \
-  UnsupportedWrapper4(void, glIndexPointerEXT, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
-  UnsupportedWrapper4(void, glNormalPointerEXT, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
-  UnsupportedWrapper5(void, glTexCoordPointerEXT, GLint, size, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
-  UnsupportedWrapper5(void, glVertexPointerEXT, GLint, size, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
-  UnsupportedWrapper0(void, glBeginVertexShaderEXT); \
-  UnsupportedWrapper0(void, glEndVertexShaderEXT); \
-  UnsupportedWrapper1(void, glBindVertexShaderEXT, GLuint, id); \
-  UnsupportedWrapper1(GLuint, glGenVertexShadersEXT, GLuint, range); \
-  UnsupportedWrapper1(void, glDeleteVertexShaderEXT, GLuint, id); \
-  UnsupportedWrapper3(void, glShaderOp1EXT, GLenum, op, GLuint, res, GLuint, arg1); \
-  UnsupportedWrapper4(void, glShaderOp2EXT, GLenum, op, GLuint, res, GLuint, arg1, GLuint, arg2); \
-  UnsupportedWrapper5(void, glShaderOp3EXT, GLenum, op, GLuint, res, GLuint, arg1, GLuint, arg2, GLuint, arg3); \
-  UnsupportedWrapper6(void, glSwizzleEXT, GLuint, res, GLuint, in, GLenum, outX, GLenum, outY, GLenum, outZ, GLenum, outW); \
-  UnsupportedWrapper6(void, glWriteMaskEXT, GLuint, res, GLuint, in, GLenum, outX, GLenum, outY, GLenum, outZ, GLenum, outW); \
-  UnsupportedWrapper3(void, glInsertComponentEXT, GLuint, res, GLuint, src, GLuint, num); \
-  UnsupportedWrapper3(void, glExtractComponentEXT, GLuint, res, GLuint, src, GLuint, num); \
-  UnsupportedWrapper4(GLuint, glGenSymbolsEXT, GLenum, datatype, GLenum, storagetype, GLenum, range, GLuint, components); \
-  UnsupportedWrapper3(void, glSetInvariantEXT, GLuint, id, GLenum, type, const void *, addr); \
-  UnsupportedWrapper3(void, glSetLocalConstantEXT, GLuint, id, GLenum, type, const void *, addr); \
-  UnsupportedWrapper2(void, glVariantbvEXT, GLuint, id, const GLbyte *, addr); \
-  UnsupportedWrapper2(void, glVariantsvEXT, GLuint, id, const GLshort *, addr); \
-  UnsupportedWrapper2(void, glVariantivEXT, GLuint, id, const GLint *, addr); \
-  UnsupportedWrapper2(void, glVariantfvEXT, GLuint, id, const GLfloat *, addr); \
-  UnsupportedWrapper2(void, glVariantdvEXT, GLuint, id, const GLdouble *, addr); \
-  UnsupportedWrapper2(void, glVariantubvEXT, GLuint, id, const GLubyte *, addr); \
-  UnsupportedWrapper2(void, glVariantusvEXT, GLuint, id, const GLushort *, addr); \
-  UnsupportedWrapper2(void, glVariantuivEXT, GLuint, id, const GLuint *, addr); \
-  UnsupportedWrapper4(void, glVariantPointerEXT, GLuint, id, GLenum, type, GLuint, stride, const void *, addr); \
-  UnsupportedWrapper1(void, glEnableVariantClientStateEXT, GLuint, id); \
-  UnsupportedWrapper1(void, glDisableVariantClientStateEXT, GLuint, id); \
-  UnsupportedWrapper2(GLuint, glBindLightParameterEXT, GLenum, light, GLenum, value); \
-  UnsupportedWrapper2(GLuint, glBindMaterialParameterEXT, GLenum, face, GLenum, value); \
-  UnsupportedWrapper3(GLuint, glBindTexGenParameterEXT, GLenum, unit, GLenum, coord, GLenum, value); \
-  UnsupportedWrapper2(GLuint, glBindTextureUnitParameterEXT, GLenum, unit, GLenum, value); \
-  UnsupportedWrapper1(GLuint, glBindParameterEXT, GLenum, value); \
-  UnsupportedWrapper2(GLboolean, glIsVariantEnabledEXT, GLuint, id, GLenum, cap); \
-  UnsupportedWrapper3(void, glGetVariantBooleanvEXT, GLuint, id, GLenum, value, GLboolean *, data); \
-  UnsupportedWrapper3(void, glGetVariantIntegervEXT, GLuint, id, GLenum, value, GLint *, data); \
-  UnsupportedWrapper3(void, glGetVariantFloatvEXT, GLuint, id, GLenum, value, GLfloat *, data); \
-  UnsupportedWrapper3(void, glGetVariantPointervEXT, GLuint, id, GLenum, value, void **, data); \
-  UnsupportedWrapper3(void, glGetInvariantBooleanvEXT, GLuint, id, GLenum, value, GLboolean *, data); \
-  UnsupportedWrapper3(void, glGetInvariantIntegervEXT, GLuint, id, GLenum, value, GLint *, data); \
-  UnsupportedWrapper3(void, glGetInvariantFloatvEXT, GLuint, id, GLenum, value, GLfloat *, data); \
-  UnsupportedWrapper3(void, glGetLocalConstantBooleanvEXT, GLuint, id, GLenum, value, GLboolean *, data); \
-  UnsupportedWrapper3(void, glGetLocalConstantIntegervEXT, GLuint, id, GLenum, value, GLint *, data); \
-  UnsupportedWrapper3(void, glGetLocalConstantFloatvEXT, GLuint, id, GLenum, value, GLfloat *, data); \
-  UnsupportedWrapper1(void, glVertexWeightfEXT, GLfloat, weight); \
-  UnsupportedWrapper1(void, glVertexWeightfvEXT, const GLfloat *, weight); \
-  UnsupportedWrapper4(void, glVertexWeightPointerEXT, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper3(GLsync, glImportSyncEXT, GLenum, external_sync_type, GLintptr, external_sync, GLbitfield, flags); \
-  UnsupportedWrapper3(void, glImageTransformParameteriHP, GLenum, target, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glImageTransformParameterfHP, GLenum, target, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glImageTransformParameterivHP, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glImageTransformParameterfvHP, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetImageTransformParameterivHP, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetImageTransformParameterfvHP, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper5(void, glMultiModeDrawArraysIBM, const GLenum *, mode, const GLint *, first, const GLsizei *, count, GLsizei, primcount, GLint, modestride); \
-  UnsupportedWrapper6(void, glMultiModeDrawElementsIBM, const GLenum *, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount, GLint, modestride); \
-  UnsupportedWrapper1(void, glFlushStaticDataIBM, GLenum, target); \
-  UnsupportedWrapper5(void, glColorPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper5(void, glSecondaryColorPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper3(void, glEdgeFlagPointerListIBM, GLint, stride, const GLboolean **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper4(void, glFogCoordPointerListIBM, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper4(void, glIndexPointerListIBM, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper4(void, glNormalPointerListIBM, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper5(void, glTexCoordPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper5(void, glVertexPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
-  UnsupportedWrapper4(void, glBlendFuncSeparateINGR, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
-  UnsupportedWrapper1(void, glSyncTextureINTEL, GLuint, texture); \
-  UnsupportedWrapper2(void, glUnmapTexture2DINTEL, GLuint, texture, GLint, level); \
-  UnsupportedWrapper5(void *, glMapTexture2DINTEL, GLuint, texture, GLint, level, GLbitfield, access, GLint *, stride, GLenum *, layout); \
-  UnsupportedWrapper3(void, glVertexPointervINTEL, GLint, size, GLenum, type, const void **, pointer); \
-  UnsupportedWrapper2(void, glNormalPointervINTEL, GLenum, type, const void **, pointer); \
-  UnsupportedWrapper3(void, glColorPointervINTEL, GLint, size, GLenum, type, const void **, pointer); \
-  UnsupportedWrapper3(void, glTexCoordPointervINTEL, GLint, size, GLenum, type, const void **, pointer); \
-  UnsupportedWrapper0(void, glResizeBuffersMESA); \
-  UnsupportedWrapper2(void, glWindowPos2dMESA, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper1(void, glWindowPos2dvMESA, const GLdouble *, v); \
-  UnsupportedWrapper2(void, glWindowPos2fMESA, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper1(void, glWindowPos2fvMESA, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glWindowPos2iMESA, GLint, x, GLint, y); \
-  UnsupportedWrapper1(void, glWindowPos2ivMESA, const GLint *, v); \
-  UnsupportedWrapper2(void, glWindowPos2sMESA, GLshort, x, GLshort, y); \
-  UnsupportedWrapper1(void, glWindowPos2svMESA, const GLshort *, v); \
-  UnsupportedWrapper3(void, glWindowPos3dMESA, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper1(void, glWindowPos3dvMESA, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glWindowPos3fMESA, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper1(void, glWindowPos3fvMESA, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glWindowPos3iMESA, GLint, x, GLint, y, GLint, z); \
-  UnsupportedWrapper1(void, glWindowPos3ivMESA, const GLint *, v); \
-  UnsupportedWrapper3(void, glWindowPos3sMESA, GLshort, x, GLshort, y, GLshort, z); \
-  UnsupportedWrapper1(void, glWindowPos3svMESA, const GLshort *, v); \
-  UnsupportedWrapper4(void, glWindowPos4dMESA, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper1(void, glWindowPos4dvMESA, const GLdouble *, v); \
-  UnsupportedWrapper4(void, glWindowPos4fMESA, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper1(void, glWindowPos4fvMESA, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glWindowPos4iMESA, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper1(void, glWindowPos4ivMESA, const GLint *, v); \
-  UnsupportedWrapper4(void, glWindowPos4sMESA, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
-  UnsupportedWrapper1(void, glWindowPos4svMESA, const GLshort *, v); \
-  UnsupportedWrapper1(void, glBeginConditionalRenderNVX, GLuint, id); \
-  UnsupportedWrapper0(void, glEndConditionalRenderNVX); \
-  UnsupportedWrapper5(void, glLGPUNamedBufferSubDataNVX, GLbitfield, gpuMask, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
-  UnsupportedWrapper17(void, glLGPUCopyImageSubDataNVX, GLuint, sourceGpu, GLbitfield, destinationGpuMask, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srxY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, width, GLsizei, height, GLsizei, depth); \
-  UnsupportedWrapper0(void, glLGPUInterlockNVX); \
-  UnsupportedWrapper1(void, glAlphaToCoverageDitherControlNV, GLenum, mode); \
-  UnsupportedWrapper15(void, glCopyImageSubDataNV, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, width, GLsizei, height, GLsizei, depth); \
-  UnsupportedWrapper2(void, glDepthRangedNV, GLdouble, zNear, GLdouble, zFar); \
-  UnsupportedWrapper1(void, glClearDepthdNV, GLdouble, depth); \
-  UnsupportedWrapper2(void, glDepthBoundsdNV, GLdouble, zmin, GLdouble, zmax); \
-  UnsupportedWrapper11(void, glDrawTextureNV, GLuint, texture, GLuint, sampler, GLfloat, x0, GLfloat, y0, GLfloat, x1, GLfloat, y1, GLfloat, z, GLfloat, s0, GLfloat, t0, GLfloat, s1, GLfloat, t1); \
-  UnsupportedWrapper9(void, glMapControlPointsNV, GLenum, target, GLuint, index, GLenum, type, GLsizei, ustride, GLsizei, vstride, GLint, uorder, GLint, vorder, GLboolean, packed, const void *, points); \
-  UnsupportedWrapper3(void, glMapParameterivNV, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glMapParameterfvNV, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper7(void, glGetMapControlPointsNV, GLenum, target, GLuint, index, GLenum, type, GLsizei, ustride, GLsizei, vstride, GLboolean, packed, void *, points); \
-  UnsupportedWrapper3(void, glGetMapParameterivNV, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetMapParameterfvNV, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetMapAttribParameterivNV, GLenum, target, GLuint, index, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glGetMapAttribParameterfvNV, GLenum, target, GLuint, index, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper2(void, glEvalMapsNV, GLenum, target, GLenum, mode); \
-  UnsupportedWrapper3(void, glGetMultisamplefvNV, GLenum, pname, GLuint, index, GLfloat *, val); \
-  UnsupportedWrapper2(void, glSampleMaskIndexedNV, GLuint, index, GLbitfield, mask); \
-  UnsupportedWrapper2(void, glTexRenderbufferNV, GLenum, target, GLuint, renderbuffer); \
-  UnsupportedWrapper2(void, glDeleteFencesNV, GLsizei, n, const GLuint *, fences); \
-  UnsupportedWrapper2(void, glGenFencesNV, GLsizei, n, GLuint *, fences); \
-  UnsupportedWrapper1(GLboolean, glIsFenceNV, GLuint, fence); \
-  UnsupportedWrapper1(GLboolean, glTestFenceNV, GLuint, fence); \
-  UnsupportedWrapper3(void, glGetFenceivNV, GLuint, fence, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper1(void, glFinishFenceNV, GLuint, fence); \
-  UnsupportedWrapper2(void, glSetFenceNV, GLuint, fence, GLenum, condition); \
-  UnsupportedWrapper7(void, glProgramNamedParameter4fNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper4(void, glProgramNamedParameter4fvNV, GLuint, id, GLsizei, len, const GLubyte *, name, const GLfloat *, v); \
-  UnsupportedWrapper7(void, glProgramNamedParameter4dNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper4(void, glProgramNamedParameter4dvNV, GLuint, id, GLsizei, len, const GLubyte *, name, const GLdouble *, v); \
-  UnsupportedWrapper4(void, glGetProgramNamedParameterfvNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetProgramNamedParameterdvNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLdouble *, params); \
-  UnsupportedWrapper2(void, glProgramVertexLimitNV, GLenum, target, GLint, limit); \
-  UnsupportedWrapper5(void, glFramebufferTextureFaceEXT, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
-  UnsupportedWrapper1(void, glRenderGpuMaskNV, GLbitfield, mask); \
-  UnsupportedWrapper5(void, glMulticastBufferSubDataNV, GLbitfield, gpuMask, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
-  UnsupportedWrapper7(void, glMulticastCopyBufferSubDataNV, GLuint, readGpu, GLbitfield, writeGpuMask, GLuint, readBuffer, GLuint, writeBuffer, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
-  UnsupportedWrapper17(void, glMulticastCopyImageSubDataNV, GLuint, srcGpu, GLbitfield, dstGpuMask, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
   UnsupportedWrapper12(void, glMulticastBlitFramebufferNV, GLuint, srcGpu, GLuint, dstGpu, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
-  UnsupportedWrapper5(void, glMulticastFramebufferSampleLocationsfvNV, GLuint, gpu, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper0(void, glMulticastBarrierNV); \
-  UnsupportedWrapper2(void, glMulticastWaitSyncNV, GLuint, signalGpu, GLbitfield, waitGpuMask); \
-  UnsupportedWrapper4(void, glMulticastGetQueryObjectivNV, GLuint, gpu, GLuint, id, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glMulticastGetQueryObjectuivNV, GLuint, gpu, GLuint, id, GLenum, pname, GLuint *, params); \
-  UnsupportedWrapper4(void, glMulticastGetQueryObjecti64vNV, GLuint, gpu, GLuint, id, GLenum, pname, GLint64 *, params); \
-  UnsupportedWrapper4(void, glMulticastGetQueryObjectui64vNV, GLuint, gpu, GLuint, id, GLenum, pname, GLuint64 *, params); \
-  UnsupportedWrapper6(void, glProgramLocalParameterI4iNV, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper3(void, glProgramLocalParameterI4ivNV, GLenum, target, GLuint, index, const GLint *, params); \
-  UnsupportedWrapper4(void, glProgramLocalParametersI4ivNV, GLenum, target, GLuint, index, GLsizei, count, const GLint *, params); \
-  UnsupportedWrapper6(void, glProgramLocalParameterI4uiNV, GLenum, target, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
-  UnsupportedWrapper3(void, glProgramLocalParameterI4uivNV, GLenum, target, GLuint, index, const GLuint *, params); \
-  UnsupportedWrapper4(void, glProgramLocalParametersI4uivNV, GLenum, target, GLuint, index, GLsizei, count, const GLuint *, params); \
-  UnsupportedWrapper6(void, glProgramEnvParameterI4iNV, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper3(void, glProgramEnvParameterI4ivNV, GLenum, target, GLuint, index, const GLint *, params); \
-  UnsupportedWrapper4(void, glProgramEnvParametersI4ivNV, GLenum, target, GLuint, index, GLsizei, count, const GLint *, params); \
-  UnsupportedWrapper6(void, glProgramEnvParameterI4uiNV, GLenum, target, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
-  UnsupportedWrapper3(void, glProgramEnvParameterI4uivNV, GLenum, target, GLuint, index, const GLuint *, params); \
-  UnsupportedWrapper4(void, glProgramEnvParametersI4uivNV, GLenum, target, GLuint, index, GLsizei, count, const GLuint *, params); \
-  UnsupportedWrapper3(void, glGetProgramLocalParameterIivNV, GLenum, target, GLuint, index, GLint *, params); \
-  UnsupportedWrapper3(void, glGetProgramLocalParameterIuivNV, GLenum, target, GLuint, index, GLuint *, params); \
-  UnsupportedWrapper3(void, glGetProgramEnvParameterIivNV, GLenum, target, GLuint, index, GLint *, params); \
-  UnsupportedWrapper3(void, glGetProgramEnvParameterIuivNV, GLenum, target, GLuint, index, GLuint *, params); \
-  UnsupportedWrapper3(void, glProgramSubroutineParametersuivNV, GLenum, target, GLsizei, count, const GLuint *, params); \
-  UnsupportedWrapper3(void, glGetProgramSubroutineParameteruivNV, GLenum, target, GLuint, index, GLuint *, param); \
-  UnsupportedWrapper2(void, glVertex2hNV, GLhalfNV, x, GLhalfNV, y); \
-  UnsupportedWrapper1(void, glVertex2hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glVertex3hNV, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z); \
-  UnsupportedWrapper1(void, glVertex3hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper4(void, glVertex4hNV, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z, GLhalfNV, w); \
-  UnsupportedWrapper1(void, glVertex4hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glNormal3hNV, GLhalfNV, nx, GLhalfNV, ny, GLhalfNV, nz); \
-  UnsupportedWrapper1(void, glNormal3hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glColor3hNV, GLhalfNV, red, GLhalfNV, green, GLhalfNV, blue); \
-  UnsupportedWrapper1(void, glColor3hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper4(void, glColor4hNV, GLhalfNV, red, GLhalfNV, green, GLhalfNV, blue, GLhalfNV, alpha); \
-  UnsupportedWrapper1(void, glColor4hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper1(void, glTexCoord1hNV, GLhalfNV, s); \
-  UnsupportedWrapper1(void, glTexCoord1hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper2(void, glTexCoord2hNV, GLhalfNV, s, GLhalfNV, t); \
-  UnsupportedWrapper1(void, glTexCoord2hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glTexCoord3hNV, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r); \
-  UnsupportedWrapper1(void, glTexCoord3hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper4(void, glTexCoord4hNV, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r, GLhalfNV, q); \
-  UnsupportedWrapper1(void, glTexCoord4hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper2(void, glMultiTexCoord1hNV, GLenum, target, GLhalfNV, s); \
-  UnsupportedWrapper2(void, glMultiTexCoord1hvNV, GLenum, target, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glMultiTexCoord2hNV, GLenum, target, GLhalfNV, s, GLhalfNV, t); \
-  UnsupportedWrapper2(void, glMultiTexCoord2hvNV, GLenum, target, const GLhalfNV *, v); \
-  UnsupportedWrapper4(void, glMultiTexCoord3hNV, GLenum, target, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r); \
-  UnsupportedWrapper2(void, glMultiTexCoord3hvNV, GLenum, target, const GLhalfNV *, v); \
-  UnsupportedWrapper5(void, glMultiTexCoord4hNV, GLenum, target, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r, GLhalfNV, q); \
-  UnsupportedWrapper2(void, glMultiTexCoord4hvNV, GLenum, target, const GLhalfNV *, v); \
-  UnsupportedWrapper1(void, glFogCoordhNV, GLhalfNV, fog); \
-  UnsupportedWrapper1(void, glFogCoordhvNV, const GLhalfNV *, fog); \
-  UnsupportedWrapper3(void, glSecondaryColor3hNV, GLhalfNV, red, GLhalfNV, green, GLhalfNV, blue); \
-  UnsupportedWrapper1(void, glSecondaryColor3hvNV, const GLhalfNV *, v); \
-  UnsupportedWrapper1(void, glVertexWeighthNV, GLhalfNV, weight); \
-  UnsupportedWrapper1(void, glVertexWeighthvNV, const GLhalfNV *, weight); \
-  UnsupportedWrapper2(void, glVertexAttrib1hNV, GLuint, index, GLhalfNV, x); \
-  UnsupportedWrapper2(void, glVertexAttrib1hvNV, GLuint, index, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glVertexAttrib2hNV, GLuint, index, GLhalfNV, x, GLhalfNV, y); \
-  UnsupportedWrapper2(void, glVertexAttrib2hvNV, GLuint, index, const GLhalfNV *, v); \
-  UnsupportedWrapper4(void, glVertexAttrib3hNV, GLuint, index, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z); \
-  UnsupportedWrapper2(void, glVertexAttrib3hvNV, GLuint, index, const GLhalfNV *, v); \
-  UnsupportedWrapper5(void, glVertexAttrib4hNV, GLuint, index, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z, GLhalfNV, w); \
-  UnsupportedWrapper2(void, glVertexAttrib4hvNV, GLuint, index, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs1hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs2hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs3hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs4hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
-  UnsupportedWrapper2(void, glGenOcclusionQueriesNV, GLsizei, n, GLuint *, ids); \
-  UnsupportedWrapper2(void, glDeleteOcclusionQueriesNV, GLsizei, n, const GLuint *, ids); \
-  UnsupportedWrapper1(GLboolean, glIsOcclusionQueryNV, GLuint, id); \
-  UnsupportedWrapper1(void, glBeginOcclusionQueryNV, GLuint, id); \
-  UnsupportedWrapper0(void, glEndOcclusionQueryNV); \
-  UnsupportedWrapper3(void, glGetOcclusionQueryivNV, GLuint, id, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetOcclusionQueryuivNV, GLuint, id, GLenum, pname, GLuint *, params); \
-  UnsupportedWrapper5(void, glProgramBufferParametersfvNV, GLenum, target, GLuint, bindingIndex, GLuint, wordIndex, GLsizei, count, const GLfloat *, params); \
-  UnsupportedWrapper5(void, glProgramBufferParametersIivNV, GLenum, target, GLuint, bindingIndex, GLuint, wordIndex, GLsizei, count, const GLint *, params); \
-  UnsupportedWrapper5(void, glProgramBufferParametersIuivNV, GLenum, target, GLuint, bindingIndex, GLuint, wordIndex, GLsizei, count, const GLuint *, params); \
-  UnsupportedWrapper4(void, glPathColorGenNV, GLenum, color, GLenum, genMode, GLenum, colorFormat, const GLfloat *, coeffs); \
-  UnsupportedWrapper4(void, glPathTexGenNV, GLenum, texCoordSet, GLenum, genMode, GLint, components, const GLfloat *, coeffs); \
-  UnsupportedWrapper1(void, glPathFogGenNV, GLenum, genMode); \
-  UnsupportedWrapper3(void, glGetPathColorGenivNV, GLenum, color, GLenum, pname, GLint *, value); \
-  UnsupportedWrapper3(void, glGetPathColorGenfvNV, GLenum, color, GLenum, pname, GLfloat *, value); \
-  UnsupportedWrapper3(void, glGetPathTexGenivNV, GLenum, texCoordSet, GLenum, pname, GLint *, value); \
-  UnsupportedWrapper3(void, glGetPathTexGenfvNV, GLenum, texCoordSet, GLenum, pname, GLfloat *, value); \
-  UnsupportedWrapper3(void, glPixelDataRangeNV, GLenum, target, GLsizei, length, const void *, pointer); \
-  UnsupportedWrapper1(void, glFlushPixelDataRangeNV, GLenum, target); \
-  UnsupportedWrapper2(void, glPointParameteriNV, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glPointParameterivNV, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper11(void, glPresentFrameKeyedNV, GLuint, video_slot, GLuint64EXT, minPresentTime, GLuint, beginPresentTimeId, GLuint, presentDurationId, GLenum, type, GLenum, target0, GLuint, fill0, GLuint, key0, GLenum, target1, GLuint, fill1, GLuint, key1); \
-  UnsupportedWrapper13(void, glPresentFrameDualFillNV, GLuint, video_slot, GLuint64EXT, minPresentTime, GLuint, beginPresentTimeId, GLuint, presentDurationId, GLenum, type, GLenum, target0, GLuint, fill0, GLenum, target1, GLuint, fill1, GLenum, target2, GLuint, fill2, GLenum, target3, GLuint, fill3); \
-  UnsupportedWrapper3(void, glGetVideoivNV, GLuint, video_slot, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetVideouivNV, GLuint, video_slot, GLenum, pname, GLuint *, params); \
-  UnsupportedWrapper3(void, glGetVideoi64vNV, GLuint, video_slot, GLenum, pname, GLint64EXT *, params); \
-  UnsupportedWrapper3(void, glGetVideoui64vNV, GLuint, video_slot, GLenum, pname, GLuint64EXT *, params); \
-  UnsupportedWrapper0(void, glPrimitiveRestartNV); \
-  UnsupportedWrapper1(void, glPrimitiveRestartIndexNV, GLuint, index); \
-  UnsupportedWrapper4(GLint, glQueryResourceNV, GLenum, queryType, GLint, tagId, GLuint, bufSize, GLint *, buffer); \
-  UnsupportedWrapper2(void, glGenQueryResourceTagNV, GLsizei, n, GLint *, tagIds); \
-  UnsupportedWrapper2(void, glDeleteQueryResourceTagNV, GLsizei, n, const GLint *, tagIds); \
-  UnsupportedWrapper2(void, glQueryResourceTagNV, GLint, tagId, const GLchar *, tagString); \
-  UnsupportedWrapper2(void, glCombinerParameterfvNV, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glCombinerParameterfNV, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glCombinerParameterivNV, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper2(void, glCombinerParameteriNV, GLenum, pname, GLint, param); \
-  UnsupportedWrapper6(void, glCombinerInputNV, GLenum, stage, GLenum, portion, GLenum, variable, GLenum, input, GLenum, mapping, GLenum, componentUsage); \
-  UnsupportedWrapper10(void, glCombinerOutputNV, GLenum, stage, GLenum, portion, GLenum, abOutput, GLenum, cdOutput, GLenum, sumOutput, GLenum, scale, GLenum, bias, GLboolean, abDotProduct, GLboolean, cdDotProduct, GLboolean, muxSum); \
-  UnsupportedWrapper4(void, glFinalCombinerInputNV, GLenum, variable, GLenum, input, GLenum, mapping, GLenum, componentUsage); \
-  UnsupportedWrapper5(void, glGetCombinerInputParameterfvNV, GLenum, stage, GLenum, portion, GLenum, variable, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper5(void, glGetCombinerInputParameterivNV, GLenum, stage, GLenum, portion, GLenum, variable, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glGetCombinerOutputParameterfvNV, GLenum, stage, GLenum, portion, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetCombinerOutputParameterivNV, GLenum, stage, GLenum, portion, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetFinalCombinerInputParameterfvNV, GLenum, variable, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetFinalCombinerInputParameterivNV, GLenum, variable, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glCombinerStageParameterfvNV, GLenum, stage, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetCombinerStageParameterfvNV, GLenum, stage, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper7(void, glTexImage2DMultisampleCoverageNV, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations); \
-  UnsupportedWrapper8(void, glTexImage3DMultisampleCoverageNV, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations); \
-  UnsupportedWrapper7(void, glTextureImage2DMultisampleNV, GLuint, texture, GLenum, target, GLsizei, samples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations); \
-  UnsupportedWrapper8(void, glTextureImage3DMultisampleNV, GLuint, texture, GLenum, target, GLsizei, samples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations); \
-  UnsupportedWrapper8(void, glTextureImage2DMultisampleCoverageNV, GLuint, texture, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations); \
-  UnsupportedWrapper9(void, glTextureImage3DMultisampleCoverageNV, GLuint, texture, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations); \
-  UnsupportedWrapper1(void, glBeginTransformFeedbackNV, GLenum, primitiveMode); \
-  UnsupportedWrapper0(void, glEndTransformFeedbackNV); \
-  UnsupportedWrapper3(void, glTransformFeedbackAttribsNV, GLsizei, count, const GLint *, attribs, GLenum, bufferMode); \
-  UnsupportedWrapper5(void, glBindBufferRangeNV, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
-  UnsupportedWrapper4(void, glBindBufferOffsetNV, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset); \
-  UnsupportedWrapper3(void, glBindBufferBaseNV, GLenum, target, GLuint, index, GLuint, buffer); \
-  UnsupportedWrapper4(void, glTransformFeedbackVaryingsNV, GLuint, program, GLsizei, count, const GLint *, locations, GLenum, bufferMode); \
-  UnsupportedWrapper2(void, glActiveVaryingNV, GLuint, program, const GLchar *, name); \
-  UnsupportedWrapper2(GLint, glGetVaryingLocationNV, GLuint, program, const GLchar *, name); \
-  UnsupportedWrapper7(void, glGetActiveVaryingNV, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
-  UnsupportedWrapper3(void, glGetTransformFeedbackVaryingNV, GLuint, program, GLuint, index, GLint *, location); \
-  UnsupportedWrapper5(void, glTransformFeedbackStreamAttribsNV, GLsizei, count, const GLint *, attribs, GLsizei, nbuffers, const GLint *, bufstreams, GLenum, bufferMode); \
-  UnsupportedWrapper2(void, glBindTransformFeedbackNV, GLenum, target, GLuint, id); \
-  UnsupportedWrapper2(void, glDeleteTransformFeedbacksNV, GLsizei, n, const GLuint *, ids); \
-  UnsupportedWrapper2(void, glGenTransformFeedbacksNV, GLsizei, n, GLuint *, ids); \
-  UnsupportedWrapper1(GLboolean, glIsTransformFeedbackNV, GLuint, id); \
-  UnsupportedWrapper0(void, glPauseTransformFeedbackNV); \
-  UnsupportedWrapper0(void, glResumeTransformFeedbackNV); \
-  UnsupportedWrapper2(void, glDrawTransformFeedbackNV, GLenum, mode, GLuint, id); \
-  UnsupportedWrapper2(void, glVDPAUInitNV, const void *, vdpDevice, const void *, getProcAddress); \
-  UnsupportedWrapper0(void, glVDPAUFiniNV); \
-  UnsupportedWrapper4(GLvdpauSurfaceNV, glVDPAURegisterVideoSurfaceNV, const void *, vdpSurface, GLenum, target, GLsizei, numTextureNames, const GLuint *, textureNames); \
-  UnsupportedWrapper4(GLvdpauSurfaceNV, glVDPAURegisterOutputSurfaceNV, const void *, vdpSurface, GLenum, target, GLsizei, numTextureNames, const GLuint *, textureNames); \
-  UnsupportedWrapper1(GLboolean, glVDPAUIsSurfaceNV, GLvdpauSurfaceNV, surface); \
-  UnsupportedWrapper1(void, glVDPAUUnregisterSurfaceNV, GLvdpauSurfaceNV, surface); \
-  UnsupportedWrapper5(void, glVDPAUGetSurfaceivNV, GLvdpauSurfaceNV, surface, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
-  UnsupportedWrapper2(void, glVDPAUSurfaceAccessNV, GLvdpauSurfaceNV, surface, GLenum, access); \
-  UnsupportedWrapper2(void, glVDPAUMapSurfacesNV, GLsizei, numSurfaces, const GLvdpauSurfaceNV *, surfaces); \
-  UnsupportedWrapper2(void, glVDPAUUnmapSurfacesNV, GLsizei, numSurface, const GLvdpauSurfaceNV *, surfaces); \
-  UnsupportedWrapper0(void, glFlushVertexArrayRangeNV); \
-  UnsupportedWrapper2(void, glVertexArrayRangeNV, GLsizei, length, const void *, pointer); \
-  UnsupportedWrapper3(GLboolean, glAreProgramsResidentNV, GLsizei, n, const GLuint *, programs, GLboolean *, residences); \
-  UnsupportedWrapper2(void, glBindProgramNV, GLenum, target, GLuint, id); \
-  UnsupportedWrapper2(void, glDeleteProgramsNV, GLsizei, n, const GLuint *, programs); \
-  UnsupportedWrapper3(void, glExecuteProgramNV, GLenum, target, GLuint, id, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glGenProgramsNV, GLsizei, n, GLuint *, programs); \
-  UnsupportedWrapper4(void, glGetProgramParameterdvNV, GLenum, target, GLuint, index, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper4(void, glGetProgramParameterfvNV, GLenum, target, GLuint, index, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetProgramivNV, GLuint, id, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetProgramStringNV, GLuint, id, GLenum, pname, GLubyte *, program); \
-  UnsupportedWrapper4(void, glGetTrackMatrixivNV, GLenum, target, GLuint, address, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribdvNV, GLuint, index, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribfvNV, GLuint, index, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribivNV, GLuint, index, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetVertexAttribPointervNV, GLuint, index, GLenum, pname, void **, pointer); \
-  UnsupportedWrapper1(GLboolean, glIsProgramNV, GLuint, id); \
-  UnsupportedWrapper4(void, glLoadProgramNV, GLenum, target, GLuint, id, GLsizei, len, const GLubyte *, program); \
-  UnsupportedWrapper6(void, glProgramParameter4dNV, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper3(void, glProgramParameter4dvNV, GLenum, target, GLuint, index, const GLdouble *, v); \
-  UnsupportedWrapper6(void, glProgramParameter4fNV, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper3(void, glProgramParameter4fvNV, GLenum, target, GLuint, index, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glProgramParameters4dvNV, GLenum, target, GLuint, index, GLsizei, count, const GLdouble *, v); \
-  UnsupportedWrapper4(void, glProgramParameters4fvNV, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glRequestResidentProgramsNV, GLsizei, n, const GLuint *, programs); \
-  UnsupportedWrapper4(void, glTrackMatrixNV, GLenum, target, GLuint, address, GLenum, matrix, GLenum, transform); \
-  UnsupportedWrapper5(void, glVertexAttribPointerNV, GLuint, index, GLint, fsize, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper2(void, glVertexAttrib1dNV, GLuint, index, GLdouble, x); \
-  UnsupportedWrapper2(void, glVertexAttrib1dvNV, GLuint, index, const GLdouble *, v); \
-  UnsupportedWrapper2(void, glVertexAttrib1fNV, GLuint, index, GLfloat, x); \
-  UnsupportedWrapper2(void, glVertexAttrib1fvNV, GLuint, index, const GLfloat *, v); \
-  UnsupportedWrapper2(void, glVertexAttrib1sNV, GLuint, index, GLshort, x); \
-  UnsupportedWrapper2(void, glVertexAttrib1svNV, GLuint, index, const GLshort *, v); \
-  UnsupportedWrapper3(void, glVertexAttrib2dNV, GLuint, index, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper2(void, glVertexAttrib2dvNV, GLuint, index, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glVertexAttrib2fNV, GLuint, index, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper2(void, glVertexAttrib2fvNV, GLuint, index, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glVertexAttrib2sNV, GLuint, index, GLshort, x, GLshort, y); \
-  UnsupportedWrapper2(void, glVertexAttrib2svNV, GLuint, index, const GLshort *, v); \
-  UnsupportedWrapper4(void, glVertexAttrib3dNV, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper2(void, glVertexAttrib3dvNV, GLuint, index, const GLdouble *, v); \
-  UnsupportedWrapper4(void, glVertexAttrib3fNV, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glVertexAttrib3fvNV, GLuint, index, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glVertexAttrib3sNV, GLuint, index, GLshort, x, GLshort, y, GLshort, z); \
-  UnsupportedWrapper2(void, glVertexAttrib3svNV, GLuint, index, const GLshort *, v); \
-  UnsupportedWrapper5(void, glVertexAttrib4dNV, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper2(void, glVertexAttrib4dvNV, GLuint, index, const GLdouble *, v); \
-  UnsupportedWrapper5(void, glVertexAttrib4fNV, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper2(void, glVertexAttrib4fvNV, GLuint, index, const GLfloat *, v); \
-  UnsupportedWrapper5(void, glVertexAttrib4sNV, GLuint, index, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
-  UnsupportedWrapper2(void, glVertexAttrib4svNV, GLuint, index, const GLshort *, v); \
-  UnsupportedWrapper5(void, glVertexAttrib4ubNV, GLuint, index, GLubyte, x, GLubyte, y, GLubyte, z, GLubyte, w); \
-  UnsupportedWrapper2(void, glVertexAttrib4ubvNV, GLuint, index, const GLubyte *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs1dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs1fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs1svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs2dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs2fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs2svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs3dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs3fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs3svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs4dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs4fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs4svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
-  UnsupportedWrapper3(void, glVertexAttribs4ubvNV, GLuint, index, GLsizei, count, const GLubyte *, v); \
-  UnsupportedWrapper1(void, glBeginVideoCaptureNV, GLuint, video_capture_slot); \
-  UnsupportedWrapper4(void, glBindVideoCaptureStreamBufferNV, GLuint, video_capture_slot, GLuint, stream, GLenum, frame_region, GLintptrARB, offset); \
-  UnsupportedWrapper5(void, glBindVideoCaptureStreamTextureNV, GLuint, video_capture_slot, GLuint, stream, GLenum, frame_region, GLenum, target, GLuint, texture); \
-  UnsupportedWrapper1(void, glEndVideoCaptureNV, GLuint, video_capture_slot); \
-  UnsupportedWrapper3(void, glGetVideoCaptureivNV, GLuint, video_capture_slot, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glGetVideoCaptureStreamivNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper4(void, glGetVideoCaptureStreamfvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetVideoCaptureStreamdvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper3(GLenum, glVideoCaptureNV, GLuint, video_capture_slot, GLuint *, sequence_num, GLuint64EXT *, capture_time); \
-  UnsupportedWrapper4(void, glVideoCaptureStreamParameterivNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper4(void, glVideoCaptureStreamParameterfvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper4(void, glVideoCaptureStreamParameterdvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLdouble *, params); \
-  UnsupportedWrapper2(void, glHintPGI, GLenum, target, GLint, mode); \
-  UnsupportedWrapper3(void, glDetailTexFuncSGIS, GLenum, target, GLsizei, n, const GLfloat *, points); \
-  UnsupportedWrapper2(void, glGetDetailTexFuncSGIS, GLenum, target, GLfloat *, points); \
-  UnsupportedWrapper2(void, glFogFuncSGIS, GLsizei, n, const GLfloat *, points); \
-  UnsupportedWrapper1(void, glGetFogFuncSGIS, GLfloat *, points); \
-  UnsupportedWrapper2(void, glSampleMaskSGIS, GLclampf, value, GLboolean, invert); \
-  UnsupportedWrapper1(void, glSamplePatternSGIS, GLenum, pattern); \
-  UnsupportedWrapper2(void, glPixelTexGenParameteriSGIS, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glPixelTexGenParameterivSGIS, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper2(void, glPixelTexGenParameterfSGIS, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glPixelTexGenParameterfvSGIS, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glGetPixelTexGenParameterivSGIS, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper2(void, glGetPixelTexGenParameterfvSGIS, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper2(void, glPointParameterfSGIS, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glPointParameterfvSGIS, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glSharpenTexFuncSGIS, GLenum, target, GLsizei, n, const GLfloat *, points); \
-  UnsupportedWrapper2(void, glGetSharpenTexFuncSGIS, GLenum, target, GLfloat *, points); \
-  UnsupportedWrapper11(void, glTexImage4DSGIS, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, size4d, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
-  UnsupportedWrapper13(void, glTexSubImage4DSGIS, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, woffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, size4d, GLenum, format, GLenum, type, const void *, pixels); \
-  UnsupportedWrapper4(void, glTextureColorMaskSGIS, GLboolean, red, GLboolean, green, GLboolean, blue, GLboolean, alpha); \
-  UnsupportedWrapper3(void, glGetTexFilterFuncSGIS, GLenum, target, GLenum, filter, GLfloat *, weights); \
-  UnsupportedWrapper4(void, glTexFilterFuncSGIS, GLenum, target, GLenum, filter, GLsizei, n, const GLfloat *, weights); \
-  UnsupportedWrapper1(void, glAsyncMarkerSGIX, GLuint, marker); \
-  UnsupportedWrapper1(GLint, glFinishAsyncSGIX, GLuint *, markerp); \
-  UnsupportedWrapper1(GLint, glPollAsyncSGIX, GLuint *, markerp); \
-  UnsupportedWrapper1(GLuint, glGenAsyncMarkersSGIX, GLsizei, range); \
-  UnsupportedWrapper2(void, glDeleteAsyncMarkersSGIX, GLuint, marker, GLsizei, range); \
-  UnsupportedWrapper1(GLboolean, glIsAsyncMarkerSGIX, GLuint, marker); \
-  UnsupportedWrapper0(void, glFlushRasterSGIX); \
-  UnsupportedWrapper2(void, glFragmentColorMaterialSGIX, GLenum, face, GLenum, mode); \
-  UnsupportedWrapper3(void, glFragmentLightfSGIX, GLenum, light, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glFragmentLightfvSGIX, GLenum, light, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glFragmentLightiSGIX, GLenum, light, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glFragmentLightivSGIX, GLenum, light, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper2(void, glFragmentLightModelfSGIX, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glFragmentLightModelfvSGIX, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glFragmentLightModeliSGIX, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glFragmentLightModelivSGIX, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glFragmentMaterialfSGIX, GLenum, face, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glFragmentMaterialfvSGIX, GLenum, face, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glFragmentMaterialiSGIX, GLenum, face, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glFragmentMaterialivSGIX, GLenum, face, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glGetFragmentLightfvSGIX, GLenum, light, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetFragmentLightivSGIX, GLenum, light, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glGetFragmentMaterialfvSGIX, GLenum, face, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetFragmentMaterialivSGIX, GLenum, face, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper2(void, glLightEnviSGIX, GLenum, pname, GLint, param); \
-  UnsupportedWrapper1(void, glFrameZoomSGIX, GLint, factor); \
-  UnsupportedWrapper2(void, glIglooInterfaceSGIX, GLenum, pname, const void *, params); \
-  UnsupportedWrapper0(GLint, glGetInstrumentsSGIX); \
-  UnsupportedWrapper2(void, glInstrumentsBufferSGIX, GLsizei, size, GLint *, buffer); \
-  UnsupportedWrapper1(GLint, glPollInstrumentsSGIX, GLint *, marker_p); \
-  UnsupportedWrapper1(void, glReadInstrumentsSGIX, GLint, marker); \
-  UnsupportedWrapper0(void, glStartInstrumentsSGIX); \
-  UnsupportedWrapper1(void, glStopInstrumentsSGIX, GLint, marker); \
-  UnsupportedWrapper3(void, glGetListParameterfvSGIX, GLuint, list, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetListParameterivSGIX, GLuint, list, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glListParameterfSGIX, GLuint, list, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glListParameterfvSGIX, GLuint, list, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glListParameteriSGIX, GLuint, list, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glListParameterivSGIX, GLuint, list, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper1(void, glPixelTexGenSGIX, GLenum, mode); \
-  UnsupportedWrapper14(void, glDeformationMap3dSGIX, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, GLdouble, w1, GLdouble, w2, GLint, wstride, GLint, worder, const GLdouble *, points); \
-  UnsupportedWrapper14(void, glDeformationMap3fSGIX, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, GLfloat, w1, GLfloat, w2, GLint, wstride, GLint, worder, const GLfloat *, points); \
-  UnsupportedWrapper1(void, glDeformSGIX, GLbitfield, mask); \
-  UnsupportedWrapper1(void, glLoadIdentityDeformationMapSGIX, GLbitfield, mask); \
-  UnsupportedWrapper1(void, glReferencePlaneSGIX, const GLdouble *, equation); \
-  UnsupportedWrapper2(void, glSpriteParameterfSGIX, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glSpriteParameterfvSGIX, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glSpriteParameteriSGIX, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glSpriteParameterivSGIX, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper0(void, glTagSampleBufferSGIX); \
-  UnsupportedWrapper6(void, glColorTableSGI, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
-  UnsupportedWrapper3(void, glColorTableParameterfvSGI, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glColorTableParameterivSGI, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper5(void, glCopyColorTableSGI, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
-  UnsupportedWrapper4(void, glGetColorTableSGI, GLenum, target, GLenum, format, GLenum, type, void *, table); \
-  UnsupportedWrapper3(void, glGetColorTableParameterfvSGI, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetColorTableParameterivSGI, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper0(void, glFinishTextureSUNX); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactorbSUN, GLbyte, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactorsSUN, GLshort, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactoriSUN, GLint, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactorfSUN, GLfloat, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactordSUN, GLdouble, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactorubSUN, GLubyte, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactorusSUN, GLushort, factor); \
-  UnsupportedWrapper1(void, glGlobalAlphaFactoruiSUN, GLuint, factor); \
-  UnsupportedWrapper4(void, glDrawMeshArraysSUN, GLenum, mode, GLint, first, GLsizei, count, GLsizei, width); \
-  UnsupportedWrapper1(void, glReplacementCodeuiSUN, GLuint, code); \
-  UnsupportedWrapper1(void, glReplacementCodeusSUN, GLushort, code); \
-  UnsupportedWrapper1(void, glReplacementCodeubSUN, GLubyte, code); \
-  UnsupportedWrapper1(void, glReplacementCodeuivSUN, const GLuint *, code); \
-  UnsupportedWrapper1(void, glReplacementCodeusvSUN, const GLushort *, code); \
-  UnsupportedWrapper1(void, glReplacementCodeubvSUN, const GLubyte *, code); \
-  UnsupportedWrapper3(void, glReplacementCodePointerSUN, GLenum, type, GLsizei, stride, const void **, pointer); \
-  UnsupportedWrapper6(void, glColor4ubVertex2fSUN, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper2(void, glColor4ubVertex2fvSUN, const GLubyte *, c, const GLfloat *, v); \
-  UnsupportedWrapper7(void, glColor4ubVertex3fSUN, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glColor4ubVertex3fvSUN, const GLubyte *, c, const GLfloat *, v); \
-  UnsupportedWrapper6(void, glColor3fVertex3fSUN, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glColor3fVertex3fvSUN, const GLfloat *, c, const GLfloat *, v); \
-  UnsupportedWrapper6(void, glNormal3fVertex3fSUN, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glNormal3fVertex3fvSUN, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper10(void, glColor4fNormal3fVertex3fSUN, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glColor4fNormal3fVertex3fvSUN, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper5(void, glTexCoord2fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glTexCoord2fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, v); \
-  UnsupportedWrapper8(void, glTexCoord4fVertex4fSUN, GLfloat, s, GLfloat, t, GLfloat, p, GLfloat, q, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper2(void, glTexCoord4fVertex4fvSUN, const GLfloat *, tc, const GLfloat *, v); \
-  UnsupportedWrapper9(void, glTexCoord2fColor4ubVertex3fSUN, GLfloat, s, GLfloat, t, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glTexCoord2fColor4ubVertex3fvSUN, const GLfloat *, tc, const GLubyte *, c, const GLfloat *, v); \
-  UnsupportedWrapper8(void, glTexCoord2fColor3fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glTexCoord2fColor3fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, v); \
-  UnsupportedWrapper8(void, glTexCoord2fNormal3fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glTexCoord2fNormal3fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper12(void, glTexCoord2fColor4fNormal3fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper4(void, glTexCoord2fColor4fNormal3fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper15(void, glTexCoord4fColor4fNormal3fVertex4fSUN, GLfloat, s, GLfloat, t, GLfloat, p, GLfloat, q, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper4(void, glTexCoord4fColor4fNormal3fVertex4fvSUN, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper4(void, glReplacementCodeuiVertex3fSUN, GLuint, rc, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper2(void, glReplacementCodeuiVertex3fvSUN, const GLuint *, rc, const GLfloat *, v); \
-  UnsupportedWrapper8(void, glReplacementCodeuiColor4ubVertex3fSUN, GLuint, rc, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glReplacementCodeuiColor4ubVertex3fvSUN, const GLuint *, rc, const GLubyte *, c, const GLfloat *, v); \
-  UnsupportedWrapper7(void, glReplacementCodeuiColor3fVertex3fSUN, GLuint, rc, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glReplacementCodeuiColor3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, c, const GLfloat *, v); \
-  UnsupportedWrapper7(void, glReplacementCodeuiNormal3fVertex3fSUN, GLuint, rc, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glReplacementCodeuiNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper11(void, glReplacementCodeuiColor4fNormal3fVertex3fSUN, GLuint, rc, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper4(void, glReplacementCodeuiColor4fNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper6(void, glReplacementCodeuiTexCoord2fVertex3fSUN, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glReplacementCodeuiTexCoord2fVertex3fvSUN, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, v); \
-  UnsupportedWrapper9(void, glReplacementCodeuiTexCoord2fNormal3fVertex3fSUN, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper4(void, glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper13(void, glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper5(void, glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
-  UnsupportedWrapper0(GLenum, glGetGraphicsResetStatusKHR); \
-  UnsupportedWrapper8(void, glReadnPixelsKHR, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
-  UnsupportedWrapper4(void, glGetnUniformfvKHR, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
-  UnsupportedWrapper4(void, glGetnUniformivKHR, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
-  UnsupportedWrapper4(void, glGetnUniformuivKHR, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
-  UnsupportedWrapper2(void, glEGLImageTargetTexture2DOES, GLenum, target, GLeglImageOES, image); \
-  UnsupportedWrapper2(void, glEGLImageTargetRenderbufferStorageOES, GLenum, target, GLeglImageOES, image); \
-  UnsupportedWrapper5(void, glGetProgramBinaryOES, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
-  UnsupportedWrapper4(void, glProgramBinaryOES, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
-  UnsupportedWrapper10(void, glBlitFramebufferANGLE, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
-  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleANGLE, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper4(void, glDrawArraysInstancedANGLE, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
-  UnsupportedWrapper5(void, glDrawElementsInstancedANGLE, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
-  UnsupportedWrapper2(void, glVertexAttribDivisorANGLE, GLuint, index, GLuint, divisor); \
-  UnsupportedWrapper4(void, glGetTranslatedShaderSourceANGLE, GLuint, shader, GLsizei, bufsize, GLsizei *, length, GLchar *, source); \
-  UnsupportedWrapper4(void, glCopyTextureLevelsAPPLE, GLuint, destinationTexture, GLuint, sourceTexture, GLint, sourceBaseLevel, GLsizei, sourceLevelCount); \
-  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleAPPLE, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper0(void, glResolveMultisampleFramebufferAPPLE); \
-  UnsupportedWrapper2(GLsync, glFenceSyncAPPLE, GLenum, condition, GLbitfield, flags); \
-  UnsupportedWrapper1(GLboolean, glIsSyncAPPLE, GLsync, sync); \
-  UnsupportedWrapper1(void, glDeleteSyncAPPLE, GLsync, sync); \
-  UnsupportedWrapper3(GLenum, glClientWaitSyncAPPLE, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
-  UnsupportedWrapper3(void, glWaitSyncAPPLE, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
-  UnsupportedWrapper2(void, glGetInteger64vAPPLE, GLenum, pname, GLint64 *, params); \
-  UnsupportedWrapper5(void, glGetSyncivAPPLE, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
-  UnsupportedWrapper4(void, glBindFragDataLocationIndexedEXT, GLuint, program, GLuint, colorNumber, GLuint, index, const GLchar *, name); \
-  UnsupportedWrapper3(GLint, glGetProgramResourceLocationIndexEXT, GLuint, program, GLenum, programInterface, const GLchar *, name); \
-  UnsupportedWrapper2(GLint, glGetFragDataIndexEXT, GLuint, program, const GLchar *, name); \
-  UnsupportedWrapper4(void, glBufferStorageEXT, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
-  UnsupportedWrapper5(void, glClearTexImageEXT, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
-  UnsupportedWrapper11(void, glClearTexSubImageEXT, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, data); \
-  UnsupportedWrapper2(void, glClipControlEXT, GLenum, origin, GLenum, depth); \
-  UnsupportedWrapper2(void, glDrawTransformFeedbackEXT, GLenum, mode, GLuint, id); \
-  UnsupportedWrapper3(void, glDrawTransformFeedbackInstancedEXT, GLenum, mode, GLuint, id, GLsizei, instancecount); \
-  UnsupportedWrapper2(void, glVertexAttribDivisorEXT, GLuint, index, GLuint, divisor); \
-  UnsupportedWrapper4(void *, glMapBufferRangeEXT, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
-  UnsupportedWrapper3(void, glFlushMappedBufferRangeEXT, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
-  UnsupportedWrapper4(void, glMultiDrawArraysIndirectEXT, GLenum, mode, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
-  UnsupportedWrapper5(void, glMultiDrawElementsIndirectEXT, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
-  UnsupportedWrapper2(void, glReadBufferIndexedEXT, GLenum, src, GLint, index); \
-  UnsupportedWrapper3(void, glDrawBuffersIndexedEXT, GLint, n, const GLenum *, location, const GLint *, indices); \
-  UnsupportedWrapper3(void, glGetIntegeri_vEXT, GLenum, target, GLuint, index, GLint *, data); \
-  UnsupportedWrapper2(void, glFramebufferPixelLocalStorageSizeEXT, GLuint, target, GLsizei, size); \
-  UnsupportedWrapper1(GLsizei, glGetFramebufferPixelLocalStorageSizeEXT, GLuint, target); \
-  UnsupportedWrapper3(void, glClearPixelLocalStorageuiEXT, GLsizei, offset, GLsizei, n, const GLuint *, values); \
-  UnsupportedWrapper9(void, glTexPageCommitmentEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
-  UnsupportedWrapper1(GLuint64, glGetTextureHandleIMG, GLuint, texture); \
-  UnsupportedWrapper2(GLuint64, glGetTextureSamplerHandleIMG, GLuint, texture, GLuint, sampler); \
-  UnsupportedWrapper2(void, glUniformHandleui64IMG, GLint, location, GLuint64, value); \
-  UnsupportedWrapper3(void, glUniformHandleui64vIMG, GLint, location, GLsizei, count, const GLuint64 *, value); \
-  UnsupportedWrapper3(void, glProgramUniformHandleui64IMG, GLuint, program, GLint, location, GLuint64, value); \
-  UnsupportedWrapper4(void, glProgramUniformHandleui64vIMG, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
-  UnsupportedWrapper7(void, glFramebufferTexture2DDownsampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, xscale, GLint, yscale); \
-  UnsupportedWrapper7(void, glFramebufferTextureLayerDownsampleIMG, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer, GLint, xscale, GLint, yscale); \
-  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleIMG, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper6(void, glFramebufferTexture2DMultisampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
-  UnsupportedWrapper5(void, glCopyBufferSubDataNV, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
-  UnsupportedWrapper1(void, glCoverageMaskNV, GLboolean, mask); \
-  UnsupportedWrapper1(void, glCoverageOperationNV, GLenum, operation); \
-  UnsupportedWrapper2(void, glDrawBuffersNV, GLsizei, n, const GLenum *, bufs); \
-  UnsupportedWrapper4(void, glDrawArraysInstancedNV, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
-  UnsupportedWrapper5(void, glDrawElementsInstancedNV, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
-  UnsupportedWrapper10(void, glBlitFramebufferNV, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
-  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleNV, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  UnsupportedWrapper2(void, glVertexAttribDivisorNV, GLuint, index, GLuint, divisor); \
-  UnsupportedWrapper4(void, glUniformMatrix2x3fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix3x2fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix2x4fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix4x2fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix3x4fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper4(void, glUniformMatrix4x3fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-  UnsupportedWrapper2(void, glPolygonModeNV, GLenum, face, GLenum, mode); \
-  UnsupportedWrapper1(void, glReadBufferNV, GLenum, mode); \
-  UnsupportedWrapper2(void, glAlphaFuncQCOM, GLenum, func, GLclampf, ref); \
-  UnsupportedWrapper3(void, glGetDriverControlsQCOM, GLint *, num, GLsizei, size, GLuint *, driverControls); \
-  UnsupportedWrapper4(void, glGetDriverControlStringQCOM, GLuint, driverControl, GLsizei, bufSize, GLsizei *, length, GLchar *, driverControlString); \
-  UnsupportedWrapper1(void, glEnableDriverControlQCOM, GLuint, driverControl); \
-  UnsupportedWrapper1(void, glDisableDriverControlQCOM, GLuint, driverControl); \
-  UnsupportedWrapper3(void, glExtGetTexturesQCOM, GLuint *, textures, GLint, maxTextures, GLint *, numTextures); \
-  UnsupportedWrapper3(void, glExtGetBuffersQCOM, GLuint *, buffers, GLint, maxBuffers, GLint *, numBuffers); \
-  UnsupportedWrapper3(void, glExtGetRenderbuffersQCOM, GLuint *, renderbuffers, GLint, maxRenderbuffers, GLint *, numRenderbuffers); \
-  UnsupportedWrapper3(void, glExtGetFramebuffersQCOM, GLuint *, framebuffers, GLint, maxFramebuffers, GLint *, numFramebuffers); \
-  UnsupportedWrapper5(void, glExtGetTexLevelParameterivQCOM, GLuint, texture, GLenum, face, GLint, level, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glExtTexObjectStateOverrideiQCOM, GLenum, target, GLenum, pname, GLint, param); \
-  UnsupportedWrapper11(void, glExtGetTexSubImageQCOM, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, void *, texels); \
-  UnsupportedWrapper2(void, glExtGetBufferPointervQCOM, GLenum, target, void **, params); \
-  UnsupportedWrapper3(void, glExtGetShadersQCOM, GLuint *, shaders, GLint, maxShaders, GLint *, numShaders); \
-  UnsupportedWrapper3(void, glExtGetProgramsQCOM, GLuint *, programs, GLint, maxPrograms, GLint *, numPrograms); \
-  UnsupportedWrapper1(GLboolean, glExtIsProgramBinaryQCOM, GLuint, program); \
-  UnsupportedWrapper4(void, glExtGetProgramBinarySourceQCOM, GLuint, program, GLenum, shadertype, GLchar *, source, GLint *, length); \
-  UnsupportedWrapper5(void, glFramebufferFoveationConfigQCOM, GLuint, framebuffer, GLuint, numLayers, GLuint, focalPointsPerLayer, GLuint, requestedFeatures, GLuint *, providedFeatures); \
-  UnsupportedWrapper8(void, glFramebufferFoveationParametersQCOM, GLuint, framebuffer, GLuint, layer, GLuint, focalPoint, GLfloat, focalX, GLfloat, focalY, GLfloat, gainX, GLfloat, gainY, GLfloat, foveaArea); \
-  UnsupportedWrapper0(void, glFramebufferFetchBarrierQCOM); \
-  UnsupportedWrapper8(void, glTextureFoveationParametersQCOM, GLuint, texture, GLuint, layer, GLuint, focalPoint, GLfloat, focalX, GLfloat, focalY, GLfloat, gainX, GLfloat, gainY, GLfloat, foveaArea); \
-  UnsupportedWrapper5(void, glStartTilingQCOM, GLuint, x, GLuint, y, GLuint, width, GLuint, height, GLbitfield, preserveMask); \
-  UnsupportedWrapper1(void, glEndTilingQCOM, GLbitfield, preserveMask); \
-  UnsupportedWrapper1(GLboolean, glIsList, GLuint, list); \
-  UnsupportedWrapper2(void, glDeleteLists, GLuint, list, GLsizei, range); \
-  UnsupportedWrapper1(GLuint, glGenLists, GLsizei, range); \
-  UnsupportedWrapper2(void, glNewList, GLuint, list, GLenum, mode); \
-  UnsupportedWrapper0(void, glEndList); \
-  UnsupportedWrapper1(void, glCallList, GLuint, list); \
-  UnsupportedWrapper3(void, glCallLists, GLsizei, n, GLenum, type, const void *, lists); \
-  UnsupportedWrapper1(void, glListBase, GLuint, base); \
-  UnsupportedWrapper3(void, glPrioritizeTextures, GLsizei, n, const GLuint *, textures, const GLfloat *, priorities); \
-  UnsupportedWrapper3(GLboolean, glAreTexturesResident, GLsizei, n, const GLuint *, textures, GLboolean *, residences); \
-  UnsupportedWrapper6(void, glMap1d, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, stride, GLint, order, const GLdouble *, points); \
-  UnsupportedWrapper6(void, glMap1f, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, stride, GLint, order, const GLfloat *, points); \
-  UnsupportedWrapper10(void, glMap2d, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, const GLdouble *, points); \
-  UnsupportedWrapper10(void, glMap2f, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, const GLfloat *, points); \
-  UnsupportedWrapper3(void, glGetMapdv, GLenum, target, GLenum, query, GLdouble *, v); \
-  UnsupportedWrapper3(void, glGetMapfv, GLenum, target, GLenum, query, GLfloat *, v); \
-  UnsupportedWrapper3(void, glGetMapiv, GLenum, target, GLenum, query, GLint *, v); \
-  UnsupportedWrapper1(void, glEvalCoord1d, GLdouble, u); \
-  UnsupportedWrapper1(void, glEvalCoord1f, GLfloat, u); \
-  UnsupportedWrapper1(void, glEvalCoord1dv, const GLdouble *, u); \
-  UnsupportedWrapper1(void, glEvalCoord1fv, const GLfloat *, u); \
-  UnsupportedWrapper2(void, glEvalCoord2d, GLdouble, u, GLdouble, v); \
-  UnsupportedWrapper2(void, glEvalCoord2f, GLfloat, u, GLfloat, v); \
-  UnsupportedWrapper1(void, glEvalCoord2dv, const GLdouble *, u); \
-  UnsupportedWrapper1(void, glEvalCoord2fv, const GLfloat *, u); \
-  UnsupportedWrapper3(void, glMapGrid1d, GLint, un, GLdouble, u1, GLdouble, u2); \
-  UnsupportedWrapper3(void, glMapGrid1f, GLint, un, GLfloat, u1, GLfloat, u2); \
-  UnsupportedWrapper6(void, glMapGrid2d, GLint, un, GLdouble, u1, GLdouble, u2, GLint, vn, GLdouble, v1, GLdouble, v2); \
-  UnsupportedWrapper6(void, glMapGrid2f, GLint, un, GLfloat, u1, GLfloat, u2, GLint, vn, GLfloat, v1, GLfloat, v2); \
-  UnsupportedWrapper1(void, glEvalPoint1, GLint, i); \
-  UnsupportedWrapper2(void, glEvalPoint2, GLint, i, GLint, j); \
-  UnsupportedWrapper3(void, glEvalMesh1, GLenum, mode, GLint, i1, GLint, i2); \
-  UnsupportedWrapper5(void, glEvalMesh2, GLenum, mode, GLint, i1, GLint, i2, GLint, j1, GLint, j2); \
-  UnsupportedWrapper2(void, glFogf, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glFogi, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glFogfv, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glFogiv, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glFeedbackBuffer, GLsizei, size, GLenum, type, GLfloat *, buffer); \
-  UnsupportedWrapper1(void, glPassThrough, GLfloat, token); \
-  UnsupportedWrapper2(void, glSelectBuffer, GLsizei, size, GLuint *, buffer); \
-  UnsupportedWrapper0(void, glInitNames); \
-  UnsupportedWrapper1(void, glLoadName, GLuint, name); \
-  UnsupportedWrapper1(void, glPushName, GLuint, name); \
-  UnsupportedWrapper0(void, glPopName); \
-  UnsupportedWrapper1(void, glBegin, GLenum, mode); \
-  UnsupportedWrapper0(void, glEnd); \
-  UnsupportedWrapper2(void, glVertex2d, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper2(void, glVertex2f, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper2(void, glVertex2i, GLint, x, GLint, y); \
-  UnsupportedWrapper2(void, glVertex2s, GLshort, x, GLshort, y); \
-  UnsupportedWrapper3(void, glVertex3d, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper3(void, glVertex3f, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glVertex3i, GLint, x, GLint, y, GLint, z); \
-  UnsupportedWrapper3(void, glVertex3s, GLshort, x, GLshort, y, GLshort, z); \
-  UnsupportedWrapper4(void, glVertex4d, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper4(void, glVertex4f, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper4(void, glVertex4i, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper4(void, glVertex4s, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
-  UnsupportedWrapper1(void, glVertex2dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glVertex2fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glVertex2iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glVertex2sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glVertex3dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glVertex3fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glVertex3iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glVertex3sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glVertex4dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glVertex4fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glVertex4iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glVertex4sv, const GLshort *, v); \
-  UnsupportedWrapper3(void, glNormal3b, GLbyte, nx, GLbyte, ny, GLbyte, nz); \
-  UnsupportedWrapper3(void, glNormal3d, GLdouble, nx, GLdouble, ny, GLdouble, nz); \
-  UnsupportedWrapper3(void, glNormal3f, GLfloat, nx, GLfloat, ny, GLfloat, nz); \
-  UnsupportedWrapper3(void, glNormal3i, GLint, nx, GLint, ny, GLint, nz); \
-  UnsupportedWrapper3(void, glNormal3s, GLshort, nx, GLshort, ny, GLshort, nz); \
-  UnsupportedWrapper1(void, glNormal3bv, const GLbyte *, v); \
-  UnsupportedWrapper1(void, glNormal3dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glNormal3fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glNormal3iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glNormal3sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glIndexd, GLdouble, c); \
-  UnsupportedWrapper1(void, glIndexf, GLfloat, c); \
-  UnsupportedWrapper1(void, glIndexi, GLint, c); \
-  UnsupportedWrapper1(void, glIndexs, GLshort, c); \
-  UnsupportedWrapper1(void, glIndexub, GLubyte, c); \
-  UnsupportedWrapper1(void, glIndexdv, const GLdouble *, c); \
-  UnsupportedWrapper1(void, glIndexfv, const GLfloat *, c); \
-  UnsupportedWrapper1(void, glIndexiv, const GLint *, c); \
-  UnsupportedWrapper1(void, glIndexsv, const GLshort *, c); \
-  UnsupportedWrapper1(void, glIndexubv, const GLubyte *, c); \
-  UnsupportedWrapper3(void, glColor3b, GLbyte, red, GLbyte, green, GLbyte, blue); \
-  UnsupportedWrapper3(void, glColor3d, GLdouble, red, GLdouble, green, GLdouble, blue); \
-  UnsupportedWrapper3(void, glColor3f, GLfloat, red, GLfloat, green, GLfloat, blue); \
-  UnsupportedWrapper3(void, glColor3i, GLint, red, GLint, green, GLint, blue); \
-  UnsupportedWrapper3(void, glColor3s, GLshort, red, GLshort, green, GLshort, blue); \
-  UnsupportedWrapper3(void, glColor3ub, GLubyte, red, GLubyte, green, GLubyte, blue); \
-  UnsupportedWrapper3(void, glColor3ui, GLuint, red, GLuint, green, GLuint, blue); \
-  UnsupportedWrapper3(void, glColor3us, GLushort, red, GLushort, green, GLushort, blue); \
-  UnsupportedWrapper4(void, glColor4b, GLbyte, red, GLbyte, green, GLbyte, blue, GLbyte, alpha); \
-  UnsupportedWrapper4(void, glColor4d, GLdouble, red, GLdouble, green, GLdouble, blue, GLdouble, alpha); \
-  UnsupportedWrapper4(void, glColor4f, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
-  UnsupportedWrapper4(void, glColor4i, GLint, red, GLint, green, GLint, blue, GLint, alpha); \
-  UnsupportedWrapper4(void, glColor4s, GLshort, red, GLshort, green, GLshort, blue, GLshort, alpha); \
-  UnsupportedWrapper4(void, glColor4ub, GLubyte, red, GLubyte, green, GLubyte, blue, GLubyte, alpha); \
-  UnsupportedWrapper4(void, glColor4ui, GLuint, red, GLuint, green, GLuint, blue, GLuint, alpha); \
-  UnsupportedWrapper4(void, glColor4us, GLushort, red, GLushort, green, GLushort, blue, GLushort, alpha); \
-  UnsupportedWrapper1(void, glColor3bv, const GLbyte *, v); \
-  UnsupportedWrapper1(void, glColor3dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glColor3fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glColor3iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glColor3sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glColor3ubv, const GLubyte *, v); \
-  UnsupportedWrapper1(void, glColor3uiv, const GLuint *, v); \
-  UnsupportedWrapper1(void, glColor3usv, const GLushort *, v); \
-  UnsupportedWrapper1(void, glColor4bv, const GLbyte *, v); \
-  UnsupportedWrapper1(void, glColor4dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glColor4fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glColor4iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glColor4sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glColor4ubv, const GLubyte *, v); \
-  UnsupportedWrapper1(void, glColor4uiv, const GLuint *, v); \
-  UnsupportedWrapper1(void, glColor4usv, const GLushort *, v); \
-  UnsupportedWrapper1(void, glTexCoord1d, GLdouble, s); \
-  UnsupportedWrapper1(void, glTexCoord1f, GLfloat, s); \
-  UnsupportedWrapper1(void, glTexCoord1i, GLint, s); \
-  UnsupportedWrapper1(void, glTexCoord1s, GLshort, s); \
-  UnsupportedWrapper2(void, glTexCoord2d, GLdouble, s, GLdouble, t); \
-  UnsupportedWrapper2(void, glTexCoord2f, GLfloat, s, GLfloat, t); \
-  UnsupportedWrapper2(void, glTexCoord2i, GLint, s, GLint, t); \
-  UnsupportedWrapper2(void, glTexCoord2s, GLshort, s, GLshort, t); \
-  UnsupportedWrapper3(void, glTexCoord3d, GLdouble, s, GLdouble, t, GLdouble, r); \
-  UnsupportedWrapper3(void, glTexCoord3f, GLfloat, s, GLfloat, t, GLfloat, r); \
-  UnsupportedWrapper3(void, glTexCoord3i, GLint, s, GLint, t, GLint, r); \
-  UnsupportedWrapper3(void, glTexCoord3s, GLshort, s, GLshort, t, GLshort, r); \
-  UnsupportedWrapper4(void, glTexCoord4d, GLdouble, s, GLdouble, t, GLdouble, r, GLdouble, q); \
-  UnsupportedWrapper4(void, glTexCoord4f, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, q); \
-  UnsupportedWrapper4(void, glTexCoord4i, GLint, s, GLint, t, GLint, r, GLint, q); \
-  UnsupportedWrapper4(void, glTexCoord4s, GLshort, s, GLshort, t, GLshort, r, GLshort, q); \
-  UnsupportedWrapper1(void, glTexCoord1dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glTexCoord1fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glTexCoord1iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glTexCoord1sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glTexCoord2dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glTexCoord2fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glTexCoord2iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glTexCoord2sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glTexCoord3dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glTexCoord3fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glTexCoord3iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glTexCoord3sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glTexCoord4dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glTexCoord4fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glTexCoord4iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glTexCoord4sv, const GLshort *, v); \
-  UnsupportedWrapper2(void, glRasterPos2d, GLdouble, x, GLdouble, y); \
-  UnsupportedWrapper2(void, glRasterPos2f, GLfloat, x, GLfloat, y); \
-  UnsupportedWrapper2(void, glRasterPos2i, GLint, x, GLint, y); \
-  UnsupportedWrapper2(void, glRasterPos2s, GLshort, x, GLshort, y); \
-  UnsupportedWrapper3(void, glRasterPos3d, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper3(void, glRasterPos3f, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glRasterPos3i, GLint, x, GLint, y, GLint, z); \
-  UnsupportedWrapper3(void, glRasterPos3s, GLshort, x, GLshort, y, GLshort, z); \
-  UnsupportedWrapper4(void, glRasterPos4d, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-  UnsupportedWrapper4(void, glRasterPos4f, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-  UnsupportedWrapper4(void, glRasterPos4i, GLint, x, GLint, y, GLint, z, GLint, w); \
-  UnsupportedWrapper4(void, glRasterPos4s, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
-  UnsupportedWrapper1(void, glRasterPos2dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glRasterPos2fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glRasterPos2iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glRasterPos2sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glRasterPos3dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glRasterPos3fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glRasterPos3iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glRasterPos3sv, const GLshort *, v); \
-  UnsupportedWrapper1(void, glRasterPos4dv, const GLdouble *, v); \
-  UnsupportedWrapper1(void, glRasterPos4fv, const GLfloat *, v); \
-  UnsupportedWrapper1(void, glRasterPos4iv, const GLint *, v); \
-  UnsupportedWrapper1(void, glRasterPos4sv, const GLshort *, v); \
-  UnsupportedWrapper4(void, glRectd, GLdouble, x1, GLdouble, y1, GLdouble, x2, GLdouble, y2); \
-  UnsupportedWrapper4(void, glRectf, GLfloat, x1, GLfloat, y1, GLfloat, x2, GLfloat, y2); \
-  UnsupportedWrapper4(void, glRecti, GLint, x1, GLint, y1, GLint, x2, GLint, y2); \
-  UnsupportedWrapper4(void, glRects, GLshort, x1, GLshort, y1, GLshort, x2, GLshort, y2); \
-  UnsupportedWrapper2(void, glRectdv, const GLdouble *, v1, const GLdouble *, v2); \
-  UnsupportedWrapper2(void, glRectfv, const GLfloat *, v1, const GLfloat *, v2); \
-  UnsupportedWrapper2(void, glRectiv, const GLint *, v1, const GLint *, v2); \
-  UnsupportedWrapper2(void, glRectsv, const GLshort *, v1, const GLshort *, v2); \
-  UnsupportedWrapper2(void, glPixelZoom, GLfloat, xfactor, GLfloat, yfactor); \
-  UnsupportedWrapper2(void, glPixelTransferf, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glPixelTransferi, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glPixelMapfv, GLenum, map, GLsizei, mapsize, const GLfloat *, values); \
-  UnsupportedWrapper3(void, glPixelMapuiv, GLenum, map, GLsizei, mapsize, const GLuint *, values); \
-  UnsupportedWrapper3(void, glPixelMapusv, GLenum, map, GLsizei, mapsize, const GLushort *, values); \
-  UnsupportedWrapper2(void, glGetPixelMapfv, GLenum, map, GLfloat *, values); \
-  UnsupportedWrapper2(void, glGetPixelMapuiv, GLenum, map, GLuint *, values); \
-  UnsupportedWrapper2(void, glGetPixelMapusv, GLenum, map, GLushort *, values); \
-  UnsupportedWrapper7(void, glBitmap, GLsizei, width, GLsizei, height, GLfloat, xorig, GLfloat, yorig, GLfloat, xmove, GLfloat, ymove, const GLubyte *, bitmap); \
-  UnsupportedWrapper5(void, glDrawPixels, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
-  UnsupportedWrapper5(void, glCopyPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, type); \
-  UnsupportedWrapper1(void, glShadeModel, GLenum, mode); \
-  UnsupportedWrapper3(void, glLightf, GLenum, light, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glLighti, GLenum, light, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glLightfv, GLenum, light, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glLightiv, GLenum, light, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glGetLightfv, GLenum, light, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetLightiv, GLenum, light, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper2(void, glLightModelf, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper2(void, glLightModeli, GLenum, pname, GLint, param); \
-  UnsupportedWrapper2(void, glLightModelfv, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper2(void, glLightModeliv, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glMaterialf, GLenum, face, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glMateriali, GLenum, face, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glMaterialfv, GLenum, face, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glMaterialiv, GLenum, face, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glGetMaterialfv, GLenum, face, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetMaterialiv, GLenum, face, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper2(void, glColorMaterial, GLenum, face, GLenum, mode); \
-  UnsupportedWrapper1(void, glClearIndex, GLfloat, c); \
-  UnsupportedWrapper1(void, glIndexMask, GLuint, mask); \
-  UnsupportedWrapper2(void, glAlphaFunc, GLenum, func, GLfloat, ref); \
-  UnsupportedWrapper2(void, glLineStipple, GLint, factor, GLushort, pattern); \
-  UnsupportedWrapper1(void, glPolygonStipple, const GLubyte *, mask); \
-  UnsupportedWrapper1(void, glGetPolygonStipple, GLubyte *, mask); \
-  UnsupportedWrapper1(void, glEdgeFlag, GLboolean, flag); \
-  UnsupportedWrapper1(void, glEdgeFlagv, const GLboolean *, flag); \
-  UnsupportedWrapper2(void, glClipPlane, GLenum, plane, const GLdouble *, equation); \
-  UnsupportedWrapper2(void, glGetClipPlane, GLenum, plane, GLdouble *, equation); \
-  UnsupportedWrapper1(void, glEnableClientState, GLenum, array); \
-  UnsupportedWrapper1(void, glDisableClientState, GLenum, array); \
-  UnsupportedWrapper1(void, glPushAttrib, GLbitfield, mask); \
-  UnsupportedWrapper0(void, glPopAttrib); \
-  UnsupportedWrapper1(void, glPushClientAttrib, GLbitfield, mask); \
-  UnsupportedWrapper0(void, glPopClientAttrib); \
-  UnsupportedWrapper1(GLint, glRenderMode, GLenum, mode); \
-  UnsupportedWrapper3(void, glTexGend, GLenum, coord, GLenum, pname, GLdouble, param); \
-  UnsupportedWrapper3(void, glTexGenf, GLenum, coord, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glTexGeni, GLenum, coord, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glTexGendv, GLenum, coord, GLenum, pname, const GLdouble *, params); \
-  UnsupportedWrapper3(void, glTexGenfv, GLenum, coord, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glTexGeniv, GLenum, coord, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glGetTexGendv, GLenum, coord, GLenum, pname, GLdouble *, params); \
-  UnsupportedWrapper3(void, glGetTexGenfv, GLenum, coord, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetTexGeniv, GLenum, coord, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper3(void, glTexEnvf, GLenum, target, GLenum, pname, GLfloat, param); \
-  UnsupportedWrapper3(void, glTexEnvi, GLenum, target, GLenum, pname, GLint, param); \
-  UnsupportedWrapper3(void, glTexEnvfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
-  UnsupportedWrapper3(void, glTexEnviv, GLenum, target, GLenum, pname, const GLint *, params); \
-  UnsupportedWrapper3(void, glGetTexEnvfv, GLenum, target, GLenum, pname, GLfloat *, params); \
-  UnsupportedWrapper3(void, glGetTexEnviv, GLenum, target, GLenum, pname, GLint *, params); \
-  UnsupportedWrapper1(void, glMatrixMode, GLenum, mode); \
-  UnsupportedWrapper6(void, glOrtho, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
-  UnsupportedWrapper6(void, glFrustum, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
-  UnsupportedWrapper0(void, glPushMatrix); \
-  UnsupportedWrapper0(void, glPopMatrix); \
   UnsupportedWrapper0(void, glLoadIdentity); \
-  UnsupportedWrapper1(void, glLoadMatrixd, const GLdouble *, m); \
-  UnsupportedWrapper1(void, glLoadMatrixf, const GLfloat *, m); \
-  UnsupportedWrapper1(void, glMultMatrixd, const GLdouble *, m); \
-  UnsupportedWrapper1(void, glMultMatrixf, const GLfloat *, m); \
-  UnsupportedWrapper4(void, glRotated, GLdouble, angle, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper4(void, glRotatef, GLfloat, angle, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glScaled, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper3(void, glScalef, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper3(void, glTranslated, GLdouble, x, GLdouble, y, GLdouble, z); \
-  UnsupportedWrapper3(void, glTranslatef, GLfloat, x, GLfloat, y, GLfloat, z); \
-  UnsupportedWrapper4(void, glClearAccum, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
-  UnsupportedWrapper2(void, glAccum, GLenum, op, GLfloat, value); \
-  UnsupportedWrapper4(void, glVertexPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper3(void, glNormalPointer, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper4(void, glColorPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper3(void, glIndexPointer, GLenum, type, GLsizei, stride, const void *, pointer); \
-  UnsupportedWrapper4(void, glTexCoordPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
   UnsupportedWrapper2(void, glEdgeFlagPointer, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper5(void, glGetPerfMonitorCounterDataAMD, GLuint, monitor, GLenum, pname, GLsizei, dataSize, GLuint *, data, GLint *, bytesWritten); \
+  UnsupportedWrapper3(void, glUniform2i64ARB, GLint, location, GLint64, x, GLint64, y); \
+  UnsupportedWrapper2(void, glEnableClientStateIndexedEXT, GLenum, array, GLuint, index); \
+  UnsupportedWrapper4(void, glProgramUniform2ui64NV, GLuint, program, GLint, location, GLuint64EXT, x, GLuint64EXT, y); \
+  UnsupportedWrapper3(void, glVertexAttribs4hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
+  UnsupportedWrapper2(void, glColorP3uiv, GLenum, type, const GLuint *, color); \
+  UnsupportedWrapper1(void, glFinishFenceNV, GLuint, fence); \
+  UnsupportedWrapper3(void, glTexParameterxvOES, GLenum, target, GLenum, pname, const GLfixed *, params); \
+  UnsupportedWrapper4(void, glMultiTexGendvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, const GLdouble *, params); \
+  UnsupportedWrapper1(void, glTexCoord2sv, const GLshort *, v); \
+  UnsupportedWrapper8(void, glSeparableFilter2DEXT, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, row, const void *, column); \
+  UnsupportedWrapper4(void, glGetNamedProgramStringEXT, GLuint, program, GLenum, target, GLenum, pname, void *, string); \
+  UnsupportedWrapper2(void, glMatrixLoadTransposefEXT, GLenum, mode, const GLfloat *, m); \
+  UnsupportedWrapper2(void, glEvalCoord2f, GLfloat, u, GLfloat, v); \
+  UnsupportedWrapper8(void, glSeparableFilter2D, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, row, const void *, column); \
+  UnsupportedWrapper1(void, glListBase, GLuint, base); \
+  UnsupportedWrapper4(GLuint, glGenSymbolsEXT, GLenum, datatype, GLenum, storagetype, GLenum, range, GLuint, components); \
+  UnsupportedWrapper4(void, glNormalStream3fATI, GLenum, stream, GLfloat, nx, GLfloat, ny, GLfloat, nz); \
+  UnsupportedWrapper5(void, glProgramUniform3i64NV, GLuint, program, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z); \
+  UnsupportedWrapper4(void, glBindFragDataLocationIndexedEXT, GLuint, program, GLuint, colorNumber, GLuint, index, const GLchar *, name); \
+  UnsupportedWrapper1(void, glPushClientAttribDefaultEXT, GLbitfield, mask); \
+  UnsupportedWrapper3(void, glGetLocalConstantIntegervEXT, GLuint, id, GLenum, value, GLint *, data); \
+  UnsupportedWrapper1(void, glReplacementCodeuivSUN, const GLuint *, code); \
+  UnsupportedWrapper3(void, glFeedbackBufferxOES, GLsizei, n, GLenum, type, const GLfixed *, buffer); \
+  UnsupportedWrapper1(void, glColor4sv, const GLshort *, v); \
+  UnsupportedWrapper3(void, glGetArrayObjectfvATI, GLenum, array, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glVertexAttribs1fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper7(void, glGetActiveAttribARB, GLhandleARB, programObj, GLuint, index, GLsizei, maxLength, GLsizei *, length, GLint *, size, GLenum *, type, GLcharARB *, name); \
+  UnsupportedWrapper1(GLboolean, glIsImageHandleResidentNV, GLuint64, handle); \
+  UnsupportedWrapper2(void, glGenProgramsARB, GLsizei, n, GLuint *, programs); \
+  UnsupportedWrapper3(void, glGetConvolutionParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetVariantArrayObjectivATI, GLuint, id, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glVariantdvEXT, GLuint, id, const GLdouble *, addr); \
+  UnsupportedWrapper3(void, glSampleMapATI, GLuint, dst, GLuint, interp, GLenum, swizzle); \
+  UnsupportedWrapper4(void, glProgramUniform3ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper1(void, glWindowPos2fvARB, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glVertexBlendEnviATI, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glMatrixMultfEXT, GLenum, mode, const GLfloat *, m); \
+  UnsupportedWrapper4(void, glUniform3ui64NV, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z); \
+  UnsupportedWrapper1(void, glGetPolygonStipple, GLubyte *, mask); \
+  UnsupportedWrapper5(void, glGetPathMetricRangeNV, GLbitfield, metricQueryMask, GLuint, firstPathName, GLsizei, numPaths, GLsizei, stride, GLfloat *, metrics); \
+  UnsupportedWrapper2(void, glSecondaryColorP3uiv, GLenum, type, const GLuint *, color); \
+  UnsupportedWrapper3(void, glGetFragmentLightivSGIX, GLenum, light, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glWindowPos3iMESA, GLint, x, GLint, y, GLint, z); \
+  UnsupportedWrapper5(void, glNamedFramebufferTextureFaceEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
+  UnsupportedWrapper5(void, glVertexAttrib4sNV, GLuint, index, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+  UnsupportedWrapper3(void, glGetProgramStringARB, GLenum, target, GLenum, pname, void *, string); \
+  UnsupportedWrapper4(void, glMulticastGetQueryObjectui64vNV, GLuint, gpu, GLuint, id, GLenum, pname, GLuint64 *, params); \
+  UnsupportedWrapper4(void, glProgramUniform2i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper5(void, glMultiTexCoord4sARB, GLenum, target, GLshort, s, GLshort, t, GLshort, r, GLshort, q); \
+  UnsupportedWrapper3(GLsync, glImportSyncEXT, GLenum, external_sync_type, GLintptr, external_sync, GLbitfield, flags); \
+  UnsupportedWrapper7(void, glReplacementCodeuiNormal3fVertex3fSUN, GLuint, rc, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glVertexArrayRangeAPPLE, GLsizei, length, void *, pointer); \
+  UnsupportedWrapper4(void, glMultiTexCoord3dARB, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r); \
+  UnsupportedWrapper1(void, glCompileShaderARB, GLhandleARB, shaderObj); \
+  UnsupportedWrapper3(void, glPathParameterfvNV, GLuint, path, GLenum, pname, const GLfloat *, value); \
+  UnsupportedWrapper1(GLuint, glGenPathsNV, GLsizei, range); \
+  UnsupportedWrapper8(void, glGetProgramResourcefvNV, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, propCount, const GLenum *, props, GLsizei, bufSize, GLsizei *, length, GLfloat *, params); \
+  UnsupportedWrapper3(void, glPixelDataRangeNV, GLenum, target, GLsizei, length, const void *, pointer); \
+  UnsupportedWrapper6(void, glOrthoxOES, GLfixed, l, GLfixed, r, GLfixed, b, GLfixed, t, GLfixed, n, GLfixed, f); \
+  UnsupportedWrapper3(void, glConvolutionParameteri, GLenum, target, GLenum, pname, GLint, params); \
+  UnsupportedWrapper4(void, glNamedBufferPageCommitmentEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
+  UnsupportedWrapper2(void, glVertexAttrib1sNV, GLuint, index, GLshort, x); \
+  UnsupportedWrapper2(void, glDeleteFencesNV, GLsizei, n, const GLuint *, fences); \
+  UnsupportedWrapper3(void, glTransformFeedbackAttribsNV, GLsizei, count, const GLint *, attribs, GLenum, bufferMode); \
+  UnsupportedWrapper3(void, glUniform4ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper4(void, glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glPixelZoomxOES, GLfixed, xfactor, GLfixed, yfactor); \
+  UnsupportedWrapper1(void, glApplyTextureEXT, GLenum, mode); \
+  UnsupportedWrapper7(void, glVertexArrayMultiTexCoordOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, texunit, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper5(void, glNamedProgramLocalParameters4fvEXT, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetLocalConstantFloatvEXT, GLuint, id, GLenum, value, GLfloat *, data); \
+  UnsupportedWrapper10(void, glBlitFramebufferANGLE, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
+  UnsupportedWrapper5(void, glVertexAttrib4ubNV, GLuint, index, GLubyte, x, GLubyte, y, GLubyte, z, GLubyte, w); \
+  UnsupportedWrapper3(void, glImageTransformParameterivHP, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper1(void, glReadInstrumentsSGIX, GLint, marker); \
+  UnsupportedWrapper1(void, glMatrixPopEXT, GLenum, mode); \
+  UnsupportedWrapper5(void, glGetHistogram, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
+  UnsupportedWrapper4(void, glMultiDrawArraysIndirectEXT, GLenum, mode, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
+  UnsupportedWrapper4(void, glGetMultiTexGenivEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper5(void, glProgramUniform3i64ARB, GLuint, program, GLint, location, GLint64, x, GLint64, y, GLint64, z); \
+  UnsupportedWrapper1(void, glVertex3xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper6(void, glProgramLocalParameter4fARB, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper5(void, glGetnConvolutionFilterARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, image); \
+  UnsupportedWrapper4(void, glMultiTexGenfvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper4(void, glColor4xOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
+  UnsupportedWrapper0(void, glMulticastBarrierNV); \
+  UnsupportedWrapper2(void, glPNTrianglesiATI, GLenum, pname, GLint, param); \
+  UnsupportedWrapper0(void, glVDPAUFiniNV); \
+  UnsupportedWrapper1(void, glVertex3dv, const GLdouble *, v); \
+  UnsupportedWrapper6(void, glDrawCommandsStatesNV, GLuint, buffer, const GLintptr *, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
+  UnsupportedWrapper2(GLint, glGetUniformBufferSizeEXT, GLuint, program, GLint, location); \
+  UnsupportedWrapper9(void, glCopyTexSubImage3DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper3(void, glMultiTexCoord2fARB, GLenum, target, GLfloat, s, GLfloat, t); \
+  UnsupportedWrapper2(void, glMultiTexCoord1fvARB, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glVertexAttrib3svNV, GLuint, index, const GLshort *, v); \
+  UnsupportedWrapper3(void, glSecondaryColor3dEXT, GLdouble, red, GLdouble, green, GLdouble, blue); \
+  UnsupportedWrapper4(void, glColor4i, GLint, red, GLint, green, GLint, blue, GLint, alpha); \
+  UnsupportedWrapper0(void, glEndFragmentShaderATI); \
+  UnsupportedWrapper1(void, glAlphaToCoverageDitherControlNV, GLenum, mode); \
+  UnsupportedWrapper8(void, glStencilStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLint, reference, GLuint, mask, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper4(void, glInterpolatePathsNV, GLuint, resultPath, GLuint, pathA, GLuint, pathB, GLfloat, weight); \
+  UnsupportedWrapper3(GLfloat, glGetPathLengthNV, GLuint, path, GLsizei, startSegment, GLsizei, numSegments); \
+  UnsupportedWrapper1(void, glColor3xvOES, const GLfixed *, components); \
+  UnsupportedWrapper4(void, glMultiTexCoord3d, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r); \
+  UnsupportedWrapper2(void, glVertex2hNV, GLhalfNV, x, GLhalfNV, y); \
+  UnsupportedWrapper3(GLuint, glBindTexGenParameterEXT, GLenum, unit, GLenum, coord, GLenum, value); \
+  UnsupportedWrapper7(void, glTextureImage2DMultisampleNV, GLuint, texture, GLenum, target, GLsizei, samples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations); \
+  UnsupportedWrapper3(void, glGetDriverControlsQCOM, GLint *, num, GLsizei, size, GLuint *, driverControls); \
+  UnsupportedWrapper3(void, glGenNamesAMD, GLenum, identifier, GLuint, num, GLuint *, names); \
+  UnsupportedWrapper2(void, glHintPGI, GLenum, target, GLint, mode); \
+  UnsupportedWrapper4(void, glVertex4d, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper5(void, glMulticastFramebufferSampleLocationsfvNV, GLuint, gpu, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper6(void, glGetnHistogramARB, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
+  UnsupportedWrapper3(void, glDrawArraysEXT, GLenum, mode, GLint, first, GLsizei, count); \
+  UnsupportedWrapper2(void, glSelectBuffer, GLsizei, size, GLuint *, buffer); \
+  UnsupportedWrapper4(void, glHistogramEXT, GLenum, target, GLsizei, width, GLenum, internalformat, GLboolean, sink); \
+  UnsupportedWrapper7(void, glNamedProgramLocalParameterI4iEXT, GLuint, program, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper1(void, glDisableVariantClientStateEXT, GLuint, id); \
+  UnsupportedWrapper2(void, glStencilOpValueAMD, GLenum, face, GLuint, value); \
+  UnsupportedWrapper2(void, glPNTrianglesfATI, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper7(void, glNamedProgramLocalParameterI4uiEXT, GLuint, program, GLenum, target, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
+  UnsupportedWrapper2(void, glVDPAUUnmapSurfacesNV, GLsizei, numSurface, const GLvdpauSurfaceNV *, surfaces); \
+  UnsupportedWrapper3(void, glFragmentLightiSGIX, GLenum, light, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glFragmentMaterialfSGIX, GLenum, face, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper11(void, glTexSubImage3DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
+  UnsupportedWrapper3(void, glGetObjectBufferivATI, GLuint, buffer, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper4(void, glTexCoord4d, GLdouble, s, GLdouble, t, GLdouble, r, GLdouble, q); \
+  UnsupportedWrapper4(void, glGetnMapdvARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLdouble *, v); \
+  UnsupportedWrapper4(void, glIndexPointerEXT, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
+  UnsupportedWrapper3(void, glGetUniformi64vARB, GLuint, program, GLint, location, GLint64 *, params); \
+  UnsupportedWrapper0(void, glFramebufferFetchBarrierEXT); \
+  UnsupportedWrapper5(void, glCopyColorSubTableEXT, GLenum, target, GLsizei, start, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterIivEXT, GLuint, program, GLenum, target, GLuint, index, GLint *, params); \
+  UnsupportedWrapper2(void, glVertexStream1svATI, GLenum, stream, const GLshort *, coords); \
+  UnsupportedWrapper1(void, glSecondaryColor3bv, const GLbyte *, v); \
+  UnsupportedWrapper3(void, glMultiTexCoord2sARB, GLenum, target, GLshort, s, GLshort, t); \
+  UnsupportedWrapper3(void, glWindowPos3sARB, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper5(void, glVertexAttribPointerNV, GLuint, index, GLint, fsize, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper4(void, glMulticastGetQueryObjecti64vNV, GLuint, gpu, GLuint, id, GLenum, pname, GLint64 *, params); \
+  UnsupportedWrapper3(void, glDetailTexFuncSGIS, GLenum, target, GLsizei, n, const GLfloat *, points); \
+  UnsupportedWrapper3(GLuint, glNewObjectBufferATI, GLsizei, size, const void *, pointer, GLenum, usage); \
+  UnsupportedWrapper3(GLenum, glObjectUnpurgeableAPPLE, GLenum, objectType, GLuint, name, GLenum, option); \
+  UnsupportedWrapper3(void, glReplacementCodeuiTexCoord2fVertex3fvSUN, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetMapxvOES, GLenum, target, GLenum, query, GLfixed *, v); \
+  UnsupportedWrapper3(void, glListParameteriSGIX, GLuint, list, GLenum, pname, GLint, param); \
+  UnsupportedWrapper6(void, glGetnMinmaxARB, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
+  UnsupportedWrapper1(GLuint64, glGetTextureHandleNV, GLuint, texture); \
+  UnsupportedWrapper1(void, glBegin, GLenum, mode); \
+  UnsupportedWrapper2(void, glVertexStream2dvATI, GLenum, stream, const GLdouble *, coords); \
+  UnsupportedWrapper2(void, glPixelZoom, GLfloat, xfactor, GLfloat, yfactor); \
+  UnsupportedWrapper1(void, glCoverageOperationNV, GLenum, operation); \
+  UnsupportedWrapper2(void, glRectsv, const GLshort *, v1, const GLshort *, v2); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactorsSUN, GLshort, factor); \
+  UnsupportedWrapper2(void, glWeightbvARB, GLint, size, const GLbyte *, weights); \
+  UnsupportedWrapper6(void, glWriteMaskEXT, GLuint, res, GLuint, in, GLenum, outX, GLenum, outY, GLenum, outZ, GLenum, outW); \
+  UnsupportedWrapper3(void, glGetUniformivARB, GLhandleARB, programObj, GLint, location, GLint *, params); \
+  UnsupportedWrapper13(void, glTexSubImage4DSGIS, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, woffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, size4d, GLenum, format, GLenum, type, const void *, pixels); \
+  UnsupportedWrapper3(void, glWindowPos3fARB, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactordSUN, GLdouble, factor); \
+  UnsupportedWrapper3(void, glDeleteNamesAMD, GLenum, identifier, GLuint, num, const GLuint *, names); \
+  UnsupportedWrapper3(void, glSecondaryColor3b, GLbyte, red, GLbyte, green, GLbyte, blue); \
+  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleNV, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper3(void, glProgramUniform1ui64NV, GLuint, program, GLint, location, GLuint64EXT, x); \
+  UnsupportedWrapper2(void, glVertexAttribL1ui64ARB, GLuint, index, GLuint64EXT, x); \
+  UnsupportedWrapper6(void, glArrayObjectATI, GLenum, array, GLint, size, GLenum, type, GLsizei, stride, GLuint, buffer, GLuint, offset); \
+  UnsupportedWrapper1(void, glBeginVideoCaptureNV, GLuint, video_capture_slot); \
+  UnsupportedWrapper2(void, glElementPointerAPPLE, GLenum, type, const void *, pointer); \
+  UnsupportedWrapper2(void, glVertexAttribL4ui64vNV, GLuint, index, const GLuint64EXT *, v); \
+  UnsupportedWrapper3(void, glGetVertexAttribPointervARB, GLuint, index, GLenum, pname, void **, pointer); \
+  UnsupportedWrapper2(void, glMultiTexCoord3iv, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper4(void, glGetMapAttribParameterivNV, GLenum, target, GLuint, index, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glDepthRangedNV, GLdouble, zNear, GLdouble, zFar); \
+  UnsupportedWrapper5(void, glVertexStream4iATI, GLenum, stream, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper3(void, glMultiTexCoordP1ui, GLenum, texture, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper1(void, glTexCoord2xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper4(void, glRotatexOES, GLfixed, angle, GLfixed, x, GLfixed, y, GLfixed, z); \
+  UnsupportedWrapper1(void, glWindowPos2iv, const GLint *, v); \
+  UnsupportedWrapper1(void, glVertex2xOES, GLfixed, x); \
+  UnsupportedWrapper5(void, glFramebufferTextureFaceARB, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
+  UnsupportedWrapper4(void, glProgramNamedParameter4fvNV, GLuint, id, GLsizei, len, const GLubyte *, name, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetListParameterfvSGIX, GLuint, list, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper1(void, glClientActiveTextureARB, GLenum, texture); \
+  UnsupportedWrapper7(void, glProgramNamedParameter4fNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper1(void, glNormal3fv, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glClearDepthxOES, GLfixed, depth); \
+  UnsupportedWrapper2(void, glNormalStream3svATI, GLenum, stream, const GLshort *, coords); \
+  UnsupportedWrapper4(void, glGetnMapdv, GLenum, target, GLenum, query, GLsizei, bufSize, GLdouble *, v); \
+  UnsupportedWrapper3(void, glProgramEnvParameterI4ivNV, GLenum, target, GLuint, index, const GLint *, params); \
+  UnsupportedWrapper2(void, glDeleteProgramsARB, GLsizei, n, const GLuint *, programs); \
+  UnsupportedWrapper3(void, glColor3ub, GLubyte, red, GLubyte, green, GLubyte, blue); \
+  UnsupportedWrapper1(void, glIndexf, GLfloat, c); \
+  UnsupportedWrapper5(void, glBindVideoCaptureStreamTextureNV, GLuint, video_capture_slot, GLuint, stream, GLenum, frame_region, GLenum, target, GLuint, texture); \
+  UnsupportedWrapper1(void, glSignalVkFenceNV, GLuint64, vkFence); \
+  UnsupportedWrapper10(void, glMap2d, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, const GLdouble *, points); \
+  UnsupportedWrapper2(void, glLightModelxOES, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper2(void, glFinishObjectAPPLE, GLenum, object, GLint, name); \
+  UnsupportedWrapper3(void, glUniform4i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper1(void, glBeginTransformFeedbackNV, GLenum, primitiveMode); \
+  UnsupportedWrapper1(void, glIndexiv, const GLint *, c); \
+  UnsupportedWrapper3(void, glGetTexParameterxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper5(void, glMultiTexCoordPointerEXT, GLenum, texunit, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glClipPlanefOES, GLenum, plane, const GLfloat *, equation); \
+  UnsupportedWrapper2(void, glBindProgramARB, GLenum, target, GLuint, program); \
+  UnsupportedWrapper1(void, glTexCoord1xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper4(void, glGetProgramParameterfvNV, GLenum, target, GLuint, index, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glTexEnviv, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper5(void, glVertexPointerEXT, GLint, size, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
+  UnsupportedWrapper2(void, glWindowPos2iARB, GLint, x, GLint, y); \
+  UnsupportedWrapper2(void, glAlphaFunc, GLenum, func, GLfloat, ref); \
+  UnsupportedWrapper0(void, glEndOcclusionQueryNV); \
+  UnsupportedWrapper0(void, glEndConditionalRenderNV); \
+  UnsupportedWrapper3(void, glGetnPixelMapusv, GLenum, map, GLsizei, bufSize, GLushort *, values); \
+  UnsupportedWrapper3(GLenum, glVideoCaptureNV, GLuint, video_capture_slot, GLuint *, sequence_num, GLuint64EXT *, capture_time); \
+  UnsupportedWrapper1(GLboolean, glIsAsyncMarkerSGIX, GLuint, marker); \
+  UnsupportedWrapper1(void, glEvalCoord1f, GLfloat, u); \
+  UnsupportedWrapper4(void *, glMapBufferRangeEXT, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
+  UnsupportedWrapper1(void, glLoadMatrixf, const GLfloat *, m); \
+  UnsupportedWrapper1(void, glVertexWeightfEXT, GLfloat, weight); \
+  UnsupportedWrapper2(void, glCoverStrokePathNV, GLuint, path, GLenum, coverMode); \
+  UnsupportedWrapper3(void, glGetVertexAttribivNV, GLuint, index, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glUniformHandleui64vNV, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper3(void, glUniform2i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper6(void, glGetInternalformatSampleivNV, GLenum, target, GLenum, internalformat, GLsizei, samples, GLenum, pname, GLsizei, bufSize, GLint *, params); \
+  UnsupportedWrapper1(void, glRasterPos4dv, const GLdouble *, v); \
+  UnsupportedWrapper8(void, glGetnSeparableFilter, GLenum, target, GLenum, format, GLenum, type, GLsizei, rowBufSize, void *, row, GLsizei, columnBufSize, void *, column, void *, span); \
+  UnsupportedWrapper2(void, glWeightfvARB, GLint, size, const GLfloat *, weights); \
+  UnsupportedWrapper2(void, glGetFixedvOES, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper2(void, glDeletePerfMonitorsAMD, GLsizei, n, GLuint *, monitors); \
+  UnsupportedWrapper4(void, glShaderOp2EXT, GLenum, op, GLuint, res, GLuint, arg1, GLuint, arg2); \
+  UnsupportedWrapper1(void, glLoadTransposeMatrixfARB, const GLfloat *, m); \
+  UnsupportedWrapper2(void, glFragmentLightModelivSGIX, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper1(void, glMultTransposeMatrixdARB, const GLdouble *, m); \
+  UnsupportedWrapper1(void, glWindowPos3iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glSharpenTexFuncSGIS, GLenum, target, GLsizei, n, const GLfloat *, points); \
+  UnsupportedWrapper4(void, glRotated, GLdouble, angle, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glProgramUniformHandleui64IMG, GLuint, program, GLint, location, GLuint64, value); \
+  UnsupportedWrapper2(void, glVertexAttrib2hvNV, GLuint, index, const GLhalfNV *, v); \
+  UnsupportedWrapper1(void, glFogCoordhvNV, const GLhalfNV *, fog); \
+  UnsupportedWrapper1(GLboolean, glIsCommandListNV, GLuint, list); \
+  UnsupportedWrapper2(void, glPixelTexGenParameterivSGIS, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper6(void, glMap1xOES, GLenum, target, GLfixed, u1, GLfixed, u2, GLint, stride, GLint, order, GLfixed, points); \
+  UnsupportedWrapper11(void, glTexImage4DSGIS, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, size4d, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
+  UnsupportedWrapper4(void, glMatrixTranslatefEXT, GLenum, mode, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glNormalP3uiv, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper1(void, glCoverageModulationNV, GLenum, components); \
+  UnsupportedWrapper1(GLboolean, glIsTransformFeedbackNV, GLuint, id); \
+  UnsupportedWrapper1(void, glWindowPos3fvARB, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glFragmentColorMaterialSGIX, GLenum, face, GLenum, mode); \
+  UnsupportedWrapper4(void, glVertexAttrib3dNV, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glMaterialiv, GLenum, face, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper1(void, glMatrixMode, GLenum, mode); \
+  UnsupportedWrapper2(void, glRectiv, const GLint *, v1, const GLint *, v2); \
+  UnsupportedWrapper1(void, glFogCoordfEXT, GLfloat, coord); \
+  UnsupportedWrapper2(void, glGetPathDashArrayNV, GLuint, path, GLfloat *, dashArray); \
+  UnsupportedWrapper4(void, glBindBufferOffsetNV, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset); \
+  UnsupportedWrapper3(void, glLightfv, GLenum, light, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper4(void, glVertex4bOES, GLbyte, x, GLbyte, y, GLbyte, z, GLbyte, w); \
+  UnsupportedWrapper2(void, glPixelTransferf, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glVertexAttribParameteriAMD, GLuint, index, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glWindowPos2sMESA, GLshort, x, GLshort, y); \
+  UnsupportedWrapper3(void, glGetVariantFloatvEXT, GLuint, id, GLenum, value, GLfloat *, data); \
+  UnsupportedWrapper2(void, glUseShaderProgramEXT, GLenum, type, GLuint, program); \
+  UnsupportedWrapper5(void, glVertexArrayFogCoordOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper5(void, glVertexAttrib4dNV, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper4(void, glColor4s, GLshort, red, GLshort, green, GLshort, blue, GLshort, alpha); \
+  UnsupportedWrapper3(void, glGetnPixelMapfv, GLenum, map, GLsizei, bufSize, GLfloat *, values); \
+  UnsupportedWrapper2(void, glDisableVertexArrayEXT, GLuint, vaobj, GLenum, array); \
+  UnsupportedWrapper4(void, glProgramUniform1ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper2(void, glFogxOES, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper4(void, glGetColorTableSGI, GLenum, target, GLenum, format, GLenum, type, void *, table); \
+  UnsupportedWrapper4(void, glGetTranslatedShaderSourceANGLE, GLuint, shader, GLsizei, bufsize, GLsizei *, length, GLchar *, source); \
+  UnsupportedWrapper7(void, glVertexAttribArrayObjectATI, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, GLuint, buffer, GLuint, offset); \
+  UnsupportedWrapper2(void, glMatrixIndexusvARB, GLint, size, const GLushort *, indices); \
+  UnsupportedWrapper1(void, glEnableVariantClientStateEXT, GLuint, id); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactoruiSUN, GLuint, factor); \
+  UnsupportedWrapper3(void, glImageTransformParameteriHP, GLenum, target, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glSecondaryColor3ubEXT, GLubyte, red, GLubyte, green, GLubyte, blue); \
+  UnsupportedWrapper1(void, glLoadName, GLuint, name); \
+  UnsupportedWrapper5(void, glGetSyncivAPPLE, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
+  UnsupportedWrapper3(void, glListParameterfSGIX, GLuint, list, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper1(void, glBeginConditionalRenderNVX, GLuint, id); \
+  UnsupportedWrapper5(void, glMultiTexCoord4iARB, GLenum, target, GLint, s, GLint, t, GLint, r, GLint, q); \
+  UnsupportedWrapper1(void, glVertex4hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper4(void, glProgramUniform1i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper4(void, glBufferStorageEXT, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
+  UnsupportedWrapper3(void, glUniform2i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper3(void, glGetPathTexGenivNV, GLenum, texCoordSet, GLenum, pname, GLint *, value); \
+  UnsupportedWrapper4(void, glNamedFramebufferSampleLocationsfvARB, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper6(void, glAlphaFragmentOp1ATI, GLenum, op, GLuint, dst, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod); \
+  UnsupportedWrapper2(void, glVertexArrayRangeNV, GLsizei, length, const void *, pointer); \
+  UnsupportedWrapper4(void, glGetnUniformui64vARB, GLuint, program, GLint, location, GLsizei, bufSize, GLuint64 *, params); \
+  UnsupportedWrapper6(void, glNamedRenderbufferStorageMultisampleCoverageEXT, GLuint, renderbuffer, GLsizei, coverageSamples, GLsizei, colorSamples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper3(void, glColor3b, GLbyte, red, GLbyte, green, GLbyte, blue); \
+  UnsupportedWrapper6(void, glVertexArraySecondaryColorOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper1(void, glVertex3bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper2(void, glMultiTexCoord2hvNV, GLenum, target, const GLhalfNV *, v); \
+  UnsupportedWrapper4(void, glVertex4f, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper2(void, glVertexAttrib4svNV, GLuint, index, const GLshort *, v); \
+  UnsupportedWrapper3(void, glGetHistogramParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper1(void, glTexCoord3iv, const GLint *, v); \
+  UnsupportedWrapper1(void, glColor3iv, const GLint *, v); \
+  UnsupportedWrapper4(void, glRasterPos4xOES, GLfixed, x, GLfixed, y, GLfixed, z, GLfixed, w); \
+  UnsupportedWrapper3(void, glTangentPointerEXT, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glCombinerParameterivNV, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper1(void, glTexCoord4xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper14(void, glDeformationMap3dSGIX, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, GLdouble, w1, GLdouble, w2, GLint, wstride, GLint, worder, const GLdouble *, points); \
+  UnsupportedWrapper4(void, glGetVideoCaptureStreamdvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper11(void, glDrawVkImageNV, GLuint64, vkImage, GLuint, sampler, GLfloat, x0, GLfloat, y0, GLfloat, x1, GLfloat, y1, GLfloat, z, GLfloat, s0, GLfloat, t0, GLfloat, s1, GLfloat, t1); \
+  UnsupportedWrapper0(void, glUnlockArraysEXT); \
+  UnsupportedWrapper4(void, glShaderSourceARB, GLhandleARB, shaderObj, GLsizei, count, const GLcharARB **, string, const GLint *, length); \
+  UnsupportedWrapper4(void, glPathColorGenNV, GLenum, color, GLenum, genMode, GLenum, colorFormat, const GLfloat *, coeffs); \
+  UnsupportedWrapper2(void, glVDPAUInitNV, const void *, vdpDevice, const void *, getProcAddress); \
+  UnsupportedWrapper1(void, glTexCoord4dv, const GLdouble *, v); \
+  UnsupportedWrapper5(void, glCopyColorTable, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper6(void, glColorSubTable, GLenum, target, GLsizei, start, GLsizei, count, GLenum, format, GLenum, type, const void *, data); \
+  UnsupportedWrapper2(void, glElementPointerATI, GLenum, type, const void *, pointer); \
+  UnsupportedWrapper2(void, glMultiTexCoord2svARB, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper3(void, glVertexStream2iATI, GLenum, stream, GLint, x, GLint, y); \
+  UnsupportedWrapper2(void, glCreateStatesNV, GLsizei, n, GLuint *, states); \
+  UnsupportedWrapper1(void, glBinormal3fvEXT, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glGetTrackMatrixivNV, GLenum, target, GLuint, address, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glColor4fv, const GLfloat *, v); \
+  UnsupportedWrapper9(void, glTexturePageCommitmentEXT, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
+  UnsupportedWrapper5(void, glViewportSwizzleNV, GLuint, index, GLenum, swizzlex, GLenum, swizzley, GLenum, swizzlez, GLenum, swizzlew); \
+  UnsupportedWrapper2(void, glMatrixMult3x2fNV, GLenum, matrixMode, const GLfloat *, m); \
+  UnsupportedWrapper3(void, glBinormal3fEXT, GLfloat, bx, GLfloat, by, GLfloat, bz); \
+  UnsupportedWrapper4(void, glVertexStream3dATI, GLenum, stream, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glGetVertexAttribdvNV, GLuint, index, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper5(void, glMultiTexCoord4xOES, GLenum, texture, GLfixed, s, GLfixed, t, GLfixed, r, GLfixed, q); \
+  UnsupportedWrapper1(void, glGetFogFuncSGIS, GLfloat *, points); \
+  UnsupportedWrapper4(void, glMultiTexGeniEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glWindowRectanglesEXT, GLenum, mode, GLsizei, count, const GLint *, box); \
+  UnsupportedWrapper3(void, glBindBufferBaseNV, GLenum, target, GLuint, index, GLuint, buffer); \
+  UnsupportedWrapper13(void, glPresentFrameDualFillNV, GLuint, video_slot, GLuint64EXT, minPresentTime, GLuint, beginPresentTimeId, GLuint, presentDurationId, GLenum, type, GLenum, target0, GLuint, fill0, GLenum, target1, GLuint, fill1, GLenum, target2, GLuint, fill2, GLenum, target3, GLuint, fill3); \
+  UnsupportedWrapper3(void, glGetBufferParameterui64vNV, GLenum, target, GLenum, pname, GLuint64EXT *, params); \
+  UnsupportedWrapper5(void, glBindBufferRangeNV, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
+  UnsupportedWrapper2(void, glVariantuivEXT, GLuint, id, const GLuint *, addr); \
+  UnsupportedWrapper3(void, glDrawElementArrayAPPLE, GLenum, mode, GLint, first, GLsizei, count); \
+  UnsupportedWrapper3(void, glGetVertexAttribdvARB, GLuint, index, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper2(void, glVertexAttrib3fvNV, GLuint, index, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glIndexPointerListIBM, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper7(void, glProgramNamedParameter4dNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper1(void, glSecondaryColor3ubv, const GLubyte *, v); \
+  UnsupportedWrapper1(void, glBeginPerfQueryINTEL, GLuint, queryHandle); \
+  UnsupportedWrapper3(void, glGetVideoCaptureivNV, GLuint, video_capture_slot, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper4(void, glProgramUniformHandleui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
+  UnsupportedWrapper2(void, glMatrixIndexuivARB, GLint, size, const GLuint *, indices); \
+  UnsupportedWrapper1(void, glUnmapObjectBufferATI, GLuint, buffer); \
+  UnsupportedWrapper1(void, glRasterPos2fv, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glEvalMapsNV, GLenum, target, GLenum, mode); \
+  UnsupportedWrapper1(void, glColor4usv, const GLushort *, v); \
+  UnsupportedWrapper2(void, glVertexStream4dvATI, GLenum, stream, const GLdouble *, coords); \
+  UnsupportedWrapper3(void, glGetProgramEnvParameterfvARB, GLenum, target, GLuint, index, GLfloat *, params); \
+  UnsupportedWrapper3(void, glVertexAttribs4fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glDeletePathsNV, GLuint, path, GLsizei, range); \
+  UnsupportedWrapper3(void, glExecuteProgramNV, GLenum, target, GLuint, id, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glTexCoord4iv, const GLint *, v); \
+  UnsupportedWrapper2(void, glTexCoord2bOES, GLbyte, s, GLbyte, t); \
+  UnsupportedWrapper1(void, glDeleteFragmentShaderATI, GLuint, id); \
+  UnsupportedWrapper3(void, glTexCoord2fColor4ubVertex3fvSUN, const GLfloat *, tc, const GLubyte *, c, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glVariantbvEXT, GLuint, id, const GLbyte *, addr); \
+  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleAPPLE, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper1(void, glRasterPos2xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper1(void, glWindowPos2dvARB, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glPolygonOffsetEXT, GLfloat, factor, GLfloat, bias); \
+  UnsupportedWrapper5(void, glCopyColorSubTable, GLenum, target, GLsizei, start, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper3(void, glVertexAttribs1dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glSecondaryColor3ubvEXT, const GLubyte *, v); \
+  UnsupportedWrapper2(void, glTexCoord2xOES, GLfixed, s, GLfixed, t); \
+  UnsupportedWrapper1(void, glVertexWeightfvEXT, const GLfloat *, weight); \
+  UnsupportedWrapper1(GLint, glPollAsyncSGIX, GLuint *, markerp); \
+  UnsupportedWrapper6(void, glProgramEnvParameterI4uiNV, GLenum, target, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
+  UnsupportedWrapper2(void, glLightModelf, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper1(void, glWindowPos2dv, const GLdouble *, v); \
+  UnsupportedWrapper2(GLint, glGetUniformLocationARB, GLhandleARB, programObj, const GLcharARB *, name); \
+  UnsupportedWrapper3(void, glSecondaryColor3s, GLshort, red, GLshort, green, GLshort, blue); \
+  UnsupportedWrapper2(void, glMultiTexCoord1bvOES, GLenum, texture, const GLbyte *, coords); \
+  UnsupportedWrapper2(void, glColor3fVertex3fvSUN, const GLfloat *, c, const GLfloat *, v); \
+  UnsupportedWrapper6(void, glVertexArrayTexCoordOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper1(void, glArrayElementEXT, GLint, i); \
+  UnsupportedWrapper4(GLvdpauSurfaceNV, glVDPAURegisterOutputSurfaceNV, const void *, vdpSurface, GLenum, target, GLsizei, numTextureNames, const GLuint *, textureNames); \
+  UnsupportedWrapper3(void, glMultiTexCoordP2ui, GLenum, texture, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactorbSUN, GLbyte, factor); \
+  UnsupportedWrapper3(void, glGetProgramEnvParameterIuivNV, GLenum, target, GLuint, index, GLuint *, params); \
+  UnsupportedWrapper2(void, glColorP3ui, GLenum, type, GLuint, color); \
+  UnsupportedWrapper2(void, glMultiTexCoord4dv, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper4(void, glVertexAttribL3i64NV, GLuint, index, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z); \
+  UnsupportedWrapper3(void, glGetOcclusionQueryivNV, GLuint, id, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glGetProgramSubroutineParameteruivNV, GLenum, target, GLuint, index, GLuint *, param); \
+  UnsupportedWrapper2(void, glDeleteTexturesEXT, GLsizei, n, const GLuint *, textures); \
+  UnsupportedWrapper2(void, glAlphaFuncxOES, GLenum, func, GLfixed, ref); \
+  UnsupportedWrapper3(void, glGetPathParameterivNV, GLuint, path, GLenum, pname, GLint *, value); \
+  UnsupportedWrapper1(void, glMultMatrixxOES, const GLfixed *, m); \
+  UnsupportedWrapper2(void, glSetFenceNV, GLuint, fence, GLenum, condition); \
   UnsupportedWrapper1(void, glArrayElement, GLint, i); \
+  UnsupportedWrapper1(void, glClearDepthfOES, GLclampf, depth); \
+  UnsupportedWrapper4(void, glLoadProgramNV, GLenum, target, GLuint, id, GLsizei, len, const GLubyte *, program); \
+  UnsupportedWrapper4(void, glVertexWeightPointerEXT, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper1(void, glMultTransposeMatrixxOES, const GLfixed *, m); \
+  UnsupportedWrapper1(GLushort, glGetStageIndexNV, GLenum, shadertype); \
+  UnsupportedWrapper1(void, glVertex2hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glGetProgramLocalParameterdvARB, GLenum, target, GLuint, index, GLdouble *, params); \
+  UnsupportedWrapper2(GLboolean, glIsNameAMD, GLenum, identifier, GLuint, name); \
+  UnsupportedWrapper5(void, glProgramUniform3ui64NV, GLuint, program, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z); \
+  UnsupportedWrapper1(void, glEvalCoord2fv, const GLfloat *, u); \
+  UnsupportedWrapper7(void, glCoverStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper4(void, glWeightPathsNV, GLuint, resultPath, GLsizei, numPaths, const GLuint *, paths, const GLfloat *, weights); \
+  UnsupportedWrapper3(void, glGetCombinerStageParameterfvNV, GLenum, stage, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetTexEnvfv, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glTexCoord3bOES, GLbyte, s, GLbyte, t, GLbyte, r); \
+  UnsupportedWrapper1(void, glSecondaryColor3fvEXT, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glMatrixMultdEXT, GLenum, mode, const GLdouble *, m); \
+  UnsupportedWrapper3(void, glVertex3s, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper5(void, glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glTexGendv, GLenum, coord, GLenum, pname, const GLdouble *, params); \
+  UnsupportedWrapper4(void, glDrawMeshArraysSUN, GLenum, mode, GLint, first, GLsizei, count, GLsizei, width); \
+  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterdvEXT, GLuint, program, GLenum, target, GLuint, index, GLdouble *, params); \
+  UnsupportedWrapper3(void, glProgramEnvParameter4fvARB, GLenum, target, GLuint, index, const GLfloat *, params); \
+  UnsupportedWrapper8(GLenum, glPathGlyphIndexArrayNV, GLuint, firstPathName, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLuint, firstGlyphIndex, GLsizei, numGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
+  UnsupportedWrapper4(void, glProgramUniformHandleui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
+  UnsupportedWrapper3(void, glGetColorTableParameterfvSGI, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper4(void, glMulticastGetQueryObjectivNV, GLuint, gpu, GLuint, id, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glWindowPos2svARB, const GLshort *, v); \
+  UnsupportedWrapper6(void, glConvolutionFilter1DEXT, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, image); \
+  UnsupportedWrapper2(void, glVertexP4ui, GLenum, type, GLuint, value); \
+  UnsupportedWrapper1(void, glIndexd, GLdouble, c); \
+  UnsupportedWrapper3(void, glMaterialxOES, GLenum, face, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper2(void, glWeightusvARB, GLint, size, const GLushort *, weights); \
+  UnsupportedWrapper4(void, glNormalPointerListIBM, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper3(void, glVertex4xOES, GLfixed, x, GLfixed, y, GLfixed, z); \
+  UnsupportedWrapper3(void, glGetConvolutionParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactoriSUN, GLint, factor); \
+  UnsupportedWrapper9(void, glGetPathSpacingNV, GLenum, pathListMode, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLfloat, advanceScale, GLfloat, kerningScale, GLenum, transformType, GLfloat *, returnedSpacing); \
+  UnsupportedWrapper2(void, glVertexAttribL1ui64vNV, GLuint, index, const GLuint64EXT *, v); \
+  UnsupportedWrapper3(void, glPathParameterivNV, GLuint, path, GLenum, pname, const GLint *, value); \
+  UnsupportedWrapper4(void, glProgramUniform1i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper2(GLint, glGetFragDataIndexEXT, GLuint, program, const GLchar *, name); \
+  UnsupportedWrapper2(void, glGenQueryResourceTagNV, GLsizei, n, GLint *, tagIds); \
+  UnsupportedWrapper2(void, glIglooInterfaceSGIX, GLenum, pname, const void *, params); \
+  UnsupportedWrapper3(void, glVertex3d, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper1(void, glValidateProgramARB, GLhandleARB, programObj); \
+  UnsupportedWrapper2(void, glBindProgramNV, GLenum, target, GLuint, id); \
+  UnsupportedWrapper1(void, glIndexxvOES, const GLfixed *, component); \
+  UnsupportedWrapper2(void, glMatrixLoad3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
+  UnsupportedWrapper1(void, glRasterPos3xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper2(void, glGetIntegerui64vNV, GLenum, value, GLuint64EXT *, result); \
+  UnsupportedWrapper1(void, glEvalCoord1dv, const GLdouble *, u); \
+  UnsupportedWrapper6(void, glSwizzleEXT, GLuint, res, GLuint, in, GLenum, outX, GLenum, outY, GLenum, outZ, GLenum, outW); \
+  UnsupportedWrapper1(void, glCompileCommandListNV, GLuint, list); \
+  UnsupportedWrapper1(void, glTexCoord3sv, const GLshort *, v); \
+  UnsupportedWrapper2(void, glWindowPos2i, GLint, x, GLint, y); \
+  UnsupportedWrapper2(void, glTexRenderbufferNV, GLenum, target, GLuint, renderbuffer); \
+  UnsupportedWrapper9(void, glTexSubImage2DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
+  UnsupportedWrapper4(void, glVertexAttrib3fNV, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(void, glColor4iv, const GLint *, v); \
+  UnsupportedWrapper2(void, glMatrixLoaddEXT, GLenum, mode, const GLdouble *, m); \
+  UnsupportedWrapper1(void, glWindowPos3fvMESA, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glDrawRangeElementArrayATI, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count); \
+  UnsupportedWrapper0(void, glResolveMultisampleFramebufferAPPLE); \
+  UnsupportedWrapper0(void, glPrimitiveRestartNV); \
+  UnsupportedWrapper1(void, glWaitVkSemaphoreNV, GLuint64, vkSemaphore); \
+  UnsupportedWrapper2(void, glMultiTexCoord3fv, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glVertexAttribL2i64vNV, GLuint, index, const GLint64EXT *, v); \
+  UnsupportedWrapper1(void, glTexCoord1hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper2(void, glVertexAttrib2dvNV, GLuint, index, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glVertexStream2fATI, GLenum, stream, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper4(void, glProgramUniform2ui64ARB, GLuint, program, GLint, location, GLuint64, x, GLuint64, y); \
+  UnsupportedWrapper6(void, glMapGrid2f, GLint, un, GLfloat, u1, GLfloat, u2, GLint, vn, GLfloat, v1, GLfloat, v2); \
+  UnsupportedWrapper6(void, glVertexArrayVertexOffsetEXT, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper2(void, glMultiTexCoord3bvOES, GLenum, texture, const GLbyte *, coords); \
+  UnsupportedWrapper1(void, glDisableClientState, GLenum, array); \
+  UnsupportedWrapper2(void, glFogxvOES, GLenum, pname, const GLfixed *, param); \
+  UnsupportedWrapper5(void, glNamedProgramStringEXT, GLuint, program, GLenum, target, GLenum, format, GLsizei, len, const void *, string); \
+  UnsupportedWrapper3(void, glFeedbackBuffer, GLsizei, size, GLenum, type, GLfloat *, buffer); \
+  UnsupportedWrapper3(void, glProgramUniform1i64NV, GLuint, program, GLint, location, GLint64EXT, x); \
+  UnsupportedWrapper2(void, glVertexAttrib3hvNV, GLuint, index, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glVertexAttribs1svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
+  UnsupportedWrapper4(void, glMultiDrawElementArrayAPPLE, GLenum, mode, const GLint *, first, const GLsizei *, count, GLsizei, primcount); \
+  UnsupportedWrapper2(void, glVertexAttrib4dvNV, GLuint, index, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glUniform1ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper1(void, glVertex4dv, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glCallCommandListNV, GLuint, list); \
+  UnsupportedWrapper2(void, glLightModelxvOES, GLenum, pname, const GLfixed *, param); \
+  UnsupportedWrapper3(void, glGetMapdv, GLenum, target, GLenum, query, GLdouble *, v); \
+  UnsupportedWrapper5(void, glCopyColorTableSGI, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper1(GLboolean, glIsProgramNV, GLuint, id); \
+  UnsupportedWrapper2(void, glGenTransformFeedbacksNV, GLsizei, n, GLuint *, ids); \
+  UnsupportedWrapper5(void, glBlendFuncSeparateIndexedAMD, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
+  UnsupportedWrapper3(GLint, glGetProgramResourceLocationIndexEXT, GLuint, program, GLenum, programInterface, const GLchar *, name); \
+  UnsupportedWrapper4(void, glSecondaryColorPointerEXT, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper3(void, glTexEnvxvOES, GLenum, target, GLenum, pname, const GLfixed *, params); \
+  UnsupportedWrapper1(void, glPathFogGenNV, GLenum, genMode); \
+  UnsupportedWrapper2(void, glNormalP3ui, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper1(void, glNormal3hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glTexGenxvOES, GLenum, coord, GLenum, pname, const GLfixed *, params); \
+  UnsupportedWrapper1(GLboolean, glIsSyncAPPLE, GLsync, sync); \
+  UnsupportedWrapper3(void, glPixelMapusv, GLenum, map, GLsizei, mapsize, const GLushort *, values); \
+  UnsupportedWrapper3(void, glTexEnvfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glSecondaryColor3hNV, GLhalfNV, red, GLhalfNV, green, GLhalfNV, blue); \
+  UnsupportedWrapper2(void, glTexBumpParameterivATI, GLenum, pname, const GLint *, param); \
+  UnsupportedWrapper8(void, glTextureStorageSparseAMD, GLuint, texture, GLenum, target, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, layers, GLbitfield, flags); \
+  UnsupportedWrapper2(void, glMultiTexCoord2xvOES, GLenum, texture, const GLfixed *, coords); \
+  UnsupportedWrapper7(void, glConvolutionFilter2D, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, image); \
+  UnsupportedWrapper2(void, glVertexStream3dvATI, GLenum, stream, const GLdouble *, coords); \
+  UnsupportedWrapper1(GLVULKANPROCNV, glGetVkProcAddrNV, const GLchar *, name); \
+  UnsupportedWrapper1(void, glBindFragmentShaderATI, GLuint, id); \
+  UnsupportedWrapper1(void, glVertex3hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper1(void, glPushAttrib, GLbitfield, mask); \
+  UnsupportedWrapper1(void, glSecondaryColor3usvEXT, const GLushort *, v); \
+  UnsupportedWrapper3(void, glGetPathTexGenfvNV, GLenum, texCoordSet, GLenum, pname, GLfloat *, value); \
+  UnsupportedWrapper4(void, glProgramUniform3i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper0(void, glPopAttrib); \
+  UnsupportedWrapper1(void, glTexCoord3fv, const GLfloat *, v); \
+  UnsupportedWrapper1(GLboolean, glVDPAUIsSurfaceNV, GLvdpauSurfaceNV, surface); \
+  UnsupportedWrapper6(void, glNormal3fVertex3fSUN, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper5(void, glVertexArrayIndexOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper1(void, glTangent3fvEXT, const GLfloat *, v); \
+  UnsupportedWrapper5(void, glProgramBufferParametersIuivNV, GLenum, target, GLuint, bindingIndex, GLuint, wordIndex, GLsizei, count, const GLuint *, params); \
+  UnsupportedWrapper2(void, glTexCoord2s, GLshort, s, GLshort, t); \
+  UnsupportedWrapper1(void, glSamplePatternSGIS, GLenum, pattern); \
+  UnsupportedWrapper2(void, glMatrixLoadTransposedEXT, GLenum, mode, const GLdouble *, m); \
+  UnsupportedWrapper2(void, glUnmapTexture2DINTEL, GLuint, texture, GLint, level); \
+  UnsupportedWrapper5(void, glGetCombinerInputParameterfvNV, GLenum, stage, GLenum, portion, GLenum, variable, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper0(void, glResumeTransformFeedbackNV); \
+  UnsupportedWrapper3(void, glGetInvariantFloatvEXT, GLuint, id, GLenum, value, GLfloat *, data); \
+  UnsupportedWrapper4(void, glTexCoord4i, GLint, s, GLint, t, GLint, r, GLint, q); \
+  UnsupportedWrapper3(void, glMultiTexCoord2dARB, GLenum, target, GLdouble, s, GLdouble, t); \
+  UnsupportedWrapper1(void, glSignalVkSemaphoreNV, GLuint64, vkSemaphore); \
+  UnsupportedWrapper3(void, glSecondaryColor3us, GLushort, red, GLushort, green, GLushort, blue); \
+  UnsupportedWrapper3(void, glExtGetShadersQCOM, GLuint *, shaders, GLint, maxShaders, GLint *, numShaders); \
+  UnsupportedWrapper3(void, glGetPathColorGenfvNV, GLenum, color, GLenum, pname, GLfloat *, value); \
+  UnsupportedWrapper4(void, glGetnUniformuivKHR, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
+  UnsupportedWrapper3(void, glRasterPos3s, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper2(void, glRasterPos2i, GLint, x, GLint, y); \
+  UnsupportedWrapper3(void, glSecondaryColor3usEXT, GLushort, red, GLushort, green, GLushort, blue); \
+  UnsupportedWrapper1(void, glRasterPos4xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper3(void, glTranslatef, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glWeightsvARB, GLint, size, const GLshort *, weights); \
+  UnsupportedWrapper9(void, glReplacementCodeuiTexCoord2fNormal3fVertex3fSUN, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(void, glReplacementCodeusvSUN, const GLushort *, code); \
+  UnsupportedWrapper3(void, glSecondaryColor3fEXT, GLfloat, red, GLfloat, green, GLfloat, blue); \
+  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleANGLE, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper5(void, glMulticastBufferSubDataNV, GLbitfield, gpuMask, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
+  UnsupportedWrapper3(void, glEGLImageTargetTextureStorageEXT, GLuint, texture, GLeglImageOES, image, const GLint*, attrib_list); \
+  UnsupportedWrapper4(void, glColor4d, GLdouble, red, GLdouble, green, GLdouble, blue, GLdouble, alpha); \
+  UnsupportedWrapper2(void, glGenFencesAPPLE, GLsizei, n, GLuint *, fences); \
+  UnsupportedWrapper2(void, glVertexStream1fvATI, GLenum, stream, const GLfloat *, coords); \
+  UnsupportedWrapper5(void, glMultiModeDrawArraysIBM, const GLenum *, mode, const GLint *, first, const GLsizei *, count, GLsizei, primcount, GLint, modestride); \
+  UnsupportedWrapper4(void, glRectf, GLfloat, x1, GLfloat, y1, GLfloat, x2, GLfloat, y2); \
+  UnsupportedWrapper2(void, glSpriteParameteriSGIX, GLenum, pname, GLint, param); \
   UnsupportedWrapper3(void, glInterleavedArrays, GLenum, format, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glPixelTransferi, GLenum, pname, GLint, param); \
+  UnsupportedWrapper1(GLuint, glBindParameterEXT, GLenum, value); \
+  UnsupportedWrapper3(void, glConvolutionParameterivEXT, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glGetMapParameterfvNV, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glBindAttribLocationARB, GLhandleARB, programObj, GLuint, index, const GLcharARB *, name); \
+  UnsupportedWrapper1(void, glCoverageMaskNV, GLboolean, mask); \
+  UnsupportedWrapper1(void, glMakeImageHandleNonResidentNV, GLuint64, handle); \
+  UnsupportedWrapper3(GLsync, glCreateSyncFromCLeventARB, struct _cl_context *, context, struct _cl_event *, event, GLbitfield, flags); \
+  UnsupportedWrapper1(void, glReplacementCodeubvSUN, const GLubyte *, code); \
+  UnsupportedWrapper1(void, glWindowPos2ivMESA, const GLint *, v); \
+  UnsupportedWrapper3(void, glLightiv, GLenum, light, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper9(void, glTexCoord2fColor4ubVertex3fSUN, GLfloat, s, GLfloat, t, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(void, glNormal3sv, const GLshort *, v); \
+  UnsupportedWrapper1(void, glUseProgramObjectARB, GLhandleARB, programObj); \
+  UnsupportedWrapper0(GLhandleARB, glCreateProgramObjectARB); \
+  UnsupportedWrapper3(void, glColor3us, GLushort, red, GLushort, green, GLushort, blue); \
+  UnsupportedWrapper3(void, glGetMultisamplefvNV, GLenum, pname, GLuint, index, GLfloat *, val); \
+  UnsupportedWrapper3(void, glExtGetFramebuffersQCOM, GLuint *, framebuffers, GLint, maxFramebuffers, GLint *, numFramebuffers); \
+  UnsupportedWrapper2(void, glMultiTexCoord3fvARB, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetVideoivNV, GLuint, video_slot, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper8(void, glTexCoord2fColor3fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper3(void, glTangent3bEXT, GLbyte, tx, GLbyte, ty, GLbyte, tz); \
+  UnsupportedWrapper11(void, glGetPerfCounterInfoINTEL, GLuint, queryId, GLuint, counterId, GLuint, counterNameLength, GLchar *, counterName, GLuint, counterDescLength, GLchar *, counterDesc, GLuint *, counterOffset, GLuint *, counterDataSize, GLuint *, counterTypeEnum, GLuint *, counterDataTypeEnum, GLuint64 *, rawCounterMaxValue); \
+  UnsupportedWrapper4(void, glDrawArraysInstancedNV, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
+  UnsupportedWrapper5(void, glMultiTexCoord4f, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, q); \
+  UnsupportedWrapper2(void, glTexCoordP1ui, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper1(void, glRasterPos2sv, const GLshort *, v); \
+  UnsupportedWrapper5(void, glGetHistogramEXT, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
+  UnsupportedWrapper2(void, glCopyPathNV, GLuint, resultPath, GLuint, srcPath); \
+  UnsupportedWrapper1(void, glColor3sv, const GLshort *, v); \
+  UnsupportedWrapper1(void, glEdgeFlagv, const GLboolean *, flag); \
+  UnsupportedWrapper3(void, glSecondaryColor3f, GLfloat, red, GLfloat, green, GLfloat, blue); \
+  UnsupportedWrapper3(void, glGetInvariantBooleanvEXT, GLuint, id, GLenum, value, GLboolean *, data); \
+  UnsupportedWrapper1(void, glSecondaryColor3bvEXT, const GLbyte *, v); \
+  UnsupportedWrapper1(void, glTexCoord1dv, const GLdouble *, v); \
+  UnsupportedWrapper6(void, glGetnHistogram, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
+  UnsupportedWrapper3(void, glColor3i, GLint, red, GLint, green, GLint, blue); \
+  UnsupportedWrapper5(void, glMultiTexCoord4hNV, GLenum, target, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r, GLhalfNV, q); \
+  UnsupportedWrapper2(void, glVertexP4uiv, GLenum, type, const GLuint *, value); \
+  UnsupportedWrapper1(void, glVertexBlendARB, GLint, count); \
+  UnsupportedWrapper2(void, glVertexStream1dvATI, GLenum, stream, const GLdouble *, coords); \
+  UnsupportedWrapper7(void, glColorFragmentOp1ATI, GLenum, op, GLuint, dst, GLuint, dstMask, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod); \
+  UnsupportedWrapper0(void, glBeginFragmentShaderATI); \
+  UnsupportedWrapper3(void, glMaterialxvOES, GLenum, face, GLenum, pname, const GLfixed *, param); \
+  UnsupportedWrapper1(GLboolean, glExtIsProgramBinaryQCOM, GLuint, program); \
+  UnsupportedWrapper2(void, glAccumxOES, GLenum, op, GLfixed, value); \
+  UnsupportedWrapper4(void, glVertex4hNV, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z, GLhalfNV, w); \
+  UnsupportedWrapper2(void, glDisableVertexAttribAPPLE, GLuint, index, GLenum, pname); \
+  UnsupportedWrapper3(void, glGetColorTableParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper6(void, glMapGrid2d, GLint, un, GLdouble, u1, GLdouble, u2, GLint, vn, GLdouble, v1, GLdouble, v2); \
+  UnsupportedWrapper2(void, glEnableClientStateiEXT, GLenum, array, GLuint, index); \
+  UnsupportedWrapper2(void, glFramebufferPixelLocalStorageSizeEXT, GLuint, target, GLsizei, size); \
+  UnsupportedWrapper4(void, glProgramNamedParameter4dvNV, GLuint, id, GLsizei, len, const GLubyte *, name, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glGetObjectBufferfvATI, GLuint, buffer, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glTexCoord3xOES, GLfixed, s, GLfixed, t, GLfixed, r); \
+  UnsupportedWrapper5(void, glDebugMessageEnableAMD, GLenum, category, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
+  UnsupportedWrapper7(void, glBitmapxOES, GLsizei, width, GLsizei, height, GLfixed, xorig, GLfixed, yorig, GLfixed, xmove, GLfixed, ymove, const GLubyte *, bitmap); \
+  UnsupportedWrapper1(void, glTessellationFactorAMD, GLfloat, factor); \
+  UnsupportedWrapper3(void, glVertexAttribs3svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
+  UnsupportedWrapper3(void, glGetMapParameterivNV, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glWindowPos3svMESA, const GLshort *, v); \
+  UnsupportedWrapper1(void, glTexCoord2fv, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glMakeImageHandleNonResidentARB, GLuint64, handle); \
+  UnsupportedWrapper3(void, glWaitSyncAPPLE, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
+  UnsupportedWrapper1(void, glRasterPos4fv, const GLfloat *, v); \
+  UnsupportedWrapper8(void, glPrimitiveBoundingBoxARB, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
+  UnsupportedWrapper5(void, glMultiTexCoord4d, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r, GLdouble, q); \
+  UnsupportedWrapper4(void, glGetMultiTexEnvfvEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper8(void, glReplacementCodeuiColor4ubVertex3fSUN, GLuint, rc, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(void, glSyncTextureINTEL, GLuint, texture); \
+  UnsupportedWrapper4(void, glNormalStream3iATI, GLenum, stream, GLint, nx, GLint, ny, GLint, nz); \
+  UnsupportedWrapper5(void, glCopyConvolutionFilter1D, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper3(void, glTexCoord2fColor3fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glEnableVertexArrayEXT, GLuint, vaobj, GLenum, array); \
+  UnsupportedWrapper4(void, glMultiTexCoord3sARB, GLenum, target, GLshort, s, GLshort, t, GLshort, r); \
+  UnsupportedWrapper5(GLuint64, glGetImageHandleARB, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, format); \
+  UnsupportedWrapper1(void, glWindowPos3ivARB, const GLint *, v); \
+  UnsupportedWrapper2(void, glMultiTexCoord1svARB, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper4(void, glProgramParameters4dvNV, GLenum, target, GLuint, index, GLsizei, count, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glColorFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper2(void, glSubpixelPrecisionBiasNV, GLuint, xbits, GLuint, ybits); \
+  UnsupportedWrapper1(void, glDeleteObjectARB, GLhandleARB, obj); \
+  UnsupportedWrapper1(void, glEvalCoord1xOES, GLfixed, u); \
+  UnsupportedWrapper2(void, glBeginConditionalRenderNV, GLuint, id, GLenum, mode); \
+  UnsupportedWrapper2(void, glUniform1ui64ARB, GLint, location, GLuint64, x); \
+  UnsupportedWrapper4(void, glVertexAttribL3ui64NV, GLuint, index, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z); \
+  UnsupportedWrapper6(void, glProgramParameter4dNV, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper2(void, glWindowPos2dARB, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper4(void, glTransformPathNV, GLuint, resultPath, GLuint, srcPath, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper3(void, glSecondaryColor3bEXT, GLbyte, red, GLbyte, green, GLbyte, blue); \
+  UnsupportedWrapper2(void, glMultiTexCoord1s, GLenum, target, GLshort, s); \
+  UnsupportedWrapper1(void, glWindowPos2dvMESA, const GLdouble *, v); \
+  UnsupportedWrapper4(void, glFramebufferSampleLocationsfvARB, GLenum, target, GLuint, start, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glWindowPos2ivARB, const GLint *, v); \
+  UnsupportedWrapper4(void, glMultiTexGendEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLdouble, param); \
+  UnsupportedWrapper2(void, glVertexAttrib1dvNV, GLuint, index, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glReadBufferIndexedEXT, GLenum, src, GLint, index); \
+  UnsupportedWrapper1(GLuint64, glGetTextureHandleARB, GLuint, texture); \
+  UnsupportedWrapper4(void, glGetnUniformivKHR, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
+  UnsupportedWrapper3(void, glProgramUniformui64NV, GLuint, program, GLint, location, GLuint64EXT, value); \
+  UnsupportedWrapper13(void, glColorFragmentOp3ATI, GLenum, op, GLuint, dst, GLuint, dstMask, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod, GLuint, arg3, GLuint, arg3Rep, GLuint, arg3Mod); \
+  UnsupportedWrapper1(void, glVertex2xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper1(void, glTextureNormalEXT, GLenum, mode); \
+  UnsupportedWrapper4(void, glGetnMapiv, GLenum, target, GLenum, query, GLsizei, bufSize, GLint *, v); \
+  UnsupportedWrapper1(void, glTexCoord1d, GLdouble, s); \
+  UnsupportedWrapper1(void, glColor3fv, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glReplacementCodeuiVertex3fvSUN, const GLuint *, rc, const GLfloat *, v); \
+  UnsupportedWrapper5(void, glTransformFeedbackStreamAttribsNV, GLsizei, count, const GLint *, attribs, GLsizei, nbuffers, const GLint *, bufstreams, GLenum, bufferMode); \
+  UnsupportedWrapper3(void, glUniformHandleui64vIMG, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper7(void, glGetActiveUniformARB, GLhandleARB, programObj, GLuint, index, GLsizei, maxLength, GLsizei *, length, GLint *, size, GLenum *, type, GLcharARB *, name); \
+  UnsupportedWrapper3(void, glGetObjectParameterivARB, GLhandleARB, obj, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glVertexAttribL1i64vNV, GLuint, index, const GLint64EXT *, v); \
+  UnsupportedWrapper2(void, glVertexAttribDivisorEXT, GLuint, index, GLuint, divisor); \
+  UnsupportedWrapper5(void, glLGPUNamedBufferSubDataNVX, GLbitfield, gpuMask, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
+  UnsupportedWrapper2(void, glDrawBuffersNV, GLsizei, n, const GLenum *, bufs); \
+  UnsupportedWrapper2(void, glPixelTexGenParameteriSGIS, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glVertexP3uiv, GLenum, type, const GLuint *, value); \
+  UnsupportedWrapper3(void, glGetLocalConstantBooleanvEXT, GLuint, id, GLenum, value, GLboolean *, data); \
+  UnsupportedWrapper2(void, glGetInteger64vAPPLE, GLenum, pname, GLint64 *, params); \
+  UnsupportedWrapper2(GLuint, glBindMaterialParameterEXT, GLenum, face, GLenum, value); \
+  UnsupportedWrapper3(void, glVertexAttribs1hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
+  UnsupportedWrapper2(void, glMatrixMultTransposefEXT, GLenum, mode, const GLfloat *, m); \
+  UnsupportedWrapper3(GLboolean, glIsPointInStrokePathNV, GLuint, path, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper2(void, glVertexAttribL1ui64vARB, GLuint, index, const GLuint64EXT *, v); \
+  UnsupportedWrapper2(void, glTexCoordP3ui, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper1(void, glMakeNamedBufferNonResidentNV, GLuint, buffer); \
+  UnsupportedWrapper2(void, glRectdv, const GLdouble *, v1, const GLdouble *, v2); \
+  UnsupportedWrapper2(void, glBindTransformFeedbackNV, GLenum, target, GLuint, id); \
+  UnsupportedWrapper1(GLboolean, glTestFenceNV, GLuint, fence); \
+  UnsupportedWrapper4(void, glMultiDrawArraysIndirectAMD, GLenum, mode, const void *, indirect, GLsizei, primcount, GLsizei, stride); \
+  UnsupportedWrapper3(void, glUniform1i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper3(void, glGetProgramStringNV, GLuint, id, GLenum, pname, GLubyte *, program); \
+  UnsupportedWrapper3(void, glGetPathColorGenivNV, GLenum, color, GLenum, pname, GLint *, value); \
+  UnsupportedWrapper10(void, glCombinerOutputNV, GLenum, stage, GLenum, portion, GLenum, abOutput, GLenum, cdOutput, GLenum, sumOutput, GLenum, scale, GLenum, bias, GLboolean, abDotProduct, GLboolean, cdDotProduct, GLboolean, muxSum); \
+  UnsupportedWrapper4(void, glVertexAttribLFormatNV, GLuint, index, GLint, size, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper2(void, glUniform1i64NV, GLint, location, GLint64EXT, x); \
+  UnsupportedWrapper4(void, glPathStringNV, GLuint, path, GLenum, format, GLsizei, length, const void *, pathString); \
+  UnsupportedWrapper1(void, glSecondaryColor3uiv, const GLuint *, v); \
+  UnsupportedWrapper2(void, glMultiTexCoord2dv, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glColor4hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glGetVertexAttribArrayObjectfvATI, GLuint, index, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper1(void, glEndVideoCaptureNV, GLuint, video_capture_slot); \
+  UnsupportedWrapper1(GLboolean, glIsTextureHandleResidentNV, GLuint64, handle); \
+  UnsupportedWrapper2(void, glVertexStream4svATI, GLenum, stream, const GLshort *, coords); \
+  UnsupportedWrapper5(void, glGetPerfMonitorCountersAMD, GLuint, group, GLint *, numCounters, GLint *, maxActiveCounters, GLsizei, counterSize, GLuint *, counters); \
+  UnsupportedWrapper4(void, glTrackMatrixNV, GLenum, target, GLuint, address, GLenum, matrix, GLenum, transform); \
+  UnsupportedWrapper1(void, glTexCoord3bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper1(void, glBeginOcclusionQueryNV, GLuint, id); \
+  UnsupportedWrapper1(void, glFogCoordd, GLdouble, coord); \
+  UnsupportedWrapper6(void, glProgramEnvParameter4fARB, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper3(void, glImageTransformParameterfHP, GLenum, target, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper5(void, glMultiDrawElementsIndirectAMD, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, primcount, GLsizei, stride); \
+  UnsupportedWrapper7(void, glMultiDrawElementsIndirectBindlessCountNV, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawCount, GLsizei, maxDrawCount, GLsizei, stride, GLint, vertexBufferCount); \
+  UnsupportedWrapper2(void, glEvalCoord2d, GLdouble, u, GLdouble, v); \
+  UnsupportedWrapper1(void, glRasterPos3sv, const GLshort *, v); \
+  UnsupportedWrapper3(void, glColor3xOES, GLfixed, red, GLfixed, green, GLfixed, blue); \
+  UnsupportedWrapper3(void, glColor3hNV, GLhalfNV, red, GLhalfNV, green, GLhalfNV, blue); \
+  UnsupportedWrapper5(void, glVertexArrayNormalOffsetEXT, GLuint, vaobj, GLuint, buffer, GLenum, type, GLsizei, stride, GLintptr, offset); \
+  UnsupportedWrapper3(void, glUniform3i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper2(void, glTexCoord2f, GLfloat, s, GLfloat, t); \
+  UnsupportedWrapper7(void, glColor4ubVertex3fSUN, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper3(void, glGetMapiv, GLenum, target, GLenum, query, GLint *, v); \
+  UnsupportedWrapper5(void, glVertexAttrib4hNV, GLuint, index, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z, GLhalfNV, w); \
+  UnsupportedWrapper4(void, glUniformMatrix2x3fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  UnsupportedWrapper2(void, glIndexFuncEXT, GLenum, func, GLclampf, ref); \
+  UnsupportedWrapper3(void, glGetVideoui64vNV, GLuint, video_slot, GLenum, pname, GLuint64EXT *, params); \
+  UnsupportedWrapper2(void, glMultiTexCoord1d, GLenum, target, GLdouble, s); \
+  UnsupportedWrapper4(void, glGetColorTable, GLenum, target, GLenum, format, GLenum, type, void *, table); \
+  UnsupportedWrapper5(void, glMultiTexCoord4bOES, GLenum, texture, GLbyte, s, GLbyte, t, GLbyte, r, GLbyte, q); \
+  UnsupportedWrapper3(void, glFragmentLightfvSGIX, GLenum, light, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(GLboolean, glIsTextureHandleResidentARB, GLuint64, handle); \
+  UnsupportedWrapper2(void, glGetPixelTexGenParameterfvSGIS, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper2(GLboolean, glIsVertexAttribEnabledAPPLE, GLuint, index, GLenum, pname); \
+  UnsupportedWrapper0(void, glEndVertexShaderEXT); \
+  UnsupportedWrapper6(void, glConvolutionFilter1D, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, image); \
+  UnsupportedWrapper5(void, glStartTilingQCOM, GLuint, x, GLuint, y, GLuint, width, GLuint, height, GLbitfield, preserveMask); \
+  UnsupportedWrapper1(void, glColor3uiv, const GLuint *, v); \
+  UnsupportedWrapper1(void, glPushName, GLuint, name); \
+  UnsupportedWrapper3(void, glNormal3d, GLdouble, nx, GLdouble, ny, GLdouble, nz); \
+  UnsupportedWrapper2(void, glIndexMaterialEXT, GLenum, face, GLenum, mode); \
+  UnsupportedWrapper4(void, glGetConvolutionFilterEXT, GLenum, target, GLenum, format, GLenum, type, void *, image); \
+  UnsupportedWrapper6(void, glFrustum, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
+  UnsupportedWrapper2(void, glConservativeRasterParameterfNV, GLenum, pname, GLfloat, value); \
+  UnsupportedWrapper1(void, glVertex3fv, const GLfloat *, v); \
+  UnsupportedWrapper5(void, glBufferStorageExternalEXT, GLenum, target, GLintptr, offset, GLsizeiptr, size, GLeglClientBufferEXT, clientBuffer, GLbitfield, flags); \
+  UnsupportedWrapper1(void, glResetMinmax, GLenum, target); \
+  UnsupportedWrapper3(void, glVertexAttribs2dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glVertex3iv, const GLint *, v); \
+  UnsupportedWrapper1(void, glLoadMatrixxOES, const GLfixed *, m); \
+  UnsupportedWrapper4(void, glExtGetProgramBinarySourceQCOM, GLuint, program, GLenum, shadertype, GLchar *, source, GLint *, length); \
+  UnsupportedWrapper1(void, glColor3bv, const GLbyte *, v); \
+  UnsupportedWrapper2(void, glGetnPolygonStipple, GLsizei, bufSize, GLubyte *, pattern); \
+  UnsupportedWrapper8(void, glCopyTexSubImage2DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper4(void, glProgramBinaryOES, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
+  UnsupportedWrapper3(void, glTexCoord2fNormal3fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glMultiTexCoord2fv, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glGetTexBumpParameterivATI, GLenum, pname, GLint *, param); \
+  UnsupportedWrapper3(void, glViewportPositionWScaleNV, GLuint, index, GLfloat, xcoeff, GLfloat, ycoeff); \
+  UnsupportedWrapper3(void, glStencilStrokePathNV, GLuint, path, GLint, reference, GLuint, mask); \
+  UnsupportedWrapper1(void, glColor4uiv, const GLuint *, v); \
+  UnsupportedWrapper1(void, glWindowPos3svARB, const GLshort *, v); \
+  UnsupportedWrapper2(void, glColorMaterial, GLenum, face, GLenum, mode); \
+  UnsupportedWrapper3(void, glColorTableParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glPathStencilFuncNV, GLenum, func, GLint, ref, GLuint, mask); \
+  UnsupportedWrapper1(void, glPathCoverDepthFuncNV, GLenum, func); \
+  UnsupportedWrapper4(void, glGetnUniformfvKHR, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
+  UnsupportedWrapper2(void, glMakeImageHandleResidentNV, GLuint64, handle, GLenum, access); \
+  UnsupportedWrapper2(void, glMultiTexCoord1hvNV, GLenum, target, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glMultiTexCoord2iARB, GLenum, target, GLint, s, GLint, t); \
+  UnsupportedWrapper1(void, glFrameZoomSGIX, GLint, factor); \
+  UnsupportedWrapper6(void, glProgramLocalParameterI4iNV, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper4(void, glClearColorIuiEXT, GLuint, red, GLuint, green, GLuint, blue, GLuint, alpha); \
+  UnsupportedWrapper3(void, glGetMinmaxParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glMultiTexCoord4fvARB, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glLineStipple, GLint, factor, GLushort, pattern); \
+  UnsupportedWrapper9(void, glStencilThenCoverStrokePathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLint, reference, GLuint, mask, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper2(void, glNormalStream3bvATI, GLenum, stream, const GLbyte *, coords); \
+  UnsupportedWrapper1(void, glActiveStencilFaceEXT, GLenum, face); \
+  UnsupportedWrapper1(void, glColor3usv, const GLushort *, v); \
+  UnsupportedWrapper2(void, glNormalFormatNV, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper4(void, glGetMultiTexGenfvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glVertexAttribs2svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
+  UnsupportedWrapper3(void, glGetConvolutionParameterxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper4(void, glNormalStream3bATI, GLenum, stream, GLbyte, nx, GLbyte, ny, GLbyte, nz); \
+  UnsupportedWrapper3(void, glWindowPos3iARB, GLint, x, GLint, y, GLint, z); \
+  UnsupportedWrapper4(void, glNamedProgramLocalParameter4fvEXT, GLuint, program, GLenum, target, GLuint, index, const GLfloat *, params); \
+  UnsupportedWrapper2(GLintptr, glGetUniformOffsetEXT, GLuint, program, GLint, location); \
+  UnsupportedWrapper1(void, glSecondaryColor3iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glExtGetTexturesQCOM, GLuint *, textures, GLint, maxTextures, GLint *, numTextures); \
+  UnsupportedWrapper10(void, glColorFragmentOp2ATI, GLenum, op, GLuint, dst, GLuint, dstMask, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod); \
+  UnsupportedWrapper2(void, glGenFencesNV, GLsizei, n, GLuint *, fences); \
+  UnsupportedWrapper2(void, glNormalPointervINTEL, GLenum, type, const void **, pointer); \
+  UnsupportedWrapper3(void, glGetPixelMapxv, GLenum, map, GLint, size, GLfixed *, values); \
+  UnsupportedWrapper1(void, glEndPerfMonitorAMD, GLuint, monitor); \
+  UnsupportedWrapper2(void, glVertexAttribDivisorNV, GLuint, index, GLuint, divisor); \
+  UnsupportedWrapper2(GLuint, glBindTextureUnitParameterEXT, GLenum, unit, GLenum, value); \
+  UnsupportedWrapper2(void, glClipPlanexOES, GLenum, plane, const GLfixed *, equation); \
+  UnsupportedWrapper3(void, glUniform2i64NV, GLint, location, GLint64EXT, x, GLint64EXT, y); \
+  UnsupportedWrapper5(void, glFramebufferFoveationConfigQCOM, GLuint, framebuffer, GLuint, numLayers, GLuint, focalPointsPerLayer, GLuint, requestedFeatures, GLuint *, providedFeatures); \
+  UnsupportedWrapper3(void, glTangent3fEXT, GLfloat, tx, GLfloat, ty, GLfloat, tz); \
+  UnsupportedWrapper3(void, glPathParameterfNV, GLuint, path, GLenum, pname, GLfloat, value); \
+  UnsupportedWrapper1(void, glEvalCoord1xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper6(void, glProgramUniform4ui64ARB, GLuint, program, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z, GLuint64, w); \
+  UnsupportedWrapper2(void, glVertexAttribL4i64vNV, GLuint, index, const GLint64EXT *, v); \
+  UnsupportedWrapper3(void, glGetObjectParameterfvARB, GLhandleARB, obj, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper5(void, glUniform4i64ARB, GLint, location, GLint64, x, GLint64, y, GLint64, z, GLint64, w); \
+  UnsupportedWrapper1(void, glNormal3bv, const GLbyte *, v); \
+  UnsupportedWrapper5(void *, glMapTexture2DINTEL, GLuint, texture, GLint, level, GLbitfield, access, GLint *, stride, GLenum *, layout); \
+  UnsupportedWrapper1(void, glIndexsv, const GLshort *, c); \
+  UnsupportedWrapper2(void, glTexCoord2i, GLint, s, GLint, t); \
+  UnsupportedWrapper3(void, glTranslated, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper4(void, glGetProgramNamedParameterdvNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLdouble *, params); \
+  UnsupportedWrapper1(void, glLinkProgramARB, GLhandleARB, programObj); \
+  UnsupportedWrapper3(void, glUniform2ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper1(GLboolean, glIsPathNV, GLuint, path); \
+  UnsupportedWrapper3(void, glSecondaryColor3ub, GLubyte, red, GLubyte, green, GLubyte, blue); \
+  UnsupportedWrapper2(void, glAttachObjectARB, GLhandleARB, containerObj, GLhandleARB, obj); \
+  UnsupportedWrapper3(void, glSetMultisamplefvAMD, GLenum, pname, GLuint, index, const GLfloat *, val); \
+  UnsupportedWrapper7(void, glReplacementCodeuiColor3fVertex3fSUN, GLuint, rc, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper1(GLboolean, glIsProgramARB, GLuint, program); \
+  UnsupportedWrapper1(void, glTangent3bvEXT, const GLbyte *, v); \
+  UnsupportedWrapper2(void, glDeleteLists, GLuint, list, GLsizei, range); \
+  UnsupportedWrapper1(void, glFreeObjectBufferATI, GLuint, buffer); \
+  UnsupportedWrapper7(void, glNamedProgramLocalParameter4fEXT, GLuint, program, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper1(void, glTbufferMask3DFX, GLuint, mask); \
+  UnsupportedWrapper1(void, glWindowPos3dv, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glGetLightiv, GLenum, light, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glWindowPos2iMESA, GLint, x, GLint, y); \
+  UnsupportedWrapper2(void, glMultiTexCoord1sARB, GLenum, target, GLshort, s); \
+  UnsupportedWrapper2(void, glPathStencilDepthOffsetNV, GLfloat, factor, GLfloat, units); \
+  UnsupportedWrapper3(void, glPixelMapuiv, GLenum, map, GLsizei, mapsize, const GLuint *, values); \
+  UnsupportedWrapper1(void, glIndexubv, const GLubyte *, c); \
+  UnsupportedWrapper4(void, glProgramEnvParametersI4uivNV, GLenum, target, GLuint, index, GLsizei, count, const GLuint *, params); \
+  UnsupportedWrapper2(void, glMultiTexCoord4sv, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper11(void, glPresentFrameKeyedNV, GLuint, video_slot, GLuint64EXT, minPresentTime, GLuint, beginPresentTimeId, GLuint, presentDurationId, GLenum, type, GLenum, target0, GLuint, fill0, GLuint, key0, GLenum, target1, GLuint, fill1, GLuint, key1); \
+  UnsupportedWrapper1(GLboolean, glIsTextureEXT, GLuint, texture); \
+  UnsupportedWrapper4(void, glRectd, GLdouble, x1, GLdouble, y1, GLdouble, x2, GLdouble, y2); \
+  UnsupportedWrapper1(void, glLineWidthxOES, GLfixed, width); \
+  UnsupportedWrapper2(void, glDeleteFencesAPPLE, GLsizei, n, const GLuint *, fences); \
+  UnsupportedWrapper3(void, glPassTexCoordATI, GLuint, dst, GLuint, coord, GLenum, swizzle); \
+  UnsupportedWrapper7(void, glMulticastCopyBufferSubDataNV, GLuint, readGpu, GLbitfield, writeGpuMask, GLuint, readBuffer, GLuint, writeBuffer, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
+  UnsupportedWrapper0(void, glFlushVertexArrayRangeNV); \
+  UnsupportedWrapper3(void, glPrioritizeTexturesxOES, GLsizei, n, const GLuint *, textures, const GLfixed *, priorities); \
+  UnsupportedWrapper4(void, glColor4b, GLbyte, red, GLbyte, green, GLbyte, blue, GLbyte, alpha); \
+  UnsupportedWrapper7(void, glMapVertexAttrib1dAPPLE, GLuint, index, GLuint, size, GLdouble, u1, GLdouble, u2, GLint, stride, GLint, order, const GLdouble *, points); \
+  UnsupportedWrapper2(void, glVariantsvEXT, GLuint, id, const GLshort *, addr); \
+  UnsupportedWrapper2(void, glMultiTexCoord2bvOES, GLenum, texture, const GLbyte *, coords); \
+  UnsupportedWrapper1(void, glEndTilingQCOM, GLbitfield, preserveMask); \
+  UnsupportedWrapper9(void, glMapControlPointsNV, GLenum, target, GLuint, index, GLenum, type, GLsizei, ustride, GLsizei, vstride, GLint, uorder, GLint, vorder, GLboolean, packed, const void *, points); \
+  UnsupportedWrapper4(void, glVertexAttribIFormatNV, GLuint, index, GLint, size, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper3(void, glTexCoord3d, GLdouble, s, GLdouble, t, GLdouble, r); \
+  UnsupportedWrapper1(void, glTexCoord3dv, const GLdouble *, v); \
+  UnsupportedWrapper0(void, glFinishTextureSUNX); \
+  UnsupportedWrapper2(void, glGenVertexArraysAPPLE, GLsizei, n, GLuint *, arrays); \
+  UnsupportedWrapper1(void, glTangent3ivEXT, const GLint *, v); \
+  UnsupportedWrapper4(void, glRects, GLshort, x1, GLshort, y1, GLshort, x2, GLshort, y2); \
+  UnsupportedWrapper1(void, glTangent3dvEXT, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glFragmentLightModelfSGIX, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper5(void, glSecondaryColorPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper4(GLvdpauSurfaceNV, glVDPAURegisterVideoSurfaceNV, const void *, vdpSurface, GLenum, target, GLsizei, numTextureNames, const GLuint *, textureNames); \
+  UnsupportedWrapper1(void, glTexCoord1sv, const GLshort *, v); \
+  UnsupportedWrapper1(void *, glMapObjectBufferATI, GLuint, buffer); \
+  UnsupportedWrapper2(void, glPointParameterxvOES, GLenum, pname, const GLfixed *, params); \
+  UnsupportedWrapper2(void, glMatrixLoadfEXT, GLenum, mode, const GLfloat *, m); \
+  UnsupportedWrapper4(GLint, glQueryResourceNV, GLenum, queryType, GLint, tagId, GLuint, bufSize, GLint *, buffer); \
+  UnsupportedWrapper2(void, glVertexStream3fvATI, GLenum, stream, const GLfloat *, coords); \
+  UnsupportedWrapper4(void, glVertex4i, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper1(void, glLoadTransposeMatrixf, const GLfloat *, m); \
+  UnsupportedWrapper3(void, glCombinerStageParameterfvNV, GLenum, stage, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glRasterPos3dv, const GLdouble *, v); \
+  UnsupportedWrapper5(void, glUpdateObjectBufferATI, GLuint, buffer, GLuint, offset, GLsizei, size, const void *, pointer, GLenum, preserve); \
+  UnsupportedWrapper4(void, glMulticastGetQueryObjectuivNV, GLuint, gpu, GLuint, id, GLenum, pname, GLuint *, params); \
+  UnsupportedWrapper1(void, glWindowPos2sv, const GLshort *, v); \
+  UnsupportedWrapper4(void, glProgramUniformHandleui64vIMG, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
+  UnsupportedWrapper2(void, glSetFragmentShaderConstantATI, GLuint, dst, const GLfloat *, value); \
+  UnsupportedWrapper2(void, glCommandListSegmentsNV, GLuint, list, GLuint, segments); \
+  UnsupportedWrapper2(void, glCreateCommandListsNV, GLsizei, n, GLuint *, lists); \
+  UnsupportedWrapper1(void, glWindowPos2svMESA, const GLshort *, v); \
+  UnsupportedWrapper4(void, glRotatef, GLfloat, angle, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glGetPointervEXT, GLenum, pname, void **, params); \
+  UnsupportedWrapper3(void, glMapParameterivNV, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glProgramEnvParameter4dvARB, GLenum, target, GLuint, index, const GLdouble *, params); \
+  UnsupportedWrapper3(void, glVertexStream2sATI, GLenum, stream, GLshort, x, GLshort, y); \
+  UnsupportedWrapper2(void, glVertexAttrib1dNV, GLuint, index, GLdouble, x); \
+  UnsupportedWrapper5(void, glUniform4ui64NV, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z, GLuint64EXT, w); \
+  UnsupportedWrapper7(void, glConvolutionFilter2DEXT, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, image); \
+  UnsupportedWrapper1(GLuint, glGenAsyncMarkersSGIX, GLsizei, range); \
+  UnsupportedWrapper2(void, glCullParameterfvEXT, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper4(void, glClearAccumxOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
+  UnsupportedWrapper2(void, glExtGetBufferPointervQCOM, GLenum, target, void **, params); \
+  UnsupportedWrapper2(void, glVariantivEXT, GLuint, id, const GLint *, addr); \
+  UnsupportedWrapper3(void, glGetUniformui64vARB, GLuint, program, GLint, location, GLuint64 *, params); \
+  UnsupportedWrapper3(void, glGetFragmentMaterialfvSGIX, GLenum, face, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper9(void, glAlphaFragmentOp2ATI, GLenum, op, GLuint, dst, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod); \
+  UnsupportedWrapper2(void, glGetPathCommandsNV, GLuint, path, GLubyte *, commands); \
+  UnsupportedWrapper2(void, glFogFuncSGIS, GLsizei, n, const GLfloat *, points); \
+  UnsupportedWrapper1(void, glBeginPerfMonitorAMD, GLuint, monitor); \
+  UnsupportedWrapper3(void, glGetConvolutionParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper2(void, glEGLImageTargetTexture2DOES, GLenum, target, GLeglImageOES, image); \
+  UnsupportedWrapper7(void, glGetPathMetricsNV, GLbitfield, metricQueryMask, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLsizei, stride, GLfloat *, metrics); \
+  UnsupportedWrapper3(void, glDrawBuffersIndexedEXT, GLint, n, const GLenum *, location, const GLint *, indices); \
+  UnsupportedWrapper3(void, glTexEnvi, GLenum, target, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glRectfv, const GLfloat *, v1, const GLfloat *, v2); \
+  UnsupportedWrapper3(void, glBinormalPointerEXT, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper7(void, glFramebufferTextureLayerDownsampleIMG, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer, GLint, xscale, GLint, yscale); \
+  UnsupportedWrapper4(void, glReplacementCodeuiColor4fNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glFogCoordfv, const GLfloat *, coord); \
+  UnsupportedWrapper2(void, glLightEnviSGIX, GLenum, pname, GLint, param); \
+  UnsupportedWrapper5(void, glCopyPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, type); \
+  UnsupportedWrapper3(void, glGetFragmentLightfvSGIX, GLenum, light, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper5(void, glVertexAttribL4ui64NV, GLuint, index, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z, GLuint64EXT, w); \
+  UnsupportedWrapper3(void, glGetMinmaxParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glColorTableParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper2(void, glVertexStream2ivATI, GLenum, stream, const GLint *, coords); \
+  UnsupportedWrapper3(void, glGetInvariantIntegervEXT, GLuint, id, GLenum, value, GLint *, data); \
+  UnsupportedWrapper1(void, glVertex2dv, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glGetTexGenfv, GLenum, coord, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glFogCoordPointerEXT, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glColor4ubVertex2fvSUN, const GLubyte *, c, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glIndexxOES, GLfixed, component); \
+  UnsupportedWrapper4(void, glUniformMatrix4x2fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  UnsupportedWrapper4(void, glMatrixTranslatedEXT, GLenum, mode, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper4(void, glMatrixIndexPointerARB, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactorubSUN, GLubyte, factor); \
+  UnsupportedWrapper4(void, glTexCoord4s, GLshort, s, GLshort, t, GLshort, r, GLshort, q); \
+  UnsupportedWrapper2(void, glFogCoordFormatNV, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper3(void, glUniform4i64vNV, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper4(void, glNormalStream3sATI, GLenum, stream, GLshort, nx, GLshort, ny, GLshort, nz); \
+  UnsupportedWrapper0(void, glTagSampleBufferSGIX); \
+  UnsupportedWrapper4(void, glUniformMatrix4x3fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  UnsupportedWrapper6(void, glRenderbufferStorageMultisampleCoverageNV, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper5(void, glGetCombinerInputParameterivNV, GLenum, stage, GLenum, portion, GLenum, variable, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper4(void, glMatrixScalefEXT, GLenum, mode, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(GLuint64, glGetTextureSamplerHandleARB, GLuint, texture, GLuint, sampler); \
+  UnsupportedWrapper4(void, glProgramUniform4ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper4(void, glBindVideoCaptureStreamBufferNV, GLuint, video_capture_slot, GLuint, stream, GLenum, frame_region, GLintptrARB, offset); \
+  UnsupportedWrapper4(void, glGetMultiTexEnvivEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper6(void, glProgramUniform4ui64NV, GLuint, program, GLint, location, GLuint64EXT, x, GLuint64EXT, y, GLuint64EXT, z, GLuint64EXT, w); \
+  UnsupportedWrapper3(void, glVertexAttribs4ubvNV, GLuint, index, GLsizei, count, const GLubyte *, v); \
+  UnsupportedWrapper4(void, glWindowPos4fMESA, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper4(void, glNamedProgramLocalParameterI4uivEXT, GLuint, program, GLenum, target, GLuint, index, const GLuint *, params); \
+  UnsupportedWrapper1(GLhandleARB, glGetHandleARB, GLenum, pname); \
+  UnsupportedWrapper2(void, glFragmentLightModelfvSGIX, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetVertexAttribivARB, GLuint, index, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glTexCoordFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper5(void, glRenderbufferStorageMultisampleIMG, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper2(GLint, glGetAttribLocationARB, GLhandleARB, programObj, const GLcharARB *, name); \
+  UnsupportedWrapper2(void, glAlphaFuncQCOM, GLenum, func, GLclampf, ref); \
+  UnsupportedWrapper2(void, glWindowPos2sARB, GLshort, x, GLshort, y); \
+  UnsupportedWrapper0(GLint, glGetInstrumentsSGIX); \
+  UnsupportedWrapper3(void, glTangent3iEXT, GLint, tx, GLint, ty, GLint, tz); \
+  UnsupportedWrapper2(void, glVertexAttrib2fvNV, GLuint, index, const GLfloat *, v); \
+  UnsupportedWrapper5(void, glDebugMessageInsertAMD, GLenum, category, GLenum, severity, GLuint, id, GLsizei, length, const GLchar *, buf); \
+  UnsupportedWrapper3(void, glMultiTexCoordP1uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper2(void, glPixelTexGenParameterfSGIS, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper1(void, glEvalCoord1d, GLdouble, u); \
+  UnsupportedWrapper2(GLuint, glCreateShaderProgramEXT, GLenum, type, const GLchar *, string); \
+  UnsupportedWrapper3(void, glMultiTexCoord2i, GLenum, target, GLint, s, GLint, t); \
+  UnsupportedWrapper3(void, glConvolutionParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper1(void, glTexCoord1f, GLfloat, s); \
+  UnsupportedWrapper1(void, glLoadIdentityDeformationMapSGIX, GLbitfield, mask); \
+  UnsupportedWrapper4(void, glTexCoord4hNV, GLhalfNV, s, GLhalfNV, t, GLhalfNV, r, GLhalfNV, q); \
+  UnsupportedWrapper4(void, glGetnUniformi64vARB, GLuint, program, GLint, location, GLsizei, bufSize, GLint64 *, params); \
+  UnsupportedWrapper5(void, glEvalMesh2, GLenum, mode, GLint, i1, GLint, i2, GLint, j1, GLint, j2); \
+  UnsupportedWrapper2(void, glEGLImageTargetRenderbufferStorageOES, GLenum, target, GLeglImageOES, image); \
+  UnsupportedWrapper3(void, glGetMaterialxOES, GLenum, face, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper2(void, glMultiTexCoord4xvOES, GLenum, texture, const GLfixed *, coords); \
+  UnsupportedWrapper2(void, glVertexAttrib1hvNV, GLuint, index, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glGetnPixelMapuivARB, GLenum, map, GLsizei, bufSize, GLuint *, values); \
+  UnsupportedWrapper3(void, glWindowPos3sMESA, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper7(void, glGetActiveVaryingNV, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
+  UnsupportedWrapper1(void, glWindowPos4dvMESA, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glRasterPos2dv, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glUniform2ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper2(void, glNormalStream3dvATI, GLenum, stream, const GLdouble *, coords); \
+  UnsupportedWrapper1(void, glBindVertexArrayAPPLE, GLuint, array); \
+  UnsupportedWrapper4(void, glMultiTexCoord3bOES, GLenum, texture, GLbyte, s, GLbyte, t, GLbyte, r); \
+  UnsupportedWrapper2(void, glVertexAttrib1hNV, GLuint, index, GLhalfNV, x); \
+  UnsupportedWrapper3(void, glReplacementCodeuiNormal3fVertex3fvSUN, const GLuint *, rc, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper5(GLuint64, glGetImageHandleNV, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, format); \
+  UnsupportedWrapper4(void, glColor4f, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
+  UnsupportedWrapper2(void, glVertexStream3ivATI, GLenum, stream, const GLint *, coords); \
+  UnsupportedWrapper2(void, glVertexStream2svATI, GLenum, stream, const GLshort *, coords); \
+  UnsupportedWrapper3(void, glGetMaterialiv, GLenum, face, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper4(void, glProgramLocalParameters4fvEXT, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
+  UnsupportedWrapper1(GLboolean, glTestFenceAPPLE, GLuint, fence); \
+  UnsupportedWrapper1(void, glReplacementCodeusSUN, GLushort, code); \
+  UnsupportedWrapper2(void, glGenTexturesEXT, GLsizei, n, GLuint *, textures); \
+  UnsupportedWrapper5(void, glMultiTexCoord4dARB, GLenum, target, GLdouble, s, GLdouble, t, GLdouble, r, GLdouble, q); \
+  UnsupportedWrapper2(void, glMultiTexCoord4ivARB, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper6(void, glGetSeparableFilter, GLenum, target, GLenum, format, GLenum, type, void *, row, void *, column, void *, span); \
+  UnsupportedWrapper3(void, glVertexAttrib2fNV, GLuint, index, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper4(void, glGetnMapfvARB, GLenum, target, GLenum, query, GLsizei, bufSize, GLfloat *, v); \
+  UnsupportedWrapper2(void, glWeightuivARB, GLint, size, const GLuint *, weights); \
+  UnsupportedWrapper2(void, glMultiTexCoord2iv, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper3(void, glColorPointervINTEL, GLint, size, GLenum, type, const void **, pointer); \
+  UnsupportedWrapper2(GLboolean, glIsVariantEnabledEXT, GLuint, id, GLenum, cap); \
+  UnsupportedWrapper6(void, glFrustumfOES, GLfloat, l, GLfloat, r, GLfloat, b, GLfloat, t, GLfloat, n, GLfloat, f); \
+  UnsupportedWrapper3(GLboolean, glAreTexturesResidentEXT, GLsizei, n, const GLuint *, textures, GLboolean *, residences); \
+  UnsupportedWrapper3(void, glGetTexGeniv, GLenum, coord, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glScaled, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper5(void, glProgramUniform3ui64ARB, GLuint, program, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z); \
+  UnsupportedWrapper8(void, glStencilFillPathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, fillMode, GLuint, mask, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper3(void, glGetVariantPointervEXT, GLuint, id, GLenum, value, void **, data); \
+  UnsupportedWrapper4(void, glBindBufferOffsetEXT, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset); \
+  UnsupportedWrapper6(void, glProgramLocalParameterI4uiNV, GLenum, target, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
+  UnsupportedWrapper2(GLbitfield, glQueryMatrixxOES, GLfixed *, mantissa, GLint *, exponent); \
+  UnsupportedWrapper4(void, glRasterPos4f, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper2(void, glPixelTransferxOES, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper2(void, glPointParameterfSGIS, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glTexCoord3s, GLshort, s, GLshort, t, GLshort, r); \
+  UnsupportedWrapper2(void, glMultiTexCoord3svARB, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper5(void, glNamedProgramLocalParametersI4ivEXT, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLint *, params); \
+  UnsupportedWrapper1(void, glTexCoord1fv, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glMultiTexCoord2hNV, GLenum, target, GLhalfNV, s, GLhalfNV, t); \
+  UnsupportedWrapper3(void, glWindowPos3i, GLint, x, GLint, y, GLint, z); \
+  UnsupportedWrapper5(void, glColorPointerEXT, GLint, size, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
+  UnsupportedWrapper3(void, glTexCoord3i, GLint, s, GLint, t, GLint, r); \
+  UnsupportedWrapper3(void, glColorTableParameterivSGI, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glNormal3hNV, GLhalfNV, nx, GLhalfNV, ny, GLhalfNV, nz); \
+  UnsupportedWrapper4(void, glProgramUniform2i64NV, GLuint, program, GLint, location, GLint64EXT, x, GLint64EXT, y); \
+  UnsupportedWrapper2(void, glMultiTexCoord1dARB, GLenum, target, GLdouble, s); \
+  UnsupportedWrapper2(void, glAccum, GLenum, op, GLfloat, value); \
+  UnsupportedWrapper2(void, glRectxvOES, const GLfixed *, v1, const GLfixed *, v2); \
+  UnsupportedWrapper8(void, glGetnSeparableFilterARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, rowBufSize, void *, row, GLsizei, columnBufSize, void *, column, void *, span); \
+  UnsupportedWrapper1(void, glClearDepthdNV, GLdouble, depth); \
+  UnsupportedWrapper0(void, glFlushRasterSGIX); \
+  UnsupportedWrapper4(void, glRasterPos4s, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+  UnsupportedWrapper4(void, glTexCoord4xOES, GLfixed, s, GLfixed, t, GLfixed, r, GLfixed, q); \
+  UnsupportedWrapper2(void, glDeleteAsyncMarkersSGIX, GLuint, marker, GLsizei, range); \
+  UnsupportedWrapper0(void, glResolveDepthValuesNV); \
+  UnsupportedWrapper2(void, glVertexAttribL2ui64vNV, GLuint, index, const GLuint64EXT *, v); \
+  UnsupportedWrapper1(void, glReferencePlaneSGIX, const GLdouble *, equation); \
+  UnsupportedWrapper1(void, glFogCoorddv, const GLdouble *, coord); \
+  UnsupportedWrapper1(void, glSamplePatternEXT, GLenum, pattern); \
+  UnsupportedWrapper2(void, glNewList, GLuint, list, GLenum, mode); \
+  UnsupportedWrapper3(void, glGetTexParameterPointervAPPLE, GLenum, target, GLenum, pname, void **, params); \
+  UnsupportedWrapper3(void, glUniform3i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper2(void, glVertexStream1sATI, GLenum, stream, GLshort, x); \
+  UnsupportedWrapper4(void, glGetInfoLogARB, GLhandleARB, obj, GLsizei, maxLength, GLsizei *, length, GLcharARB *, infoLog); \
+  UnsupportedWrapper4(void, glMultiTexGenfEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper5(void, glMultiDrawElementsEXT, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount); \
+  UnsupportedWrapper2(void, glFogi, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(GLenum, glObjectPurgeableAPPLE, GLenum, objectType, GLuint, name, GLenum, option); \
+  UnsupportedWrapper3(void, glGetVariantIntegervEXT, GLuint, id, GLenum, value, GLint *, data); \
+  UnsupportedWrapper5(void, glVertexStream4sATI, GLenum, stream, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+  UnsupportedWrapper2(void, glDrawBuffersATI, GLsizei, n, const GLenum *, bufs); \
+  UnsupportedWrapper1(void, glCurrentPaletteMatrixARB, GLint, index); \
+  UnsupportedWrapper6(GLenum, glPathGlyphIndexRangeNV, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLuint, pathParameterTemplate, GLfloat, emScale, GLuint *, baseAndCount); \
+  UnsupportedWrapper2(void, glMultiTexCoord4fv, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glDeleteStatesNV, GLsizei, n, const GLuint *, states); \
+  UnsupportedWrapper3(void, glBinormal3sEXT, GLshort, bx, GLshort, by, GLshort, bz); \
+  UnsupportedWrapper3(void, glMultiTexCoordP3ui, GLenum, texture, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper3(void, glGetUniformui64vNV, GLuint, program, GLint, location, GLuint64EXT *, params); \
+  UnsupportedWrapper1(void, glLoadTransposeMatrixdARB, const GLdouble *, m); \
+  UnsupportedWrapper14(void, glDeformationMap3fSGIX, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, GLfloat, w1, GLfloat, w2, GLint, wstride, GLint, worder, const GLfloat *, points); \
+  UnsupportedWrapper1(void, glEndPerfQueryINTEL, GLuint, queryHandle); \
+  UnsupportedWrapper1(void, glWindowPos2fvMESA, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glSetLocalConstantEXT, GLuint, id, GLenum, type, const void *, addr); \
+  UnsupportedWrapper2(void, glMultiTexCoord4svARB, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper2(void, glVertexP2ui, GLenum, type, GLuint, value); \
+  UnsupportedWrapper1(void, glVertex2fv, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glVertexPointervINTEL, GLint, size, GLenum, type, const void **, pointer); \
+  UnsupportedWrapper2(void, glSampleMaskSGIS, GLclampf, value, GLboolean, invert); \
+  UnsupportedWrapper5(void, glCopyConvolutionFilter1DEXT, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper1(void, glRasterPos2iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glMinmaxEXT, GLenum, target, GLenum, internalformat, GLboolean, sink); \
+  UnsupportedWrapper2(void, glGetPixelMapfv, GLenum, map, GLfloat *, values); \
+  UnsupportedWrapper0(void, glEndList); \
+  UnsupportedWrapper3(GLboolean, glAreProgramsResidentNV, GLsizei, n, const GLuint *, programs, GLboolean *, residences); \
+  UnsupportedWrapper5(void, glExtGetTexLevelParameterivQCOM, GLuint, texture, GLenum, face, GLint, level, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glProgramUniform1i64ARB, GLuint, program, GLint, location, GLint64, x); \
+  UnsupportedWrapper2(void, glBlendEquationIndexedAMD, GLuint, buf, GLenum, mode); \
+  UnsupportedWrapper1(void, glMakeTextureHandleNonResidentNV, GLuint64, handle); \
+  UnsupportedWrapper1(void, glVDPAUUnregisterSurfaceNV, GLvdpauSurfaceNV, surface); \
+  UnsupportedWrapper5(void, glUniform4ui64ARB, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z, GLuint64, w); \
+  UnsupportedWrapper1(void, glFogCoorddvEXT, const GLdouble *, coord); \
+  UnsupportedWrapper2(void, glFlushVertexArrayRangeAPPLE, GLsizei, length, void *, pointer); \
+  UnsupportedWrapper1(void, glIndexub, GLubyte, c); \
+  UnsupportedWrapper5(void, glVertexAttribL4i64NV, GLuint, index, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z, GLint64EXT, w); \
+  UnsupportedWrapper0(void, glPopName); \
+  UnsupportedWrapper2(void, glVertex3xOES, GLfixed, x, GLfixed, y); \
+  UnsupportedWrapper2(void, glMultiTexCoord2dvARB, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glWindowPos4fvMESA, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetVariantArrayObjectfvATI, GLuint, id, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glPixelTransformParameteriEXT, GLenum, target, GLenum, pname, GLint, param); \
+  UnsupportedWrapper1(void, glTextureLightEXT, GLenum, pname); \
+  UnsupportedWrapper0(void, glEnd); \
+  UnsupportedWrapper4(void, glFogCoordPointerListIBM, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper5(void, glVertexPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper3(void, glGetProgramLocalParameterIuivNV, GLenum, target, GLuint, index, GLuint *, params); \
+  UnsupportedWrapper1(void, glWindowPos3sv, const GLshort *, v); \
+  UnsupportedWrapper3(GLenum, glClientWaitSyncAPPLE, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
+  UnsupportedWrapper6(void, glProgramUniform4i64ARB, GLuint, program, GLint, location, GLint64, x, GLint64, y, GLint64, z, GLint64, w); \
+  UnsupportedWrapper5(void, glGetMinmaxEXT, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
+  UnsupportedWrapper1(void, glColor4bv, const GLbyte *, v); \
+  UnsupportedWrapper3(void, glGetTexFilterFuncSGIS, GLenum, target, GLenum, filter, GLfloat *, weights); \
+  UnsupportedWrapper2(void, glGetPixelMapusv, GLenum, map, GLushort *, values); \
+  UnsupportedWrapper2(void, glGenOcclusionQueriesNV, GLsizei, n, GLuint *, ids); \
+  UnsupportedWrapper4(void, glMultiTexCoord3iARB, GLenum, target, GLint, s, GLint, t, GLint, r); \
+  UnsupportedWrapper3(void, glClearPixelLocalStorageuiEXT, GLsizei, offset, GLsizei, n, const GLuint *, values); \
+  UnsupportedWrapper4(void, glTexCoord4f, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, q); \
+  UnsupportedWrapper2(void, glVertex2f, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper2(void, glMultiTexCoord1ivARB, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper3(void, glProgramLocalParameter4fvARB, GLenum, target, GLuint, index, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glVertexAttribs2hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
+  UnsupportedWrapper1(void, glEvalCoord1fv, const GLfloat *, u); \
+  UnsupportedWrapper4(void, glUniformMatrix3x2fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  UnsupportedWrapper2(void, glRasterPos2d, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper1(void, glEvalCoord2xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper11(void, glReplacementCodeuiColor4fNormal3fVertex3fSUN, GLuint, rc, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper4(void, glGetPerfMonitorGroupStringAMD, GLuint, group, GLsizei, bufSize, GLsizei *, length, GLchar *, groupString); \
+  UnsupportedWrapper2(void, glRequestResidentProgramsNV, GLsizei, n, const GLuint *, programs); \
+  UnsupportedWrapper2(void, glMultiTexCoord1f, GLenum, target, GLfloat, s); \
+  UnsupportedWrapper1(void, glBinormal3ivEXT, const GLint *, v); \
+  UnsupportedWrapper1(void, glTexCoord1hNV, GLhalfNV, s); \
+  UnsupportedWrapper6(void, glMultiModeDrawElementsIBM, const GLenum *, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount, GLint, modestride); \
+  UnsupportedWrapper2(void, glColorP4uiv, GLenum, type, const GLuint *, color); \
+  UnsupportedWrapper1(void, glBinormal3dvEXT, const GLdouble *, v); \
+  UnsupportedWrapper10(void, glMap2f, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, const GLfloat *, points); \
+  UnsupportedWrapper3(void, glWindowPos3dARB, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glGetTexGenxvOES, GLenum, coord, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper5(void, glNamedBufferStorageExternalEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLeglClientBufferEXT, clientBuffer, GLbitfield, flags); \
+  UnsupportedWrapper1(void, glFogCoordf, GLfloat, coord); \
+  UnsupportedWrapper2(void, glGetDetailTexFuncSGIS, GLenum, target, GLfloat *, points); \
+  UnsupportedWrapper4(void, glGetProgramNamedParameterfvNV, GLuint, id, GLsizei, len, const GLubyte *, name, GLfloat *, params); \
+  UnsupportedWrapper3(void, glPixelMapx, GLenum, map, GLint, size, const GLfixed *, values); \
+  UnsupportedWrapper1(void, glColor3hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glVertexAttribL2i64NV, GLuint, index, GLint64EXT, x, GLint64EXT, y); \
+  UnsupportedWrapper13(void, glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper6(void, glCombinerInputNV, GLenum, stage, GLenum, portion, GLenum, variable, GLenum, input, GLenum, mapping, GLenum, componentUsage); \
+  UnsupportedWrapper1(void, glMatrixPushEXT, GLenum, mode); \
+  UnsupportedWrapper3(void, glGetVertexAttribfvARB, GLuint, index, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper4(void, glFramebufferSampleLocationsfvNV, GLenum, target, GLuint, start, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glMultiTexCoord3s, GLenum, target, GLshort, s, GLshort, t, GLshort, r); \
+  UnsupportedWrapper2(void, glTexCoordP2uiv, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper1(void, glShadeModel, GLenum, mode); \
+  UnsupportedWrapper3(void, glWindowPos3fMESA, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glStencilClearTagEXT, GLsizei, stencilTagBits, GLuint, stencilClearTag); \
+  UnsupportedWrapper1(void, glPassThrough, GLfloat, token); \
+  UnsupportedWrapper4(void, glProgramUniformui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper2(void, glUniformHandleui64IMG, GLint, location, GLuint64, value); \
+  UnsupportedWrapper4(void, glVertexAttrib3hNV, GLuint, index, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z); \
+  UnsupportedWrapper4(void, glMultiTexEnvfvEXT, GLenum, texunit, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glClearIndex, GLfloat, c); \
+  UnsupportedWrapper4(void, glMultiTexCoord3xOES, GLenum, texture, GLfixed, s, GLfixed, t, GLfixed, r); \
+  UnsupportedWrapper0(void, glPopMatrix); \
+  UnsupportedWrapper1(void, glBinormal3bvEXT, const GLbyte *, v); \
+  UnsupportedWrapper3(void, glNormal3f, GLfloat, nx, GLfloat, ny, GLfloat, nz); \
+  UnsupportedWrapper2(void, glVertexStream1dATI, GLenum, stream, GLdouble, x); \
+  UnsupportedWrapper5(void, glPathSubCoordsNV, GLuint, path, GLsizei, coordStart, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
+  UnsupportedWrapper1(void, glIndexi, GLint, c); \
+  UnsupportedWrapper0(void, glResizeBuffersMESA); \
+  UnsupportedWrapper3(void, glFragmentMaterialiSGIX, GLenum, face, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glActiveVaryingNV, GLuint, program, const GLchar *, name); \
+  UnsupportedWrapper1(void, glRasterPos3fv, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glIndexPointer, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glDisableClientStateIndexedEXT, GLenum, array, GLuint, index); \
+  UnsupportedWrapper1(GLuint, glGenLists, GLsizei, range); \
+  UnsupportedWrapper3(void, glGetFinalCombinerInputParameterfvNV, GLenum, variable, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetImageTransformParameterfvHP, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glMultiTexCoord2bOES, GLenum, texture, GLbyte, s, GLbyte, t); \
+  UnsupportedWrapper5(void, glMatrixRotatefEXT, GLenum, mode, GLfloat, angle, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glConservativeRasterParameteriNV, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glMultiTexCoord4dvARB, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glWindowPos2s, GLshort, x, GLshort, y); \
+  UnsupportedWrapper2(void, glLockArraysEXT, GLint, first, GLsizei, count); \
+  UnsupportedWrapper4(void, glClearColorIiEXT, GLint, red, GLint, green, GLint, blue, GLint, alpha); \
+  UnsupportedWrapper3(void, glProgramLocalParameterI4ivNV, GLenum, target, GLuint, index, const GLint *, params); \
+  UnsupportedWrapper2(void, glWindowPos2dMESA, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper3(void, glMapGrid1d, GLint, un, GLdouble, u1, GLdouble, u2); \
+  UnsupportedWrapper2(void, glCullParameterdvEXT, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper5(void, glNamedProgramLocalParametersI4uivEXT, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLuint *, params); \
+  UnsupportedWrapper1(GLboolean, glIsOcclusionQueryNV, GLuint, id); \
+  UnsupportedWrapper1(void, glFogCoordfvEXT, const GLfloat *, coord); \
+  UnsupportedWrapper1(void, glTexCoord3xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper3(void, glTexGeni, GLenum, coord, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glTexGenfv, GLenum, coord, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(GLboolean, glIsList, GLuint, list); \
+  UnsupportedWrapper1(void, glRenderGpuMaskNV, GLbitfield, mask); \
+  UnsupportedWrapper1(GLhandleARB, glCreateShaderObjectARB, GLenum, shaderType); \
+  UnsupportedWrapper1(void, glDeformSGIX, GLbitfield, mask); \
+  UnsupportedWrapper1(void, glTexCoord4fv, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glRecti, GLint, x1, GLint, y1, GLint, x2, GLint, y2); \
+  UnsupportedWrapper3(void, glGetVertexAttribfvNV, GLuint, index, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper9(void, glTextureImage3DMultisampleCoverageNV, GLuint, texture, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations); \
+  UnsupportedWrapper1(void, glEnableClientState, GLenum, array); \
+  UnsupportedWrapper7(void, glListDrawCommandsStatesClientNV, GLuint, list, GLuint, segment, const void **, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
+  UnsupportedWrapper1(void, glColor4xvOES, const GLfixed *, components); \
+  UnsupportedWrapper2(void, glGetnPolygonStippleARB, GLsizei, bufSize, GLubyte *, pattern); \
+  UnsupportedWrapper1(void, glPointSizexOES, GLfixed, size); \
+  UnsupportedWrapper3(void, glUniformHandleui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper3(void, glVertexAttribs3dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glExtTexObjectStateOverrideiQCOM, GLenum, target, GLenum, pname, GLint, param); \
+  UnsupportedWrapper7(void, glCopyTexImage1DEXT, GLenum, target, GLint, level, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLint, border); \
+  UnsupportedWrapper2(void, glGetTexBumpParameterfvATI, GLenum, pname, GLfloat *, param); \
+  UnsupportedWrapper4(void, glGetNamedProgramLocalParameterfvEXT, GLuint, program, GLenum, target, GLuint, index, GLfloat *, params); \
+  UnsupportedWrapper3(void, glSecondaryColor3i, GLint, red, GLint, green, GLint, blue); \
+  UnsupportedWrapper2(void, glVertexP2uiv, GLenum, type, const GLuint *, value); \
+  UnsupportedWrapper1(void, glIndexs, GLshort, c); \
+  UnsupportedWrapper5(void, glMultiDrawArraysIndirectBindlessNV, GLenum, mode, const void *, indirect, GLsizei, drawCount, GLsizei, stride, GLint, vertexBufferCount); \
+  UnsupportedWrapper7(void, glGetPerfQueryInfoINTEL, GLuint, queryId, GLuint, queryNameLength, GLchar *, queryName, GLuint *, dataSize, GLuint *, noCounters, GLuint *, noInstances, GLuint *, capsMask); \
+  UnsupportedWrapper4(void, glTextureColorMaskSGIS, GLboolean, red, GLboolean, green, GLboolean, blue, GLboolean, alpha); \
+  UnsupportedWrapper2(void, glMatrixLoadTranspose3x3fNV, GLenum, matrixMode, const GLfloat *, m); \
+  UnsupportedWrapper3(void, glFragmentMaterialivSGIX, GLenum, face, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glPathDashArrayNV, GLuint, path, GLsizei, dashCount, const GLfloat *, dashArray); \
+  UnsupportedWrapper17(void, glMulticastCopyImageSubDataNV, GLuint, srcGpu, GLbitfield, dstGpuMask, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
+  UnsupportedWrapper3(void, glGetPathParameterfvNV, GLuint, path, GLenum, pname, GLfloat *, value); \
+  UnsupportedWrapper5(void, glVariantArrayObjectATI, GLuint, id, GLenum, type, GLsizei, stride, GLuint, buffer, GLuint, offset); \
+  UnsupportedWrapper3(void, glNormal3s, GLshort, nx, GLshort, ny, GLshort, nz); \
+  UnsupportedWrapper6(void, glMultiDrawRangeElementArrayAPPLE, GLenum, mode, GLuint, start, GLuint, end, const GLint *, first, const GLsizei *, count, GLsizei, primcount); \
+  UnsupportedWrapper2(void, glNormalStream3fvATI, GLenum, stream, const GLfloat *, coords); \
+  UnsupportedWrapper5(void, glUniform4i64NV, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z, GLint64EXT, w); \
+  UnsupportedWrapper4(void, glVariantPointerEXT, GLuint, id, GLenum, type, GLuint, stride, const void *, addr); \
+  UnsupportedWrapper3(void, glGetProgramLocalParameterfvARB, GLenum, target, GLuint, index, GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetVertexAttribArrayObjectivATI, GLuint, index, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glMultiTexCoord2ivARB, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper2(void, glWeightubvARB, GLint, size, const GLubyte *, weights); \
+  UnsupportedWrapper1(void, glPrimitiveRestartIndexNV, GLuint, index); \
+  UnsupportedWrapper3(void, glGetOcclusionQueryuivNV, GLuint, id, GLenum, pname, GLuint *, params); \
+  UnsupportedWrapper2(void, glVertexStream4ivATI, GLenum, stream, const GLint *, coords); \
+  UnsupportedWrapper5(void, glProgramPathFragmentInputGenNV, GLuint, program, GLint, location, GLenum, genMode, GLint, components, const GLfloat *, coeffs); \
+  UnsupportedWrapper1(void, glClientActiveTexture, GLenum, texture); \
+  UnsupportedWrapper3(void, glConvolutionParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper2(void, glFragmentLightModeliSGIX, GLenum, pname, GLint, param); \
+  UnsupportedWrapper7(void, glFramebufferTexture2DDownsampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, xscale, GLint, yscale); \
+  UnsupportedWrapper1(void, glSecondaryColor3ivEXT, const GLint *, v); \
+  UnsupportedWrapper2(void, glVDPAUMapSurfacesNV, GLsizei, numSurfaces, const GLvdpauSurfaceNV *, surfaces); \
+  UnsupportedWrapper3(void, glLightf, GLenum, light, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper4(void, glMultiTexGenivEXT, GLenum, texunit, GLenum, coord, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glMateriali, GLenum, face, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glTangent3dEXT, GLdouble, tx, GLdouble, ty, GLdouble, tz); \
+  UnsupportedWrapper1(void, glTexCoord2dv, const GLdouble *, v); \
+  UnsupportedWrapper0(GLenum, glGetGraphicsResetStatusKHR); \
+  UnsupportedWrapper2(void, glIndexFormatNV, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper4(void, glProgramEnvParametersI4ivNV, GLenum, target, GLuint, index, GLsizei, count, const GLint *, params); \
+  UnsupportedWrapper3(void, glVertex3bOES, GLbyte, x, GLbyte, y, GLbyte, z); \
+  UnsupportedWrapper4(void, glGetProgramParameterdvNV, GLenum, target, GLuint, index, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper1(void, glTexCoord4sv, const GLshort *, v); \
+  UnsupportedWrapper1(void, glGlobalAlphaFactorfSUN, GLfloat, factor); \
+  UnsupportedWrapper2(void, glVDPAUSurfaceAccessNV, GLvdpauSurfaceNV, surface, GLenum, access); \
+  UnsupportedWrapper4(void, glGetShaderSourceARB, GLhandleARB, obj, GLsizei, maxLength, GLsizei *, length, GLcharARB *, source); \
+  UnsupportedWrapper3(void, glNormalPointer, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper8(void, glTexCoord2fNormal3fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper3(void, glMultiTexCoordP4uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper5(void, glColorPointerListIBM, GLint, size, GLenum, type, GLint, stride, const void **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper4(void, glBufferPageCommitmentARB, GLenum, target, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
+  UnsupportedWrapper3(void, glWindowPos3s, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper4(void, glVertexAttrib3sNV, GLuint, index, GLshort, x, GLshort, y, GLshort, z); \
+  UnsupportedWrapper3(void, glVertexAttribs4dvNV, GLuint, index, GLsizei, count, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glLoadTransposeMatrixxOES, const GLfixed *, m); \
+  UnsupportedWrapper1(void, glSecondaryColor3svEXT, const GLshort *, v); \
+  UnsupportedWrapper4(void, glMultiTexEnvivEXT, GLenum, texunit, GLenum, target, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper8(void, glTextureImage3DMultisampleNV, GLuint, texture, GLenum, target, GLsizei, samples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedSampleLocations); \
+  UnsupportedWrapper4(void, glTexCoordPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper1(void, glEnableDriverControlQCOM, GLuint, driverControl); \
+  UnsupportedWrapper2(void, glTexCoord2hNV, GLhalfNV, s, GLhalfNV, t); \
+  UnsupportedWrapper2(void, glDetachObjectARB, GLhandleARB, containerObj, GLhandleARB, attachedObj); \
+  UnsupportedWrapper4(void, glStencilThenCoverStrokePathNV, GLuint, path, GLint, reference, GLuint, mask, GLenum, coverMode); \
+  UnsupportedWrapper3(void, glGetColorTableParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glTexCoord1bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper0(void, glBeginVertexShaderEXT); \
+  UnsupportedWrapper2(void, glDebugMessageCallbackAMD, GLDEBUGPROCAMD, callback, void *, userParam); \
+  UnsupportedWrapper2(void, glMakeNamedBufferResidentNV, GLuint, buffer, GLenum, access); \
+  UnsupportedWrapper3(void, glVertexAttribs3fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper12(void, glTexCoord2fColor4fNormal3fVertex3fSUN, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glRasterPos2xOES, GLfixed, x, GLfixed, y); \
+  UnsupportedWrapper9(void, glTexPageCommitmentEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
+  UnsupportedWrapper1(void, glWindowPos3dvMESA, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glVertexAttribs3hvNV, GLuint, index, GLsizei, n, const GLhalfNV *, v); \
+  UnsupportedWrapper4(void, glGetVideoCaptureStreamfvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper1(void, glEdgeFlagFormatNV, GLsizei, stride); \
+  UnsupportedWrapper3(void, glGetNamedBufferParameterui64vNV, GLuint, buffer, GLenum, pname, GLuint64EXT *, params); \
+  UnsupportedWrapper4(void, glProgramUniform4ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper4(void, glGetAttachedObjectsARB, GLhandleARB, containerObj, GLsizei, maxCount, GLsizei *, count, GLhandleARB *, obj); \
+  UnsupportedWrapper2(void, glPolygonOffsetxOES, GLfixed, factor, GLfixed, units); \
+  UnsupportedWrapper4(void, glGetnMapfv, GLenum, target, GLenum, query, GLsizei, bufSize, GLfloat *, v); \
+  UnsupportedWrapper11(void, glExtGetTexSubImageQCOM, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, void *, texels); \
+  UnsupportedWrapper2(void, glWindowPos2fARB, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper3(void, glFogCoordPointer, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper3(void, glGetLightxOES, GLenum, light, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper5(void, glShaderOp3EXT, GLenum, op, GLuint, res, GLuint, arg1, GLuint, arg2, GLuint, arg3); \
+  UnsupportedWrapper3(void, glGetVariantBooleanvEXT, GLuint, id, GLenum, value, GLboolean *, data); \
+  UnsupportedWrapper6(void, glFramebufferTexture2DMultisampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
+  UnsupportedWrapper9(void, glTexPageCommitmentARB, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
+  UnsupportedWrapper2(void, glVertex2i, GLint, x, GLint, y); \
+  UnsupportedWrapper1(void, glFogCoorddEXT, GLdouble, coord); \
+  UnsupportedWrapper3(void, glGetTexEnviv, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper5(void, glProgramBufferParametersIivNV, GLenum, target, GLuint, bindingIndex, GLuint, wordIndex, GLsizei, count, const GLint *, params); \
+  UnsupportedWrapper3(void, glPathParameteriNV, GLuint, path, GLenum, pname, GLint, value); \
+  UnsupportedWrapper0(void, glFramebufferFetchBarrierQCOM); \
+  UnsupportedWrapper3(void, glRasterPos3f, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper3(void, glGetFenceivNV, GLuint, fence, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glMultiTexCoord4hvNV, GLenum, target, const GLhalfNV *, v); \
+  UnsupportedWrapper1(void, glFlushStaticDataIBM, GLenum, target); \
+  UnsupportedWrapper3(void, glGetVertexAttribLui64vNV, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
+  UnsupportedWrapper1(void, glTexCoord1s, GLshort, s); \
+  UnsupportedWrapper6(void, glColor4ubVertex2fSUN, GLubyte, r, GLubyte, g, GLubyte, b, GLubyte, a, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper3(void, glVertex3i, GLint, x, GLint, y, GLint, z); \
+  UnsupportedWrapper3(void, glSecondaryColor3sEXT, GLshort, red, GLshort, green, GLshort, blue); \
+  UnsupportedWrapper6(void, glProgramParameter4fNV, GLenum, target, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper4(void, glMultiTexEnviEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glMultiTexCoordP2uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper4(void, glHistogram, GLenum, target, GLsizei, width, GLenum, internalformat, GLboolean, sink); \
+  UnsupportedWrapper1(void, glClientActiveVertexStreamATI, GLenum, stream); \
+  UnsupportedWrapper1(void, glPushClientAttrib, GLbitfield, mask); \
+  UnsupportedWrapper1(void, glVertex2bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper3(void, glGetUniformi64vNV, GLuint, program, GLint, location, GLint64EXT *, params); \
+  UnsupportedWrapper2(void, glLightModeliv, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glUniform1i64vARB, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper3(void, glMapParameterfvNV, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper5(void, glGetMinmax, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
+  UnsupportedWrapper4(void, glTransformFeedbackVaryingsNV, GLuint, program, GLsizei, count, const GLint *, locations, GLenum, bufferMode); \
+  UnsupportedWrapper1(void, glTexCoord2hvNV, const GLhalfNV *, v); \
+  UnsupportedWrapper3(void, glBinormal3iEXT, GLint, bx, GLint, by, GLint, bz); \
+  UnsupportedWrapper5(void, glGetPerfMonitorCounterStringAMD, GLuint, group, GLuint, counter, GLsizei, bufSize, GLsizei *, length, GLchar *, counterString); \
+  UnsupportedWrapper2(void, glMultiTexCoord1bOES, GLenum, texture, GLbyte, s); \
+  UnsupportedWrapper3(void, glMultiTexCoord2f, GLenum, target, GLfloat, s, GLfloat, t); \
+  UnsupportedWrapper5(void, glSelectPerfMonitorCountersAMD, GLuint, monitor, GLboolean, enable, GLuint, group, GLint, numCounters, GLuint *, counterList); \
+  UnsupportedWrapper15(void, glCopyImageSubDataNV, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, width, GLsizei, height, GLsizei, depth); \
+  UnsupportedWrapper3(void, glBinormal3dEXT, GLdouble, bx, GLdouble, by, GLdouble, bz); \
+  UnsupportedWrapper2(GLuint64, glGetTextureSamplerHandleIMG, GLuint, texture, GLuint, sampler); \
+  UnsupportedWrapper2(void, glMultiTexCoord1dv, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glVertexAttribDivisorANGLE, GLuint, index, GLuint, divisor); \
+  UnsupportedWrapper4(void, glGetCombinerOutputParameterivNV, GLenum, stage, GLenum, portion, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glRasterPos2f, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper2(void, glMultiTexCoord3dv, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glColor3d, GLdouble, red, GLdouble, green, GLdouble, blue); \
+  UnsupportedWrapper3(void, glSecondaryColorFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper4(void, glStencilOpSeparateATI, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
+  UnsupportedWrapper2(void, glVertex2s, GLshort, x, GLshort, y); \
+  UnsupportedWrapper2(void, glCreatePerfQueryINTEL, GLuint, queryId, GLuint *, queryHandle); \
+  UnsupportedWrapper17(void, glLGPUCopyImageSubDataNVX, GLuint, sourceGpu, GLbitfield, destinationGpuMask, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srxY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, width, GLsizei, height, GLsizei, depth); \
+  UnsupportedWrapper3(void, glDrawTransformFeedbackInstancedEXT, GLenum, mode, GLuint, id, GLsizei, instancecount); \
+  UnsupportedWrapper2(void, glVariantfvEXT, GLuint, id, const GLfloat *, addr); \
+  UnsupportedWrapper3(void, glPixelTransformParameterfEXT, GLenum, target, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glRasterPos3xOES, GLfixed, x, GLfixed, y, GLfixed, z); \
+  UnsupportedWrapper3(void, glConvolutionParameteriEXT, GLenum, target, GLenum, pname, GLint, params); \
+  UnsupportedWrapper1(GLboolean, glIsObjectBufferATI, GLuint, buffer); \
+  UnsupportedWrapper3(void, glVertexAttrib2sNV, GLuint, index, GLshort, x, GLshort, y); \
+  UnsupportedWrapper1(GLuint64, glGetTextureHandleIMG, GLuint, texture); \
+  UnsupportedWrapper1(void, glMakeTextureHandleNonResidentARB, GLuint64, handle); \
+  UnsupportedWrapper2(void, glLightModelfv, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glWindowPos3f, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper2(void, glCombinerParameterfvNV, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper9(void, glPathGlyphRangeNV, GLuint, firstPathName, GLenum, fontTarget, const void *, fontName, GLbitfield, fontStyle, GLuint, firstGlyph, GLsizei, numGlyphs, GLenum, handleMissingGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
+  UnsupportedWrapper3(void, glGetMapfv, GLenum, target, GLenum, query, GLfloat *, v); \
+  UnsupportedWrapper2(void, glColorP4ui, GLenum, type, GLuint, color); \
+  UnsupportedWrapper1(GLboolean, glIsBufferResidentNV, GLenum, target); \
+  UnsupportedWrapper7(GLuint, glGetDebugMessageLogAMD, GLuint, count, GLsizei, bufsize, GLenum *, categories, GLuint *, severities, GLuint *, ids, GLsizei *, lengths, GLchar *, message); \
+  UnsupportedWrapper4(void, glGetConvolutionFilter, GLenum, target, GLenum, format, GLenum, type, void *, image); \
+  UnsupportedWrapper2(void, glMultiTexCoord3ivARB, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper4(void, glProgramUniform4i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper2(void, glVertexStream1fATI, GLenum, stream, GLfloat, x); \
+  UnsupportedWrapper3(void, glPixelTransformParameterfvEXT, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glMultTransposeMatrixf, const GLfloat *, m); \
+  UnsupportedWrapper4(void, glNamedProgramLocalParameterI4ivEXT, GLuint, program, GLenum, target, GLuint, index, const GLint *, params); \
+  UnsupportedWrapper2(void, glVertexBlendEnvfATI, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glUniform2ui64ARB, GLint, location, GLuint64, x, GLuint64, y); \
+  UnsupportedWrapper5(void, glMultiTexCoord4i, GLenum, target, GLint, s, GLint, t, GLint, r, GLint, q); \
+  UnsupportedWrapper3(void, glMaterialfv, GLenum, face, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glUniform3ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper2(void, glNormal3fVertex3fvSUN, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glRasterPos2s, GLshort, x, GLshort, y); \
+  UnsupportedWrapper1(void, glResetMinmaxEXT, GLenum, target); \
+  UnsupportedWrapper1(void, glPassThroughxOES, GLfixed, token); \
+  UnsupportedWrapper3(void, glGetProgramivARB, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glUniform3ui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper1(void, glSecondaryColor3dv, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glVertex4xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper1(void, glBindVertexShaderEXT, GLuint, id); \
+  UnsupportedWrapper2(void, glCoverFillPathNV, GLuint, path, GLenum, coverMode); \
+  UnsupportedWrapper2(void, glFogfv, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(GLboolean, glIsStateNV, GLuint, state); \
+  UnsupportedWrapper3(void, glBlendEquationSeparateIndexedAMD, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
+  UnsupportedWrapper1(void, glReadBufferNV, GLenum, mode); \
+  UnsupportedWrapper2(void, glGetPerfQueryIdByNameINTEL, GLchar *, queryName, GLuint *, queryId); \
+  UnsupportedWrapper2(void, glWeightdvARB, GLint, size, const GLdouble *, weights); \
+  UnsupportedWrapper4(void, glReplacementCodeuiVertex3fSUN, GLuint, rc, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper0(void, glPopClientAttrib); \
+  UnsupportedWrapper11(void, glMapVertexAttrib2dAPPLE, GLuint, index, GLuint, size, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, const GLdouble *, points); \
+  UnsupportedWrapper4(void, glProgramUniform2ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper4(void, glColor4ub, GLubyte, red, GLubyte, green, GLubyte, blue, GLubyte, alpha); \
+  UnsupportedWrapper2(void, glUniformHandleui64ARB, GLint, location, GLuint64, value); \
+  UnsupportedWrapper4(void, glMatrixScaledEXT, GLenum, mode, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glSecondaryColor3iEXT, GLint, red, GLint, green, GLint, blue); \
+  UnsupportedWrapper2(void, glTexCoord2d, GLdouble, s, GLdouble, t); \
+  UnsupportedWrapper1(void, glRasterPos4iv, const GLint *, v); \
+  UnsupportedWrapper5(void, glVertexAttribFormatNV, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride); \
+  UnsupportedWrapper3(void, glGetColorTableParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper2(void, glTexBumpParameterfvATI, GLenum, pname, const GLfloat *, param); \
+  UnsupportedWrapper1(void, glAsyncMarkerSGIX, GLuint, marker); \
+  UnsupportedWrapper3(void, glGetTexEnvxvOES, GLenum, target, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper2(void, glSecondaryColorP3ui, GLenum, type, GLuint, color); \
+  UnsupportedWrapper3(void, glMultiTexCoordP4ui, GLenum, texture, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper2(void, glQueryResourceTagNV, GLint, tagId, const GLchar *, tagString); \
+  UnsupportedWrapper1(void, glVertex3sv, const GLshort *, v); \
+  UnsupportedWrapper6(void, glOrtho, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
+  UnsupportedWrapper2(void, glFogiv, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper0(void, glEndConditionalRenderNVX); \
+  UnsupportedWrapper3(void, glImageTransformParameterfvHP, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glColor4ubv, const GLubyte *, v); \
+  UnsupportedWrapper1(void, glWindowPos3ivMESA, const GLint *, v); \
+  UnsupportedWrapper3(void, glNormal3xOES, GLfixed, nx, GLfixed, ny, GLfixed, nz); \
+  UnsupportedWrapper3(void, glGetIntegerui64i_vNV, GLenum, value, GLuint, index, GLuint64EXT *, result); \
+  UnsupportedWrapper5(void, glVertexStream4fATI, GLenum, stream, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper1(GLboolean, glIsImageHandleResidentARB, GLuint64, handle); \
+  UnsupportedWrapper3(void, glFlushMappedBufferRangeEXT, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
+  UnsupportedWrapper1(void, glColor4dv, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glMapGrid1f, GLint, un, GLfloat, u1, GLfloat, u2); \
+  UnsupportedWrapper8(void, glCopyTexImage2DEXT, GLenum, target, GLint, level, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLint, border); \
+  UnsupportedWrapper1(void, glStopInstrumentsSGIX, GLint, marker); \
+  UnsupportedWrapper2(void, glMultiTexCoord3sv, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper6(void, glMap1d, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, stride, GLint, order, const GLdouble *, points); \
+  UnsupportedWrapper2(void, glMatrixLoad3x2fNV, GLenum, matrixMode, const GLfloat *, m); \
+  UnsupportedWrapper6(void, glCopyConvolutionFilter2DEXT, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper6(void, glProgramEnvParameterI4iNV, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper6(void, glColorTable, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
+  UnsupportedWrapper0(void, glApplyFramebufferAttachmentCMAAINTEL); \
+  UnsupportedWrapper1(void, glSetFenceAPPLE, GLuint, fence); \
+  UnsupportedWrapper3(void, glPrioritizeTextures, GLsizei, n, const GLuint *, textures, const GLfloat *, priorities); \
+  UnsupportedWrapper3(void, glGetHistogramParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper1(void, glIndexfv, const GLfloat *, c); \
+  UnsupportedWrapper4(void, glUniform3i64ARB, GLint, location, GLint64, x, GLint64, y, GLint64, z); \
+  UnsupportedWrapper4(void, glVertex4s, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+  UnsupportedWrapper2(void, glMultiTexCoord2sv, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper0(void, glEvaluateDepthValuesARB); \
+  UnsupportedWrapper3(void, glUniformui64vNV, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper3(void, glScalexOES, GLfixed, x, GLfixed, y, GLfixed, z); \
+  UnsupportedWrapper3(void, glVertexAttrib2dNV, GLuint, index, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper2(void, glVariantusvEXT, GLuint, id, const GLushort *, addr); \
+  UnsupportedWrapper2(void, glUniform1i64ARB, GLint, location, GLint64, x); \
+  UnsupportedWrapper3(void, glConvolutionParameterfEXT, GLenum, target, GLenum, pname, GLfloat, params); \
+  UnsupportedWrapper2(void, glWindowPos2fMESA, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper3(void, glMultiTexCoordP3uiv, GLenum, texture, GLenum, type, const GLuint *, coords); \
+  UnsupportedWrapper6(void, glMultiDrawElementsIndirectBindlessNV, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawCount, GLsizei, stride, GLint, vertexBufferCount); \
+  UnsupportedWrapper2(void, glMultiTexCoord1xOES, GLenum, texture, GLfixed, s); \
+  UnsupportedWrapper4(void, glWindowPos4iMESA, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper4(void, glTexCoord4bOES, GLbyte, s, GLbyte, t, GLbyte, r, GLbyte, q); \
+  UnsupportedWrapper1(void, glFragmentCoverageColorNV, GLuint, color); \
+  UnsupportedWrapper4(void, glSecondaryColorPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glGetNextPerfQueryIdINTEL, GLuint, queryId, GLuint *, nextQueryId); \
+  UnsupportedWrapper5(void, glDrawCommandsNV, GLenum, primitiveMode, GLuint, buffer, const GLintptr *, indirects, const GLsizei *, sizes, GLuint, count); \
+  UnsupportedWrapper4(void, glVideoCaptureStreamParameterivNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper2(void, glPixelStorex, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper3(void, glVertex3hNV, GLhalfNV, x, GLhalfNV, y, GLhalfNV, z); \
+  UnsupportedWrapper2(void, glMultiTexCoord1sv, GLenum, target, const GLshort *, v); \
+  UnsupportedWrapper2(void, glClipPlane, GLenum, plane, const GLdouble *, equation); \
+  UnsupportedWrapper1(GLsizei, glGetFramebufferPixelLocalStorageSizeEXT, GLuint, target); \
+  UnsupportedWrapper2(void, glGetClipPlanefOES, GLenum, plane, GLfloat *, equation); \
+  UnsupportedWrapper4(void, glProgramLocalParametersI4uivNV, GLenum, target, GLuint, index, GLsizei, count, const GLuint *, params); \
+  UnsupportedWrapper4(void, glProgramEnvParameters4fvEXT, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
+  UnsupportedWrapper4(void, glPathCoordsNV, GLuint, path, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
+  UnsupportedWrapper1(void, glNormal3iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glGetMinmaxParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper10(void, glMap2xOES, GLenum, target, GLfixed, u1, GLfixed, u2, GLint, ustride, GLint, uorder, GLfixed, v1, GLfixed, v2, GLint, vstride, GLint, vorder, GLfixed, points); \
+  UnsupportedWrapper1(void, glIndexMask, GLuint, mask); \
+  UnsupportedWrapper4(void, glTexCoord4fColor4fNormal3fVertex4fvSUN, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper3(void, glGetPerfMonitorGroupsAMD, GLint *, numGroups, GLsizei, groupsSize, GLuint *, groups); \
+  UnsupportedWrapper3(void, glFlushMappedBufferRangeAPPLE, GLenum, target, GLintptr, offset, GLsizeiptr, size); \
+  UnsupportedWrapper3(void, glEdgeFlagPointerListIBM, GLint, stride, const GLboolean **, pointer, GLint, ptrstride); \
+  UnsupportedWrapper8(void, glFramebufferFoveationParametersQCOM, GLuint, framebuffer, GLuint, layer, GLuint, focalPoint, GLfloat, focalX, GLfloat, focalY, GLfloat, gainX, GLfloat, gainY, GLfloat, foveaArea); \
+  UnsupportedWrapper2(void, glInstrumentsBufferSGIX, GLsizei, size, GLint *, buffer); \
+  UnsupportedWrapper2(void, glDisableClientStateiEXT, GLenum, array, GLuint, index); \
+  UnsupportedWrapper1(void, glBinormal3svEXT, const GLshort *, v); \
+  UnsupportedWrapper3(void, glFragmentMaterialfvSGIX, GLenum, face, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper2(void, glCombinerParameterfNV, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glFragmentLightivSGIX, GLenum, light, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glProgramLocalParameter4dvARB, GLenum, target, GLuint, index, const GLdouble *, params); \
+  UnsupportedWrapper10(void, glBlitFramebufferNV, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
+  UnsupportedWrapper3(void, glGetnPixelMapfvARB, GLenum, map, GLsizei, bufSize, GLfloat *, values); \
+  UnsupportedWrapper3(void, glVertexFormatNV, GLint, size, GLenum, type, GLsizei, stride); \
+  UnsupportedWrapper3(void, glMultiTexCoord2d, GLenum, target, GLdouble, s, GLdouble, t); \
+  UnsupportedWrapper0(void, glPauseTransformFeedbackNV); \
+  UnsupportedWrapper1(void, glVertex4sv, const GLshort *, v); \
+  UnsupportedWrapper1(GLuint, glGenFragmentShadersATI, GLuint, range); \
+  UnsupportedWrapper3(void, glPrioritizeTexturesEXT, GLsizei, n, const GLuint *, textures, const GLclampf *, priorities); \
+  UnsupportedWrapper3(void, glGetProgramEnvParameterdvARB, GLenum, target, GLuint, index, GLdouble *, params); \
+  UnsupportedWrapper4(void, glColorPointer, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+  UnsupportedWrapper2(void, glVertexAttribL3ui64vNV, GLuint, index, const GLuint64EXT *, v); \
+  UnsupportedWrapper2(void, glTexCoord2fVertex3fvSUN, const GLfloat *, tc, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glProgramVertexLimitNV, GLenum, target, GLint, limit); \
+  UnsupportedWrapper2(void, glGetCoverageModulationTableNV, GLsizei, bufsize, GLfloat *, v); \
+  UnsupportedWrapper4(void, glMultiTexCoord3i, GLenum, target, GLint, s, GLint, t, GLint, r); \
+  UnsupportedWrapper2(void, glGetSharpenTexFuncSGIS, GLenum, target, GLfloat *, points); \
+  UnsupportedWrapper4(void, glUniformMatrix3x4fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  UnsupportedWrapper3(void, glEGLImageTargetTexStorageEXT, GLenum, target, GLeglImageOES, image, const GLint*, attrib_list); \
+  UnsupportedWrapper4(void, glClearColorxOES, GLfixed, red, GLfixed, green, GLfixed, blue, GLfixed, alpha); \
+  UnsupportedWrapper4(void, glGetMapAttribParameterfvNV, GLenum, target, GLuint, index, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper7(void, glCoverFillPathInstancedNV, GLsizei, numPaths, GLenum, pathNameType, const void *, paths, GLuint, pathBase, GLenum, coverMode, GLenum, transformType, const GLfloat *, transformValues); \
+  UnsupportedWrapper3(void, glEvalMesh1, GLenum, mode, GLint, i1, GLint, i2); \
+  UnsupportedWrapper3(void, glVertexAttribs2fvNV, GLuint, index, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glFlushPixelDataRangeNV, GLenum, target); \
+  UnsupportedWrapper6(void, glProgramEnvParameter4dARB, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper5(void, glDrawPixels, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
+  UnsupportedWrapper11(void, glClearTexSubImageEXT, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, data); \
+  UnsupportedWrapper2(void, glVariantubvEXT, GLuint, id, const GLubyte *, addr); \
+  UnsupportedWrapper2(void, glMultiTexCoord1i, GLenum, target, GLint, s); \
+  UnsupportedWrapper6(void, glProgramLocalParameter4dARB, GLenum, target, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper2(void, glDeleteProgramsNV, GLsizei, n, const GLuint *, programs); \
+  UnsupportedWrapper2(void, glWindowPos2f, GLfloat, x, GLfloat, y); \
+  UnsupportedWrapper1(GLboolean, glIsFenceNV, GLuint, fence); \
+  UnsupportedWrapper2(void, glDrawTransformFeedbackNV, GLenum, mode, GLuint, id); \
+  UnsupportedWrapper3(void, glUniform4ui64vARB, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper3(void, glGetPixelTransformParameterfvEXT, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper1(void, glMatrixLoadIdentityEXT, GLenum, mode); \
+  UnsupportedWrapper2(void, glTexCoordP2ui, GLenum, type, GLuint, coords); \
+  UnsupportedWrapper2(void, glColor4ubVertex3fvSUN, const GLubyte *, c, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glProgramUniform2i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper2(void, glMultiTexCoord3dvARB, GLenum, target, const GLdouble *, v); \
+  UnsupportedWrapper1(void, glMakeBufferNonResidentNV, GLenum, target); \
+  UnsupportedWrapper4(void, glProgramUniform3i64vNV, GLuint, program, GLint, location, GLsizei, count, const GLint64EXT *, value); \
+  UnsupportedWrapper1(void, glColor3dv, const GLdouble *, v); \
+  UnsupportedWrapper3(void, glTexParameterxOES, GLenum, target, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper4(void, glGetObjectParameterivAPPLE, GLenum, objectType, GLuint, name, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper3(void, glCallLists, GLsizei, n, GLenum, type, const void *, lists); \
+  UnsupportedWrapper2(void, glVertexStream1iATI, GLenum, stream, GLint, x); \
+  UnsupportedWrapper3(void, glProgramUniformHandleui64ARB, GLuint, program, GLint, location, GLuint64, value); \
+  UnsupportedWrapper6(void, glColorTableSGI, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
+  UnsupportedWrapper5(void, glDrawElementsInstancedANGLE, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
+  UnsupportedWrapper5(void, glGetnColorTableARB, GLenum, target, GLenum, format, GLenum, type, GLsizei, bufSize, void *, table); \
+  UnsupportedWrapper4(void, glUniform3ui64ARB, GLint, location, GLuint64, x, GLuint64, y, GLuint64, z); \
+  UnsupportedWrapper0(void, glBlendBarrierNV); \
+  UnsupportedWrapper4(void, glProgramUniform4i64vARB, GLuint, program, GLint, location, GLsizei, count, const GLint64 *, value); \
+  UnsupportedWrapper1(void, glEvalPoint1, GLint, i); \
+  UnsupportedWrapper2(void, glVertex2d, GLdouble, x, GLdouble, y); \
+  UnsupportedWrapper5(void, glTexCoordPointerEXT, GLint, size, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
+  UnsupportedWrapper4(void, glNamedProgramLocalParameter4dvEXT, GLuint, program, GLenum, target, GLuint, index, const GLdouble *, params); \
+  UnsupportedWrapper3(void, glSecondaryColor3d, GLdouble, red, GLdouble, green, GLdouble, blue); \
+  UnsupportedWrapper2(void, glVertexAttrib1svNV, GLuint, index, const GLshort *, v); \
+  UnsupportedWrapper2(void, glTexCoord4fVertex4fvSUN, const GLfloat *, tc, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glProgramStringARB, GLenum, target, GLenum, format, GLsizei, len, const void *, string); \
+  UnsupportedWrapper4(void, glRasterPos4d, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper2(void, glTextureMaterialEXT, GLenum, face, GLenum, mode); \
+  UnsupportedWrapper3(void, glVertexAttribs4svNV, GLuint, index, GLsizei, count, const GLshort *, v); \
+  UnsupportedWrapper3(void, glShaderOp1EXT, GLenum, op, GLuint, res, GLuint, arg1); \
+  UnsupportedWrapper2(void, glDepthRangefOES, GLclampf, n, GLclampf, f); \
+  UnsupportedWrapper3(void, glInsertComponentEXT, GLuint, res, GLuint, src, GLuint, num); \
+  UnsupportedWrapper4(void, glBlendFuncSeparateEXT, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
+  UnsupportedWrapper4(void, glGetCombinerOutputParameterfvNV, GLenum, stage, GLenum, portion, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetLightfv, GLenum, light, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper3(void, glTangent3sEXT, GLshort, tx, GLshort, ty, GLshort, tz); \
+  UnsupportedWrapper4(void, glNamedFramebufferSamplePositionsfvAMD, GLuint, framebuffer, GLuint, numsamples, GLuint, pixelindex, const GLfloat *, values); \
+  UnsupportedWrapper2(void, glVertexAttrib3dvNV, GLuint, index, const GLdouble *, v); \
+  UnsupportedWrapper2(void, glDrawElementArrayATI, GLenum, mode, GLsizei, count); \
+  UnsupportedWrapper2(void, glGenPerfMonitorsAMD, GLsizei, n, GLuint *, monitors); \
+  UnsupportedWrapper2(void, glMakeImageHandleResidentARB, GLuint64, handle, GLenum, access); \
+  UnsupportedWrapper3(void, glColor4fNormal3fVertex3fvSUN, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glSecondaryColor3dvEXT, const GLdouble *, v); \
+  UnsupportedWrapper4(void, glTexFilterFuncSGIS, GLenum, target, GLenum, filter, GLsizei, n, const GLfloat *, weights); \
+  UnsupportedWrapper3(void, glExtGetRenderbuffersQCOM, GLuint *, renderbuffers, GLint, maxRenderbuffers, GLint *, numRenderbuffers); \
+  UnsupportedWrapper1(void, glMultMatrixd, const GLdouble *, m); \
+  UnsupportedWrapper1(void, glClientAttribDefaultEXT, GLbitfield, mask); \
+  UnsupportedWrapper3(void, glConvolutionParameterxOES, GLenum, target, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper1(void, glVertex4bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper6(void, glMultiDrawArraysIndirectBindlessCountNV, GLenum, mode, const void *, indirect, GLsizei, drawCount, GLsizei, maxDrawCount, GLsizei, stride, GLint, vertexBufferCount); \
+  UnsupportedWrapper2(void, glSpriteParameterfvSGIX, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper4(void, glStencilThenCoverFillPathNV, GLuint, path, GLenum, fillMode, GLuint, mask, GLenum, coverMode); \
+  UnsupportedWrapper2(void, glMultiTexCoord4bvOES, GLenum, texture, const GLbyte *, coords); \
+  UnsupportedWrapper3(void, glMapGrid1xOES, GLint, n, GLfixed, u1, GLfixed, u2); \
+  UnsupportedWrapper2(void, glMultiTexCoord2fvARB, GLenum, target, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glRasterPos4i, GLint, x, GLint, y, GLint, z, GLint, w); \
+  UnsupportedWrapper4(void, glUniformMatrix2x4fvNV, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+  UnsupportedWrapper4(void, glClearAccum, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
+  UnsupportedWrapper1(void, glPixelTexGenSGIX, GLenum, mode); \
+  UnsupportedWrapper4(void, glGetVideoCaptureStreamivNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glRasterPos3iv, const GLint *, v); \
+  UnsupportedWrapper4(void, glGetTexLevelParameterxvOES, GLenum, target, GLint, level, GLenum, pname, GLfixed *, params); \
+  UnsupportedWrapper2(void, glNormalStream3ivATI, GLenum, stream, const GLint *, coords); \
+  UnsupportedWrapper2(void, glCombinerParameteriNV, GLenum, pname, GLint, param); \
+  UnsupportedWrapper4(void, glProgramParameters4fvNV, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper2(void, glLightModeli, GLenum, pname, GLint, param); \
+  UnsupportedWrapper2(void, glGetClipPlane, GLenum, plane, GLdouble *, equation); \
+  UnsupportedWrapper1(void, glNormal3xvOES, const GLfixed *, coords); \
+  UnsupportedWrapper3(void, glGetTransformFeedbackVaryingNV, GLuint, program, GLuint, index, GLint *, location); \
+  UnsupportedWrapper8(void, glTexCoord4fVertex4fSUN, GLfloat, s, GLfloat, t, GLfloat, p, GLfloat, q, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper3(void, glMultiTexCoord2s, GLenum, target, GLshort, s, GLshort, t); \
+  UnsupportedWrapper4(void, glProgramUniform3ui64vNV, GLuint, program, GLint, location, GLsizei, count, const GLuint64EXT *, value); \
+  UnsupportedWrapper3(void, glGetColorTableParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper2(void, glGetPixelMapuiv, GLenum, map, GLuint *, values); \
+  UnsupportedWrapper2(void, glGetPixelTexGenParameterivSGIS, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glSecondaryColor3fv, const GLfloat *, v); \
+  UnsupportedWrapper1(void, glTexCoord1xOES, GLfixed, s); \
+  UnsupportedWrapper6(void, glGetnMinmax, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
+  UnsupportedWrapper3(void, glGetIntegeri_vEXT, GLenum, target, GLuint, index, GLint *, data); \
+  UnsupportedWrapper6(void, glProgramUniform4i64NV, GLuint, program, GLint, location, GLint64EXT, x, GLint64EXT, y, GLint64EXT, z, GLint64EXT, w); \
+  UnsupportedWrapper3(void, glGetProgramEnvParameterIivNV, GLenum, target, GLuint, index, GLint *, params); \
+  UnsupportedWrapper3(void, glBufferParameteriAPPLE, GLenum, target, GLenum, pname, GLint, param); \
+  UnsupportedWrapper3(void, glExtGetProgramsQCOM, GLuint *, programs, GLint, maxPrograms, GLint *, numPrograms); \
+  UnsupportedWrapper6(void, glCopyTexSubImage1DEXT, GLenum, target, GLint, level, GLint, xoffset, GLint, x, GLint, y, GLsizei, width); \
+  UnsupportedWrapper2(void, glDeleteTransformFeedbacksNV, GLsizei, n, const GLuint *, ids); \
+  UnsupportedWrapper4(void, glNormalPointerEXT, GLenum, type, GLsizei, stride, GLsizei, count, const void *, pointer); \
+  UnsupportedWrapper1(void, glVertex2sv, const GLshort *, v); \
+  UnsupportedWrapper3(void, glTexGeniv, GLenum, coord, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper5(void, glVertexStream4dATI, GLenum, stream, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+  UnsupportedWrapper1(void, glVertex2iv, const GLint *, v); \
+  UnsupportedWrapper3(void, glWindowPos3dMESA, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glProgramUniform1ui64ARB, GLuint, program, GLint, location, GLuint64, x); \
+  UnsupportedWrapper12(void, glAlphaFragmentOp3ATI, GLenum, op, GLuint, dst, GLuint, dstMod, GLuint, arg1, GLuint, arg1Rep, GLuint, arg1Mod, GLuint, arg2, GLuint, arg2Rep, GLuint, arg2Mod, GLuint, arg3, GLuint, arg3Rep, GLuint, arg3Mod); \
+  UnsupportedWrapper4(void, glBlendFuncSeparateINGR, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
+  UnsupportedWrapper4(void, glNamedBufferPageCommitmentARB, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
+  UnsupportedWrapper1(void, glVertex4fv, const GLfloat *, v); \
+  UnsupportedWrapper8(void, glPathSubCommandsNV, GLuint, path, GLsizei, commandStart, GLsizei, commandsToDelete, GLsizei, numCommands, const GLubyte *, commands, GLsizei, numCoords, GLenum, coordType, const void *, coords); \
+  UnsupportedWrapper2(void, glMultiTexCoord3xvOES, GLenum, texture, const GLfixed *, coords); \
+  UnsupportedWrapper2(void, glSpriteParameterfSGIX, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glGetUniformfvARB, GLhandleARB, programObj, GLint, location, GLfloat *, params); \
+  UnsupportedWrapper2(void, glVertexAttribL1i64NV, GLuint, index, GLint64EXT, x); \
+  UnsupportedWrapper3(void, glTexGenxOES, GLenum, coord, GLenum, pname, GLfixed, param); \
+  UnsupportedWrapper2(void, glMultiTexCoord1iARB, GLenum, target, GLint, s); \
+  UnsupportedWrapper1(GLboolean, glIsVertexArrayAPPLE, GLuint, array); \
+  UnsupportedWrapper8(void, glTextureImage2DMultisampleCoverageNV, GLuint, texture, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations); \
+  UnsupportedWrapper3(void, glFragmentLightfSGIX, GLenum, light, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper2(void, glMultiTexCoord4iv, GLenum, target, const GLint *, v); \
+  UnsupportedWrapper1(void, glMultTransposeMatrixd, const GLdouble *, m); \
+  UnsupportedWrapper3(void, glSecondaryColor3ui, GLuint, red, GLuint, green, GLuint, blue); \
+  UnsupportedWrapper3(void, glColor3f, GLfloat, red, GLfloat, green, GLfloat, blue); \
+  UnsupportedWrapper5(void, glGetProgramBinaryOES, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
+  UnsupportedWrapper0(void, glEndTransformFeedbackNV); \
+  UnsupportedWrapper4(void, glDrawCommandsAddressNV, GLenum, primitiveMode, const GLuint64 *, indirects, const GLsizei *, sizes, GLuint, count); \
+  UnsupportedWrapper3(void, glTextureRenderbufferEXT, GLuint, texture, GLenum, target, GLuint, renderbuffer); \
+  UnsupportedWrapper2(void, glVertexStream1ivATI, GLenum, stream, const GLint *, coords); \
+  UnsupportedWrapper3(void, glProgramUniformHandleui64NV, GLuint, program, GLint, location, GLuint64, value); \
+  UnsupportedWrapper1(void, glDeleteVertexShaderEXT, GLuint, id); \
+  UnsupportedWrapper3(void, glExtractComponentEXT, GLuint, res, GLuint, src, GLuint, num); \
+  UnsupportedWrapper2(void, glPointParameterivNV, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper3(void, glRasterPos3i, GLint, x, GLint, y, GLint, z); \
+  UnsupportedWrapper2(void, glPixelTexGenParameterfvSGIS, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetVertexAttribLi64vNV, GLuint, index, GLenum, pname, GLint64EXT *, params); \
+  UnsupportedWrapper3(void, glScalef, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper4(void, glPathTexGenNV, GLenum, texCoordSet, GLenum, genMode, GLint, components, const GLfloat *, coeffs); \
+  UnsupportedWrapper4(void, glProgramLocalParametersI4ivNV, GLenum, target, GLuint, index, GLsizei, count, const GLint *, params); \
+  UnsupportedWrapper4(void, glProgramUniform2ui64vARB, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, value); \
+  UnsupportedWrapper3(void, glGetArrayObjectivATI, GLenum, array, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glFinishFenceAPPLE, GLuint, fence); \
+  UnsupportedWrapper5(void, glVertexAttrib4NubARB, GLuint, index, GLubyte, x, GLubyte, y, GLubyte, z, GLubyte, w); \
+  UnsupportedWrapper3(void, glGetMinmaxParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
+  UnsupportedWrapper7(void, glTexImage2DMultisampleCoverageNV, GLenum, target, GLsizei, coverageSamples, GLsizei, colorSamples, GLint, internalFormat, GLsizei, width, GLsizei, height, GLboolean, fixedSampleLocations); \
+  UnsupportedWrapper1(void, glDisableDriverControlQCOM, GLuint, driverControl); \
+  UnsupportedWrapper4(void, glVideoCaptureStreamParameterdvNV, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLdouble *, params); \
+  UnsupportedWrapper1(void, glDeleteSyncAPPLE, GLsync, sync); \
+  UnsupportedWrapper6(void, glColorTableEXT, GLenum, target, GLenum, internalFormat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
+  UnsupportedWrapper5(void, glProgramBufferParametersfvNV, GLenum, target, GLuint, bindingIndex, GLuint, wordIndex, GLsizei, count, const GLfloat *, params); \
+  UnsupportedWrapper3(void, glGetPixelTransformParameterivEXT, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper1(void, glTangent3svEXT, const GLshort *, v); \
+  UnsupportedWrapper9(GLenum, glPathMemoryGlyphIndexArrayNV, GLuint, firstPathName, GLenum, fontTarget, GLsizeiptr, fontSize, const void *, fontData, GLsizei, faceIndex, GLuint, firstGlyphIndex, GLsizei, numGlyphs, GLuint, pathParameterTemplate, GLfloat, emScale); \
+  UnsupportedWrapper3(void, glEdgeFlagPointerEXT, GLsizei, stride, GLsizei, count, const GLboolean *, pointer); \
+  UnsupportedWrapper2(void, glVertex2bOES, GLbyte, x, GLbyte, y); \
+  UnsupportedWrapper1(void, glSecondaryColor3sv, const GLshort *, v); \
+  UnsupportedWrapper3(void, glGetListParameterivSGIX, GLuint, list, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper2(void, glEnableVertexAttribAPPLE, GLuint, index, GLenum, pname); \
+  UnsupportedWrapper1(void, glTexCoord1i, GLint, s); \
+  UnsupportedWrapper4(void, glMultiTexEnvfEXT, GLenum, texunit, GLenum, target, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper6(void, glCopyConvolutionFilter2D, GLenum, target, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
+  UnsupportedWrapper2(void, glFogf, GLenum, pname, GLfloat, param); \
+  UnsupportedWrapper3(void, glGetColorTableParameterivSGI, GLenum, target, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper0(void, glPushMatrix); \
+  UnsupportedWrapper2(void, glVertexStream2fvATI, GLenum, stream, const GLfloat *, coords); \
+  UnsupportedWrapper5(void, glVertexAttrib4fNV, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+  UnsupportedWrapper2(void, glDeleteQueryResourceTagNV, GLsizei, n, const GLint *, tagIds); \
+  UnsupportedWrapper1(void, glTexCoord1bOES, GLbyte, s); \
+  UnsupportedWrapper3(void, glStencilFillPathNV, GLuint, path, GLenum, fillMode, GLuint, mask); \
+  UnsupportedWrapper5(void, glMatrixRotatedEXT, GLenum, mode, GLdouble, angle, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glListParameterivSGIX, GLuint, list, GLenum, pname, const GLint *, params); \
+  UnsupportedWrapper5(void, glMultiTexCoord4s, GLenum, target, GLshort, s, GLshort, t, GLshort, r, GLshort, q); \
+  UnsupportedWrapper7(void, glTexStorageSparseAMD, GLenum, target, GLenum, internalFormat, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, layers, GLbitfield, flags); \
+  UnsupportedWrapper3(void, glNormal3i, GLint, nx, GLint, ny, GLint, nz); \
+  UnsupportedWrapper1(void, glTexCoord4bvOES, const GLbyte *, coords); \
+  UnsupportedWrapper3(void, glGetVertexAttribPointervNV, GLuint, index, GLenum, pname, void **, pointer); \
+  UnsupportedWrapper1(void, glReplacementCodeuiSUN, GLuint, code); \
+  UnsupportedWrapper2(void, glSampleMaskIndexedNV, GLuint, index, GLbitfield, mask); \
+  UnsupportedWrapper1(void, glIndexdv, const GLdouble *, c); \
+  UnsupportedWrapper1(void, glReplacementCodeubSUN, GLubyte, code); \
+  UnsupportedWrapper4(void, glMultiTexCoord3fARB, GLenum, target, GLfloat, s, GLfloat, t, GLfloat, r); \
+  UnsupportedWrapper2(void, glMulticastWaitSyncNV, GLuint, signalGpu, GLbitfield, waitGpuMask); \
+  UnsupportedWrapper2(GLboolean, glTestObjectAPPLE, GLenum, object, GLuint, name); \
+  UnsupportedWrapper4(void, glGetMultiTexGendvEXT, GLenum, texunit, GLenum, coord, GLenum, pname, GLdouble *, params); \
+  UnsupportedWrapper4(void, glFinalCombinerInputNV, GLenum, variable, GLenum, input, GLenum, mapping, GLenum, componentUsage); \
+  UnsupportedWrapper2(void, glPolygonModeNV, GLenum, face, GLenum, mode); \
+  UnsupportedWrapper5(void, glDrawRangeElementArrayAPPLE, GLenum, mode, GLuint, start, GLuint, end, GLint, first, GLsizei, count); \
+  UnsupportedWrapper3(void, glWindowPos3d, GLdouble, x, GLdouble, y, GLdouble, z); \
+  UnsupportedWrapper3(void, glGetFinalCombinerInputParameterivNV, GLenum, variable, GLenum, pname, GLint *, params); \
+  UnsupportedWrapper10(void, glColor4fNormal3fVertex3fSUN, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
+  UnsupportedWrapper4(void, glNamedFramebufferSampleLocationsfvNV, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
+  UnsupportedWrapper5(void, glDrawElementsInstancedNV, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
+  UnsupportedWrapper0(void, glTextureBarrierNV); \
+  UnsupportedWrapper3(void, glGetVideouivNV, GLuint, video_slot, GLenum, pname, GLuint *, params); \
+  UnsupportedWrapper4(void, glCopyTextureLevelsAPPLE, GLuint, destinationTexture, GLuint, sourceTexture, GLint, sourceBaseLevel, GLsizei, sourceLevelCount); \
+  UnsupportedWrapper3(void, glConvolutionParameterfvEXT, GLenum, target, GLenum, pname, const GLfloat *, params); \
+  UnsupportedWrapper1(void, glWindowPos2fv, const GLfloat *, v); \
+  UnsupportedWrapper4(void, glNormalStream3dATI, GLenum, stream, GLdouble, nx, GLdouble, ny, GLdouble, nz); \
+  UnsupportedWrapper4(void, glDrawArraysInstancedANGLE, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
 
 
 		

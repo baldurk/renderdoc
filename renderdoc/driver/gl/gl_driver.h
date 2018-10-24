@@ -864,6 +864,9 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTextureMultisampleMultiviewOVR, GLenum target,
                                 GLenum attachment, GLuint texture, GLint level, GLsizei samples,
                                 GLint baseViewIndex, GLsizei numViews);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glTextureFoveationParametersQCOM, GLuint texture,
+                                GLuint layer, GLuint focalPoint, GLfloat focalX, GLfloat focalY,
+                                GLfloat gainX, GLfloat gainY, GLfloat foveaArea);
 
   IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferParameteri, GLenum target, GLenum pname,
                                 GLint param);
