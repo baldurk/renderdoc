@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <dlfcn.h>
 #include <mach-o/dyld.h>
 #include <pwd.h>
 #include <sys/stat.h>
