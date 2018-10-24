@@ -711,7 +711,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   if(capturefile == NULL)
     capturefile = "";
 
-  string binpath, libpath;
+  string binpath, libpath, ownlibpath;
   {
     FileIO::GetExecutableFilename(binpath);
     binpath = dirname(binpath);
@@ -727,6 +727,9 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
 #endif
   }
 
+  FileIO::GetLibraryFilename(ownlibpath);
+  ownlibpath = dirname(ownlibpath);
+
   std::string libfile = "librenderdoc" LIB_SUFFIX;
 
 // on macOS, the path must be absolute
@@ -740,6 +743,8 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, binpath.c_str()));
   modifications.push_back(
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, libpath.c_str()));
+  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
+                                                  LIB_PATH_ENV_VAR, ownlibpath.c_str()));
   modifications.push_back(
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, PRELOAD_ENV_VAR, libfile.c_str()));
   modifications.push_back(

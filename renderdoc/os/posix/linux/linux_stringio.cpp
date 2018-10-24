@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <dlfcn.h>
 #include <errno.h>
 #include <iconv.h>
 #include <pwd.h>
@@ -281,6 +282,106 @@ void GetExecutableFilename(string &selfName)
   readlink("/proc/self/exe", path, 511);
 
   selfName = string(path);
+}
+
+int LibraryLocator = 42;
+
+void GetLibraryFilename(string &selfName)
+{
+  // this is a hack, but the only reliable way to find the absolute path to the library.
+  // dladdr would be fine but it returns the wrong result for symbols in the library
+
+  string librenderdoc_path;
+
+  FILE *f = fopen("/proc/self/maps", "r");
+
+  if(f)
+  {
+    // read the whole thing in one go. There's no need to try and be tight with
+    // this allocation, so just make sure we can read everything.
+    char *map_string = new char[1024 * 1024];
+    memset(map_string, 0, 1024 * 1024);
+
+    ::fread(map_string, 1, 1024 * 1024, f);
+
+    ::fclose(f);
+
+    char *c = strstr(map_string, "/librenderdoc.so");
+
+    if(c)
+    {
+      // walk backwards until we hit the start of the line
+      while(c > map_string)
+      {
+        c--;
+
+        if(c[0] == '\n')
+        {
+          c++;
+          break;
+        }
+      }
+
+      // walk forwards across the address range (00400000-0040c000)
+      while(isalnum(c[0]) || c[0] == '-')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // permissions (r-xp)
+      while(isalpha(c[0]) || c[0] == '-')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // offset (0000b000)
+      while(isalnum(c[0]) || c[0] == '-')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // dev
+      while(isalnum(c[0]) || c[0] == ':')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // inode
+      while(isdigit(c[0]))
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // FINALLY we are at the start of the actual path
+      char *end = strchr(c, '\n');
+
+      if(end)
+        librenderdoc_path = string(c, end - c);
+    }
+
+    delete[] map_string;
+  }
+
+  if(librenderdoc_path.empty())
+  {
+    RDCWARN("Couldn't get librenderdoc.so path from /proc/self/maps, falling back to dladdr");
+
+    Dl_info info;
+    if(dladdr(&LibraryLocator, &info))
+      librenderdoc_path = info.dli_fname;
+  }
+
+  selfName = librenderdoc_path;
 }
 };
 

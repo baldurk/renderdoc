@@ -92,6 +92,12 @@ void GetExecutableFilename(string &selfName)
 
   selfName = buf;
 }
+
+void GetLibraryFilename(string &selfName)
+{
+  RDCERR("GetLibraryFilename is not defined on Android");
+  GetExecutableFilename(selfName);
+}
 };
 
 namespace StringFormat

@@ -30,9 +30,9 @@ std::string LocatePluginFile(const std::string &path, const std::string &fileNam
 {
   std::string ret;
 
-  std::string exepath;
-  FileIO::GetExecutableFilename(exepath);
-  exepath = dirname(exepath);
+  std::string libpath;
+  FileIO::GetLibraryFilename(libpath);
+  libpath = dirname(libpath);
 
   std::vector<std::string> paths;
 
@@ -40,32 +40,32 @@ std::string LocatePluginFile(const std::string &path, const std::string &fileNam
   string customPath(RENDERDOC_PLUGINS_PATH);
 
   if(FileIO::IsRelativePath(customPath))
-    customPath = exepath + "/" + customPath;
+    customPath = libpath + "/" + customPath;
 
   paths.push_back(customPath);
 #endif
 
   // windows installation
-  paths.push_back(exepath + "/plugins");
+  paths.push_back(libpath + "/plugins");
   // linux installation
-  paths.push_back(exepath + "/../share/renderdoc/plugins");
+  paths.push_back(libpath + "/../share/renderdoc/plugins");
 // also search the appropriate OS-specific location in the root
 #if ENABLED(RDOC_WIN32) && ENABLED(RDOC_X64)
-  paths.push_back(exepath + "/../../plugins-win64");
+  paths.push_back(libpath + "/../../plugins-win64");
 #endif
 
 #if ENABLED(RDOC_WIN32) && DISABLED(RDOC_X64)
-  paths.push_back(exepath + "/../../plugins-win32");
+  paths.push_back(libpath + "/../../plugins-win32");
 #endif
 
 #if ENABLED(RDOC_LINUX)
-  paths.push_back(exepath + "/../../plugins-linux64");
+  paths.push_back(libpath + "/../../plugins-linux64");
 #endif
 
   // there is no standard path for local builds as we don't provide these plugins in the repository
   // directly. As a courtesy we search the root of the build, from the executable. The user can
   // always put the plugins folder relative to the exe where it would be in an installation too.
-  paths.push_back(exepath + "/../../plugins");
+  paths.push_back(libpath + "/../../plugins");
 
   // in future maybe we want to search a user-specific plugins folder? Like ~/.renderdoc/ on linux
   // or %APPDATA%/renderdoc on windows?

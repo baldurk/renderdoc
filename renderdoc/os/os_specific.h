@@ -278,6 +278,7 @@ string GetFullPathname(const string &filename);
 string FindFileInPath(const string &fileName);
 
 void GetExecutableFilename(string &selfName);
+void GetLibraryFilename(string &selfName);
 
 uint64_t GetModifiedTimestamp(const string &filename);
 

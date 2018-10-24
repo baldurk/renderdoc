@@ -168,6 +168,14 @@ void GetExecutableFilename(string &selfName)
   selfName = StringFormat::Wide2UTF8(wstring(curFile));
 }
 
+void GetLibraryFilename(string &selfName)
+{
+  wchar_t curFile[512] = {0};
+  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), curFile, 511);
+
+  selfName = StringFormat::Wide2UTF8(wstring(curFile));
+}
+
 bool IsRelativePath(const string &path)
 {
   if(path.empty())

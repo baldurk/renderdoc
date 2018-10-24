@@ -89,17 +89,6 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
 static const char *VulkanLibraryName = "libvulkan.1.dylib";
 
-string GetThisLibPath()
-{
-  Dl_info info;
-  if(dladdr(&VulkanLibraryName, &info))
-  {
-    RDCDEBUG("GetThisLibPath = '%s'", info.dli_fname);
-    return info.dli_fname;
-  }
-  return "";
-}
-
 void *LoadVulkanLibrary()
 {
   // first try to load the module globally. If so we assume the user has a global (or at least

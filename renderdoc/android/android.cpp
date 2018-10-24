@@ -330,9 +330,9 @@ bool InstallRenderDocServer(const std::string &deviceID)
   }
 
   // Check known paths for RenderDoc server
-  std::string exePath;
-  FileIO::GetExecutableFilename(exePath);
-  std::string exeDir = dirname(FileIO::GetFullPathname(exePath));
+  std::string libPath;
+  FileIO::GetLibraryFilename(libPath);
+  std::string libDir = dirname(FileIO::GetFullPathname(libPath));
 
   std::vector<std::string> paths;
 
@@ -341,7 +341,7 @@ bool InstallRenderDocServer(const std::string &deviceID)
   RDCLOG("Custom APK path: %s", customPath.c_str());
 
   if(FileIO::IsRelativePath(customPath))
-    customPath = exeDir + "/" + customPath;
+    customPath = libDir + "/" + customPath;
 
   if(!endswith(customPath, "/"))
     customPath += "/";
@@ -352,12 +352,12 @@ bool InstallRenderDocServer(const std::string &deviceID)
   std::string suff = GetRenderDocPackageForABI(abis[0], '-');
   suff.erase(0, strlen(RENDERDOC_ANDROID_PACKAGE_BASE));
 
-  paths.push_back(exeDir + "/plugins/android/");                                 // Windows install
-  paths.push_back(exeDir + "/../share/renderdoc/plugins/android/");              // Linux install
-  paths.push_back(exeDir + "/../../build-android/bin/");                         // Local build
-  paths.push_back(exeDir + "/../../build-android" + suff + "/bin/");             // Local ABI build
-  paths.push_back(exeDir + "/../../../../../build-android/bin/");                // macOS build
-  paths.push_back(exeDir + "/../../../../../build-android" + suff + "/bin/");    // macOS ABI build
+  paths.push_back(libDir + "/plugins/android/");                                 // Windows install
+  paths.push_back(libDir + "/../share/renderdoc/plugins/android/");              // Linux install
+  paths.push_back(libDir + "/../../build-android/bin/");                         // Local build
+  paths.push_back(libDir + "/../../build-android" + suff + "/bin/");             // Local ABI build
+  paths.push_back(libDir + "/../../../../../build-android/bin/");                // macOS build
+  paths.push_back(libDir + "/../../../../../build-android" + suff + "/bin/");    // macOS ABI build
 
   // use the first ABI for searching
   std::string apk = GetRenderDocPackageForABI(abis[0]);

@@ -249,11 +249,11 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 
   // finally try to locate it in our own distributed android subfolder
   {
-    std::string exepath;
-    FileIO::GetExecutableFilename(exepath);
-    std::string exedir = dirname(FileIO::GetFullPathname(exepath));
+    std::string libpath;
+    FileIO::GetLibraryFilename(libpath);
+    std::string libdir = dirname(FileIO::GetFullPathname(libpath));
 
-    toolpath = exedir + "/plugins/android/" + toolname;
+    toolpath = libdir + "/plugins/android/" + toolname;
     if(toolExists(toolpath))
     {
       if(toolname == "adb")

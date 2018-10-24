@@ -31,9 +31,6 @@ void dlopen_hook_init();
 // DllMain equivalent
 void library_loaded()
 {
-  string curfile;
-  FileIO::GetExecutableFilename(curfile);
-
   if(LibraryHooks::Detect("renderdoc__replay__marker"))
   {
     RDCDEBUG("Not creating hooks - in replay app");
@@ -65,6 +62,9 @@ void library_loaded()
     {
       RenderDoc::Inst().SetCaptureFileTemplate(capturefile);
     }
+
+    string curfile;
+    FileIO::GetExecutableFilename(curfile);
 
     RDCLOG("Loading into %s", curfile.c_str());
 

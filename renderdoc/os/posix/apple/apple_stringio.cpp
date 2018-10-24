@@ -108,6 +108,22 @@ void GetExecutableFilename(string &selfName)
   if(path[0] != 0)
     selfName = string(path);
 }
+
+int LibraryLocator = 42;
+
+void GetLibraryFilename(string &selfName)
+{
+  Dl_info info;
+  if(dladdr(&LibraryLocator, &info))
+  {
+    selfName = info.dli_fname;
+  }
+  else
+  {
+    RDCERR("dladdr failed to get library path");
+  }
+  selfName = "";
+}
 };
 
 namespace StringFormat

@@ -181,9 +181,6 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
   }
 }
 
-// defined in vk_linux.cpp or vk_apple.cpp
-string GetThisLibPath();
-
 // embedded data file
 
 extern unsigned char driver_vulkan_renderdoc_json[];
@@ -343,7 +340,8 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   // check that there's only one layer registered, and it points to the same .so file that
   // we are running with in this instance of renderdoccmd
 
-  string librenderdoc_path = GetThisLibPath();
+  string librenderdoc_path;
+  FileIO::GetLibraryFilename(librenderdoc_path);
 
   if(librenderdoc_path.empty() || !FileExists(librenderdoc_path))
   {
@@ -454,7 +452,8 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 
   string jsonPath = LayerRegistrationPath(idx);
   string path = GetSOFromJSON(jsonPath);
-  string libPath = GetThisLibPath();
+  string libPath;
+  FileIO::GetLibraryFilename(libPath);
 
   if(path != libPath)
   {
