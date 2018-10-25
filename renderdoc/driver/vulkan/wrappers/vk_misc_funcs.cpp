@@ -781,7 +781,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
                                             "Indirect command contents are read at the end of the "
                                             "render pass, so write-after-read overwrites will "
                                             "cause incorrect display of indirect arguments.",
-                                            ToStr(RenderPass)));
+                                            ToStr(RenderPass).c_str()));
 
         // make a version of the render pass that loads from its attachments,
         // so it can be used for replaying a single draw after a render pass
