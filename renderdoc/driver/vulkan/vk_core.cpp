@@ -3134,6 +3134,11 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
     if(isMEM && messageCode == 15)
       return false;
 
+    // Non-linear image is aliased with linear buffer
+    // Not an error, the validation layers complain at our whole-mem bufs
+    if(strstr(pMessage, "InvalidAliasing"))
+      return false;
+
     RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
   }
 
