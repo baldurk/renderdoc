@@ -99,6 +99,7 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->deleteShaderTool->setEnabled(false);
   ui->editShaderTool->setEnabled(false);
 
+  ui->ExternalTool_RGPIntegration->setChecked(m_Ctx.Config().ExternalTool_RGPIntegration);
   ui->ExternalTool_RadeonGPUProfiler->setText(m_Ctx.Config().ExternalTool_RadeonGPUProfiler);
 
   ui->Android_SDKPath->setText(m_Ctx.Config().Android_SDKPath);
@@ -384,6 +385,13 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
   if(res)
     m_Ctx.Config().SetConfigSetting(lit("shader.debug.searchPaths"),
                                     list.getItems().join(QLatin1Char(';')));
+}
+
+void SettingsDialog::on_ExternalTool_RGPIntegration_toggled(bool checked)
+{
+  m_Ctx.Config().ExternalTool_RGPIntegration = checked;
+
+  m_Ctx.Config().Save();
 }
 
 void SettingsDialog::on_ExternalTool_RadeonGPUProfiler_textEdited(const QString &rgp)

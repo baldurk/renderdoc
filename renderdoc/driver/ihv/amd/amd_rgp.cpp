@@ -24,6 +24,7 @@
 
 #include "amd_rgp.h"
 #include "common/common.h"
+#include "core/core.h"
 #include "core/plugins.h"
 #include "official/RGP/DevDriverAPI.h"
 
@@ -67,7 +68,17 @@ AMDRGPControl::AMDRGPControl()
   m_RGPDispatchTable->minorVersion = DEV_DRIVER_API_MINOR_VERSION;
   m_RGPContext = NULL;
 
+  const bool enabled = RenderDoc::Inst().GetConfigSetting("ExternalTool_RGPIntegration") != "0";
+
+  if(!enabled)
+  {
+    RDCLOG("AMD RGP Interop is not enabled");
+    return;
+  }
+
 #if ENABLED(RDOC_WIN32) || ENABLED(RDOC_LINUX)
+
+  RDCLOG("Attempting to enable AMD RGP Interop");
 
   // manually load in the DevDriverAPI dll and set up the function table
   std::string dllName("DevDriverAPI");
@@ -119,6 +130,11 @@ AMDRGPControl::AMDRGPControl()
     if(rgpStatus == DEV_DRIVER_STATUS_SUCCESS)
     {
       supportsInterop = DriverSupportsInterop();
+
+      if(supportsInterop)
+        RDCLOG("AMD RGP Interop was successfully enabled");
+      else
+        RDCLOG("AMD RGP Interop could not be enabled");
     }
 
     // if initialization failed or driver doesn't support interop

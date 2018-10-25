@@ -291,6 +291,7 @@ bool PersistantConfig::Load(const rdcstr &filename)
   }
 
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
+  RENDERDOC_SetConfigSetting("ExternalTool_RGPIntegration", ExternalTool_RGPIntegration ? "1" : "0");
 
   RDDialog::DefaultBrowsePath = LastFileBrowsePath;
 
@@ -419,6 +420,7 @@ bool PersistantConfig::Save()
     RemoteHostList.push_back(*host);
 
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
+  RENDERDOC_SetConfigSetting("ExternalTool_RGPIntegration", ExternalTool_RGPIntegration ? "1" : "0");
 
   LastFileBrowsePath = RDDialog::DefaultBrowsePath;
 

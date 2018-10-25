@@ -69,6 +69,7 @@ private slots:
 
   // core
   void on_chooseSearchPaths_clicked();
+  void on_ExternalTool_RGPIntegration_toggled(bool checked);
   void on_ExternalTool_RadeonGPUProfiler_textEdited(const QString &rgp);
   void on_browseRGPPath_clicked();
 
