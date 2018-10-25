@@ -1783,7 +1783,16 @@ void D3D12PipelineStateViewer::setState()
   }
   else
   {
-    bool streamOutActive = !state.streamOut.outputs.isEmpty();
+    bool streamOutActive = false;
+
+    for(const D3D12Pipe::StreamOutBind &o : state.streamOut.outputs)
+    {
+      if(o.resourceId != ResourceId())
+      {
+        streamOutActive = true;
+        break;
+      }
+    }
 
     if(state.geometryShader.resourceId == ResourceId() && streamOutActive)
     {
