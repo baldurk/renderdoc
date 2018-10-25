@@ -1217,7 +1217,7 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
   if(HasExt[ARB_texture_multisample_no_array] || HasExt[ARB_texture_multisample])
     GL.glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
 
-  GL.glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
+  GL.glGetFloatv(eGL_SAMPLE_COVERAGE_VALUE, &SampleCoverage);
 
   {
     GLint invert = 0;
