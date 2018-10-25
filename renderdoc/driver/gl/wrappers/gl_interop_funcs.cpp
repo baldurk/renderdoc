@@ -107,6 +107,12 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
 
   SERIALISE_TIME_CALL(wrapped->real = GL.wglDXRegisterObjectNV(hDevice, real, name, type, access));
 
+  if(wrapped->real == NULL)
+  {
+    delete wrapped;
+    return NULL;
+  }
+
   {
     RDCASSERT(record);
 
