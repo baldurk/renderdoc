@@ -1298,6 +1298,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
     {
       ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
 
+      // fetch any queued indirect readbacks here
+      for(const VkIndirectRecordData &indirectcopy :
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
+        ExecuteIndirectReadback(commandBuffer, indirectcopy);
+
       std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
       ResourceId cmd = GetResID(commandBuffer);

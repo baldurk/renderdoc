@@ -72,6 +72,17 @@ enum class VkIndirectPatchType
   DrawIndirectByteCount,
 };
 
+struct VkIndirectRecordData
+{
+  VkBufferMemoryBarrier paramsBarrier, countBarrier;
+
+  struct
+  {
+    VkBuffer src, dst;
+    VkBufferCopy copy;
+  } paramsCopy, countCopy;
+};
+
 struct VkIndirectPatchData
 {
   VkIndirectPatchType type = VkIndirectPatchType::NoPatch;
@@ -509,6 +520,8 @@ private:
     vector<DebugMessage> debugMessages;
     std::list<VulkanDrawcallTreeNode *> drawStack;
 
+    std::vector<VkIndirectRecordData> indirectCopies;
+
     uint32_t beginChunk = 0;
     uint32_t endChunk = 0;
 
@@ -732,6 +745,8 @@ private:
                                         VkBuffer dataBuffer, VkDeviceSize dataOffset, uint32_t count,
                                         uint32_t stride = 0, VkBuffer counterBuffer = VK_NULL_HANDLE,
                                         VkDeviceSize counterOffset = 0);
+  void ExecuteIndirectReadback(VkCommandBuffer commandBuffer,
+                               const VkIndirectRecordData &indirectcopy);
 
   WriteSerialiser &GetThreadSerialiser();
   template <typename SerialiserType>

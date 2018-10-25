@@ -84,13 +84,15 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
   if(type == VkIndirectPatchType::DrawIndirectByteCount)
     buf.srcAccessMask |= VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT;
 
-  ObjDisp(commandBuffer)
-      ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                           VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 1, &buf, 0, NULL);
+  VkIndirectRecordData indirectcopy = {};
+
+  indirectcopy.paramsBarrier = buf;
 
   VkBufferCopy copy = {dataOffset, 0, dataSize};
-  ObjDisp(commandBuffer)
-      ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(dataBuffer), Unwrap(paramsbuf), 1, &copy);
+
+  indirectcopy.paramsCopy.src = dataBuffer;
+  indirectcopy.paramsCopy.dst = paramsbuf;
+  indirectcopy.paramsCopy.copy = copy;
 
   if(counterBuffer != VK_NULL_HANDLE)
   {
@@ -98,16 +100,22 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
     buf.offset = counterOffset;
     buf.size = 4;
 
-    ObjDisp(commandBuffer)
-        ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 1, &buf, 0, NULL);
+    indirectcopy.countBarrier = buf;
 
     copy.srcOffset = counterOffset;
     copy.dstOffset = bufInfo.size - 16;
     copy.size = 4;
-    ObjDisp(commandBuffer)
-        ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(counterBuffer), Unwrap(paramsbuf), 1, &copy);
+
+    indirectcopy.countCopy.src = counterBuffer;
+    indirectcopy.countCopy.dst = paramsbuf;
+    indirectcopy.countCopy.copy = copy;
   }
+
+  // if it's a dispatch we can do it immediately, otherwise we delay to the end of the renderpass
+  if(type == VkIndirectPatchType::DispatchIndirect)
+    ExecuteIndirectReadback(commandBuffer, indirectcopy);
+  else
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.push_back(indirectcopy);
 
   VkIndirectPatchData indirectPatch;
   indirectPatch.type = type;
@@ -117,6 +125,31 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
   indirectPatch.buf = paramsbuf;
 
   return indirectPatch;
+}
+
+void WrappedVulkan::ExecuteIndirectReadback(VkCommandBuffer commandBuffer,
+                                            const VkIndirectRecordData &indirectcopy)
+{
+  ObjDisp(commandBuffer)
+      ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                           VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 1,
+                           &indirectcopy.paramsBarrier, 0, NULL);
+
+  ObjDisp(commandBuffer)
+      ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(indirectcopy.paramsCopy.src),
+                      Unwrap(indirectcopy.paramsCopy.dst), 1, &indirectcopy.paramsCopy.copy);
+
+  if(indirectcopy.countCopy.src != VK_NULL_HANDLE)
+  {
+    ObjDisp(commandBuffer)
+        ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 1,
+                             &indirectcopy.countBarrier, 0, NULL);
+
+    ObjDisp(commandBuffer)
+        ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(indirectcopy.countCopy.src),
+                        Unwrap(indirectcopy.countCopy.dst), 1, &indirectcopy.countCopy.copy);
+  }
 }
 
 bool WrappedVulkan::IsDrawInRenderPass()

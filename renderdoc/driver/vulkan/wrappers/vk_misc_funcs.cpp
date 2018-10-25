@@ -767,6 +767,22 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         live = GetResourceManager()->WrapResource(Unwrap(device), rp);
         GetResourceManager()->AddLiveResource(RenderPass, rp);
 
+        bool badIndirectArgDep = false;
+
+        for(uint32_t i = 0; i < CreateInfo.dependencyCount; i++)
+          if(CreateInfo.pDependencies[i].dstAccessMask & VK_ACCESS_INDIRECT_COMMAND_READ_BIT)
+            badIndirectArgDep = true;
+
+        if(badIndirectArgDep)
+          AddDebugMessage(MessageCategory::State_Creation, MessageSeverity::High,
+                          MessageSource::RuntimeWarning,
+                          StringFormat::Fmt("Creating renderpass %s contains a subpass dependency "
+                                            "that would allow writing indirect command arguments.\n"
+                                            "Indirect command contents are read at the end of the "
+                                            "render pass, so write-after-read overwrites will "
+                                            "cause incorrect display of indirect arguments.",
+                                            ToStr(RenderPass)));
+
         // make a version of the render pass that loads from its attachments,
         // so it can be used for replaying a single draw after a render pass
         // without doing a clear or a DONT_CARE load.
