@@ -29,6 +29,7 @@
 #include <utility>
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
+#include "3rdparty/glslang/glslang/Include/ResourceLimits.h"
 #include "api/replay/renderdoc_replay.h"
 
 using std::string;
@@ -177,6 +178,8 @@ class TProgram;
 glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
                                              const std::vector<std::string> &sources);
 glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *> &shaders);
+
+extern TBuiltInResource DefaultResources;
 
 enum class ReflectionInterface
 {

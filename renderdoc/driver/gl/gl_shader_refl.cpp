@@ -260,11 +260,10 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
         sh.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
         sh.setEnvTarget(glslang::EShTargetNone, glslang::EShTargetSpv_1_0);
 
-        TBuiltInResource res = {};
         glslang::TShader::ForbidIncluder incl;
 
-        bool success =
-            sh.preprocess(&res, 100, ENoProfile, false, false, EShMsgOnlyPreprocessor, &src, incl);
+        bool success = sh.preprocess(&DefaultResources, 100, ENoProfile, false, false,
+                                     EShMsgOnlyPreprocessor, &src, incl);
 
         if(!success)
         {
