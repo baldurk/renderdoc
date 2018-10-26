@@ -219,9 +219,7 @@ void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 {
   if(strstr(buf, "vr-marker,frame_end,type,application") != NULL)
   {
-    void *ctx = NULL, *wnd = NULL;
-    RenderDoc::Inst().GetActiveWindow(ctx, wnd);
-    SwapBuffers(wnd);
+    SwapBuffers((void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
     m_UsesVRMarkers = true;
 
     if(IsActiveCapturing(m_State))
