@@ -761,7 +761,7 @@ Should only be called for mesh outputs.
 
 protected:
   IReplayOutput() = default;
-  ~IReplayOutput() = default;
+  virtual ~IReplayOutput() = default;
 };
 
 DOCUMENT(R"(The primary interface to access the information in a capture and the current state, as
@@ -1240,7 +1240,7 @@ sample 0, etc.
 
 protected:
   IReplayController() = default;
-  ~IReplayController() = default;
+  virtual ~IReplayController() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IReplayController);
@@ -1347,7 +1347,7 @@ The details of the types of messages that can be received are listed under
 
 protected:
   ITargetControl() = default;
-  ~ITargetControl() = default;
+  virtual ~ITargetControl() = default;
 };
 
 DOCUMENT(R"(An interface for accessing a capture, possibly over a network connection. This is a
@@ -1442,7 +1442,7 @@ Must only be called after :meth:`InitResolver` has returned ``True``.
 
 protected:
   ICaptureAccess() = default;
-  ~ICaptureAccess() = default;
+  virtual ~ICaptureAccess() = default;
 };
 
 DOCUMENT(R"(A connection to a running remote RenderDoc server on another machine. This allows the
@@ -1599,7 +1599,7 @@ or an error has occurred.
 
 protected:
   IRemoteServer() = default;
-  ~IRemoteServer() = default;
+  virtual ~IRemoteServer() = default;
 };
 
 DOCUMENT(R"(A handle to a capture file. Used for simple cheap processing and meta-data fetching
@@ -1796,7 +1796,7 @@ The data is copied internally so it can be destroyed after calling this function
 
 protected:
   ICaptureFile() = default;
-  ~ICaptureFile() = default;
+  virtual ~ICaptureFile() = default;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1884,7 +1884,7 @@ drag.
 
 protected:
   ICamera() = default;
-  ~ICamera() = default;
+  virtual ~ICamera() = default;
 };
 
 DOCUMENT(R"(Create a new camera of a given type.

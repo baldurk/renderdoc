@@ -173,7 +173,7 @@ See the documentation for :meth:`RegisterShortcut` for what these shortcuts are 
 
 protected:
   IMainWindow() = default;
-  ~IMainWindow() = default;
+  virtual ~IMainWindow() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IMainWindow);
@@ -191,7 +191,7 @@ struct IEventBrowser
 
 protected:
   IEventBrowser() = default;
-  ~IEventBrowser() = default;
+  virtual ~IEventBrowser() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IEventBrowser);
@@ -209,7 +209,7 @@ struct IAPIInspector
 
 protected:
   IAPIInspector() = default;
-  ~IAPIInspector() = default;
+  virtual ~IAPIInspector() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IAPIInspector);
@@ -231,7 +231,7 @@ struct IPipelineStateViewer
 
 protected:
   IPipelineStateViewer() = default;
-  ~IPipelineStateViewer() = default;
+  virtual ~IPipelineStateViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IPipelineStateViewer);
@@ -260,7 +260,7 @@ struct ITextureViewer
 
 protected:
   ITextureViewer() = default;
-  ~ITextureViewer() = default;
+  virtual ~ITextureViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(ITextureViewer);
@@ -301,7 +301,7 @@ struct IBufferViewer
 
 protected:
   IBufferViewer() = default;
-  ~IBufferViewer() = default;
+  virtual ~IBufferViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IBufferViewer);
@@ -330,7 +330,7 @@ struct IResourceInspector
 
 protected:
   IResourceInspector() = default;
-  ~IResourceInspector() = default;
+  virtual ~IResourceInspector() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IResourceInspector);
@@ -416,7 +416,7 @@ struct ICaptureDialog
 
 protected:
   ICaptureDialog() = default;
-  ~ICaptureDialog() = default;
+  virtual ~ICaptureDialog() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(ICaptureDialog);
@@ -432,7 +432,7 @@ struct IDebugMessageView
 
 protected:
   IDebugMessageView() = default;
-  ~IDebugMessageView() = default;
+  virtual ~IDebugMessageView() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IDebugMessageView);
@@ -448,7 +448,7 @@ struct ICommentView
 
 protected:
   ICommentView() = default;
-  ~ICommentView() = default;
+  virtual ~ICommentView() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(ICommentView);
@@ -464,7 +464,7 @@ struct IStatisticsViewer
 
 protected:
   IStatisticsViewer() = default;
-  ~IStatisticsViewer() = default;
+  virtual ~IStatisticsViewer() = default;
 };
 
 DOCUMENT("The timeline bar.");
@@ -490,7 +490,7 @@ struct ITimelineBar
 
 protected:
   ITimelineBar() = default;
-  ~ITimelineBar() = default;
+  virtual ~ITimelineBar() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
@@ -506,7 +506,7 @@ struct IPerformanceCounterViewer
 
 protected:
   IPerformanceCounterViewer() = default;
-  ~IPerformanceCounterViewer() = default;
+  virtual ~IPerformanceCounterViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IPerformanceCounterViewer);
@@ -521,7 +521,7 @@ struct IPythonShell
 
 protected:
   IPythonShell() = default;
-  ~IPythonShell() = default;
+  virtual ~IPythonShell() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IPythonShell);
@@ -596,7 +596,7 @@ struct IShaderViewer
 
 protected:
   IShaderViewer() = default;
-  ~IShaderViewer() = default;
+  virtual ~IShaderViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IShaderViewer);
@@ -612,7 +612,7 @@ struct IConstantBufferPreviewer
 
 protected:
   IConstantBufferPreviewer() = default;
-  ~IConstantBufferPreviewer() = default;
+  virtual ~IConstantBufferPreviewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IConstantBufferPreviewer);
@@ -634,7 +634,7 @@ struct IPixelHistoryView
 
 protected:
   IPixelHistoryView() = default;
-  ~IPixelHistoryView() = default;
+  virtual ~IPixelHistoryView() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IPixelHistoryView);
@@ -673,7 +673,7 @@ to a marker region.
 
 protected:
   ICaptureViewer() = default;
-  ~ICaptureViewer() = default;
+  virtual ~ICaptureViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(ICaptureViewer);
@@ -858,7 +858,7 @@ comes in, we remove any other requests in the queue before it that have the same
 
 protected:
   IReplayManager() = default;
-  ~IReplayManager() = default;
+  virtual ~IReplayManager() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IReplayManager);
@@ -1959,7 +1959,7 @@ capture's API.
 
 protected:
   ICaptureContext() = default;
-  ~ICaptureContext() = default;
+  virtual ~ICaptureContext() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(ICaptureContext);
