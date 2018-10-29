@@ -1685,9 +1685,13 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
 
   // ALPHA can't be bound to an FBO, so we need to blit to R8 by hand.
-  if(format == eGL_ALPHA)
+  if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA)
   {
-    RDCDEBUG("Doing manual blit from GL_ALPHA -> GL_R8 to allow readback");
+    RDCDEBUG("Doing manual blit from %s to allow readback", ToStr(format).c_str());
+
+    GLenum remapformat = eGL_RED;
+    if(format == eGL_LUMINANCE_ALPHA)
+      remapformat = eGL_RG;
 
     GLint baseLevel = 0;
     GLint maxLevel = 0;
@@ -1705,7 +1709,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
     // allocate the R8 texture
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexImage2D(target, 0, eGL_R8, width, height, 0, eGL_RED, eGL_UNSIGNED_BYTE, NULL);
+    GL.glTexImage2D(target, 0, eGL_R8, width, height, 0, remapformat, eGL_UNSIGNED_BYTE, NULL);
 
     // render to it
     GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
@@ -1735,11 +1739,20 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
           "attribute vec2 pos;\n"
           "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
 
-      const char *fs =
+      char fs_src[] =
           "precision highp float;\n"
           "uniform vec2 res;\n"
           "uniform sampler2D srcTex;\n"
-          "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res).aaaa; }";
+          "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res).?aaa; }";
+
+      char *swizzle = strchr(fs_src, '?');
+
+      if(format == eGL_ALPHA)
+        *swizzle = 'a';
+      else
+        *swizzle = 'r';
+
+      const char *fs = fs_src;
 
       GLuint vert = GL.glCreateShader(eGL_VERTEX_SHADER);
       GLuint frag = GL.glCreateShader(eGL_FRAGMENT_SHADER);
@@ -1833,7 +1846,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     // read from the blitted texture from level 0, as red
     GL.glBindTexture(target, readtex);
     level = 0;
-    format = eGL_RED;
+    format = remapformat;
 
     RDCDEBUG("Done blit");
   }
