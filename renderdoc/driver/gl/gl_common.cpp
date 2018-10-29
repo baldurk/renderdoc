@@ -85,7 +85,7 @@ bool CheckReplayContext()
 
     extensionString += StringFormat::Fmt("[%d]: %s, ", e, ext);
 
-    if(e > 0 && (e % 100) == 0)
+    if(e > 0 && (e % 25) == 0)
     {
       RDCLOG("%s", extensionString.c_str());
       extensionString = "";
