@@ -194,14 +194,14 @@ void PipelineFlowChart::paintEvent(QPaintEvent *e)
 
   const qreal arrowY = totalRect.y() + totalRect.height() / 2;
 
-  QColor base = palette().color(QPalette::Base);
-  QColor baseText = palette().color(QPalette::Text);
-  QColor inactiveWin = palette().color(QPalette::Inactive, QPalette::Dark);
-  QColor inactiveWinText = palette().color(QPalette::Inactive, QPalette::WindowText);
+  QColor enabledBase = palette().color(QPalette::Base);
+  QColor enabledText = palette().color(QPalette::Text);
+  QColor disabledBase = palette().color(QPalette::Disabled, QPalette::Base);
+  QColor disabledText = palette().color(QPalette::Disabled, QPalette::Text);
   QColor tooltip = palette().color(QPalette::ToolTipBase);
   QColor tooltipText = palette().color(QPalette::ToolTipText);
 
-  QPen pen(baseText);
+  QPen pen(enabledText);
   QPen selectedPen(Qt::red);
 
   int num = numGaps();
@@ -213,7 +213,7 @@ void PipelineFlowChart::paintEvent(QPaintEvent *e)
     float right = totalRect.x() + (i + 1) * (box0Rect.width() + boxMargin());
     float left = right - boxMargin();
 
-    p.setBrush(baseText);
+    p.setBrush(enabledText);
     drawArrow(p, pen, ArrowHeadSize, arrowY, left, right);
   }
 
@@ -222,14 +222,14 @@ void PipelineFlowChart::paintEvent(QPaintEvent *e)
   {
     QRectF boxrect = boxRect(i);
 
-    QBrush backBrush(base);
-    QPen textPen(baseText);
-    QPen outlinePen = pen;
+    QBrush backBrush(enabledBase);
+    QPen textPen(enabledText);
+    QPen outlinePen(enabledText);
 
     if(!stageEnabled(i))
     {
-      backBrush.setColor(inactiveWin);
-      textPen.setColor(inactiveWinText);
+      backBrush.setColor(disabledBase);
+      outlinePen.setColor(disabledText);
     }
 
     if(i == m_HoverStage)
