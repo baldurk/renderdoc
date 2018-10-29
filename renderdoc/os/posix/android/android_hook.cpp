@@ -215,8 +215,19 @@ HookingInfo &GetHookInfo()
 
 void *intercept_dlopen(const char *filename, int flag)
 {
-  if(filename && GetHookInfo().IsLibHook(std::string(filename)))
-    return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
+  if(filename)
+  {
+    // if this is a library we're hooking, or a request for our own library in any form, return our
+    // own library.
+    // We need to intercept requests for our own library, because the android loader makes the
+    // completely ridiculous decision to load multiple copies of the same library into a process if
+    // it's dlopen'd with different paths. This obviously breaks with our hook install.
+    if(strstr(filename, RENDERDOC_ANDROID_LIBRARY) || GetHookInfo().IsLibHook(std::string(filename)))
+    {
+      HOOK_DEBUG_PRINT("Intercepting dlopen for %s", filename);
+      return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
+    }
+  }
 
   return NULL;
 }
@@ -519,8 +530,6 @@ static void InstallHooksCommon()
   GetHookInfo().SetHooked(RENDERDOC_ANDROID_LIBRARY);
   GetHookInfo().SetHooked("libc.so");
   GetHookInfo().SetHooked("libvndksupport.so");
-
-  GetHookInfo().AddLibHook(RENDERDOC_ANDROID_LIBRARY);
 
   real_android_dlopen_ext = &android_dlopen_ext;
 
