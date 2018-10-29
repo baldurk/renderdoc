@@ -195,6 +195,11 @@ void RDStyle::polishPalette(QPalette &pal) const
   else
     pal.setColor(QPalette::AlternateBase, base.lighter(110));
 
+  if(m_Scheme == Dark)
+  {
+    pal.setColor(QPalette::BrightText, text);
+  }
+
   pal.setColor(QPalette::ToolTipBase, tooltip);
   pal.setColor(QPalette::ToolTipText, text);
 
