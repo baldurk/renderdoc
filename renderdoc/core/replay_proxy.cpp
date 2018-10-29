@@ -164,10 +164,20 @@ struct RemoteExecution
 };
 #define REMOTE_EXECUTION() RemoteExecution exec(this);
 
+// uncomment the following to print verbose debugging prints for the remote proxy packets
+//#define PROXY_DEBUG(...) RDCDEBUG(__VA_ARGS__)
+
+#if !defined(PROXY_DEBUG)
+#define PROXY_DEBUG(...) \
+  do                     \
+  {                      \
+  } while(0)
+#endif
+
 // dispatches to the right implementation of the Proxied_ function, depending on whether we're on
 // the remote server or not.
 #define PROXY_FUNCTION(name, ...)                                     \
-  RDCDEBUG("Proxying out %s", #name);                                 \
+  PROXY_DEBUG("Proxying out %s", #name);                              \
   if(m_RemoteServer)                                                  \
     return CONCAT(Proxied_, name)(m_Reader, m_Writer, ##__VA_ARGS__); \
   else                                                                \
@@ -2502,7 +2512,7 @@ bool ReplayProxy::Tick(int type)
   const ReplayProxyPacket expectedPacket = (ReplayProxyPacket)type;
   ReplayProxyPacket packet = (ReplayProxyPacket)type;
 
-  RDCDEBUG("Received %s", ToStr(packet).c_str());
+  PROXY_DEBUG("Received %s", ToStr(packet).c_str());
 
   switch(packet)
   {
@@ -2591,7 +2601,7 @@ bool ReplayProxy::Tick(int type)
     default: RDCERR("Unexpected command %u", type); return false;
   }
 
-  RDCDEBUG("Processed %s", ToStr(packet).c_str());
+  PROXY_DEBUG("Processed %s", ToStr(packet).c_str());
 
   RefreshPreviewWindow();
 
