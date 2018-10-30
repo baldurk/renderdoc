@@ -470,6 +470,25 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
                      (GLsizei)rs.Viewports[0].width, (GLsizei)rs.Viewports[0].height);
     }
 
+    if(HasExt[ARB_draw_buffers_blend])
+    {
+      drv.glEnablei(eGL_BLEND, 0);
+
+      drv.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA,
+                               eGL_ONE_MINUS_SRC_ALPHA);
+      drv.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+    }
+    else
+    {
+      drv.glBlendFuncSeparate(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA,
+                              eGL_ONE_MINUS_SRC_ALPHA);
+      drv.glBlendEquationSeparate(eGL_FUNC_ADD, eGL_FUNC_ADD);
+
+      drv.glEnable(eGL_BLEND);
+    }
+
+    drv.glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+
     drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
     OutlineUBOData *cdata =
         (OutlineUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
