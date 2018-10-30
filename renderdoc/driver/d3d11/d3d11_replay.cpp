@@ -799,6 +799,14 @@ void D3D11Replay::SavePipelineState()
             view.firstElement = desc.BufferEx.FirstElement;
             view.numElements = desc.BufferEx.NumElements;
             view.bufferFlags = D3DBufferViewFlags(desc.BufferEx.Flags);
+
+            D3D11_BUFFER_DESC bufdesc;
+            ((ID3D11Buffer *)res)->GetDesc(&bufdesc);
+
+            view.structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
+
+            if(view.structured)
+              view.elementByteSize = bufdesc.StructureByteStride;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1D)
           {
