@@ -2347,6 +2347,13 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       };
 
       RenderTextureInternal(texDisplay, rpbegin, renderFlags);
+
+      // for textures with stencil, do another draw to copy the stencil
+      if(isStencil)
+      {
+        texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
+        RenderTextureInternal(texDisplay, rpbegin, renderFlags | eTexDisplay_GreenOnly);
+      }
     }
 
     m_DebugWidth = oldW;

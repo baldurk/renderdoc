@@ -119,6 +119,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
   const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
   const bool f16render = (flags & eTexDisplay_F16Render) != 0;
+  const bool greenonly = (flags & eTexDisplay_GreenOnly) != 0;
   const bool f32render = (flags & eTexDisplay_F32Render) != 0;
 
   VkDevice dev = m_pDriver->GetDev();
@@ -412,7 +413,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   {
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-    VkPipeline pipe = m_TexRender.Pipeline;
+    VkPipeline pipe = greenonly ? m_TexRender.PipelineGreenOnly : m_TexRender.Pipeline;
 
     if(cfg.customShaderId != ResourceId())
     {
@@ -421,11 +422,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     }
     else if(f16render)
     {
-      pipe = m_TexRender.F16Pipeline;
+      pipe = greenonly ? m_TexRender.F16PipelineGreenOnly : m_TexRender.F16Pipeline;
     }
     else if(f32render)
     {
-      pipe = m_TexRender.F32Pipeline;
+      pipe = greenonly ? m_TexRender.F32PipelineGreenOnly : m_TexRender.F32Pipeline;
     }
     else if(!cfg.rawOutput && blendAlpha && cfg.customShaderId == ResourceId())
     {

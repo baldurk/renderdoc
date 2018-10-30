@@ -423,6 +423,7 @@ private:
     eTexDisplay_F32Render = 0x2,
     eTexDisplay_BlendAlpha = 0x4,
     eTexDisplay_MipShift = 0x8,
+    eTexDisplay_GreenOnly = 0x10,
   };
 
   // General use/misc items that are used in many places
@@ -446,6 +447,10 @@ private:
     VkPipeline BlendPipeline = VK_NULL_HANDLE;
     VkPipeline F16Pipeline = VK_NULL_HANDLE;
     VkPipeline F32Pipeline = VK_NULL_HANDLE;
+
+    VkPipeline PipelineGreenOnly = VK_NULL_HANDLE;
+    VkPipeline F16PipelineGreenOnly = VK_NULL_HANDLE;
+    VkPipeline F32PipelineGreenOnly = VK_NULL_HANDLE;
     GPUBuffer UBO;
 
     // ring buffered to allow multiple texture renders between flushes

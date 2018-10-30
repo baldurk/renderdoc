@@ -255,6 +255,7 @@ struct ConciseGraphicsPipeline
   bool blendEnable;
   VkBlendFactor srcBlend;
   VkBlendFactor dstBlend;
+  uint32_t writeMask;
 };
 
 static void create(WrappedVulkan *driver, const char *objName, const int line, VkPipeline *pipe,
@@ -315,7 +316,7 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
       // alpha blending
       info.srcBlend, info.dstBlend, VK_BLEND_OP_ADD,
       // write mask
-      0xf,
+      info.writeMask,
   };
 
   const VkPipelineColorBlendStateCreateInfo colorBlend = {
@@ -512,6 +513,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
         false,    // blendEnable
         VK_BLEND_FACTOR_ONE,
         VK_BLEND_FACTOR_ZERO,
+        0xf,    // writeMask
     };
 
     CREATE_OBJECT(m_DepthMS2ArrayPipe[f], depthPipeInfo);
@@ -776,6 +778,7 @@ void VulkanDebugManager::CreateCustomShaderPipeline(ResourceId shader, VkPipelin
       false,    // blendEnable
       VK_BLEND_FACTOR_ONE,
       VK_BLEND_FACTOR_ZERO,
+      0xf,    // writeMask
   };
 
   CREATE_OBJECT(m_Custom.TexPipeline, customPipe);
@@ -1568,6 +1571,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         false,    // blendEnable
         VK_BLEND_FACTOR_ONE,
         VK_BLEND_FACTOR_ZERO,
+        0xf,    // writeMask
     };
 
     CREATE_OBJECT(Pipeline, texDisplayInfo);
@@ -1582,8 +1586,19 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     texDisplayInfo.blendEnable = true;
     texDisplayInfo.srcBlend = VK_BLEND_FACTOR_SRC_ALPHA;
     texDisplayInfo.dstBlend = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-
     CREATE_OBJECT(BlendPipeline, texDisplayInfo);
+
+    // make versions that only write to green, for doing two-pass stencil writes
+    texDisplayInfo.writeMask = 0x2;
+
+    texDisplayInfo.renderPass = SRGBA8RP;
+    CREATE_OBJECT(PipelineGreenOnly, texDisplayInfo);
+
+    texDisplayInfo.renderPass = RGBA32RP;
+    CREATE_OBJECT(F32PipelineGreenOnly, texDisplayInfo);
+
+    texDisplayInfo.renderPass = RGBA16RP;
+    CREATE_OBJECT(F16PipelineGreenOnly, texDisplayInfo);
 
     driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8RP, NULL);
     driver->vkDestroyRenderPass(driver->GetDev(), RGBA16RP, NULL);
@@ -1774,6 +1789,10 @@ void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
   driver->vkDestroyPipeline(driver->GetDev(), BlendPipeline, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), F16Pipeline, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), F32Pipeline, NULL);
+
+  driver->vkDestroyPipeline(driver->GetDev(), PipelineGreenOnly, NULL);
+  driver->vkDestroyPipeline(driver->GetDev(), F16PipelineGreenOnly, NULL);
+  driver->vkDestroyPipeline(driver->GetDev(), F32PipelineGreenOnly, NULL);
   UBO.Destroy();
 
   driver->vkDestroySampler(driver->GetDev(), LinearSampler, NULL);
@@ -1834,6 +1853,7 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
       true,    // blendEnable
       VK_BLEND_FACTOR_SRC_ALPHA,
       VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      0xf,    // writeMask
   };
 
   uint32_t samplesHandled = 0;
@@ -1976,6 +1996,7 @@ void VulkanReplay::CheckerboardRendering::Init(WrappedVulkan *driver, VkDescript
       false,    // blendEnable
       VK_BLEND_FACTOR_ONE,
       VK_BLEND_FACTOR_ZERO,
+      0xf,    // writeMask
   };
 
   CREATE_OBJECT(Pipeline, checkerInfo);
