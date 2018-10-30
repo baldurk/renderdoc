@@ -1024,6 +1024,49 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     if(!cur.StencilEnable)
       cur.StencilEnable = D3D11_COMPARISON_ALWAYS;
 
+    // ensure culling doesn't hide the render, we're only showing the result of the depth test
+    {
+      ID3D11RasterizerState *rs = NULL;
+      {
+        D3D11_RASTERIZER_DESC rdesc;
+
+        m_pImmediateContext->RSGetState(&rs);
+
+        if(rs)
+        {
+          rs->GetDesc(&rdesc);
+        }
+        else
+        {
+          rdesc.FillMode = D3D11_FILL_SOLID;
+          rdesc.CullMode = D3D11_CULL_BACK;
+          rdesc.FrontCounterClockwise = FALSE;
+          rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+          rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+          rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+          rdesc.DepthClipEnable = TRUE;
+          rdesc.ScissorEnable = FALSE;
+          rdesc.MultisampleEnable = FALSE;
+          rdesc.AntialiasedLineEnable = FALSE;
+        }
+
+        SAFE_RELEASE(rs);
+
+        rdesc.FillMode = D3D11_FILL_SOLID;
+        rdesc.CullMode = D3D11_CULL_NONE;
+        rdesc.DepthClipEnable = FALSE;
+
+        hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
+        if(FAILED(hr))
+        {
+          RDCERR("Failed to create wireframe rast state HRESULT: %s", ToStr(hr).c_str());
+          return m_Overlay.resourceId;
+        }
+
+        m_pImmediateContext->RSSetState(rs);
+      }
+    }
+
     if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
     {
       ID3D11DepthStencilState *os = NULL;
