@@ -2105,7 +2105,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
       {
         const auto &desc = res.variableType.descriptor;
 
-        if(view.res.viewFormat.Name().empty())
+        if(view.res.viewFormat.type == ResourceFormatType::Undefined)
         {
           format = QString();
           if(desc.rowMajorStorage)
