@@ -1875,9 +1875,9 @@ void GLPipelineStateViewer::setState()
           typeName = ToQStr(tex->type);
         }
 
-        QString slot = tr("Depth");
+        QString slot = tr("Depth Only");
         if(i == 1)
-          slot = tr("Stencil");
+          slot = tr("Stencil Only");
 
         bool depthstencil = false;
 
