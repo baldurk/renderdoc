@@ -94,6 +94,21 @@ cbuffer DebugPixelCBufferData REG(b0)
   float3 TextureResolutionPS;
 };
 
+#define HEATMAP_DISABLED 0
+#define HEATMAP_LINEAR 1
+#define HEATMAP_TRISIZE 2
+
+#define HEATMAP_RAMPSIZE 22
+
+cbuffer HeatmapData REG(b1)
+{
+  int HeatmapMode;
+  float3 Dummy;
+
+  // must match size of colorRamp on C++ side
+  float4 ColorRamp[HEATMAP_RAMPSIZE];
+};
+
 cbuffer HistogramCBufferData REG(b0)
 {
   uint HistogramChannels;

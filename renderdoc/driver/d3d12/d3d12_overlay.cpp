@@ -285,7 +285,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   overlayTexDesc.DepthOrArraySize = 1;
   overlayTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   overlayTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-  overlayTexDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+  overlayTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
   overlayTexDesc.Height = resourceDesc.Height;
   overlayTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   overlayTexDesc.MipLevels = 1;
@@ -416,7 +416,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
   D3D12_RENDER_TARGET_VIEW_DESC rtDesc = {};
   rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
   rtDesc.Texture2D.MipSlice = 0;
   rtDesc.Texture2D.PlaneSlice = 0;
 
@@ -488,7 +488,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
       RDCEraseEl(psoDesc.RTVFormats.RTFormats);
-      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
       psoDesc.RTVFormats.NumRenderTargets = 1;
       psoDesc.SampleMask = ~0U;
       psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
@@ -563,7 +563,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
       RDCEraseEl(psoDesc.RTVFormats.RTFormats);
-      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
       psoDesc.RTVFormats.NumRenderTargets = 1;
       psoDesc.SampleMask = ~0U;
       psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
@@ -658,7 +658,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
       RDCEraseEl(psoDesc.RTVFormats.RTFormats);
-      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
       psoDesc.RTVFormats.NumRenderTargets = 1;
       psoDesc.SampleMask = ~0U;
       psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
@@ -845,7 +845,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       RDCEraseEl(pipeDesc.RTVFormats.RTFormats);
       pipeDesc.RTVFormats.NumRenderTargets = 1;
-      pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      pipeDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
       pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
       pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
       pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
@@ -908,7 +908,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       list->SetGraphicsRootConstantBufferView(
           0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
       list->SetGraphicsRootConstantBufferView(
-          1, GetDebugManager()->UploadConstants(&overdrawRamp[0].x, sizeof(overdrawRamp)));
+          1, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
       list->SetGraphicsRootConstantBufferView(
           2, GetDebugManager()->UploadConstants(&viewport, sizeof(viewport)));
       list->SetGraphicsRoot32BitConstants(3, 4, &viewport.x, 0);
@@ -1110,9 +1110,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
         GetDebugManager()->SetDescriptorHeaps(list, true, false);
 
-        list->SetGraphicsRootConstantBufferView(
-            0, GetDebugManager()->UploadConstants(&overdrawRamp[0].x, sizeof(overdrawRamp)));
-        list->SetGraphicsRootDescriptorTable(1, GetDebugManager()->GetGPUHandle(OVERDRAW_SRV));
+        list->SetGraphicsRootDescriptorTable(0, GetDebugManager()->GetGPUHandle(OVERDRAW_SRV));
 
         list->DrawInstanced(3, 1, 0, 0);
 
@@ -1172,7 +1170,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       }
 
       RDCEraseEl(psoDesc.RTVFormats.RTFormats);
-      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
       psoDesc.RTVFormats.NumRenderTargets = 1;
       psoDesc.SampleMask = ~0U;
       psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);

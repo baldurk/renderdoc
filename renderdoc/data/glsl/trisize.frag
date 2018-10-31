@@ -22,23 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
  
-#define NUM_RAMP_COLOURS 128
-
-layout(binding = 1) uniform OverdrawRampColors
-{
-	vec4 colors[NUM_RAMP_COLOURS];
-} ramp;
-
 layout (location = 0) in float pixarea;
 
 layout (location = 0) out vec4 color_out;
 
 void main(void)
 {
-	// bucket triangle area
-	float area = max(pixarea, 0.001f);
-
-	int bucket = 2 + int( floor(20.0f - 20.1f * (1.0f - exp(-0.4f * area) ) ) );
-	
-	color_out = ramp.colors[bucket];
+	color_out = vec4(max(pixarea, 0.001f).xxx, 1.0f);
 }

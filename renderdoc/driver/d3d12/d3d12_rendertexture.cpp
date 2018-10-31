@@ -315,6 +315,28 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   DebugVertexCBuffer vertexData;
   DebugPixelCBufferData pixelData;
+  HeatmapData heatmapData = {};
+
+  if(cfg.resourceId == m_Overlay.resourceId)
+  {
+    if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_LINEAR;
+    }
+    else if(cfg.overlay == DebugOverlay::TriangleSizeDraw ||
+            cfg.overlay == DebugOverlay::TriangleSizePass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_TRISIZE;
+    }
+
+    if(heatmapData.HeatmapMode)
+    {
+      memcpy(heatmapData.ColorRamp, colorRamp, sizeof(colorRamp));
+
+      RDCCOMPILE_ASSERT(sizeof(heatmapData.ColorRamp) == sizeof(colorRamp),
+                        "C++ color ramp array is not the same size as the shader array");
+    }
+  }
 
   pixelData.AlwaysZero = 0.0f;
 
@@ -636,8 +658,10 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     list->SetGraphicsRootConstantBufferView(
         0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
     list->SetGraphicsRootConstantBufferView(1, psCBuf);
-    list->SetGraphicsRootDescriptorTable(2, GetDebugManager()->GetGPUHandle(FIRST_TEXDISPLAY_SRV));
-    list->SetGraphicsRootDescriptorTable(3, GetDebugManager()->GetGPUHandle(FIRST_SAMP));
+    list->SetGraphicsRootConstantBufferView(
+        2, GetDebugManager()->UploadConstants(&heatmapData, sizeof(heatmapData)));
+    list->SetGraphicsRootDescriptorTable(3, GetDebugManager()->GetGPUHandle(FIRST_TEXDISPLAY_SRV));
+    list->SetGraphicsRootDescriptorTable(4, GetDebugManager()->GetGPUHandle(FIRST_SAMP));
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     list->OMSetBlendFactor(factor);

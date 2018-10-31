@@ -421,6 +421,28 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 {
   DebugVertexCBuffer vertexData;
   DebugPixelCBufferData pixelData;
+  HeatmapData heatmapData = {};
+
+  if(cfg.resourceId == m_Overlay.resourceId)
+  {
+    if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_LINEAR;
+    }
+    else if(cfg.overlay == DebugOverlay::TriangleSizeDraw ||
+            cfg.overlay == DebugOverlay::TriangleSizePass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_TRISIZE;
+    }
+
+    if(heatmapData.HeatmapMode)
+    {
+      memcpy(heatmapData.ColorRamp, colorRamp, sizeof(colorRamp));
+
+      RDCCOMPILE_ASSERT(sizeof(heatmapData.ColorRamp) == sizeof(colorRamp),
+                        "C++ color ramp array is not the same size as the shader array");
+    }
+  }
 
   pixelData.AlwaysZero = 0.0f;
 
@@ -712,10 +734,12 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   ID3D11Buffer *vsCBuffer = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
   ID3D11Buffer *psCBuffer = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+  ID3D11Buffer *psHeatCBuffer = GetDebugManager()->MakeCBuffer(&heatmapData, sizeof(HeatmapData));
 
   // can't just clear state because we need to keep things like render targets.
   {
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    m_pImmediateContext->IASetInputLayout(NULL);
 
     m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuffer);
@@ -730,6 +754,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     {
       m_pImmediateContext->PSSetShader(m_TexRender.TexDisplayPS, NULL, 0);
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(1, 1, &psHeatCBuffer);
     }
     else
     {

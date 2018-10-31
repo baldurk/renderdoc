@@ -1520,6 +1520,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   CREATE_OBJECT(DescSetLayout,
                 {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
                     {6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
@@ -1546,6 +1547,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
   UBO.Create(driver, driver->GetDev(), 128, 10, 0);
   RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 128, "tex display size");
+
+  HeatmapUBO.Create(driver, driver->GetDev(), 512, 10, 0);
+  RDCCOMPILE_ASSERT(sizeof(HeatmapData) <= 512, "tex display size");
 
   {
     VkRenderPass SRGBA8RP = VK_NULL_HANDLE;
@@ -1794,6 +1798,7 @@ void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
   driver->vkDestroyPipeline(driver->GetDev(), F16PipelineGreenOnly, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), F32PipelineGreenOnly, NULL);
   UBO.Destroy();
+  HeatmapUBO.Destroy();
 
   driver->vkDestroySampler(driver->GetDev(), LinearSampler, NULL);
 
@@ -1818,13 +1823,11 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   CREATE_OBJECT(m_QuadDescSetLayout,
                 {
                     {0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
-                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
 
   CREATE_OBJECT(m_TriSizeDescSetLayout,
                 {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
-                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
 
@@ -1903,28 +1906,16 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferColorSampleCounts,
                  samplesHandled);
 
-  OverdrawRampUBO.Create(driver, driver->GetDev(), 2048, 1, 0);    // no ring needed, fixed data
-  RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= 2048, "overdraw ramp uniforms size");
-
-  void *ramp = OverdrawRampUBO.Map();
-  memcpy(ramp, overdrawRamp, sizeof(overdrawRamp));
-  OverdrawRampUBO.Unmap();
-
   m_TriSizeUBO.Create(driver, driver->GetDev(), sizeof(Vec4f), 4096, 0);
 
   VkDescriptorBufferInfo outlineUBO = {};
   VkDescriptorBufferInfo overdrawramp = {};
 
   m_OutlineUBO.FillDescriptor(outlineUBO);
-  OverdrawRampUBO.FillDescriptor(overdrawramp);
 
   VkWriteDescriptorSet writes[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_OutlineDescSet), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &outlineUBO, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_QuadDescSet), 1, 0, 1,
-       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &overdrawramp, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_TriSizeDescSet), 1, 0, 1,
-       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &overdrawramp, NULL},
   };
 
   VkDevice dev = driver->GetDev();
@@ -1942,8 +1933,6 @@ void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
   driver->vkDestroyImageView(driver->GetDev(), ImageView, NULL);
   driver->vkDestroyFramebuffer(driver->GetDev(), NoDepthFB, NULL);
   driver->vkDestroyRenderPass(driver->GetDev(), NoDepthRP, NULL);
-
-  OverdrawRampUBO.Destroy();
 
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), m_QuadDescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), m_QuadResolvePipeLayout, NULL);

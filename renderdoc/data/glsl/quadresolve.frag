@@ -33,18 +33,6 @@
 
 layout(binding = 0, r32ui) uniform PRECISION coherent uimage2DArray overdrawImage;
 
-#define NUM_RAMP_COLOURS 128
-
-layout(binding = 1) uniform OverdrawRampColors
-{
-	vec4 colors[NUM_RAMP_COLOURS];
-} ramp;
-
-vec4 ToColour(uint v)
-{
-	return ramp.colors[min(v, uint(NUM_RAMP_COLOURS-1))];
-}
-
 layout (location = 0) out vec4 color_out;
 
 void main()
@@ -55,7 +43,7 @@ void main()
 	for(uint i = 0u; i < 4u; i++)
 		overdraw += imageLoad(overdrawImage, ivec3(quad, i)).x/(i + 1u);
 
-	color_out = ToColour(overdraw);
+	color_out = vec4(overdraw);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

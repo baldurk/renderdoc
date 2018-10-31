@@ -376,6 +376,40 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
+  HeatmapData heatmapData = {};
+
+  if(cfg.resourceId == DebugData.overlayTexId)
+  {
+    if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_LINEAR;
+    }
+    else if(cfg.overlay == DebugOverlay::TriangleSizeDraw ||
+            cfg.overlay == DebugOverlay::TriangleSizePass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_TRISIZE;
+    }
+
+    if(heatmapData.HeatmapMode)
+    {
+      memcpy(heatmapData.ColorRamp, colorRamp, sizeof(colorRamp));
+
+      RDCCOMPILE_ASSERT(sizeof(heatmapData.ColorRamp) == sizeof(colorRamp),
+                        "C++ color ramp array is not the same size as the shader array");
+    }
+  }
+
+  drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[1]);
+
+  {
+    HeatmapData *ptr = (HeatmapData *)drv.glMapBufferRange(
+        eGL_UNIFORM_BUFFER, 0, sizeof(HeatmapData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+    memcpy(ptr, &heatmapData, sizeof(heatmapData));
+
+    drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+  }
+
   if(cfg.rawOutput || !blendAlpha)
   {
     drv.glDisable(eGL_BLEND);

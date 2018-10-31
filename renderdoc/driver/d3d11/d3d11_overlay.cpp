@@ -51,7 +51,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   D3D11_TEXTURE2D_DESC realTexDesc;
   realTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
   realTexDesc.Usage = D3D11_USAGE_DEFAULT;
-  realTexDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+  realTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
   realTexDesc.ArraySize = 1;
   realTexDesc.MipLevels = 1;
   realTexDesc.CPUAccessFlags = 0;
@@ -145,7 +145,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
   D3D11_RENDER_TARGET_VIEW_DESC rtDesc;
   rtDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
   rtDesc.Texture2D.MipSlice = 0;
 
   if(realTexDesc.SampleDesc.Count > 1 || realTexDesc.SampleDesc.Quality > 0)
@@ -648,8 +648,6 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     vertexData.SpriteSize = Vec2f();
     ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
 
-    ID3D11Buffer *psbuf = GetDebugManager()->MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
-
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
 
@@ -745,7 +743,6 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
           m_pImmediateContext->IASetInputLayout(m_MeshRender.MeshLayout);
           m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsBuf);
-          m_pImmediateContext->PSSetConstantBuffers(0, 1, &psbuf);
           m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsbuf);
           m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
           m_pImmediateContext->GSSetShader(m_Overlay.TriangleSizeGS, NULL, 0);
@@ -960,10 +957,6 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
         m_pImmediateContext->PSSetShader(m_Overlay.QOResolvePS, NULL, 0);
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_pImmediateContext->IASetInputLayout(NULL);
-
-        ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
-
-        m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
         m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
 

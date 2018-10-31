@@ -147,6 +147,24 @@ BINDING(0) uniform TexDisplayUBOData
 }
 INST_NAME(texdisplay);
 
+#define HEATMAP_DISABLED 0
+#define HEATMAP_LINEAR 1
+#define HEATMAP_TRISIZE 2
+
+#define HEATMAP_RAMPSIZE 22
+
+BINDING(1) uniform HeatmapData
+{
+  int HeatmapMode;
+  int DummyA;
+  int DummyB;
+  int DummyC;
+
+  // must match size of colorRamp on C++ side
+  vec4 ColorRamp[22];
+}
+INST_NAME(heatmap);
+
 BINDING(0) uniform FontUBOData
 {
   vec2 TextPosition;

@@ -96,21 +96,9 @@ void RENDERDOC_TriangleSizeGS(triangle meshV2F input[3], inout TriangleStream<tr
 	TriStream.RestartStrip();
 }
 
-#define NUM_RAMP_COLOURS 128
-
-cbuffer triangleRampCBuf : register(b0)
-{
-	const float4 overdrawRampColours[NUM_RAMP_COLOURS];
-};
-
 float4 RENDERDOC_TriangleSizePS(triSizeV2F IN) : SV_Target0
 {
-	// bucket triangle area
-	float area = max(IN.pixarea, 0.001f);
-
-	int bucket = 2 + int( floor(20.0f - 20.1f * (1.0f - exp(-0.4f * area) ) ) );
-
-	return overdrawRampColours[bucket];
+	return float4(max(IN.pixarea, 0.001f).xxx, 1.0f);
 }
 
 [maxvertexcount(3)]

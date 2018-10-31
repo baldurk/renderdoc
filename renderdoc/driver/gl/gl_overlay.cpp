@@ -287,7 +287,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     if(DebugData.overlayTexSamples > 1)
     {
       drv.glTextureStorage2DMultisampleEXT(DebugData.overlayTex, texBindingEnum, texDetails.samples,
-                                           eGL_RGBA16, texDetails.width, texDetails.height, true);
+                                           eGL_RGBA16F, texDetails.width, texDetails.height, true);
     }
     else
     {
@@ -845,15 +845,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     *uboptr = uboParams;
     drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
-    drv.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[1]);
-    Vec4f *v = (Vec4f *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(overdrawRamp),
-                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    memcpy(v, overdrawRamp, sizeof(overdrawRamp));
-    drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
-
     drv.glBindBuffer(eGL_COPY_WRITE_BUFFER, DebugData.UBOs[2]);
-    v = (Vec4f *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(Vec4f),
-                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    Vec4f *v = (Vec4f *)drv.glMapBufferRange(eGL_COPY_WRITE_BUFFER, 0, sizeof(Vec4f),
+                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     *v = Vec4f(rs.Viewports[0].width, rs.Viewports[0].height);
     drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
@@ -917,7 +911,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         // bind our UBOs
         drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-        drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[1]);
         drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[2]);
 
         GLenum att = eGL_DEPTH_ATTACHMENT;
@@ -1423,13 +1416,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           drv.glUseProgram(DebugData.quadoverdrawResolveProg);
           drv.glBindProgramPipeline(0);
 
-          drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[0]);
-
-          Vec4f *v = (Vec4f *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(overdrawRamp),
-                                                   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-          memcpy(v, overdrawRamp, sizeof(overdrawRamp));
-          drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-
           // modify our fbo to attach the overlay texture instead
           drv.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
           drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
@@ -1479,5 +1465,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
   rs.ApplyState(m_pDriver);
 
-  return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
+  DebugData.overlayTexId =
+      m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
+
+  return DebugData.overlayTexId;
 }

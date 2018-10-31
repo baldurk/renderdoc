@@ -359,6 +359,7 @@ private:
     GLuint quadoverdrawFragShader;
     GLuint quadoverdrawResolveProg;
 
+    ResourceId overlayTexId;
     GLuint overlayTex;
     GLuint overlayFBO;
     GLuint overlayProg;

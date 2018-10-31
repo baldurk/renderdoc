@@ -109,6 +109,36 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 			return col;
 	}
 
+  if(HeatmapMode)
+  {
+    if(HeatmapMode == HEATMAP_LINEAR)
+    {
+      // cast the float value to an integer with safe rounding, then return the 
+      int bucket = int(floor(col.x + 0.25f));
+
+      bucket = max(bucket, 0);
+      bucket = min(bucket, HEATMAP_RAMPSIZE - 1);
+
+      return ColorRamp[bucket];
+    }
+    else if(HeatmapMode == HEATMAP_TRISIZE)
+    {
+      // uninitialised regions have alpha=0
+      if(col.w < 0.5f)
+        return ColorRamp[0];
+
+      float area = max(col.x, 0.001f);
+
+      int bucket = 2 + int( floor(20.0f - 20.1f * (1.0f - exp(-0.4f * area) ) ) );
+
+      return ColorRamp[bucket];
+    }
+    else
+    {
+      // error! invalid heatmap mode
+    }
+  }
+
     // RGBM encoding
 	if(WireframeColour.x > 0.0f)
 	{
@@ -306,14 +336,8 @@ float4 RENDERDOC_CheckerboardPS(float4 pos : SV_Position) : SV_Target0
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-#define NUM_RAMP_COLOURS 128
-
 RWTexture2DArray<uint> overdrawUAV  : register(u0);
 Texture2DArray<uint> overdrawSRV : register(t0);
-cbuffer overdrawRampCBuf : register(b0)
-{
-	const float4 overdrawRampColours[NUM_RAMP_COLOURS];
-};
 
 [earlydepthstencil]
 void RENDERDOC_QuadOverdrawPS(float4 vpos : SV_Position, uint c0 : SV_Coverage)
@@ -334,11 +358,6 @@ void RENDERDOC_QuadOverdrawPS(float4 vpos : SV_Position, uint c0 : SV_Coverage)
 	InterlockedAdd(overdrawUAV[quad], 1);
 }
 
-float4 ToColour(uint v)
-{
-	return overdrawRampColours[min(v, NUM_RAMP_COLOURS-1)];
-}
-
 float4 RENDERDOC_QOResolvePS(float4 vpos : SV_POSITION) : SV_Target0
 {
 	uint2 quad = vpos.xy*0.5;
@@ -347,7 +366,7 @@ float4 RENDERDOC_QOResolvePS(float4 vpos : SV_POSITION) : SV_Target0
 	for(int i = 0; i < 4; i++)
 		overdraw += overdrawSRV[uint3(quad, i)]/(i + 1);
 
-	return ToColour(overdraw);
+	return float(overdraw).xxxx;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

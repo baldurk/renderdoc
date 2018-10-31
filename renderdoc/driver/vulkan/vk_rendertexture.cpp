@@ -317,6 +317,37 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   m_TexRender.UBO.Unmap();
 
+  HeatmapData heatmapData = {};
+
+  if(cfg.resourceId == GetResID(m_Overlay.Image))
+  {
+    if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_LINEAR;
+    }
+    else if(cfg.overlay == DebugOverlay::TriangleSizeDraw ||
+            cfg.overlay == DebugOverlay::TriangleSizePass)
+    {
+      heatmapData.HeatmapMode = HEATMAP_TRISIZE;
+    }
+
+    if(heatmapData.HeatmapMode)
+    {
+      memcpy(heatmapData.ColorRamp, colorRamp, sizeof(colorRamp));
+
+      RDCCOMPILE_ASSERT(sizeof(heatmapData.ColorRamp) == sizeof(colorRamp),
+                        "C++ color ramp array is not the same size as the shader array");
+    }
+  }
+
+  uint32_t heatUboOffs = 0;
+
+  {
+    HeatmapData *ptr = (HeatmapData *)m_TexRender.HeatmapUBO.Map(&heatUboOffs);
+    memcpy(ptr, &heatmapData, sizeof(HeatmapData));
+    m_TexRender.HeatmapUBO.Unmap();
+  }
+
   VkDescriptorImageInfo imdesc = {0};
   imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imdesc.imageView = Unwrap(liveImView);
@@ -326,14 +357,17 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   VkDescriptorSet descset = m_TexRender.GetDescSet();
 
-  VkDescriptorBufferInfo ubodesc = {0};
+  VkDescriptorBufferInfo ubodesc = {}, heatubodesc = {};
   m_TexRender.UBO.FillDescriptor(ubodesc);
+  m_TexRender.HeatmapUBO.FillDescriptor(heatubodesc);
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), descSetBinding, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &ubodesc, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &heatubodesc, NULL},
   };
 
   vector<VkWriteDescriptorSet> writeSets;
@@ -433,9 +467,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
       pipe = m_TexRender.BlendPipeline;
     }
 
+    uint32_t offsets[] = {uboOffs, heatUboOffs};
+
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
     vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 1, &uboOffs);
+                              Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 2, offsets);
 
     VkViewport viewport = {(float)rpbegin.renderArea.offset.x,
                            (float)rpbegin.renderArea.offset.y,
@@ -449,10 +485,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
     if(m_pDriver->GetDriverVersion().QualcommLeakingUBOOffsets())
     {
-      uboOffs = 0;
+      offsets[0] = offsets[1] = 0;
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 1,
-                                &uboOffs);
+                                Unwrap(m_TexRender.PipeLayout), 0, 1, UnwrapPtr(descset), 2, offsets);
     }
 
     vt->CmdEndRenderPass(Unwrap(cmd));

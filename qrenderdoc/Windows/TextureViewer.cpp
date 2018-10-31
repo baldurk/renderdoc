@@ -818,11 +818,13 @@ void TextureViewer::UI_UpdateStatusText()
   bool sintTex = (tex.format.compType == CompType::SInt);
 
   if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
-     m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw)
+     m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
+     m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+     m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw)
   {
     dsv = false;
     uintTex = false;
-    sintTex = true;
+    sintTex = false;
   }
 
   QColor swatchColor;
@@ -3451,6 +3453,15 @@ void TextureViewer::on_saveTex_clicked()
   if(saveDialog.saveOverlayInstead())
   {
     m_SaveConfig.resourceId = overlayTexID;
+
+    if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
+       m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
+       m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+       m_TexDisplay.overlay == DebugOverlay::TriangleSizePass)
+    {
+      m_SaveConfig.comp.blackPoint = 0.0f;
+      m_SaveConfig.comp.whitePoint = 255.0f;
+    }
   }
 
   if(res)

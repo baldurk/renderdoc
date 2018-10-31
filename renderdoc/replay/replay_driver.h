@@ -263,3 +263,5 @@ struct HighlightCache
   FloatVector InterpretVertex(const byte *data, uint32_t vert, const MeshDisplay &cfg,
                               const byte *end, bool useidx, bool &valid);
 };
+
+extern const Vec4f colorRamp[22];

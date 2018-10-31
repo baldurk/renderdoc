@@ -380,8 +380,6 @@ PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x
   if(tex == ResourceId())
     return ret;
 
-  bool decodeRamp = false;
-
   CompType typeHint = m_RenderData.texDisplay.typeHint;
 
   if(customShader && m_RenderData.texDisplay.customShaderId != ResourceId() &&
@@ -390,51 +388,20 @@ PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x
     tex = m_CustomShaderResourceId;
     typeHint = CompType::Typeless;
   }
+
+  // for 'heatmap' type overlays, pick from the overlay texture
   if((m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
       m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
       m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
       m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass) &&
      m_OverlayResourceId != ResourceId())
   {
-    decodeRamp = true;
     tex = m_OverlayResourceId;
     typeHint = CompType::Typeless;
   }
 
   m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeHint,
                        ret.floatValue);
-
-  if(decodeRamp)
-  {
-    for(size_t c = 0; c < ARRAY_COUNT(overdrawRamp); c++)
-    {
-      if(fabs(ret.floatValue[0] - overdrawRamp[c].x) < 0.00005f &&
-         fabs(ret.floatValue[1] - overdrawRamp[c].y) < 0.00005f &&
-         fabs(ret.floatValue[2] - overdrawRamp[c].z) < 0.00005f)
-      {
-        ret.intValue[0] = (int32_t)c;
-        ret.intValue[1] = 0;
-        ret.intValue[2] = 0;
-        ret.intValue[3] = 0;
-        break;
-      }
-    }
-
-    // decode back into approximate pixel size area
-    if(m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass ||
-       m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw)
-    {
-      float bucket = (float)ret.intValue[0];
-
-      // decode bucket into approximate triangle area
-      if(bucket <= 0.5f)
-        ret.floatValue[0] = 0.0f;
-      else if(bucket < 2.0f)
-        ret.floatValue[0] = 16.0f;
-      else
-        ret.floatValue[0] = -2.5f * logf(1.0f + (bucket - 22.0f) / 20.1f);
-    }
-  }
 
   return ret;
 }

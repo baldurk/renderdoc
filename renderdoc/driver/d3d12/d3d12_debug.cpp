@@ -1234,7 +1234,7 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
 
     pipeDesc.SampleDesc.Count = 1;
 
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
     pipeDesc.PS.BytecodeLength = FixedColPS->GetBufferSize();
     pipeDesc.PS.pShaderBytecode = FixedColPS->GetBufferPointer();
@@ -1276,7 +1276,12 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
   {
     ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0), cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+        // VS cbuffer
+        cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
+        // normal FS cbuffer
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+        // heatmap cbuffer
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1),
         // display SRVs
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
         // samplers
@@ -1429,7 +1434,6 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
   {
     ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
         // quad overdraw results SRV
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1),
     });
@@ -1470,7 +1474,7 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
     pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     pipeDesc.NumRenderTargets = 1;
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
     pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
     pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
     pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;

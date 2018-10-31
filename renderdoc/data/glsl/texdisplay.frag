@@ -153,6 +153,45 @@ void main(void)
 #endif
 		return;
 	}
+	
+	if(heatmap.HeatmapMode != HEATMAP_DISABLED)
+	{
+		if(heatmap.HeatmapMode == HEATMAP_LINEAR)
+		{
+			// cast the float value to an integer with safe rounding, then return the 
+			int bucket = int(floor(col.x + 0.25f));
+
+			bucket = max(bucket, 0);
+			bucket = min(bucket, HEATMAP_RAMPSIZE - 1);
+
+			if(bucket == 0)
+				discard;
+
+			color_out = heatmap.ColorRamp[bucket];
+			return;
+		}
+		else if(heatmap.HeatmapMode == HEATMAP_TRISIZE)
+		{
+			// uninitialised regions have alpha=0
+			if(col.w < 0.5f)
+				discard;
+
+			float area = max(col.x, 0.001f);
+
+			int bucket = 2 + int( floor(20.0f - 20.1f * (1.0f - exp(-0.4f * area) ) ) );
+
+			bucket = max(bucket, 0);
+			bucket = min(bucket, HEATMAP_RAMPSIZE - 1);
+
+			color_out = heatmap.ColorRamp[bucket];
+
+			return;
+		}
+		else
+		{
+			// error! invalid heatmap mode
+		}
+	}
 
 	// RGBM encoding
 	if(texdisplay.HDRMul > 0.0f)

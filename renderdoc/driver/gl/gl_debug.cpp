@@ -391,7 +391,6 @@ void GLReplay::InitDebugData()
     RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 2048, "UBO too small");
     RDCCOMPILE_ASSERT(sizeof(FontUBOData) <= 2048, "UBO too small");
     RDCCOMPILE_ASSERT(sizeof(HistogramUBOData) <= 2048, "UBO too small");
-    RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= 2048, "UBO too small");
   }
 
   DebugData.overlayTexWidth = DebugData.overlayTexHeight = DebugData.overlayTexSamples = 0;

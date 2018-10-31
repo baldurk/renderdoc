@@ -452,6 +452,7 @@ private:
     VkPipeline F16PipelineGreenOnly = VK_NULL_HANDLE;
     VkPipeline F32PipelineGreenOnly = VK_NULL_HANDLE;
     GPUBuffer UBO;
+    GPUBuffer HeatmapUBO;
 
     // ring buffered to allow multiple texture renders between flushes
     VkDescriptorSet DescSet[16] = {VK_NULL_HANDLE};
@@ -487,8 +488,6 @@ private:
     VkImageView ImageView = VK_NULL_HANDLE;
     VkFramebuffer NoDepthFB = VK_NULL_HANDLE;
     VkRenderPass NoDepthRP = VK_NULL_HANDLE;
-
-    GPUBuffer OverdrawRampUBO;
 
     VkDescriptorSetLayout m_QuadDescSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_QuadDescSet = VK_NULL_HANDLE;
