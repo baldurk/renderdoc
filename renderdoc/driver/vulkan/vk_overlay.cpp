@@ -1624,6 +1624,16 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
       events.push_back(eventId);
 
+      // if we're rendering the whole pass, and the first draw is a BeginRenderPass, don't include
+      // it in the list. We want to start by replaying into the renderpass so that we have the
+      // correct state being applied.
+      if(overlay == DebugOverlay::QuadOverdrawPass)
+      {
+        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
+        if(draw->flags & DrawFlags::BeginPass)
+          events.erase(events.begin());
+      }
+
       VkImage quadImg;
       VkDeviceMemory quadImgMem;
       VkImageView quadImgView;
