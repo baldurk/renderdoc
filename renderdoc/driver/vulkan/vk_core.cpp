@@ -234,6 +234,23 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
   return ret;
 }
 
+void WrappedVulkan::RemovePendingCommandBuffer(VkCommandBuffer cmd)
+{
+  for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
+  {
+    if(*it == cmd)
+    {
+      m_InternalCmds.pendingcmds.erase(it);
+      break;
+    }
+  }
+}
+
+void WrappedVulkan::AddPendingCommandBuffer(VkCommandBuffer cmd)
+{
+  m_InternalCmds.pendingcmds.push_back(cmd);
+}
+
 void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
                                VkPipelineStageFlags *waitStageMask, uint32_t waitSemaphoreCount)
 {
@@ -2849,6 +2866,9 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     {
       VkCommandBuffer cmd = m_OutsideCmdBuffer = GetNextCmd();
 
+      // we'll explicitly submit this when we're ready
+      RemovePendingCommandBuffer(cmd);
+
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
@@ -2945,6 +2965,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       m_Partial[Primary].renderPassActive = rpWasActive;
 
       ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+      AddPendingCommandBuffer(cmd);
 
       SubmitCmds();
 

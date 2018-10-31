@@ -928,6 +928,8 @@ public:
     return m_PhysicalDevice;
   }
   VkCommandBuffer GetNextCmd();
+  void RemovePendingCommandBuffer(VkCommandBuffer cmd);
+  void AddPendingCommandBuffer(VkCommandBuffer cmd);
   void SubmitCmds(VkSemaphore *unwrappedWaitSemaphores = NULL,
                   VkPipelineStageFlags *waitStageMask = NULL, uint32_t waitSemaphoreCount = 0);
   VkSemaphore GetNextSemaphore();
