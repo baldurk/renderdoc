@@ -199,6 +199,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   QObject::connect(ui->targetOutputs, &RDTreeWidget::itemActivated, this,
                    &D3D12PipelineStateViewer::resource_itemActivated);
+  QObject::connect(ui->gsStreamOut, &RDTreeWidget::itemActivated, this,
+                   &D3D12PipelineStateViewer::resource_itemActivated);
 
   for(RDTreeWidget *res : resources)
     QObject::connect(res, &RDTreeWidget::itemActivated, this,
@@ -1898,6 +1900,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   else if(buf)
   {
     D3D12ViewTag view;
+
+    view.res.resourceId = buf->resourceId;
+
     if(tag.canConvert<D3D12ViewTag>())
       view = tag.value<D3D12ViewTag>();
 
