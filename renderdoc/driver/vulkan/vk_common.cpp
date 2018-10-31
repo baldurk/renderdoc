@@ -49,10 +49,13 @@ struct ScopedCommandBuffer
   }
   ~ScopedCommandBuffer()
   {
-    VkResult vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    if(local)
+    {
+      VkResult vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    core->SubmitCmds();
+      core->SubmitCmds();
+    }
   }
 
   WrappedVulkan *core;
