@@ -836,6 +836,18 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       events.push_back(eventId);
 
+      if(overlay == DebugOverlay::TriangleSizePass)
+      {
+        list->Close();
+        list = NULL;
+
+        m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+
+        list = m_pDevice->GetNewList();
+      }
+
+      pipe = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
       pipe->Fill(pipeDesc);
       pipeDesc.pRootSignature = m_General.ConstOnlyRootSig;
@@ -902,6 +914,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       D3D12_RECT scissor = {0, 0, 16384, 16384};
       list->RSSetScissorRects(1, &scissor);
+
+      list->OMSetStencilRef(rs.stencilRef);
+      list->OMSetBlendFactor(rs.blendFactor);
 
       list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
 
