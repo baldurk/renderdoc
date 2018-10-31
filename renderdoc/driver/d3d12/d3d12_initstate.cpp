@@ -485,6 +485,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
         mappedBuffer = NULL;
         ResourceContents = initContents.srcData = AllocAlignedBuffer(RDCMAX(ContentsLength, 64ULL));
+        initContents.resourceType = Resource_Resource;
+        SetInitialContents(id, initContents);
       }
       else
       {
