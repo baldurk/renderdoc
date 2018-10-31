@@ -5867,6 +5867,9 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       case spv::OpUConvert:
       case spv::OpSConvert:
       case spv::OpBitcast:
+      case spv::OpBitFieldInsert:
+      case spv::OpBitFieldSExtract:
+      case spv::OpBitFieldUExtract:
       case spv::OpBitReverse:
       case spv::OpBitCount:
       case spv::OpAny:
