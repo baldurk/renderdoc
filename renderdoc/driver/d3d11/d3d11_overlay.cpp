@@ -648,9 +648,6 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
     ID3D11Buffer *psbuf = GetDebugManager()->MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
 
-    Vec4f viewport = Vec4f((float)details.texWidth, (float)details.texHeight);
-    ID3D11Buffer *gsbuf = GetDebugManager()->MakeCBuffer(&viewport.x, sizeof(viewport));
-
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
 
@@ -665,6 +662,11 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
     events.push_back(eventId);
+
+    D3D11_VIEWPORT view = m_pImmediateContext->GetCurrentPipelineState()->RS.Viewports[0];
+
+    Vec4f viewport = Vec4f(view.Width, view.Height);
+    ID3D11Buffer *gsbuf = GetDebugManager()->MakeCBuffer(&viewport.x, sizeof(viewport));
 
     for(size_t i = 0; i < events.size(); i++)
     {
