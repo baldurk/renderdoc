@@ -1121,7 +1121,7 @@ void RenderDoc::RemoveDeviceFrameCapturer(void *dev)
 {
   if(dev == NULL)
   {
-    RDCERR("Invalid device pointer: %#p / %#p", dev);
+    RDCERR("Invalid device pointer: %#p", dev);
     return;
   }
 
