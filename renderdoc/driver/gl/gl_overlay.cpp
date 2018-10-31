@@ -1449,7 +1449,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           drv.glStencilMask(0);
           drv.glViewport(0, 0, texDetails.width, texDetails.height);
 
-          drv.glBindImageTexture(0, quadtexs[2], 0, GL_FALSE, 0, eGL_READ_WRITE, eGL_R32UI);
+          drv.glBindImageTexture(0, quadtexs[2], 0, GL_TRUE, 0, eGL_READ_WRITE, eGL_R32UI);
 
           GLuint emptyVAO = 0;
           drv.glGenVertexArrays(1, &emptyVAO);
