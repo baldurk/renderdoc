@@ -1587,7 +1587,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
           // skip empty bindings
-          if(bind.descriptorCount == 0)
+          if(bind.descriptorCount == 0 || bind.stageFlags == 0)
             continue;
 
           copy.srcBinding = (uint32_t)b;
