@@ -920,15 +920,30 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[1]);
         drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[2]);
 
-        const GLenum att = eGL_DEPTH_ATTACHMENT;
-        GLuint depthObj = 0;
+        GLenum att = eGL_DEPTH_ATTACHMENT;
+        GLuint depthObj = 0, stencilObj = 0;
         GLint type = 0, level = 0, layered = 0, layer = 0;
+
+        // do we have a stencil object?
+        drv.glGetNamedFramebufferAttachmentParameterivEXT(drawFBO, eGL_STENCIL_ATTACHMENT,
+                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                          (GLint *)&stencilObj);
 
         // fetch the details of the 'real' depth attachment
         drv.glGetNamedFramebufferAttachmentParameterivEXT(
             drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&depthObj);
         drv.glGetNamedFramebufferAttachmentParameterivEXT(
             drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
+
+        if(depthObj && stencilObj)
+        {
+          att = eGL_DEPTH_STENCIL_ATTACHMENT;
+        }
+        else if(depthObj == 0 && stencilObj)
+        {
+          att = eGL_STENCIL_ATTACHMENT;
+          depthObj = stencilObj;
+        }
 
         if(depthObj)
         {
