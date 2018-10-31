@@ -38,6 +38,9 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
     return;
 
+  D3D11MarkerRegion renderMesh(
+      StringFormat::Fmt("RenderMesh with %zu secondary draws", secondaryDraws.size()));
+
   DebugVertexCBuffer vertexData;
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);

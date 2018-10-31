@@ -152,6 +152,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
+  D3D12MarkerRegion postvs(m_pDevice->GetQueue(), StringFormat::Fmt("PostVS for %u", eventId));
+
   D3D12CommandData *cmd = m_pDevice->GetQueue()->GetCommandData();
   const D3D12RenderState &rs = cmd->m_RenderState;
 

@@ -43,6 +43,9 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
   MakeCurrentReplayContext(m_DebugCtx);
 
+  GLMarkerRegion renderMesh(
+      StringFormat::Fmt("RenderMesh with %zu secondary draws", secondaryDraws.size()));
+
   Matrix4f projMat =
       Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, DebugData.outWidth / DebugData.outHeight);
 

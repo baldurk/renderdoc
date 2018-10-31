@@ -413,6 +413,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+  VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
@@ -2232,6 +2234,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
+
+  VkMarkerRegion::End(cmd);
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);

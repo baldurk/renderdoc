@@ -3115,13 +3115,21 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
+  VkMarkerRegion::Begin(StringFormat::Fmt("FetchVSOut for %u", eventId));
+
   FetchVSOut(eventId);
+
+  VkMarkerRegion::End();
 
   // if there's no tessellation or geometry shader active, bail out now
   if(pipeInfo.shaders[2].module == ResourceId() && pipeInfo.shaders[3].module == ResourceId())
     return;
 
+  VkMarkerRegion::Begin(StringFormat::Fmt("FetchTessGSOut for %u", eventId));
+
   FetchTessGSOut(eventId);
+
+  VkMarkerRegion::End();
 }
 
 struct VulkanInitPostVSCallback : public VulkanDrawcallCallback

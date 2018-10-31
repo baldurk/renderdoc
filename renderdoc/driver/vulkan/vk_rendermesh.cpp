@@ -385,6 +385,9 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &second
   vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  VkMarkerRegion::Begin(
+      StringFormat::Fmt("RenderMesh with %zu secondary draws", secondaryDraws.size()), cmd);
+
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
@@ -1073,6 +1076,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &second
   }
 
   vt->CmdEndRenderPass(Unwrap(cmd));
+
+  VkMarkerRegion::End(cmd);
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);

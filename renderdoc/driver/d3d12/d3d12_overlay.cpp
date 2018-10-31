@@ -271,6 +271,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   if(resource == NULL)
     return ResourceId();
 
+  D3D12MarkerRegion renderoverlay(m_pDevice->GetQueue(),
+                                  StringFormat::Fmt("RenderOverlay %d", overlay));
+
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;

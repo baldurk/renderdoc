@@ -221,6 +221,10 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   if(m_CurrentOutputWindow == 0 || it == m_OutputWindows.end())
     return;
 
+  D3D12MarkerRegion renderMesh(
+      m_pDevice->GetQueue(),
+      StringFormat::Fmt("RenderMesh with %zu secondary draws", secondaryDraws.size()));
+
   OutputWindow &outw = it->second;
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();

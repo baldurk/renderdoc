@@ -44,6 +44,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
 
+  D3D11MarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
+
   ResourceId id = texid;
 
   D3D11_TEXTURE2D_DESC realTexDesc;

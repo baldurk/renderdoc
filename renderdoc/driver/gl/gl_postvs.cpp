@@ -50,6 +50,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
+  GLMarkerRegion postvs(StringFormat::Fmt("PostVS for %u", eventId));
+
   MakeCurrentReplayContext(&m_ReplayCtx);
 
   WrappedOpenGL &drv = *m_pDriver;
