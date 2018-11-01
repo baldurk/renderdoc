@@ -116,7 +116,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
     ShaderResource res;
     res.name = r.name;
 
-    res.isTexture = (r.type == DXBC::ShaderInputBind::TYPE_TEXTURE &&
+    res.isTexture = ((r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
+                      r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED) &&
                      r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
@@ -167,7 +168,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
         default: name = "unknown"; break;
       }
 
-      name += StringFormat::Fmt("%u", r.numSamples);
+      if(r.numSamples > 1)
+        name += StringFormat::Fmt("%u", r.numSamples);
 
       res.variableType.descriptor.name = name;
     }
