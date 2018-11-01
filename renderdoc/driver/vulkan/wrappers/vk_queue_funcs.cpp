@@ -485,6 +485,9 @@ bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescript
   {
     SDChunk *chunk = m_StructuredFile->chunks[draw.events.back().chunkIndex];
 
+    if(chunk->metadata.chunkID != (uint32_t)VulkanChunk::vkCmdIndirectSubCommand)
+      chunk = m_StructuredFile->chunks[draw.events.back().chunkIndex - 1];
+
     SDObject *command = chunk->FindChild("command");
 
     // single draw indirect draws don't have a command child since it can't be added without

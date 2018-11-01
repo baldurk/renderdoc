@@ -631,7 +631,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           structuriser.Serialise("command", VkDrawIndirectCommand());
         }
 
-        m_StructuredFile->chunks.push_back(fakeChunk);
+        m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
         AddEvent();
 
@@ -1005,7 +1007,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           structuriser.Serialise("command", VkDrawIndexedIndirectCommand());
         }
 
-        m_StructuredFile->chunks.push_back(fakeChunk);
+        m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
         AddEvent();
 
