@@ -173,6 +173,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 {
   bool singleSliceMode = (selectedSlice != ~0U);
 
+  D3D11MarkerRegion copy("CopyArrayToTex2DMS");
+
   // unlike CopyTex2DMSToArray we can use the wrapped context here, but for consistency
   // we accept unwrapped parameters.
 
@@ -513,6 +515,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   // use the wrapped context's state tracked to avoid needing our own tracking, just restore it to
   // the unwrapped context
   Tex2DMSToArrayStateTracker tracker(m_pImmediateContext);
+
+  D3D11MarkerRegion copy("CopyTex2DMSToArray");
 
   ID3D11Device *dev = m_pDevice->GetReal();
   ID3D11DeviceContext *ctx = m_pImmediateContext->GetReal();

@@ -794,19 +794,18 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       uint32_t width = 1920 >> 1;
       uint32_t height = 1080 >> 1;
 
-      uint32_t depthWidth = 1920;
-      uint32_t depthHeight = 1080;
-      bool forceDepth = false;
+      D3D11_TEXTURE2D_DESC overrideDepthDesc;
+      ID3D11Texture2D *depthTex = NULL;
 
       {
         ID3D11Resource *res = NULL;
-        if(state->OM.RenderTargets[0])
-        {
-          state->OM.RenderTargets[0]->GetResource(&res);
-        }
-        else if(state->OM.DepthView)
+        if(state->OM.DepthView)
         {
           state->OM.DepthView->GetResource(&res);
+        }
+        else if(state->OM.RenderTargets[0])
+        {
+          state->OM.RenderTargets[0]->GetResource(&res);
         }
         else
         {
@@ -833,11 +832,25 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
           width = RDCMAX(1U, texdesc.Width >> 1);
           height = RDCMAX(1U, texdesc.Height >> 1);
 
-          if(texdesc.SampleDesc.Count > 1)
+          if(state->OM.DepthView && texdesc.SampleDesc.Count > 1)
           {
-            forceDepth = true;
-            depthWidth = texdesc.Width;
-            depthHeight = texdesc.Height;
+            overrideDepthDesc = texdesc;
+            overrideDepthDesc.ArraySize = texdesc.SampleDesc.Count;
+            overrideDepthDesc.SampleDesc.Count = 1;
+            depthTex = ((ID3D11Texture2D *)res);
+
+            D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+            state->OM.DepthView->GetDesc(&dsvDesc);
+
+            // bake in any view format cast
+            if(dsvDesc.Format != DXGI_FORMAT_UNKNOWN && dsvDesc.Format != overrideDepthDesc.Format)
+              overrideDepthDesc.Format = dsvDesc.Format;
+
+            // only need depth stencil, and other bind flags may be invalid with this typed format
+            overrideDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+            overrideDepthDesc.MiscFlags = 0;
+
+            RDCASSERT(!IsTypelessFormat(overrideDepthDesc.Format), overrideDepthDesc.Format);
           }
         }
         else
@@ -851,24 +864,20 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       ID3D11DepthStencilView *depthOverride = NULL;
 
-      if(forceDepth)
+      if(overrideDepthDesc.Width > 0)
       {
-        D3D11_TEXTURE2D_DESC texDesc = {
-            depthWidth,
-            depthHeight,
-            1U,
-            1U,
-            DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-            {1, 0},
-            D3D11_USAGE_DEFAULT,
-            D3D11_BIND_DEPTH_STENCIL,
-            0,
-            0,
-        };
-
         ID3D11Texture2D *tex = NULL;
-        m_pDevice->CreateTexture2D(&texDesc, NULL, &tex);
-        m_pDevice->CreateDepthStencilView(tex, NULL, &depthOverride);
+        m_pDevice->CreateTexture2D(&overrideDepthDesc, NULL, &tex);
+
+        D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
+        viewDesc.Format = overrideDepthDesc.Format;
+        viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+        viewDesc.Texture2DArray.ArraySize = 1;
+
+        m_pDevice->GetDebugManager()->CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D1, tex),
+                                                         UNWRAP(WrappedID3D11Texture2D1, depthTex));
+
+        m_pDevice->CreateDepthStencilView(tex, &viewDesc, &depthOverride);
         SAFE_RELEASE(tex);
       }
 
@@ -893,38 +902,71 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       m_pDevice->CreateShaderResourceView(overdrawTex, NULL, &overdrawSRV);
       m_pDevice->CreateUnorderedAccessView(overdrawTex, NULL, &overdrawUAV);
 
-      UINT val = 0;
-      m_pImmediateContext->ClearUnorderedAccessViewUint(overdrawUAV, &val);
+      UINT vals[4] = {};
+      m_pImmediateContext->ClearUnorderedAccessViewUint(overdrawUAV, vals);
 
       for(size_t i = 0; i < events.size(); i++)
       {
         D3D11RenderState oldstate = *m_pImmediateContext->GetCurrentPipelineState();
 
-        D3D11_DEPTH_STENCIL_DESC dsdesc = {
-            /*DepthEnable =*/TRUE,
-            /*DepthWriteMask =*/D3D11_DEPTH_WRITE_MASK_ALL,
-            /*DepthFunc =*/D3D11_COMPARISON_LESS,
-            /*StencilEnable =*/FALSE,
-            /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
-            /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
-            /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                            D3D11_COMPARISON_ALWAYS},
-            /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
-                           D3D11_COMPARISON_ALWAYS},
-        };
-        ID3D11DepthStencilState *ds = NULL;
+        {
+          D3D11_DEPTH_STENCIL_DESC dsdesc = {
+              /*DepthEnable =*/TRUE,
+              /*DepthWriteMask =*/D3D11_DEPTH_WRITE_MASK_ALL,
+              /*DepthFunc =*/D3D11_COMPARISON_LESS,
+              /*StencilEnable =*/FALSE,
+              /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
+              /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
+              /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
+                              D3D11_COMPARISON_ALWAYS},
+              /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
+                             D3D11_COMPARISON_ALWAYS},
+          };
+          ID3D11DepthStencilState *ds = NULL;
 
-        if(state->OM.DepthStencilState)
-          state->OM.DepthStencilState->GetDesc(&dsdesc);
+          if(state->OM.DepthStencilState)
+            state->OM.DepthStencilState->GetDesc(&dsdesc);
 
-        dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        dsdesc.StencilWriteMask = 0;
+          dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+          dsdesc.StencilWriteMask = 0;
 
-        m_pDevice->CreateDepthStencilState(&dsdesc, &ds);
+          m_pDevice->CreateDepthStencilState(&dsdesc, &ds);
 
-        m_pImmediateContext->OMSetDepthStencilState(ds, oldstate.OM.StencRef);
+          m_pImmediateContext->OMSetDepthStencilState(ds, oldstate.OM.StencRef);
 
-        SAFE_RELEASE(ds);
+          SAFE_RELEASE(ds);
+        }
+
+        {
+          D3D11_RASTERIZER_DESC rdesc;
+          ID3D11RasterizerState *rs = NULL;
+
+          if(state->RS.State)
+          {
+            state->RS.State->GetDesc(&rdesc);
+          }
+          else
+          {
+            rdesc.FillMode = D3D11_FILL_SOLID;
+            rdesc.CullMode = D3D11_CULL_BACK;
+            rdesc.FrontCounterClockwise = FALSE;
+            rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+            rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+            rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+            rdesc.DepthClipEnable = TRUE;
+            rdesc.ScissorEnable = FALSE;
+            rdesc.MultisampleEnable = FALSE;
+            rdesc.AntialiasedLineEnable = FALSE;
+          }
+
+          rdesc.MultisampleEnable = FALSE;
+
+          m_pDevice->CreateRasterizerState(&rdesc, &rs);
+
+          m_pImmediateContext->RSSetState(rs);
+
+          SAFE_RELEASE(rs);
+        }
 
         UINT UAVcount = 0;
         m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(
