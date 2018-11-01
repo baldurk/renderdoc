@@ -795,7 +795,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       uint32_t width = 1920 >> 1;
       uint32_t height = 1080 >> 1;
 
-      D3D11_TEXTURE2D_DESC overrideDepthDesc;
+      D3D11_TEXTURE2D_DESC overrideDepthDesc = {};
       ID3D11Texture2D *depthTex = NULL;
 
       {
