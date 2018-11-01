@@ -403,6 +403,8 @@ size_t GetNextPatchSize(const void *pNext)
       memSize += sizeof(VkImageSwapchainCreateInfoKHR);
     else if(next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV)
       memSize += sizeof(VkDedicatedAllocationImageCreateInfoNV);
+    else if(next->sType == VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR)
+      memSize += sizeof(VkImageFormatListCreateInfoKHR);
 
     // VkBufferCreateInfo
     else if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO)
