@@ -61,7 +61,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   realTexDesc.Width = details.texWidth;
   realTexDesc.Height = details.texHeight;
 
-  if(details.texType == eTexType_2DMS)
+  if(details.texType == eTexType_2DMS || details.texType == eTexType_DepthMS ||
+     details.texType == eTexType_StencilMS)
   {
     realTexDesc.SampleDesc.Count = details.sampleCount;
     realTexDesc.SampleDesc.Quality = details.sampleQuality;
