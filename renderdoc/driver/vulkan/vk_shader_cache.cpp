@@ -294,7 +294,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   specMapEntries.resize(specEntries);
   specdata.resize(specSize);
 
-  VkSpecializationMapEntry *entry = &specMapEntries[0];
+  VkSpecializationMapEntry *entry = specMapEntries.data();
 
   uint32_t stageCount = 0;
   specSize = 0;
