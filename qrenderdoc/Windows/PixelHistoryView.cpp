@@ -300,7 +300,7 @@ public:
               return tr("No Pixel\nShader\nBound");
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
-            return tr("Shader Out\n\n") + modString(mod.shaderOut);
+            return tr("Shader Out\n\n") + modString(mod.shaderOut, 4);
           }
         }
 
@@ -485,11 +485,14 @@ private:
     return QBrush(QColor::fromRgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b)));
   }
 
-  QString modString(const ModificationValue &val) const
+  QString modString(const ModificationValue &val, int forceComps = 0) const
   {
     QString s;
 
     int numComps = (int)(m_Tex->format.compCount);
+
+    if(forceComps > 0)
+      numComps = forceComps;
 
     static const QString colourLetterPrefix[] = {lit("R: "), lit("G: "), lit("B: "), lit("A: ")};
 
