@@ -826,11 +826,15 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
         if(builtin == ShaderBuiltin::VertexIndex)
         {
-          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, vertexIndex}));
+          uint32_t uintVertexIndex = editor.MakeId();
+          ops.push_back(SPIRVOperation(spv::OpBitcast, {uint32ID, uintVertexIndex, vertexIndex}));
+          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, uintVertexIndex}));
         }
         else if(builtin == ShaderBuiltin::InstanceIndex)
         {
-          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, instIndex}));
+          uint32_t uintInstanceIndex = editor.MakeId();
+          ops.push_back(SPIRVOperation(spv::OpBitcast, {uint32ID, uintInstanceIndex, instIndex}));
+          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, uintInstanceIndex}));
         }
         else if(builtin == ShaderBuiltin::ViewportIndex)
         {
@@ -841,17 +845,17 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           if(draw->flags & DrawFlags::Indexed)
             ops.push_back(SPIRVOperation(
                 spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
-                                                      int32_t(draw->vertexOffset & 0x7fffffff))}));
+                                                      uint32_t(draw->vertexOffset & 0x7fffffff))}));
           else
             ops.push_back(SPIRVOperation(
-                spv::OpStore, {ins[i].variableID,
-                               editor.AddConstantImmediate(int32_t(draw->baseVertex & 0x7fffffff))}));
+                spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
+                                                      uint32_t(draw->baseVertex & 0x7fffffff))}));
         }
         else if(builtin == ShaderBuiltin::BaseInstance)
         {
           ops.push_back(SPIRVOperation(
               spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
-                                                    int32_t(draw->instanceOffset & 0x7fffffff))}));
+                                                    uint32_t(draw->instanceOffset & 0x7fffffff))}));
         }
         else if(builtin == ShaderBuiltin::DrawIndex)
         {
