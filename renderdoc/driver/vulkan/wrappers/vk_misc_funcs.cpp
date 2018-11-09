@@ -2073,3 +2073,32 @@ VkResult WrappedVulkan::vkGetPastPresentationTimingGOOGLE(
   return ObjDisp(device)->GetPastPresentationTimingGOOGLE(
       Unwrap(device), Unwrap(swapchain), pPresentationTimingCount, pPresentationTimings);
 }
+
+VkResult WrappedVulkan::vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uint32_t *pCounterCount,
+    VkPerformanceCounterKHR *pCounters, VkPerformanceCounterDescriptionKHR *pCounterDescriptions)
+{
+  return ObjDisp(physicalDevice)
+      ->EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+          Unwrap(physicalDevice), queueFamilyIndex, pCounterCount, pCounters, pCounterDescriptions);
+}
+
+void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
+    VkPhysicalDevice physicalDevice,
+    const VkQueryPoolPerformanceCreateInfoKHR *pPerformanceQueryCreateInfo, uint32_t *pNumPasses)
+{
+  ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
+          Unwrap(physicalDevice), pPerformanceQueryCreateInfo, pNumPasses);
+}
+
+VkResult WrappedVulkan::vkAcquireProfilingLockKHR(VkDevice device,
+                                                  const VkAcquireProfilingLockInfoKHR *pInfo)
+{
+  return ObjDisp(device)->AcquireProfilingLockKHR(Unwrap(device), pInfo);
+}
+
+void WrappedVulkan::vkReleaseProfilingLockKHR(VkDevice device)
+{
+  ObjDisp(device)->ReleaseProfilingLockKHR(Unwrap(device));
+}

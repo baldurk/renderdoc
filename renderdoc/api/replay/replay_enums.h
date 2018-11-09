@@ -3040,7 +3040,10 @@ enum class GPUCounter : uint32_t
   FirstNvidia = 3000000,
   LastIntel = FirstNvidia - 1,
 
-  LastNvidia = 4000000,
+  FirstVulkanExtended = 4000000,
+  LastNvidia = FirstVulkanExtended - 1,
+
+  LastVulkanExtended = 5000000,
 };
 
 ITERABLE_OPERATORS(GPUCounter);
@@ -3088,6 +3091,17 @@ DOCUMENT(R"(Check whether or not this is an Nvidia private counter.
 inline constexpr bool IsNvidiaCounter(GPUCounter c)
 {
   return c >= GPUCounter::FirstNvidia && c <= GPUCounter::LastNvidia;
+}
+
+DOCUMENT(R"(Check whether or not this is a KHR counter.
+
+:param GPUCounter c: The counter.
+:return: ``True`` if it is a Vulkan counter reported through the VK_KHR_performance_query extension, ``False`` if it's not.
+:rtype: ``bool``
+)");
+inline constexpr bool IsVulkanExtendedCounter(GPUCounter c)
+{
+  return c >= GPUCounter::FirstVulkanExtended && c <= GPUCounter::LastVulkanExtended;
 }
 
 DOCUMENT(R"(The unit that GPU counter data is returned in.
@@ -3932,7 +3946,7 @@ DOCUMENT(R"(A set of flags giving details of the current status of vulkan layer 
   also set then the entire process can be done un-elevated if user-local is desired.
 
   .. note::
-  
+
     If the :data:`NeedElevation` flag is set then elevation is required to fix the layer
     registration, even if a user-local registration is desired.
 

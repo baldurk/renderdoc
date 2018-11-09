@@ -328,6 +328,7 @@ private:
   Threading::RWLock m_CapTransitionLock;
 
   VulkanDrawcallCallback *m_DrawcallCallback;
+  void *m_SubmitChain;
 
   SDFile *m_StructuredFile;
   SDFile m_StoredStructuredData;
@@ -376,6 +377,8 @@ private:
     VkPhysicalDeviceMemoryProperties memProps = {};
     VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE] = {};
     VkDriverInfo driverInfo = VkDriverInfo(props);
+
+    VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = {};
 
     uint32_t queueCount = 0;
     VkQueueFamilyProperties queueProps[16] = {};
@@ -1008,6 +1011,7 @@ public:
 
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
+  void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
   static bool IsSupportedExtension(const char *extName);
   static void FilterToSupportedExtensions(std::vector<VkExtensionProperties> &exts,
                                           std::vector<VkExtensionProperties> &filtered);
@@ -1024,6 +1028,10 @@ public:
 
   const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
+  const VkPhysicalDevicePerformanceQueryFeaturesKHR &GetPhysicalDevicePerformanceQueryFeatures()
+  {
+    return m_PhysicalDeviceData.performanceQueryFeatures;
+  }
   VkDriverInfo GetDriverInfo() { return m_PhysicalDeviceData.driverInfo; }
   // Device initialization
 
@@ -2184,4 +2192,15 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSignalSemaphoreKHR, VkDevice device,
                                 const VkSemaphoreSignalInfoKHR *pSignalInfo);
+
+  // VK_KHR_performance_query
+
+  VkResult vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+      VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uint32_t *pCounterCount,
+      VkPerformanceCounterKHR *pCounters, VkPerformanceCounterDescriptionKHR *pCounterDescriptions);
+  void vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
+      VkPhysicalDevice physicalDevice,
+      const VkQueryPoolPerformanceCreateInfoKHR *pPerformanceQueryCreateInfo, uint32_t *pNumPasses);
+  VkResult vkAcquireProfilingLockKHR(VkDevice device, const VkAcquireProfilingLockInfoKHR *pInfo);
+  void vkReleaseProfilingLockKHR(VkDevice device);
 };

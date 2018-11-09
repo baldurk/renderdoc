@@ -30,6 +30,113 @@
 
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
+#include "strings/string_utils.h"
+
+static uint32_t FromKHRCounter(GPUCounter counterID)
+{
+  return (uint32_t)counterID - (uint32_t)GPUCounter::FirstVulkanExtended;
+}
+
+static GPUCounter ToKHRCounter(uint32_t idx)
+{
+  return (GPUCounter)((uint32_t)GPUCounter::FirstVulkanExtended + idx);
+}
+
+static void GetKHRUnitDescription(const VkPerformanceCounterUnitKHR khrUnit, CounterUnit &unit,
+                                  CompType &type, uint32_t &byteWidth)
+{
+  switch(khrUnit)
+  {
+    case VK_PERFORMANCE_COUNTER_UNIT_GENERIC_KHR:
+      unit = CounterUnit::Absolute;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_PERCENTAGE_KHR:
+      unit = CounterUnit::Percentage;
+      type = CompType::Double;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR:
+      unit = CounterUnit::Seconds;
+      type = CompType::Double;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_BYTES_KHR:
+      unit = CounterUnit::Bytes;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_BYTES_PER_SECOND_KHR:
+      unit = CounterUnit::Ratio;
+      type = CompType::Double;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_KELVIN_KHR:
+      unit = CounterUnit::Absolute;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_WATTS_KHR:
+      unit = CounterUnit::Absolute;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_VOLTS_KHR:
+      unit = CounterUnit::Absolute;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_AMPS_KHR:
+      unit = CounterUnit::Absolute;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_HERTZ_KHR:
+      unit = CounterUnit::Absolute;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_CYCLES_KHR:
+      unit = CounterUnit::Cycles;
+      type = CompType::UInt;
+      byteWidth = 8;
+      return;
+    default: RDCERR("Invalid performance counter unit %d", khrUnit);
+  }
+}
+
+void VulkanReplay::convertKhrCounterResult(CounterResult &rdcResult,
+                                           const VkPerformanceCounterResultKHR &khrResult,
+                                           VkPerformanceCounterUnitKHR khrUnit,
+                                           VkPerformanceCounterStorageKHR khrStorage)
+{
+  CounterUnit unit;
+  CompType type;
+  uint32_t byteWidth;
+  GetKHRUnitDescription(khrUnit, unit, type, byteWidth);
+
+  double value;
+
+  // Convert everything to doubles.
+  switch(khrStorage)
+  {
+    case VK_PERFORMANCE_COUNTER_STORAGE_INT32_KHR: rdcResult.value.u64 = khrResult.int32; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_UINT32_KHR: rdcResult.value.u64 = khrResult.uint32; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_INT64_KHR: rdcResult.value.u64 = khrResult.int64; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_UINT64_KHR: rdcResult.value.u64 = khrResult.uint64; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_FLOAT32_KHR: rdcResult.value.d = khrResult.float32; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR: rdcResult.value.d = khrResult.float64; break;
+    default: value = 0; RDCERR("Wrong counter storage type %d", khrStorage);
+  }
+
+  // Special case for time units, renderdoc only has a Seconds type.
+  if(khrUnit == VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR)
+  {
+    RDCASSERT(type == CompType::Double);
+    rdcResult.value.d /= 1000.0 * 1000.0 * 1000.0;
+  }
+}
 
 std::vector<GPUCounter> VulkanReplay::EnumerateCounters()
 {
@@ -60,6 +167,23 @@ std::vector<GPUCounter> VulkanReplay::EnumerateCounters()
     ret.push_back(GPUCounter::CSInvocations);
   }
 
+  if(m_pDriver->GetPhysicalDevicePerformanceQueryFeatures().performanceCounterQueryPools)
+  {
+    VkPhysicalDevice physDev = m_pDriver->GetPhysDev();
+    uint32_t khrCounters = 0;
+    ObjDisp(physDev)->EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+        Unwrap(physDev), 0, &khrCounters, NULL, NULL);
+
+    m_KHRCounters.resize(khrCounters);
+    m_KHRCountersDescriptions.resize(khrCounters);
+
+    ObjDisp(physDev)->EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+        Unwrap(physDev), 0, &khrCounters, &m_KHRCounters[0], &m_KHRCountersDescriptions[0]);
+
+    for(uint32_t c = 0; c < khrCounters; c++)
+      ret.push_back(ToKHRCounter(c));
+  }
+
   if(m_pAMDCounters)
   {
     std::vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
@@ -83,6 +207,29 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 
       return desc;
     }
+  }
+
+  if(IsVulkanExtendedCounter(counterID))
+  {
+    const VkPerformanceCounterKHR &khrCounter = m_KHRCounters[FromKHRCounter(counterID)];
+    const VkPerformanceCounterDescriptionKHR &khrCounterDesc =
+        m_KHRCountersDescriptions[FromKHRCounter(counterID)];
+
+    CounterDescription rdcDesc;
+    rdcDesc.counter = counterID;
+    rdcDesc.name = khrCounterDesc.name;
+    rdcDesc.category = khrCounterDesc.category;
+    rdcDesc.description = khrCounterDesc.description;
+
+    const uint32_t *uuid_dwords = (const uint32_t *)khrCounter.uuid;
+    desc.uuid.words[0] = uuid_dwords[0];
+    desc.uuid.words[1] = uuid_dwords[1];
+    desc.uuid.words[2] = uuid_dwords[2];
+    desc.uuid.words[3] = uuid_dwords[3];
+
+    GetKHRUnitDescription(khrCounter.unit, rdcDesc.unit, rdcDesc.resultType, rdcDesc.resultByteWidth);
+
+    return rdcDesc;
   }
 
   // 6839CB5B-FBD2-4550-B606-8C65157C684C
@@ -376,6 +523,183 @@ std::vector<CounterResult> VulkanReplay::FetchCountersAMD(const std::vector<GPUC
   return ret;
 }
 
+struct VulkanKHRCallback : public VulkanDrawcallCallback
+{
+  VulkanKHRCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool qp)
+      : m_pDriver(vk), m_pReplay(rp), m_QueryPool(qp)
+  {
+    m_pDriver->SetDrawcallCB(this);
+  }
+  ~VulkanKHRCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
+  {
+    ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_QueryPool, (uint32_t)m_Results.size(), 0);
+  }
+
+  bool PostDraw(uint32_t eid, VkCommandBuffer cmd) override
+  {
+    ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_QueryPool, (uint32_t)m_Results.size());
+    m_Results.push_back(eid);
+    return false;
+  }
+
+  void PostRedraw(uint32_t eid, VkCommandBuffer cmd) override {}
+  // we don't need to distinguish, call the Draw functions
+  void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
+  void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    return PostDraw(eid, cmd);
+  }
+  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    PostRedraw(eid, cmd);
+  }
+  void AliasEvent(uint32_t primary, uint32_t alias) override
+  {
+    m_AliasEvents.push_back(std::make_pair(primary, alias));
+  }
+
+  void PreEndCommandBuffer(VkCommandBuffer cmd) override {}
+  WrappedVulkan *m_pDriver;
+  VulkanReplay *m_pReplay;
+  VkQueryPool m_QueryPool;
+  std::vector<uint32_t> m_Results;
+  // events which are the 'same' from being the same command buffer resubmitted
+  // multiple times in the frame. We will only get the full callback when we're
+  // recording the command buffer, and will be given the first EID. After that
+  // we'll just be told which other EIDs alias this event.
+  std::vector<std::pair<uint32_t, uint32_t> > m_AliasEvents;
+};
+
+std::vector<CounterResult> VulkanReplay::FetchCountersKHR(const std::vector<GPUCounter> &counters)
+{
+  std::vector<uint32_t> counterIndices;
+  for(const GPUCounter &c : counters)
+    counterIndices.push_back(FromKHRCounter(c));
+
+  VkQueryPoolPerformanceCreateInfoKHR perfCreateInfo = {
+      VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_CREATE_INFO_KHR, NULL, 0,
+      (uint32_t)counterIndices.size(), &counterIndices[0]};
+  uint32_t passCount = 0;
+  ObjDisp(m_pDriver->GetInstance())
+      ->GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(Unwrap(m_pDriver->GetPhysDev()),
+                                                              &perfCreateInfo, &passCount);
+
+  VkDevice dev = m_pDriver->GetDev();
+  VkAcquireProfilingLockInfoKHR acquireLockInfo = {
+      VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR, NULL, 0, 50 * 1000 * 1000 /* 50ms */};
+  VkResult vkr = ObjDisp(dev)->AcquireProfilingLockKHR(Unwrap(dev), &acquireLockInfo);
+  if(vkr != VK_SUCCESS)
+  {
+    RDCWARN("Unable to acquire profiling lock: %s", ToStr(vkr).c_str());
+    return std::vector<CounterResult>();
+  }
+
+  uint32_t maxEID = m_pDriver->GetMaxEID();
+  VkQueryPoolCreateInfo queryPoolCreateInfo = {
+      VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, &perfCreateInfo, 0,
+      VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR,      maxEID,          0};
+
+  VkQueryPool queryPool;
+  vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &queryPoolCreateInfo, NULL, &queryPool);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  // Reset query pool
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), queryPool, 0, maxEID);
+
+  vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  m_pDriver->SubmitCmds();
+
+  VulkanKHRCallback cb(m_pDriver, this, queryPool);
+
+  // replay the events to perform all the queries
+  for(uint32_t i = 0; i < passCount; i++)
+  {
+    VkPerformanceQuerySubmitInfoKHR perfSubmitInfo = {
+        VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR, NULL, i};
+
+    cb.m_Results.clear();
+
+    m_pDriver->SetSubmitChain(&perfSubmitInfo);
+    m_pDriver->ReplayLog(0, maxEID, eReplay_Full);
+    m_pDriver->SetSubmitChain(NULL);
+  }
+
+  std::vector<VkPerformanceCounterResultKHR> perfResults;
+  perfResults.resize(cb.m_Results.size() * counters.size());
+
+  vkr = ObjDisp(dev)->GetQueryPoolResults(
+      Unwrap(dev), queryPool, 0, (uint32_t)cb.m_Results.size(),
+      sizeof(VkPerformanceCounterResultKHR) * perfResults.size(), &perfResults[0],
+      sizeof(VkPerformanceCounterResultKHR) * counters.size(), VK_QUERY_RESULT_WAIT_BIT);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), queryPool, NULL);
+
+  ObjDisp(dev)->ReleaseProfilingLockKHR(Unwrap(dev));
+
+  std::vector<CounterResult> ret;
+  for(size_t i = 0; i < cb.m_Results.size(); i++)
+  {
+    for(size_t c = 0; c < counters.size(); c++)
+    {
+      CounterResult result;
+
+      result.eventId = cb.m_Results[i];
+      result.counter = counters[c];
+
+      const VkPerformanceCounterKHR &khrCounter = m_KHRCounters[counterIndices[c]];
+
+      convertKhrCounterResult(result, perfResults[counters.size() * i + c], khrCounter.unit,
+                              khrCounter.storage);
+      ret.push_back(result);
+    }
+  }
+
+  for(size_t i = 0; i < cb.m_AliasEvents.size(); i++)
+  {
+    for(size_t c = 0; c < counters.size(); c++)
+    {
+      CounterResult search;
+      search.counter = counters[c];
+      search.eventId = cb.m_AliasEvents[i].first;
+
+      // find the result we're aliasing
+      auto it = std::find(ret.begin(), ret.end(), search);
+      if(it != ret.end())
+      {
+        // duplicate the result and append
+        CounterResult aliased = *it;
+        aliased.eventId = cb.m_AliasEvents[i].second;
+        ret.push_back(aliased);
+      }
+      else
+      {
+        RDCERR("Expected to find alias-target result for EID %u counter %u, but didn't",
+               search.eventId, search.counter);
+      }
+    }
+  }
+
+  // sort so that the alias results appear in the right places
+  std::sort(ret.begin(), ret.end());
+
+  return ret;
+}
+
 struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
 {
   VulkanGPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool tsqp, VkQueryPool occqp,
@@ -468,9 +792,13 @@ std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCoun
     }
   }
 
-  if(vkCounters.empty())
+  std::vector<GPUCounter> vkKHRCounters;
+  std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkKHRCounters),
+               [](const GPUCounter &c) { return IsVulkanExtendedCounter(c); });
+  if(!vkKHRCounters.empty())
   {
-    return ret;
+    std::vector<CounterResult> khrResults = FetchCountersKHR(vkKHRCounters);
+    ret.insert(ret.end(), khrResults.begin(), khrResults.end());
   }
 
   VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();

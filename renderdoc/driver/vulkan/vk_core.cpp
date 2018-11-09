@@ -130,6 +130,7 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
   m_LastEventID = ~0U;
 
   m_DrawcallCallback = NULL;
+  m_SubmitChain = NULL;
 
   m_CurChunkOffset = 0;
   m_AddedDrawcall = false;
@@ -267,7 +268,7 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
 
   VkSubmitInfo submitInfo = {
       VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      NULL,
+      m_SubmitChain,
       waitSemaphoreCount,
       unwrappedWaitSemaphores,
       waitStageMask,
@@ -395,7 +396,7 @@ void WrappedVulkan::SubmitAndFlushExtQueue(uint32_t queueFamilyIdx)
 
   VkSubmitInfo submitInfo = {
       VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      NULL,
+      m_SubmitChain,
       0,
       NULL,
       NULL,    // wait semaphores
@@ -954,6 +955,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
     {
         VK_KHR_MULTIVIEW_EXTENSION_NAME, VK_KHR_MULTIVIEW_SPEC_VERSION,
+    },
+    {
+        VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME, VK_KHR_PERFORMANCE_QUERY_SPEC_VERSION,
     },
     {
         VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME,
@@ -2417,7 +2421,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   {
     VkSubmitInfo submitInfo = {
         VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        NULL,
+        m_SubmitChain,
         0,
         NULL,
         NULL,    // wait semaphores

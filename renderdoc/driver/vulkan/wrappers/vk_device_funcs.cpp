@@ -1589,6 +1589,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "bindless shader access will use less reliable fallback");
     }
 
+    bool perfQuery = false;
+
+    if(supportedExtensions.find(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      perfQuery = true;
+      Extensions.push_back(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
+      RDCLOG("Enabling VK_KHR_performance_query");
+    }
+
     VkDevice device;
 
     uint32_t qCount = 0;
@@ -2538,6 +2547,48 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
+    VkPhysicalDevicePerformanceQueryFeaturesKHR perfFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR,
+    };
+
+    if(perfQuery)
+    {
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      m_PhysicalDeviceData.performanceQueryFeatures.sType =
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR;
+      availBase.pNext = &perfFeatures;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
+
+      m_PhysicalDeviceData.performanceQueryFeatures = perfFeatures;
+
+      if(perfFeatures.performanceCounterQueryPools)
+      {
+        VkPhysicalDevicePerformanceQueryFeaturesKHR *existing =
+            (VkPhysicalDevicePerformanceQueryFeaturesKHR *)FindNextStruct(
+                &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR);
+
+        if(existing)
+        {
+          existing->performanceCounterQueryPools = VK_TRUE;
+        }
+        else
+        {
+          perfFeatures.performanceCounterQueryPools = VK_TRUE;
+          perfFeatures.performanceCounterMultipleQueryPools = VK_FALSE;
+
+          perfFeatures.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &perfFeatures;
+        }
+      }
+      else
+      {
+        auto it =
+            std::find(Extensions.begin(), Extensions.end(), VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
+        RDCASSERT(it != Extensions.end());
+        Extensions.erase(it);
+      }
+    }
+
     std::vector<const char *> layerArray(Layers.size());
     for(size_t i = 0; i < Layers.size(); i++)
       layerArray[i] = Layers[i].c_str();
@@ -2580,6 +2631,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       CheckDeviceExts();
     }
 
+    InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
     InitDeviceExtensionTables(device, &m_EnabledExtensions);
 
     RDCASSERT(m_Device == VK_NULL_HANDLE);    // MULTIDEVICE

@@ -727,4 +727,14 @@ private:
   AMDRGPControl *m_RGP = NULL;
 
   VulkanAMDDrawCallback *m_pAMDDrawCallback = NULL;
+
+  std::vector<CounterResult> FetchCountersKHR(const std::vector<GPUCounter> &counters);
+
+  std::vector<VkPerformanceCounterKHR> m_KHRCounters;
+  std::vector<VkPerformanceCounterDescriptionKHR> m_KHRCountersDescriptions;
+
+  void convertKhrCounterResult(CounterResult &rdcResult,
+                               const VkPerformanceCounterResultKHR &khrResult,
+                               VkPerformanceCounterUnitKHR khrUnit,
+                               VkPerformanceCounterStorageKHR khrStorage);
 };
