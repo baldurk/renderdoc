@@ -50,6 +50,7 @@ enum class CounterFamily
   AMD,
   Intel,
   NVIDIA,
+  VulkanExtended,
 };
 
 CounterFamily GetCounterFamily(GPUCounter counter)
@@ -66,6 +67,10 @@ CounterFamily GetCounterFamily(GPUCounter counter)
   {
     return CounterFamily::NVIDIA;
   }
+  else if(IsVulkanExtendedCounter(counter))
+  {
+    return CounterFamily::VulkanExtended;
+  }
 
   return CounterFamily::Generic;
 }
@@ -78,12 +83,13 @@ QString ToString(CounterFamily family)
     case CounterFamily::Generic: return lit("Generic");
     case CounterFamily::Intel: return lit("Intel");
     case CounterFamily::NVIDIA: return lit("NVIDIA");
+    case CounterFamily::VulkanExtended: return lit("Vulkan Extended");
     case CounterFamily::Unknown: return lit("Unknown");
   }
 
   return QString();
 }
-}
+}    // namespace
 
 const int PerformanceCounterSelection::CounterDescriptionRole = Qt::UserRole + 1;
 const int PerformanceCounterSelection::CounterIdRole = Qt::UserRole + 2;

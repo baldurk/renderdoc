@@ -169,6 +169,13 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
   }
 }
 
+static void appendChain(VkBaseInStructure *chain, void *item)
+{
+  while(chain->pNext != NULL)
+    chain = (VkBaseInStructure *)chain->pNext;
+  chain->pNext = (VkBaseInStructure *)item;
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, uint32_t submitCount,
                                             const VkSubmitInfo *pSubmits, VkFence fence)
@@ -242,6 +249,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
         tempMem += unwrapped.commandBufferCount * sizeof(VkCommandBuffer);
 
         UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkBaseInStructure *)&unwrapped);
+        appendChain((VkBaseInStructure *)&unwrapped, m_SubmitChain);
 
         ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &unwrapped, VK_NULL_HANDLE);
 
@@ -411,6 +419,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           byte *tempMem = GetTempMemory(GetNextPatchSize(rerecordedSubmit.pNext));
 
           UnwrapNextChain(m_State, "VkSubmitInfo", tempMem, (VkBaseInStructure *)&rerecordedSubmit);
+          appendChain((VkBaseInStructure *)&rerecordedSubmit, m_SubmitChain);
 
           rerecordedSubmit.commandBufferCount = (uint32_t)rerecordedCmds.size();
           rerecordedSubmit.pCommandBuffers = &rerecordedCmds[0];
@@ -785,6 +794,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       unwrappedSignalSems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
 
     UnwrapNextChain(m_State, "VkSubmitInfo", memory, (VkBaseInStructure *)&unwrappedSubmits[i]);
+    appendChain((VkBaseInStructure *)&unwrappedSubmits[i], m_SubmitChain);
   }
 
   VkResult ret;

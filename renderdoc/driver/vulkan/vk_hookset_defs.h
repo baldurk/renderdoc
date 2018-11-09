@@ -452,7 +452,8 @@
   DeclExt(AMD_negative_viewport_height);        \
   DeclExt(EXT_line_rasterization);              \
   DeclExt(GOOGLE_display_timing);               \
-  DeclExt(KHR_timeline_semaphore);
+  DeclExt(KHR_timeline_semaphore);              \
+  DeclExt(KHR_performance_query);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -484,7 +485,8 @@
   CheckExt(EXT_full_screen_exclusive, VKXX);           \
   CheckExt(EXT_headless_surface, VKXX);                \
   CheckExt(EXT_metal_surface, VKXX);                   \
-  CheckExt(KHR_wayland_surface, VKXX);
+  CheckExt(KHR_wayland_surface, VKXX);                 \
+  CheckExt(KHR_performance_query, VKXX);
 
 #define CheckDeviceExts()                             \
   CheckExt(EXT_debug_marker, VKXX);                   \
@@ -538,7 +540,8 @@
   CheckExt(AMD_negative_viewport_height, VKXX);       \
   CheckExt(EXT_line_rasterization, VKXX);             \
   CheckExt(GOOGLE_display_timing, VKXX);              \
-  CheckExt(KHR_timeline_semaphore, VKXX);
+  CheckExt(KHR_timeline_semaphore, VKXX);             \
+  CheckExt(KHR_performance_query, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -595,6 +598,9 @@
   HookInitExtension(EXT_sample_locations, GetPhysicalDeviceMultisamplePropertiesEXT);                \
   HookInitExtension(EXT_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsEXT);        \
   HookInitExtension(EXT_headless_surface, CreateHeadlessSurfaceEXT);                                 \
+  HookInitExtension(KHR_performance_query,                                                           \
+                    EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
+  HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                                 \
@@ -687,6 +693,8 @@
   HookInitExtension(KHR_timeline_semaphore, GetSemaphoreCounterValueKHR);                          \
   HookInitExtension(KHR_timeline_semaphore, WaitSemaphoresKHR);                                    \
   HookInitExtension(KHR_timeline_semaphore, SignalSemaphoreKHR);                                   \
+  HookInitExtension(KHR_performance_query, AcquireProfilingLockKHR);                               \
+  HookInitExtension(KHR_performance_query, ReleaseProfilingLockKHR);                               \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1289,4 +1297,14 @@
               pWaitInfo, uint64_t, timeout);                                                         \
   HookDefine2(VkResult, vkSignalSemaphoreKHR, VkDevice, device, const VkSemaphoreSignalInfoKHR *,    \
               pSignalInfo);                                                                          \
+  HookDefine5(VkResult, vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR,             \
+              VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, uint32_t *,              \
+              pCounterCount, VkPerformanceCounterKHR *, pCounters,                                   \
+              VkPerformanceCounterDescriptionKHR *, pCounterDescriptions);                           \
+  HookDefine3(void, vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR, VkPhysicalDevice,       \
+              physicalDevice, const VkQueryPoolPerformanceCreateInfoKHR *,                           \
+              pPerformanceQueryCreateInfo, uint32_t *, pNumPasses);                                  \
+  HookDefine2(VkResult, vkAcquireProfilingLockKHR, VkDevice, device,                                 \
+              const VkAcquireProfilingLockInfoKHR *, pInfo);                                         \
+  HookDefine1(void, vkReleaseProfilingLockKHR, VkDevice, device);                                    \
   HookDefine_PlatformSpecific()
