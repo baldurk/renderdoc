@@ -76,6 +76,13 @@ version of RenderDoc that addes a new section type. They should be considered eq
   This section contains a .rgp profile from AMD's RGP tool, which can be extracted and loaded.
 
   The name for this section will be "amd/rgp/profile".
+
+.. data:: ExtendedThumbnail
+
+  This section contains a thumbnail in format other than JPEG. For example, when it needs to be
+  lossless.
+
+  The name for this section will be "renderdoc/internal/exthumb".
 )");
 enum class SectionType : uint32_t
 {
@@ -87,6 +94,7 @@ enum class SectionType : uint32_t
   Notes,
   ResourceRenames,
   AMDRGPProfile,
+  ExtendedThumbnail,
   Count,
 };
 

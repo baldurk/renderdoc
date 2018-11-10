@@ -852,6 +852,7 @@ std::string DoStringise(const SectionType &el)
     STRINGISE_ENUM_CLASS_NAMED(Notes, "renderdoc/ui/notes");
     STRINGISE_ENUM_CLASS_NAMED(ResourceRenames, "renderdoc/ui/resrenames");
     STRINGISE_ENUM_CLASS_NAMED(AMDRGPProfile, "amd/rgp/profile");
+    STRINGISE_ENUM_CLASS_NAMED(ExtendedThumbnail, "renderdoc/internal/exthumb");
   }
   END_ENUM_STRINGISE();
 }

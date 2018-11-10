@@ -24,6 +24,7 @@
 
 #include "rdcfile.h"
 #include <errno.h>
+#include "3rdparty/jpeg-compressor/jpge.h"
 #include "3rdparty/stb/stb_image.h"
 #include "api/replay/version.h"
 #include "common/dds_readwrite.h"
@@ -387,6 +388,7 @@ void RDCFile::Init(StreamReader &reader)
   m_Thumb.width = thumb.width;
   m_Thumb.height = thumb.height;
   m_Thumb.len = thumb.length;
+  m_Thumb.format = FileType::JPG;
 
   if(m_Thumb.len > 0 && m_Thumb.width > 0 && m_Thumb.height > 0)
   {
@@ -578,6 +580,36 @@ void RDCFile::Init(StreamReader &reader)
   {
     RETURNERROR(ContainerError::Corrupt, "Capture file doesn't have a frame capture");
   }
+
+  int index = SectionIndex(SectionType::ExtendedThumbnail);
+  if(index >= 0)
+  {
+    StreamReader *thumbReader = ReadSection(index);
+    if(thumbReader)
+    {
+      ExtThumbnailHeader thumbHeader;
+      if(thumbReader->Read(thumbHeader))
+      {
+        thumbData = new byte[thumbHeader.len];
+        bool succeeded = thumbReader->Read(thumbData, thumbHeader.len) && !thumbReader->IsErrored();
+        if(succeeded && thumbHeader.format < (uint32_t)FileType::Count)
+        {
+          m_Thumb.width = thumbHeader.width;
+          m_Thumb.height = thumbHeader.height;
+          m_Thumb.len = thumbHeader.len;
+          m_Thumb.format = (FileType)thumbHeader.format;
+          delete[] m_Thumb.pixels;
+          m_Thumb.pixels = thumbData;
+        }
+        else
+        {
+          delete[] thumbData;
+        }
+        thumbData = NULL;
+      }
+      delete thumbReader;
+    }
+  }
 }
 
 bool RDCFile::CopyFileTo(const char *filename)
@@ -641,7 +673,49 @@ void RDCFile::Create(const char *filename)
 
   thumbHeader.width = m_Thumb.width;
   thumbHeader.height = m_Thumb.height;
+  const byte *jpgPixels = m_Thumb.pixels;
   thumbHeader.length = m_Thumb.len;
+
+  byte *jpgBuffer = NULL;
+  if(m_Thumb.format != FileType::JPG && m_Thumb.width > 0 && m_Thumb.height > 0)
+  {
+    // the primary thumbnail must be in JPG format, must perform conversion
+    const byte *rawPixels = NULL;
+    byte *rawBuffer = NULL;
+    int w = (int)m_Thumb.width;
+    int h = (int)m_Thumb.height;
+    int comp = 3;
+
+    if(m_Thumb.format == FileType::Raw)
+    {
+      rawPixels = m_Thumb.pixels;
+    }
+    else
+    {
+      rawBuffer = stbi_load_from_memory(m_Thumb.pixels, (int)m_Thumb.len, &w, &h, &comp, 3);
+      rawPixels = rawBuffer;
+    }
+
+    if(rawPixels)
+    {
+      int len = w * h * comp;
+      jpgBuffer = new byte[len];
+      jpge::params p;
+      p.m_quality = 90;
+      jpge::compress_image_to_jpeg_file_in_memory(jpgBuffer, len, w, h, comp, rawPixels, p);
+      thumbHeader.length = (uint32_t)len;
+      jpgPixels = jpgBuffer;
+    }
+    else
+    {
+      thumbHeader.width = 0;
+      thumbHeader.height = 0;
+      thumbHeader.length = 0;
+      jpgPixels = NULL;
+    }
+    if(rawBuffer)
+      stbi_image_free(rawBuffer);
+  }
 
   CaptureMetaData meta;
   meta.driverID = m_Driver;
@@ -658,12 +732,13 @@ void RDCFile::Create(const char *filename)
     writer.Write(&thumbHeader, offsetof(BinaryThumbnail, data));
 
     if(thumbHeader.length > 0)
-      writer.Write(m_Thumb.pixels, thumbHeader.length);
+      writer.Write(jpgPixels, thumbHeader.length);
 
     writer.Write(&meta, offsetof(CaptureMetaData, driverName));
 
     writer.Write(m_DriverName.c_str(), meta.driverNameLength);
 
+    delete[] jpgBuffer;
     if(writer.IsErrored())
     {
       RETURNERROR(ContainerError::FileIO, "Error writing file header");

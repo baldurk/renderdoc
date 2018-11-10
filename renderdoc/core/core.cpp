@@ -705,7 +705,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
 }
 
 RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixels, size_t thlen,
-                              uint16_t thwidth, uint16_t thheight)
+                              uint16_t thwidth, uint16_t thheight, FileType thformat)
 {
   RDCFile *ret = new RDCFile;
 
@@ -734,6 +734,9 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixel
     th.pixels = (const byte *)thpixels;
     th.width = thwidth;
     th.height = thheight;
+    RDCASSERT(thformat == FileType::JPG || thformat == FileType::PNG || thformat == FileType::BMP ||
+              thformat == FileType::TGA || thformat == FileType::Raw);
+    th.format = thformat;
     thumb = &th;
   }
 
@@ -1086,6 +1089,27 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       Callstack::GetLoadedModules(buf, sz);
 
       w->Write(buf, sz);
+
+      w->Finish();
+
+      delete w;
+    }
+
+    const RDCThumb &thumb = rdc->GetThumbnail();
+    if(thumb.format != FileType::JPG && thumb.width > 0 && thumb.height > 0)
+    {
+      SectionProperties props = {};
+      props.type = SectionType::ExtendedThumbnail;
+      props.version = 1;
+      StreamWriter *w = rdc->WriteSection(props);
+
+      ExtThumbnailHeader header;
+      header.width = thumb.width;
+      header.height = thumb.height;
+      header.len = thumb.len;
+      header.format = (uint32_t)thumb.format;
+      w->Write(header);
+      w->Write(thumb.pixels, thumb.len);
 
       w->Finish();
 

@@ -392,7 +392,7 @@ public:
   void UnloadCrashHandler();
   ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
   RDCFile *CreateRDC(RDCDriver driver, uint32_t frameNum, void *thpixels, size_t thlen,
-                     uint16_t thwidth, uint16_t thheight);
+                     uint16_t thwidth, uint16_t thheight, FileType thformat);
   void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident)
