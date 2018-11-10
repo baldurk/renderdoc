@@ -1425,10 +1425,10 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
       for(size_t i = 0; i < idata.size() && (uint32_t)i < draw->numIndices; i++)
       {
+        indices[i] = (uint32_t)idata[i];
         if(primRestart && idata[i] == primRestart)
           continue;
 
-        indices[i] = (uint32_t)idata[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
@@ -1439,10 +1439,10 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
       uint16_t *src = (uint16_t *)idata.data();
       for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
       {
+        indices[i] = (uint32_t)src[i];
         if(primRestart && idata[i] == primRestart)
           continue;
 
-        indices[i] = (uint32_t)src[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
