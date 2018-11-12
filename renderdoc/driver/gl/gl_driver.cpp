@@ -2190,41 +2190,31 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     GL.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
 
     // scale down if necessary using simple point sampling
-    uint16_t resample_width = RDCMIN(maxSize, thwidth);
-    resample_width &= ~3;    // JPEG encoder gives shear distortion if width is not divisible by 4.
-    if(thwidth != resample_width)
+    thwidth = RDCMIN(maxSize, uint16_t(dat.initParams.width));
+    // TODO(akharlamov): why does OpenGL align to 4 when Vulkan and DX11 align to 8?
+    thwidth &= ~0x3;    // align down to multiple of 4
+    thheight = uint16_t(thwidth * dat.initParams.height / dat.initParams.width);
+
+    byte *src = thpixels;
+    byte *dst = thpixels = new byte[3U * thwidth * thheight];
+
+    for(uint32_t y = 0; y < thheight; y++)
     {
-      float widthf = float(thwidth);
-      float heightf = float(thheight);
-
-      float aspect = widthf / heightf;
-
-      // clamp dimensions to a width of resample_width
-      thwidth = resample_width;
-      thheight = uint16_t(float(thwidth) / aspect);
-
-      byte *src = thpixels;
-      byte *dst = thpixels = new byte[3U * thwidth * thheight];
-
-      for(uint32_t y = 0; y < thheight; y++)
+      for(uint32_t x = 0; x < thwidth; x++)
       {
-        for(uint32_t x = 0; x < thwidth; x++)
-        {
-          float xf = float(x) / float(thwidth);
-          float yf = float(y) / float(thheight);
+        uint32_t xSource = x * dat.initParams.width / thwidth;
+        uint32_t ySource = y * dat.initParams.height / thheight;
 
-          byte *pixelsrc =
-              &src[3 * uint32_t(xf * widthf) + dat.initParams.width * 3 * uint32_t(yf * heightf)];
+        byte *pixelsrc = &src[3 * xSource + dat.initParams.width * 3 * ySource];
 
-          memcpy(dst, pixelsrc, 3);
+        memcpy(dst, pixelsrc, 3);
 
-          dst += 3;
-        }
+        dst += 3;
       }
-
-      // src is the raw unscaled pixels, which is no longer needed
-      SAFE_DELETE_ARRAY(src);
     }
+
+    // src is the raw unscaled pixels, which is no longer needed
+    SAFE_DELETE_ARRAY(src);
   }
 
   byte *jpgbuf = NULL;
