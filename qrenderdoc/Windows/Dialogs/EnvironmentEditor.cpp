@@ -26,6 +26,7 @@
 #include <QCompleter>
 #include <QFontDatabase>
 #include <QKeyEvent>
+#include <QStringListModel>
 #include "Code/QRDUtils.h"
 #include "ui_EnvironmentEditor.h"
 
@@ -223,15 +224,11 @@ void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent
 
   ui->variables->setSelectedItem(node);
 
-  delete m_Completer;
-
   QStringList names;
   for(int i = 0; i < ui->variables->topLevelItemCount(); i++)
     names << ui->variables->topLevelItem(i)->text(0);
 
-  m_Completer = new QCompleter(names, this);
-
-  ui->name->setCompleter(m_Completer);
+  m_Completer->setModel(new QStringListModel(names, m_Completer));
 }
 
 QList<EnvironmentModification> EnvironmentEditor::modifications()
