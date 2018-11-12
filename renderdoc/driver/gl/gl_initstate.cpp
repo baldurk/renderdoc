@@ -248,8 +248,16 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
       }
     }
 
-    for(int i = 0; i < (int)ARRAY_COUNT(data.DrawBuffers); i++)
-      GL.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&data.DrawBuffers[i]);
+    GLuint maxDraws = 0;
+    GL.glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint *)&maxDraws);
+
+    for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(data.DrawBuffers); i++)
+    {
+      if(i < maxDraws)
+        GL.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&data.DrawBuffers[i]);
+      else
+        data.DrawBuffers[i] = eGL_COLOR_ATTACHMENT0;
+    }
 
     GL.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&data.ReadBuffer);
 
