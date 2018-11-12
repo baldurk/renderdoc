@@ -1743,7 +1743,8 @@ void WrappedVulkan::vkCmdEndRenderPass2KHR(VkCommandBuffer commandBuffer,
     {
       SCOPED_LOCK(m_ImageLayoutsLock);
       GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, (uint32_t)barriers.size(), barriers.data(0);
+                                           m_ImageLayouts, (uint32_t)barriers.size(),
+                                           barriers.data());
     }
   }
 }
