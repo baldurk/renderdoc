@@ -1223,7 +1223,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
-                                           (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+                                           (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
       DrawcallDescription draw;
@@ -1307,7 +1307,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
-                                           (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+                                           (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
       DrawcallDescription draw;
@@ -1359,7 +1359,8 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
     {
       SCOPED_LOCK(m_ImageLayoutsLock);
       GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, (uint32_t)barriers.size(), &barriers[0]);
+                                           m_ImageLayouts, (uint32_t)barriers.size(),
+                                           barriers.data());
     }
   }
 }
@@ -1579,7 +1580,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
-                                           (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+                                           (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
       DrawcallDescription draw;
@@ -1681,7 +1682,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
-                                           (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+                                           (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
       DrawcallDescription draw;
@@ -1742,7 +1743,7 @@ void WrappedVulkan::vkCmdEndRenderPass2KHR(VkCommandBuffer commandBuffer,
     {
       SCOPED_LOCK(m_ImageLayoutsLock);
       GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, (uint32_t)barriers.size(), &barriers[0]);
+                                           m_ImageLayouts, (uint32_t)barriers.size(), barriers.data(0);
     }
   }
 }
@@ -3127,7 +3128,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           if(!rerecordedCmds.empty())
             ObjDisp(commandBuffer)
                 ->CmdExecuteCommands(Unwrap(commandBuffer), (uint32_t)rerecordedCmds.size(),
-                                     &rerecordedCmds[0]);
+                                     rerecordedCmds.data());
         }
       }
     }
