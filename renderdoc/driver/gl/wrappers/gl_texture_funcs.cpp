@@ -931,15 +931,12 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
 
       if(srcid == dstid)
       {
-        m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::Copy));
+        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
       }
       else
       {
-        m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::CopySrc));
-        m_ResourceUses[GetResourceManager()->GetLiveID(dstid)].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+        m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
       }
     }
   }
