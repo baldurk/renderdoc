@@ -964,7 +964,7 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
                                 bool internal, ProcessResult *result)
 {
-  HANDLE hChildStdOutput_Rd, hChildStdError_Rd;
+  HANDLE hChildStdOutput_Rd = NULL, hChildStdError_Rd = NULL;
 
   PROCESS_INFORMATION pi =
       RunProcess(app, workingDir, cmdLine, {}, internal, result ? &hChildStdOutput_Rd : NULL,
