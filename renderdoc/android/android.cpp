@@ -192,6 +192,11 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
   string activityName = GetDefaultActivityForPackage(deviceID, packageName);
 
+  if(activityName.find(packageName) == std::string::npos)
+    RDCERR(
+        "Activity name doesn't contain package name - potential problem, check package has default "
+        "activity");
+
   uint16_t jdwpPort = GetJdwpPort();
 
   // remove any previous jdwp port forward on this port
