@@ -1521,16 +1521,11 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         {
           ResourceFormat fmt = MakeResourceFormat(desc.Format);
 
-          float aspect = float(desc.Width) / float(desc.Height);
-
           thwidth = (uint16_t)RDCMIN(maxSize, (uint32_t)desc.Width);
           thwidth &= ~0x7;    // align down to multiple of 8
-          thheight = uint16_t(float(thwidth) / aspect);
+          thheight = uint16_t(thwidth * desc.Height / desc.Width);
 
           thpixels = new byte[3U * thwidth * thheight];
-
-          float widthf = float(desc.Width);
-          float heightf = float(desc.Height);
 
           uint32_t stride = fmt.compByteWidth * fmt.compCount;
 
@@ -1549,11 +1544,10 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
           {
             for(uint32_t x = 0; x < thwidth; x++)
             {
-              float xf = float(x) / float(thwidth);
-              float yf = float(y) / float(thheight);
+              uint32_t xSource = uint32_t(x * desc.Width / thwidth);
+              uint32_t ySource = uint32_t(y * desc.Height / thheight);
 
-              byte *srcPixels = &data[stride * uint32_t(xf * widthf) +
-                                      layout.Footprint.RowPitch * uint32_t(yf * heightf)];
+              byte *srcPixels = &data[stride * xSource + layout.Footprint.RowPitch * ySource];
 
               if(buf1010102)
               {
