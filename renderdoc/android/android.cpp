@@ -251,6 +251,10 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
 
     // adb shell ps | grep $PACKAGE | awk '{print $2}')
     pid = GetCurrentPID(deviceID, packageName);
+
+    if(pid == 0)
+      RDCERR("Couldn't get PID when launching %s with activity %s", packageName.c_str(),
+             activityName.c_str());
   }
   else
   {
