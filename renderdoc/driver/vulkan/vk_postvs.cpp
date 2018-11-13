@@ -524,9 +524,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   }
 
   SPIRVId outBufferVarID = 0;
-  SPIRVId numVertsConstID = editor.AddConstantImmediate((int32_t)numVerts);
-  SPIRVId numInstConstID = editor.AddConstantImmediate((int32_t)draw->numInstances);
-  SPIRVId numViewsConstID = editor.AddConstantImmediate((int32_t)numViews);
+  SPIRVId numVertsConstID = editor.AddConstantImmediate<uint32_t>(numVerts);
+  SPIRVId numInstConstID = editor.AddConstantImmediate<uint32_t>(draw->numInstances);
+  SPIRVId numViewsConstID = editor.AddConstantImmediate<uint32_t>(numViews);
 
   editor.SetName(numVertsConstID, "numVerts");
   editor.SetName(numInstConstID, "numInsts");
@@ -698,7 +698,6 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
                                                 MeshOutputDispatchWidth, 1, 1}));
 
   SPIRVId uint32ID = editor.DeclareType(scalar<uint32_t>());
-  SPIRVId sint32ID = editor.DeclareType(scalar<int32_t>());
 
   // add the wrapper function
   {
@@ -717,33 +716,29 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       ops.push_back(SPIRVOperation(spv::OpLoad, {uint32Vec3ID, invocationVector, invocationId}));
 
       // uint invocation = invocationVec.x
-      uint32_t invocationID = editor.MakeId();
-      ops.push_back(
-          SPIRVOperation(spv::OpCompositeExtract, {uint32ID, invocationID, invocationVector, 0U}));
+      uint32_t uintInvocationID = editor.MakeId();
+      ops.push_back(SPIRVOperation(spv::OpCompositeExtract,
+                                   {uint32ID, uintInvocationID, invocationVector, 0U}));
 
-      // int intInvocationID = int(invocation);
-      uint32_t intInvocationID = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpBitcast, {sint32ID, intInvocationID, invocationID}));
+      // arraySlotID = uintInvocationID;
+      uint32_t arraySlotID = uintInvocationID;
 
-      // arraySlotID = intInvocationID;
-      uint32_t arraySlotID = intInvocationID;
+      editor.SetName(uintInvocationID, "arraySlot");
 
-      editor.SetName(intInvocationID, "arraySlot");
-
-      // int viewinst = intInvocationID / numVerts
+      // uint viewinst = uintInvocationID / numVerts
       uint32_t viewinstID = editor.MakeId();
       ops.push_back(
-          SPIRVOperation(spv::OpSDiv, {sint32ID, viewinstID, intInvocationID, numVertsConstID}));
+          SPIRVOperation(spv::OpUDiv, {uint32ID, viewinstID, uintInvocationID, numVertsConstID}));
 
       editor.SetName(viewinstID, "viewInstance");
 
       uint32_t instID = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpSMod, {sint32ID, instID, viewinstID, numInstConstID}));
+      ops.push_back(SPIRVOperation(spv::OpUMod, {uint32ID, instID, viewinstID, numInstConstID}));
 
       editor.SetName(instID, "instanceID");
 
       uint32_t viewID = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpSDiv, {sint32ID, viewID, viewinstID, numInstConstID}));
+      ops.push_back(SPIRVOperation(spv::OpUDiv, {uint32ID, viewID, viewinstID, numInstConstID}));
 
       editor.SetName(viewID, "viewID");
 
@@ -761,13 +756,13 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       // continueLabel:
       ops.push_back(SPIRVOperation(spv::OpLabel, {continueLabel}));
 
-      // int vtx = intInvocationID % numVerts
-      uint32_t vtx = editor.MakeId();
-      ops.push_back(SPIRVOperation(spv::OpSMod, {sint32ID, vtx, intInvocationID, numVertsConstID}));
+      // uint vtx = uintInvocationID % numVerts
+      uint32_t vtxID = editor.MakeId();
+      ops.push_back(SPIRVOperation(spv::OpUMod, {uint32ID, vtxID, uintInvocationID, numVertsConstID}));
 
-      editor.SetName(vtx, "vertexID");
+      editor.SetName(vtxID, "vertexID");
 
-      uint32_t vertexIndex = vtx;
+      uint32_t vertexIndexID = vtxID;
 
       // if we're indexing, look up the index buffer. We don't have to apply vertexOffset - it was
       // already applied when we read back and uniq-ified the index buffer.
@@ -783,85 +778,100 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
         // uvec4 result = texelFetch(rawimg, vtxID);
         uint32_t result = editor.MakeId();
-        ops.push_back(SPIRVOperation(spv::OpImageFetch, {uint32Vec4ID, result, rawimg, vertexIndex}));
+        ops.push_back(
+            SPIRVOperation(spv::OpImageFetch, {uint32Vec4ID, result, rawimg, vertexIndexID}));
 
-        // uint vtxID = result.x;
-        uint32_t uintIndex = editor.MakeId();
-        ops.push_back(SPIRVOperation(spv::OpCompositeExtract, {uint32ID, uintIndex, result, 0}));
-
-        vertexIndex = editor.MakeId();
-        ops.push_back(SPIRVOperation(spv::OpBitcast, {sint32ID, vertexIndex, uintIndex}));
+        // vertexIndex = result.x;
+        vertexIndexID = editor.MakeId();
+        ops.push_back(SPIRVOperation(spv::OpCompositeExtract, {uint32ID, vertexIndexID, result, 0}));
       }
 
       // we use the current value of vertexIndex and use instID, to lookup per-vertex and
       // per-instance attributes. This is because when we fetched the vertex data, we advanced by
       // (in non-indexed draws) vertexOffset, and by instanceOffset. Rather than fetching data
       // that's only used as padding skipped over by these offsets.
-      uint32_t vertexLookup = vertexIndex;
-      uint32_t instanceLookup = instID;
+      uint32_t vertexLookupID = vertexIndexID;
+      uint32_t instanceLookupID = instID;
 
       if(!(draw->flags & DrawFlags::Indexed))
       {
         // for non-indexed draws, we manually apply the vertex offset, but here after we used the
         // 0-based one to calculate the array slot
-        vertexIndex = editor.MakeId();
-        ops.push_back(SPIRVOperation(
-            spv::OpIAdd, {sint32ID, vertexIndex, vtx,
-                          editor.AddConstantImmediate(int32_t(draw->vertexOffset & 0x7fffffff))}));
+        vertexIndexID = editor.MakeId();
+        ops.push_back(SPIRVOperation(spv::OpIAdd,
+                                     {uint32ID, vertexIndexID, vtxID,
+                                      editor.AddConstantImmediate<uint32_t>(draw->vertexOffset)}));
       }
-      editor.SetName(vertexIndex, "vertexIndex");
+      editor.SetName(vertexIndexID, "vertexIndex");
 
       // instIndex = inst + instOffset
-      uint32_t instIndex = editor.MakeId();
-      ops.push_back(SPIRVOperation(
-          spv::OpIAdd, {sint32ID, instIndex, instID,
-                        editor.AddConstantImmediate(int32_t(draw->instanceOffset & 0x7fffffff))}));
-      editor.SetName(instIndex, "instanceIndex");
+      uint32_t instIndexID = editor.MakeId();
+      ops.push_back(SPIRVOperation(spv::OpIAdd,
+                                   {uint32ID, instIndexID, instID,
+                                    editor.AddConstantImmediate<uint32_t>(draw->instanceOffset)}));
+      editor.SetName(instIndexID, "instanceIndex");
 
       uint32_t idxs[64] = {};
 
       for(size_t i = 0; i < refl.inputSignature.size(); i++)
       {
         ShaderBuiltin builtin = refl.inputSignature[i].systemValue;
+        if(builtin != ShaderBuiltin::Undefined)
+        {
+          uint32_t valueID = 0;
+          CompType compType = CompType::UInt;
 
-        if(builtin == ShaderBuiltin::VertexIndex)
-        {
-          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, vertexIndex}));
-        }
-        else if(builtin == ShaderBuiltin::InstanceIndex)
-        {
-          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, instIndex}));
-        }
-        else if(builtin == ShaderBuiltin::ViewportIndex)
-        {
-          ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, viewID}));
-        }
-        else if(builtin == ShaderBuiltin::BaseVertex)
-        {
-          if(draw->flags & DrawFlags::Indexed)
-            ops.push_back(SPIRVOperation(
-                spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
-                                                      int32_t(draw->vertexOffset & 0x7fffffff))}));
+          if(builtin == ShaderBuiltin::VertexIndex)
+          {
+            valueID = vertexIndexID;
+          }
+          else if(builtin == ShaderBuiltin::InstanceIndex)
+          {
+            valueID = instIndexID;
+          }
+          else if(builtin == ShaderBuiltin::ViewportIndex)
+          {
+            valueID = viewID;
+          }
+          else if(builtin == ShaderBuiltin::BaseVertex)
+          {
+            if(draw->flags & DrawFlags::Indexed)
+            {
+              valueID = editor.AddConstantImmediate<uint32_t>(draw->vertexOffset);
+            }
+            else
+            {
+              valueID = editor.AddConstantImmediate<int32_t>(draw->baseVertex);
+              compType = CompType::SInt;
+            }
+          }
+          else if(builtin == ShaderBuiltin::BaseInstance)
+          {
+            valueID = editor.AddConstantImmediate<uint32_t>(draw->instanceOffset);
+          }
+          else if(builtin == ShaderBuiltin::DrawIndex)
+          {
+            valueID = editor.AddConstantImmediate<uint32_t>(draw->drawIndex);
+          }
+
+          if(valueID)
+          {
+            if(refl.inputSignature[i].compType == compType)
+            {
+              ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, valueID}));
+            }
+            else
+            {
+              uint32_t castedValue = editor.MakeId();
+              // assume we can just bitcast
+              ops.push_back(SPIRVOperation(spv::OpBitcast, {ins[i].basetypeID, castedValue, valueID}));
+              ops.push_back(SPIRVOperation(spv::OpStore, {ins[i].variableID, castedValue}));
+            }
+          }
           else
-            ops.push_back(SPIRVOperation(
-                spv::OpStore, {ins[i].variableID,
-                               editor.AddConstantImmediate(int32_t(draw->baseVertex & 0x7fffffff))}));
-        }
-        else if(builtin == ShaderBuiltin::BaseInstance)
-        {
-          ops.push_back(SPIRVOperation(
-              spv::OpStore, {ins[i].variableID, editor.AddConstantImmediate(
-                                                    int32_t(draw->instanceOffset & 0x7fffffff))}));
-        }
-        else if(builtin == ShaderBuiltin::DrawIndex)
-        {
-          ops.push_back(SPIRVOperation(
-              spv::OpStore, {ins[i].variableID,
-                             editor.AddConstantImmediate(int32_t(draw->drawIndex & 0x7fffffff))}));
-        }
-        else if(builtin != ShaderBuiltin::Undefined)
-        {
-          RDCERR("Unsupported/unsupported built-in input %s", ToStr(builtin).c_str());
+          {
+            RDCERR("Unsupported/unsupported built-in input %s", ToStr(builtin).c_str());
+          }
         }
         else
         {
@@ -870,7 +880,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
           if(idxs[refl.inputSignature[i].regIndex] == 0)
             idxs[refl.inputSignature[i].regIndex] =
-                editor.AddConstantImmediate<uint32_t>((uint32_t)refl.inputSignature[i].regIndex);
+                editor.AddConstantImmediate<uint32_t>(refl.inputSignature[i].regIndex);
 
           tbufferIDs tb = tbuffers[ins[i].tbuffer];
 
@@ -890,7 +900,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           ops.push_back(SPIRVOperation(spv::OpImage, {tb.imageTypeID, rawimg, loaded}));
 
           // vec4 result = texelFetch(rawimg, vtxID or instID);
-          uint32_t idx = vertexLookup;
+          uint32_t idx = vertexLookupID;
 
           if(location < instDivisor.size())
           {
@@ -899,24 +909,24 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             if(divisor == ~0U)
             {
               // this magic value indicates vertex-rate data
-              idx = vertexLookup;
+              idx = vertexLookupID;
             }
             else if(divisor == 0)
             {
               // if the divisor is 0, all instances read the first value.
-              idx = editor.AddConstantImmediate<int32_t>(0);
+              idx = editor.AddConstantImmediate<uint32_t>(0);
             }
             else if(divisor == 1)
             {
               // if the divisor is 1, it's just regular instancing
-              idx = instanceLookup;
+              idx = instanceLookupID;
             }
             else
             {
               // otherwise we divide by the divisor
               idx = editor.MakeId();
-              divisor = editor.AddConstantImmediate(int32_t(divisor & 0x7fffffff));
-              ops.push_back(SPIRVOperation(spv::OpSDiv, {sint32ID, idx, instanceLookup, divisor}));
+              divisor = editor.AddConstantImmediate<uint32_t>(divisor);
+              ops.push_back(SPIRVOperation(spv::OpUDiv, {uint32ID, idx, instanceLookupID, divisor}));
             }
           }
 
@@ -925,7 +935,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             // since doubles are packed into two uints, we need to multiply the index by two
             uint32_t doubled = editor.MakeId();
             ops.push_back(SPIRVOperation(
-                spv::OpIMul, {sint32ID, doubled, idx, editor.AddConstantImmediate(int32_t(2))}));
+                spv::OpIMul, {uint32ID, doubled, idx, editor.AddConstantImmediate<uint32_t>(2)}));
             idx = doubled;
           }
 
@@ -940,7 +950,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
             uint32_t nextidx = editor.MakeId();
             ops.push_back(SPIRVOperation(
-                spv::OpIAdd, {sint32ID, nextidx, idx, editor.AddConstantImmediate(int32_t(1))}));
+                spv::OpIAdd, {uint32ID, nextidx, idx, editor.AddConstantImmediate<uint32_t>(1)}));
 
             uint32_t result2 = editor.MakeId();
             ops.push_back(
@@ -1032,7 +1042,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             for(uint32_t accessIdx : patchData.inputs[i].accessChain)
             {
               if(idxs[accessIdx] == 0)
-                idxs[accessIdx] = editor.AddConstantImmediate<uint32_t>((uint32_t)accessIdx);
+                idxs[accessIdx] = editor.AddConstantImmediate<uint32_t>(accessIdx);
 
               words.push_back(idxs[accessIdx]);
             }
