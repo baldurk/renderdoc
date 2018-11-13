@@ -236,6 +236,7 @@ struct GLResourceRecord : public ResourceRecord
     MapStatus status;
     bool invalidate;
     bool verifyWrite;
+    bool orphaned;
     byte *ptr;
 
     byte *persistentPtr;

@@ -481,6 +481,10 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
     dummy = new byte[size];
     memset(dummy, 0xdd, size);
     data = dummy;
+
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+    if(record)
+      record->Map.orphaned = true;
   }
 
   SERIALISE_TIME_CALL(GL.glNamedBufferStorageEXT(buffer, size, data, flags));
@@ -507,6 +511,10 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
     dummy = new byte[size];
     memset(dummy, 0xdd, size);
     data = dummy;
+
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    if(record)
+      record->Map.orphaned = true;
   }
 
   SERIALISE_TIME_CALL(GL.glBufferStorage(target, size, data, flags));
@@ -567,6 +575,10 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
     dummy = new byte[size];
     memset(dummy, 0xdd, size);
     data = dummy;
+
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+    if(record)
+      record->Map.orphaned = true;
   }
 
   SERIALISE_TIME_CALL(GL.glNamedBufferDataEXT(buffer, size, data, usage));
@@ -590,8 +602,6 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
     {
       if(data)
         memcpy(record->GetDataPtr(), data, (size_t)size);
-      else
-        memset(record->GetDataPtr(), 0xbe, (size_t)size);
 
       SAFE_DELETE_ARRAY(dummy);
 
@@ -699,16 +709,20 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 {
   byte *dummy = NULL;
 
+  size_t idx = BufferIdx(target);
+
   if(IsCaptureMode(m_State) && data == NULL)
   {
     dummy = new byte[size];
     memset(dummy, 0xdd, size);
     data = dummy;
+
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
+    if(record)
+      record->Map.orphaned = true;
   }
 
   SERIALISE_TIME_CALL(GL.glBufferData(target, size, data, usage));
-
-  size_t idx = BufferIdx(target);
 
   if(IsCaptureMode(m_State))
   {
@@ -1881,6 +1895,15 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    // if the buffer was recently orphaned, unset the flag. If the map is unsynchronised then sync
+    // ourselves to allow our dummy upload of uninitialised 0xdddddddd to complete.
+    if(record->Map.orphaned)
+    {
+      if(access & GL_MAP_UNSYNCHRONIZED_BIT)
+        GL.glFinish();
+      record->Map.orphaned = false;
+    }
 
     bool directMap = false;
 
