@@ -60,7 +60,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFII
 {
   if(riid == __uuidof(ID3DUserDefinedAnnotation))
   {
-    *ppvObject = (void *)(ID3DUserDefinedAnnotation *)this;
+    *ppvObject = (ID3DUserDefinedAnnotation *)this;
     AddRef();
     return S_OK;
   }

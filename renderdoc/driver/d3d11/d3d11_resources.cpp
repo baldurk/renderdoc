@@ -364,6 +364,8 @@ ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr)
     return ((WrappedID3D11CommandList *)ptr)->GetResourceID();
   if(WrappedID3DDeviceContextState::IsAlloc(ptr))
     return ((WrappedID3DDeviceContextState *)ptr)->GetResourceID();
+  if(WrappedID3D11Fence::IsAlloc(ptr))
+    return ((WrappedID3D11Fence *)ptr)->GetResourceID();
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 

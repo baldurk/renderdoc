@@ -1024,7 +1024,7 @@ HRESULT WrappedID3D11Device::CreateFence(UINT64 InitialValue, D3D11_FENCE_FLAG F
 
   WrappedID3D11Fence *wrapped = new WrappedID3D11Fence(ret, this);
 
-  *ppFence = (void *)wrapped;
+  *ppFence = (ID3D11Fence *)wrapped;
 
   return S_OK;
 }
@@ -1051,7 +1051,7 @@ HRESULT WrappedID3D11Device::OpenSharedFence(HANDLE hFence, REFIID riid, void **
 
   WrappedID3D11Fence *wrapped = new WrappedID3D11Fence(ret, this);
 
-  *ppFence = (void *)wrapped;
+  *ppFence = (ID3D11Fence *)wrapped;
 
   return S_OK;
 }
