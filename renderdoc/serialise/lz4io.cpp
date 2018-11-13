@@ -256,10 +256,20 @@ bool LZ4Decompressor::FillPage0()
   bool success = true;
 
   success &= m_Read->Read(compSize);
+  if(!success || compSize < 0 || compSize > (int)LZ4_COMPRESSBOUND(lz4BlockSize))
+  {
+    RDCERR("Error reading size: %i", compSize);
+    FreeAlignedBuffer(m_Page[0]);
+    FreeAlignedBuffer(m_Page[1]);
+    FreeAlignedBuffer(m_CompressBuffer);
+    m_Page[0] = m_Page[1] = m_CompressBuffer = NULL;
+    return false;
+  }
   success &= m_Read->Read(m_CompressBuffer, compSize);
 
   if(!success)
   {
+    RDCERR("Error reading block: %i", compSize);
     FreeAlignedBuffer(m_Page[0]);
     FreeAlignedBuffer(m_Page[1]);
     FreeAlignedBuffer(m_CompressBuffer);
