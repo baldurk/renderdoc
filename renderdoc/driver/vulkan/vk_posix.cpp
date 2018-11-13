@@ -301,7 +301,8 @@ string LayerRegistrationPath(LayerPath path)
       if(xdg && FileIO::exists(xdg))
         return string(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
 
-      return string(getenv("HOME")) +
+      const char *home_path = getenv("HOME");
+      return string(home_path != NULL ? home_path : "") +
              "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json";
     }
     default: break;
@@ -330,7 +331,10 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
 {
   // see if the user has suppressed all this checking as a "I know what I'm doing" measure
 
-  if(FileExists(string(getenv("HOME")) + "/.renderdoc/ignore_vulkan_layer_issues"))
+  const char *home_path = getenv("HOME");
+  if(home_path == NULL)
+    home_path = "";
+  if(FileExists(string(home_path) + "/.renderdoc/ignore_vulkan_layer_issues"))
   {
     flags = VulkanLayerFlags::ThisInstallRegistered;
     return false;
