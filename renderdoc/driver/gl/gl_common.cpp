@@ -941,9 +941,12 @@ void GLPushPopState::Push(bool modern)
 
   if(modern)
   {
-    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&ubo[0]);
-    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint *)&ubo[1]);
-    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint *)&ubo[2]);
+    // the non-indexed bind is separate from the indexed binds
+    GL.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&ubo);
+
+    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&idxubo[0]);
+    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint *)&idxubo[1]);
+    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint *)&idxubo[2]);
 
     GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
   }
@@ -1080,9 +1083,11 @@ void GLPushPopState::Pop(bool modern)
 
   if(modern)
   {
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, idxubo[0]);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, idxubo[1]);
+    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, idxubo[2]);
+
+    GL.glBindBuffer(eGL_UNIFORM_BUFFER, ubo);
 
     GL.glUseProgram(prog);
 

@@ -432,7 +432,8 @@ struct GLPushPopState
   GLenum ActiveTexture;
   GLuint tex0;
   GLuint arraybuf;
-  GLuint ubo[3];
+  GLuint idxubo[3];
+  GLuint ubo;
   GLuint prog;
   GLuint pipe;
   GLuint VAO;
