@@ -657,8 +657,10 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteS
   Android::adbForwardPorts(index, deviceID, 0, 0, false);
   Android::ResetCaptureSettings(deviceID);
 
-  // launch the first ABI, as the default 'most compatible' package
-  Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis[0]) +
+  // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
+  // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
+  // 32-bit remote server.
+  Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis.back()) +
                                         "/.Loader -e renderdoccmd remoteserver");
   return status;
 }
