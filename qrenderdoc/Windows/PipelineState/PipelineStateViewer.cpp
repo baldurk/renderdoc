@@ -1109,7 +1109,8 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
       format += QString::number(fmt.compCount);
     }
 
-    format += QFormatStr(" %1;\n").arg(QString(attrs[i].name));
+    format +=
+        QFormatStr(" %1;\n").arg(QString(attrs[i].name).replace(QLatin1Char('.'), QLatin1Char('_')));
   }
 
   if(stride > 0)
