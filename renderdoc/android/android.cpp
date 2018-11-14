@@ -328,6 +328,60 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   return ret;
 }
 
+bool CheckAndroidServerVersion(const string &deviceID, ABI abi)
+{
+  // assume all servers are updated at the same rate. Only check first ABI's version
+  std::string packageName = GetRenderDocPackageForABI(abi);
+  RDCLOG("Checking installed version of %s on %s", packageName.c_str(), deviceID.c_str());
+
+  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  if(dump.empty())
+    RDCERR("Unable to pm dump %s", packageName.c_str());
+
+  std::string versionCode = trim(GetFirstMatchingLine(dump, "versionCode="));
+  std::string versionName = trim(GetFirstMatchingLine(dump, "versionName="));
+
+  // versionCode is not alone in this line, isolate it
+  if(versionCode != "")
+  {
+    size_t spaceOffset = versionCode.find(' ');
+    versionCode.erase(spaceOffset);
+
+    versionCode.erase(0, strlen("versionCode="));
+  }
+  else
+  {
+    RDCERR("Unable to determine versionCode for: %s", packageName.c_str());
+  }
+
+  if(versionName != "")
+  {
+    versionName.erase(0, strlen("versionName="));
+  }
+  else
+  {
+    RDCERR("Unable to determine versionName for: %s", packageName.c_str());
+  }
+
+  // Compare the server's versionCode and versionName with the host's for compatibility
+  std::string hostVersionCode =
+      string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + string(STRINGIZE(RENDERDOC_VERSION_MINOR));
+  std::string hostVersionName = GitVersionHash;
+
+  // False positives will hurt us, so check for explicit matches
+  if((hostVersionCode == versionCode) && (hostVersionName == versionName))
+  {
+    RDCLOG("Installed server version (%s:%s) is compatible", versionCode.c_str(),
+           versionName.c_str());
+    return true;
+  }
+
+  RDCWARN("RenderDoc server versionCode:versionName (%s:%s) is incompatible with host (%s:%s)",
+          versionCode.c_str(), versionName.c_str(), hostVersionCode.c_str(), hostVersionName.c_str());
+
+  return false;
+}
+
 ReplayStatus InstallRenderDocServer(const std::string &deviceID)
 {
   ReplayStatus status = ReplayStatus::Succeeded;
@@ -416,12 +470,17 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
 
-    Process::ProcessResult adbCheck = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+    Process::ProcessResult adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
 
-    if(!adbCheck.strStderror.empty())
+    RDCLOG("Installed package '%s', checking for success...", apk.c_str());
+
+    bool success = CheckAndroidServerVersion(deviceID, abi);
+
+    if(!success)
     {
       status = ReplayStatus::AndroidGrantPermissionsFailed;
-      RDCLOG("Failed to install APK. stderr: %s", adbCheck.strStderror.c_str());
+      RDCLOG("Failed to install APK. stdout: %s, stderr: %s", trim(adbInstall.strStdout).c_str(),
+             trim(adbInstall.strStderror).c_str());
       RDCLOG("Retrying...");
       adbExecCommand(deviceID, "install -r \"" + apk + "\"");
     }
@@ -473,68 +532,6 @@ bool RemoveRenderDocAndroidServer(const string &deviceID)
   }
 
   return true;
-}
-
-bool CheckAndroidServerVersion(const string &deviceID)
-{
-  std::vector<ABI> abis = GetSupportedABIs(deviceID);
-
-  if(abis.empty())
-    return false;
-
-  // assume all servers are updated at the same rate. Only check first ABI's version
-  std::string packageName = GetRenderDocPackageForABI(abis[0]);
-  RDCLOG("Checking installed version of %s on %s", packageName.c_str(), deviceID.c_str());
-
-  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
-  if(dump.empty())
-    RDCERR("Unable to pm dump %s", packageName.c_str());
-
-  std::string versionCode = trim(GetFirstMatchingLine(dump, "versionCode="));
-  std::string versionName = trim(GetFirstMatchingLine(dump, "versionName="));
-
-  // versionCode is not alone in this line, isolate it
-  if(versionCode != "")
-  {
-    size_t spaceOffset = versionCode.find(' ');
-    versionCode.erase(spaceOffset);
-
-    versionCode.erase(0, strlen("versionCode="));
-  }
-  else
-  {
-    RDCERR("Unable to determine versionCode for: %s", packageName.c_str());
-  }
-
-  if(versionName != "")
-  {
-    versionName.erase(0, strlen("versionName="));
-  }
-  else
-  {
-    RDCERR("Unable to determine versionName for: %s", packageName.c_str());
-  }
-
-  // Compare the server's versionCode and versionName with the host's for compatibility
-  std::string hostVersionCode =
-      string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + string(STRINGIZE(RENDERDOC_VERSION_MINOR));
-  std::string hostVersionName = GitVersionHash;
-
-  // False positives will hurt us, so check for explicit matches
-  if((hostVersionCode == versionCode) && (hostVersionName == versionName))
-  {
-    RDCLOG("Installed server version (%s:%s) is compatible", versionCode.c_str(),
-           versionName.c_str());
-    return true;
-  }
-
-  RDCWARN("RenderDoc server versionCode:versionName (%s:%s) is incompatible with host (%s:%s)",
-          versionCode.c_str(), versionName.c_str(), hostVersionCode.c_str(), hostVersionName.c_str());
-
-  if(RemoveRenderDocAndroidServer(deviceID))
-    RDCLOG("Uninstall of incompatible server succeeded");
-
-  return false;
 }
 
 void ResetCaptureSettings(const std::string &deviceID)
@@ -636,8 +633,21 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteS
 
   std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
 
-  if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID))
+  if(abis.empty())
+    return ReplayStatus::UnknownError;
+
+  // assume all servers are updated at the same rate. Only check first ABI's version
+  if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID, abis[0]))
   {
+    // if there was any existing package, remove it
+    if(!packages.empty())
+    {
+      if(Android::RemoveRenderDocAndroidServer(deviceID))
+        RDCLOG("Uninstall of old server succeeded");
+      else
+        RDCERR("Uninstall of old server failed");
+    }
+
     // If server is not detected or has been removed due to incompatibility, install it
     status = Android::InstallRenderDocServer(deviceID);
     if(status != ReplayStatus::Succeeded && status != ReplayStatus::AndroidGrantPermissionsFailed)
