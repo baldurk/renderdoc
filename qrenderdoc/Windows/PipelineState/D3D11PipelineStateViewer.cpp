@@ -1488,6 +1488,10 @@ void D3D11PipelineStateViewer::setState()
 
       ui->iaBuffers->addTopLevelItem(node);
     }
+    else
+    {
+      m_VBNodes.push_back(NULL);
+    }
   }
   ui->iaBuffers->clearSelection();
   ui->iaBuffers->endUpdate();
@@ -2286,7 +2290,7 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
   {
     RDTreeWidgetItem *item = m_VBNodes[(int)slot];
 
-    if(!m_EmptyNodes.contains(item))
+    if(item && !m_EmptyNodes.contains(item))
     {
       item->setBackgroundColor(col);
       item->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));

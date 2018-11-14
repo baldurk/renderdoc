@@ -1410,6 +1410,10 @@ void GLPipelineStateViewer::setState()
 
       ui->viBuffers->addTopLevelItem(node);
     }
+    else
+    {
+      m_VBNodes.push_back(NULL);
+    }
   }
   ui->viBuffers->clearSelection();
   ui->viBuffers->endUpdate();
@@ -2253,7 +2257,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
   if(slot < m_VBNodes.count())
   {
-    if(!m_EmptyNodes.contains(m_VBNodes[slot]))
+    if(m_VBNodes[slot] && !m_EmptyNodes.contains(m_VBNodes[slot]))
     {
       m_VBNodes[slot]->setBackgroundColor(col);
       m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));

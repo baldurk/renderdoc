@@ -1472,6 +1472,10 @@ void D3D12PipelineStateViewer::setState()
 
         ui->iaBuffers->addTopLevelItem(node);
       }
+      else
+      {
+        m_VBNodes.push_back(NULL);
+      }
 
       continue;
     }
@@ -1513,6 +1517,10 @@ void D3D12PipelineStateViewer::setState()
       m_VBNodes.push_back(node);
 
       ui->iaBuffers->addTopLevelItem(node);
+    }
+    else
+    {
+      m_VBNodes.push_back(NULL);
     }
   }
   ui->iaBuffers->clearSelection();
@@ -2130,7 +2138,7 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 
   if(slot < m_VBNodes.count())
   {
-    if(!m_EmptyNodes.contains(m_VBNodes[slot]))
+    if(m_VBNodes[slot] && !m_EmptyNodes.contains(m_VBNodes[slot]))
     {
       m_VBNodes[slot]->setBackgroundColor(col);
       m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
