@@ -928,7 +928,7 @@ private:
     else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
     {
       int i = v.toInt();
-      if(i > 0)
+      if(i >= 0)
         ret = lit(" ") + Formatter::Format(i);
       else
         ret = Formatter::Format(i);
