@@ -55,7 +55,7 @@ public:
 void WGLHook::PopulateFromContext(HDC dc, HGLRC rc)
 {
   SetDriverForHooks(&driver);
-  EnableHooks();
+  EnableGLHooks();
 
   // called from wglCreate*Context*, to populate GL functions as soon as possible by making a new
   // context current and fetching our function pointers

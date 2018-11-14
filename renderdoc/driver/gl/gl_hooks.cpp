@@ -105,7 +105,7 @@ void SetDriverForHooks(WrappedOpenGL *driver)
 }
 
 #if ENABLED(RDOC_WIN32)
-void EnableHooks()
+void EnableGLHooks()
 {
   glhook.enabled = true;
 }

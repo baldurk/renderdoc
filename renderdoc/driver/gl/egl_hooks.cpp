@@ -193,6 +193,7 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
 
   eglhook.configs[ret] = config;
 
+  EnableGLHooks();
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
   {
     SCOPED_LOCK(glLock);

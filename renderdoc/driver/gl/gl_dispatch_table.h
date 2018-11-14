@@ -970,7 +970,9 @@ void SetDriverForHooks(WrappedOpenGL *driver);
 // intialisation. This can have false positives if the program creates a context late, but it's the
 // best we can do.
 #if ENABLED(RDOC_WIN32)
-void EnableHooks();
+void EnableGLHooks();
+#else
+#define EnableGLHooks() (void)0
 #endif
 
 // this function looks up our list of hook entry points and returns our hook entry point instead of
