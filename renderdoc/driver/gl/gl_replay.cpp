@@ -223,14 +223,51 @@ void GLReplay::SetReplayData(GLWindowingData data)
 
   AMDCounters *counters = NULL;
 
-  if(m_Vendor == GPUVendor::AMD)
+  bool isMesa = false;
+
+  // try to identify mesa - don't enable any IHV counters when running mesa.
   {
-    RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-    counters = new AMDCounters();
+    WrappedOpenGL &drv = *m_pDriver;
+
+    const char *version = (const char *)drv.glGetString(eGL_VERSION);
+    const char *vendor = (const char *)drv.glGetString(eGL_VENDOR);
+    const char *renderer = (const char *)drv.glGetString(eGL_RENDERER);
+
+    for(std::string haystack : {strlower(version), strlower(vendor), strlower(renderer)})
+    {
+      haystack = " " + haystack + " ";
+
+      // the version should always contain 'mesa', but it's also commonly present in either vendor
+      // or renderer - except for nouveau which we look for separately
+      for(const char *needle : {" mesa ", "nouveau"})
+      {
+        if(haystack.find(needle) != std::string::npos)
+        {
+          isMesa = true;
+          break;
+        }
+      }
+
+      if(isMesa)
+        break;
+    }
+  }
+
+  if(isMesa)
+  {
+    RDCLOG("Mesa driver detected - skipping IHV counter initialisation");
   }
   else
   {
-    RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+    if(m_Vendor == GPUVendor::AMD)
+    {
+      RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+      counters = new AMDCounters();
+    }
+    else
+    {
+      RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+    }
   }
 
   if(counters && counters->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
