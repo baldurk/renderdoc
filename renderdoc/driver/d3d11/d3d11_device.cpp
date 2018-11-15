@@ -398,6 +398,10 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   static const GUID ID3D10Device_uuid = {
       0x9b7e4c0f, 0x342c, 0x4106, {0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0}};
 
+  // ID3D12Device UUID {189819f1-1db6-4b57-be54-1821339b85f7}
+  static const GUID ID3D12Device_uuid = {
+      0x189819f1, 0x1db6, 0x4b57, {0xbe, 0x54, 0x18, 0x21, 0x33, 0x9b, 0x85, 0xf7}};
+
   // ID3D11ShaderTraceFactory UUID {1fbad429-66ab-41cc-9617-667ac10e4459}
   static const GUID ID3D11ShaderTraceFactory_uuid = {
       0x1fbad429, 0x66ab, 0x41cc, {0x96, 0x17, 0x66, 0x7a, 0xc1, 0x0e, 0x44, 0x59}};
@@ -491,6 +495,12 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   else if(riid == ID3D10Device_uuid)
   {
     RDCWARN("Trying to get ID3D10Device - not supported.");
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
+  }
+  else if(riid == ID3D12Device_uuid)
+  {
+    RDCWARN("Trying to get ID3D12Device - not supported.");
     *ppvObject = NULL;
     return E_NOINTERFACE;
   }
@@ -639,6 +649,24 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     AddRef();
     *ppvObject = (IUnknown *)this;
     return S_OK;
+  }
+  else if(riid == __uuidof(ID3D11VideoDevice))
+  {
+    RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
+  }
+  else if(riid == __uuidof(ID3D11VideoDevice1))
+  {
+    RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
+  }
+  else if(riid == __uuidof(ID3D11VideoDevice2))
+  {
+    RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
   }
   else
   {
