@@ -87,7 +87,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     // IDXGIFactory1 like a IDXGIFactory should all just work by definition, but there's no way to
     // know now if someone trying to create a IDXGIFactory really means it or not.
     IDXGIFactory *real = (IDXGIFactory *)(*ppvObject);
-    *ppvObject = (IDXGIFactory *)(new WrappedIDXGIFactory5(real));
+    *ppvObject = (IDXGIFactory *)(new WrappedIDXGIFactory(real));
     return true;
   }
 
@@ -106,7 +106,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIFactory1))
   {
     IDXGIFactory1 *real = (IDXGIFactory1 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory1 *)(new WrappedIDXGIFactory5(real));
+    *ppvObject = (IDXGIFactory1 *)(new WrappedIDXGIFactory(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIAdapter2))
@@ -124,25 +124,37 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIFactory2))
   {
     IDXGIFactory2 *real = (IDXGIFactory2 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory2 *)(new WrappedIDXGIFactory5(real));
+    *ppvObject = (IDXGIFactory2 *)(new WrappedIDXGIFactory(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory3))
   {
     IDXGIFactory3 *real = (IDXGIFactory3 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory3 *)(new WrappedIDXGIFactory5(real));
+    *ppvObject = (IDXGIFactory3 *)(new WrappedIDXGIFactory(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory4))
   {
     IDXGIFactory4 *real = (IDXGIFactory4 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory4 *)(new WrappedIDXGIFactory5(real));
+    *ppvObject = (IDXGIFactory4 *)(new WrappedIDXGIFactory(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory5))
   {
     IDXGIFactory5 *real = (IDXGIFactory5 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory5 *)(new WrappedIDXGIFactory5(real));
+    *ppvObject = (IDXGIFactory5 *)(new WrappedIDXGIFactory(real));
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIFactory6))
+  {
+    IDXGIFactory6 *real = (IDXGIFactory6 *)(*ppvObject);
+    *ppvObject = (IDXGIFactory6 *)(new WrappedIDXGIFactory(real));
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIFactory7))
+  {
+    IDXGIFactory7 *real = (IDXGIFactory7 *)(*ppvObject);
+    *ppvObject = (IDXGIFactory7 *)(new WrappedIDXGIFactory(real));
     return true;
   }
   else if(riid == ID3D10Texture2D_uuid)
@@ -890,7 +902,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::ReclaimResources1(UINT NumResourc
   return m_pReal4->ReclaimResources1(NumResources, resources.data(), pResults);
 }
 
-WrappedIDXGIFactory5::WrappedIDXGIFactory5(IDXGIFactory *real)
+WrappedIDXGIFactory::WrappedIDXGIFactory(IDXGIFactory *real)
     : RefCountDXGIObject(real), m_pReal(real)
 {
   m_pReal1 = NULL;
@@ -903,19 +915,25 @@ WrappedIDXGIFactory5::WrappedIDXGIFactory5(IDXGIFactory *real)
   real->QueryInterface(__uuidof(IDXGIFactory4), (void **)&m_pReal4);
   m_pReal5 = NULL;
   real->QueryInterface(__uuidof(IDXGIFactory5), (void **)&m_pReal5);
+  m_pReal6 = NULL;
+  real->QueryInterface(__uuidof(IDXGIFactory6), (void **)&m_pReal6);
+  m_pReal7 = NULL;
+  real->QueryInterface(__uuidof(IDXGIFactory7), (void **)&m_pReal7);
 }
 
-WrappedIDXGIFactory5::~WrappedIDXGIFactory5()
+WrappedIDXGIFactory::~WrappedIDXGIFactory()
 {
   SAFE_RELEASE(m_pReal1);
   SAFE_RELEASE(m_pReal2);
   SAFE_RELEASE(m_pReal3);
   SAFE_RELEASE(m_pReal4);
   SAFE_RELEASE(m_pReal5);
+  SAFE_RELEASE(m_pReal6);
+  SAFE_RELEASE(m_pReal7);
   SAFE_RELEASE(m_pReal);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory5::QueryInterface(REFIID riid, void **ppvObject)
+HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IDXGIFactory))
   {
@@ -988,6 +1006,32 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory5::QueryInterface(REFIID riid, void
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(IDXGIFactory6))
+  {
+    if(m_pReal6)
+    {
+      AddRef();
+      *ppvObject = (IDXGIFactory6 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIFactory7))
+  {
+    if(m_pReal7)
+    {
+      AddRef();
+      *ppvObject = (IDXGIFactory7 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else
   {
     WarnUnknownGUID("IDXGIFactory", riid);
@@ -996,8 +1040,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory5::QueryInterface(REFIID riid, void
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
 
-HRESULT WrappedIDXGIFactory5::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
-                                              IDXGISwapChain **ppSwapChain)
+HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
+                                             IDXGISwapChain **ppSwapChain)
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
@@ -1024,7 +1068,7 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN
   return m_pReal->CreateSwapChain(pDevice, pDesc, ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory5::CreateSwapChainForHwnd(
+HRESULT WrappedIDXGIFactory::CreateSwapChainForHwnd(
     IUnknown *pDevice, HWND hWnd, const DXGI_SWAP_CHAIN_DESC1 *pDesc,
     const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc, IDXGIOutput *pRestrictToOutput,
     IDXGISwapChain1 **ppSwapChain)
@@ -1060,10 +1104,10 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForHwnd(
                                           ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IUnknown *pWindow,
-                                                           const DXGI_SWAP_CHAIN_DESC1 *pDesc,
-                                                           IDXGIOutput *pRestrictToOutput,
-                                                           IDXGISwapChain1 **ppSwapChain)
+HRESULT WrappedIDXGIFactory::CreateSwapChainForCoreWindow(IUnknown *pDevice, IUnknown *pWindow,
+                                                          const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+                                                          IDXGIOutput *pRestrictToOutput,
+                                                          IDXGISwapChain1 **ppSwapChain)
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
@@ -1100,10 +1144,10 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
                                                 ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory5::CreateSwapChainForComposition(IUnknown *pDevice,
-                                                            const DXGI_SWAP_CHAIN_DESC1 *pDesc,
-                                                            IDXGIOutput *pRestrictToOutput,
-                                                            IDXGISwapChain1 **ppSwapChain)
+HRESULT WrappedIDXGIFactory::CreateSwapChainForComposition(IUnknown *pDevice,
+                                                           const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+                                                           IDXGIOutput *pRestrictToOutput,
+                                                           IDXGISwapChain1 **ppSwapChain)
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
