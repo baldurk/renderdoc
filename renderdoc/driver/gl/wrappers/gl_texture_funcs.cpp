@@ -2341,6 +2341,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
     internalformat = intFmt;
 
     ResourceId liveId = GetResourceManager()->GetID(texture);
+
+    uint32_t mipsValid = m_Textures[liveId].mipsValid;
     m_Textures[liveId].mipsValid |= 1 << level;
 
     if(level == 0)    // assume level 0 will always get a glTexImage call
@@ -2367,12 +2369,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 
-    if(TextureBinding(target) != eGL_TEXTURE_BINDING_CUBE_MAP)
-    {
-      GL.glTextureImage2DEXT(texture.name, target, level, internalformat, width, height, border,
-                             format, type, pixels);
-    }
-    else
+    if(TextureBinding(target) == eGL_TEXTURE_BINDING_CUBE_MAP &&
+       mipsValid != m_Textures[liveId].mipsValid)
     {
       GLenum ts[] = {
           eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -2381,8 +2379,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
       };
 
       // special case handling for cubemaps, as we might have skipped the 'allocation' teximage
-      // chunks to avoid
-      // serialising tons of 'data upload' teximage chunks. Sigh.
+      // chunks to avoid serialising tons of 'data upload' teximage chunks. Sigh.
       // Any further chunks & initial data can overwrite this, but cubemaps must be square so all
       // parameters will be the same.
       for(size_t i = 0; i < ARRAY_COUNT(ts); i++)
@@ -2390,6 +2387,11 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
         GL.glTextureImage2DEXT(texture.name, ts[i], level, internalformat, width, height, border,
                                format, type, pixels);
       }
+    }
+    else
+    {
+      GL.glTextureImage2DEXT(texture.name, target, level, internalformat, width, height, border,
+                             format, type, pixels);
     }
 
     if(unpackbuf)
@@ -3148,6 +3150,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     }
 
     ResourceId liveId = GetResourceManager()->GetID(texture);
+
+    uint32_t mipsValid = m_Textures[liveId].mipsValid;
     m_Textures[liveId].mipsValid |= 1 << level;
 
     if(level == 0)    // assume level 0 will always get a glTexImage call
@@ -3172,12 +3176,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     GL.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 
-    if(TextureBinding(target) != eGL_TEXTURE_BINDING_CUBE_MAP)
-    {
-      GL.glCompressedTextureImage2DEXT(texture.name, target, level, internalformat, width, height,
-                                       border, imageSize, databuf);
-    }
-    else
+    if(TextureBinding(target) == eGL_TEXTURE_BINDING_CUBE_MAP &&
+       mipsValid != m_Textures[liveId].mipsValid)
     {
       GLenum ts[] = {
           eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -3194,6 +3194,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
         GL.glCompressedTextureImage2DEXT(texture.name, ts[i], level, internalformat, width, height,
                                          border, imageSize, databuf);
       }
+    }
+    else
+    {
+      GL.glCompressedTextureImage2DEXT(texture.name, target, level, internalformat, width, height,
+                                       border, imageSize, databuf);
     }
 
     if(unpackbuf)
