@@ -3,7 +3,7 @@
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
- /* File created by MIDL compiler version 8.01.0618 */
+ /* File created by MIDL compiler version 8.01.0622 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 
@@ -986,6 +986,8 @@ DEFINE_GUID(WKPDID_CommentStringW,0xd0149dc0,0x90e8,0x4ec8,0x81, 0x44, 0xe9, 0x0
 #define D3D_COMPONENT_MASK_Y   2
 #define D3D_COMPONENT_MASK_Z   4
 #define D3D_COMPONENT_MASK_W   8
+DEFINE_GUID(D3D_TEXTURE_LAYOUT_ROW_MAJOR,0xb5dc234f,0x72bb,0x4bec,0x97,0x05,0x8c,0xf2,0x58,0xdf,0x6b,0x6c);
+DEFINE_GUID(D3D_TEXTURE_LAYOUT_64KB_STANDARD_SWIZZLE,0x4c0f29e3,0x3f5f,0x4d35,0x84,0xc9,0xbc,0x09,0x83,0xb6,0x2c,0x28);
 
 
 extern RPC_IF_HANDLE __MIDL_itf_d3dcommon_0000_0002_v0_0_c_ifspec;

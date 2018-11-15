@@ -51,6 +51,9 @@
     <ClInclude Include="..\dx\official\dxgi1_6.h">
       <Filter>official</Filter>
     </ClInclude>
+    <ClInclude Include="..\dx\official\dxgicommon.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="official">
