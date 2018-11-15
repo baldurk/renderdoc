@@ -260,6 +260,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   {
     m_pDevice->QueryInterface(__uuidof(ID3D12InfoQueue), (void **)&m_pInfoQueue);
     m_pDevice->QueryInterface(__uuidof(ID3D12DebugDevice), (void **)&m_WrappedDebug.m_pDebug);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DebugDevice1), (void **)&m_WrappedDebug.m_pDebug1);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DebugDevice2), (void **)&m_WrappedDebug.m_pDebug2);
   }
 
   if(m_pInfoQueue)
@@ -369,6 +371,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_RELEASE(m_pInfoQueue);
   SAFE_RELEASE(m_WrappedDebug.m_pDebug);
+  SAFE_RELEASE(m_WrappedDebug.m_pDebug1);
+  SAFE_RELEASE(m_WrappedDebug.m_pDebug2);
   SAFE_RELEASE(m_pDevice);
 
   for(size_t i = 0; i < m_ThreadSerialisers.size(); i++)

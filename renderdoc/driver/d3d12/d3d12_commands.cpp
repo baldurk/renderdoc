@@ -785,6 +785,8 @@ WrappedID3D12GraphicsCommandList2::WrappedID3D12GraphicsCommandList2(ID3D12Graph
   if(m_pList)
   {
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
+    m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList1), (void **)&m_WrappedDebug.m_pReal1);
+    m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList2), (void **)&m_WrappedDebug.m_pReal2);
 
     m_pList1 = NULL;
     m_pList2 = NULL;
@@ -862,6 +864,8 @@ WrappedID3D12GraphicsCommandList2::~WrappedID3D12GraphicsCommandList2()
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
 
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
+  SAFE_RELEASE(m_WrappedDebug.m_pReal1);
+  SAFE_RELEASE(m_WrappedDebug.m_pReal2);
   SAFE_RELEASE(m_pList2);
   SAFE_RELEASE(m_pList1);
   SAFE_RELEASE(m_pList);

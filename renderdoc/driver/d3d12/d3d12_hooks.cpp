@@ -53,7 +53,13 @@ ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 }
 
 // dummy class to present to the user, while we maintain control
-class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>, public ID3D12Debug, public ID3D12Debug1
+//
+// The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
+// parent classes
+class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>,
+                           public ID3D12Debug3,
+                           public ID3D12Debug1,
+                           public ID3D12Debug2
 {
 public:
   WrappedID3D12Debug() : RefCounter12(NULL) {}
@@ -82,17 +88,33 @@ public:
       AddRef();
       return S_OK;
     }
+    if(riid == __uuidof(ID3D12Debug2))
+    {
+      *ppvObject = (ID3D12Debug2 *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12Debug3))
+    {
+      *ppvObject = (ID3D12Debug3 *)this;
+      AddRef();
+      return S_OK;
+    }
 
     return E_NOINTERFACE;
   }
 
   //////////////////////////////
-  // Implement ID3D12Debug
+  // Implement ID3D12Debug / ID3D12Debug1
   virtual void STDMETHODCALLTYPE EnableDebugLayer() {}
   //////////////////////////////
-  // Implement ID3D12Debug1
+  // Implement ID3D12Debug1 / ID3D12Debug3
   virtual void STDMETHODCALLTYPE SetEnableGPUBasedValidation(BOOL Enable) {}
   virtual void STDMETHODCALLTYPE SetEnableSynchronizedCommandQueueValidation(BOOL Enable) {}
+  // Implement ID3D12Debug2 / ID3D12Debug3
+  virtual void STDMETHODCALLTYPE SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS Flags)
+  {
+  }
 };
 
 class D3D12Hook : LibraryHook
@@ -292,6 +314,26 @@ private:
   {
     if(riid != __uuidof(ID3D12Debug))
     {
+      *ppvDebug = (ID3D12Debug *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid != __uuidof(ID3D12Debug1))
+    {
+      *ppvDebug = (ID3D12Debug1 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid != __uuidof(ID3D12Debug2))
+    {
+      *ppvDebug = (ID3D12Debug2 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid != __uuidof(ID3D12Debug3))
+    {
+      *ppvDebug = (ID3D12Debug3 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else
+    {
       IUnknown *releaseme = NULL;
       HRESULT real = d3d12hooks.GetDebugInterface()(riid, (void **)&releaseme);
 
@@ -303,9 +345,6 @@ private:
 
       return E_NOINTERFACE;
     }
-
-    *ppvDebug = (ID3D12Debug *)(new WrappedID3D12Debug());
-    return S_OK;
   }
 };
 

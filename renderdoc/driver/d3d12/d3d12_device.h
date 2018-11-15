@@ -163,10 +163,16 @@ class WrappedID3D12Device;
 // We can pass through all calls to ID3D12DebugDevice without intercepting, this
 // struct isonly here so that we can intercept QueryInterface calls to return
 // ID3D11InfoQueue
-struct WrappedID3D12DebugDevice : public ID3D12DebugDevice
+//
+// The inheritance is awful for these classes. ID3D12DebugDevice2 inherits from ID3D12DebugDevice
+// but ID3D12DebugDevice1 is separate entirely, although its functions overlap with
+// ID3D12DebugDevice2 and ID3D12DebugDevice
+struct WrappedID3D12DebugDevice : public ID3D12DebugDevice2, public ID3D12DebugDevice1
 {
   WrappedID3D12Device *m_pDevice;
   ID3D12DebugDevice *m_pDebug;
+  ID3D12DebugDevice1 *m_pDebug1;
+  ID3D12DebugDevice2 *m_pDebug2;
 
   WrappedID3D12DebugDevice() : m_pDevice(NULL), m_pDebug(NULL) {}
   //////////////////////////////
@@ -189,7 +195,32 @@ struct WrappedID3D12DebugDevice : public ID3D12DebugDevice
 
   virtual HRESULT STDMETHODCALLTYPE ReportLiveDeviceObjects(D3D12_RLDO_FLAGS Flags)
   {
-    return m_pDebug->ReportLiveDeviceObjects(Flags);
+    if(m_pDebug)
+      return m_pDebug->ReportLiveDeviceObjects(Flags);
+    else
+      return m_pDebug1->ReportLiveDeviceObjects(Flags);
+  }
+
+  //////////////////////////////
+  // implement ID3D12DebugDevice1 / ID3D12DebugDevice2
+  virtual HRESULT STDMETHODCALLTYPE SetDebugParameter(D3D12_DEBUG_DEVICE_PARAMETER_TYPE Type,
+                                                      _In_reads_bytes_(DataSize) const void *pData,
+                                                      UINT DataSize)
+  {
+    if(m_pDebug1)
+      return m_pDebug1->SetDebugParameter(Type, pData, DataSize);
+    else
+      return m_pDebug2->SetDebugParameter(Type, pData, DataSize);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetDebugParameter(D3D12_DEBUG_DEVICE_PARAMETER_TYPE Type,
+                                                      _Out_writes_bytes_(DataSize) void *pData,
+                                                      UINT DataSize)
+  {
+    if(m_pDebug1)
+      return m_pDebug1->GetDebugParameter(Type, pData, DataSize);
+    else
+      return m_pDebug2->GetDebugParameter(Type, pData, DataSize);
   }
 };
 
@@ -197,7 +228,10 @@ struct WrappedID3D12DebugDevice : public ID3D12DebugDevice
 // Same idea as DummyID3D12InfoQueue above, a dummy interface so that users
 // expecting a ID3D12DebugDevice don't get confused if we have turned off the debug
 // layer and can't return the real one.
-struct DummyID3D12DebugDevice : public ID3D12DebugDevice
+//
+// The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
+// parent classes
+struct DummyID3D12DebugDevice : public ID3D12DebugDevice2, public ID3D12DebugDevice1
 {
   WrappedID3D12Device *m_pDevice;
 
@@ -217,6 +251,21 @@ struct DummyID3D12DebugDevice : public ID3D12DebugDevice
   }
 
   virtual HRESULT STDMETHODCALLTYPE ReportLiveDeviceObjects(D3D12_RLDO_FLAGS Flags) { return S_OK; }
+  //////////////////////////////
+  // implement ID3D12DebugDevice1 / ID3D12DebugDevice2
+  virtual HRESULT STDMETHODCALLTYPE SetDebugParameter(D3D12_DEBUG_DEVICE_PARAMETER_TYPE Type,
+                                                      _In_reads_bytes_(DataSize) const void *pData,
+                                                      UINT DataSize)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetDebugParameter(D3D12_DEBUG_DEVICE_PARAMETER_TYPE Type,
+                                                      _Out_writes_bytes_(DataSize) void *pData,
+                                                      UINT DataSize)
+  {
+    return S_OK;
+  }
 };
 
 class WrappedID3D12CommandQueue;

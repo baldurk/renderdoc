@@ -33,10 +33,14 @@
 struct IAmdExtD3DCommandListMarker;
 class WrappedID3D12GraphicsCommandList2;
 
-struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList
+// The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
+// parent classes
+struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID3D12DebugCommandList1
 {
   WrappedID3D12GraphicsCommandList2 *m_pList;
   ID3D12DebugCommandList *m_pReal;
+  ID3D12DebugCommandList1 *m_pReal1;
+  ID3D12DebugCommandList2 *m_pReal2;
 
   WrappedID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL) {}
   //////////////////////////////
@@ -79,6 +83,31 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList
     if(m_pReal)
       return m_pReal->GetFeatureMask();
     return D3D12_DEBUG_FEATURE_NONE;
+  }
+
+  //////////////////////////////
+  // implement ID3D12DebugCommandList1 / ID3D12DebugCommandList2
+
+  virtual HRESULT STDMETHODCALLTYPE SetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type,
+                                                      _In_reads_bytes_(DataSize) const void *pData,
+                                                      UINT DataSize)
+  {
+    if(m_pReal1)
+      return m_pReal1->SetDebugParameter(Type, pData, DataSize);
+    if(m_pReal2)
+      return m_pReal2->SetDebugParameter(Type, pData, DataSize);
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type,
+                                                      _Out_writes_bytes_(DataSize) void *pData,
+                                                      UINT DataSize)
+  {
+    if(m_pReal1)
+      return m_pReal1->GetDebugParameter(Type, pData, DataSize);
+    if(m_pReal2)
+      return m_pReal2->GetDebugParameter(Type, pData, DataSize);
+    return S_OK;
   }
 };
 
